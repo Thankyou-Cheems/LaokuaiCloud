@@ -156,3 +156,40 @@ test("pure voice participants do not reserve a large media placeholder", async (
   await expect(panel).toHaveCount(1);
   await expect.poll(() => panel.evaluate(node => node.getBoundingClientRect().width)).toBeLessThan(1);
 });
+
+for (const action of ["close", "remove"]) test(`narrow fullscreen exits on overlay ${action}`, async ({ page }) => {
+  await page.goto("/e2e/room-layout-harness.html?narrow");
+  await page.getByRole("button", { name: "camera", exact: true }).click();
+  await page.locator('[data-gryt="conversation-pane"] button').last().click();
+  await page.locator('[data-gryt="narrow-media"] [data-gryt="media-actions"] button').first().click();
+  await expect.poll(() => page.evaluate(() => Boolean(document.fullscreenElement))).toBe(true);
+  if (action === "close") await page.getByRole("button", { name: "关闭媒体区域" }).click();
+  else await page.evaluate(() => [...document.querySelectorAll<HTMLButtonElement>('[data-testid="fixture-tools"] button')].find(button => button.textContent === "remove")!.click());
+  await expect.poll(() => page.evaluate(() => document.fullscreenElement === null)).toBe(true);
+  await expect(page.locator('[data-gryt="conversation-pane"]')).toBeVisible();
+});
+
+test("fullscreen volume popover stays in the fullscreen tree and is operable", async ({ page }) => {
+  await page.goto("/e2e/room-layout-harness.html");
+  await page.getByRole("button", { name: "camera", exact: true }).click();
+  await page.locator('[data-gryt="media-actions"] button').first().click();
+  await expect.poll(() => page.evaluate(() => Boolean(document.fullscreenElement))).toBe(true);
+  await page.locator('[data-gryt="room-call-bar"]').getByRole("button", { name: "调节总接收音量", exact: true }).click();
+  const slider = page.getByRole("slider", { name: "总接收音量", exact: true });
+  await expect(slider).toBeVisible();
+  expect(await slider.evaluate(node => document.fullscreenElement!.contains(node))).toBe(true);
+  await slider.press("Home"); await expect(slider).toHaveAttribute("aria-valuenow", "0");
+  await slider.press("Escape");
+});
+
+test("pure voice alone-call countdown and stay action remain in the persistent bar", async ({ page }) => {
+  await page.clock.install();
+  await page.goto("/e2e/room-layout-harness.html?narrow&alone");
+  const bar = page.locator('[data-gryt="room-call-bar"]');
+  await expect(bar).toBeVisible();
+  await page.clock.runFor(95_000);
+  await expect(bar.getByRole("button", { name: /留在|继续.*通话/ })).toBeVisible();
+  await bar.getByRole("button", { name: /留在|继续.*通话/ }).click();
+  await expect(bar.getByRole("button", { name: /留在|继续.*通话/ })).toHaveCount(0);
+  await expect(page.getByTestId("leave-count")).toHaveText("0");
+});

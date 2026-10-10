@@ -17,6 +17,11 @@ export function VoiceSheetButton({ connected, ...voice }: { connected: boolean }
   const hasMedia = useRoomMedia(voice);
   useEffect(() => { setRoom(anchor.current?.closest<HTMLElement>('[data-gryt="server-view"]') ?? null); }, []);
   useEffect(() => { if (!connected || !hasMedia) setOpen(false); }, [connected, hasMedia]);
+  useEffect(() => {
+    if (!open || !room) return;
+    // The room owns fullscreen, so removing the portaled media does not release it.
+    return () => { if (document.fullscreenElement === room) void document.exitFullscreen().catch(() => {}); };
+  }, [open, room]);
   return <span ref={anchor}>
     {connected && hasMedia && !open && <IconButton size="small"
       aria-label={t("socketFull.voiceSheetButton_dd8f227c3e")} onClick={() => setOpen(true)}

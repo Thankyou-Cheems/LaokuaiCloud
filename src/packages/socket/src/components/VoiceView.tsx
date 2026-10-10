@@ -15,7 +15,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { Button, IconButton, Tooltip } from "@gryt/ui";
 import type { StreamSources } from "@gryt/voice";
-import { useCamera as useLocalCamera, useMicrophone, useScreenShare as useLocalScreenShare, useSFU, useVoiceLatency } from "@gryt/voice";
+import { useCamera as useLocalCamera, useMicrophone, useScreenShare as useLocalScreenShare, useVoiceLatency } from "@gryt/voice";
 import { AnimatePresence, motion } from "motion/react";
 import type { CSSProperties, ReactNode } from "react";
 import {
@@ -34,7 +34,6 @@ import { setReceiveAudioGain } from "@/lib/receiveAudio";
 import { useSettings } from "@/settings";
 
 import { PiArrowLineLeftFill, PiArrowLineRightFill, PiChatCircleFill, PiCornersInFill, PiCornersOutFill, PiMicrophoneSlashFill, PiVideoCameraSlashFill } from "../../../../lib/icons";
-import { useAloneInCall } from "../hooks/useAloneInCall";
 import type { PeerLatencyStats } from "../hooks/usePeerLatency";
 import { usePopoutStreams } from "../hooks/usePopoutStreams";
 import { useRoomMedia } from "../hooks/useRoomMedia";
@@ -260,8 +259,6 @@ export const VoiceView = ({
   clientsSpeaking,
   isConnecting,
   currentConnectionId,
-  isCall,
-  onDisconnect,
   peerLatency,
   onDisconnectUser,
   isDragging,
@@ -505,11 +502,12 @@ export const VoiceView = ({
 
   useEffect(() => {
     const sync = () =>
-      setIsFullscreen(Boolean(document.fullscreenElement?.contains(panelRef.current)));
+      setIsFullscreen(Boolean(showVoiceView && hasMedia && document.fullscreenElement?.contains(panelRef.current)));
 
     document.addEventListener("fullscreenchange", sync);
+    sync();
     return () => document.removeEventListener("fullscreenchange", sync);
-  }, []);
+  }, [showVoiceView, hasMedia]);
 
   const toggleFullscreen = useCallback(() => {
     if (document.fullscreenElement) {
@@ -558,28 +556,6 @@ export const VoiceView = ({
       return isInThisChannel || isUserConnecting;
     });
   }, [clientsForHost, currentServerConnected, serverHost, currentConnectionId, isConnecting, currentChannelId]);
-
-  /** Counts `visibleClients`, so this means the same as "the panel is drawing one
-      tile". Not while connecting, where the tile is your own placeholder. */
-  const aloneInCall = Boolean(isCall) && !isConnecting && visibleClients.length === 1;
-
-  /** The SFU's own timeout, so the countdown is its clock rather than a copy of
-      its default. Undefined against an older SFU. */
-  const { callAloneTimeoutSeconds, stillHere } = useSFU();
-
-  const { secondsLeft, stay } = useAloneInCall({
-    inACall: Boolean(isCall),
-    alone: aloneInCall,
-    aloneSeconds: callAloneTimeoutSeconds,
-    onEnd: () => onDisconnect?.(),
-  });
-
-  /** Two clocks that do not talk to each other, so missing either leaves a
-      button that looks like it worked. */
-  const stayInCall = useCallback(() => {
-    stillHere?.();
-    stay();
-  }, [stillHere, stay]);
 
   const fallbackCameraStreamIdByClientId = useMemo(() => {
     const result: Record<string, string> = {};
@@ -1219,22 +1195,6 @@ export const VoiceView = ({
           background: "var(--gryt-neutral-3)",
           borderRadius: "var(--gryt-radius-lg)",
         }}>
-        {secondsLeft === null ? null : (
-          <div
-            aria-live="polite"
-            className="mb-2 flex items-center justify-between gap-3 rounded px-3 py-2 text-xs"
-            style={{
-              background: "var(--gryt-neutral-4)",
-              color: "var(--gryt-neutral-11)",
-            }}
-          >
-            <span>
-              {tr("ui.youReTheOnlyOneHereEndingThe")} {secondsLeft}{socketI18n.t("socketFull.voiceView_d30a6d5556")}</span>
-            <Button tone="neutral" size="xsmall" onClick={stayInCall}>
-              {tr("ui.stayInTheCall")}
-            </Button>
-          </div>
-        )}
         <div
           ref={gridRef}
           style={{

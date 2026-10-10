@@ -18,7 +18,7 @@ import { useChannelSidebarWidth } from "../src/packages/socket/src/hooks/useChan
 import type { Client } from "../src/packages/socket/src/types/clients";
 import { useVoiceConfigFromSettings } from "../src/packages/webRTC/src/adapters/voiceConfig";
 void setLanguagePreference("zh-CN");
-publishLocalVoiceMode({ v: 1, seq: 1, inputMode: "voice_activity", squad: "armed", transmit: "ready" });
+publishLocalVoiceMode({ v: 1, seq: 1, inputMode: "voice_activity", squad: "armed", transmit: "normal" });
 const noop = () => {};
 const base: Client = { nickname: "老蒯", color: "purple", streamID: "mic", isMuted: false, isDeafened: false, isAFK: false, hasJoinedChannel: true, voiceChannelId: "room" };
 export function Harness() {
@@ -37,8 +37,9 @@ export function Harness() {
     window.clearInterval(frameTimer.current);
     frameTimer.current = window.setInterval(() => canvas.getContext("2d")!.fillRect(0, 0, 10, 10), 100);
   };
-  const clients = { self: base, peer };
-  const voice = { serverHost: "synthetic-room", currentServerConnected: "synthetic-room", currentChannelId: "room", currentConnectionId: "self", isConnecting: false, clientsSpeaking: {}, clientsForHost: clients, videoStreams: streams };
+  const alone = new URLSearchParams(location.search).has("alone");
+  const clients = alone ? { self: base } : { self: base, peer };
+  const voice = { serverHost: "synthetic-room", currentServerConnected: "synthetic-room", currentChannelId: "room", currentConnectionId: "self", isConnecting: false, isCall: alone, clientsSpeaking: {}, clientsForHost: clients, videoStreams: streams };
   const start = (kind: "camera" | "screen", other = false) => {
     Object.values(streams).forEach(stream => stream.getTracks().forEach(track => track.stop()));
     const canvas = document.createElement("canvas"); canvas.width = 320; canvas.height = 180;
@@ -68,7 +69,7 @@ export function Harness() {
           {narrow && <VoiceSheetButton connected {...voice} />}
         </div>
       </div>
-      <RoomCallBar onDisconnect={() => setLeaves(value => value + 1)} />
+      <RoomCallBar isCall={alone} alone={alone} onDisconnect={() => setLeaves(value => value + 1)} />
     </div>
     <div data-testid="fixture-tools" style={{ height: 48, overflow: "auto" }}>
       <button onClick={() => start("camera")}>camera</button><button onClick={() => start("screen")}>screen</button><button onClick={() => start("camera", true)}>other-room</button>
@@ -90,7 +91,7 @@ export function Harness() {
           heldStream.current.dispatchEvent(new MediaStreamTrackEvent("addtrack", { track: heldTrack.current }));
         }
       }}>add-track</button>
-      <button onClick={() => publishLocalVoiceMode({ v: 1, seq: 2, inputMode: "voice_activity", squad: "suppressed", transmit: "ready" })}>suppressed-ack</button>
+      <button onClick={() => publishLocalVoiceMode({ v: 1, seq: 2, inputMode: "voice_activity", squad: "suppressed", transmit: "squad-suppressed" })}>suppressed-ack</button>
       <output data-testid="leave-count">{leaves}</output>
     </div>
   </VoiceConfigProvider>;

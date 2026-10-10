@@ -35,7 +35,7 @@
 [data-gryt="server-view"]:fullscreen [data-gryt="channels-sidebar"],
 [data-gryt="server-view"]:fullscreen [data-gryt="member-sidebar"],
 [data-gryt="server-view"]:fullscreen [data-gryt="conversation-pane"] { display: none !important; }
-[data-gryt="server-view"]:fullscreen [data-gryt="voice-view"] { width: 100% !important; max-width: none !important; }
+[data-gryt="server-view"]:fullscreen [data-gryt="voice-view"][aria-hidden="false"] { width: 100% !important; max-width: none !important; }
 
 /* The tokens come from the library now, not a copy of them. @gryt/ui ships
    theme.css unprocessed for exactly this — importing dist/styles.css would give

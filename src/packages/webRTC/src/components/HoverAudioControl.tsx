@@ -18,6 +18,7 @@ export function HoverAudioControl({ label, side, action, children }: {
   const [returnFocus, setReturnFocus] = useState(true);
   const [open, setOpen] = useState(false);
   const [hoverOpen, setHoverOpen] = useState(false);
+  const [portalContainer, setPortalContainer] = useState<HTMLElement | undefined>(() => document.fullscreenElement instanceof HTMLElement ? document.fullscreenElement : undefined);
   const group = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const arrow = useRef<HTMLButtonElement>(null);
@@ -27,6 +28,12 @@ export function HoverAudioControl({ label, side, action, children }: {
   const explicitlyOpened = useRef(false);
   const overGroup = useRef(false);
   const overPanel = useRef(false);
+
+  useEffect(() => {
+    const sync = () => setPortalContainer(document.fullscreenElement instanceof HTMLElement ? document.fullscreenElement : undefined);
+    document.addEventListener("fullscreenchange", sync);
+    return () => document.removeEventListener("fullscreenchange", sync);
+  }, []);
 
   const clearTimer = () => {
     if (timer.current !== null) clearTimeout(timer.current);
@@ -102,7 +109,7 @@ export function HoverAudioControl({ label, side, action, children }: {
           <PiCaretRightBold size={10} className={side === "top" ? "-rotate-90" : undefined} />
         </Popover.Trigger>
       </div>
-      <Popover.Portal>
+      <Popover.Portal container={portalContainer}>
         <Popover.Positioner side={side} sideOffset={4} collisionPadding={8}>
           <Popover.Popup ref={panel}
             initialFocus={hoverOpen ? false : undefined}

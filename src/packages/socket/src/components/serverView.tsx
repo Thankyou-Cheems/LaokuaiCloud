@@ -1249,7 +1249,8 @@ forumTags={activeDm ? [] : activeChannelForumTags}
               streamSources={voiceStreamSources}
             />
         )}
-        {currentServerConnected && <RoomCallBar onDisconnect={handleVoiceDisconnect} />}
+        {currentServerConnected && <RoomCallBar onDisconnect={handleVoiceDisconnect} isCall={connectedToACall}
+          alone={!isConnecting && Object.values(clients[currentServerConnected] ?? {}).filter(client => client.voiceChannelId === currentChannelId).length === 1} />}
       </div>
 
       {incomingCall ? (
