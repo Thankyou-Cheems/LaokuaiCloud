@@ -53,7 +53,7 @@ export const AUDIO_DEFAULTS: AudioSettingsData = {
   // Off: it lifted a mixer's already-hot signal into clipping (GRYT-1679).
   autoGainEnabled: false,
   autoGainTargetDb: -20,
-  compressorEnabled: true,
+  compressorEnabled: false,
   compressorAmount: 50,
   eSportsModeEnabled: false,
   inputMode: "voice_activity",
@@ -67,7 +67,7 @@ export const AUDIO_DEFAULTS: AudioSettingsData = {
   disconnectSoundVolume: 30,
   customConnectSoundFile: null,
   customDisconnectSoundFile: null,
-  messageSoundEnabled: true,
+  messageSoundEnabled: false,
   messageSoundVolume: 30,
   customMessageSoundFile: null,
   notificationBadgeEnabled: true,

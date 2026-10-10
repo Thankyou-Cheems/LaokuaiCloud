@@ -53,6 +53,9 @@ assert.equal(detectLanguage(["en-GB", "zh-CN"]), "en");
 assert.equal(detectLanguage(["ja-JP"]), "en");
 assert.equal(readLanguagePreference({ getItem() { throw new Error("blocked"); } }), "system");
 assert.equal(readLanguagePreference({ getItem() { return "not-a-language"; } }), "system");
+assert.equal(readLanguagePreference({ getItem() { return null; } }), "zh-CN");
+assert.equal(readLanguagePreference({ getItem() { return "system"; } }), "system");
+assert.equal(readLanguagePreference({ getItem() { return ""; } }), "system");
 assert.equal(resolveLanguage("en", ["zh-CN"]), "en");
 assert.equal(resolveLanguage("zh-CN", ["en-US"]), "zh-CN");
 

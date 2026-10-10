@@ -6,7 +6,6 @@ import toast from "react-hot-toast";
 import { useTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 
-import { isElectron } from "../../../../lib/electron";
 import { PiMonitorArrowUpFill, PiMonitorFill } from "../../../../lib/icons";
 import { presetKey, presetLabel, SCREEN_PRESETS } from "../utils/streamQuality";
 import { CallControlButton } from "./CallControlButton";
@@ -54,10 +53,9 @@ export function ScreenShareControl({ iconSize = 16, allowed = true, side = "top"
     [startScreenShare, tr],
   );
 
-  // The browser brings its own picker, so the app's one is only for the desktop app.
+  // Confirm audio explicitly before either platform opens its source picker.
   const openPicker = (mode: "start" | "switch") => {
-    if (isElectron()) setPicker(mode);
-    else void start({ withAudio: true }, mode);
+    setPicker(mode);
   };
 
   const current = presetKey(screenShareQuality, screenShareFps);

@@ -74,7 +74,7 @@ function useSettingsHook() {
   const [disabledSmileys, setDisabledSmileysState] = useState<ReadonlySet<string>>(new Set());
 
   const [cameraID, setCameraID] = useState("");
-  const [cameraQuality, setCameraQuality] = useState("native");
+  const [cameraQuality, setCameraQuality] = useState("720p");
   const [cameraMirrored, setCameraMirrored] = useState(true);
   const [faceFramingEnabled, setFaceFramingEnabled] = useState(false);
   const [voiceTileLayout, setVoiceTileLayout] =
@@ -92,10 +92,10 @@ function useSettingsHook() {
   const [cameraFps, setCameraFpsState] = useState(30);
   const [cameraCodec, setCameraCodecState] = useState<VideoCodec>("auto");
 
-  const [screenShareQuality, setScreenShareQuality] = useState("native");
+  const [screenShareQuality, setScreenShareQuality] = useState("720p");
   const [screenShareFps, setScreenShareFps] = useState(30);
   const [experimentalScreenShare, setExperimentalScreenShare] = useState(false);
-  const [screenShareGamingMode, setScreenShareGamingModeState] = useState(true);
+  const [screenShareGamingMode, setScreenShareGamingModeState] = useState(false);
   const [screenShareCodec, setScreenShareCodecState] = useState<ScreenShareCodec>("auto");
   const [screenShareMaxBitrate, setScreenShareMaxBitrateState] = useState(0);
   const [screenShareScalabilityMode, setScreenShareScalabilityModeState] = useState<ScalabilityMode>("L1T3");
@@ -148,7 +148,7 @@ function useSettingsHook() {
       setSmileyConversionState(getUserValue("smileyConversion", true));
       setDisabledSmileysState(new Set(getUserValue<string[]>("disabledSmileys", [])));
       setCameraID(getUserValue("cameraID", ""));
-      setCameraQuality(getUserValue("cameraQuality", "native"));
+      setCameraQuality(getUserValue("cameraQuality", "720p"));
       setCameraMirrored(getUserValue("cameraMirrored", true));
       setFaceFramingEnabled(getUserValue("faceFramingEnabled", false));
       setVoiceTileLayout(
@@ -167,10 +167,10 @@ function useSettingsHook() {
       setCameraFlipped(getUserValue("cameraFlipped", false));
       setCameraFpsState(getUserValue("cameraFps", 30));
       setCameraCodecState(getUserValue<VideoCodec>("cameraCodec", "auto"));
-      setScreenShareQuality(getUserValue("screenShareQuality", "native"));
+      setScreenShareQuality(getUserValue("screenShareQuality", "720p"));
       setScreenShareFps(getUserValue("screenShareFps", 30));
       setExperimentalScreenShare(getUserValue("experimentalScreenShare", false));
-      setScreenShareGamingModeState(getUserValue("screenShareGamingMode", true));
+      setScreenShareGamingModeState(getUserValue("screenShareGamingMode", false));
       setScreenShareCodecState(getUserValue<ScreenShareCodec>("screenShareCodec", "auto"));
       setScreenShareMaxBitrateState(getUserValue("screenShareMaxBitrate", 0));
       setScreenShareScalabilityModeState(getUserValue<ScalabilityMode>("screenShareScalabilityMode", "L1T3"));

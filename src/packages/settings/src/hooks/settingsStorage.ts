@@ -404,7 +404,7 @@ export const settingsInit: Settings = {
 
   cameraID: "",
   setCameraID: noop,
-  cameraQuality: "native",
+  cameraQuality: "720p",
   setCameraQuality: noop,
   cameraMirrored: true,
   setCameraMirrored: noop,
@@ -435,14 +435,14 @@ export const settingsInit: Settings = {
   cameraCodec: "auto",
   setCameraCodec: noop,
 
-  screenShareQuality: "native",
+  screenShareQuality: "720p",
   setScreenShareQuality: noop,
   screenShareFps: 30,
   setScreenShareFps: noop,
   experimentalScreenShare: false,
   setExperimentalScreenShare: noop,
 
-  screenShareGamingMode: true,
+  screenShareGamingMode: false,
   setScreenShareGamingMode: noop,
 
   screenShareCodec: "auto",

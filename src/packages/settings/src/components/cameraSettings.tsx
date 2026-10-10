@@ -2,6 +2,7 @@ import { Button, Chip, Divider, Select, Tooltip } from "@gryt/ui";
 import { CAMERA_FPS_OPTIONS, type CameraQuality, QUALITY_CONSTRAINTS, useCamera, useVideoStats } from "@gryt/voice";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { useTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 
 import { PiArrowsClockwiseFill } from "../../../../lib/icons";
@@ -28,6 +29,7 @@ const QUALITY_OPTIONS = [
 ];
 
 export function CameraSettings() {
+  const { t: tr } = useTranslation();
   const {
     cameraID,
     setCameraID,
@@ -117,11 +119,8 @@ export function CameraSettings() {
     setPreviewStream(null);
   }, []);
 
-  // Start local preview when the settings tab opens (only if camera isn't already globally on)
+  // Preview is an explicit action; opening settings never requests camera capture.
   useEffect(() => {
-    if (!cameraEnabled) {
-      startPreview();
-    }
     return () => {
       stopPreview();
     };
@@ -272,10 +271,10 @@ export function CameraSettings() {
               <span color={activeError ? "red" : "gray"}>
                 {activeError ?? "No camera detected"}
               </span>
-              {activeError && (
+              {!cameraEnabled && (
                 <Button tone="neutral" size="xsmall" onClick={startPreview}>
                   <PiArrowsClockwiseFill size={14} />
-                  Retry
+                  {activeError ? "Retry" : tr("ui.startCameraPreview")}
                 </Button>
               )}
             </div>

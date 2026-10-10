@@ -436,7 +436,9 @@
     "tileLayout": "Tile layout",
     "howTheVoiceGridArrangesPeopleOnceIt": "How the voice grid arranges people once it is maximised or fullscreen. Both were measured against Google Meet; which you prefer is a matter of taste. The sidebar looks the same either way.",
     "twoPeople": "Two people",
-    "withExactlyTwoOfYouInAChannel": "With exactly two of you in a channel and nobody sharing a screen. One large and one small is what a video call usually does; same size is better when you are both doing something rather than talking to each other."
+    "withExactlyTwoOfYouInAChannel": "With exactly two of you in a channel and nobody sharing a screen. One large and one small is what a video call usually does; same size is better when you are both doing something rather than talking to each other.",
+    "chooseScreenInBrowser": "Choose audio here, then select a screen or window in your browser.",
+    "startCameraPreview": "Start local preview"
   },
   "settings": {
     "enable": "Enable {{title}}",

@@ -11,15 +11,17 @@ function run(label,args,env={}) {
   console.log(`END ${label}: ${result.status}`);
   if(result.status!==0){ console.log(result.stdout,result.stderr); process.exit(1); }
 }
-if (!process.argv.includes("--resume-ui")) {
+if (!process.argv.includes("--resume-ui") && !process.argv.includes("--resume-build")) {
 run("typecheck",["node_modules/typescript/bin/tsc","-b"]);
 run("lint",["node_modules/eslint/bin/eslint.js",".","--ext","ts,tsx","--report-unused-disable-directives","--max-warnings","0"]);
-for (const name of ["check-private-startup","check-uiohook-esm","check-settings-index","check-comment-length","check-i18n",
+for (const name of ["check-private-startup","check-private-defaults","check-private-relaunch","check-notification-prefs","check-message-notification","check-uiohook-esm","check-settings-index","check-comment-length","check-i18n",
   "check-squad-mode","check-squad-broker","check-voice-modes","check-output-device","check-laokuai-integration","check-hotkeys","check-screen-audio"]) {
   run(name,[`scripts/${name}.mjs`]);
 }
 }
-run("headless",["node_modules/@playwright/test/cli.js","test","--config=e2e/playwright.i18n.config.ts"],{CHILD_CONCURRENCY:"1",UV_THREADPOOL_SIZE:"2"});
+if (!process.argv.includes("--resume-build")) {
+  run("headless",["node_modules/@playwright/test/cli.js","test","--config=e2e/playwright.i18n.config.ts"],{CHILD_CONCURRENCY:"1",UV_THREADPOOL_SIZE:"2"});
+}
 run("web-build",["node_modules/vite/bin/vite.js","build"]);
 run("desktop-build",["node_modules/vite/bin/vite.js","build"],{ELECTRON:"1"});
 run("portable-build",["node_modules/electron-builder/cli.js","--config=electron-builder.laokuai.cjs","--win","portable","--x64","--publish","never"],{

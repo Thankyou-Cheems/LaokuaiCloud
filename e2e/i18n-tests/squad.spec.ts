@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 test.setTimeout(60_000);
 
 test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => { if (localStorage.getItem("gryt.ui.language") === null) localStorage.setItem("gryt.ui.language", "en"); });
   await page.route("**/*", route => new URL(route.request().url()).hostname === "127.0.0.1" ? route.continue() : route.abort());
   await page.addInitScript(() => { navigator.mediaDevices.getUserMedia = async () => { throw new Error("Real media forbidden"); }; });
   await page.goto("/e2e/squad-harness.html");
@@ -11,7 +12,7 @@ test.beforeEach(async ({ page }) => {
 test("defaults on, off persists, other audio defaults unchanged", async ({ page }) => {
   await expect(page.getByTestId("config")).toContainText('"enabled":true');
   await expect(page.getByTestId("config")).toContainText('"processDetection":true');
-  await expect(page.getByTestId("other-audio")).toHaveText('{"compressor":true,"amount":50,"rn":true,"agc":false,"mic":50,"gate":1,"esports":false}');
+  await expect(page.getByTestId("other-audio")).toHaveText('{"compressor":false,"amount":50,"rn":true,"agc":false,"mic":50,"gate":1,"esports":false}');
   await page.getByRole("switch").first().click();
   await expect(page.getByTestId("config")).toContainText('"enabled":false');
   await page.reload(); await expect(page.getByTestId("ready")).toHaveText("true");

@@ -5,7 +5,7 @@ config.appId = "local.laokuai.chat";
 config.productName = "老蒯聊";
 config.extraMetadata = { name: "laokuai-chat", productName: config.productName,
   grytI18nTest: true, grytLaokuai: true };
-config.directories.output = "release-laokuai-squad-2";
+config.directories.output = "release-laokuai-squad-3";
 config.win.icon = "private-brand/icon.ico";
 config.win.executableName = "LaoKuai-Chat";
 config.portable.artifactName = "LaoKuai-Chat-${version}-zh-CN-win-x64-slim-portable.exe";

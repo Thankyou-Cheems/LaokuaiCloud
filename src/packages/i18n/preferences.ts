@@ -19,6 +19,7 @@ export function detectLanguage(languages: readonly string[]): AppLanguage {
 export function readLanguagePreference(storage?: Pick<Storage, "getItem">): LanguagePreference {
   try {
     const value = storage?.getItem(LANGUAGE_STORAGE_KEY);
+    if (value === null || value === undefined) return "zh-CN";
     return isLanguagePreference(value) ? value : "system";
   } catch {
     return "system";

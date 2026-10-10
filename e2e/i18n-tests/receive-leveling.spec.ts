@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => { if (localStorage.getItem("gryt.ui.language") === null) localStorage.setItem("gryt.ui.language", "en"); });
   await page.route("**/*", route => new URL(route.request().url()).hostname === "127.0.0.1"
     ? route.continue() : route.abort());
   await page.addInitScript(() => {

@@ -436,7 +436,9 @@
     "tileLayout": "成员画面布局",
     "howTheVoiceGridArrangesPeopleOnceIt": "语音视图最大化或全屏时的成员画面布局。两种方案都与 Google Meet 做过对比，可按喜好选择。侧栏布局相同。",
     "twoPeople": "双人布局",
-    "withExactlyTwoOfYouInAChannel": "频道只有两个人且无人共享屏幕时使用。一大一小适合视频通话，同样大小适合各自做事时一起挂着语音。"
+    "withExactlyTwoOfYouInAChannel": "频道只有两个人且无人共享屏幕时使用。一大一小适合视频通话，同样大小适合各自做事时一起挂着语音。",
+    "chooseScreenInBrowser": "先选择是否包含音频，再在浏览器中选择屏幕或窗口。",
+    "startCameraPreview": "开始本地预览"
   },
   "settings": {
     "enable": "启用{{title}}",

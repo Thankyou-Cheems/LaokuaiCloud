@@ -162,6 +162,8 @@ const listeners = new Set<() => void>();
 function load(): StoredNotificationPrefs {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
+    // Only a missing preference gets the private default; legacy records keep their rules.
+    if (raw === null) return { global: "mentions", servers: {} };
     return parseStored(raw ? JSON.parse(raw) : null);
   } catch {
     // Unreadable is the same as unset, which is hearing everything.

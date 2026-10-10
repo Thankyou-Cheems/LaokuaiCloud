@@ -3,6 +3,7 @@ import type { ScreenShareFps, ScreenShareQuality } from "@gryt/voice";
 import { estimateBitrate, EXPERIMENTAL_FPS_OPTIONS, STANDARD_FPS_OPTIONS } from "@gryt/voice";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { useTranslation } from "@/i18n";
 import type { ScalabilityMode, ScreenShareCodec } from "@/settings";
 
 import { type DesktopSource, isElectron } from "../../../../lib/electron";
@@ -117,12 +118,13 @@ export function ScreenSharePickerModal({
   mode = "start",
   onStart,
 }: ScreenSharePickerModalProps) {
+  const { t: tr } = useTranslation();
   const switching = mode === "switch";
   const [sources, setSources] = useState<DesktopSource[]>([]);
   const [loading, setLoading] = useState(false);
   const [tab, setTab] = useState<Tab>("screens");
   const [selected, setSelected] = useState<string | null>(null);
-  const [includeAudio, setIncludeAudio] = useState(true);
+  const [includeAudio, setIncludeAudio] = useState(false);
   const [screenAccess, setScreenAccess] = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const inElectron = isElectron();
@@ -176,17 +178,11 @@ export function ScreenSharePickerModal({
     const filtered = sourceHeight
       ? ALL_QUALITY_OPTIONS.filter((o) => o.height <= sourceHeight)
       : ALL_QUALITY_OPTIONS;
+    // Quality is a ceiling. A smaller source must not overwrite a saved preference.
+    const selectedOption = ALL_QUALITY_OPTIONS.find(o => o.value === quality);
+    if (selectedOption && !filtered.some(o => o.value === quality)) filtered.push(selectedOption);
     return [...nativeOpt, ...filtered];
-  }, [selectedSource]);
-
-  useEffect(() => {
-    const sourceHeight = selectedSource?.height;
-    if (!sourceHeight) return;
-    const currentOpt = ALL_QUALITY_OPTIONS.find((o) => o.value === quality);
-    if (currentOpt && currentOpt.height > sourceHeight) {
-      onQualityChange("native");
-    }
-  }, [selectedSource, quality, onQualityChange]);
+  }, [selectedSource, quality]);
 
   const fpsOptions = useMemo(() => {
     const options: { value: ScreenShareFps; label: string; disabled: boolean }[] = STANDARD_FPS_OPTIONS.map(
@@ -226,8 +222,6 @@ export function ScreenSharePickerModal({
     onOpenChange(false);
   };
 
-  if (!inElectron) return null;
-
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
@@ -246,7 +240,7 @@ export function ScreenSharePickerModal({
             </Dialog.Close>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          {inElectron && <div className="flex flex-wrap gap-2">
             <Button size="xsmall"
               onClick={() => setTab("screens")}
             >
@@ -259,7 +253,7 @@ export function ScreenSharePickerModal({
               <PiSquaresFourFill size={14} />
               Windows
             </Button>
-          </div>
+          </div>}
 
           {screenAccess !== null && screenAccess !== "granted" && (
             <div className="flex items-center gap-3 px-3 py-2" style={{
@@ -283,7 +277,7 @@ export function ScreenSharePickerModal({
             </div>
           )}
 
-          <div
+          {inElectron ? <div
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
@@ -340,7 +334,7 @@ export function ScreenSharePickerModal({
                 </div>
               </div>
             ))}
-          </div>
+          </div> : <p className="text-sm text-gryt-muted">{tr("ui.chooseScreenInBrowser")}</p>}
 
           <div className="flex items-center gap-4 flex-wrap">
             <Tooltip title="Capture desktop/application audio alongside the screen">

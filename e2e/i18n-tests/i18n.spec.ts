@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
-test.beforeEach(async ({ context }) => {
+test.beforeEach(async ({ context, page }) => {
+  await page.addInitScript(() => { if (localStorage.getItem("gryt.ui.language") === null) localStorage.setItem("gryt.ui.language", "system"); });
   await context.route("**/*", async (route) => {
     const url = new URL(route.request().url());
     if (url.origin === "http://127.0.0.1:4777") return route.continue();
