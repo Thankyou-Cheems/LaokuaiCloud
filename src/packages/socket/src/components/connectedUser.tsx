@@ -8,6 +8,7 @@ import {
   tileHue,
 } from "./speakingIndicator";
 import { UserContextMenu } from "./UserContextMenu";
+import { VoiceModeIcon } from "./VoiceModeIcon";
 
 /** A role id. The server defines its own; these only pass one along. */
 type Role = string;
@@ -136,6 +137,7 @@ export function ConnectedUser({
         </div>
 
         <div className="flex gap-1 items-center" style={{ flexShrink: 0 }}>
+          <VoiceModeIcon host={serverHost} member={serverUserId} isSelf={isSelf} />
           {isConnectingToVoice && (
             <Skeleton variant="circular" width="12px" height="12px" />
           )}

@@ -1,5 +1,7 @@
 import { contextBridge, ipcRenderer, webFrame } from "electron";
 
+import type { SquadConfig, SquadSnapshot } from "../src/lib/squadMode";
+
 type EmbeddedServerConfigShape = {
   id: string;
   serverName: string;
@@ -83,6 +85,19 @@ contextBridge.exposeInMainWorld("electronAPI", {
   /** Resolves to whether the bindings are captured globally. */
   setHotkeys(bindings: Record<string, string>): Promise<boolean> {
     return ipcRenderer.invoke("hotkeys-set", bindings);
+  },
+
+  configureSquad(config: SquadConfig): Promise<SquadSnapshot> {
+    return ipcRenderer.invoke("squad-configure", config);
+  },
+  onSquadState(callback: (state: SquadSnapshot) => void) {
+    const listener = (_event: unknown, state: SquadSnapshot) => callback(state);
+    ipcRenderer.on("squad-state", listener);
+    return () => ipcRenderer.removeListener("squad-state", listener);
+  },
+  setSquadInputExcluded(excluded: boolean): void { ipcRenderer.send("squad-input-excluded", excluded); },
+  validateSquadProcess(target: string): Promise<{ valid: boolean; reason?: string }> {
+    return ipcRenderer.invoke("squad-validate-process", target);
   },
 
   checkForUpdates() {

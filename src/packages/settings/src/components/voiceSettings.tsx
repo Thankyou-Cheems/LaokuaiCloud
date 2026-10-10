@@ -9,6 +9,7 @@ import { useSettings } from "@/settings";
 import { NoticeDialog } from "../../../socket/src/components/NoticeDialog";
 import { SettingGroup, SettingsContainer, SliderSetting, ToggleSetting } from "./settingsComponents";
 import { SoundSettings } from "./SoundSettings";
+import { SquadSettings } from "./squadSettings";
 import { TileLayoutPicker } from "./tileLayoutPicker";
 import { TwoPersonLayoutPicker } from "./twoPersonLayoutPicker";
 
@@ -62,6 +63,10 @@ export function VoiceSettings() {
       <h2>
         {tr("ui.voice")}
       </h2>
+
+      <SquadSettings />
+
+      <Divider />
 
       <ToggleSetting anchorId="esports-mode"
         title={tr("ui.esportsMode")}

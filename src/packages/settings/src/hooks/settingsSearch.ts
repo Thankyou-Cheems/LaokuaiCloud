@@ -33,6 +33,11 @@ export function settingAnchorId(title: string): string {
 }
 
 export const SETTINGS_INDEX: SettingsIndexEntry[] = [
+  { id: "squad-mode", title: "Squad mode", description: "Squad 游戏语音 按键发送抑制 前台进程", destination: "sound-video", page: "voice", section: "Squad" },
+  { id: "squad-process", title: "Squad foreground detection", description: "Squad 游戏语音 按键发送抑制 前台进程", destination: "sound-video", page: "voice", section: "Squad" },
+  { id: "squad-target", title: "Squad process target", description: "Squad 游戏语音 按键发送抑制 前台进程", destination: "sound-video", page: "voice", section: "Squad" },
+  { id: "squad-keys", title: "Squad game voice keys", description: "Squad 游戏语音 按键发送抑制 前台进程", destination: "sound-video", page: "voice", section: "Squad" },
+
   { id: "receive-leveling", title: "Receive loudness leveling", description: "Keep remote voices at a steadier volume. 接收响度均衡 自动音量", destination: "sound-video", page: "audio", section: "Playback" },
   { id: "language", title: "Language", description: "Choose the interface language. 中文 语言 English", destination: "appearance", page: "display", section: "Display" },
   { id: "updates", title: "Updates", description: "Check for updates and see your current version.", page: "updates", destination: "about", section: "About", panel: true },

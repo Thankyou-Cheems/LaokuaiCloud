@@ -541,5 +541,64 @@
     "degraded": "Limited protection. Automatic boost is unavailable.",
     "suspended": "Waiting for audio playback.",
     "reason": "Diagnostic: {{reason}}"
+  },
+  "squad": {
+    "title": "Squad mode",
+    "description": "Hold a game voice key to suppress your microphone to this call. Receiving and screen audio continue. Default on; standby outside the game.",
+    "processTitle": "Detect Squad in the foreground",
+    "processDescription": "Default on. Match the real game executable and its foreground window; running in the background does not arm protection.",
+    "globalWarning": "Process detection is off: these keys suppress your microphone in every application, including while typing. This app’s text fields and shortcut recording are excluded.",
+    "targetTitle": "Game process name or full path",
+    "targetDescription": "Leave empty for automatic Squad detection. A full path is stricter than a filename. Apply and validate locally; no process data is uploaded.",
+    "automatic": "Automatic: Squad game executable",
+    "validate": "Validate and apply",
+    "keyTitle": "Game voice key {{count}}",
+    "keyDescription": "Hold one or more keys. Extra modifiers are accepted (Shift+B still matches B). Conflicts with call shortcuts are rejected.",
+    "resetKeys": "Restore B / G / V",
+    "boundary": "After the last release: at least 200 ms hangover, then fresh audio recovery. Manual/server mute and push-to-talk still apply. Already sent audio cannot be recalled.",
+    "retry": "Retry protection",
+    "reason": "Diagnostic: {{reason}}",
+    "off": "Squad: off",
+    "standby": "Squad: standby — normal calls available",
+    "armed": "Squad: armed",
+    "suppressed": "Squad: microphone suppressed ({{count}} held)",
+    "hangover": "Squad: release hangover",
+    "unavailable": "Squad: protection unavailable — check diagnostics",
+    "recovering": "Squad: waiting for fresh microphone audio",
+    "suspended": "Squad: audio suspended",
+    "failed": "Squad: microphone protection failed — retry",
+    "errors": {
+      "invalid-process": "Use an .exe filename or absolute Windows .exe path without arguments or wildcards.",
+      "process-not-found": "That executable file does not exist.",
+      "invalid-key": "Choose 1–6 supported letter, digit, F1–F12, Space, Tab, Enter, Escape or middle/side mouse buttons.",
+      "duplicate-key": "Each game binding must use a different base key.",
+      "hotkey-conflict": "This key overlaps push-to-talk, mute, deafen or disconnect. Change the conflicting shortcut first.",
+      "validation-failed": "Local validation failed; try again."
+    },
+    "pending": "Squad: waiting for audio suppression acknowledgement"
+  },
+  "voiceMode": {
+    "unknown": "Voice mode unknown — old client or unsupported server",
+    "voice_activity": "Voice activity",
+    "push_to_talk": "Push to talk",
+    "squad": {
+      "off": "Squad off",
+      "standby": "Squad standby",
+      "armed": "Squad armed",
+      "suppressed": "Squad gate confirmed closed",
+      "resuming": "Squad fresh audio recovery",
+      "unavailable": "Squad protection unavailable"
+    },
+    "transmit": {
+      "normal": "Normal transmit permissions; not a speech detector",
+      "manual-muted": "Manually muted",
+      "server-muted": "Server muted",
+      "ptt-idle": "PTT key released",
+      "squad-suppressed": "Game-key suppression confirmed by audio boundary",
+      "resuming": "Waiting for fresh audio",
+      "pending": "Waiting for suppression acknowledgement",
+      "suspended": "Audio suspended",
+      "error": "Transmit protection failed"
+    }
   }
 }

@@ -18,12 +18,14 @@ $taskTools = Join-Path $taskBuildRoot 'local-build-tools'
 New-Item -ItemType Directory -Force -Path $taskTools | Out-Null
 $env:ELECTRON_BUILDER_CACHE = Join-Path $taskTools 'electron-builder-cache'
 
-& yarn install --frozen-lockfile --ignore-scripts --network-concurrency 2
+& yarn install --frozen-lockfile --ignore-scripts --network-concurrency 1
 if ($LASTEXITCODE -ne 0) { throw 'Yarn dependency install failed' }
 & node node_modules/electron/install.js
 if ($LASTEXITCODE -ne 0) { throw 'Electron runtime download failed' }
 & cmd /d /c native\build.bat
 if ($LASTEXITCODE -ne 0) { throw 'Native helper compilation failed' }
+& cmd /d /c native\squad-scope\build.bat
+if ($LASTEXITCODE -ne 0) { throw 'Squad scope helper compilation failed' }
 & node scripts/convert-laokuai-icon.mjs
 if ($LASTEXITCODE -ne 0) { throw 'Icon conversion failed' }
 

@@ -21,6 +21,7 @@ import {
   tileTint,
 } from "./speakingIndicator";
 import { UserContextMenu } from "./UserContextMenu";
+import { VoiceModeIcon } from "./VoiceModeIcon";
 
 /** A role id. The server defines its own; these only pass one along. */
 type Role = string;
@@ -569,6 +570,7 @@ export function VoiceParticipantCard({
 
   const statusBadges = (
     <>
+      <VoiceModeIcon host={serverHost} member={serverUserId} isSelf={isSelf} />
       {/* Mute and deafen are the top-right badge now, not an icon in the name
           row. Everything else still belongs beside the name. */}
       {client.isAFK && (
@@ -698,6 +700,8 @@ export function VoiceParticipantCard({
             <Skeleton variant="circular" width="24px" height="24px" />
           </div>
         )}
+
+        {compact && <VoiceModeIcon host={serverHost} member={serverUserId} isSelf={isSelf} />}
 
         {/* Mute state moved to the tile's top-right badge, so this chip is
             only still carrying it in the compact strip, which has no tile to

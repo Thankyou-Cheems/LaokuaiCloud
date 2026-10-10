@@ -1,4 +1,5 @@
 import type { RichActivity } from "../../../../lib/richActivity";
+import type { SquadConfig } from "../../../../lib/squadMode";
 import { AUDIO_DEFAULTS } from "./useAudioSettings";
 
 /**
@@ -19,6 +20,8 @@ export type ScreenShareCodec = VideoCodec;
 export type ScalabilityMode = "L1T1" | "L1T2" | "L1T3";
 
 export interface Settings {
+  squadConfig: SquadConfig;
+  setSquadConfig: (config: SquadConfig) => void;
   micID?: string;
   setMicID: (id: string) => void;
   outputDeviceID: string;
@@ -266,6 +269,8 @@ export const settingsInit: Settings = {
   setMicVolume: noop,
   outputVolume: AUDIO_DEFAULTS.outputVolume,
   setOutputVolume: noop,
+  squadConfig: AUDIO_DEFAULTS.squadConfig,
+  setSquadConfig: noop,
   receiveLevelingEnabled: AUDIO_DEFAULTS.receiveLevelingEnabled,
   setReceiveLevelingEnabled: noop,
   noiseGate: AUDIO_DEFAULTS.noiseGate,

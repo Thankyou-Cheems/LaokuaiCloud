@@ -8,12 +8,15 @@ import { useMemo } from "react";
 
 import { useSettings } from "@/settings";
 
+import { useSquadGateEnabled } from "../../../../lib/squadRuntime";
+
 /**
  * The client's settings, in the shape the engine asks for — **the one place that
  * knows both**. The quality and fps casts assert rather than validate (GRYT-341).
  */
 export function useVoiceConfigFromSettings(stunHosts: string[]): VoiceConfig {
   const s = useSettings();
+  const transmitSuppressionEnabled = useSquadGateEnabled();
 
   return useMemo(
     () => ({
@@ -27,6 +30,7 @@ export function useVoiceConfigFromSettings(stunHosts: string[]): VoiceConfig {
         volume: s.micVolume,
         outputVolume: s.outputVolume,
         receiveLevelingEnabled: s.receiveLevelingEnabled,
+        transmitSuppressionEnabled,
         loopback: s.loopbackEnabled,
         noiseSuppression: s.rnnoiseEnabled,
         noiseGate: s.noiseGate,
@@ -54,7 +58,7 @@ export function useVoiceConfigFromSettings(stunHosts: string[]): VoiceConfig {
     }),
     [
       s.micID, s.isMuted, s.isServerMuted, s.isDeafened, s.isServerDeafened,
-      s.receiveLevelingEnabled,
+      s.receiveLevelingEnabled, transmitSuppressionEnabled,
       s.inputMode, s.micVolume, s.outputVolume, s.loopbackEnabled, s.rnnoiseEnabled,
       s.noiseGate, s.noiseGateRelease, s.autoGainEnabled, s.autoGainTargetDb,
       s.compressorEnabled, s.compressorAmount, s.cameraID, s.cameraQuality,

@@ -5,14 +5,16 @@ config.appId = "local.laokuai.chat";
 config.productName = "老蒯聊";
 config.extraMetadata = { name: "laokuai-chat", productName: config.productName,
   grytI18nTest: true, grytLaokuai: true };
-config.directories.output = "release-laokuai";
+config.directories.output = "release-laokuai-squad";
 config.win.icon = "private-brand/icon.ico";
 config.win.executableName = "LaoKuai-Chat";
 config.portable.artifactName = "LaoKuai-Chat-${version}-zh-CN-win-x64-slim-portable.exe";
 config.extraResources = config.extraResources.filter(entry => entry.to !== "legal/I18N-PORTABLE-TEST.md");
 config.extraResources = config.extraResources.map(entry => entry.to === "icon.png"
   ? { from: "private-brand/icon.png", to: "icon.png" } : entry);
-config.extraResources.push({ from: "LAOKUAI-SELF-USE.md", to: "legal/LAOKUAI-SELF-USE.md" });
+config.extraResources.push(
+  { from: "build/squad/squad-scope.exe", to: "squad/squad-scope.exe" },
+  { from: "SQUAD-MODE.md", to: "legal/SQUAD-MODE.md" },{ from: "LAOKUAI-SELF-USE.md", to: "legal/LAOKUAI-SELF-USE.md" });
 config.extraResources.push(
   { from: "node_modules/@gryt/voice/LICENSE", to: "legal/VOICE-AGPL-3.0.txt" },
   { from: "node_modules/@gryt/voice/third-party/Signalsmith-LICENSE.txt", to: "legal/Signalsmith-LICENSE.txt" },
@@ -27,4 +29,6 @@ config.beforeBuild = async (...args) => {
     if (!fs.existsSync(file)) throw new Error(`Missing own-brand icon: ${file}`);
   }
 };
+// npmRebuild=false skips beforeBuild; validate resources at every packaging run.
+config.beforePack = async (...args) => { await config.beforeBuild(...args); };
 module.exports = config;

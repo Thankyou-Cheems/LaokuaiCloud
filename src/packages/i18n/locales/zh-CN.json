@@ -541,5 +541,64 @@
     "degraded": "保护已降级，自动提升音量暂不可用。",
     "suspended": "等待音频播放。",
     "reason": "诊断：{{reason}}"
+  },
+  "squad": {
+    "title": "Squad 模式",
+    "description": "按住游戏内语音键时，暂停向本通话发送你的麦克风；接收和屏幕声音继续。默认开启，未在游戏中时待机。",
+    "processTitle": "检测前台 Squad 游戏",
+    "processDescription": "默认开启。匹配真实游戏程序和前台窗口；只在后台运行游戏不会触发。",
+    "globalWarning": "已关闭进程检测：在任何程序中按这些键（包括打字）都会暂停麦克风。本客户端的文本输入和快捷键录制除外。",
+    "targetTitle": "游戏进程名称或完整路径",
+    "targetDescription": "留空自动识别 Squad。完整路径比单独文件名更严格。只在本机校验，不上传进程信息。",
+    "automatic": "自动：Squad 游戏程序",
+    "validate": "校验并应用",
+    "keyTitle": "游戏语音键 {{count}}",
+    "keyDescription": "可同时按住多个键，额外修饰键也匹配（Shift+B 仍匹配 B）。与通话快捷键重叠时拒绝保存。",
+    "resetKeys": "恢复 B / G / V",
+    "boundary": "最后一个键松开后至少等待 200 毫秒，再等待新一代麦克风音频恢复。手动静音、服务器静音和按键说话仍优先生效。已发送的音频无法撤回。",
+    "retry": "重试保护",
+    "reason": "诊断：{{reason}}",
+    "off": "Squad：已关闭",
+    "standby": "Squad：待机，普通通话可用",
+    "armed": "Squad：已就绪",
+    "suppressed": "Squad：麦克风暂时停发（按住 {{count}} 键）",
+    "hangover": "Squad：松键尾音保护",
+    "unavailable": "Squad：保护不可用，请检查诊断",
+    "recovering": "Squad：等待新麦克风音频",
+    "suspended": "Squad：音频已挂起",
+    "failed": "Squad：麦克风保护失败，请重试",
+    "errors": {
+      "invalid-process": "请输入 .exe 文件名或 Windows 完整路径，不含参数和通配符。",
+      "process-not-found": "找不到该程序文件。",
+      "invalid-key": "请选择 1–6 个字母、数字、F1–F12、空格、Tab、Enter、Esc 或鼠标中键/侧键。",
+      "duplicate-key": "每个游戏绑定必须使用不同的主键。",
+      "hotkey-conflict": "此键与按键说话、静音、闭麦或断开重叠，请先修改冲突的快捷键。",
+      "validation-failed": "本机校验失败，请重试。"
+    },
+    "pending": "等待音频停发确认"
+  },
+  "voiceMode": {
+    "unknown": "语音模式未知：旧客户端或服务器不支持",
+    "voice_activity": "自由麦",
+    "push_to_talk": "按键麦",
+    "squad": {
+      "off": "Squad 已关闭",
+      "standby": "Squad 待机",
+      "armed": "Squad 已就绪",
+      "suppressed": "Squad 发送门已确认关闭",
+      "resuming": "Squad 正在恢复新音频",
+      "unavailable": "Squad 保护不可用"
+    },
+    "transmit": {
+      "normal": "正常发送权限，非说话检测",
+      "manual-muted": "手动静音",
+      "server-muted": "服务器静音",
+      "ptt-idle": "按键麦未按住",
+      "squad-suppressed": "游戏按键停发已获音频边界确认",
+      "resuming": "等待新音频恢复",
+      "pending": "等待停发确认",
+      "suspended": "音频挂起",
+      "error": "发送保护失败"
+    }
   }
 }

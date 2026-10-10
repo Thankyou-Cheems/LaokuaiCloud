@@ -3,6 +3,7 @@ import { AddonManifest, AddonUpdate } from "@/addons";
 import type { HotkeyAction, HotkeyBindings } from "./hotkeys";
 import type { RichActivity } from "./richActivity";
 import type { ScreenAudioProblem } from "./screenShareAudio";
+import type { SquadConfig, SquadSnapshot } from "./squadMode";
 
 /** One thing a screen share is taking audio from. */
 export interface AudioCaptureSource {
@@ -223,6 +224,10 @@ export interface ElectronAPI {
   onHotkeyDown(callback: (action: HotkeyAction) => void): () => void;
   onHotkeyUp(callback: (action: HotkeyAction) => void): () => void;
   setHotkeys(bindings: HotkeyBindings): Promise<boolean>;
+  configureSquad(config: SquadConfig): Promise<SquadSnapshot>;
+  onSquadState(callback: (state: SquadSnapshot) => void): () => void;
+  setSquadInputExcluded(excluded: boolean): void;
+  validateSquadProcess(target: string): Promise<{ valid: boolean; reason?: string }>;
   checkForUpdates(): void;
   /** Install the newest release. Looks once more first, and fetches a newer one before restarting. */
   restartForUpdate(): void;

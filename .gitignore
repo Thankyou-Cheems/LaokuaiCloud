@@ -95,3 +95,9 @@ release-i18n-test/
 release-laokuai/
 local-build-tools/
 
+
+release-laokuai-squad/
+squad-*.txt
+squad-*.json
+voice-mode-evidence.json
+server-mode-evidence.json

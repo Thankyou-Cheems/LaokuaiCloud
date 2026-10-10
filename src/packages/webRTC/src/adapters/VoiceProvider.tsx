@@ -6,8 +6,11 @@ import { useSettings } from "@/settings";
 import { useServerManagement, useSockets } from "@/socket";
 
 import { createRoomCoordinator } from "./roomCoordinator";
+import { useOutputDevice } from "./useOutputDevice";
 import { useReceiveAudioRoles } from "./useReceiveAudioRoles";
+import { useSquadProtection } from "./useSquadProtection";
 import { useVoiceLifecycle } from "./useVoiceLifecycle";
+import { useVoiceModes } from "./useVoiceModes";
 import { useVoiceConfigFromSettings } from "./voiceConfig";
 import { electronVoiceHost } from "./voiceHost";
 
@@ -21,6 +24,9 @@ const NO_STUN: string[] = [];
 
 function VoiceLifecycle() {
   useVoiceLifecycle();
+  useOutputDevice();
+  useSquadProtection();
+  useVoiceModes();
   useReceiveAudioRoles();
   return null;
 }

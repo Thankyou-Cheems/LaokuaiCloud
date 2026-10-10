@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 
 import { useTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
+import { SquadLiveStatus } from "@/settings/src/components/squadSettings";
 import { useSockets } from "@/socket";
 import { useServerPermissions } from "@/socket/src/hooks/usePermissions";
 import { useVideoFraming } from "@/socket/src/hooks/useVideoFraming";
@@ -430,6 +431,7 @@ export function Controls({ onDisconnect }: ControlsProps) {
       {isBrowserSupported && (
         // Seven 32px controls at gap-4 are 320px, wider than the 300px window Electron allows.
         <div className="flex flex-wrap items-center justify-center gap-2 min-[400px]:gap-4">
+            <div className="w-full text-center"><SquadLiveStatus /></div>
           {/*
             Every control here is icon-only, so the tooltip text is also the
             accessible name — without aria-label a screen reader announced five

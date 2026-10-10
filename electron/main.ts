@@ -37,6 +37,7 @@ import semver from "semver";
 import { fileURLToPath } from "url";
 
 import { parseCombo, type ParsedCombo } from "../src/lib/hotkeys";
+import { SQUAD_DEFAULTS, squadCombo, type SquadConfig, squadTargetValid, squadVirtualKey, validateSquadConfig } from "../src/lib/squadMode";
 import {
   checkAddonUpdates,
   getAddons,
@@ -143,6 +144,7 @@ import {
   startNativeScreenCapture,
   stopNativeScreenCapture,
 } from "./screenCaptureManager";
+import { SquadInputBroker } from "./squadInputBroker";
 import {
   clockTime,
   findFeedRelease,
@@ -2520,6 +2522,35 @@ interface HotkeyBinding {
 }
 
 const hotkeyBindings = new Map<HotkeyAction, HotkeyBinding>();
+let squadConfig: SquadConfig = { ...SQUAD_DEFAULTS, enabled: false };
+let regularHotkeys: Partial<Record<HotkeyAction, string>> = {};
+let squadBroker: SquadInputBroker | null = null;
+let squadTypingExcluded = false;
+function configureSquadBroker() {
+  if (!squadBroker) squadBroker = new SquadInputBroker(
+    app.isPackaged ? join(process.resourcesPath, "squad/squad-scope.exe") : join(app.getAppPath(), "build/squad/squad-scope.exe"),
+    state => mainWindow?.webContents.send("squad-state", state),
+  );
+  let capture = uiohookRunning;
+  if (squadConfig.enabled && process.platform === "win32") {
+    try { capture = ensureUiohook(); } catch { capture = false; }
+  }
+  return squadBroker.configure(squadConfig, Object.values(regularHotkeys), capture);
+}
+function squadEdge(keycode: number | null, mouseButton: number | null, pressed: boolean) {
+  if (!squadBroker || !squadConfig.enabled) return;
+  squadBroker.exclude(squadTypingExcluded && !!mainWindow?.isFocused());
+  for (const key of squadConfig.keys) {
+    const parsed = squadCombo(key);
+    if (!parsed) continue;
+    const code = key.split("+").pop()!;
+    if ((mouseButton !== null && code === `Mouse${mouseButton}`)
+      || (keycode !== null && !code.startsWith("Mouse") && keycodeForDomCode(code) === keycode)) {
+      squadBroker.edge(squadVirtualKey(code), pressed);
+    }
+  }
+  // Modifier changes are reconciled by the same broker's physical snapshots.
+}
 
 /** Keeps key repeat from firing twice, and lets a release be matched after the
     modifiers were let go. */
@@ -2549,6 +2580,8 @@ function modifiersOf(parsed: ParsedCombo) {
 }
 
 function registerHotkeys(bindings: Partial<Record<HotkeyAction, string>>): void {
+  for (const action of hotkeyHeld) mainWindow?.webContents.send("hotkey-up", action);
+  regularHotkeys = bindings;
   hotkeyBindings.clear();
   hotkeyHeld.clear();
 
@@ -2606,6 +2639,7 @@ function onHotkeyPress(
   mouseButton: number | null,
   event: HookModifiers
 ): void {
+  squadEdge(keycode, mouseButton, true);
   const action = matchPress(event, keycode, mouseButton);
   if (!action || hotkeyHeld.has(action)) return;
 
@@ -2614,6 +2648,7 @@ function onHotkeyPress(
 }
 
 function onHotkeyRelease(keycode: number | null, mouseButton: number | null): void {
+  squadEdge(keycode, mouseButton, false);
   const action = matchRelease(keycode, mouseButton);
   if (!action) return;
 
@@ -3026,6 +3061,9 @@ if (!gotSingleInstanceLock) {
   app
     .whenReady()
     .then(async () => {
+  powerMonitor.on("suspend", () => squadBroker?.unavailable("system-suspended"));
+  powerMonitor.on("resume", () => { if (squadBroker) configureSquadBroker(); });
+
       startRichPresence();
       void syncHelperAtLaunch();
 
@@ -4537,6 +4575,23 @@ if (!gotSingleInstanceLock) {
         () => installNewestUpdate()
       );
 
+      ipcMain.handle("squad-configure", (_event, value: SquadConfig) => {
+        if (!value || typeof value.enabled !== "boolean" || typeof value.processDetection !== "boolean"
+          || typeof value.processTarget !== "string" || !Array.isArray(value.keys)
+          || value.keys.some(k => typeof k !== "string") || validateSquadConfig(value)) throw new Error("invalid-squad-config");
+        squadConfig = { ...value, keys: [...value.keys] };
+        return configureSquadBroker();
+      });
+      ipcMain.on("squad-input-excluded", (_event, excluded: boolean) => {
+        squadTypingExcluded = excluded === true;
+        squadBroker?.exclude(squadTypingExcluded && !!mainWindow?.isFocused());
+      });
+      ipcMain.handle("squad-validate-process", (_event, target: string) => {
+        if (typeof target !== "string" || !squadTargetValid(target)) return { valid: false, reason: "invalid-process" };
+        if (target.includes("\\") && (!existsSync(target) || !statSync(target).isFile())) return { valid: false, reason: "process-not-found" };
+        return { valid: true };
+      });
+
       // uiohook is missing on some Linux setups and needs Accessibility on macOS,
       // so the renderer falls back to its own window listeners.
       ipcMain.handle(
@@ -4546,6 +4601,7 @@ if (!gotSingleInstanceLock) {
           bindings: Partial<Record<HotkeyAction, string>>
         ): boolean => {
           registerHotkeys(bindings);
+          if (squadBroker) configureSquadBroker();
 
           if (hotkeyBindings.size === 0) return uiohookRunning;
           if (uiohookRunning) return true;
@@ -4750,6 +4806,7 @@ if (!gotSingleInstanceLock) {
       flushGlobalStore();
       closeMediaSandbox();
 
+      squadBroker?.stop();
       if (uiohookRunning) {
         uiohookLib?.uIOhook.stop();
         uiohookRunning = false;

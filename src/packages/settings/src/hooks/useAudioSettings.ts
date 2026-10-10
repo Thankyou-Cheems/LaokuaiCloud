@@ -2,9 +2,11 @@ import { useState } from "react";
 
 import { requestNotificationPermission } from "@/lib/desktopNotification";
 
+import { resolveSquadConfig, SQUAD_DEFAULTS,type SquadConfig } from "../../../../lib/squadMode";
 import { getUserValue, setUserValue } from "./userStorage";
 
 export interface AudioSettingsData {
+  squadConfig: SquadConfig;
   micID?: string;
   outputDeviceID: string;
   micVolume: number;
@@ -37,6 +39,7 @@ export interface AudioSettingsData {
 }
 
 export const AUDIO_DEFAULTS: AudioSettingsData = {
+  squadConfig: SQUAD_DEFAULTS,
   micID: undefined,
   outputDeviceID: "",
   // Half amplitude, about -6 dB. Deliberately below unity: quiet is easier to
@@ -74,6 +77,7 @@ export const AUDIO_DEFAULTS: AudioSettingsData = {
 export function loadAudioFromCache(): AudioSettingsData {
   const micId = getUserValue<string | undefined>("micID", undefined);
   return {
+    squadConfig: resolveSquadConfig(getUserValue<unknown>("squadConfig", {})),
     micID: micId && micId !== "undefined" && micId.trim() !== "" ? micId : undefined,
     outputDeviceID: getUserValue("outputDeviceID", AUDIO_DEFAULTS.outputDeviceID),
     micVolume: getUserValue("micVolume", AUDIO_DEFAULTS.micVolume),
@@ -107,6 +111,11 @@ export function loadAudioFromCache(): AudioSettingsData {
 }
 
 export function useAudioSettings() {
+  const [squadConfig, setSquadConfigState] = useState(SQUAD_DEFAULTS);
+  function setSquadConfig(config: SquadConfig) {
+    setSquadConfigState(config);
+    setUserValue("squadConfig", config);
+  }
   const [loopbackEnabled, setLoopbackEnabled] = useState(false);
   const [isMuted, setIsMutedState] = useState(false);
   const [isDeafened, setIsDeafenedState] = useState(false);
@@ -150,6 +159,7 @@ export function useAudioSettings() {
   const [desktopNotificationsEnabled, setDesktopNotificationsEnabled] = useState(AUDIO_DEFAULTS.desktopNotificationsEnabled);
 
   function applyAudioData(d: AudioSettingsData) {
+    setSquadConfigState(d.squadConfig);
     setMicID(d.micID);
     setOutputDeviceID(d.outputDeviceID);
     setMicVolume(d.micVolume);
@@ -400,6 +410,7 @@ export function useAudioSettings() {
   }
 
   return {
+    squadConfig, setSquadConfig,
     applyAudioData,
     micID,
     setMicID: updateMicID,

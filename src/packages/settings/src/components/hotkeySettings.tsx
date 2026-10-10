@@ -7,7 +7,7 @@ import { useSettings } from "@/settings";
 import { buildKeyCombo, buildMouseCombo, formatCombo } from "../../../../lib/hotkeys";
 import { SettingGroup, SettingsContainer } from "./settingsComponents";
 
-function HotkeyCapture({
+export function HotkeyCapture({
   anchorId,
   label,
   description,
@@ -25,6 +25,7 @@ function HotkeyCapture({
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
+      if (e.isComposing) return;
       e.preventDefault();
       e.stopPropagation();
       if (e.code === "Escape") {
@@ -32,7 +33,7 @@ function HotkeyCapture({
         return;
       }
       const combo = buildKeyCombo(e);
-      if (combo) {
+      if (combo && !["Ctrl", "Shift", "Alt", "Meta"].includes(combo.split("+").pop() ?? "")) {
         onChange(combo);
         setListening(false);
       }
@@ -55,18 +56,20 @@ function HotkeyCapture({
   );
 
   useEffect(() => {
+    window.dispatchEvent(new Event("squad-recording-change"));
     if (!listening) return;
     window.addEventListener("keydown", handleKeyDown, true);
     window.addEventListener("mousedown", handleMouseDown, true);
     return () => {
       window.removeEventListener("keydown", handleKeyDown, true);
       window.removeEventListener("mousedown", handleMouseDown, true);
+      queueMicrotask(() => window.dispatchEvent(new Event("squad-recording-change")));
     };
   }, [listening, handleKeyDown, handleMouseDown]);
 
   return (
     <SettingGroup anchorId={anchorId} title={label} description={description}>
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-2" data-hotkey-recording={listening || undefined}>
         <Chip tone="neutral"
           color={listening ? "blue" : undefined}
           style={{ fontFamily: "var(--code-font-family)", minWidth: "80px", textAlign: "center" }}
