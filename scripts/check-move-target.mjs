@@ -13,7 +13,7 @@ const loadHook=new Function('deps',`const {useSFU,useMicrophone,useSockets,useRe
 const tick=()=>new Promise(resolve=>setTimeout(resolve,30));
 const policy={requirePTT:true,disableRNNoise:true,maxBitrate:64000,eSportsMode:false,speak:true,shareVideo:false,shareScreen:false,isMuted:false,isDeafened:false};
 let groups=0;
-function setup({supported=true,boundary=true,prepareError=false,policyAck=true}={}) {
+function setup({supported=true,boundary=true,prepareError=false,policyAck=true,commitRecovery=false}={}) {
   const listeners=new Map(),sent=[],calls=[],errors=[];let binding,cleanup;
   const socket={id:'session',connected:true,on(event,handler){if(!listeners.has(event))listeners.set(event,new Set());listeners.get(event).add(handler)},off(event,handler){listeners.get(event)?.delete(handler)}};
   const emit=(event,value)=>{for(const handler of [...listeners.get(event)??[]])handler(value)};
@@ -31,7 +31,8 @@ function setup({supported=true,boundary=true,prepareError=false,policyAck=true}=
     (id,actual)=>isMovePolicyAcknowledged(binding,id,actual,evidence));
   const sfu={currentServerConnected:'host',currentChannelConnected:'source',
     async prepareMove(request){calls.push(['prepare',request]);if(prepareError)throw Error('injected_prepare_failure');return {requestId:request.requestId,streamId:'staged-msid'}},
-    async commitMove(id){calls.push(['commit',id]);await authority.confirmCommit(id);sfu.currentChannelConnected='destination';evidence.channel='destination'},
+    async commitMove(id){calls.push(['commit',id]);assert.ok(binding,'policy installed before promotion');await authority.confirmCommit(id);sfu.currentChannelConnected='destination';evidence.channel='destination';
+      if(commitRecovery)throw Object.assign(new Error('destination recovery required'),{code:'destination_recovery_required'})},
     async abortMove(id){calls.push(['abort',id])},
     async resumeMoveTransmission(id){calls.push(['resume',id]);assert.equal(authority.isDestinationPolicyApplied(id,{requirePushToTalk:true,disableRnnoise:true,maxBitrate:64000,eSportsMode:false}),true)}
   };
@@ -81,6 +82,24 @@ for(const [field,value] of [['generation','old'],['v',2],['sourceChannelId','oth
   assert.equal(f.calls.some(([event])=>event==='resume'),false);assert.ok(f.binding);
   f.socket.connected=false;f.emit('disconnect');await tick();assert.equal(f.binding,undefined);
   assert.equal(f.calls.some(([event])=>event==='resume'),false);f.dispose();groups++;
+}
+{
+  const f=setup({commitRecovery:true});f.emit('voice:move:prepare',f.request);await tick();f.result();await tick();
+  assert.equal(f.sfu.currentChannelConnected,'destination','committed failure never reports source retained');
+  assert.ok(f.binding,'destination recovery retains authoritative policy');
+  assert.equal(f.calls.some(([event])=>event==='resume'),false,'failed PC is not resumed');
+  assert.deepEqual(f.errors,['pureVoice.moveRecovery']);
+  assert.equal(f.authority.isDestinationPolicyApplied(f.request.requestId,{requirePushToTalk:true,disableRnnoise:true,maxBitrate:64000,eSportsMode:false}),true,
+    'explicit destination connect passes policy barrier only after current closed ACK');
+  f.ack.publicationAcknowledged=false;
+  assert.equal(f.authority.isDestinationPolicyApplied(f.request.requestId,{requirePushToTalk:true,disableRnnoise:true,maxBitrate:64000,eSportsMode:false}),false);
+  f.dispose();groups++;
+}
+{
+  const f=setup({commitRecovery:true,policyAck:false});f.emit('voice:move:prepare',f.request);await tick();f.result();await tick();
+  assert.ok(f.binding);assert.equal(f.calls.some(([event])=>event==='resume'),false);
+  assert.equal(f.authority.isDestinationPolicyApplied(f.request.requestId,{requirePushToTalk:true,disableRnnoise:true,maxBitrate:64000,eSportsMode:false}),false);
+  f.socket.connected=false;f.emit('disconnect');await tick();f.dispose();groups++;
 }
 {
   const f=setup();f.emit('voice:move:prepare',f.request);await tick();

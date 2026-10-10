@@ -154,8 +154,12 @@ function useHandleChannelClick({
         applyChannelSettings(channel);
         mediaAutoShownRef.current = false;
         setShowVoiceView(false);
-        setIsMuted(false);
-        setIsDeafened(false);
+        // Retrying the current destination after a committed move must retain
+        // user mute/deafen rather than restoring permission on a recovery click.
+        if(currentServerConnected!==currentlyViewingServer.host || currentChannelId!==channel.id) {
+          setIsMuted(false);
+          setIsDeafened(false);
+        }
         connect(channel.id, channel.eSportsMode, channel.maxBitrate).catch((error) => {
           console.error("SFU connection failed:", error);
 

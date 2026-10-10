@@ -103,6 +103,17 @@ export function VoiceProvider({ children }: { children?: ReactNode }) {
   const moveRef=useRef(move);moveRef.current=move;
   const evidence=useRef<MovePolicyEvidence|undefined>(undefined);
   const detailsRef=useRef(serverDetailsList);detailsRef.current=serverDetailsList;
+  const socketsRef=useRef(sockets);socketsRef.current=sockets;
+  const accountRef=useRef(account);accountRef.current=account;
+  const logicalScopes=useRef<{account:typeof account;epoch:number;servers:Record<string,{id:string;epoch:number}>}>({account,epoch:0,servers:{}});
+  if(logicalScopes.current.account!==account) {
+    logicalScopes.current.account=account;logicalScopes.current.epoch++;logicalScopes.current.servers={};
+  }
+  for(const [serverHost,details] of Object.entries(serverDetailsList)) {
+    const id=details.server_info?.server_id;if(!id)continue;
+    const previous=logicalScopes.current.servers[serverHost];
+    if(previous?.id!==id)logicalScopes.current.servers[serverHost]={id,epoch:(previous?.epoch??0)+1};
+  }
   type Entry={scope:string;session:ReturnType<typeof createMoveAuthoritySession>;room:ReturnType<typeof createRoomCoordinator>};
   const entriesRef=useRef<Record<string,Entry>>({});
   const [entries,setEntries]=useState<Record<string,Entry>>({});
@@ -120,7 +131,15 @@ export function VoiceProvider({ children }: { children?: ReactNode }) {
       const session=createMoveAuthoritySession(serverId,[socket,()=>detailsRef.current[serverHost]?.server_info?.voice_atomic_move_enabled===true,
         (event,payload,current)=>emitAuthenticated(socket,event,payload,serverHost,current),
         (requestId,policy)=>evidence.current!==undefined && isMovePolicyAcknowledged(moveRef.current,requestId,policy,evidence.current)],()=>setEntries({...entriesRef.current}));
-      next[serverHost]={scope,session,room:createRoomCoordinator(socket,serverHost,()=>session.authority)};
+      // Retained SDK coordinators resolve the new authenticated generation.
+      // Account/server changes cannot retarget them or revive old authorities.
+      const accountEpoch=logicalScopes.current.epoch;
+      const serverEpoch=logicalScopes.current.servers[serverHost]?.epoch;
+      const sameIdentity=()=>accountRef.current===account && logicalScopes.current.epoch===accountEpoch &&
+        logicalScopes.current.servers[serverHost]?.epoch===serverEpoch && detailsRef.current[serverHost]?.server_info?.server_id===serverId;
+      next[serverHost]={scope,session,room:createRoomCoordinator(
+        ()=>sameIdentity() ? socketsRef.current[serverHost] : undefined,serverHost,
+        ()=>sameIdentity() ? entriesRef.current[serverHost]?.session.authority : undefined)};
     }
     for(const [serverHost,old] of Object.entries(entriesRef.current))if(!next[serverHost])old.session.dispose();
     if(Object.keys(next).length!==Object.keys(entriesRef.current).length || Object.entries(next).some(([key,entry])=>entriesRef.current[key]!==entry)) { entriesRef.current=next;setEntries(next); }

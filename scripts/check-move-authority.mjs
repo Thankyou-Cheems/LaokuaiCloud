@@ -96,3 +96,29 @@ emit('voice:room:granted',{room_id:'fresh-room',join_token:{fixtureOnly:true},ti
 assert.equal(coordinator.moveAuthority.valid,true);assert.notEqual(coordinator.moveAuthority,beforeLeave);assert.equal(beforeLeave.valid,false);
 resumedSession.dispose();assert.equal([...listeners.values()].reduce((n,v)=>n+v.size,0),0);
 console.log('Actual coordinator getter/leave/grant captures new authority without reviving old moves');
+
+// The real SDK keeps this same coordinator across signalling reconnects.
+function freshSocket(id) {
+  const events=new Map();const sent=[];
+  return {id,connected:true,sent,on(e,f){if(!events.has(e))events.set(e,new Set());events.get(e).add(f)},
+    once(e,f){const once=value=>{this.off(e,once);f(value)};this.on(e,once)},off(e,f){events.get(e)?.delete(f)},
+    emit(e,v){sent.push([e,v])},reply(e,v){for(const cb of [...events.get(e)??[]])cb(v)}};
+}
+let activeSocket=freshSocket('first');
+let activeSession=createMoveAuthoritySession('server-id',[activeSocket,true,async()=>true],()=>{});
+let logicalIdentity=true;
+const retained=coordinatorFactory(()=>logicalIdentity?activeSocket:undefined,'fixture',()=>logicalIdentity?activeSession.authority:undefined);
+const old=retained.moveAuthority;
+activeSocket.connected=false;activeSocket.reply('disconnect');activeSession.dispose();
+assert.equal(old.valid,false);assert.equal(retained.connected,false);
+assert.equal((await retained.requestAccess('blocked')).granted,false);
+activeSocket=freshSocket('replacement');activeSession=createMoveAuthoritySession('server-id',[activeSocket,true,async()=>true],()=>{});
+assert.equal(retained.connected,true);assert.equal(retained.moveAuthority,activeSession.authority);assert.notEqual(retained.moveAuthority,old);
+await assert.rejects(old.confirmCommit('old'),/authority_invalidated/);
+const rejoin=retained.requestAccess('destination');assert.deepEqual(activeSocket.sent,[['voice:room:request','destination']]);
+activeSocket.reply('voice:room:granted',{room_id:'destination',join_token:{fixtureOnly:true},sfu_url:'ws://fixture',timestamp:Date.now()});
+assert.equal((await rejoin).roomId,'destination');
+logicalIdentity=false;assert.equal(retained.connected,false);assert.equal(retained.moveAuthority,undefined);
+assert.equal((await retained.requestAccess('other-account')).granted,false);
+activeSession.dispose();
+console.log('Retained coordinator replacement-socket/generation/access/account fence checks passed');

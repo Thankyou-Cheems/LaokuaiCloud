@@ -28,11 +28,15 @@ const RETRY_SOON_MS = 2_000;
  * rate-limit toast is here because saying it out loud is the app's job.
  */
 type ClientAuthority=NonNullable<RoomCoordinator["moveAuthority"]> & {invalidate?:(reason:string)=>void};
-export function createRoomCoordinator(socket: Socket, host: string, moveAuthority?:ClientAuthority|(()=>ClientAuthority|undefined)): RoomCoordinator {
+export function createRoomCoordinator(socketSource: Socket|(()=>Socket|undefined), host: string, moveAuthority?:ClientAuthority|(()=>ClientAuthority|undefined)): RoomCoordinator {
+  const currentSocket=()=>typeof socketSource==="function" ? socketSource() : socketSource;
   const authority=()=>typeof moveAuthority==="function" ? moveAuthority() : moveAuthority;
   return {
     get moveAuthority(){return authority();},
     requestAccess(channelId: string): Promise<RoomAccess> {
+      // Capture the current authenticated socket for this request's listener cleanup.
+      const socket=currentSocket();
+      if(!socket?.connected)return Promise.resolve({granted:false,reason:"Server socket disconnected",retryAfterMs:RETRY_SOON_MS});
       return new Promise((resolve) => {
         const timeout = setTimeout(() => {
           cleanup();
@@ -94,14 +98,14 @@ export function createRoomCoordinator(socket: Socket, host: string, moveAuthorit
       });
     },
 
-    leave: () => {authority()?.invalidate?.("voice:room:leave");socket.emit("voice:room:leave");},
-    announceJoined: (joined) => socket.emit("voice:channel:joined", joined),
-    setLocalStream: (streamId) => socket.emit("voice:stream:set", streamId ?? ""),
+    leave: () => {authority()?.invalidate?.("voice:room:leave");currentSocket()?.emit("voice:room:leave");},
+    announceJoined: (joined) => currentSocket()?.emit("voice:channel:joined", joined),
+    setLocalStream: (streamId) => currentSocket()?.emit("voice:stream:set", streamId ?? ""),
     peerChanged: (streamId, present) =>
-      socket.emit(present ? "voice:peer:connected" : "voice:peer:disconnected", streamId),
+      currentSocket()?.emit(present ? "voice:peer:connected" : "voice:peer:disconnected", streamId),
 
     get connected() {
-      return socket.connected;
+      return currentSocket()?.connected===true;
     },
 
     onReconnected(handler: () => void) {
@@ -110,6 +114,7 @@ export function createRoomCoordinator(socket: Socket, host: string, moveAuthorit
       const listener = (event: Event) => {
         const detail = (event as CustomEvent<{ host?: string }>).detail;
         if (detail?.host && detail.host !== host) return;
+        if(!currentSocket()?.connected)return;
         handler();
       };
       window.addEventListener("server_socket_reconnected", listener);

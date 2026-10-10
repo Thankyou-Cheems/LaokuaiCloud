@@ -16,6 +16,14 @@ export function useVoiceMoves(authorities:Record<string,ClientMoveAuthority>,app
   const {currentServerConnected:host}=sfu;const socket=sockets[host];const authority=authorities[host];
   const supported=authority?.stagingSupported===true;
   const latest=useRef({sfu,transmissionState});latest.current={sfu,transmissionState};
+  const recovery=useRef<{host:string;channel:string;generation:string}|undefined>(undefined);
+  useEffect(()=>{
+    const pending=recovery.current;
+    if(pending && sfu.isConnected && host===pending.host && sfu.currentChannelConnected===pending.channel &&
+      authority?.generation===pending.generation && transmissionState.publicationAcknowledged===true) {
+      recovery.current=undefined;applyPolicy(undefined);
+    }
+  },[host,sfu.isConnected,sfu.currentChannelConnected,authority,transmissionState,applyPolicy]);
   useEffect(()=>{
     if(!socket || !authority || !supported || !sfu.prepareMove || !sfu.commitMove ||
       !sfu.abortMove || !sfu.resumeMoveTransmission)return;
@@ -57,18 +65,36 @@ export function useVoiceMoves(authorities:Record<string,ClientMoveAuthority>,app
       if(row.status!=="committed" || record.commit)return;
       record.commit=(async()=>{
         await record.ready;if(!current())return;
-        await latest.current.sfu.commitMove!(record.request.requestId);
+        const bindConfirmedPolicy=async()=>{
+          // Events never authorize policy. The fresh query must confirm the exact transaction.
+          const confirmation=await authority.confirmCommit(record.request.requestId);
+          if(!current() || confirmation.status!=="committed" || confirmation.sourceChannelId!==record.request.sourceChannelId ||
+            confirmation.destinationChannelId!==record.request.destinationChannelId)throw new Error("stale_move_confirmation");
+          const policy=authority.getDestinationPolicy(record.request.requestId);if(!policy)throw new Error("missing_destination_policy");
+          applyPolicy({host,generation:authority.generation,requestId:record.request.requestId,
+            destinationChannelId:record.request.destinationChannelId,policy,beforePromotionRevision:record.revision});
+        };
+        // Bound to the destination only: source config is unchanged before promotion.
+        // Install it first because commit may promote a failed destination then reject.
+        await bindConfirmedPolicy();
+        let destinationRecovery=false;
+        try {await latest.current.sfu.commitMove!(record.request.requestId);}
+        catch(error) {
+          if(!error || typeof error!=="object" || !("code" in error) || error.code!=="destination_recovery_required")throw error;
+          destinationRecovery=true;
+          recovery.current={host,channel:record.request.destinationChannelId,generation:authority.generation};
+        }
         if(!current())return;
-        // Never use the event's controls as authority. commitMove has queried the same generation.
-        const confirmation=await authority.confirmCommit(record.request.requestId);
-        if(!current() || confirmation.status!=="committed" || confirmation.sourceChannelId!==record.request.sourceChannelId ||
-          confirmation.destinationChannelId!==record.request.destinationChannelId)throw new Error("stale_move_confirmation");
-        const policy=authority.getDestinationPolicy(record.request.requestId);if(!policy)throw new Error("missing_destination_policy");
-        applyPolicy({host,generation:authority.generation,requestId:record.request.requestId,
-          destinationChannelId:record.request.destinationChannelId,policy,beforePromotionRevision:record.revision});
+        await bindConfirmedPolicy();
         const until=Date.now()+8000;
         while(current() && Date.now()<until) {
           if(authority.isDestinationPolicyApplied(record.request.requestId,record.request.channelSettings)) {
+            if(destinationRecovery) {
+              // Public connect uses the viewed server. Let the user select this
+              // destination explicitly; never reconnect against a different view.
+              toast.error(i18n.t("pureVoice.moveRecovery",{host}),{id:"voice-move",duration:12000});
+              return;
+            }
             await latest.current.sfu.resumeMoveTransmission!(record.request.requestId);
             if(current())applyPolicy(undefined);
             return;

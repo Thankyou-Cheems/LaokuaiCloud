@@ -36,14 +36,14 @@ export function ReceiveCorrectionBridge({ children }: { children?: ReactNode }) 
   useLayoutEffect(()=>{
     cache.setAccount(account);session.reset();registry.clear();refresh(value=>value+1);
   },[cache,session,registry,scopeKey,account]);
-  const { receiveAutoLevels } = useSpeakers();
+  const { receiveAutoLevels,audioContext } = useSpeakers();
   useReceiveAudioRoles(registry,scopeKey);
   useLayoutEffect(() => { registry.acceptBatch(receiveAutoLevels); }, [registry, receiveAutoLevels]);
   useLayoutEffect(() => () => registry.clear(), [registry]);
   const readings = useSyncExternalStore(registry.subscribe, registry.getSnapshot, registry.getSnapshot);
   return <ReceivePriorProvider value={{available:cache.available,count:cache.count(),
-    clearMember:(serverHost,member)=>{const scope=scopeFor(serverHost,member);if(scope){session.clear(scope);refresh(value=>value+1);}},
-    clearAll:()=>{session.clear();refresh(value=>value+1);}}}>
+    clearMember:(serverHost,member)=>{const scope=scopeFor(serverHost,member);if(scope){session.clear(scope,audioContext?.currentTime);refresh(value=>value+1);}},
+    clearAll:()=>{session.clear(undefined,audioContext?.currentTime);refresh(value=>value+1);}}}>
     <ReceiveCorrectionProvider value={readings}>{children}</ReceiveCorrectionProvider>
   </ReceivePriorProvider>;
 }
