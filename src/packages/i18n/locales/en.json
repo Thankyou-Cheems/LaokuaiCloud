@@ -4,7 +4,7 @@
     "gainRange": "Automatic gain limit reached",
     "noiseMissing": "Noise estimate is not available",
     "analyzerUnavailable": "Speech analyzer is not available",
-    "unsupportedRate": "Automatic gain unavailable above 48 kHz",
+    "unsupportedRate": "Automatic gain unavailable at this audio context sample rate",
     "ambiguous": "Audio route could not be matched to one participant",
     "trackChanged": "Waiting for measurements from the current audio track",
     "disabled": "Automatic receive leveling is disabled"

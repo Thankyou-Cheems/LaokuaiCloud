@@ -81,7 +81,7 @@ test("receiver-local batch reaches real display, pause retains learning, missing
   await page.getByRole("button", { name: "Telemetry missing", exact: true }).click();
   await expect(bound).toHaveAttribute("aria-label", /Not measured/);
   await page.getByRole("button", { name: "Telemetry unavailable", exact: true }).click();
-  await expect(bound).toHaveAttribute("aria-label", /Automatic gain unavailable above 48 kHz \(unsupported_sample_rate\)/);
+  await expect(bound).toHaveAttribute("aria-label", /Automatic gain unavailable at this audio context sample rate \(unsupported_sample_rate\)/);
 });
 
 for (const width of [300, 390]) test(`volume popup at ${width}px, independent controls, keyboard and reduced motion`, async ({ page }) => {
