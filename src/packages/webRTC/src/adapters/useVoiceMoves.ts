@@ -1,5 +1,5 @@
 import {useMicrophone,useSFU} from "@gryt/voice";
-import {useEffect,useRef} from "react";
+import {createElement,useEffect,useRef,useState} from "react";
 import toast from "react-hot-toast";
 
 import {i18n} from "@/i18n";
@@ -9,6 +9,7 @@ import {createMoveAuthority} from "../../../../lib/moveAuthority";
 import type {MovePolicyBinding} from "../../../../lib/movePolicy";
 import {readMovePrepare} from "../../../../lib/movePrepare";
 import {emitAuthenticated} from "../../../socket/src/utils/tokenManager";
+import {VoiceMoveRecoveryNotice} from "../components/VoiceMoveRecoveryNotice";
 
 export type ClientMoveAuthority=ReturnType<typeof createMoveAuthority>;
 export function useVoiceMoves(authorities:Record<string,ClientMoveAuthority>,applyPolicy:(binding:MovePolicyBinding|undefined)=>void) {
@@ -16,26 +17,46 @@ export function useVoiceMoves(authorities:Record<string,ClientMoveAuthority>,app
   const {currentServerConnected:host}=sfu;const socket=sockets[host];const authority=authorities[host];
   const supported=authority?.stagingSupported===true;
   const latest=useRef({sfu,transmissionState});latest.current={sfu,transmissionState};
-  const recovery=useRef<{host:string;channel:string;generation:string}|undefined>(undefined);
+  const recovery=useRef<{host:string;channel:string;generation:string;requestId:string;mode:"reconnect"|"resume"}|undefined>(undefined);
+  const [retryRequest,setRetryRequest]=useState<{requestId:string;attempt:number}>();
   const completed=useRef<{host:string;channel:string;source:string;generation:string;requestId:string;
-    revision:number;settings:NonNullable<ReturnType<typeof readMovePrepare>>["channelSettings"]}|undefined>(undefined);
+    revision:number;resumeRequired:boolean;promoted:boolean;settings:NonNullable<ReturnType<typeof readMovePrepare>>["channelSettings"]}|undefined>(undefined);
+  const retryNotice=(current:()=>boolean)=>{
+    const transaction=completed.current;if(!current() || !transaction)return;
+    recovery.current=undefined;
+    toast.error(createElement(VoiceMoveRecoveryNotice,{
+      onRetry:()=>{
+        if(!current() || completed.current!==transaction)return;
+        setRetryRequest(previous=>({requestId:transaction.requestId,attempt:(previous?.attempt??0)+1}));
+      },
+    }),{id:"voice-move",duration:Infinity});
+  };
   useEffect(()=>{
     const pending=recovery.current;
-    if(pending && sfu.isConnected && host===pending.host && sfu.currentChannelConnected===pending.channel &&
-      authority?.generation===pending.generation && transmissionState.publicationAcknowledged===true) {
+    if(pending?.mode==="reconnect" && completed.current?.requestId===pending.requestId && sfu.isConnected && sfu.connectionError!=="destination_recovery_required" &&
+      host===pending.host && sfu.currentChannelConnected===pending.channel && authority?.generation===pending.generation &&
+      transmissionState.publicationAcknowledged===true) {
+      if(completed.current)completed.current.resumeRequired=false;
       recovery.current=undefined;applyPolicy(undefined);
     }
-  },[host,sfu.isConnected,sfu.currentChannelConnected,authority,transmissionState,applyPolicy]);
+  },[host,sfu.isConnected,sfu.currentChannelConnected,sfu.connectionError,authority,transmissionState,applyPolicy]);
   useEffect(()=>{
     const transaction=completed.current;
     if(!transaction)return;
-    if(host!==transaction.host || sfu.currentChannelConnected!==transaction.channel || authority?.generation!==transaction.generation) {
+    if(host!==transaction.host || authority?.generation!==transaction.generation) {
       completed.current=undefined;recovery.current=undefined;return;
     }
-    if(sfu.connectionError!=="destination_recovery_required" || recovery.current || !socket || !authority)return;
+    if(sfu.currentChannelConnected!==transaction.channel) {
+      if(!transaction.promoted && sfu.currentChannelConnected===transaction.source)return;
+      completed.current=undefined;recovery.current=undefined;return;
+    }
+    transaction.promoted=true;
+    const failed=sfu.connectionError==="destination_recovery_required";
+    const explicitRetry=retryRequest?.requestId===transaction.requestId;
+    if((!failed && !(explicitRetry && transaction.resumeRequired)) || recovery.current || !socket || !authority)return;
     let disposed=false;
     const current=()=>!disposed && socket.connected && socket.id===transaction.generation && authority.stagingSupported;
-    recovery.current={host,channel:transaction.channel,generation:transaction.generation};
+    recovery.current={host,channel:transaction.channel,generation:transaction.generation,requestId:transaction.requestId,mode:failed?"reconnect":"resume"};
     void (async()=>{
       const confirmation=await authority.confirmCommit(transaction.requestId);
       if(!current() || confirmation.status!=="committed" || confirmation.sourceChannelId!==transaction.source ||
@@ -46,14 +67,19 @@ export function useVoiceMoves(authorities:Record<string,ClientMoveAuthority>,app
       const until=Date.now()+8000;
       while(current() && Date.now()<until) {
         if(authority.isDestinationPolicyApplied(transaction.requestId,transaction.settings)) {
+          if(!failed && transaction.resumeRequired) {
+            await latest.current.sfu.resumeMoveTransmission!(transaction.requestId);
+            if(current()){transaction.resumeRequired=false;recovery.current=undefined;applyPolicy(undefined);}
+            return;
+          }
           toast.error(i18n.t("pureVoice.moveRecovery",{host}),{id:"voice-move",duration:12000});return;
         }
         await new Promise(resolve=>setTimeout(resolve,25));
       }
       throw new Error("destination_policy_not_acknowledged");
-    })().catch(()=>{if(current())toast.error(i18n.t("pureVoice.moveFailed"),{id:"voice-move"});});
+    })().catch(()=>retryNotice(current));
     return()=>{disposed=true;};
-  },[host,sfu.currentChannelConnected,sfu.connectionError,authority,socket,applyPolicy]);
+  },[host,sfu.currentChannelConnected,sfu.connectionError,authority,socket,applyPolicy,retryRequest]);
   useEffect(()=>{
     if(!socket || !authority || !supported || !sfu.prepareMove || !sfu.commitMove ||
       !sfu.abortMove || !sfu.resumeMoveTransmission)return;
@@ -93,12 +119,15 @@ export function useVoiceMoves(authorities:Record<string,ClientMoveAuthority>,app
         void latest.current.sfu.abortMove!(row.requestId).catch(report);return;
       }
       if(row.status!=="committed" || record.commit)return;
+      recovery.current=undefined;
+      completed.current={host,channel:record.request.destinationChannelId,source:record.request.sourceChannelId,
+        generation:authority.generation,requestId:record.request.requestId,revision:record.revision,resumeRequired:true,promoted:false,settings:record.request.channelSettings};
       record.commit=(async()=>{
         await record.ready;if(!current())return;
         const bindConfirmedPolicy=async()=>{
           // Events never authorize policy. The fresh query must confirm the exact transaction.
           const confirmation=await authority.confirmCommit(record.request.requestId);
-          if(!current() || confirmation.status!=="committed" || confirmation.sourceChannelId!==record.request.sourceChannelId ||
+          if(!current() || completed.current?.requestId!==record.request.requestId || confirmation.status!=="committed" || confirmation.sourceChannelId!==record.request.sourceChannelId ||
             confirmation.destinationChannelId!==record.request.destinationChannelId)throw new Error("stale_move_confirmation");
           const policy=authority.getDestinationPolicy(record.request.requestId);if(!policy)throw new Error("missing_destination_policy");
           applyPolicy({host,generation:authority.generation,requestId:record.request.requestId,
@@ -112,13 +141,12 @@ export function useVoiceMoves(authorities:Record<string,ClientMoveAuthority>,app
         catch(error) {
           if(!error || typeof error!=="object" || !("code" in error) || error.code!=="destination_recovery_required")throw error;
           destinationRecovery=true;
-          recovery.current={host,channel:record.request.destinationChannelId,generation:authority.generation};
+          recovery.current={host,channel:record.request.destinationChannelId,generation:authority.generation,requestId:record.request.requestId,mode:"reconnect"};
         }
         if(!current())return;
+        if(completed.current?.requestId===record.request.requestId)completed.current.promoted=true;
         // Keep transaction identity after release so a later destination failure
         // can requery policy; live configuration need not retain stale controls.
-        completed.current={host,channel:record.request.destinationChannelId,source:record.request.sourceChannelId,
-          generation:authority.generation,requestId:record.request.requestId,revision:record.revision,settings:record.request.channelSettings};
         await bindConfirmedPolicy();
         const until=Date.now()+8000;
         while(current() && Date.now()<until) {
@@ -130,14 +158,17 @@ export function useVoiceMoves(authorities:Record<string,ClientMoveAuthority>,app
               return;
             }
             await latest.current.sfu.resumeMoveTransmission!(record.request.requestId);
-            if(current())applyPolicy(undefined);
+            if(current() && completed.current?.requestId===record.request.requestId){completed.current.resumeRequired=false;applyPolicy(undefined);}
             return;
           }
           await new Promise(resolve=>setTimeout(resolve,25));
         }
         throw new Error("destination_policy_not_acknowledged");
       })();
-      void record.commit.catch(report);
+      void record.commit.catch(()=>{
+        if(completed.current?.requestId!==record.request.requestId)return;
+        if(latest.current.sfu.currentChannelConnected===record.request.destinationChannelId)retryNotice(current);else report();
+      });
     };
     socket.on("voice:move:prepare",prepare);socket.on("voice:move:result",result);
     // Advertise only with the real installed methods, bound authority and live server/SFU probe.

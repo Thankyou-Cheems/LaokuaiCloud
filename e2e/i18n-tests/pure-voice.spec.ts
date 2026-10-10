@@ -7,6 +7,18 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
+test("move recovery retry notice stays within narrow viewport and follows language changes",async({page})=>{
+  await page.setViewportSize({width:300,height:600});
+  await page.goto("/e2e/pure-voice-harness.html");
+  await page.getByRole("button",{name:"Recovery fixture"}).click();
+  await page.getByRole("button",{name:"重试政策确认"}).click();
+  await expect(page.getByTestId("recovery-retries")).toHaveText("1");
+  await page.getByRole("button",{name:"English fixture"}).click();
+  await expect(page.getByRole("button",{name:"Retry policy confirmation"})).toBeVisible();
+  await expect(page.getByRole("status").filter({hasText:"Destination audio"})).toContainText("remains blocked");
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
+});
+
 test("pure voice toolbar has labeled audio actions and no camera or share entry", async ({ page }) => {
   await page.goto("/e2e/room-layout-harness.html");
   const bar = page.getByRole("toolbar", { name: "通话控制" });

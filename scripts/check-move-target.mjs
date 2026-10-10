@@ -8,14 +8,16 @@ const {createMoveAuthority}=await import(authorityURL);
 const {readMovePrepare}=await import(moduleURL(read('../src/lib/movePrepare.ts').replace('"./moveAuthority"',JSON.stringify(authorityURL))));
 const {isMovePolicyAcknowledged}=await import(moduleURL(read('../src/lib/movePolicy.ts')));
 const hookSource=read('../src/packages/webRTC/src/adapters/useVoiceMoves.ts').replace(/^import .*;$/gm,'').replace('export function useVoiceMoves','function useVoiceMoves');
-const loadHook=new Function('deps',`const {useSFU,useMicrophone,useSockets,useRef,useEffect,toast,i18n,readMovePrepare,emitAuthenticated}=deps;
+const loadHook=new Function('deps',`const {useSFU,useMicrophone,useSockets,useRef,useEffect,useState,createElement,VoiceMoveRecoveryNotice,toast,i18n,readMovePrepare,emitAuthenticated}=deps;
+  const Date=deps.clock??globalThis.Date;
   ${hookSource};return useVoiceMoves;`);
 const tick=()=>new Promise(resolve=>setTimeout(resolve,30));
 const policy={requirePTT:true,disableRNNoise:true,maxBitrate:64000,eSportsMode:false,speak:true,shareVideo:false,shareScreen:false,isMuted:false,isDeafened:false};
 let groups=0;
 function setup({supported=true,boundary=true,prepareError=false,policyAck=true,commitRecovery=false}={}) {
   const listeners=new Map(),sent=[],calls=[],errors=[];let binding;
-  const refs=[],effects=[];let refIndex=0,effectIndex=0;
+  const refs=[],effects=[],states=[];let refIndex=0,effectIndex=0,stateIndex=0;
+  let timeOffset=0;
   const socket={id:'session',connected:true,on(event,handler){if(!listeners.has(event))listeners.set(event,new Set());listeners.get(event).add(handler)},off(event,handler){listeners.get(event)?.delete(handler)}};
   const emit=(event,value)=>{for(const handler of [...listeners.get(event)??[]])handler(value)};
   const ack={publicationAcknowledged:true,publicationBlocked:false,publicationRevision:boundary?4:undefined};
@@ -38,6 +40,11 @@ function setup({supported=true,boundary=true,prepareError=false,policyAck=true,c
     async resumeMoveTransmission(id){calls.push(['resume',id]);assert.equal(authority.isDestinationPolicyApplied(id,{requirePushToTalk:true,disableRnnoise:true,maxBitrate:64000,eSportsMode:false}),true)}
   };
   const hook=loadHook({useSFU:()=>sfu,useMicrophone:()=>({transmissionState:ack}),useSockets:()=>({sockets:{host:socket}}),
+    clock:{now:()=>Date.now()+timeOffset},
+    VoiceMoveRecoveryNotice:'actual-notice-component',createElement:(type,props,...children)=>({type,props:{...props,children}}),useState:initial=>{
+      const index=stateIndex++;if(!(index in states))states[index]=initial;
+      return [states[index],value=>{states[index]=typeof value==='function'?value(states[index]):value;queueMicrotask(render)}];
+    },
     useRef:current=>{const index=refIndex++;return refs[index]??(refs[index]={current})},useEffect:(effect,deps)=>{
       const index=effectIndex++,previous=effects[index];
       if(previous && deps.every((value,i)=>Object.is(value,previous.deps[i])))return;
@@ -50,13 +57,14 @@ function setup({supported=true,boundary=true,prepareError=false,policyAck=true,c
     ack.publicationAcknowledged=false;
     if(policyAck)queueMicrotask(()=>{ack.publicationAcknowledged=true;ack.publicationBlocked=true;ack.publicationRevision++});
   };
-  const render=()=>{refIndex=0;effectIndex=0;hook({host:authority},apply)};render();
+  const render=()=>{refIndex=0;effectIndex=0;stateIndex=0;hook({host:authority},apply)};render();
   const request={v:1,generation:'session',requestId:'11111111-1111-1111-1111-111111111111',sourceChannelId:'source',
     destinationChannelId:'destination',joinToken:{move_id:'11111111-1111-1111-1111-111111111111'},sfuUrls:['ws://127.0.0.1:9999'],
     expiresAt:Date.now()+30000,channelSettings:policy};
   const result=()=>emit('voice:move:result',{v:1,generation:'session',requestId:request.requestId,sourceChannelId:'source',destinationChannelId:'destination',status:'committed'});
   return {socket,authority,sfu,ack,evidence,calls,sent,errors,emit,request,result,changePolicy:value=>{replyPolicy=value},
-    render,dispose(){for(const effect of effects)effect.cleanup?.();authority.dispose()},get binding(){return binding},listenerCount:()=>[...listeners.values()].reduce((sum,set)=>sum+set.size,0)};
+    render,advanceTime:ms=>{timeOffset+=ms},allowAck:value=>{policyAck=value},dispose(){for(const effect of effects)effect.cleanup?.();authority.dispose()},
+    get binding(){return binding},listenerCount:()=>[...listeners.values()].reduce((sum,set)=>sum+set.size,0)};
 }
 {
   const f=setup();assert.equal(f.sent[0][0],'voice:move:client');f.emit('voice:move:prepare',f.request);await tick();
@@ -118,6 +126,27 @@ for(const [field,value] of [['generation','old'],['v',2],['sourceChannelId','oth
   f.sfu.connectionError=null;f.sfu.isConnected=true;f.ack.publicationBlocked=false;f.render();
   assert.equal(f.binding,undefined,'successful explicit recovery clears temporary controls');
   f.dispose();assert.equal(f.listenerCount(),0);groups++;
+}
+{
+  const f=setup();f.emit('voice:move:prepare',f.request);await tick();f.result();await tick();f.render();
+  const confirm=f.authority.confirmCommit;let rejected=false;
+  f.authority.confirmCommit=id=>{if(!rejected){rejected=true;return Promise.reject(Error('authority_query_timeout'))}return confirm(id)};
+  f.sfu.isConnected=false;f.sfu.connectionError='destination_recovery_required';f.render();await tick();
+  assert.equal(f.binding,undefined);const retry=f.errors.at(-1);
+  assert.equal(retry.type,'actual-notice-component');retry.props.onRetry();await tick();
+  assert.ok(f.binding,'explicit retry reacquires policy after transient query failure');
+  assert.equal(f.errors.at(-1),'pureVoice.moveRecovery');
+  f.dispose();groups++;
+}
+{
+  const f=setup({policyAck:false});f.emit('voice:move:prepare',f.request);await tick();f.result();await tick();
+  assert.equal(f.sfu.isConnected,true);assert.ok(f.binding);f.render();
+  f.advanceTime(9000);await tick();const retry=f.errors.at(-1);
+  f.allowAck(true);retry.props.onRetry();await tick();
+  assert.equal(f.calls.filter(([event])=>event==='resume').length,1,'healthy destination policy timeout retries protected resume');
+  assert.equal(f.binding,undefined);f.render();await tick();
+  assert.equal(f.calls.filter(([event])=>event==='resume').length,1,'no duplicate resume on later render');
+  f.dispose();groups++;
 }
 {
   const f=setup();f.emit('voice:move:prepare',f.request);await tick();

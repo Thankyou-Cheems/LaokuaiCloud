@@ -18,6 +18,7 @@ import { RoomCallBar } from "../src/packages/socket/src/components/RoomCallBar";
 import { useVoiceConfigFromSettings } from "../src/packages/webRTC/src/adapters/voiceConfig";
 import {EffectiveVoicePolicyProvider} from "../src/packages/webRTC/src/components/EffectiveVoicePolicy";
 import { TransmitSpeechProvider } from "../src/packages/webRTC/src/components/TransmitSpeechAdapter";
+import {VoiceMoveRecoveryNotice} from "../src/packages/webRTC/src/components/VoiceMoveRecoveryNotice";
 void setLanguagePreference("zh-CN");
 const scale = Number(new URLSearchParams(location.search).get("scale") || 1);
 const forced=new URLSearchParams(location.search).get("forced")==="1";
@@ -29,6 +30,8 @@ function Harness() {
   const { openSettings, isMuted, setIsMuted,inputMode } = useSettings();
   const [confirm, setConfirm] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+  const [recoveryNotice,setRecoveryNotice]=useState(false);
+  const [recoveryRetries,setRecoveryRetries]=useState(0);
   return <VoiceConfigProvider config={config}><EffectiveVoicePolicyProvider value={forced ? {inputMode:"push_to_talk",requiredPushToTalk:true,
     serverMuted:false,serverDeafened:false,canSpeak:false} : undefined}><div className="gryt-app" style={{display:"flex",flexDirection:"column",height:"calc(100dvh / var(--gryt-ui-scale))",padding:8,gap:8}}>
     <div style={{flex:1,minHeight:0,overflow:"auto"}}>
@@ -37,6 +40,10 @@ function Harness() {
       <button onClick={() => setConfirm(true)}>Open confirm</button>
       <button onClick={() => setIsMuted(true)}>Mute fixture</button>
       <button onClick={() => setSpeaking(!speaking)}>Speech fixture</button>
+      <button onClick={()=>setRecoveryNotice(true)}>Recovery fixture</button>
+      <button onClick={()=>void setLanguagePreference("en")}>English fixture</button>
+      {recoveryNotice && <VoiceMoveRecoveryNotice onRetry={()=>setRecoveryRetries(value=>value+1)}/>}
+      <output data-testid="recovery-retries">{recoveryRetries}</output>
       <output data-testid="muted">{String(isMuted)}</output>
       <output data-testid="mode-preference">{inputMode}</output>
       <TransmitSpeechProvider value={speaking}><div data-testid="member-pane" style={{width:240,maxWidth:"100%"}}><ConnectedUser nickname="老蒯和队友的很长昵称" serverUserId="fixture" serverHost="fixture" isSelf isSpeaking={false} isMuted={false} isDeafened={false} isAFK={false}/></div></TransmitSpeechProvider>
