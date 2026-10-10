@@ -103,5 +103,8 @@ voice-mode-evidence.json
 server-mode-evidence.json
 release-laokuai-squad-2/
 release-laokuai-squad-3/
+release-laokuai-squad-3-profile-1/
+profile-*.json
+profile-*.txt
 startup-*.txt
 startup-*.json

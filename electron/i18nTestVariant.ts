@@ -3,6 +3,8 @@ import { app } from "electron";
 import { mkdirSync, readFileSync } from "fs";
 import { dirname, join } from "path";
 
+import { privateProfilePaths } from "./privateProfile";
+
 export function isI18nTestPackage(): boolean {
   const metadata = JSON.parse(readFileSync(join(app.getAppPath(), "package.json"), "utf8"));
   return metadata.grytI18nTest === true;
@@ -18,9 +20,8 @@ export function isolateI18nTestData(): void {
   // The portable wrapper supplies its permanent directory, rather than its
   // temporary extraction directory. Unpacked builds use their own executable dir.
   const root = process.env.PORTABLE_EXECUTABLE_DIR || dirname(process.execPath);
-  const data = join(root, own ? "laokuai-chat-data" : "laokuai-chat-i18n-test-data");
-  const sessions = join(data, "sessions");
-  mkdirSync(sessions, { recursive: true });
+  const { data, sessions, reuseExisting } = privateProfilePaths(own, process.argv, root);
+  if (!reuseExisting) mkdirSync(sessions, { recursive: true });
   app.setName(own ? "老蒯聊" : "老蒯聊 汉化测试");
   app.setPath("userData", data);
   app.setPath("sessionData", sessions);

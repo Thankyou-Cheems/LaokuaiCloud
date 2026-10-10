@@ -14,7 +14,7 @@ function run(label,args,env={}) {
 if (!process.argv.includes("--resume-ui") && !process.argv.includes("--resume-build")) {
 run("typecheck",["node_modules/typescript/bin/tsc","-b"]);
 run("lint",["node_modules/eslint/bin/eslint.js",".","--ext","ts,tsx","--report-unused-disable-directives","--max-warnings","0"]);
-for (const name of ["check-private-startup","check-private-defaults","check-private-relaunch","check-notification-prefs","check-message-notification","check-uiohook-esm","check-settings-index","check-comment-length","check-i18n",
+for (const name of ["check-private-startup","check-private-profile","check-private-defaults","check-private-relaunch","check-notification-prefs","check-message-notification","check-uiohook-esm","check-settings-index","check-comment-length","check-i18n",
   "check-squad-mode","check-squad-broker","check-voice-modes","check-output-device","check-laokuai-integration","check-hotkeys","check-screen-audio"]) {
   run(name,[`scripts/${name}.mjs`]);
 }
