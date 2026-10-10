@@ -98,6 +98,19 @@ for(const [field,value] of [['generation','old'],['v',2],['sourceChannelId','oth
   assert.equal(f.calls.some(([event])=>event==='resume'),false);f.dispose();groups++;
 }
 {
+  const f=setup();f.emit('voice:move:prepare',f.request);await tick();
+  const confirm=f.authority.confirmCommit;let rejected=false;
+  f.authority.confirmCommit=id=>{if(!rejected){rejected=true;return Promise.reject(Error('authority_query_timeout'))}return confirm(id)};
+  f.result();await tick();f.render();assert.equal(f.sfu.currentChannelConnected,'source');
+  assert.equal(f.calls.some(([event])=>event==='commit'),false,'no promotion on failed policy query');
+  const retry=f.errors.at(-1);assert.equal(retry.props.phase,'source');
+  f.result();await tick();assert.equal(f.calls.some(([event])=>event==='commit'),false,'duplicate event cannot bypass query failure');
+  retry.props.onRetry();await tick();assert.equal(f.sfu.currentChannelConnected,'destination');
+  assert.equal(f.calls.filter(([event])=>event==='commit').length,1);assert.equal(f.calls.filter(([event])=>event==='resume').length,1);
+  retry.props.onRetry();await tick();assert.equal(f.calls.filter(([event])=>event==='commit').length,1,'stale notice cannot replay new job');
+  f.dispose();groups++;
+}
+{
   const f=setup({commitRecovery:true});f.emit('voice:move:prepare',f.request);await tick();f.result();await tick();
   assert.equal(f.sfu.currentChannelConnected,'destination','committed failure never reports source retained');
   assert.ok(f.binding,'destination recovery retains authoritative policy');

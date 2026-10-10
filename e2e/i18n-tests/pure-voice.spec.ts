@@ -16,6 +16,8 @@ test("move recovery retry notice stays within narrow viewport and follows langua
   await page.getByRole("button",{name:"English fixture"}).click();
   await expect(page.getByRole("button",{name:"Retry policy confirmation"})).toBeVisible();
   await expect(page.getByRole("status").filter({hasText:"Destination audio"})).toContainText("remains blocked");
+  await page.getByRole("button",{name:"Before promotion fixture"}).click();
+  await expect(page.getByRole("status").filter({hasText:"Destination policy"})).toContainText("has not confirmed the destination connection yet");
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);
 });
 

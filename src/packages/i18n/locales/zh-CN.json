@@ -3621,6 +3621,7 @@
     "moveFailed": "移动未获确认",
     "moveRecovery": "移动已提交，但目标语音连接失败。请打开 {{host}}，重新选择目标语音频道恢复；你的静音设置会保留。",
     "moveRecoveryPending": "目标语音正在等待政策确认，发送保持关闭。",
+    "movePromotionPending": "移动已提交，正在核验目标政策；本客户端尚未完成目标频道的连接确认。",
     "moveRecoveryRetry": "重试政策确认",
     "speakDenied": "你没有在此频道发言的权限。",
     "localMediaBoundary": "本客户端只发送和接收麦克风语音。其他客户端是否允许视频或屏幕共享，由服务器政策决定。",

@@ -32,6 +32,7 @@ function Harness() {
   const [speaking, setSpeaking] = useState(false);
   const [recoveryNotice,setRecoveryNotice]=useState(false);
   const [recoveryRetries,setRecoveryRetries]=useState(0);
+  const [recoveryPhase,setRecoveryPhase]=useState<"source"|"destination">("destination");
   return <VoiceConfigProvider config={config}><EffectiveVoicePolicyProvider value={forced ? {inputMode:"push_to_talk",requiredPushToTalk:true,
     serverMuted:false,serverDeafened:false,canSpeak:false} : undefined}><div className="gryt-app" style={{display:"flex",flexDirection:"column",height:"calc(100dvh / var(--gryt-ui-scale))",padding:8,gap:8}}>
     <div style={{flex:1,minHeight:0,overflow:"auto"}}>
@@ -42,7 +43,8 @@ function Harness() {
       <button onClick={() => setSpeaking(!speaking)}>Speech fixture</button>
       <button onClick={()=>setRecoveryNotice(true)}>Recovery fixture</button>
       <button onClick={()=>void setLanguagePreference("en")}>English fixture</button>
-      {recoveryNotice && <VoiceMoveRecoveryNotice onRetry={()=>setRecoveryRetries(value=>value+1)}/>}
+      <button onClick={()=>setRecoveryPhase("source")}>Before promotion fixture</button>
+      {recoveryNotice && <VoiceMoveRecoveryNotice phase={recoveryPhase} onRetry={()=>setRecoveryRetries(value=>value+1)}/>}
       <output data-testid="recovery-retries">{recoveryRetries}</output>
       <output data-testid="muted">{String(isMuted)}</output>
       <output data-testid="mode-preference">{inputMode}</output>

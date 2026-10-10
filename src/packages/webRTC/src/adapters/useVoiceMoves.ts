@@ -21,12 +21,14 @@ export function useVoiceMoves(authorities:Record<string,ClientMoveAuthority>,app
   const [retryRequest,setRetryRequest]=useState<{requestId:string;attempt:number}>();
   const completed=useRef<{host:string;channel:string;source:string;generation:string;requestId:string;
     revision:number;resumeRequired:boolean;promoted:boolean;settings:NonNullable<ReturnType<typeof readMovePrepare>>["channelSettings"]}|undefined>(undefined);
-  const retryNotice=(current:()=>boolean)=>{
+  const retryNotice=(current:()=>boolean,retryPromotion?:()=>void)=>{
     const transaction=completed.current;if(!current() || !transaction)return;
     recovery.current=undefined;
     toast.error(createElement(VoiceMoveRecoveryNotice,{
+      phase:!transaction.promoted && latest.current.sfu.currentChannelConnected===transaction.source ? "source" : "destination",
       onRetry:()=>{
         if(!current() || completed.current!==transaction)return;
+        if(retryPromotion){retryPromotion();return;}
         setRetryRequest(previous=>({requestId:transaction.requestId,attempt:(previous?.attempt??0)+1}));
       },
     }),{id:"voice-move",duration:Infinity});
@@ -167,6 +169,9 @@ export function useVoiceMoves(authorities:Record<string,ClientMoveAuthority>,app
       })();
       void record.commit.catch(()=>{
         if(completed.current?.requestId!==record.request.requestId)return;
+        if(!completed.current.promoted && latest.current.sfu.currentChannelConnected===record.request.sourceChannelId) {
+          retryNotice(current,()=>{record.commit=undefined;result(value);});return;
+        }
         if(latest.current.sfu.currentChannelConnected===record.request.destinationChannelId)retryNotice(current);else report();
       });
     };

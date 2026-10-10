@@ -3621,6 +3621,7 @@
     "moveFailed": "Move was not confirmed",
     "moveRecovery": "The move was committed, but destination audio failed. Open {{host}} and select the destination voice channel again to recover. Your mute settings are preserved.",
     "moveRecoveryPending": "Destination audio is waiting for policy confirmation and remains blocked.",
+    "movePromotionPending": "The move was committed. Destination policy is being checked; this client has not confirmed the destination connection yet.",
     "moveRecoveryRetry": "Retry policy confirmation",
     "speakDenied": "You do not have permission to speak in this channel.",
     "localMediaBoundary": "This client sends and receives microphone audio only. Media allowed for other clients depends on server policy.",
