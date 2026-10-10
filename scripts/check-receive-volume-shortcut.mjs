@@ -13,8 +13,10 @@ const controls = read(path+'controls.tsx');
 const mini = read(path+'miniControls.tsx');
 let count=0;
 function check(label,fn){fn();console.log(`PASS ${++count} ${label}`);}
-check('both surfaces use the same three-control component',()=>{
- assert.match(controls,/<VoiceAudioControls \/>/);assert.match(mini,/<VoiceAudioControls direction=\{direction\} iconSize=\{iconSize\} \/>/);
+check('single call toolbar uses three audio controls; retired sidebar capsule renders nothing',()=>{
+ assert.match(controls,/<VoiceAudioControls \/>/);assert.match(mini,/return null/);assert.doesNotMatch(mini,/VoiceAudioControls|useMicrophone|useCamera|useScreenShare/);
+ assert.doesNotMatch(read('src/components/sidebar.tsx'),/<MiniControls/);
+ assert.match(read('src/components/mainApp.tsx'),/<GlobalCallBar/);
  assert.equal((trio.match(/<HoverAudioControl /g)||[]).length,3);
 });
 check('settings receive volume remains at top with unique search anchor',()=>{
@@ -27,7 +29,7 @@ check('microphone and output persist through existing distinct setters',()=>{
  }
 });
 check('original click mute and deafen retain administrator guards',()=>{
- assert.match(trio,/if \(isServerMuted\)/);assert.match(trio,/if \(isServerDeafened\)/);
+ assert.match(trio,/if \(isServerMuted \|\| speakDenied\)/);assert.match(trio,/if \(isServerDeafened\)/);
  assert.match(trio,/setIsMuted\(!isMuted\)/);assert.match(trio,/setIsDeafened\(!isDeafened\)/);
  assert.match(trio,/voiceAudio.muted/);assert.match(trio,/receiveVolume.deafened/);
 });
@@ -52,7 +54,7 @@ check('separate action and expansion arrow support touch and keyboard',()=>{
  assert.match(hover,/finalFocus=\{returnFocus && !hoverOpen \? arrow : false\}/);
  assert.match(hover,/<Popover.Close/);
 });
-check('side capsule opens right; collision and reduced motion are configured',()=>{
+check('shared audio popup retains side placement, collision and reduced motion configuration',()=>{
  assert.match(trio,/direction === "column" \? "right" : "top"/);
  assert.match(hover,/collisionPadding=\{8\}/);assert.match(hover,/max-w-\[calc\(100vw-16px\)\]/);
  assert.match(hover,/motion-reduce:!transition-none/);assert.match(hover,/transition-\[opacity,transform\] duration-150/);

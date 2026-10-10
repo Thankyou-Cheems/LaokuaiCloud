@@ -15,7 +15,12 @@ const sourcePath = "src/packages/settings/src/hooks/settingsSearch.ts";
 const keysPath = "src/packages/settings/src/hooks/settingsSearchKeys.ts";
 const en = JSON.parse(read("src/packages/i18n/locales/en.json"));
 const zh = JSON.parse(read("src/packages/i18n/locales/zh-CN.json"));
-const originalRoutes = JSON.parse(read("scripts/fixtures/settings-search-routes.json"));
+const retiredMedia = new Set(["flip-camera","center-my-face-automatically","mirror-preview","tile-layout","two-people","experimental-screen-share","fake-screen-share"]);
+// Preserve the historical routing fixture and explicitly state this private build's policy delta.
+const originalRoutes = JSON.parse(read("scripts/fixtures/settings-search-routes.json")).filter(entry=>!retiredMedia.has(entry.id));
+originalRoutes.splice(originalRoutes.findIndex(entry=>entry.id==="updates")+1,0,
+  ...["automatic-noise-gate","receive-priors"].map(id=>({id,destination:"sound-video",page:"audio"})),
+  ...["peer-voice-cues","peer-voice-cues-enabled","peer-voice-cues-dnd","peer-voice-cues-join-volume","peer-voice-cues-leave-volume"].map(id=>({id,destination:"sound-video",page:"voice"})));
 const plain = (value) => JSON.parse(JSON.stringify(value));
 const lookup = (locale, key) => key.split(".").reduce((value, part) => value?.[part], locale);
 const route = ({ id, destination, page, panel }) => plain({ id, destination, page, panel });
@@ -85,7 +90,7 @@ for (const environment of ["browser", "windows", "mac"]) {
       if (environment === "windows" && id === "open-at-login") return false;
       return true;
     });
-    assert.deepEqual(plain(SETTINGS_INDEX.map(route)), expected, `${environment}/${dev}: routes and platform gates unchanged`);
+    assert.deepEqual(plain(SETTINGS_INDEX.map(route)), expected, `${environment}/${dev}: authorized pure-voice routes and platform gates`);
     const baseline = JSON.stringify(SETTINGS_INDEX);
     SETTINGS_INDEX.forEach(Object.freeze);
     Object.freeze(SETTINGS_INDEX);
@@ -121,10 +126,11 @@ for (const environment of ["browser", "windows", "mac"]) {
     const stableTranslator = (key) => translation.t(key);
     for (const active of ["zh-CN", "en", "zh-CN"]) {
       language = active;
-      const viaDefault = searchSettings("camera").find(({ id }) => id === "flip-camera");
-      const viaReact = searchSettings("camera", stableTranslator).find(({ id }) => id === "flip-camera");
-      assert.equal(viaDefault.title, active === "zh-CN" ? "翻转摄像头" : "Flip camera");
+      const viaDefault = searchSettings("Automatic speech gate").find(({ id }) => id === "automatic-noise-gate");
+      const viaReact = searchSettings("Automatic speech gate", stableTranslator).find(({ id }) => id === "automatic-noise-gate");
+      assert.equal(viaDefault.title, lookup(active==="zh-CN"?zh:en,"pureVoice.autoGate"));
       assert.deepEqual(plain(viaDefault), plain(viaReact));
+      assert.equal(searchSettings("camera").some(entry=>retiredMedia.has(entry.id)),false);
       assert.equal(language, active, "Chinese alias lookup must not switch app language");
     }
   }

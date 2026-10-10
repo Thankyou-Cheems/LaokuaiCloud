@@ -7,17 +7,32 @@ import {
   NOTIFICATION_CHANNEL_OPEN_EVENT,
   onDesktopNotificationOpen,
 } from "@/lib/desktopNotification";
+import { warmNotificationContext } from "@/lib/notificationSound";
 import { useSettings } from "@/settings";
 import { DmFeeds, FriendsDialog, NewMessageDialog, useDmSpaceOpen, useRememberView, useServerManagement } from "@/socket";
+import { GlobalCallBar } from "@/socket/src/components/GlobalCallBar";
 import { ServerView } from "@/socket/src/components/serverView";
 import { useIsTinyWindow } from "@/socket/src/hooks/useNarrowWindow";
 
 import { useRememberPlace } from "../lib/reports/session";
+import { useOverlayViewportBounds } from "../lib/useOverlayViewportBounds";
 import { Discovery } from "./discovery";
 import { OnboardingTour } from "./onboarding/OnboardingTour";
 import { Sidebar } from "./sidebar";
 
 export function MainApp() {
+  useOverlayViewportBounds();
+  useEffect(() => {
+    const warm = () => {
+      warmNotificationContext();
+      document.removeEventListener("pointerdown", warm);
+      document.removeEventListener("keydown", warm);
+    };
+    document.addEventListener("pointerdown", warm, { passive: true });
+    document.addEventListener("keydown", warm);
+    return () => { document.removeEventListener("pointerdown", warm); document.removeEventListener("keydown", warm); };
+  }, []);
+
   const { t: tr } = useTranslation();
   const {
     servers,
@@ -90,6 +105,8 @@ export function MainApp() {
       <NewMessageDialog />
       <FriendsDialog />
 
+      <div className="flex min-w-0 min-h-0 flex-1 flex-col gap-2">
+      <div className="flex min-w-0 min-h-0 flex-1 overflow-hidden">
       {dmSpaceOpen && Object.keys(servers).length > 0 ? (
         <ServerView dmSpace />
       ) : showDiscovery ? (
@@ -109,6 +126,10 @@ export function MainApp() {
           </div>
         </div>
       )}
+
+      </div>
+      <GlobalCallBar />
+      </div>
 
       {showTour && <OnboardingTour onFinish={dismissTour} />}
     </div>

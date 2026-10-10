@@ -11,9 +11,9 @@ import { useAloneInCall } from "../hooks/useAloneInCall";
 export function RoomCallBar({ onDisconnect, isCall = false, alone = false }: { onDisconnect?: () => void; isCall?: boolean; alone?: boolean }) {
   const { t } = useTranslation();
   const ref = useRef<HTMLDivElement>(null);
-  const { callAloneTimeoutSeconds, stillHere } = useSFU();
+  const { callAloneTimeoutSeconds, stillHere, disconnect } = useSFU();
   const { secondsLeft, stay } = useAloneInCall({ inACall: isCall, alone,
-    aloneSeconds: callAloneTimeoutSeconds, onEnd: () => onDisconnect?.() });
+    aloneSeconds: callAloneTimeoutSeconds, onEnd: () => { disconnect(onDisconnect); } });
   useEffect(() => {
     const bar = ref.current;
     const room = bar?.closest<HTMLElement>('[data-gryt="server-view"]');

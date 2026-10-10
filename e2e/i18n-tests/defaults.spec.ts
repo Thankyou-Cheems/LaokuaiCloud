@@ -27,7 +27,10 @@ test("empty store uses approved defaults without capture or notification permiss
   await expect(page.getByTestId("decisions")).toHaveText("[false,true]");
   const config=JSON.parse((await page.getByTestId("voice").textContent())!);
   expect(config.audio).toMatchObject({compressorEnabled:false,noiseSuppression:true,receiveLevelingEnabled:true,volume:50,outputVolume:100});
-  expect(config.camera).toMatchObject({quality:"720p",fps:30});expect(config.screen).toMatchObject({quality:"720p",fps:30,gamingMode:false});
+  // Stored legacy media choices survive; runtime is inert under the private audio-only contract.
+  expect(config.camera).toMatchObject({quality:"480p",fps:30});expect(config.screen).toMatchObject({quality:"480p",fps:30,gamingMode:false});
+  expect(config.connection.mediaMode).toBe("audio-only");
+  expect(config.audio).toMatchObject({noiseGateMode:"automatic",transmitSpeechActivityEnabled:true,transmitEligible:false});
   expect(await counters(page)).toEqual({capture:0,display:0,permission:0});
   await page.getByRole("button",{name:"Save explicit legacy choices"}).click();
   await page.reload();expect(await values(page)).toMatchObject({compressor:true,message:true,camera:"native",screen:"native",gaming:true});

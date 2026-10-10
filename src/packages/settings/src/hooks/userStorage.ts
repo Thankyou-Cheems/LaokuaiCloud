@@ -363,6 +363,8 @@ export const SETTINGS_KEYS = [
   "muteHotkey",
   "deafenHotkey",
   "disconnectHotkey",
+  "peerVoiceCues",
+  "noiseGateMode",
   "connectSoundEnabled",
   "disconnectSoundEnabled",
   "connectSoundVolume",

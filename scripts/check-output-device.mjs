@@ -40,6 +40,7 @@ const contexts = [];
 const played = [];
 let decodeFails = false;
 let deviceMissing = true;
+let fallbackAudioInstances = 0;
 const mediaDevices = new EventTarget();
 mediaDevices.enumerateDevices = async () => [];
 
@@ -65,13 +66,16 @@ class FakeContext extends FakeOutput {
     if (decodeFails) throw new Error("Undecodable sound");
     return {};
   }
-  createGain() { return { gain: {}, connect() {} }; }
+  createGain() { return { gain: {}, connect() {}, disconnect() {} }; }
   createBufferSource() {
-    return { connect() {}, start: () => played.push(this.sinkId) };
+    const node = { connect() {}, disconnect() {}, stop() { node.onended?.(); },
+      onended: null, start: () => { played.push(this.sinkId); Promise.resolve().then(() => node.onended?.()); } };
+    return node;
   }
 }
 
 class FakeAudio extends FakeOutput {
+  constructor() { super(); fallbackAudioInstances++; }
   async play() { played.push(this.sinkId); }
 }
 
@@ -100,7 +104,7 @@ const load = (path, overrides = {}) => {
     exports: module.exports, module, console: quiet, localStorage: storage,
     AudioContext: FakeContext, Audio: FakeAudio, DOMException,
     navigator: { mediaDevices },
-    fetch: async () => ({ arrayBuffer: async () => new ArrayBuffer(1) }),
+    fetch: async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(1) }),
     require: (name) => {
       if (name in dependencies) {
         const dependency = dependencies[name];
@@ -135,8 +139,14 @@ runInNewContext(ts.transpileModule(engineSource, {
     if (name.endsWith("config/index.js")) return { useVoiceConfig: () => ({ audio: {} }) };
     if (name.endsWith("singletonHook.js")) return { singletonHook: (_initial, body) => body };
     if (name.endsWith("useAudioContext.js")) return { useSharedAudioContext: () => ({ audioContext: voiceContext }) };
+    if (name.endsWith("audioVolume.js")) {
+      const actual={exports:{}};
+      runInNewContext(ts.transpileModule(readFileSync(join(root,"node_modules/@gryt/voice/dist/shared/audioVolume.js"),"utf8"),{
+        compilerOptions:{module:ts.ModuleKind.CommonJS},
+      }).outputText,{exports:actual.exports});return actual.exports;
+    }
     // Isolate the external receive graph while running the installed output hook.
-    if (name.endsWith("receiveGraph.js")) return { getReceiveController: () => ({ setEnabled() {}, setMuted() {},
+    if (name.endsWith("receiveGraph.js")) return { getReceiveController: () => ({ bus:{gain:{setValueAtTime(){}}},context:voiceContext,setEnabled() {}, setMuted() {},
       subscribe: () => () => {}, subscribeAutoLevels: () => () => {}, dispose() {} }) };
     throw new Error(`Unexpected voice dependency: ${name}`);
   },
@@ -206,10 +216,12 @@ assert.equal(voiceContext.sinkId, "alice-headset");
 console.log("ok - replacement voice contexts receive the current setting");
 
 decodeFails = true;
-sounds.playNotificationSound("broken", 30);
-await flush();
-assert.equal(played.at(-1), "alice-headset");
-console.log("ok - HTML Audio fallback follows the selected output");
+const playbackCount = played.length;
+const broken = sounds.playNotificationSound("broken", 30);
+assert.equal(await broken.finished, false);
+assert.equal(played.length, playbackCount);
+assert.equal(fallbackAudioInstances, 0);
+console.log("ok - a failed decode stays silent on the single routed playback path");
 
 const { routeOutputDevice } = load("src/packages/lib/outputDevice.ts");
 const delayed = new FakeOutput();

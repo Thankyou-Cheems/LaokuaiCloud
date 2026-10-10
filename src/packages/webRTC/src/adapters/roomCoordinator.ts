@@ -27,8 +27,11 @@ const RETRY_SOON_MS = 2_000;
  * Gryt's half of joining a channel, over the socket the client already has. The
  * rate-limit toast is here because saying it out loud is the app's job.
  */
-export function createRoomCoordinator(socket: Socket, host: string): RoomCoordinator {
+type ClientAuthority=NonNullable<RoomCoordinator["moveAuthority"]> & {invalidate?:(reason:string)=>void};
+export function createRoomCoordinator(socket: Socket, host: string, moveAuthority?:ClientAuthority|(()=>ClientAuthority|undefined)): RoomCoordinator {
+  const authority=()=>typeof moveAuthority==="function" ? moveAuthority() : moveAuthority;
   return {
+    get moveAuthority(){return authority();},
     requestAccess(channelId: string): Promise<RoomAccess> {
       return new Promise((resolve) => {
         const timeout = setTimeout(() => {
@@ -91,7 +94,7 @@ export function createRoomCoordinator(socket: Socket, host: string): RoomCoordin
       });
     },
 
-    leave: () => socket.emit("voice:room:leave"),
+    leave: () => {authority()?.invalidate?.("voice:room:leave");socket.emit("voice:room:leave");},
     announceJoined: (joined) => socket.emit("voice:channel:joined", joined),
     setLocalStream: (streamId) => socket.emit("voice:stream:set", streamId ?? ""),
     peerChanged: (streamId, present) =>

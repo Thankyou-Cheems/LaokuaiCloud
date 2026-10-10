@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {stripTypeScriptTypes} from 'node:module';
 const root=new URL('../',import.meta.url);
-const load=async name=>import('data:text/javascript;base64,'+Buffer.from(stripTypeScriptTypes(fs.readFileSync(new URL(name,root),'utf8'))).toString('base64'));
+const load=async name=>import('data:text/javascript;base64,'+Buffer.from(stripTypeScriptTypes(fs.readFileSync(new URL(name,root),'utf8'),{mode:'transform'})).toString('base64'));
 const {ReceiveCorrectionRegistry,correctionParticipantId}=await load('src/lib/receiveCorrectionRegistry.ts');
 const track={id:'track-a',readyState:'live'};
 const control={role:undefined,identity:undefined,setRole(role){this.role=role;},setIdentity(identity){this.identity=identity;}};
@@ -101,3 +101,27 @@ const channelGeneration = control.identity.generation;
 registry.reconcile({ host: 'server-a', channel: 'two', connected: true, sources: { mic: source }, clients: [{ serverUserId: 'person-a', streamID: 'mic' }] });
 assert.ok(control.identity.generation > channelGeneration, 'channel transition increments even when batched connection state skips disconnected');
 console.log('PASS channel transition starts a fresh generation');
+const events=[];
+const observerRegistry=new ReceiveCorrectionRegistry({
+  bound:(_control,identity)=>events.push(['bound',{...identity}]),
+  unbound:identity=>events.push(['unbound',{...identity}]),
+  measured:snapshot=>events.push(['measured',snapshot.sequence]),
+});
+const observerTrack=new EventTarget();Object.assign(observerTrack,{id:'observer-track',readyState:'live'});
+const observerControl={setRole(){},setIdentity(value){this.identity=value}};
+const observerSource={receiveCleanup:observerControl,stream:{mediaStream:{getAudioTracks:()=>[observerTrack]}}};
+const observerInput={host:'server-a',channel:'one',connected:true,sources:{mic:observerSource,alias:observerSource},clients:[{serverUserId:'person-a',streamID:'mic'}]};
+observerRegistry.reconcile(observerInput);assert.equal(events.length,1);assert.equal(events[0][0],'bound');
+const observerIdentity={...observerControl.identity};
+observerRegistry.reconcile(observerInput);assert.equal(events.length,1,'shared aliases/repeated roster do not restore twice');
+observerRegistry.acceptBatch(batch({...initial,...observerIdentity,sequence:8}));
+assert.deepEqual(events.at(-1),['measured',8]);
+observerRegistry.acceptBatch(batch({...initial,...observerIdentity,sequence:7}));assert.equal(events.length,2,'late sequence cannot renew cache');
+observerRegistry.acceptBatch(batch({...initial,...observerIdentity,sequence:9,learnedAutoGainDb:NaN}));assert.equal(events.length,2,'malformed values never reach exporter');
+observerTrack.readyState='ended';observerTrack.dispatchEvent(new Event('ended'));
+assert.deepEqual(events.at(-1),['unbound',observerIdentity]);
+observerRegistry.acceptBatch(batch({...initial,...observerIdentity,sequence:10}));assert.equal(events.length,3,'late batch after track end cannot reach cache');
+observerTrack.readyState='live';observerRegistry.reconcile(observerInput);
+assert.equal(events.at(-1)[0],'bound');assert.ok(observerControl.identity.generation>observerIdentity.generation);
+observerRegistry.clear();assert.equal(events.at(-1)[0],'unbound');assert.equal(observerControl.identity,undefined);
+console.log('PASS observer cache seam: one physical restore, fresh ordered evidence, invalid/late isolation and immediate lease unbind');

@@ -4,11 +4,14 @@ import toast from "react-hot-toast";
 
 import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
+import { useReceivePriors } from "@/webRTC/src/components/ReceivePriorAdapter";
 
 import { PiAtFill, PiChatCircleFill, PiCheckBold, PiCopyFill, PiFlagFill, PiProhibitFill, PiUserPlusFill } from "../../../../lib/icons";
 import { friendAction, useFriendState } from "../hooks/friendsStore";
 import { useServerPermissions } from "../hooks/usePermissions";
+import { useSockets } from "../hooks/useSockets";
 import { makeRankOf } from "../lib/memberFacts";
+import { requestVoiceMove } from "../utils/requestVoiceMove";
 
 /** A role id. The server defines what they are; this only passes them around. */
 type Role = string;
@@ -91,6 +94,8 @@ export function UserContextMenu({
 }: UserContextMenuProps) {
   useSocketTranslation();
   const { userVolumes, updateUserVolume, resetUserVolume, openSettings } = useSettings();
+  const priorCache=useReceivePriors();
+  const {sockets,clients,serverDetailsList}=useSockets();
   const { has, can, roles } = useServerPermissions(serverHost || "");
   const friendship = useFriendState(serverHost, isSelf ? undefined : serverUserId);
   // One step at a time. Removing a friend lives in the Friends list, away from a quick right-click.
@@ -122,7 +127,7 @@ export function UserContextMenu({
       <ContextMenu.Root>
         <ContextMenu.Trigger style={{ display: "contents" }}>{children}</ContextMenu.Trigger>
         <ContextMenu.Portal>
-          <ContextMenu.Positioner>
+          <ContextMenu.Positioner collisionPadding={8}>
             <ContextMenu.Popup className="min-w-45">
           {/* The label names a group, and Base UI reads the group's id off
               context to point aria-labelledby at it. Without one it throws —
@@ -170,6 +175,12 @@ export function UserContextMenu({
   const canKick = has("kick_members") && outranksTarget;
   const canBan = has("ban_members") && outranksTarget;
   const canAssignRoles = has("manage_roles") && outranksTarget;
+  const details=serverHost ? serverDetailsList[serverHost] : undefined;
+  const targetConnections=Object.entries(serverHost ? clients[serverHost]??{} : {}).filter(([,client])=>
+    client.serverUserId===serverUserId && client.hasJoinedChannel && client.voiceChannelId && client.voiceMoveStagingSupported===true);
+  const targetConnection=targetConnections.length===1 ? targetConnections[0] : undefined;
+  const moveChannels=details?.server_info?.voice_atomic_move_enabled===true && has("disconnect_members") && outranksTarget && targetConnection ?
+    details.channels.filter(channel=>channel.type==="voice" && channel.id!==targetConnection[1].voiceChannelId) : [];
   const canModerate = canMute || canDeafen || canKick || canBan || canAssignRoles;
 
   // Only roles this person could actually hand out. Offering one the server
@@ -191,7 +202,7 @@ export function UserContextMenu({
     <ContextMenu.Root>
       <ContextMenu.Trigger style={{ display: "contents" }}>{children}</ContextMenu.Trigger>
       <ContextMenu.Portal>
-        <ContextMenu.Positioner>
+        <ContextMenu.Positioner collisionPadding={8}>
           <ContextMenu.Popup className="min-w-55">
         <ContextMenu.Group>
           <ContextMenu.GroupLabel>
@@ -279,6 +290,23 @@ export function UserContextMenu({
             <ContextMenu.Item onClick={() => resetUserVolume(serverUserId)}>{socketI18n.t("socketFull.userContextMenu_82407175c8")}</ContextMenu.Item>
           </>
         )}
+        {serverHost && priorCache.available && <ContextMenu.Item onClick={()=>priorCache.clearMember(serverHost,serverUserId)}>
+          {socketI18n.t("pureVoice.priorClearMember")}
+        </ContextMenu.Item>}
+        {!!moveChannels.length && <ContextMenu.SubmenuRoot>
+          <ContextMenu.SubmenuTrigger>{socketI18n.t("pureVoice.moveMember")}</ContextMenu.SubmenuTrigger>
+          <ContextMenu.Portal><ContextMenu.Positioner collisionPadding={8}><ContextMenu.Popup>
+            {moveChannels.map(channel=><ContextMenu.Item key={channel.id} onClick={()=>{
+              const socket=serverHost ? sockets[serverHost] : undefined;
+              if(!socket || !serverHost || !targetConnection)return;
+              const target={clientId:targetConnection[0],serverUserId,source:targetConnection[1].voiceChannelId!};
+              void toast.promise(requestVoiceMove(socket,serverHost,target,channel.id),{
+                loading:socketI18n.t("pureVoice.movePending"),success:socketI18n.t("pureVoice.moveCommitted"),
+                error:(error:Error)=>`${socketI18n.t("pureVoice.moveFailed")}: ${error.message}`,
+              });
+            }}>{channel.name}</ContextMenu.Item>)}
+          </ContextMenu.Popup></ContextMenu.Positioner></ContextMenu.Portal>
+        </ContextMenu.SubmenuRoot>}
         {onPopoutVideo && (
           <>
             <ContextMenu.Separator />
@@ -320,7 +348,7 @@ export function UserContextMenu({
               <ContextMenu.SubmenuRoot>
                 <ContextMenu.SubmenuTrigger>{socketI18n.t("socketFull.userContextMenu_b6573859e9")}</ContextMenu.SubmenuTrigger>
                 <ContextMenu.Portal>
-                  <ContextMenu.Positioner>
+                  <ContextMenu.Positioner collisionPadding={8}>
                     <ContextMenu.Popup>
                   {assignableRoles.map((r) => {
                     const holds = heldRoles.includes(r.id);

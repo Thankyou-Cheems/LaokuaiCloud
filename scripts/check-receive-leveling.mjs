@@ -94,10 +94,11 @@ assert.match(settings, /setUserValue\("receiveLevelingEnabled", enabled\)/);
 assert.match(read("src/packages/webRTC/src/adapters/voiceConfig.ts"), /receiveLevelingEnabled: s.receiveLevelingEnabled/);
 const adapter = read("src/packages/webRTC/src/adapters/useReceiveAudioRoles.ts");
 assert.match(adapter, /registry\.reconcile\(/);
-assert.match(adapter, /\[registry, clients, currentServerConnected, currentChannelConnected, connectionState, isConnected, streamSources\]/);
-for (const file of ["hooks/useServerState.ts", "components/VoiceView.tsx", "components/FocusedVideoView.tsx", "hooks/usePopoutStreams.ts"]) {
+assert.match(adapter, /\[registry, scopeKey, clients, currentServerConnected, currentChannelConnected, connectionState, isConnected, streamSources\]/);
+for (const file of ["hooks/useServerState.ts", "components/LegacyMediaVoiceView.tsx", "components/FocusedVideoView.tsx", "hooks/usePopoutStreams.ts"]) {
   const source = read(`src/packages/socket/src/${file}`);
   assert.ok(source.includes("setReceiveAudioGain("), file);
   assert.ok(!source.includes(".gain.gain.setValueAtTime("), file);
 }
+assert.doesNotMatch(read("src/packages/socket/src/components/VoiceView.tsx"),/setReceiveAudioGain|useCamera|useScreenShare|<video/);
 console.log("Receive leveling: explicit roles, mute-before-gain, finite manual gain, safe default and config wiring passed.");

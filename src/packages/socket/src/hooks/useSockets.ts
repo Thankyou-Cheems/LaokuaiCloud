@@ -3,8 +3,6 @@ import toast from "react-hot-toast";
 import { io, Socket } from "socket.io-client";
 
 import { deliverPluginMessage, setPluginApiMessageSender } from "@/addons";
-import connectMp3 from "@/audio/src/assets/connect.mp3";
-import disconnectMp3 from "@/audio/src/assets/disconnect.mp3";
 import messageSoundMp3 from "@/audio/src/assets/universfield-computer-mouse-click-02-383961.mp3";
 import type { MemberKeyState } from "@/common";
 import { singletonHook } from "@/common";
@@ -64,12 +62,6 @@ function useSocketsHook() {
     effectiveActivity: activity,
     /* Beside the line while a game's card is what the line comes from. */
     gameCard,
-    connectSoundEnabled,
-    disconnectSoundEnabled,
-    connectSoundVolume,
-    disconnectSoundVolume,
-    customConnectSoundFile,
-    customDisconnectSoundFile,
     messageSoundEnabled,
     messageSoundVolume,
     customMessageSoundFile,
@@ -125,8 +117,6 @@ function useSocketsHook() {
 
   const { incrementUnread } = useUnreadBadge();
 
-  const connectSoundFile = customConnectSoundFile || connectMp3;
-  const disconnectSoundFile = customDisconnectSoundFile || disconnectMp3;
   const messageSoundFile = customMessageSoundFile || messageSoundMp3;
 
   const clientsRef = useRef(clients);
@@ -263,12 +253,6 @@ function useSocketsHook() {
     servers,
     nickname,
     userIdRef,
-    connectSoundEnabled,
-    disconnectSoundEnabled,
-    connectSoundFile,
-    disconnectSoundFile,
-    connectSoundVolume,
-    disconnectSoundVolume,
     messageSoundEnabled,
     messageSoundVolume,
     messageSoundFile,

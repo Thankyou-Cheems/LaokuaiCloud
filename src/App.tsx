@@ -43,7 +43,6 @@ import { ReportDialog } from "./components/reportDialog";
 import { TermsPrompt } from "./components/termsPrompt";
 import { TrayVoiceState } from "./components/trayVoiceState";
 import { VaultUpgradePrompt } from "./components/vaultUpgradePrompt";
-import { VideoDebugOverlay } from "./components/videoDebugOverlay";
 import { Welcome } from "./components/welcome";
 import { offerSharedLook } from "./lib/sharedLook";
 
@@ -55,7 +54,7 @@ export function App() {
   const ready = isSignedIn !== undefined;
   const { showAddServer, setShowAddServer, hasServer, switchToServer } =
     useServerManagement();
-  const { showDebugOverlay, showVideoDebugOverlay, openSettings } = useSettings();
+  const { showDebugOverlay, openSettings } = useSettings();
   const { join } = useServerJoin();
 
   useSettingsShortcut();
@@ -170,7 +169,6 @@ export function App() {
           <TrayVoiceState />
           <CallStatsRecorder />
           <MicrophoneDebugOverlay isVisible={showDebugOverlay} />
-          <VideoDebugOverlay isVisible={showVideoDebugOverlay} />
         </>
       )}
 

@@ -37,7 +37,6 @@ import type { ServerRingState } from "@/socket/src/components/ServerStatusRing";
 import { ServerStatusRing } from "@/socket/src/components/ServerStatusRing";
 import { useOpenInviteLink } from "@/socket/src/hooks/useOpenInviteLink";
 import { useVoicePresence,type VoicePresence } from "@/webRTC";
-import { MiniControls } from "@/webRTC/src/components/miniControls";
 
 import { useIdentityClaim } from "../hooks/useIdentityClaim";
 import { PiChatsFill } from "../lib/icons";
@@ -269,8 +268,6 @@ export function Sidebar({ setShowAddServer }: SidebarProps) {
       </div>
 
       <div className="flex justify-center items-center flex-col gap-3 pb-3">
-        {/* Voice chat controls */}
-        <MiniControls direction="column" />
         <Menu.Root>
           {/* render, not children. Menu.Trigger is itself a button, so a
               button inside it is a button inside a button — invalid HTML that

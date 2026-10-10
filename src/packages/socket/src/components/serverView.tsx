@@ -35,12 +35,10 @@ import { useChannelSettings, useHandleChannelClick } from "../hooks/useChannelSe
 import { useChannelSidebarWidth } from "../hooks/useChannelSidebarWidth";
 import { useChat } from "../hooks/useChat";
 import { conversationTitle, type DirectConversation,useDirectMessages } from "../hooks/useDirectMessages";
-import { useLatencyReporting } from "../hooks/useLatencyReporting";
 import { useIsTinyWindow, useRoomForMemberList, useRoomForThreadBeside, useRoomForVoicePanel } from "../hooks/useNarrowWindow";
 import { usePeerLatency } from "../hooks/usePeerLatency";
 import { useServerPermissions } from "../hooks/usePermissions";
 import { useReportUser } from "../hooks/useReportUser";
-import { useRoomMedia } from "../hooks/useRoomMedia";
 import { useServerManagement } from "../hooks/useServerManagement";
 import { useServerReports } from "../hooks/useServerReports";
 import { useServerState } from "../hooks/useServerState";
@@ -67,7 +65,6 @@ import { MobileServerView } from "./MobileServerView";
 import { PresenceDot } from "./PresenceDot";
 import { ReportsPanel } from "./ReportsPanel";
 import { ReportUserDialog } from "./ReportUserDialog";
-import { RoomCallBar } from "./RoomCallBar";
 import { SecurityNoticeBanner } from "./SecurityNoticeBanner";
 import { ServerChip } from "./ServerChip";
 import { ServerConfirmDialogs } from "./ServerConfirmDialogs";
@@ -132,7 +129,6 @@ export const ServerView = ({ dmSpace = false }: { dmSpace?: boolean }) => {
     pendingDeleteItem, requestDeleteSidebarItem, cancelDelete, confirmDelete,
   } = sidebarEditor;
 
-  useLatencyReporting(currentConnection);
   const peerLatency = usePeerLatency(currentConnection, heldHostClients);
 
   const {
@@ -140,8 +136,7 @@ export const ServerView = ({ dmSpace = false }: { dmSpace?: boolean }) => {
     voiceContainerRef, voiceMaxWidth, shownVoiceWidth,
   } = useVoiceLayout({ setShowVoiceView });
 
-  const hasRoomMedia = useRoomMedia({ serverHost: currentlyViewingServer?.host, currentServerConnected,
-    currentChannelId, currentConnectionId: selfClientId, clientsForHost: heldHostClients, videoStreams });
+  const hasRoomMedia = false; // Private client never opens a media layout.
 
   const [focusedChatHidden, setFocusedChatHidden] = useState(false);
   const [createChannelOpen, setCreateChannelOpen] = useState(false);
@@ -1230,7 +1225,7 @@ forumTags={activeDm ? [] : activeChannelForumTags}
         )}
         {!isTiny && !isMobile && (
             <VoiceSheetButton
-              connected={isVoiceOnThisServer && (!showVoiceView || isCompact || !roomForVoice)}
+              connected={isVoiceOnThisServer}
               serverHost={host}
               currentServerConnected={currentServerConnected}
               currentChannelId={currentChannelId}
@@ -1249,8 +1244,6 @@ forumTags={activeDm ? [] : activeChannelForumTags}
               streamSources={voiceStreamSources}
             />
         )}
-        {currentServerConnected && <RoomCallBar onDisconnect={handleVoiceDisconnect} isCall={connectedToACall}
-          alone={!isConnecting && Object.values(clients[currentServerConnected] ?? {}).filter(client => client.voiceChannelId === currentChannelId).length === 1} />}
       </div>
 
       {incomingCall ? (

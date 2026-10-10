@@ -2,11 +2,14 @@ import { useState } from "react";
 
 import { requestNotificationPermission } from "@/lib/desktopNotification";
 
+import { PEER_CUE_DEFAULTS, type PeerCueSettings,resolvePeerCueSettings } from "../../../../lib/peerVoiceCues";
 import { resolveSquadConfig, SQUAD_DEFAULTS,type SquadConfig } from "../../../../lib/squadMode";
 import { getUserValue, setUserValue } from "./userStorage";
 
 export interface AudioSettingsData {
   squadConfig: SquadConfig;
+  peerVoiceCues: PeerCueSettings;
+  noiseGateMode: "automatic" | "manual";
   micID?: string;
   outputDeviceID: string;
   micVolume: number;
@@ -40,6 +43,8 @@ export interface AudioSettingsData {
 
 export const AUDIO_DEFAULTS: AudioSettingsData = {
   squadConfig: SQUAD_DEFAULTS,
+  peerVoiceCues: PEER_CUE_DEFAULTS,
+  noiseGateMode: "automatic",
   micID: undefined,
   outputDeviceID: "",
   // Half amplitude, about -6 dB. Deliberately below unity: quiet is easier to
@@ -77,6 +82,8 @@ export const AUDIO_DEFAULTS: AudioSettingsData = {
 export function loadAudioFromCache(): AudioSettingsData {
   const micId = getUserValue<string | undefined>("micID", undefined);
   return {
+    peerVoiceCues: resolvePeerCueSettings(getUserValue<unknown>("peerVoiceCues", {})),
+    noiseGateMode: getUserValue<unknown>("noiseGateMode", "automatic") === "manual" ? "manual" : "automatic",
     squadConfig: resolveSquadConfig(getUserValue<unknown>("squadConfig", {})),
     micID: micId && micId !== "undefined" && micId.trim() !== "" ? micId : undefined,
     outputDeviceID: getUserValue("outputDeviceID", AUDIO_DEFAULTS.outputDeviceID),
@@ -111,6 +118,14 @@ export function loadAudioFromCache(): AudioSettingsData {
 }
 
 export function useAudioSettings() {
+  const [peerVoiceCues, setPeerVoiceCuesState] = useState<PeerCueSettings>(PEER_CUE_DEFAULTS);
+  const [noiseGateMode, setNoiseGateModeState] = useState<"automatic" | "manual">("automatic");
+  function setPeerVoiceCues(value: PeerCueSettings) {
+    const safe = resolvePeerCueSettings(value); setPeerVoiceCuesState(safe); setUserValue("peerVoiceCues", safe);
+  }
+  function setNoiseGateMode(value: "automatic" | "manual") {
+    setNoiseGateModeState(value); setUserValue("noiseGateMode", value);
+  }
   const [squadConfig, setSquadConfigState] = useState(SQUAD_DEFAULTS);
   function setSquadConfig(config: SquadConfig) {
     setSquadConfigState(config);
@@ -159,6 +174,7 @@ export function useAudioSettings() {
   const [desktopNotificationsEnabled, setDesktopNotificationsEnabled] = useState(AUDIO_DEFAULTS.desktopNotificationsEnabled);
 
   function applyAudioData(d: AudioSettingsData) {
+    setPeerVoiceCuesState(d.peerVoiceCues); setNoiseGateModeState(d.noiseGateMode);
     setSquadConfigState(d.squadConfig);
     setMicID(d.micID);
     setOutputDeviceID(d.outputDeviceID);
@@ -410,7 +426,7 @@ export function useAudioSettings() {
   }
 
   return {
-    squadConfig, setSquadConfig,
+    squadConfig, setSquadConfig, peerVoiceCues, setPeerVoiceCues, noiseGateMode, setNoiseGateMode,
     applyAudioData,
     micID,
     setMicID: updateMicID,

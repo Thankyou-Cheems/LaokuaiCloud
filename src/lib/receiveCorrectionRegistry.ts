@@ -7,6 +7,11 @@ type RouteSource = {
 };
 type RemoteClient = { serverUserId?: string; streamID?: string; screenShareAudioStreamID?: string };
 type Binding = { control: ReceiveStreamControl; identity: ReceiveAutoLevelIdentity; track: AudioTrack; selectors: string[]; onEnded: () => void };
+export interface ReceiveBindingObserver {
+  bound?(control:ReceiveStreamControl,identity:ReceiveAutoLevelIdentity):void;
+  unbound?(identity:ReceiveAutoLevelIdentity):void;
+  measured?(snapshot:ReceiveAutoLevelSnapshot):void;
+}
 
 export function correctionParticipantId(host: string, member: string): string {
   return JSON.stringify([host, member]);
@@ -31,6 +36,7 @@ function validMeasurement(snapshot: ReceiveAutoLevelSnapshot): boolean {
 
 /** Associates receiver-local SDK measurements with physical audio routes. */
 export class ReceiveCorrectionRegistry {
+  constructor(private readonly observer:ReceiveBindingObserver={}) {}
   private readonly id = ++registryId;
   private routeId = 0;
   private generation = 0;
@@ -87,6 +93,7 @@ export class ReceiveCorrectionRegistry {
       const prior = this.bindings.get(control);
       let identity = prior?.identity;
       if (!prior || identity?.participantId !== participantId || prior.track !== track || identity.trackId !== track.id) {
+        if(prior)this.observer.unbound?.(prior.identity);
         prior?.track.removeEventListener?.("ended", prior.onEnded);
         let receiverId = this.receiverIds.get(control);
         if (!receiverId) {
@@ -95,12 +102,14 @@ export class ReceiveCorrectionRegistry {
         }
         identity = { participantId, receiverId, trackId: track.id, generation: ++this.generation };
         control.setIdentity(identity);
+        this.observer.bound?.(control,identity);
       }
       const selectors = owners.map(client => correctionSelector(input.host, member, client.streamID!));
       const onEnded = prior?.identity === identity ? prior.onEnded : () => {
         const current = this.bindings.get(control);
         if (!current || current.identity !== identity) return;
         control.setIdentity(undefined);
+        this.observer.unbound?.(current.identity);
         this.bindings.delete(control);
         current.track.removeEventListener?.("ended", current.onEnded);
         const readings = new Map(this.readings);
@@ -111,6 +120,7 @@ export class ReceiveCorrectionRegistry {
       next.set(control, { control, identity: identity!, track, selectors, onEnded });
     }
     for (const [control, prior] of this.bindings) if (!next.has(control)) {
+      this.observer.unbound?.(prior.identity);
       control.setIdentity(undefined);
       prior.track.removeEventListener?.("ended", prior.onEnded);
     }
@@ -146,6 +156,7 @@ export class ReceiveCorrectionRegistry {
       if (accepted) {
         const current = Object.freeze({ ...snapshot, limitReasons: [...snapshot.limitReasons] });
         this.latest.set(binding.control, current);
+        this.observer.measured?.(current);
         for (const selector of binding.selectors) readings.set(selector, current);
       } else {
         for (const selector of binding.selectors) {
@@ -159,6 +170,7 @@ export class ReceiveCorrectionRegistry {
 
   clear(): void {
     for (const [control, binding] of this.bindings) {
+      this.observer.unbound?.(binding.identity);
       control.setIdentity(undefined);
       binding.track.removeEventListener?.("ended", binding.onEnded);
     }

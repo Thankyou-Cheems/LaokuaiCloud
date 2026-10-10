@@ -110,7 +110,7 @@ export function HoverAudioControl({ label, side, action, children }: {
         </Popover.Trigger>
       </div>
       <Popover.Portal container={portalContainer}>
-        <Popover.Positioner side={side} sideOffset={4} collisionPadding={8}>
+        <Popover.Positioner positionMethod="fixed" side={side} sideOffset={4} collisionPadding={8}>
           <Popover.Popup ref={panel}
             initialFocus={hoverOpen ? false : undefined}
             finalFocus={returnFocus && !hoverOpen ? arrow : false}

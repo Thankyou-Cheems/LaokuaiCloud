@@ -4,6 +4,7 @@ export type UserStatus = 'online' | 'in_voice' | 'afk' | 'offline';
 
 export type Client = {
   serverUserId?: string;
+  voiceMoveStagingSupported?: boolean;
   nickname: string;
   /** What they say they are doing. Absent when they have not said. */
   activity?: string;

@@ -5,7 +5,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Socket } from "socket.io-client";
 
 import { getServerAccessToken } from "@/common";
-import { sliderToOutputGain } from "@/lib/audioVolume";
 import { setReceiveAudioGain } from "@/lib/receiveAudio";
 import { useSettings } from "@/settings";
 
@@ -87,10 +86,7 @@ export function useServerState(): UseServerStateResult {
     setIsAFK,
     afkTimeoutMinutes,
     eSportsModeEnabled,
-    inputMode,
     userVolumes,
-    outputVolume,
-    isDeafened,
   } = useSettings();
 
   const { audioContext } = useSpeakers();
@@ -170,7 +166,7 @@ export function useServerState(): UseServerStateResult {
     [isConnecting, isConnected]
   );
 
-  const { microphoneBuffer, isPttActive, isTransmitting } =
+  const { transmitSpeechActivity } =
     useMicrophone(shouldAccessMic);
 
   const currentConnection = useMemo<Socket | null>(
@@ -349,15 +345,7 @@ export function useServerState(): UseServerStateResult {
         let speaking = false;
 
         if (clientID === selfClientId) {
-          if (inputMode === "push_to_talk") {
-            speaking = isPttActive.current;
-          } else if (isTransmitting !== null) {
-            // Ask the gate directly. Deriving this from an analyser with its
-            // own threshold made the indicator disagree with the noise gate.
-            speaking = isTransmitting;
-          } else if (microphoneBuffer.finalAnalyser) {
-            speaking = isSpeaking(microphoneBuffer.finalAnalyser, 0.5);
-          }
+          speaking = transmitSpeechActivity === true && isConnected;
           if (speaking) {
             lastActivityTimeRef.current = Date.now();
             if (isAFKRef.current) setIsAFK(false);
@@ -377,8 +365,8 @@ export function useServerState(): UseServerStateResult {
 
     return () => clearInterval(interval);
   }, [
-    microphoneBuffer.finalAnalyser,
-    isTransmitting,
+    transmitSpeechActivity,
+    isConnected,
     streamSources,
     heldClients,
     selfClientId,
@@ -386,8 +374,6 @@ export function useServerState(): UseServerStateResult {
     currentConnection,
     currentServerConnected,
     eSportsModeEnabled,
-    inputMode,
-    isPttActive,
     setIsAFK,
   ]);
 
@@ -456,16 +442,16 @@ export function useServerState(): UseServerStateResult {
   ]);
 
   useEffect(() => {
-    if (!currentlyViewingServer || !audioContext) return;
-    const hostClients = clients[currentlyViewingServer.host] || {};
-    const baseGain = sliderToOutputGain(outputVolume);
+    if (!currentServerConnected || !audioContext) return;
+    const hostClients = clients[currentServerConnected] || {};
 
     Object.values(hostClients).forEach((client) => {
       if (!client.streamID || !streamSources[client.streamID]) return;
       const userVol = client.serverUserId
         ? (userVolumes[client.serverUserId] ?? 100) / 100
         : 1;
-      const finalGain = isDeafened ? 0 : baseGain * userVol;
+      // The SDK owns master/deafen on the mix bus; this node is only personal manual gain.
+      const finalGain = Number.isFinite(userVol) ? Math.max(0,Math.min(2,userVol)) : 1;
       setReceiveAudioGain(streamSources[client.streamID],
         finalGain,
         audioContext.currentTime || 0
@@ -473,10 +459,8 @@ export function useServerState(): UseServerStateResult {
     });
   }, [
     userVolumes,
-    outputVolume,
-    isDeafened,
     clients,
-    currentlyViewingServer,
+    currentServerConnected,
     streamSources,
     audioContext,
   ]);

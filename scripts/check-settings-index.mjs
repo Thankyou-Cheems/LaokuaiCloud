@@ -42,6 +42,8 @@ for (const file of sources(COMPONENTS)) {
   // settingsComponents.tsx defines the wrappers; its `title` is the prop, not
   // a setting anybody can search for.
   if (file.endsWith("settingsComponents.tsx")) continue;
+  // Retained upstream sources are not mounted by the private audio-only settings router.
+  if (/[/\\](cameraSettings|screenShareSettings)\.tsx$/.test(file)) continue;
   const source = readFileSync(file, "utf8");
   for (const match of source.matchAll(
     /<(?:SettingGroup|ToggleSetting|SliderSetting)\b[^>]*?\btitle=(?:"([^"]+)"|\{`([^`${]+))/gs
@@ -56,9 +58,13 @@ for (const file of sources(COMPONENTS)) {
       if (title && ts.isJsxExpression(title) && title.expression && ts.isCallExpression(title.expression) && /^(t|tr|i18n\.t)$/.test(title.expression.expression.getText(tree))) {
         const key = title.expression.arguments[0];
         const anchor = props.find((prop) => ts.isJsxAttribute(prop) && prop.name.getText(tree) === "anchorId")?.initializer;
-        assert.ok(anchor && ts.isStringLiteral(anchor), `${file}: a translated setting must have a stable literal anchorId`);
+        const anchors=anchor && ts.isStringLiteral(anchor) ? [anchor.text] :
+          anchor && ts.isJsxExpression(anchor) && anchor.expression && ts.isConditionalExpression(anchor.expression) &&
+          ts.isStringLiteral(anchor.expression.whenTrue) && ts.isStringLiteral(anchor.expression.whenFalse) ?
+          [anchor.expression.whenTrue.text,anchor.expression.whenFalse.text] : [];
+        assert.ok(anchors.length, `${file}: a translated setting must have stable literal anchorIds`);
         const label = ts.isStringLiteral(key) ? key.text.split(".").reduce((value, part) => value?.[part], english) : undefined;
-        controls.push({ file, title: label ?? anchor.text, anchor: anchor.text });
+        for(const id of anchors)controls.push({file,title:label??id,anchor:id});
       }
     }
     ts.forEachChild(node, visit);

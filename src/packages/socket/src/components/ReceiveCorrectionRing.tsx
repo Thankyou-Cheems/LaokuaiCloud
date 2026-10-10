@@ -1,3 +1,5 @@
+import { Tooltip } from "@gryt/ui/tooltip";
+
 import {
   correctionArcPercent,
   describeReceiveCorrection,
@@ -99,12 +101,11 @@ export function ReceiveCorrectionRing({
           {direction === "unknown" ? "?" : direction === "boost" ? "+" : direction === "attenuation" ? "−" : "0"}
         </text>
       </svg>
-      <span aria-hidden="true" className="inline-flex flex-col leading-tight">
+      {!compact && <span aria-hidden="true" className="inline-flex flex-col leading-tight">
         {!compact && <span className="text-[10px] text-[var(--gryt-neutral-11)]">{labels.learned}</span>}
         <span className="text-[11px] font-medium tabular-nums text-[var(--gryt-neutral-12)]">{learnedText}</span>
-      </span>
+      </span>}
     </span>
     </Tooltip>
   );
 }
-import { Tooltip } from "@gryt/ui/tooltip";

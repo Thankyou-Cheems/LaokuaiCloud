@@ -1,8 +1,8 @@
 import { Button, IconButton, Slider, Switch, Tooltip } from "@gryt/ui";
 import { useEffect, useRef, useState } from "react";
-import useSound from "use-sound";
 
 import { i18n, useTranslation } from "@/i18n";
+import { type NotificationPlayback, playNotificationSound } from "@/lib/notificationSound";
 
 import { PiArrowsClockwiseFill, PiCheck, PiPlayFill, PiStopFill } from "../../../../lib/icons";
 
@@ -41,29 +41,12 @@ export function SoundSettings({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  const [playSound, { stop: stopSound }] = useSound(
-    customSoundFile || defaultSoundSrc,
-    {
-      volume: volume / 100,
-      soundEnabled: true,
-      interrupt: false,
-      onplay: () => setIsPlaying(true),
-      onend: () => setIsPlaying(false),
-      onstop: () => setIsPlaying(false),
-      onloaderror: () => setIsPlaying(false),
-      onplayerror: () => setIsPlaying(false),
-    },
-  );
-
+  const playback = useRef<NotificationPlayback | null>(null);
+  const stopSound = () => { playback.current?.stop(); playback.current = null; setIsPlaying(false); };
   useEffect(() => {
-    return () => {
-      try {
-        stopSound();
-      } catch (error) {
-        console.error(`Error stopping ${label} sound on unmount:`, error);
-      }
-    };
-  }, [stopSound, label]);
+    playback.current?.stop(); playback.current = null; setIsPlaying(false);
+    return () => { playback.current?.stop(); playback.current = null; };
+  }, [customSoundFile, defaultSoundSrc, volume]);
 
   useEffect(() => {
     if (!customSoundFile) return;
@@ -169,12 +152,12 @@ export function SoundSettings({
   const resetVolume = () => onVolumeChange(defaultVolume);
 
   const testSound = () => {
-    try {
-      playSound();
-    } catch (error) {
-      console.error(`Error playing ${label} sound:`, error);
-      setIsPlaying(false);
-    }
+    playback.current?.stop();
+    const current = playNotificationSound(customSoundFile || defaultSoundSrc, volume);
+    playback.current = current; setIsPlaying(true);
+    void current.finished.then(() => {
+      if (playback.current === current) { playback.current = null; setIsPlaying(false); }
+    });
   };
 
   const stopSoundTest = () => {

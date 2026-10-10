@@ -3095,7 +3095,7 @@ if (!gotSingleInstanceLock) {
       // macOS will not prompt for getUserMedia alone, so without this the renderer
       // gets NotAllowedError forever. Safe every launch; a decision sticks.
       if (process.platform === "darwin") {
-        for (const kind of ["microphone", "camera"] as const) {
+        for (const kind of (IS_LAOKUAI ? ["microphone"] : ["microphone", "camera"]) as ("microphone" | "camera")[]) {
           try {
             const granted = await systemPreferences.askForMediaAccess(kind);
             startupLog(`${kind} access: ${granted ? "granted" : "denied"}`);
@@ -3821,6 +3821,7 @@ if (!gotSingleInstanceLock) {
       ipcMain.handle(
         "native-audio-capture-available",
         () => {
+          if (IS_LAOKUAI) return false;
           return isNativeAudioCaptureAvailable();
         }
       );
@@ -3831,6 +3832,7 @@ if (!gotSingleInstanceLock) {
           _event,
           sourceId?: string
         ) => {
+          if (IS_LAOKUAI) return false;
           if (!mainWindow) {
             return false;
           }
@@ -3852,6 +3854,7 @@ if (!gotSingleInstanceLock) {
       ipcMain.handle(
         "per-application-audio-supported",
         () => {
+          if (IS_LAOKUAI) return false;
           return supportsPerApplicationAudio();
         }
       );
@@ -3863,6 +3866,7 @@ if (!gotSingleInstanceLock) {
           _event,
           sourceIds: string[]
         ) => {
+          if (IS_LAOKUAI) return [];
           if (!mainWindow) {
             return [];
           }
@@ -3877,6 +3881,7 @@ if (!gotSingleInstanceLock) {
       ipcMain.handle(
         "list-audio-capture-sources",
         () => {
+          if (IS_LAOKUAI) return [];
           return listAudioCaptureSources();
         }
       );
@@ -3884,6 +3889,7 @@ if (!gotSingleInstanceLock) {
       ipcMain.handle(
         "native-screen-capture:available",
         () => {
+          if (IS_LAOKUAI) return false;
           return isNativeScreenCaptureAvailable();
         }
       );
@@ -3899,6 +3905,7 @@ if (!gotSingleInstanceLock) {
           bitrate?: number,
           codec?: string
         ) => {
+          if (IS_LAOKUAI) return { success: false };
           if (!mainWindow) {
             return {
               success: false,
@@ -4255,6 +4262,7 @@ if (!gotSingleInstanceLock) {
           details,
           callback
         ) => {
+          if (IS_LAOKUAI) { callback({}); return; }
           const existingOrigin =
             details.requestHeaders[
               "Origin"
@@ -4379,6 +4387,7 @@ if (!gotSingleInstanceLock) {
       ipcMain.handle(
         "get-screen-capture-access",
         () => {
+          if (IS_LAOKUAI) return "denied";
           if (
             process.platform !==
             "darwin"
@@ -4395,6 +4404,7 @@ if (!gotSingleInstanceLock) {
       ipcMain.handle(
         "get-desktop-sources",
         async () => {
+          if (IS_LAOKUAI) return [];
           const sources =
             await desktopCapturer.getSources(
               {

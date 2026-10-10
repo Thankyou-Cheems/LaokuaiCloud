@@ -98,7 +98,9 @@ export async function emitAuthenticated(
   event: string,
   payload: Record<string, unknown>,
   host: string,
+  shouldSend: () => boolean = () => true,
 ): Promise<boolean> {
+  if (!shouldSend()) return false;
   let accessToken = getServerAccessToken(host);
   if (!accessToken) return false;
 
@@ -115,6 +117,7 @@ export async function emitAuthenticated(
     }
   }
 
+  if (!shouldSend()) return false;
   socket.emit(event, { ...payload, accessToken });
   return true;
 }

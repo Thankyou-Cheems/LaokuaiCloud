@@ -1,3 +1,4 @@
+import type { PeerCueSettings } from "../../../../lib/peerVoiceCues";
 import type { RichActivity } from "../../../../lib/richActivity";
 import type { SquadConfig } from "../../../../lib/squadMode";
 import { AUDIO_DEFAULTS } from "./useAudioSettings";
@@ -52,6 +53,10 @@ export interface Settings {
   compressorAmount: number;
   setCompressorAmount: (value: number) => void;
 
+  peerVoiceCues: PeerCueSettings;
+  setPeerVoiceCues: (value: PeerCueSettings) => void;
+  noiseGateMode: "automatic" | "manual";
+  setNoiseGateMode: (value: "automatic" | "manual") => void;
   connectSoundEnabled: boolean;
   setConnectSoundEnabled: (value: boolean) => void;
   disconnectSoundEnabled: boolean;
@@ -333,6 +338,10 @@ export const settingsInit: Settings = {
   pinMembersSidebar: true,
   setPinMembersSidebar: noop,
 
+  peerVoiceCues: AUDIO_DEFAULTS.peerVoiceCues,
+  setPeerVoiceCues: noop,
+  noiseGateMode: AUDIO_DEFAULTS.noiseGateMode,
+  setNoiseGateMode: noop,
   connectSoundEnabled: AUDIO_DEFAULTS.connectSoundEnabled,
   setConnectSoundEnabled: noop,
   disconnectSoundEnabled: AUDIO_DEFAULTS.disconnectSoundEnabled,

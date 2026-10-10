@@ -1,9 +1,11 @@
-import { Avatar, Skeleton, Tooltip } from "@gryt/ui";
+import { Avatar, Skeleton } from "@gryt/ui";
 import { motion } from "motion/react";
 
 import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
+import { useTransmitSpeech } from "@/webRTC/src/components/TransmitSpeechAdapter";
 
-import { PiMicrophoneSlashFill, PiScreencastFill, PiSpeakerSlashFill, PiVideoCameraFill } from "../../../../lib/icons";
+import { PiMicrophoneSlashFill, PiSpeakerSlashFill } from "../../../../lib/icons";
+import { MemberVoiceQuality } from "./MemberVoiceQuality";
 import { RemoteReceiveCorrection } from "./RemoteReceiveCorrection";
 import { SpeakingHalo } from "./SpeakingHalo";
 import {
@@ -35,8 +37,6 @@ export function ConnectedUser({
   serverUserId,
   isSelf,
   isConnectingToVoice = false,
-  screenShareEnabled,
-  cameraEnabled,
   canDisconnect,
   onDisconnectFromVoice,
   role,
@@ -86,6 +86,8 @@ export function ConnectedUser({
   serverHost?: string;
 }) {
   useSocketTranslation();
+  const actualSelfSpeech=useTransmitSpeech();
+  const speaking=(isSelf ? actualSelfSpeech : isSpeaking) && !isMuted && !isServerMuted;
   const hue = tileHue(nickname, avatarColor, { nickname, worn: avatarWorn });
 
   return (
@@ -115,14 +117,15 @@ export function ConnectedUser({
       transition={{ duration: 0.25 }}
       style={{ width: "100%", overflow: "hidden" }}
     >
-      <div className="flex flex-col gap-1 px-3 py-1 w-full" data-gryt="voice-member" style={{
+      <div className="flex items-center gap-2 px-3 py-1 w-full" data-gryt="voice-member" style={{
           opacity: 1,
           transition: "opacity 0.3s ease",
         }}>
         <div className="flex gap-2 items-center" style={{ flex: 1, minWidth: 0 }}>
           <div className="flex items-center justify-center relative" style={{ flexShrink: 0 }}>
             <SpeakingHalo
-              analyser={speakingAnalyser}
+              analyser={isSelf ? undefined : speakingAnalyser}
+              active={speaking}
               hue={hue}
               size={SIDEBAR_AVATAR_PX}
             />
@@ -135,32 +138,19 @@ export function ConnectedUser({
                 flexShrink: 0,
                 // Same ring the voice tile draws, at this row's width. Sharing
                 // speakingRingStyle is the point: the two used to disagree.
-                ...speakingRingStyle(hue, isSpeaking, SIDEBAR_RING),
+                ...speakingRingStyle(hue, speaking, SIDEBAR_RING),
               }}
             />
           </div>
           <span className="text-sm truncate" data-gryt="member-name" title={nickname} style={{ whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>{nickname}</span>
         </div>
 
-        <div className="flex flex-wrap gap-1 items-center max-w-full" style={{ marginLeft: 32 }}>
+        <div className="flex shrink-0 gap-1 items-center">
+          <MemberVoiceQuality host={serverHost} member={serverUserId}/>
           <VoiceModeIcon host={serverHost} member={serverUserId} isSelf={isSelf} />
       {!isSelf && <RemoteReceiveCorrection compact host={serverHost} member={serverUserId} streamId={streamId} />}
           {isConnectingToVoice && (
             <Skeleton variant="circular" width="12px" height="12px" />
-          )}
-          {screenShareEnabled && (
-            <Tooltip title={socketI18n.t("shellFull.videoDebugOverlay_tsx_1e8325521d")}>
-              <div className="flex items-center">
-                <PiScreencastFill size={14} color="var(--gryt-accent-9)" />
-              </div>
-            </Tooltip>
-          )}
-          {cameraEnabled && (
-            <Tooltip title={socketI18n.t("socketFull.connectedUser_8fb6ce42cf")}>
-              <div className="flex items-center">
-                <PiVideoCameraFill size={14} color="var(--gryt-accent-9)" />
-              </div>
-            </Tooltip>
           )}
           {isDeafened ? (
             <PiSpeakerSlashFill size={14} color="var(--gryt-danger-8)" />

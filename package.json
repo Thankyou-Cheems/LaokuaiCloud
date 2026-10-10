@@ -1,7 +1,7 @@
 {
   "name": "gryt-chat",
   "private": true,
-  "version": "1.13.22-laokuai.integration.3",
+  "version": "1.13.22-laokuai.integration.4",
   "description": "唠蒯 — real-time voice chat desktop client",
   "author": {
     "name": "Gryt Chat",
@@ -210,7 +210,18 @@
     "test:history-merge": "node --disable-warning=ExperimentalWarning scripts/check-history-merge.mjs",
     "test:media-sandbox": "node --disable-warning=ExperimentalWarning scripts/check-media-sandbox.mjs",
     "test:i18n": "node scripts/check-i18n.mjs",
-    "e2e:i18n": "playwright test --config e2e/playwright.i18n.config.ts"
+    "e2e:i18n": "playwright test --config e2e/playwright.i18n.config.ts",
+    "test:receive-prior-cache": "node scripts/check-receive-prior-cache.mjs",
+    "test:receive-prior-session": "node scripts/check-receive-prior-session.mjs",
+    "test:pure-voice-policy": "node scripts/check-pure-voice-policy.mjs",
+    "test:notification-playback": "node scripts/check-notification-playback.mjs",
+    "test:peer-voice-cues": "node scripts/check-peer-voice-cues.mjs",
+    "test:voice-quality-stats": "node scripts/check-voice-quality-stats.mjs",
+    "test:voice-quality-store": "node scripts/check-voice-quality-store.mjs",
+    "test:move-authority": "node scripts/check-move-authority.mjs",
+    "test:transmit-speech-indicator": "node scripts/check-transmit-speech-indicator.mjs",
+    "test:move-policy": "node scripts/check-move-policy.mjs",
+    "test:move-target": "node scripts/check-move-target.mjs"
   },
   "dependencies": {
     "electron-updater": "^6.8.3",
@@ -229,7 +240,7 @@
     "@gryt/crypto": "0.9.0",
     "@gryt/owl": "^0.6.0",
     "@gryt/ui": "file:vendor/gryt-ui-0.44.0-zh-cn.tgz",
-    "@gryt/voice": "file:vendor/gryt-voice-0.6.2-laokuai.longterm.1.tgz",
+    "@gryt/voice": "file:vendor/gryt-voice-0.6.2-laokuai.integration.4.tgz",
     "@mediapipe/tasks-vision": "^1.0.1",
     "@noble/curves": "^2.3.0",
     "@noble/hashes": "^2.3.0",

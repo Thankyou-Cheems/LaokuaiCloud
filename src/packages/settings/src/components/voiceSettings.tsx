@@ -7,11 +7,10 @@ import { useTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 
 import { NoticeDialog } from "../../../socket/src/components/NoticeDialog";
-import { SettingGroup, SettingsContainer, SliderSetting, ToggleSetting } from "./settingsComponents";
+import { PeerVoiceCueSettings } from "./PeerVoiceCueSettings";
+import { SettingsContainer, SliderSetting, ToggleSetting } from "./settingsComponents";
 import { SoundSettings } from "./SoundSettings";
 import { SquadSettings } from "./squadSettings";
-import { TileLayoutPicker } from "./tileLayoutPicker";
-import { TwoPersonLayoutPicker } from "./twoPersonLayoutPicker";
 
 export function VoiceSettings() {
   const { t: tr } = useTranslation();
@@ -30,10 +29,6 @@ export function VoiceSettings() {
     setCustomConnectSoundFile,
     customDisconnectSoundFile,
     setCustomDisconnectSoundFile,
-    voiceTileLayout,
-    setVoiceTileLayout,
-    voiceTwoPersonLayout,
-    setVoiceTwoPersonLayout,
     afkTimeoutMinutes,
     setAfkTimeoutMinutes,
   } = useSettings();
@@ -65,6 +60,7 @@ export function VoiceSettings() {
       </h2>
 
       <SquadSettings />
+      <PeerVoiceCueSettings />
 
       <Divider />
 
@@ -128,25 +124,6 @@ export function VoiceSettings() {
         title={alertDialog.title}
         message={alertDialog.message}
       />
-      <SettingGroup anchorId="tile-layout"
-        title={tr("ui.tileLayout")}
-        description={tr("ui.howTheVoiceGridArrangesPeopleOnceIt")}
-      >
-        <TileLayoutPicker value={voiceTileLayout} onChange={setVoiceTileLayout} />
-
-
-      </SettingGroup>
-
-      <SettingGroup anchorId="two-people"
-        title={tr("ui.twoPeople")}
-        description={tr("ui.withExactlyTwoOfYouInAChannel")}
-      >
-        <TwoPersonLayoutPicker
-          value={voiceTwoPersonLayout}
-          onChange={setVoiceTwoPersonLayout}
-          rule={voiceTileLayout}
-        />
-      </SettingGroup>
     </SettingsContainer>
   );
 }

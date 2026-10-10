@@ -1,5 +1,5 @@
 import { Alert, Divider, IconButton, Select, type SelectOption, Slider, Tabs, Tooltip } from "@gryt/ui";
-import { useMicrophone, useScreenShare, useSpeakers } from "@gryt/voice";
+import { useMicrophone, useSpeakers } from "@gryt/voice";
 import { useSFU } from "@gryt/voice";
 import { voiceLog } from "@gryt/voice";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -10,6 +10,7 @@ import { useSettings } from "@/settings";
 
 import { PiArrowsClockwiseFill, PiWarningFill } from "../../../../lib/icons";
 import { ReceiveLevelingSettings } from "./receiveLevelingSettings";
+import { ReceivePriorSettings } from "./ReceivePriorSettings";
 import { ReceiveVolumeSetting } from "./ReceiveVolumeSetting";
 import { SettingGroup, SettingsContainer, SliderSetting, ToggleSetting } from "./settingsComponents";
 
@@ -52,6 +53,7 @@ export function AudioSettings() {
     setOutputDeviceID,
     micVolume,
     setMicVolume,
+    noiseGateMode, setNoiseGateMode,
     noiseGate,
     setNoiseGate,
     noiseGateRelease,
@@ -80,7 +82,7 @@ export function AudioSettings() {
   const { devices, microphoneBuffer, getDevices, audioContext, getGateLevel } =
     useMicrophone(true);
   const { devices: outputDevices, getOutputDevices } = useSpeakers();
-  const { nativeAudioActive } = useScreenShare();
+  const nativeAudioActive = false;
 
   const muteStateBeforeLoopback = useRef<boolean | null>(null);
 
@@ -442,7 +444,10 @@ export function AudioSettings() {
         </div>
       )}
 
-      {!isPTT && <div className="flex flex-col gap-2">
+      {!isPTT && <ToggleSetting anchorId="automatic-noise-gate" title={tr("pureVoice.autoGate")}
+        description={tr("pureVoice.autoGateDescription")} checked={noiseGateMode === "automatic"}
+        onCheckedChange={enabled => setNoiseGateMode(enabled ? "automatic" : "manual")} />}
+      {!isPTT && noiseGateMode === "manual" && <div className="flex flex-col gap-2">
         <span className="font-medium">
           {tr("ui.noiseGate")} {noiseGate}%
         </span>
@@ -602,6 +607,7 @@ export function AudioSettings() {
       <Divider />
 
       <ReceiveLevelingSettings />
+      <ReceivePriorSettings />
 
       {/* ── Screen Share ── */}
       <span className="font-bold text-gryt-muted">{tr("ui.screenShareVariant")}</span>

@@ -2188,3 +2188,26 @@ body {
   font-size: 12px;
   overflow-wrap: anywhere;
 }
+
+@keyframes gryt-speaking-breathe {
+  from { transform: scale(1.05); opacity: .22; }
+  to { transform: scale(1.3); opacity: .4; }
+}
+.gryt-speaking-halo { animation: gryt-speaking-breathe 850ms ease-in-out infinite alternate; }
+@media (prefers-reduced-motion: reduce) {
+  .gryt-speaking-halo { animation: none; transform: none; background: transparent !important; border: 2px solid var(--gryt-accent-9); opacity: 1 !important; }
+}
+/* Portals use the document overlay plane; CSS zoom changes its logical viewport. */
+:root {
+  --gryt-overlay-width: calc(100vw / var(--gryt-ui-scale, 1) - 16px);
+  --gryt-overlay-height: calc(100dvh / var(--gryt-ui-scale, 1) - 16px);
+}
+.gryt-dialog, .gryt-alert-dialog, .gryt-popover, .gryt-preview-card,
+.gryt-menu, .gryt-tooltip {
+  max-width: var(--gryt-overlay-width) !important;
+  max-height: var(--gryt-overlay-height) !important;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}

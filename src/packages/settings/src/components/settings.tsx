@@ -18,7 +18,6 @@ import { AccountSettings } from "./accountSettings";
 import { AddonsSettings } from "./addonsSettings";
 import { AdvancedSettings } from "./advancedSettings";
 import { AudioSettings } from "./audioSettings";
-import { CameraSettings } from "./cameraSettings";
 import { CardSettings } from "./cardSettings";
 import { ChatSettings } from "./chatSettings";
 import { DesktopSettings } from "./desktopSettings";
@@ -29,7 +28,6 @@ import { MyServersSettings } from "./myServersSettings";
 import { NotificationSettings } from "./notificationSettings";
 import { PrivacySettings } from "./privacySettings";
 import { ProfileSettings } from "./profileSettings";
-import { ScreenShareSettings } from "./screenShareSettings";
 import { SecuritySettings } from "./securitySettings";
 import { ServerIdentitySettings } from "./serverIdentitySettings";
 import { ServerPreferencesSettings } from "./serverPreferencesSettings";
@@ -122,7 +120,7 @@ const DESTINATIONS = useMemo((): SettingsDestination[] => [
   },
   {
     value: "sound-video",
-    label: tr("ui.voiceVideo"),
+    label: tr("ui.voice"),
     icon: PiMicrophoneFill,
     pages: [
       {
@@ -132,17 +130,7 @@ const DESTINATIONS = useMemo((): SettingsDestination[] => [
         content: <AudioSettings />,
       },
       { value: "voice", label: tr("ui.voice"), content: <VoiceSettings /> },
-      {
-        value: "camera",
-        label: tr("ui.camera"),
-        mountWhenActive: true,
-        content: <CameraSettings />,
-      },
-      {
-        value: "screen",
-        label: tr("ui.screenShare"),
-        content: <ScreenShareSettings />,
-      },
+
     ],
   },
   {
@@ -193,7 +181,7 @@ const DESTINATIONS = useMemo((): SettingsDestination[] => [
     icon: PiInfoFill,
     pages: [
       { value: "about", label: tr("ui.about"), content: <AboutSettings /> },
-      { value: "updates", label: tr("ui.updates"), content: <UpdatesSettings /> },
+      { value: "updates", label: tr("pureVoice.versionInfo"), content: <UpdatesSettings /> },
     ],
   },
   {
@@ -386,7 +374,7 @@ const PICKER_OPTIONS = DESTINATIONS.map(({ value, label, icon, pages }) =>
         <Dialog.Popup
           data-gryt="settings"
           className="w-[60rem] max-w-[calc(100vw-3rem)]"
-          style={{ height: "min(700px, calc(100vh - 3rem))" }}
+          style={{ height: "min(700px, calc(100dvh / var(--gryt-ui-scale, 1) - 24px))" }}
         >
         <Dialog.Close style={{ position: "absolute", top: "8px", right: "8px" }}>
           <IconButton data-tour="settings-close">

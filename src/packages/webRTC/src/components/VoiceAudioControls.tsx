@@ -4,10 +4,10 @@ import toast from "react-hot-toast";
 import { useTranslation } from "@/i18n";
 import { MAX_VOLUME_PERCENT } from "@/lib/audioVolume";
 import { useSettings } from "@/settings";
-import { VoiceModeIcon } from "@/socket/src/components/VoiceModeIcon";
 
 import { PiMicrophoneFill, PiMicrophoneSlashFill, PiSpeakerHighFill, PiSpeakerSlashFill } from "../../../../lib/icons";
 import { CallControlButton } from "./CallControlButton";
+import {useEffectiveVoicePolicy} from "./EffectiveVoicePolicy";
 import { HoverAudioControl } from "./HoverAudioControl";
 import { useReceiveLeveling } from "./ReceiveLevelingAdapter";
 
@@ -26,25 +26,28 @@ export function VoiceAudioControls({ direction = "row", iconSize = 16 }: {
   const { t: tr } = useTranslation();
   const {
     micVolume, setMicVolume, outputVolume, setOutputVolume,
-    isMuted, setIsMuted, isDeafened, setIsDeafened, isServerMuted, isServerDeafened,
+    isMuted, setIsMuted, isDeafened, setIsDeafened, isServerMuted:storedServerMuted, isServerDeafened:storedServerDeafened,
   } = useSettings();
+  const policy=useEffectiveVoicePolicy();
+  const isServerMuted=policy?.serverMuted??storedServerMuted;
+  const isServerDeafened=policy?.serverDeafened??storedServerDeafened;
+  const speakDenied=policy?.canSpeak===false;
   const leveling = useReceiveLeveling();
   const side = direction === "column" ? "right" : "top";
   const parameter = leveling.available ? leveling.parameter : undefined;
 
   return <div className={`flex max-w-full ${direction === "column" ? "flex-col" : "flex-row flex-wrap"} items-center gap-1`} data-gryt="voice-audio-controls">
-    <div className={direction === "column" ? "max-w-[88px]" : "flex shrink-0 justify-center"}><VoiceModeIcon isSelf /></div>
     <HoverAudioControl label={tr("voiceAudio.microphone")} side={side} action={
-      <CallControlButton state={isServerMuted ? "blocked" : isMuted ? "off" : "idle"}
+      <CallControlButton className="!w-auto !px-2 gap-1" state={isServerMuted || speakDenied ? "blocked" : isMuted ? "off" : "idle"}
         aria-label={(isMuted || isServerMuted) ? tr("ui.unmuteMicrophone") : tr("ui.muteMicrophone")}
         onClick={() => {
-          if (isServerMuted) {
-            toast(tr("ui.youAreServerMutedByAnAdmin"), { icon: <PiMicrophoneSlashFill size={18} />, id: "server-muted" });
+          if (isServerMuted || speakDenied) {
+            toast(tr(speakDenied ? "pureVoice.speakDenied" : "ui.youAreServerMutedByAnAdmin"), { icon: <PiMicrophoneSlashFill size={18} />, id: "server-muted" });
             return;
           }
           setIsMuted(!isMuted);
         }}>
-        {(isMuted || isServerMuted) ? <PiMicrophoneSlashFill size={iconSize} /> : <PiMicrophoneFill size={iconSize} />}
+        {(isMuted || isServerMuted || speakDenied) ? <PiMicrophoneSlashFill size={iconSize} /> : <PiMicrophoneFill size={iconSize} />}<span>{tr("pureVoice.microphone")}</span>
       </CallControlButton>
     }>
       <span className="tabular-nums">{micVolume}%</span>
@@ -55,7 +58,7 @@ export function VoiceAudioControls({ direction = "row", iconSize = 16 }: {
     </HoverAudioControl>
 
     <HoverAudioControl label={tr("receiveVolume.title")} side={side} action={
-      <CallControlButton state={isServerDeafened ? "blocked" : isDeafened ? "off" : "idle"}
+      <CallControlButton className="!w-auto !px-2 gap-1" state={isServerDeafened ? "blocked" : isDeafened ? "off" : "idle"}
         aria-label={(isDeafened || isServerDeafened) ? tr("ui.undeafen") : tr("ui.deafen")}
         onClick={() => {
           if (isServerDeafened) {
@@ -64,7 +67,7 @@ export function VoiceAudioControls({ direction = "row", iconSize = 16 }: {
           }
           setIsDeafened(!isDeafened);
         }}>
-        {(isDeafened || isServerDeafened) ? <PiSpeakerSlashFill size={iconSize} /> : <PiSpeakerHighFill size={iconSize} />}
+        {(isDeafened || isServerDeafened) ? <PiSpeakerSlashFill size={iconSize} /> : <PiSpeakerHighFill size={iconSize} />}<span>{tr("pureVoice.speaker")}</span>
       </CallControlButton>
     }>
       <span className="tabular-nums">{outputVolume}%</span>
@@ -76,14 +79,14 @@ export function VoiceAudioControls({ direction = "row", iconSize = 16 }: {
     </HoverAudioControl>
 
     <HoverAudioControl label={tr("voiceAudio.leveling")} side={side} action={
-      <CallControlButton state={leveling.available && leveling.runtime === "active" ? "live" : "idle"}
+      <CallControlButton className="!w-auto !px-2 gap-1" state={leveling.available && leveling.runtime === "active" ? "live" : "idle"}
         aria-label={tr("voiceAudio.leveling")}
         aria-pressed={leveling.available ? leveling.enabled : undefined}
         data-leveling-runtime={leveling.runtime}
         disabled={!leveling.available}
         title={leveling.available ? `${tr("voiceAudio.leveling")}: ${tr(`voiceAudio.runtime.${leveling.runtime}`)}` : tr("voiceAudio.unavailable")}
         onClick={() => { if (leveling.available) leveling.setEnabled(!leveling.enabled); }}>
-        <LevelingIcon size={iconSize} />
+        <LevelingIcon size={iconSize} /><span>{tr("pureVoice.leveling")}</span>
       </CallControlButton>
     }>
       <p className="text-sm text-gryt-muted">{tr("voiceAudio.levelingDescription")}</p>

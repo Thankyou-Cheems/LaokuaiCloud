@@ -37,8 +37,6 @@ export function DeveloperSettings() {
     setDevFakeChatSeconds,
     devFakeMuted,
     setDevFakeMuted,
-    devFakeScreenShare,
-    setDevFakeScreenShare,
     devFakeDeafened,
     setDevFakeDeafened,
     devFakeSpeaking,
@@ -119,13 +117,6 @@ export function DeveloperSettings() {
           onCheckedChange={setDevFakeSpeaking}
         />
 
-        <ToggleSetting
-          anchorId="fake-screen-share"
-          title={i18n.t("settingsFull.mf7712616ee")}
-          description={i18n.t("settingsFull.m3914c64161")}
-          checked={devFakeScreenShare}
-          onCheckedChange={setDevFakeScreenShare}
-        />
       </SettingGroup>
 
       <Divider />
@@ -165,7 +156,7 @@ export function DeveloperSettings() {
 
       <span className="text-gryt-muted">{i18n.t("settingsFull.md91766b4d5")}<br />
         <code>
-          ?fake=6&amp;fakemembers=8&amp;fakemuted=2&amp;fakeshare=1&amp;fakedeaf=1&amp;fakespeak=0
+          ?fake=6&amp;fakemembers=8&amp;fakemuted=2&amp;fakedeaf=1&amp;fakespeak=0
         </code>
       </span>
     </SettingsContainer>

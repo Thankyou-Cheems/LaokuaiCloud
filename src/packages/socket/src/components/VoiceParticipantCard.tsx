@@ -652,7 +652,7 @@ export function VoiceParticipantCard({
     >
       <div className="flex items-center justify-center relative">
         {!compact && (
-          <SpeakingHalo analyser={speakingAnalyser} hue={hue} size={avatarPx} />
+          <SpeakingHalo analyser={speakingAnalyser} active={isSpeaking} hue={hue} size={avatarPx} />
         )}
 
         <Avatar

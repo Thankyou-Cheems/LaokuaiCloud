@@ -1,102 +1,75 @@
-/**
- * Notification sound player on the Web Audio API. HTML5 Audio is throttled in
- * background tabs; a resumed AudioContext keeps working regardless of focus.
- */
-
+/** One routed, cancellable Web Audio path for playback and settings previews. */
 import { sliderToGain } from "./audioVolume";
 import { type AudioOutput, routeOutputDevice } from "./outputDevice";
 
 let ctx: AudioContext | null = null;
 let outputDeviceID = "";
+let outputRevision = 0;
 const bufferCache = new Map<string, AudioBuffer>();
 const rawCache = new Map<string, ArrayBuffer>();
-
-function getContext(): AudioContext {
-  if (!ctx) {
-    ctx = new AudioContext();
-  }
-  if (ctx.state === "suspended") {
-    ctx.resume().catch(() => {});
-  }
-  return ctx;
-}
-
+const active = new Set<NotificationPlayback>();
+export interface NotificationPlayback { stop(): void; finished: Promise<boolean> }
+export interface NotificationPlaybackOptions { shouldPlay?: () => boolean }
+function getContext(): AudioContext { return ctx ??= new AudioContext(); }
 async function fetchRaw(url: string): Promise<ArrayBuffer> {
-  const cached = rawCache.get(url);
-  if (cached) return cached;
-
-  const res = await fetch(url);
-  const raw = await res.arrayBuffer();
-  rawCache.set(url, raw);
+  const cached = rawCache.get(url); if (cached) return cached;
+  const res = await fetch(url); if (!res.ok) throw new Error("notification_fetch_failed");
+  const raw = await res.arrayBuffer(); rawCache.set(url,raw);
+  if (rawCache.size>32) rawCache.delete(rawCache.keys().next().value!);
   return raw;
 }
-
-async function fetchBuffer(url: string): Promise<AudioBuffer> {
-  const cached = bufferCache.get(url);
-  if (cached) return cached;
-
-  const actx = getContext();
-  const raw = await fetchRaw(url);
-  rawCache.delete(url);
-  const buf = await actx.decodeAudioData(raw);
-  bufferCache.set(url, buf);
-  return buf;
+async function fetchBuffer(actx: AudioContext,url: string): Promise<AudioBuffer> {
+  const cached = bufferCache.get(url); if(cached)return cached;
+  const raw = await fetchRaw(url); const buffer = await actx.decodeAudioData(raw.slice(0));
+  rawCache.delete(url); bufferCache.set(url,buffer);
+  if(bufferCache.size>32)bufferCache.delete(bufferCache.keys().next().value!);
+  return buffer;
 }
-
-/**
- * Play a notification sound. Works in background tabs.
- * @param url URL or data-URI. @param sliderValue Volume slider value (0-100).
- */
-export function playNotificationSound(url: string, sliderValue: number): void {
-  const actx = getContext();
-
-  fetchBuffer(url)
-    .then(async (buf) => {
-      await routeOutputDevice(actx as AudioOutput, outputDeviceID);
-      const source = actx.createBufferSource();
-      source.buffer = buf;
-
-      const gain = actx.createGain();
-      gain.gain.value = sliderToGain(sliderValue);
-
-      source.connect(gain);
-      gain.connect(actx.destination);
-      source.start();
-    })
-    .catch((err) => {
-      console.warn("[notificationSound] playback failed, falling back to Audio", err);
-      try {
-        const audio = new Audio(url);
-        audio.volume = sliderToGain(sliderValue);
-        routeOutputDevice(audio, outputDeviceID).then(() => audio.play()).catch(() => {});
-      } catch { /* give up silently */ }
-    });
+export function playNotificationSound(url: string, sliderValue: number, options: NotificationPlaybackOptions = {}): NotificationPlayback {
+  let canceled = false; let started = false; let settled = false;
+  let source: AudioBufferSourceNode | undefined; let gain: GainNode | undefined;
+  let resolve!: (played:boolean)=>void;
+  const finished = new Promise<boolean>(done=>{resolve=done;});
+  const finish = (played:boolean) => {
+    if(settled)return; settled=true; active.delete(playback);
+    source?.disconnect(); gain?.disconnect(); resolve(played);
+  };
+  const playback: NotificationPlayback = {finished,stop(){canceled=true; if(started)source?.stop(); finish(false);}};
+  const volume = sliderToGain(sliderValue);
+  const revision = outputRevision;
+  const current = () => !canceled && revision === outputRevision && options.shouldPlay?.() !== false;
+  if(!Number.isFinite(volume) || volume<=0 || !current()){finish(false);return playback;}
+  active.add(playback);
+  // Resume is requested synchronously while a preview/call gesture is active.
+  let actx: AudioContext; let resumed: Promise<void>;
+  try { actx=getContext(); resumed=actx.state === "suspended" ? actx.resume() : Promise.resolve(); }
+  catch { finish(false); return playback; }
+  void (async()=>{
+    try {
+      await resumed;
+      if(actx.state !== "running" || !current()){finish(false);return;}
+      const buffer = await fetchBuffer(actx,url);
+      if(!current()){finish(false);return;}
+      await routeOutputDevice(actx as AudioOutput,outputDeviceID);
+      if(!current() || actx.state !== "running"){finish(false);return;}
+      source=actx.createBufferSource(); source.buffer=buffer;
+      gain=actx.createGain(); gain.gain.value=volume;
+      source.connect(gain);gain.connect(actx.destination);
+      source.onended=()=>finish(!canceled);started=true;source.start();
+    } catch { finish(false); }
+  })();
+  return playback;
 }
-
-/**
- * Pre-fetch a sound's raw data so the first real playback is fast.
- * Does NOT create an AudioContext — decoding happens on first play.
- */
-export function preloadNotificationSound(url: string): void {
-  fetchRaw(url).catch(() => {});
-}
-
-/**
- * Ensure the AudioContext is running. Call from a user-gesture handler so later
- * programmatic playback is allowed. No-op if no sound has been played yet.
- */
+export function preloadNotificationSound(url: string): void { void fetchRaw(url).catch(()=>{}); }
+/** Establish autoplay permission during a real gesture, including first use. */
 export function warmNotificationContext(): void {
-  if (!ctx) return;
-  if (ctx.state === "suspended") {
-    ctx.resume().catch(() => {});
-  }
+  try { const actx=getContext(); if(actx.state === "suspended")void actx.resume().catch(()=>{}); } catch { /* unavailable */ }
 }
-
-/**
- * Route notification sounds to a specific output device.
- * Uses AudioContext.setSinkId() when available (Chrome 110+, Electron).
- */
 export function setNotificationOutputDevice(deviceId: string): void {
-  outputDeviceID = deviceId;
-  if (ctx) void routeOutputDevice(ctx as AudioOutput, deviceId);
+  if(deviceId !== outputDeviceID) {
+    outputDeviceID=deviceId;outputRevision++;
+    for(const playback of [...active])playback.stop();
+  }
+  // A devicechange may restore the same saved ID after an unplug fallback.
+  if(ctx)void routeOutputDevice(ctx as AudioOutput,deviceId);
 }

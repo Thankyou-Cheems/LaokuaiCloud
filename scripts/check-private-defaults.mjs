@@ -5,12 +5,16 @@ import { stripTypeScriptTypes } from "node:module";
 const read=file=>fs.readFileSync(new URL(`../${file}`,import.meta.url),"utf8");
 const load=async file=>import(`data:text/javascript;base64,${Buffer.from(stripTypeScriptTypes(read(file))).toString("base64")}`);
 const squad=await load("src/lib/squadMode.ts");
+const peer=await load("src/lib/peerVoiceCues.ts");
 const audio=stripTypeScriptTypes(read("src/packages/settings/src/hooks/useAudioSettings.ts"));
 const declarations=audio.slice(audio.indexOf("export const AUDIO_DEFAULTS"),audio.indexOf("export function useAudioSettings" )).replaceAll("export ","");
 const getSource=read("src/packages/settings/src/hooks/userStorage.ts");
 const getter=stripTypeScriptTypes(getSource.slice(getSource.indexOf("export function getUserValue"),getSource.indexOf("export function setUserValue"))).replace("export ","");
 const cache={};
-const {AUDIO_DEFAULTS,loadAudioFromCache,getUserValue}=new Function("cache","SQUAD_DEFAULTS","resolveSquadConfig",`${getter}\n${declarations}\nreturn {AUDIO_DEFAULTS,loadAudioFromCache,getUserValue};`)(cache,squad.SQUAD_DEFAULTS,squad.resolveSquadConfig);
+const {AUDIO_DEFAULTS,loadAudioFromCache,getUserValue}=new Function("cache","SQUAD_DEFAULTS","resolveSquadConfig","PEER_CUE_DEFAULTS","resolvePeerCueSettings",`${getter}\n${declarations}\nreturn {AUDIO_DEFAULTS,loadAudioFromCache,getUserValue};`)(cache,squad.SQUAD_DEFAULTS,squad.resolveSquadConfig,peer.PEER_CUE_DEFAULTS,peer.resolvePeerCueSettings);
+assert.equal(AUDIO_DEFAULTS.noiseGateMode,"automatic");
+assert.equal(loadAudioFromCache().noiseGateMode,"automatic");
+cache.noiseGateMode="manual";assert.equal(loadAudioFromCache().noiseGateMode,"manual");delete cache.noiseGateMode;
 assert.deepEqual(Object.fromEntries(["compressorEnabled","autoGainEnabled","rnnoiseEnabled","receiveLevelingEnabled","messageSoundEnabled","connectSoundEnabled","disconnectSoundEnabled","desktopNotificationsEnabled","notificationBadgeEnabled"].map(k=>[k,AUDIO_DEFAULTS[k]])),
   {compressorEnabled:false,autoGainEnabled:false,rnnoiseEnabled:true,receiveLevelingEnabled:true,messageSoundEnabled:false,connectSoundEnabled:true,disconnectSoundEnabled:true,desktopNotificationsEnabled:true,notificationBadgeEnabled:true});
 assert.equal(AUDIO_DEFAULTS.micVolume,50); assert.equal(AUDIO_DEFAULTS.outputVolume,100);
@@ -50,5 +54,5 @@ assert.ok(show.includes('Notification.permission !== "granted"')); assert.ok(!sh
 for(const file of ["src/packages/socket/src/hooks/useChat.ts","src/packages/socket/src/hooks/useSocketEvents.ts"]) {
   const code=read(file); assert.ok(code.includes("shouldNotifyForMessage"));
 }
-fs.writeFileSync("startup-private-defaults.json",JSON.stringify({status:"passed",scope:"actual cache getter/audio load/notification decision; camera/picker wiring; no media or physical input",oldExplicitValuesPreserved:true},null,2));
-console.log("PASS private defaults, old explicit/legacy preferences, mentions decision and explicit media actions");
+fs.writeFileSync("startup-private-defaults.json",JSON.stringify({status:"passed",scope:"actual cache getter/audio load/notification decision; retained unmounted legacy camera/picker helpers; no media or physical input",oldExplicitValuesPreserved:true},null,2));
+console.log("PASS private defaults, old explicit/legacy preferences, automatic/manual gate choice, mentions decision and unmounted legacy media helpers");
