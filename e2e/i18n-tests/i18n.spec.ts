@@ -82,9 +82,9 @@ test("guest application shell starts in Chinese without hardware or external ser
   });
   await page.goto("/");
   await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
-  await expect(page.getByRole("heading", { name: "欢迎使用老蒯聊" })).toBeVisible({ timeout: 20000 });
-  await expect(page.getByRole("button", { name: "我自己看看" })).toBeVisible();
-  await page.getByRole("button", { name: "我自己看看" }).click();
+  await expect(page.getByRole("button", { name: "设置与账号", exact: true })).toBeVisible({ timeout: 30000 });
+  await expect(page.getByRole("heading", { name: "欢迎使用老蒯聊" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "我自己看看" })).toHaveCount(0);
   await page.getByRole("button", { name: "设置与账号", exact: true }).click();
   await page.getByRole("menuitem", { name: "设置", exact: true }).click();
   await expect(page.getByPlaceholder("搜索设置")).toBeVisible();

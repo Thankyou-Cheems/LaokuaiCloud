@@ -1,3 +1,5 @@
+import { createRequire } from "node:module";
+
 import { execFile, spawn } from "child_process";
 import {
   app,
@@ -171,6 +173,7 @@ import {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+const require = createRequire(import.meta.url);
 
 const IS_LAOKUAI = isLaokuaiPackage();
 const IS_I18N_TEST = isI18nTestPackage();
@@ -1050,7 +1053,7 @@ autoUpdater.allowDowngrade = true;
 // Do not overwrite autoUpdater.logger with console: the persistent startup log
 // above is what lets update failures survive a restart.
 
-closeToTray = (readConfig().closeToTray ?? true) as boolean;
+closeToTray = readBoolConfig("closeToTray", true);
 
 const hardwareAcceleration = readBoolConfig("hardwareAcceleration", true);
 
@@ -2241,11 +2244,16 @@ function createMainWindow(): BrowserWindow {
     }
   );
 
+  // Windows may close windows for shutdown without emitting app.before-quit first.
+  mainWindow.on("query-session-end", () => { isQuitting = true; });
+  mainWindow.on("session-end", () => { isQuitting = true; });
+
   mainWindow.on("close", (event) => {
     if (
       !isQuitting &&
       closeToTray &&
-      isUserSignedIn
+      (IS_LAOKUAI || isUserSignedIn) &&
+      tray && !tray.isDestroyed()
     ) {
       event.preventDefault();
       mainWindow?.hide();
@@ -2355,7 +2363,6 @@ function loadUiohook(): UiohookLib | null {
   }
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const loaded = require("uiohook-napi") as UiohookLib;
     uiohookLib = loaded;
   } catch (err) {
@@ -2533,7 +2540,10 @@ function configureSquadBroker() {
   );
   let capture = uiohookRunning;
   if (squadConfig.enabled && process.platform === "win32") {
-    try { capture = ensureUiohook(); } catch { capture = false; }
+    try { capture = ensureUiohook(); } catch (error) {
+      capture = false;
+      startupLog(`Squad input start failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
   return squadBroker.configure(squadConfig, Object.values(regularHotkeys), capture);
 }
@@ -2703,8 +2713,8 @@ function buildTrayContextMenu(): Menu {
   return Menu.buildFromTemplate([
     {
       label: mainWindow?.isVisible()
-        ? "Hide Gryt"
-        : "Show Gryt",
+        ? (IS_LAOKUAI ? "隐藏老蒯聊" : "Hide Gryt")
+        : (IS_LAOKUAI ? "打开老蒯聊" : "Show Gryt"),
       click: toggleMainWindow,
     },
 
@@ -2782,7 +2792,7 @@ function buildTrayContextMenu(): Menu {
         ]),
 
     {
-      label: "Quit",
+      label: IS_LAOKUAI ? "退出老蒯聊" : "Quit",
       click: () => {
         isQuitting = true;
         app.quit();
@@ -2809,11 +2819,16 @@ function toggleMainWindow(): void {
 }
 
 function createTray(): void {
-  tray = new Tray(
-    nativeImage.createFromPath(
-      currentTrayIconPath()
-    )
-  );
+  if (tray && !tray.isDestroyed()) return;
+  try {
+    const image = nativeImage.createFromPath(currentTrayIconPath());
+    if (image.isEmpty()) throw new Error("Missing tray icon");
+    tray = new Tray(image);
+  } catch {
+    tray = null;
+    startupLog("Tray unavailable — keeping the window accessible");
+    return;
+  }
 
   tray.setToolTip(
     trayTooltip()
@@ -2865,8 +2880,9 @@ function currentTrayIconPath(): string {
 }
 
 function trayTooltip(): string {
+  const name = IS_LAOKUAI ? "老蒯聊" : "Gryt";
   if (!voiceState.inVoice) {
-    return "Gryt";
+    return name;
   }
 
   const where =
@@ -2875,14 +2891,14 @@ function trayTooltip(): string {
       : "";
 
   if (voiceState.deafened) {
-    return `Gryt — deafened${where}`;
+    return `${name} — ${IS_LAOKUAI ? "已关闭耳机" : "deafened"}${where}`;
   }
 
   if (voiceState.muted) {
-    return `Gryt — muted${where}`;
+    return `${name} — ${IS_LAOKUAI ? "已静音" : "muted"}${where}`;
   }
 
-  return `Gryt — in voice${where}`;
+  return `${name} — ${IS_LAOKUAI ? "语音中" : "in voice"}${where}`;
 }
 
 /**
@@ -4064,7 +4080,7 @@ if (!gotSingleInstanceLock) {
         );
 
         mainWindow?.show();
-      } else if (startHiddenOnLaunch) {
+      } else if (startHiddenOnLaunch && tray && !tray.isDestroyed()) {
         startupLog(
           "Starting hidden (auto-start)"
         );

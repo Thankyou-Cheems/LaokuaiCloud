@@ -9,7 +9,8 @@ import { fileURLToPath } from "node:url";
 const root=path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const require=createRequire(import.meta.url);
 const asar=require("@electron/asar");
-const unpacked=path.join(root,"release-laokuai-squad/win-unpacked");
+const config=require("../electron-builder.laokuai.cjs");
+const unpacked=path.join(root,config.directories.output,"win-unpacked");
 const extracted=path.resolve(root,process.argv[2] || "../tools/squad-static-check");
 const sha=(bytes)=>createHash("sha256").update(bytes).digest("hex");
 const walk=(dir)=>fs.readdirSync(dir,{withFileTypes:true}).flatMap((entry)=>entry.isDirectory()?walk(path.join(dir,entry.name)):[path.join(dir,entry.name)]);
@@ -70,7 +71,7 @@ for (const file of ["audio-capture.exe","screen-capture.exe"]) {
 }
 const hook="node_modules/uiohook-napi/prebuilds/win32-x64/node.napi.node";
 assert.equal(sha(readPacked(hook)),sha(fs.readFileSync(path.join(root,"node_modules/uiohook-napi/prebuilds/win32-x64/node.napi.node"))));
-assert.equal(meta.version,"1.13.22-laokuai.squad.1");
+assert.equal(meta.version,JSON.parse(fs.readFileSync(path.join(root,"package.json"))).version);
 assert.ok(renderer.includes("transmitSuppressionEnabled"));
 assert.ok(renderer.includes("awaiting-suppression-ack"));
 assert.ok(renderer.includes("voice:mode:capabilities"));

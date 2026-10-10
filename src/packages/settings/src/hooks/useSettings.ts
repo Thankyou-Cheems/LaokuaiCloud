@@ -28,17 +28,6 @@ const HELD_NOTICE_KEY = "gryt:rich-presence-held-notice";
  */
 const WELCOME_KEY = "gryt.hasSeenWelcome";
 
-function readSeenWelcome(): boolean {
-  try {
-    if (localStorage.getItem(WELCOME_KEY) === "true") return true;
-  } catch {
-    // Unreadable storage means greet them. Showing it twice is a smaller
-    // failure than never showing it at all.
-  }
-  // Anybody who dismissed it before this moved is not greeted again.
-  return getUserValue<boolean>("hasSeenWelcome", false);
-}
-
 function writeSeenWelcome() {
   try {
     localStorage.setItem(WELCOME_KEY, "true");
@@ -146,7 +135,8 @@ function useSettingsHook() {
       const name = stored || pickRandomName();
       if (!stored) setUserValue("nickname", name);
       setNickname(name);
-      setHasSeenWelcome(readSeenWelcome());
+      // Private build: skip teaching after identity/nickname load, without rewriting stored tour flags.
+      setHasSeenWelcome(true);
       setActivity(getUserValue("activity", ""));
       setShowAdvanced(getUserValue("showAdvanced", false));
       setShowDebugOverlay(getUserValue("showDebugOverlay", false));

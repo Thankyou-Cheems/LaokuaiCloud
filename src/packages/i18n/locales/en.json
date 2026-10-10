@@ -600,5 +600,9 @@
       "suspended": "Audio suspended",
       "error": "Transmit protection failed"
     }
+  },
+  "desktop": {
+    "closeToTrayTitle": "Minimize to tray on close",
+    "closeToTrayDescription": "Closing the window hides LaoKuai Chat in the system tray instead of quitting it."
   }
 }

@@ -1,12 +1,15 @@
 import { Divider } from "@gryt/ui";
 import { useCallback, useEffect, useState } from "react";
 
+import { useTranslation } from "@/i18n";
+
 import { getElectronAPI, isMacDesktop } from "../../../../lib/electron";
 import { SettingsContainer, ToggleSetting } from "./settingsComponents";
 
 const isMac = isMacDesktop();
 
 export function DesktopSettings() {
+  const { t: tr } = useTranslation();
   const [closeToTray, setCloseToTray] = useState(true);
   const [startWithWindowsSupported, setStartWithWindowsSupported] = useState(false);
   const [startWithWindows, setStartWithWindows] = useState(true);
@@ -93,8 +96,9 @@ export function DesktopSettings() {
       )}
 
       <ToggleSetting
-        title="Minimize to tray on close"
-        description="Closing the window hides Gryt in the system tray instead of quitting it."
+        anchorId="minimize-to-tray-on-close"
+        title={tr("desktop.closeToTrayTitle")}
+        description={tr("desktop.closeToTrayDescription")}
         checked={closeToTray}
         onCheckedChange={handleCloseToTrayToggle}
       />

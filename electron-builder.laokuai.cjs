@@ -5,13 +5,17 @@ config.appId = "local.laokuai.chat";
 config.productName = "老蒯聊";
 config.extraMetadata = { name: "laokuai-chat", productName: config.productName,
   grytI18nTest: true, grytLaokuai: true };
-config.directories.output = "release-laokuai-squad";
+config.directories.output = "release-laokuai-squad-2";
 config.win.icon = "private-brand/icon.ico";
 config.win.executableName = "LaoKuai-Chat";
 config.portable.artifactName = "LaoKuai-Chat-${version}-zh-CN-win-x64-slim-portable.exe";
 config.extraResources = config.extraResources.filter(entry => entry.to !== "legal/I18N-PORTABLE-TEST.md");
 config.extraResources = config.extraResources.map(entry => entry.to === "icon.png"
   ? { from: "private-brand/icon.png", to: "icon.png" } : entry);
+// Every runtime tray state uses the same authorized transparent Cheems source.
+config.extraResources = config.extraResources.map(entry => /^tray.*\.png$/.test(entry.to)
+  ? { from: `private-brand/icon-${entry.to.includes("@3x") ? 48 : entry.to.includes("@2x") ? 32 : 16}.png`, to: entry.to }
+  : entry);
 config.extraResources.push(
   { from: "build/squad/squad-scope.exe", to: "squad/squad-scope.exe" },
   { from: "SQUAD-MODE.md", to: "legal/SQUAD-MODE.md" },{ from: "LAOKUAI-SELF-USE.md", to: "legal/LAOKUAI-SELF-USE.md" });

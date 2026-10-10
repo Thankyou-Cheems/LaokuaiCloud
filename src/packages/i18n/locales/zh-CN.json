@@ -600,5 +600,9 @@
       "suspended": "音频挂起",
       "error": "发送保护失败"
     }
+  },
+  "desktop": {
+    "closeToTrayTitle": "关闭窗口时最小化到托盘",
+    "closeToTrayDescription": "点 X 隐藏到托盘并保持通话；点击托盘可重新打开，从托盘菜单可退出。关闭此设置后，点 X 退出应用。"
   }
 }

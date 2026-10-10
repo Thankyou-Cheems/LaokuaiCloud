@@ -101,3 +101,6 @@ squad-*.txt
 squad-*.json
 voice-mode-evidence.json
 server-mode-evidence.json
+release-laokuai-squad-2/
+startup-*.txt
+startup-*.json

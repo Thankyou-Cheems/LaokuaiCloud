@@ -137,6 +137,7 @@ export const SETTINGS_INDEX: SettingsIndexEntry[] = [
  */
 const labelKeys = new Map(Object.entries(en.ui).map(([key, value]) => [value, `ui.${key}`]));
 labelKeys.set("Language", "language.title");
+labelKeys.set("Minimize to tray on close", "desktop.closeToTrayTitle");
 labelKeys.set("Receive loudness leveling", "receiveLeveling.title");
 labelKeys.set("Microphone volume", "settings.microphoneVolume");
 labelKeys.set("Target level", "settings.targetLevel");
