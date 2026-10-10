@@ -114,6 +114,7 @@ import {
   syncAtLaunch as syncHelperStartup,
   unregister as unregisterHelper,
 } from "./helperStartup";
+import { isI18nTestPackage, isolateI18nTestData } from "./i18nTestVariant";
 import {
   getDiscoveredLanServers,
   rescanLanServers,
@@ -168,6 +169,9 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+const IS_I18N_TEST = isI18nTestPackage();
+if (IS_I18N_TEST) isolateI18nTestData();
+
 // ── Startup logging ──────────────────────────────────────────────────────
 
 const LOG_PATH = join(app.getPath("userData"), "gryt-startup.log");
@@ -213,7 +217,7 @@ const stateIcon = (name: string) =>
     ? join(process.resourcesPath, `${name}.png`)
     : join(__dirname, `../build/${name}.png`);
 
-const PROTOCOL = "gryt";
+const PROTOCOL = IS_I18N_TEST ? "laokuai-i18n-test" : "gryt";
 const AUTO_START_ARG = "--gryt-autostart";
 /* Nothing sets this any more. Kept so a 1.6.x client relaunching with it is
    recognised and ignored rather than carried forward. */
@@ -242,7 +246,7 @@ function processScanAllowed(): boolean {
 /* ── Rich Presence (GRYT-1310) ───────────────────────────────────────── */
 
 /** A sandboxed Mac App Store build has its own temp folder, where no game would look. */
-const canHostRichPresence = !process.mas;
+const canHostRichPresence = !IS_I18N_TEST && !process.mas;
 const gameIndex = createGameIndex(readGameList(curatedGames));
 /* The bigger list from Gryt-chat/rich-presence: our own games.json still wins. */
 const bundledGames = createGameLookup(readGamesFile(gamesSnapshot));
@@ -510,6 +514,7 @@ async function quitHelper(): Promise<void> {
 }
 
 async function presenceHelperStatus() {
+  if (IS_I18N_TEST) return { offered: false, enabledAt: null, registered: false, needsApproval: false, error: null };
   const deps = helperDeps();
   const offer = helperOffer(deps);
   return {
@@ -522,6 +527,7 @@ async function presenceHelperStatus() {
 }
 
 async function turnHelperOn(): Promise<void> {
+  if (IS_I18N_TEST) return;
   const deps = helperDeps();
   const offer = helperOffer(deps);
   if (!offer.offered || !readRichPresenceConsent()) return;
@@ -539,6 +545,7 @@ async function turnHelperOn(): Promise<void> {
 
 /** Removes the startup entry and stops the helper straight away. */
 async function turnHelperOff(): Promise<void> {
+  if (IS_I18N_TEST) return;
   setGlobalValue("presenceHelper", null);
   helperNeedsApproval = false;
   helperError = null;
@@ -547,6 +554,7 @@ async function turnHelperOff(): Promise<void> {
 }
 
 function syncHelperAtLaunch(): Promise<void> {
+  if (IS_I18N_TEST) return Promise.resolve();
   return syncHelperStartup(helperDeps(), Boolean(readHelperOptIn() && readRichPresenceConsent()), helperRunning);
 }
 
@@ -599,6 +607,7 @@ process.on("unhandledRejection", (reason) => {
 
 // ── Deep link protocol ───────────────────────────────────────────────────
 
+if (!IS_I18N_TEST) {
 if (process.defaultApp) {
   if (process.argv.length >= 2) {
     app.setAsDefaultProtocolClient(PROTOCOL, process.execPath, [
@@ -612,6 +621,7 @@ if (process.defaultApp) {
   app.setAsDefaultProtocolClient(PROTOCOL, process.env.APPIMAGE);
 } else {
   app.setAsDefaultProtocolClient(PROTOCOL);
+}
 }
 
 // A cold protocol launch on Linux and Windows delivers the URL in argv, so it is
@@ -849,6 +859,7 @@ function readBoolConfig(key: string, defaultValue: boolean): boolean {
 /** The migration installer renames the old install aside. Reaching this means
     the replacement started, so the copy is no longer needed. */
 function cleanupLegacyWindowsInstallBackup(): void {
+  if (IS_I18N_TEST) return;
   if (process.platform !== "win32" || !app.isPackaged) return;
 
   const installDir = dirname(process.execPath);
@@ -969,15 +980,16 @@ autoUpdater.logger = {
 
 /* Always on. electron-updater reads it only after the `update-available` handlers have run, so it
    can't be flipped per check (GRYT-1218). A check that shouldn't download stops before the updater. */
-autoUpdater.autoDownload = true;
+autoUpdater.autoDownload = !IS_I18N_TEST;
 
 // On for Windows too now that installer.nsh moves the old install aside: while
 // it was off the PowerShell helper was the only route, and it did not parse.
-autoUpdater.autoInstallOnAppQuit = !updatesComeFromAStore;
+autoUpdater.autoInstallOnAppQuit = !IS_I18N_TEST && !updatesComeFromAStore;
 
 /** Read from the file Settings writes, at every check. Off, a check still says a
     release is out, and nothing downloads until somebody presses the button. */
 function automaticUpdatesOn(): boolean {
+  if (IS_I18N_TEST) return false;
   return readBoolConfig("autoUpdate", true);
 }
 
@@ -1043,7 +1055,7 @@ if (!hardwareAcceleration) {
 }
 
 /* Off on macOS until asked for (GRYT-1659): the Windows installer turns it on, and nothing on a Mac ever did. */
-const canOpenAtLogin = process.platform === "win32" || (process.platform === "darwin" && !process.mas);
+const canOpenAtLogin = !IS_I18N_TEST && (process.platform === "win32" || (process.platform === "darwin" && !process.mas));
 let startWithWindows = canOpenAtLogin ? readBoolConfig("startWithWindows", process.platform === "win32") : false;
 
 let startMinimizedOnLogin = readBoolConfig("startMinimizedOnLogin", false);
@@ -1245,6 +1257,7 @@ type FeedPinResult =
   | ReleaseLookupFailed;
 
 async function pinFeedToNewestCompleteRelease(): Promise<FeedPinResult> {
+  if (IS_I18N_TEST) return { kind: "nothing-to-install" };
   const choice = await findFeedRelease<GhRelease>(
     () =>
       requestWithTimeout(
@@ -1433,6 +1446,7 @@ const updates = createPendingUpdate({
 async function newestReleaseWithoutApi(
   floor = app.getVersion()
 ): Promise<ReleaseRef | null> {
+  if (IS_I18N_TEST) return null;
   const res = await fetchWithTimeout(
     `https://github.com/${UPDATE_OWNER}/${UPDATE_REPO}/releases.atom`
   );
@@ -1522,6 +1536,10 @@ function checkForUpdatesInBackground(
   reason: string,
   force = false
 ): void {
+  if (IS_I18N_TEST) {
+    sendToMain("error", { message: "本地汉化测试包禁用自动更新。" });
+    return;
+  }
   /* A store package, where there is nothing useful to do. Logged rather than dropped:
      a check reporting nothing is the same shape as a broken one. */
   if (updatesComeFromAStore) {
@@ -1592,6 +1610,7 @@ function offerRelease(
   release: ReleaseRef,
   options: DownloadOptions = {}
 ): void {
+  if (IS_I18N_TEST) return;
   if (updatesComeFromAStore) {
     startupLog(`Update: not downloading — installed from ${STORE_PACKAGE}`);
     if (options.asked) {
@@ -1670,6 +1689,7 @@ function restoreRolloutCheck(): void {
 }
 
 function initBackgroundUpdater(launchAlreadyChecked: boolean) {
+  if (IS_I18N_TEST) return;
   autoUpdater.on(
     "checking-for-update",
     () => sendToMain("checking")
@@ -1795,6 +1815,7 @@ let quitHasItsOwnPlan = false;
 /** Gryt crashes on its way out on Windows, before electron-updater's "quit" handler, so an install
     on quit never started (GRYT-1496). The installer waits for the process to go. */
 function installOnQuit(): void {
+  if (IS_I18N_TEST) return;
   if (quitHasItsOwnPlan || !(autoUpdater instanceof WindowsUpdater) || !updates.ready()) return;
   startupLog(`Update: installing ${updates.ready()} on quit`);
   autoUpdater.install(true, false);
@@ -1803,6 +1824,7 @@ function installOnQuit(): void {
 /** The flag first: `quitAndInstall` skips `before-quit`, so an open window
     cancels the quit and hides, and Squirrel cannot swap the bundle. */
 function installDownloadedUpdate(): void {
+  if (IS_I18N_TEST) return;
   isQuitting = true;
   quitHasItsOwnPlan = true;
   /* Not silent on Windows, so the installer's own window is on screen until Gryt's is
@@ -1813,6 +1835,7 @@ function installDownloadedUpdate(): void {
 /** Every install button: the tray, the toast and Settings. Looks once more first, so
     one press lands on the newest release even when the download is stale (GRYT-1213). */
 function installNewestUpdate(): void {
+  if (IS_I18N_TEST) return;
   switch (updates.requestInstall()) {
     case "nothing":
       downloadAnnouncedRelease({ installWhenReady: true });
@@ -1834,6 +1857,7 @@ function installNewestUpdate(): void {
 /** With automatic updates off a check reports and stops, and this is what the
     button reaches. Re-probes, since a toast may be hours old. */
 function downloadAnnouncedRelease({ installWhenReady = false } = {}): void {
+  if (IS_I18N_TEST) return;
   const held = updates.held();
 
   if (held && !held.downloaded) {
@@ -2922,6 +2946,7 @@ function sayAnUpdateIsInstalling(done: () => void): void {
 
 /** A launch while an installer replaces Gryt's files says so and leaves (GRYT-1496). */
 function launchedDuringAnUpdate(): boolean {
+  if (IS_I18N_TEST) return false;
   if (process.platform !== "win32" || !app.isPackaged) return false;
 
   const dir = app.getPath("userData");
@@ -4380,6 +4405,10 @@ if (!gotSingleInstanceLock) {
       ipcMain.on(
         "auth:open-external",
         (_event, url: string) => {
+          if (IS_I18N_TEST) {
+            dialog.showErrorBox("本地汉化测试", "此隔离测试包仅用于本地游客身份；在线登录回调已禁用。请在原版客户端登录账户。");
+            return;
+          }
           /* Sign-in comes back through `gryt://`, so a moved AppImage makes this
              one-way. Asked here, since at startup the handler is fresh. */
           void warnIfAppImageMoved().then((proceed) => {

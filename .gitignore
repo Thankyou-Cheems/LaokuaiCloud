@@ -91,4 +91,6 @@ e2e/i18n-results/
 local-checks.json
 local-rechecks.json
 headless-i18n-final.json
+release-i18n-test/
+local-build-tools/
 
