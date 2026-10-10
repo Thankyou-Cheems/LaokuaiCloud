@@ -9,7 +9,7 @@
  * @gryt/ui deliberately ships no reset — that is the consuming app's decision,
  * made once — so this is the only one in the app.
  */
-@import "tailwindcss";
+@import "tailwindcss" source(none);
 
 @source "./**/*.{ts,tsx}";
 
