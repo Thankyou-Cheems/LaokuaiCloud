@@ -17,6 +17,8 @@ export function useVoiceMoves(authorities:Record<string,ClientMoveAuthority>,app
   const supported=authority?.stagingSupported===true;
   const latest=useRef({sfu,transmissionState});latest.current={sfu,transmissionState};
   const recovery=useRef<{host:string;channel:string;generation:string}|undefined>(undefined);
+  const completed=useRef<{host:string;channel:string;source:string;generation:string;requestId:string;
+    revision:number;settings:NonNullable<ReturnType<typeof readMovePrepare>>["channelSettings"]}|undefined>(undefined);
   useEffect(()=>{
     const pending=recovery.current;
     if(pending && sfu.isConnected && host===pending.host && sfu.currentChannelConnected===pending.channel &&
@@ -24,6 +26,34 @@ export function useVoiceMoves(authorities:Record<string,ClientMoveAuthority>,app
       recovery.current=undefined;applyPolicy(undefined);
     }
   },[host,sfu.isConnected,sfu.currentChannelConnected,authority,transmissionState,applyPolicy]);
+  useEffect(()=>{
+    const transaction=completed.current;
+    if(!transaction)return;
+    if(host!==transaction.host || sfu.currentChannelConnected!==transaction.channel || authority?.generation!==transaction.generation) {
+      completed.current=undefined;recovery.current=undefined;return;
+    }
+    if(sfu.connectionError!=="destination_recovery_required" || recovery.current || !socket || !authority)return;
+    let disposed=false;
+    const current=()=>!disposed && socket.connected && socket.id===transaction.generation && authority.stagingSupported;
+    recovery.current={host,channel:transaction.channel,generation:transaction.generation};
+    void (async()=>{
+      const confirmation=await authority.confirmCommit(transaction.requestId);
+      if(!current() || confirmation.status!=="committed" || confirmation.sourceChannelId!==transaction.source ||
+        confirmation.destinationChannelId!==transaction.channel)throw new Error("stale_move_confirmation");
+      const policy=authority.getDestinationPolicy(transaction.requestId);if(!policy)throw new Error("missing_destination_policy");
+      applyPolicy({host,generation:transaction.generation,requestId:transaction.requestId,destinationChannelId:transaction.channel,
+        policy,beforePromotionRevision:transaction.revision});
+      const until=Date.now()+8000;
+      while(current() && Date.now()<until) {
+        if(authority.isDestinationPolicyApplied(transaction.requestId,transaction.settings)) {
+          toast.error(i18n.t("pureVoice.moveRecovery",{host}),{id:"voice-move",duration:12000});return;
+        }
+        await new Promise(resolve=>setTimeout(resolve,25));
+      }
+      throw new Error("destination_policy_not_acknowledged");
+    })().catch(()=>{if(current())toast.error(i18n.t("pureVoice.moveFailed"),{id:"voice-move"});});
+    return()=>{disposed=true;};
+  },[host,sfu.currentChannelConnected,sfu.connectionError,authority,socket,applyPolicy]);
   useEffect(()=>{
     if(!socket || !authority || !supported || !sfu.prepareMove || !sfu.commitMove ||
       !sfu.abortMove || !sfu.resumeMoveTransmission)return;
@@ -85,6 +115,10 @@ export function useVoiceMoves(authorities:Record<string,ClientMoveAuthority>,app
           recovery.current={host,channel:record.request.destinationChannelId,generation:authority.generation};
         }
         if(!current())return;
+        // Keep transaction identity after release so a later destination failure
+        // can requery policy; live configuration need not retain stale controls.
+        completed.current={host,channel:record.request.destinationChannelId,source:record.request.sourceChannelId,
+          generation:authority.generation,requestId:record.request.requestId,revision:record.revision,settings:record.request.channelSettings};
         await bindConfirmedPolicy();
         const until=Date.now()+8000;
         while(current() && Date.now()<until) {

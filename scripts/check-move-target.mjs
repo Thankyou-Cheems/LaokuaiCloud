@@ -14,7 +14,8 @@ const tick=()=>new Promise(resolve=>setTimeout(resolve,30));
 const policy={requirePTT:true,disableRNNoise:true,maxBitrate:64000,eSportsMode:false,speak:true,shareVideo:false,shareScreen:false,isMuted:false,isDeafened:false};
 let groups=0;
 function setup({supported=true,boundary=true,prepareError=false,policyAck=true,commitRecovery=false}={}) {
-  const listeners=new Map(),sent=[],calls=[],errors=[];let binding,cleanup;
+  const listeners=new Map(),sent=[],calls=[],errors=[];let binding;
+  const refs=[],effects=[];let refIndex=0,effectIndex=0;
   const socket={id:'session',connected:true,on(event,handler){if(!listeners.has(event))listeners.set(event,new Set());listeners.get(event).add(handler)},off(event,handler){listeners.get(event)?.delete(handler)}};
   const emit=(event,value)=>{for(const handler of [...listeners.get(event)??[]])handler(value)};
   const ack={publicationAcknowledged:true,publicationBlocked:false,publicationRevision:boundary?4:undefined};
@@ -29,28 +30,33 @@ function setup({supported=true,boundary=true,prepareError=false,policyAck=true,c
   };
   const authority=createMoveAuthority(socket,supported,(event,payload,current)=>send(socket,event,payload,'host',current),
     (id,actual)=>isMovePolicyAcknowledged(binding,id,actual,evidence));
-  const sfu={currentServerConnected:'host',currentChannelConnected:'source',
+  const sfu={currentServerConnected:'host',currentChannelConnected:'source',isConnected:false,connectionError:null,
     async prepareMove(request){calls.push(['prepare',request]);if(prepareError)throw Error('injected_prepare_failure');return {requestId:request.requestId,streamId:'staged-msid'}},
     async commitMove(id){calls.push(['commit',id]);assert.ok(binding,'policy installed before promotion');await authority.confirmCommit(id);sfu.currentChannelConnected='destination';evidence.channel='destination';
-      if(commitRecovery)throw Object.assign(new Error('destination recovery required'),{code:'destination_recovery_required'})},
+      if(commitRecovery){sfu.connectionError='destination_recovery_required';throw Object.assign(new Error('destination recovery required'),{code:'destination_recovery_required'})}sfu.isConnected=true},
     async abortMove(id){calls.push(['abort',id])},
     async resumeMoveTransmission(id){calls.push(['resume',id]);assert.equal(authority.isDestinationPolicyApplied(id,{requirePushToTalk:true,disableRnnoise:true,maxBitrate:64000,eSportsMode:false}),true)}
   };
   const hook=loadHook({useSFU:()=>sfu,useMicrophone:()=>({transmissionState:ack}),useSockets:()=>({sockets:{host:socket}}),
-    useRef:current=>({current}),useEffect:effect=>{cleanup=effect()},toast:{error:message=>errors.push(message)},i18n:{t:key=>key},
+    useRef:current=>{const index=refIndex++;return refs[index]??(refs[index]={current})},useEffect:(effect,deps)=>{
+      const index=effectIndex++,previous=effects[index];
+      if(previous && deps.every((value,i)=>Object.is(value,previous.deps[i])))return;
+      previous?.cleanup?.();effects[index]={deps,cleanup:effect()};
+    },toast:{error:message=>errors.push(message)},i18n:{t:key=>key},
     readMovePrepare,emitAuthenticated:send});
-  hook({host:authority},value=>{
+  const apply=value=>{
     binding=value;if(!value)return;
     evidence.config.audio.inputMode='push_to_talk';evidence.config.audio.noiseSuppression=false;
     ack.publicationAcknowledged=false;
-    if(policyAck)queueMicrotask(()=>{ack.publicationAcknowledged=true;ack.publicationBlocked=true;ack.publicationRevision=5});
-  });
+    if(policyAck)queueMicrotask(()=>{ack.publicationAcknowledged=true;ack.publicationBlocked=true;ack.publicationRevision++});
+  };
+  const render=()=>{refIndex=0;effectIndex=0;hook({host:authority},apply)};render();
   const request={v:1,generation:'session',requestId:'11111111-1111-1111-1111-111111111111',sourceChannelId:'source',
     destinationChannelId:'destination',joinToken:{move_id:'11111111-1111-1111-1111-111111111111'},sfuUrls:['ws://127.0.0.1:9999'],
     expiresAt:Date.now()+30000,channelSettings:policy};
   const result=()=>emit('voice:move:result',{v:1,generation:'session',requestId:request.requestId,sourceChannelId:'source',destinationChannelId:'destination',status:'committed'});
   return {socket,authority,sfu,ack,evidence,calls,sent,errors,emit,request,result,changePolicy:value=>{replyPolicy=value},
-    dispose(){cleanup?.();authority.dispose()},get binding(){return binding},listenerCount:()=>[...listeners.values()].reduce((sum,set)=>sum+set.size,0)};
+    render,dispose(){for(const effect of effects)effect.cleanup?.();authority.dispose()},get binding(){return binding},listenerCount:()=>[...listeners.values()].reduce((sum,set)=>sum+set.size,0)};
 }
 {
   const f=setup();assert.equal(f.sent[0][0],'voice:move:client');f.emit('voice:move:prepare',f.request);await tick();
@@ -100,6 +106,18 @@ for(const [field,value] of [['generation','old'],['v',2],['sourceChannelId','oth
   assert.ok(f.binding);assert.equal(f.calls.some(([event])=>event==='resume'),false);
   assert.equal(f.authority.isDestinationPolicyApplied(f.request.requestId,{requirePushToTalk:true,disableRnnoise:true,maxBitrate:64000,eSportsMode:false}),false);
   f.socket.connected=false;f.emit('disconnect');await tick();f.dispose();groups++;
+}
+{
+  const f=setup();f.emit('voice:move:prepare',f.request);await tick();f.result();await tick();assert.equal(f.binding,undefined);
+  f.render();f.sfu.isConnected=false;f.sfu.connectionError='destination_recovery_required';
+  f.ack.publicationAcknowledged=false;f.render();await tick();
+  assert.ok(f.binding,'later promoted destination failure rebinds freshly queried policy');
+  assert.equal(f.authority.isDestinationPolicyApplied(f.request.requestId,{requirePushToTalk:true,disableRnnoise:true,maxBitrate:64000,eSportsMode:false}),true);
+  assert.deepEqual(f.errors,['pureVoice.moveRecovery']);
+  assert.equal(f.calls.filter(([event])=>event==='resume').length,1,'no replay of original resume against failed media');
+  f.sfu.connectionError=null;f.sfu.isConnected=true;f.ack.publicationBlocked=false;f.render();
+  assert.equal(f.binding,undefined,'successful explicit recovery clears temporary controls');
+  f.dispose();assert.equal(f.listenerCount(),0);groups++;
 }
 {
   const f=setup();f.emit('voice:move:prepare',f.request);await tick();
