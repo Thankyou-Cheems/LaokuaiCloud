@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const SIDEBAR_WIDTH_PX = 240;
 const SIDEBAR_HOVER_PX = 8;
@@ -15,13 +15,12 @@ interface UseMediaAutoShowParams {
   /** Whether the window can hold the panel beside a channel list and a chat. */
   roomForVoice: boolean;
   isConnected: boolean;
-  currentChannelId: string;
-  serverClients: Record<string, { voiceChannelId?: string; screenShareEnabled?: boolean; cameraEnabled?: boolean }> | undefined;
+  anyMediaActive: boolean;
 }
 
 function useMediaAutoShow({
   showVoiceView, setShowVoiceView, isCompact, roomForVoice, isConnected,
-  currentChannelId, serverClients,
+  anyMediaActive,
 }: UseMediaAutoShowParams) {
   /*
    * The panel gets out of the way when the window cannot hold it: `isCompact` is
@@ -42,13 +41,6 @@ function useMediaAutoShow({
   const mediaAutoShownRef = useRef(false);
   const prevAnyMediaActiveRef = useRef(false);
 
-  const anyMediaActive = useMemo(() => {
-    if (!serverClients || !currentChannelId || !isConnected) return false;
-    return Object.values(serverClients).some(
-      (c) => c.voiceChannelId === currentChannelId && (c.screenShareEnabled || c.cameraEnabled),
-    );
-  }, [serverClients, currentChannelId, isConnected]);
-
   useEffect(() => {
     if (!isConnected) {
       mediaAutoShownRef.current = false;
@@ -59,16 +51,16 @@ function useMediaAutoShow({
     const mediaJustActivated = anyMediaActive && !prevAnyMediaActiveRef.current;
     prevAnyMediaActiveRef.current = anyMediaActive;
 
-    if (mediaJustActivated && !showVoiceView) {
+    if (mediaJustActivated && !showVoiceView && !tooNarrow) {
       mediaAutoShownRef.current = true;
       setShowVoiceView(true);
-    } else if (!anyMediaActive && showVoiceView && mediaAutoShownRef.current) {
+    } else if (!anyMediaActive && showVoiceView) {
       mediaAutoShownRef.current = false;
       setShowVoiceView(false);
     } else if (!anyMediaActive) {
       mediaAutoShownRef.current = false;
     }
-  }, [anyMediaActive, isConnected, showVoiceView, setShowVoiceView]);
+  }, [anyMediaActive, isConnected, showVoiceView, setShowVoiceView, tooNarrow]);
 
   return { mediaAutoShownRef };
 }
@@ -108,8 +100,10 @@ function useSidebarHover({ pinChannelsSidebar, pinMembersSidebar, isDraggingResi
   }, [isDraggingResize]);
 
   const closeLeftSidebar = useCallback(() => {
+    if (isDraggingResize) return;
+    if (leftCloseTimer.current) clearTimeout(leftCloseTimer.current);
     leftCloseTimer.current = setTimeout(() => setHoverLeftSidebar(false), SIDEBAR_CLOSE_DELAY);
-  }, []);
+  }, [isDraggingResize]);
 
   const openRightSidebar = useCallback(() => {
     if (rightCloseTimer.current) { clearTimeout(rightCloseTimer.current); rightCloseTimer.current = null; }
@@ -121,10 +115,17 @@ function useSidebarHover({ pinChannelsSidebar, pinMembersSidebar, isDraggingResi
   }, []);
 
   useEffect(() => {
-    const lt = leftCloseTimer.current;
-    const rt = rightCloseTimer.current;
-    return () => { if (lt) clearTimeout(lt); if (rt) clearTimeout(rt); };
+    return () => {
+      if (leftCloseTimer.current) clearTimeout(leftCloseTimer.current);
+      if (rightCloseTimer.current) clearTimeout(rightCloseTimer.current);
+    };
   }, []);
+
+  useEffect(() => {
+    if (!isDraggingResize) return;
+    if (leftCloseTimer.current) { clearTimeout(leftCloseTimer.current); leftCloseTimer.current = null; }
+    setHoverLeftSidebar(true);
+  }, [isDraggingResize]);
 
   useEffect(() => {
     if (leftSidebarOpen) return;

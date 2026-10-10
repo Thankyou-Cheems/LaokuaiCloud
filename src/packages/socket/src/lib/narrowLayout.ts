@@ -51,12 +51,14 @@ export function hasRoomForMemberList({
   windowWidth,
   voicePanelWidth,
   threadPanelWidth = 0,
+  channelSidebarWidth = SIDEBAR_WIDTH,
 }: {
   windowWidth: number;
   /** 0 when the voice view is minimized or the user is not in a call. */
   voicePanelWidth: number;
   /** 0 unless a thread is drawn beside the conversation rather than over it. */
   threadPanelWidth?: number;
+  channelSidebarWidth?: number;
 }): boolean {
   if (voicePanelWidth <= 0 && threadPanelWidth <= 0) return windowWidth > COMPACT_MAX_WIDTH;
 
@@ -68,7 +70,7 @@ export function hasRoomForMemberList({
     PAGE_PADDING +
     RAIL_WIDTH +
     GAP +
-    SIDEBAR_WIDTH + // channels
+    channelSidebarWidth + // channels
     (voicePanelWidth > 0 ? GAP + voicePanelWidth : 0) +
     (threadPanelWidth > 0 ? GAP : 0) +
     chat +
@@ -86,16 +88,18 @@ export function hasRoomForMemberList({
 export function hasRoomForThreadBeside({
   windowWidth,
   voicePanelWidth,
+  channelSidebarWidth = SIDEBAR_WIDTH,
 }: {
   windowWidth: number;
   /** 0 when the voice view is minimized or the user is not in a call. */
   voicePanelWidth: number;
+  channelSidebarWidth?: number;
 }): boolean {
   const needed =
     PAGE_PADDING +
     RAIL_WIDTH +
     GAP +
-    SIDEBAR_WIDTH + // channels
+    channelSidebarWidth + // channels
     (voicePanelWidth > 0 ? GAP + voicePanelWidth : 0) +
     GAP +
     MIN_CHAT_BESIDE_THREAD +
@@ -115,12 +119,12 @@ export const VOICE_PANEL_WIDTH = VOICE_SIDEBAR_WIDTH;
  * Room for the voice panel at all, next to a channel list and a usable chat.
  * `useVoiceLayout`'s clamp cannot save it: it measures a container the panel grew.
  */
-export function hasRoomForVoicePanel(windowWidth: number): boolean {
+export function hasRoomForVoicePanel(windowWidth: number, channelSidebarWidth = SIDEBAR_WIDTH): boolean {
   const needed =
     PAGE_PADDING +
     RAIL_WIDTH +
     GAP +
-    SIDEBAR_WIDTH + // channels
+    channelSidebarWidth + // channels
     GAP +
     VOICE_SIDEBAR_WIDTH +
     MIN_CHAT_WIDTH +

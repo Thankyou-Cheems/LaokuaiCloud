@@ -1,4 +1,4 @@
-import { Skeleton } from "@gryt/ui";
+import { Skeleton, Tooltip } from "@gryt/ui";
 
 import type { SealDecision } from "@/common";
 import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
@@ -243,7 +243,16 @@ export const WelcomeMessage = ({
   /* Unknown reads as unencrypted, the same way the banner above this treats it:
      of the two ways to be wrong while the keys load, understating is free. */
   sealing?: SealDecision;
-}) => { useSocketTranslation(); return (
+}) => { useSocketTranslation();
+  if (conversationKind === "channel" && !automated) return (
+    <div className="flex items-center gap-2 px-4 py-4 text-sm text-gryt-muted" data-gryt="empty-conversation">
+      <span>{socketI18n.t("layout.emptyConversation")}</span>
+      <Tooltip title={`${socketI18n.t("socketFull.chatMessage_ff1935c03f")} ${socketI18n.t("socketFull.chatMessage_ea8906ab66")}`}>
+        <span tabIndex={0} role="img" aria-label={socketI18n.t("layout.channelDetails")}>ⓘ</span>
+      </Tooltip>
+    </div>
+  );
+  return (
   <div className="flex w-full max-w-xl flex-col px-6 py-12 sm:px-8">
     <div className="flex items-start gap-4 sm:items-center sm:gap-6">
       <div

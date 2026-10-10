@@ -44,26 +44,26 @@ function usePointerFine() {
  * Whether the member list fits, given what the voice and thread panels have
  * taken. Pass the widths they are drawing at, not the ones they would like.
  */
-export function useRoomForMemberList(voicePanelWidth: number, threadPanelWidth = 0): boolean {
+export function useRoomForMemberList(voicePanelWidth: number, threadPanelWidth = 0, channelSidebarWidth = 240): boolean {
   const windowWidth = useWindowWidth();
-  return hasRoomForMemberList({ windowWidth, voicePanelWidth, threadPanelWidth });
+  return hasRoomForMemberList({ windowWidth, voicePanelWidth, threadPanelWidth, channelSidebarWidth });
 }
 
 /**
  * Whether an open thread is drawn beside the conversation rather than over the
  * whole chat pane. Pass the width the voice panel is drawing at, as above.
  */
-export function useRoomForThreadBeside(voicePanelWidth: number): boolean {
+export function useRoomForThreadBeside(voicePanelWidth: number, channelSidebarWidth = 240): boolean {
   const windowWidth = useWindowWidth();
-  return hasRoomForThreadBeside({ windowWidth, voicePanelWidth });
+  return hasRoomForThreadBeside({ windowWidth, voicePanelWidth, channelSidebarWidth });
 }
 
 /**
  * Whether the voice panel fits beside a channel list and a usable chat. Below
  * this the voice view minimizes itself.
  */
-export function useRoomForVoicePanel(): boolean {
-  return hasRoomForVoicePanel(useWindowWidth());
+export function useRoomForVoicePanel(channelSidebarWidth = 240): boolean {
+  return hasRoomForVoicePanel(useWindowWidth(), channelSidebarWidth);
 }
 
 /** One channel and nothing else. Desktop only; see `usePointerFine`. */

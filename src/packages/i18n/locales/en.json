@@ -3570,5 +3570,12 @@
     "operationError": "{{context}} error: {{error}}",
     "unknownOperationError": "Unknown {{context}} error",
     "profileMediaRefused": "That {{kind}} couldn't be processed, so you still have your old one. Try a different file."
+  },
+  "layout": {
+    "callControls": "Call controls",
+    "resizeChannels": "Resize channel sidebar",
+    "channelDetails": "Channel details",
+    "emptyConversation": "No messages yet",
+    "closeMedia": "Close media"
   }
 }

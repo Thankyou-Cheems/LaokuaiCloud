@@ -3570,5 +3570,12 @@
     "operationError": "{{context}}错误：{{error}}",
     "unknownOperationError": "未知的{{context}}错误",
     "profileMediaRefused": "该{{kind}}处理失败，你仍在使用原有{{kind}}。请尝试其他文件。"
+  },
+  "layout": {
+    "callControls": "通话控制",
+    "resizeChannels": "调整频道侧栏宽度",
+    "channelDetails": "频道详情",
+    "emptyConversation": "暂无消息",
+    "closeMedia": "关闭媒体区域"
   }
 }

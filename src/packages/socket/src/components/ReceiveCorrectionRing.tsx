@@ -17,6 +17,7 @@ export interface ReceiveCorrectionRingProps {
   labels?: Partial<ReceiveCorrectionLabels>;
   className?: string;
   diagnostic?: string;
+  compact?: boolean;
 }
 
 /** Read-only display. Rendering this ring does not enable or adjust the DSP. */
@@ -27,6 +28,7 @@ export function ReceiveCorrectionRing({
   labels: labelOverrides,
   className = "",
   diagnostic,
+  compact = false,
 }: ReceiveCorrectionRingProps) {
   const labels = { ...RECEIVE_CORRECTION_LABELS_EN, ...labelOverrides };
   const learned = finiteCorrectionDb(learnedAutoGainDb);
@@ -62,7 +64,7 @@ export function ReceiveCorrectionRing({
       data-correction-state={state}
       className={`relative inline-flex items-center gap-1.5 rounded outline-offset-2 focus-visible:outline-2 focus-visible:outline-[var(--gryt-accent-9)] ${className}`}
     >
-      <svg width="32" height="32" viewBox="-1 -5 32 36" aria-hidden="true" style={{ flexShrink: 0 }}>
+      <svg width={compact ? 20 : 32} height={compact ? 20 : 32} viewBox="-1 -5 32 36" aria-hidden="true" style={{ flexShrink: 0 }}>
         <path d="M15 3 A12 12 0 0 0 15 27" fill="none" stroke="var(--gryt-neutral-6)" strokeWidth="2.5" />
         <path d="M15 3 A12 12 0 0 1 15 27" fill="none" stroke="var(--gryt-neutral-6)" strokeWidth="2.5" />
         <path
@@ -98,7 +100,7 @@ export function ReceiveCorrectionRing({
         </text>
       </svg>
       <span aria-hidden="true" className="inline-flex flex-col leading-tight">
-        <span className="text-[10px] text-[var(--gryt-neutral-11)]">{labels.learned}</span>
+        {!compact && <span className="text-[10px] text-[var(--gryt-neutral-11)]">{labels.learned}</span>}
         <span className="text-[11px] font-medium tabular-nums text-[var(--gryt-neutral-12)]">{learnedText}</span>
       </span>
     </span>

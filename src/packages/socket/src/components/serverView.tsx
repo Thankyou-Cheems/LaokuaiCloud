@@ -32,6 +32,7 @@ import { useAdminActions } from "../hooks/useAdminActions";
 import { useBlocks } from "../hooks/useBlocks";
 import { useCalls } from "../hooks/useCalls";
 import { useChannelSettings, useHandleChannelClick } from "../hooks/useChannelSettings";
+import { useChannelSidebarWidth } from "../hooks/useChannelSidebarWidth";
 import { useChat } from "../hooks/useChat";
 import { conversationTitle, type DirectConversation,useDirectMessages } from "../hooks/useDirectMessages";
 import { useLatencyReporting } from "../hooks/useLatencyReporting";
@@ -39,6 +40,7 @@ import { useIsTinyWindow, useRoomForMemberList, useRoomForThreadBeside, useRoomF
 import { usePeerLatency } from "../hooks/usePeerLatency";
 import { useServerPermissions } from "../hooks/usePermissions";
 import { useReportUser } from "../hooks/useReportUser";
+import { useRoomMedia } from "../hooks/useRoomMedia";
 import { useServerManagement } from "../hooks/useServerManagement";
 import { useServerReports } from "../hooks/useServerReports";
 import { useServerState } from "../hooks/useServerState";
@@ -65,6 +67,7 @@ import { MobileServerView } from "./MobileServerView";
 import { PresenceDot } from "./PresenceDot";
 import { ReportsPanel } from "./ReportsPanel";
 import { ReportUserDialog } from "./ReportUserDialog";
+import { RoomCallBar } from "./RoomCallBar";
 import { SecurityNoticeBanner } from "./SecurityNoticeBanner";
 import { ServerChip } from "./ServerChip";
 import { ServerConfirmDialogs } from "./ServerConfirmDialogs";
@@ -137,6 +140,9 @@ export const ServerView = ({ dmSpace = false }: { dmSpace?: boolean }) => {
     voiceContainerRef, voiceMaxWidth, shownVoiceWidth,
   } = useVoiceLayout({ setShowVoiceView });
 
+  const hasRoomMedia = useRoomMedia({ serverHost: currentlyViewingServer?.host, currentServerConnected,
+    currentChannelId, currentConnectionId: selfClientId, clientsForHost: heldHostClients, videoStreams });
+
   const [focusedChatHidden, setFocusedChatHidden] = useState(false);
   const [createChannelOpen, setCreateChannelOpen] = useState(false);
   const [createChannelType, setCreateChannelType] = useState<"chat" | "voice" | "forum" | "automated">("chat");
@@ -145,12 +151,12 @@ export const ServerView = ({ dmSpace = false }: { dmSpace?: boolean }) => {
 
   /** Only means anything while a stream is focused, but it is a press either
       way — which is the difference from what focus used to do on its own. */
-  const chatTakenOver = voiceFocused && focusedChatHidden;
+  const chatTakenOver = hasRoomMedia && voiceFocused && focusedChatHidden;
 
   /* Whether the chat pane is drawn at all: the same condition the pane uses
      further down, named because three other things ask it. */
   const chatPaneHidden =
-    chatTakenOver || (isMaximized && showVoiceView && voiceWidth !== "0px");
+    chatTakenOver || (hasRoomMedia && isMaximized && showVoiceView && voiceWidth !== "0px");
 
   /* The space shows conversations and a server shows channels, never the other.
      Deciding by "is a DM selected" put Carlo in a server and a channel in the space. */
@@ -210,29 +216,30 @@ export const ServerView = ({ dmSpace = false }: { dmSpace?: boolean }) => {
 
 
   const drawnVoicePanelWidth =
-    showVoiceView && voiceWidth !== "0px" && !isMaximized && !chatTakenOver
+    hasRoomMedia && showVoiceView && voiceWidth !== "0px" && !isMaximized && !chatTakenOver
       ? shownVoiceWidth
       : 0;
   /* A thread beside the conversation is a third panel in the row, and the member
      list yields to it the way it already yields to the voice panel. */
+  const sidebarSizing = useChannelSidebarWidth();
   const threadOpen = useOpenThread();
-  const threadBeside = useRoomForThreadBeside(drawnVoicePanelWidth);
+  const threadBeside = useRoomForThreadBeside(drawnVoicePanelWidth, sidebarSizing.width);
   const roomForMembers = useRoomForMemberList(
     drawnVoicePanelWidth,
     threadBeside && threadOpen ? THREAD_PANEL_WIDTH : 0,
+    sidebarSizing.width,
   );
-  const roomForVoice = useRoomForVoicePanel();
+  const roomForVoice = useRoomForVoicePanel(sidebarSizing.width);
 
   const {
     leftSidebarOpen, rightSidebarOpen,
     leftSidebarContentRef, rightSidebarContentRef,
     openLeftSidebar, closeLeftSidebar, openRightSidebar, closeRightSidebar,
-  } = useSidebarHover({ pinChannelsSidebar, pinMembersSidebar, isDraggingResize: false, isCompact, roomForMembers });
+  } = useSidebarHover({ pinChannelsSidebar, pinMembersSidebar, isDraggingResize: sidebarSizing.dragging, isCompact, roomForMembers });
 
-  const serverClients = currentlyViewingServer ? heldHostClients : undefined;
   const { mediaAutoShownRef } = useMediaAutoShow({
     showVoiceView, setShowVoiceView, isCompact, roomForVoice, isConnected,
-    currentChannelId, serverClients,
+    anyMediaActive: hasRoomMedia,
   });
 
   const { applyChannelSettings } = useChannelSettings({
@@ -959,7 +966,7 @@ forumTags={activeDm ? [] : activeChannelForumTags}
   return (
     <MemberCardActionsContext.Provider value={memberCardActions}>
       {/* min-w-0, or a header's one-line name sets the narrowest this can get. */}
-      <div className="flex w-full h-full min-w-0 gap-4 flex-col" data-gryt="server-view">
+      <div className="flex w-full h-full min-w-0 gap-2 flex-col" data-gryt="server-view" style={{ minHeight: 0, overflow: "hidden", position: "relative" }}>
         {isServerUnreachable && (
           <ConnectionBanner connectionStatus={currentConnectionStatus} onReconnect={() => reconnectServer(host)} />
         )}
@@ -1094,7 +1101,9 @@ forumTags={activeDm ? [] : activeChannelForumTags}
             ) : (
             <ServerSidebar
               sidebarOpen={leftSidebarOpen}
-              sidebarWidthPx={SIDEBAR_WIDTH_PX}
+              sidebarWidthPx={sidebarSizing.width}
+              resizing={sidebarSizing.dragging}
+              resizeHandle={sidebarSizing.resizeHandle}
               hoverPx={SIDEBAR_HOVER_PX}
               contentRef={leftSidebarContentRef}
               isUnreachableWhileConnected={isVoiceOnThisServer && isServerUnreachable}
@@ -1142,7 +1151,7 @@ forumTags={activeDm ? [] : activeChannelForumTags}
             )}
             <div className="flex grow" ref={voiceContainerRef} style={{ position: "relative", minWidth: 0 }}>
               <VoiceView
-                showVoiceView={showVoiceView && (!isCompact || voiceFocused)}
+                showVoiceView={hasRoomMedia && showVoiceView && (!isCompact || voiceFocused)}
                 /* Focusing a stream makes it the big one inside the panel and
                    leaves the app where it was. Hiding the chat is its own press. */
                 voiceWidth={
@@ -1181,7 +1190,7 @@ forumTags={activeDm ? [] : activeChannelForumTags}
                 chatHidden={focusedChatHidden}
                 onToggleChat={toggleFocusedChat}
               />
-              <div style={{
+              <div data-gryt="conversation-pane" style={{
                 display: chatPaneHidden ? "none" : "flex",
                 flex: 1,
                 minWidth: 0,
@@ -1219,6 +1228,28 @@ forumTags={activeDm ? [] : activeChannelForumTags}
             />
           </div>
         )}
+        {!isTiny && !isMobile && (
+            <VoiceSheetButton
+              connected={isVoiceOnThisServer && (!showVoiceView || isCompact || !roomForVoice)}
+              serverHost={host}
+              currentServerConnected={currentServerConnected}
+              currentChannelId={currentChannelId}
+              clientsForHost={hostClients}
+              members={hostMembers}
+              clientsSpeaking={voiceClientsSpeaking}
+              isConnecting={isConnecting}
+              currentConnectionId={selfClientId}
+              isCall={connectedToACall}
+              onDisconnect={handleVoiceDisconnect}
+              peerLatency={peerLatency}
+              onDisconnectUser={canDisconnectFromVoice ? requestDisconnectUser : undefined}
+              currentUserRole={currentUserRole}
+              adminActions={currentAdminActions}
+              videoStreams={voiceVideoStreams}
+              streamSources={voiceStreamSources}
+            />
+        )}
+        {currentServerConnected && <RoomCallBar onDisconnect={handleVoiceDisconnect} />}
       </div>
 
       {incomingCall ? (

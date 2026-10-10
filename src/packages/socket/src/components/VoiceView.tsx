@@ -32,12 +32,12 @@ import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i1
 import { useTranslation } from "@/i18n";
 import { setReceiveAudioGain } from "@/lib/receiveAudio";
 import { useSettings } from "@/settings";
-import { Controls } from "@/webRTC";
 
 import { PiArrowLineLeftFill, PiArrowLineRightFill, PiChatCircleFill, PiCornersInFill, PiCornersOutFill, PiMicrophoneSlashFill, PiVideoCameraSlashFill } from "../../../../lib/icons";
 import { useAloneInCall } from "../hooks/useAloneInCall";
 import type { PeerLatencyStats } from "../hooks/usePeerLatency";
 import { usePopoutStreams } from "../hooks/usePopoutStreams";
+import { useRoomMedia } from "../hooks/useRoomMedia";
 import { cameraStreamFor, hasLiveVideoTrack } from "../lib/cameraStream";
 import {
   computeGridLayout,
@@ -63,9 +63,8 @@ import { VoiceParticipantCard } from "./VoiceParticipantCard";
 /** A role id. The server defines its own; this only passes one along. */
 type Role = string;
 
-// The panel's own chrome: the controls float over the bottom of the grid, and
-// a tile running full height would put a name behind the mute button.
-const CONTROLS_HEIGHT = 80;
+// Keep a small tile gutter. Media actions and call controls have their own rows.
+const TILE_BOTTOM_PADDING = GRID_PADDING;
 
 /** Not a client id — the "+N" tile standing in for everyone past the cap. */
 const OVERFLOW_ITEM_ID = "overflow:more";
@@ -334,6 +333,9 @@ export const VoiceView = ({
   const isInThisVoiceChannel =
     currentServerConnected === serverHost && !!currentConnectionId;
 
+  const hasMedia = useRoomMedia({ serverHost, currentServerConnected, currentChannelId,
+    currentConnectionId, clientsForHost, videoStreams });
+
   const localProcessedSpeaking = useFinalProcessedSpeaking(
     microphoneBuffer.finalAnalyser,
     isInThisVoiceChannel,
@@ -503,7 +505,7 @@ export const VoiceView = ({
 
   useEffect(() => {
     const sync = () =>
-      setIsFullscreen(document.fullscreenElement === panelRef.current);
+      setIsFullscreen(Boolean(document.fullscreenElement?.contains(panelRef.current)));
 
     document.addEventListener("fullscreenchange", sync);
     return () => document.removeEventListener("fullscreenchange", sync);
@@ -514,10 +516,15 @@ export const VoiceView = ({
       void document.exitFullscreen();
       return;
     }
-    void panelRef.current?.requestFullscreen?.().catch((error) => {
+    const target = panelRef.current?.closest<HTMLElement>('[data-gryt="server-view"]') ?? panelRef.current;
+    void target?.requestFullscreen?.().catch((error) => {
       console.warn("[VoiceView] fullscreen refused", error);
     });
   }, []);
+
+  useEffect(() => {
+    if (!hasMedia && document.fullscreenElement?.contains(panelRef.current)) void document.exitFullscreen();
+  }, [hasMedia]);
 
   const gridRef = useRef<HTMLDivElement>(null);
   const [gridHeight, setGridHeight] = useState(0);
@@ -746,8 +753,8 @@ export const VoiceView = ({
   }, [isFocused, onFocusChange]);
 
   useEffect(() => {
-    if (!showVoiceView) setFocusedStream(null);
-  }, [showVoiceView]);
+    if (!showVoiceView || !hasMedia) setFocusedStream(null);
+  }, [showVoiceView, hasMedia]);
 
   useEffect(() => {
     if (focusedStream && !gridItems.includes(focusedStream.itemId)) {
@@ -791,7 +798,7 @@ export const VoiceView = ({
 
   const availableHeight = Math.max(
     0,
-    gridHeight - CONTROLS_HEIGHT - GRID_PADDING,
+    gridHeight - TILE_BOTTOM_PADDING - GRID_PADDING,
   );
   const usableWidth = Math.max(0, gridWidth - 2 * GRID_PADDING);
 
@@ -1180,6 +1187,8 @@ export const VoiceView = ({
   return (
     <motion.div
       data-gryt="voice-view"
+      aria-hidden={!showVoiceView || !hasMedia}
+      inert={!showVoiceView || !hasMedia}
       ref={panelRef}
       transition={
         isDragging
@@ -1189,12 +1198,13 @@ export const VoiceView = ({
       animate={{
         // Fullscreen sizes the element itself, so an animated pixel width
         // would fight the browser for it.
-        width: isFullscreen ? "100%" : showVoiceView ? voiceWidth : 0,
+        width: isFullscreen ? "100%" : showVoiceView && hasMedia ? voiceWidth : 0,
         paddingRight:
-          isFullscreen || !showVoiceView || voiceWidth === "0px" ? 0 : 8,
+          isFullscreen || !showVoiceView || !hasMedia || voiceWidth === "0px" ? 0 : 8,
       }}
       style={{
         overflow: "hidden",
+        flexShrink: 0,
         // The width comes from `voiceWidth` alone: focus used to get its own
         // branch here, so the panel ate the row the moment a tile was clicked.
         ...(isFullscreen
@@ -1229,6 +1239,7 @@ export const VoiceView = ({
           ref={gridRef}
           style={{
             flexGrow: 1,
+            minHeight: 0,
             position: "relative",
             overflow: "hidden",
             display: "flex",
@@ -1352,9 +1363,8 @@ export const VoiceView = ({
                         display: "flex",
                         flexDirection: "column",
                         gap: `${GRID_GAP}px`,
-                        // The controls float over this area, so a full-height tile
-                        // puts the name behind the mute button.
-                        padding: `${GRID_PADDING}px ${GRID_PADDING}px ${CONTROLS_HEIGHT}px`,
+                        // Leave names a small gutter at the bottom of the tiles.
+                        padding: `${GRID_PADDING}px ${GRID_PADDING}px ${TILE_BOTTOM_PADDING}px`,
                         height: "100%",
                         overflow: "hidden",
                       }
@@ -1523,105 +1533,27 @@ export const VoiceView = ({
             </SortableContext>
           </DndContext>
 
-          {!isFocused && (
-            <AnimatePresence>
-              {currentServerConnected && (
-                <motion.div
-                  style={{
-                    position: "absolute",
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    display: "flex",
-                    justifyContent: "center",
-                    padding: "12px",
-                    pointerEvents: "none",
-                  }}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                >
-                  <div style={{ pointerEvents: "auto" }}>
-                    <Controls onDisconnect={onDisconnect} />
-                  </div>
-
-                  {onToggleMaximize && (
-                    <div className="flex gap-2" style={{
-                        position: "absolute",
-                        right: 12,
-                        bottom: 12,
-                        pointerEvents: "auto",
-                      }}>
-                      <Tooltip
-                        title={isFullscreen ? tr("ui.leaveFullscreen") : tr("ui.fullscreen")}
-                      >
-                        <IconButton tone="neutral" size="xsmall"
-                          aria-label={
-                            isFullscreen
-                              ? tr("ui.leaveFullscreen")
-                              : tr("ui.fullscreenVoiceView")
-                          }
-                          onClick={toggleFullscreen}
-                        >
-                          {isFullscreen ? (
-                            <PiCornersInFill size={18} />
-                          ) : (
-                            <PiCornersOutFill size={18} />
-                          )}
-                        </IconButton>
-                      </Tooltip>
-
-                      {/* Nothing to maximise into while the voice view already
-                          covers the screen, so the control goes rather than
-                          sitting there doing nothing. */}
-                      {!isFullscreen && (
-                        <Tooltip
-                          title={isMaximized ? tr("ui.restore") : tr("ui.maximize")}
-                        >
-                          <IconButton tone="neutral" size="xsmall"
-                            aria-label={
-                              isMaximized
-                                ? tr("ui.restoreVoiceView")
-                                : tr("ui.maximizeVoiceView")
-                            }
-                            onClick={onToggleMaximize}
-                          >
-                            {isMaximized ? (
-                              <PiArrowLineLeftFill size={16} />
-                            ) : (
-                              <PiArrowLineRightFill size={16} />
-                            )}
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                    </div>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          )}
         </div>
-
-        {isFocused && currentServerConnected && (
-          <div className="flex justify-center items-center py-2 shrink-0" style={{ position: "relative" }}>
-            <Controls onDisconnect={onDisconnect} />
-
-            {onToggleChat && (
-              <div className="flex" style={{ position: "absolute", right: 0 }}>
-                <Tooltip
-                  title={chatHidden ? tr("ui.showChat") : tr("ui.hideChat")}
-                >
-                  <IconButton tone="neutral" size="xsmall"
-                    onClick={onToggleChat}
-                    style={{ opacity: chatHidden ? 0.5 : 1 }}
-                  >
-                    <PiChatCircleFill size={16} />
-                  </IconButton>
-                </Tooltip>
-              </div>
-            )}
-          </div>
-        )}
+        {hasMedia && <div className="flex shrink-0 flex-wrap justify-end items-center gap-2 pt-2" data-gryt="media-actions">
+          <Tooltip title={isFullscreen ? tr("ui.leaveFullscreen") : tr("ui.fullscreen")}>
+            <IconButton tone="neutral" size="xsmall"
+              aria-label={isFullscreen ? tr("ui.leaveFullscreen") : tr("ui.fullscreenVoiceView")}
+              onClick={toggleFullscreen}>
+              {isFullscreen ? <PiCornersInFill size={18} /> : <PiCornersOutFill size={18} />}
+            </IconButton>
+          </Tooltip>
+          {!isFullscreen && onToggleMaximize && <Tooltip title={isMaximized ? tr("ui.restore") : tr("ui.maximize")}>
+            <IconButton tone="neutral" size="xsmall"
+              aria-label={isMaximized ? tr("ui.restoreVoiceView") : tr("ui.maximizeVoiceView")}
+              onClick={onToggleMaximize}>
+              {isMaximized ? <PiArrowLineLeftFill size={16} /> : <PiArrowLineRightFill size={16} />}
+            </IconButton>
+          </Tooltip>}
+          {isFocused && onToggleChat && <Tooltip title={chatHidden ? tr("ui.showChat") : tr("ui.hideChat")}>
+            <IconButton tone="neutral" size="xsmall" aria-label={chatHidden ? tr("ui.showChat") : tr("ui.hideChat")}
+              onClick={onToggleChat} style={{ opacity: chatHidden ? 0.5 : 1 }}><PiChatCircleFill size={16} /></IconButton>
+          </Tooltip>}
+        </div>}
       </div>
     </motion.div>
   );

@@ -5,7 +5,7 @@ import { readReceiveCorrection, RECEIVE_CORRECTION_LABELS_EN, RECEIVE_CORRECTION
 import { ReceiveCorrectionRing } from "./ReceiveCorrectionRing";
 
 /** Receiver-local measurements, keyed by server identity and primary mic route. */
-export function RemoteReceiveCorrection({ host, member, streamId }: { host?: string; member?: string; streamId?: string }) {
+export function RemoteReceiveCorrection({ host, member, streamId, compact }: { host?: string; member?: string; streamId?: string; compact?: boolean }) {
   const { i18n, t } = useTranslation();
   const measurement = useReceiveCorrection(host, member, streamId);
   const snapshot = measurement ? {
@@ -24,6 +24,7 @@ export function RemoteReceiveCorrection({ host, member, streamId }: { host?: str
     return key ? `${t(key)} (${reason})` : reason;
   }).join("; ");
   return <ReceiveCorrectionRing {...snapshot}
+    compact={compact}
     diagnostic={diagnostic}
     labels={i18n.resolvedLanguage === "zh-CN" ? RECEIVE_CORRECTION_LABELS_ZH : RECEIVE_CORRECTION_LABELS_EN} />;
 }

@@ -115,7 +115,7 @@ export function ConnectedUser({
       transition={{ duration: 0.25 }}
       style={{ width: "100%", overflow: "hidden" }}
     >
-      <div className="flex flex-wrap gap-2 items-center px-3 py-2 w-full" style={{
+      <div className="flex flex-col gap-1 px-3 py-1 w-full" data-gryt="voice-member" style={{
           opacity: 1,
           transition: "opacity 0.3s ease",
         }}>
@@ -139,12 +139,12 @@ export function ConnectedUser({
               }}
             />
           </div>
-          <span className="text-sm truncate" style={{ whiteSpace: "nowrap" }}>{nickname}</span>
+          <span className="text-sm truncate" data-gryt="member-name" title={nickname} style={{ whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>{nickname}</span>
         </div>
 
-        <div className="flex flex-wrap gap-1 items-center max-w-full" style={{ flexShrink: 0 }}>
+        <div className="flex flex-wrap gap-1 items-center max-w-full" style={{ marginLeft: 32 }}>
           <VoiceModeIcon host={serverHost} member={serverUserId} isSelf={isSelf} />
-      {!isSelf && <RemoteReceiveCorrection host={serverHost} member={serverUserId} streamId={streamId} />}
+      {!isSelf && <RemoteReceiveCorrection compact host={serverHost} member={serverUserId} streamId={streamId} />}
           {isConnectingToVoice && (
             <Skeleton variant="circular" width="12px" height="12px" />
           )}

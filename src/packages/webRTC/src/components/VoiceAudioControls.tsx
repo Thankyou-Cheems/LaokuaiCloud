@@ -33,7 +33,7 @@ export function VoiceAudioControls({ direction = "row", iconSize = 16 }: {
   const parameter = leveling.available ? leveling.parameter : undefined;
 
   return <div className={`flex max-w-full ${direction === "column" ? "flex-col" : "flex-row flex-wrap"} items-center gap-1`} data-gryt="voice-audio-controls">
-    <div className={direction === "column" ? "max-w-[88px]" : "flex w-full justify-center"}><VoiceModeIcon isSelf /></div>
+    <div className={direction === "column" ? "max-w-[88px]" : "flex shrink-0 justify-center"}><VoiceModeIcon isSelf /></div>
     <HoverAudioControl label={tr("voiceAudio.microphone")} side={side} action={
       <CallControlButton state={isServerMuted ? "blocked" : isMuted ? "off" : "idle"}
         aria-label={(isMuted || isServerMuted) ? tr("ui.unmuteMicrophone") : tr("ui.muteMicrophone")}

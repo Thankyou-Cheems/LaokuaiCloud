@@ -1,7 +1,7 @@
 {
   "name": "gryt-chat",
   "private": true,
-  "version": "1.13.22-laokuai.integration.2",
+  "version": "1.13.22-laokuai.integration.3",
   "description": "唠蒯 — real-time voice chat desktop client",
   "author": {
     "name": "Gryt Chat",

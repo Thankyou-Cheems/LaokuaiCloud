@@ -1,16 +1,22 @@
-import { EmojiText } from "./EmojiText";
+import { Tooltip } from "@gryt/ui";
+
+import { useTranslation } from "@/i18n";
 
 /** What a channel is for, beside its name in the header. One line; the full text is in the tooltip. */
 export function ChannelDescription({ text }: { text: string | undefined }) {
+  const { t } = useTranslation();
   if (!text) return null;
   return (
-    <span
-      className="min-w-0 truncate text-sm"
+    <Tooltip title={text}><span
+      tabIndex={0}
+      role="img"
+      aria-label={`${t("layout.channelDetails")}: ${text}`}
+      className="inline-flex shrink-0 items-center justify-center text-sm"
       data-gryt="channel-description"
       title={text}
-      style={{ color: "var(--gryt-neutral-11)", paddingLeft: 10, marginLeft: 2, borderLeft: "1px solid var(--gryt-neutral-6)" }}
+      style={{ color: "var(--gryt-neutral-11)", width: 24, height: 24 }}
     >
-      <EmojiText text={text} />
-    </span>
+      ⓘ
+    </span></Tooltip>
   );
 }

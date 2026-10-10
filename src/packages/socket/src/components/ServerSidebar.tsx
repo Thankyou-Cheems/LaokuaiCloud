@@ -1,6 +1,6 @@
 import type { StreamSources } from "@gryt/voice";
 import { motion } from "motion/react";
-import { RefObject } from "react";
+import { HTMLAttributes, RefObject } from "react";
 
 import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 import type { Channel, SidebarItem, SidebarReorderEntry } from "@/settings/src/types/server";
@@ -19,6 +19,8 @@ const SIDEBAR_SPRING = { type: "spring" as const, stiffness: 380, damping: 34 };
 interface ServerSidebarProps {
   sidebarOpen: boolean;
   sidebarWidthPx: number;
+  resizing?: boolean;
+  resizeHandle?: HTMLAttributes<HTMLDivElement>;
   hoverPx: number;
   contentRef: RefObject<HTMLDivElement | null>;
   isUnreachableWhileConnected: boolean;
@@ -73,7 +75,7 @@ interface ServerSidebarProps {
 }
 
 export const ServerSidebar = ({
-  sidebarOpen, sidebarWidthPx, hoverPx, contentRef,
+  sidebarOpen, sidebarWidthPx, hoverPx, contentRef, resizing, resizeHandle,
   isUnreachableWhileConnected,
   onMouseEnter, onMouseLeave,
   serverName, serverRole, pinned, onTogglePinned,
@@ -87,15 +89,16 @@ export const ServerSidebar = ({
 }: ServerSidebarProps) => { useSocketTranslation(); return (
   <div
     role="navigation"
+    data-gryt="channels-sidebar"
     aria-label={socketI18n.t("ui.channels")}
     onMouseLeave={onMouseLeave}
     onMouseEnter={onMouseEnter}
-    style={{ flexShrink: 0, display: "flex" }}
+    style={{ flexShrink: 0, display: "flex", position: "relative", minHeight: 0 }}
   >
     <motion.div
       animate={{ width: sidebarOpen ? sidebarWidthPx : 0 }}
       initial={false}
-      transition={SIDEBAR_SPRING}
+      transition={resizing ? { duration: 0 } : SIDEBAR_SPRING}
       style={{
         overflow: "hidden",
         display: "flex",
@@ -200,6 +203,12 @@ export const ServerSidebar = ({
         </div>
       </div>
     </motion.div>
+
+    {sidebarOpen && resizeHandle && <div {...resizeHandle} role="separator" tabIndex={0}
+      aria-orientation="vertical" aria-label={socketI18n.t("layout.resizeChannels")}
+      data-gryt="channel-resize-handle"
+      style={{ position: "absolute", top: 0, bottom: 0, right: -4, width: 8, cursor: "col-resize",
+        touchAction: "none", zIndex: 2, borderRight: resizing ? "2px solid var(--gryt-accent-9)" : undefined }} />}
 
     <motion.div
       animate={{ width: sidebarOpen ? 0 : hoverPx }}

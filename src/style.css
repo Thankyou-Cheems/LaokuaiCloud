@@ -28,6 +28,15 @@
  * order, where a variant beats the base utility it is meant to. */
 @source "../node_modules/@gryt/ui/dist";
 
+/* Fullscreen includes the persistent controls. Media actions occupy a separate row. */
+[data-gryt="server-view"]:fullscreen {
+  width: 100%; height: 100%; padding: 12px; background: var(--gryt-neutral-2);
+}
+[data-gryt="server-view"]:fullscreen [data-gryt="channels-sidebar"],
+[data-gryt="server-view"]:fullscreen [data-gryt="member-sidebar"],
+[data-gryt="server-view"]:fullscreen [data-gryt="conversation-pane"] { display: none !important; }
+[data-gryt="server-view"]:fullscreen [data-gryt="voice-view"] { width: 100% !important; max-width: none !important; }
+
 /* The tokens come from the library now, not a copy of them. @gryt/ui ships
    theme.css unprocessed for exactly this — importing dist/styles.css would give
    us the resolved :root variables, which Tailwind cannot read back as theme
