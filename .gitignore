@@ -92,5 +92,6 @@ local-checks.json
 local-rechecks.json
 headless-i18n-final.json
 release-i18n-test/
+release-laokuai/
 local-build-tools/
 

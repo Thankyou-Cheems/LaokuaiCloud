@@ -82,7 +82,7 @@ test("guest application shell starts in Chinese without hardware or external ser
   });
   await page.goto("/");
   await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
-  await expect(page.getByRole("heading", { name: "欢迎使用 Gryt" })).toBeVisible({ timeout: 20000 });
+  await expect(page.getByRole("heading", { name: "欢迎使用老蒯聊" })).toBeVisible({ timeout: 20000 });
   await expect(page.getByRole("button", { name: "我自己看看" })).toBeVisible();
   await page.getByRole("button", { name: "我自己看看" }).click();
   await page.getByRole("button", { name: "设置与账号", exact: true }).click();
@@ -96,6 +96,15 @@ test("guest application shell starts in Chinese without hardware or external ser
   await expect(nickname).toBeFocused();
   await nickname.press("Enter");
   await expect(nickname).not.toBeFocused();
+  await page.getByPlaceholder("搜索设置").fill("均衡");
+  await page.locator(".gryt-settings-result").filter({ hasText: "接收响度均衡" }).first().click();
+  const leveling = page.locator('[data-setting="receive-leveling"]');
+  await expect(leveling).toBeVisible();
+  await expect(leveling.getByRole("switch")).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByTestId("receive-leveling-status")).toBeVisible();
+  await leveling.getByRole("switch").click();
+  await expect(leveling.getByRole("switch")).toHaveAttribute("aria-checked", "false");
+  await leveling.getByRole("switch").click();
   await page.getByPlaceholder("搜索设置").fill("语言");
   await page.getByPlaceholder("搜索设置").dispatchEvent("keydown", { key: "Enter", isComposing: true });
   await expect(page.getByPlaceholder("搜索设置")).toBeFocused();

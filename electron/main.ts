@@ -114,12 +114,13 @@ import {
   syncAtLaunch as syncHelperStartup,
   unregister as unregisterHelper,
 } from "./helperStartup";
-import { isI18nTestPackage, isolateI18nTestData } from "./i18nTestVariant";
+import { isI18nTestPackage, isLaokuaiPackage, isolateI18nTestData } from "./i18nTestVariant";
 import {
   getDiscoveredLanServers,
   rescanLanServers,
   startLanDiscovery,
 } from "./lanDiscovery";
+import { openLaokuaiLogin } from "./laokuaiAuthWindow";
 import { closeMediaSandbox } from "./mediaSandbox";
 import { readNowPlaying } from "./nowPlaying";
 import {
@@ -169,6 +170,7 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+const IS_LAOKUAI = isLaokuaiPackage();
 const IS_I18N_TEST = isI18nTestPackage();
 if (IS_I18N_TEST) isolateI18nTestData();
 
@@ -2183,7 +2185,7 @@ function createMainWindow(): BrowserWindow {
     },
 
     autoHideMenuBar: true,
-    title: "Gryt",
+    title: IS_LAOKUAI ? "老蒯聊" : "Gryt",
   });
 
   mainWindow.loadURL(
@@ -3721,8 +3723,8 @@ if (!gotSingleInstanceLock) {
             AuthPortUnavailableError
           ) {
             dialog.showErrorBox(
-              "Gryt is already running",
-              `${err.message}\n\nClose the other copy of Gryt and open it ` +
+              IS_LAOKUAI ? "老蒯聊 · 端口被占用" : "Gryt is already running",
+              IS_LAOKUAI ? `固定端口 ${err.port} 被占用。请先手动退出原版 Gryt 或其他老蒯聊实例，再打开本版。若没有运行中的客户端，请检查占用此端口的程序。` : `${err.message}\n\nClose the other copy of Gryt and open it ` +
                 `again. If none is open, something else on this machine is ` +
                 `using port ${err.port}.`
             );
@@ -4405,6 +4407,15 @@ if (!gotSingleInstanceLock) {
       ipcMain.on(
         "auth:open-external",
         (_event, url: string) => {
+          if (IS_LAOKUAI && mainWindow) {
+            try {
+              openLaokuaiLogin(mainWindow, url);
+            } catch {
+              dialog.showErrorBox("老蒯聊", "无法打开账户登录，请检查认证设置。");
+              mainWindow.webContents.send("auth-callback", "laokuai://auth?error=login_window_failed");
+            }
+            return;
+          }
           if (IS_I18N_TEST) {
             dialog.showErrorBox("本地汉化测试", "此隔离测试包仅用于本地游客身份；在线登录回调已禁用。请在原版客户端登录账户。");
             return;

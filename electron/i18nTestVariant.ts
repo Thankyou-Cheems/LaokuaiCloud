@@ -8,15 +8,21 @@ export function isI18nTestPackage(): boolean {
   return metadata.grytI18nTest === true;
 }
 
+export function isLaokuaiPackage(): boolean {
+  const metadata = JSON.parse(readFileSync(join(app.getAppPath(), "package.json"), "utf8"));
+  return metadata.grytLaokuai === true;
+}
+
 export function isolateI18nTestData(): void {
+  const own = isLaokuaiPackage();
   // The portable wrapper supplies its permanent directory, rather than its
   // temporary extraction directory. Unpacked builds use their own executable dir.
   const root = process.env.PORTABLE_EXECUTABLE_DIR || dirname(process.execPath);
-  const data = join(root, "laokuai-chat-i18n-test-data");
+  const data = join(root, own ? "laokuai-chat-data" : "laokuai-chat-i18n-test-data");
   const sessions = join(data, "sessions");
   mkdirSync(sessions, { recursive: true });
-  app.setName("老蒯聊 汉化测试");
+  app.setName(own ? "老蒯聊" : "老蒯聊 汉化测试");
   app.setPath("userData", data);
   app.setPath("sessionData", sessions);
-  app.setAppUserModelId("local.laokuai.chat.i18n-test");
+  app.setAppUserModelId(own ? "local.laokuai.chat" : "local.laokuai.chat.i18n-test");
 }

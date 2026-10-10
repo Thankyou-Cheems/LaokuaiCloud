@@ -84,8 +84,14 @@ assert.doesNotMatch(main, /WindowsPowerShell/);
 // unpackaged second copy, and the Mac App Store. Pinned to the process flags, not to a platform.
 assert.match(
   main,
-  /autoUpdater\.autoInstallOnAppQuit = !updatesComeFromAStore;/,
+  /autoUpdater\.autoInstallOnAppQuit = !IS_I18N_TEST && !updatesComeFromAStore;/,
 );
+const automaticInstall = new Function("IS_I18N_TEST", "updatesComeFromAStore", "return " +
+  main.match(/autoUpdater\.autoInstallOnAppQuit = ([^;]+);/)[1]);
+assert.equal(automaticInstall(false, false), true);
+assert.equal(automaticInstall(false, true), false);
+assert.equal(automaticInstall(true, false), false);
+assert.equal(automaticInstall(true, true), false);
 
 assert.match(
   main,
@@ -122,7 +128,7 @@ const backgroundCheck = bodyOf("checkForUpdatesInBackground");
 
 // A store build never downloads. Both routes to a download stop before anything is fetched.
 for (const name of ["checkForUpdatesInBackground", "offerRelease"]) {
-  assert.match(bodyOf(name), /\{\s*(\/\*[\s\S]*?\*\/\s*)?if \(updatesComeFromAStore\) \{/, `${name} no longer stops first in a store build`);
+  assert.match(bodyOf(name), /\{\s*if \(IS_I18N_TEST\) (?:return(?: false)?;|\{[\s\S]*?return;\s*\})\s*(\/\*[\s\S]*?\*\/\s*)?if \(updatesComeFromAStore\) \{/, `${name} no longer stops own or store builds before downloading`);
 }
 
 // A press on a store build still gets an answer: the panel is not left on "Checking...".
@@ -314,7 +320,11 @@ assert.match(toast, /const next = nextShown\(shown\.current, status\);\s*if \(ne
 // back to true before the read, so the Settings check downloaded what it meant to report.
 assert.equal(main.match(/\.autoDownload\s*=/g)?.length, 1, "autoDownload is set once, and never flipped");
 
-assert.match(main, /^autoUpdater\.autoDownload = true;$/m);
+assert.match(main, /^autoUpdater\.autoDownload = !IS_I18N_TEST;$/m);
+const automaticDownload = new Function("IS_I18N_TEST", "return " +
+  main.match(/autoUpdater\.autoDownload = ([^;]+);/)[1]);
+assert.equal(automaticDownload(false), true);
+assert.equal(automaticDownload(true), false);
 
 assert.doesNotMatch(bodyOf("restoreRolloutCheck"), /autoDownload/);
 

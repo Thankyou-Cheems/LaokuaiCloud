@@ -46,7 +46,7 @@
     "alsoInYourListUnderAnotherAddress": "列表中已有这个服务器的另一个地址",
     "close": "关闭",
     "maintainsGryt": "Gryt 维护者",
-    "welcomeToGryt": "欢迎使用 Gryt",
+    "welcomeToGryt": "欢迎使用老蒯聊",
     "heyThereWelcomeToGryt": "你好！👋 欢迎使用 Gryt！",
     "iMReallyGladYouReHereAnd": "很高兴你愿意试试 Gryt。我是挪威的一名高级产品工程师，这个项目由我开发。🇳🇴",
     "itSJustMeKeepingItRunningSo": "目前由我一个人维护，有些地方还不够完善。遇到问题时，请用设置里的“提交反馈”告诉我。",
@@ -530,5 +530,16 @@
     "conduct": "不允许辱骂内容和骚扰行为。你可以举报这些内容和用户，也可以屏蔽打扰你的人。",
     "notNow": "暂不同意",
     "agree": "同意"
+  },
+  "receiveLeveling": {
+    "delay": "新增处理延迟：{{latencyMs}} 毫秒",
+    "title": "接收响度均衡",
+    "description": "让其他人的语音音量更均衡。仍可单独调整每个人的音量。屏幕共享音频不会自动提升音量。",
+    "disabled": "已关闭。每个人的音量设置仍生效。",
+    "loading": "正在启动音频处理…",
+    "active": "运行中 · 新增处理延迟：{{latencyMs}} 毫秒",
+    "degraded": "保护已降级，自动提升音量暂不可用。",
+    "suspended": "等待音频播放。",
+    "reason": "诊断：{{reason}}"
   }
 }

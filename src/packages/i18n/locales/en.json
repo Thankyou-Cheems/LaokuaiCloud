@@ -46,7 +46,7 @@
     "alsoInYourListUnderAnotherAddress": "Also in your list under another address",
     "close": "Close",
     "maintainsGryt": "Maintains Gryt",
-    "welcomeToGryt": "Welcome to Gryt",
+    "welcomeToGryt": "Welcome to LaoKuai Chat",
     "heyThereWelcomeToGryt": "Hey there! 👋 Welcome to Gryt!",
     "iMReallyGladYouReHereAnd": "I'm really glad you're here, and that you decided to give it a go. It's all built by me, a senior product engineer from Norway 🇳🇴",
     "itSJustMeKeepingItRunningSo": "It's just me keeping it running, so some things are still a bit rough around the edges. If something breaks, please tell me. There's a Give feedback button in settings.",
@@ -530,5 +530,16 @@
     "conduct": "Abusive content and abusive people aren’t tolerated. You can report both, and block anyone who bothers you.",
     "notNow": "Not now",
     "agree": "Agree"
+  },
+  "receiveLeveling": {
+    "delay": "Added processing delay: {{latencyMs}} ms",
+    "title": "Receive loudness leveling",
+    "description": "Keep remote voices at a steadier volume. Your volume slider for each person still applies. Screen audio is not automatically boosted.",
+    "disabled": "Off. Each person’s volume still applies.",
+    "loading": "Starting audio processing…",
+    "active": "Running · added processing delay: {{latencyMs}} ms",
+    "degraded": "Limited protection. Automatic boost is unavailable.",
+    "suspended": "Waiting for audio playback.",
+    "reason": "Diagnostic: {{reason}}"
   }
 }

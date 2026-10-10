@@ -65,7 +65,7 @@ export function Wordmark({
     <div className="flex items-center gap-2">
       {/* The size and weight props kept Radix's scales; these are the same
           steps in Tailwind's. */}
-      <span className={`${TEXT_SIZE[size]} ${FONT_WEIGHT[weight]}`}>Gryt</span>
+      <span className={`${TEXT_SIZE[size]} ${FONT_WEIGHT[weight]}`}>老蒯聊</span>
       {isBeta && <BetaTag />}
     </div>
   );

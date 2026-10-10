@@ -33,6 +33,7 @@ export function settingAnchorId(title: string): string {
 }
 
 export const SETTINGS_INDEX: SettingsIndexEntry[] = [
+  { id: "receive-leveling", title: "Receive loudness leveling", description: "Keep remote voices at a steadier volume. 接收响度均衡 自动音量", destination: "sound-video", page: "audio", section: "Playback" },
   { id: "language", title: "Language", description: "Choose the interface language. 中文 语言 English", destination: "appearance", page: "display", section: "Display" },
   { id: "updates", title: "Updates", description: "Check for updates and see your current version.", page: "updates", destination: "about", section: "About", panel: true },
   { id: "profile", title: "Profile", description: "Your display name, avatar and identity.", page: "profile", destination: "profile", section: "Profile", panel: true },
@@ -131,6 +132,7 @@ export const SETTINGS_INDEX: SettingsIndexEntry[] = [
  */
 const labelKeys = new Map(Object.entries(en.ui).map(([key, value]) => [value, `ui.${key}`]));
 labelKeys.set("Language", "language.title");
+labelKeys.set("Receive loudness leveling", "receiveLeveling.title");
 labelKeys.set("Microphone volume", "settings.microphoneVolume");
 labelKeys.set("Target level", "settings.targetLevel");
 labelKeys.set("Compression amount", "settings.compressionAmount");
