@@ -61,7 +61,7 @@ const pe=(file)=>{
   const certificate=optional+(b.readUInt16LE(optional)===0x20b?112:96)+32;
   return {machine:b.readUInt16LE(offset+4),certificateBytes:b.readUInt32LE(certificate+4)};
 };
-const exe=path.join(extracted,"LaoKuai-Chat.exe");
+const exe=path.join(extracted,`${config.win.executableName}.exe`);
 assert.equal(pe(exe).machine,0x8664);
 assert.equal(pe(exe).certificateBytes,0,"Local test EXE must remain unsigned");
 for (const file of ["audio-capture.exe","screen-capture.exe"]) {

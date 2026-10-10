@@ -1090,6 +1090,9 @@
     "m121ecba0de_other": "Synced, but the avatar could not be cleared on {{failed}}/{{total}} servers"
   },
   "nativeFull": {
+    "privatePortConflictTitle": "Gryt · Port in use",
+    "privatePortConflictMessage": "Fixed port {{port}} is in use. Quit the original client or another Gryt instance, then open this version again. If no client is running, check which program is using this port.",
+    "privateLoginFailed": "Could not open account sign-in. Check the authentication settings.",
     "beed028814e3": "Gryt is in the Trash",
     "6ed4f99eefb5": "Gryt is running from the Trash.",
     "22f6a8b10151": "Move Gryt and continue",

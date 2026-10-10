@@ -3794,8 +3794,8 @@ if (!gotSingleInstanceLock) {
             AuthPortUnavailableError
           ) {
             dialog.showErrorBox(
-              IS_LAOKUAI ? "唠蒯 · 端口被占用" : "Gryt is already running",
-              IS_LAOKUAI ? `固定端口 ${err.port} 被占用。请先手动退出原版 Gryt 或其他唠蒯实例，再打开本版。若没有运行中的客户端，请检查占用此端口的程序。` : `${err.message}\n\nClose the other copy of Gryt and open it ` +
+              IS_LAOKUAI ? nativeT("privatePortConflictTitle") : "Gryt is already running",
+              IS_LAOKUAI ? nativeT("privatePortConflictMessage", { port: err.port }) : `${err.message}\n\nClose the other copy of Gryt and open it ` +
                 `again. If none is open, something else on this machine is ` +
                 `using port ${err.port}.`
             );
@@ -4482,7 +4482,7 @@ if (!gotSingleInstanceLock) {
             try {
               openLaokuaiLogin(mainWindow, url);
             } catch {
-              dialog.showErrorBox("唠蒯", "无法打开账户登录，请检查认证设置。");
+              dialog.showErrorBox("唠蒯", nativeT("privateLoginFailed"));
               mainWindow.webContents.send("auth-callback", "laokuai://auth?error=login_window_failed");
             }
             return;

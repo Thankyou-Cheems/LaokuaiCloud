@@ -1090,6 +1090,9 @@
     "m121ecba0de_other": "已同步，但无法在 {{failed}}/{{total}} 个服务器上清除头像"
   },
   "nativeFull": {
+    "privatePortConflictTitle": "Gryt · 端口被占用",
+    "privatePortConflictMessage": "固定端口 {{port}} 被占用。请先手动退出原版客户端或其他 Gryt 实例，再打开本版。若没有运行中的客户端，请检查占用此端口的程序。",
+    "privateLoginFailed": "无法打开账户登录，请检查认证设置。",
     "beed028814e3": "Gryt 位于回收站中",
     "6ed4f99eefb5": "Gryt 正在从回收站运行。",
     "22f6a8b10151": "移动 Gryt 并继续",

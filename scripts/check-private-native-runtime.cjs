@@ -37,7 +37,7 @@ app.whenReady().then(async () => {
   const functions = main.slice(main.indexOf("function buildTrayContextMenu"), main.indexOf("/** Thousands of small files:"));
   const closing = main.slice(main.indexOf("  // Windows may close windows"), main.indexOf('  mainWindow.on("closed"'));
   const body = ts.transpileModule(`${functions}\n${closing}`, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText;
-  const nativeSource = ts.transpileModule(fs.readFileSync(path.join(root,"electron/uiLanguage.ts"),"utf8"), {compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+  const nativeSource = ts.transpileModule(fs.readFileSync(path.join(root,"electron/uiLanguage.ts"),"utf8"), {compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText;
   const nativeModule = {exports:{}};
   new Function("exports","require",nativeSource)(nativeModule.exports, name => JSON.parse(fs.readFileSync(path.resolve(root,"electron",name),"utf8")));
   nativeModule.exports.setNativeLanguagePreference("zh-CN",[]); nativeModule.exports.setNativeApplicationName("唠蒯");

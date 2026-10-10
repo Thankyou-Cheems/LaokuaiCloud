@@ -2,8 +2,9 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import fs from "node:fs";
-import { stripTypeScriptTypes, createRequire } from "node:module";
+import { createRequire,stripTypeScriptTypes } from "node:module";
 import path from "node:path";
+
 import sharp from "sharp";
 
 const require = createRequire(import.meta.url);
@@ -52,6 +53,15 @@ const nativeSource = stripTypeScriptTypes(read("electron/uiLanguage.ts"))
 const native = new Function("en", "zhCN", `${nativeSource}; return { nativeT, setNativeLanguagePreference, setNativeApplicationName };`)(
   JSON.parse(read("src/packages/i18n/locales/en.json")), JSON.parse(read("src/packages/i18n/locales/zh-CN.json")));
 native.setNativeLanguagePreference("zh-CN", []); native.setNativeApplicationName("唠蒯");
+assert.equal(native.nativeT("privatePortConflictTitle"), "唠蒯 · 端口被占用");
+assert.ok(native.nativeT("privatePortConflictMessage", { port: 15738 }).includes("15738"));
+native.setNativeLanguagePreference("en", []);
+assert.equal(native.nativeT("privatePortConflictTitle"), "唠蒯 · Port in use");
+assert.equal(native.nativeT("privateLoginFailed"), "Could not open account sign-in. Check the authentication settings.");
+assert.ok(main.includes('nativeT("privatePortConflictMessage", { port: err.port })'));
+assert.ok(main.includes('nativeT("privateLoginFailed")'));
+assert.ok(main.includes('"laokuai://auth?error=login_window_failed"'));
+native.setNativeLanguagePreference("zh-CN", []);
 const control = new Function("app", "process", "Tray", "nativeImage", "Menu", "window", "nativeT", "refreshNativeLanguage", `
   let mainWindow=window, tray=null, closeToTray=true, isQuitting=false, IS_LAOKUAI=true, isUserSignedIn=false;
   let voiceState={inVoice:true,muted:false,deafened:false,serverName:'Fixture only'};
