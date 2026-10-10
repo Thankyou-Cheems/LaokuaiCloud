@@ -3,6 +3,8 @@ import type { LatencyBreakdown } from "@gryt/voice";
 import { useVoiceLatency } from "@gryt/voice";
 import { useState } from "react";
 
+import { i18n, useTranslation } from "@/i18n";
+
 import { PiEyeFill } from "../../../../lib/icons";
 
 function ms(value: number | null): string {
@@ -19,6 +21,7 @@ function LatencyRow({
   value: number | null;
   color?: string;
 }) {
+  useTranslation();
   return (
     <div className="flex justify-between items-center py-1">
       <span className="text-xs text-gryt-muted">{label}</span>
@@ -30,16 +33,17 @@ function LatencyRow({
 }
 
 function LatencyBar({ latency }: { latency: LatencyBreakdown }) {
+  useTranslation();
   const segments: { label: string; ms: number; color: string }[] = [];
 
   if (latency.contextBaseLatencyMs !== null && latency.contextBaseLatencyMs > 0) {
-    segments.push({ label: "Context", ms: latency.contextBaseLatencyMs, color: "var(--gryt-secondary-9)" });
+    segments.push({ label: i18n.t("settingsFull.mcc11b3a28f"), ms: latency.contextBaseLatencyMs, color: "var(--gryt-secondary-9)" });
   }
   if (latency.rnnoiseBufferMs !== null && latency.rnnoiseBufferMs > 0) {
     segments.push({ label: "RNNoise", ms: latency.rnnoiseBufferMs, color: "var(--gryt-warning-9)" });
   }
   if (latency.oneWayNetworkMs !== null && latency.oneWayNetworkMs > 0) {
-    segments.push({ label: "Network", ms: latency.oneWayNetworkMs, color: "var(--gryt-success-9)" });
+    segments.push({ label: i18n.t("settingsFull.m53ebc572b4"), ms: latency.oneWayNetworkMs, color: "var(--gryt-success-9)" });
   }
 
   const total = segments.reduce((sum, s) => sum + s.ms, 0);
@@ -83,6 +87,7 @@ function LatencyBar({ latency }: { latency: LatencyBreakdown }) {
 }
 
 function AddressRow({ label, address, shown }: { label: string; address: string; shown: boolean }) {
+  useTranslation();
   return (
     <div className="flex justify-between items-center py-1">
       <span className="text-xs text-gryt-muted">{label}</span>
@@ -91,7 +96,7 @@ function AddressRow({ label, address, shown }: { label: string; address: string;
           {address}
         </span>
       ) : (
-        <span className="text-xs text-gryt-muted">Hidden</span>
+        <span className="text-xs text-gryt-muted">{i18n.t("ui.hidden")}</span>
       )}
     </div>
   );
@@ -106,14 +111,15 @@ function ratingColor(estimatedMs: number | null): string {
 }
 
 function ratingLabel(estimatedMs: number | null): string {
-  if (estimatedMs === null) return "No data";
-  if (estimatedMs < 30) return "Excellent";
-  if (estimatedMs < 80) return "Good";
-  if (estimatedMs < 150) return "Fair";
-  return "Poor";
+  if (estimatedMs === null) return i18n.t("settingsFull.md802d232a8");
+  if (estimatedMs < 30) return i18n.t("settingsFull.m1aafbf548b");
+  if (estimatedMs < 80) return i18n.t("settingsFull.m61dedcf053");
+  if (estimatedMs < 150) return i18n.t("settingsFull.m64b985898d");
+  return i18n.t("settingsFull.m4e0fa4378f");
 }
 
 export function LatencyPanel() {
+  useTranslation();
   const { latency, modeLabel } = useVoiceLatency(true);
 
   const hasNetworkData = latency.networkRttMs !== null;
@@ -123,7 +129,7 @@ export function LatencyPanel() {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex justify-between items-center">
-        <span className="font-medium text-sm">Voice Latency</span>
+        <span className="font-medium text-sm">{i18n.t("settingsFull.m07e6721704")}</span>
         <Chip tone="neutral">{modeLabel}</Chip>
       </div>
 
@@ -134,7 +140,7 @@ export function LatencyPanel() {
           border: "1px solid var(--gryt-neutral-5)",
         }}>
         <div className="flex justify-between items-center">
-          <span className="text-sm font-bold">Estimated one-way</span>
+          <span className="text-sm font-bold">{i18n.t("settingsFull.m434e5b512f")}</span>
           <div className="flex items-center gap-2">
             <span className="text-base font-bold" style={{ color: ratingColor(latency.estimatedOneWayMs), fontFamily: "var(--code-font-family)" }}>
               {ms(latency.estimatedOneWayMs)}
@@ -157,30 +163,30 @@ export function LatencyPanel() {
 
       {/* Pipeline breakdown */}
       <div className="flex flex-col gap-1">
-        <span className="text-xs font-bold text-gryt-muted">Local Pipeline</span>
-        <LatencyRow label="AudioContext base" value={latency.contextBaseLatencyMs} />
-        <LatencyRow label="AudioContext output" value={latency.contextOutputLatencyMs} />
+        <span className="text-xs font-bold text-gryt-muted">{i18n.t("settingsFull.m6c79474a23")}</span>
+        <LatencyRow label={i18n.t("settingsFull.ma6a3aaec7d")} value={latency.contextBaseLatencyMs} />
+        <LatencyRow label={i18n.t("settingsFull.m70d20b3e25")} value={latency.contextOutputLatencyMs} />
         <LatencyRow
-          label="RNNoise buffer"
+          label={i18n.t("settingsFull.m2867146e76")}
           value={latency.rnnoiseBufferMs}
           color={latency.rnnoiseBufferMs !== null && latency.rnnoiseBufferMs > 50 ? "var(--gryt-warning-11)" : undefined}
         />
-        <LatencyRow label="Total pipeline" value={latency.localPipelineMs} />
+        <LatencyRow label={i18n.t("settingsFull.m1cc3f43676")} value={latency.localPipelineMs} />
       </div>
 
       {/* Network breakdown */}
       {hasNetworkData && (
         <div className="flex flex-col gap-1">
-          <span className="text-xs font-bold text-gryt-muted">Network</span>
-          <LatencyRow label="RTT" value={latency.networkRttMs} />
-          <LatencyRow label="One-way" value={latency.oneWayNetworkMs} />
+          <span className="text-xs font-bold text-gryt-muted">{i18n.t("settingsFull.m53ebc572b4")}</span>
+          <LatencyRow label={i18n.t("settingsFull.mb78a6d1c81")} value={latency.networkRttMs} />
+          <LatencyRow label={i18n.t("settingsFull.m4596fe1e8e")} value={latency.oneWayNetworkMs} />
           <LatencyRow
-            label="Jitter"
+            label={i18n.t("settingsFull.m70a5b3c8ee")}
             value={latency.jitterMs}
             color={latency.jitterMs !== null && latency.jitterMs > 20 ? "var(--gryt-warning-11)" : undefined}
           />
           <LatencyRow
-            label="Jitter buffer"
+            label={i18n.t("settingsFull.m195cc0c96c")}
             value={latency.jitterBufferMs}
             color={latency.jitterBufferMs !== null && latency.jitterBufferMs > 80 ? "var(--gryt-warning-11)" : undefined}
           />
@@ -191,24 +197,24 @@ export function LatencyPanel() {
       {hasNetworkData && (latency.sfuEndpoint || latency.remoteAddress) && (
         <div className="flex flex-col gap-1">
           <div className="flex justify-between items-center">
-            <span className="text-xs font-bold text-gryt-muted">Connection</span>
+            <span className="text-xs font-bold text-gryt-muted">{i18n.t("settingsFull.m6512ee1541")}</span>
             <Button tone="ghost" size="xsmall" aria-pressed={addressesShown} onClick={() => setAddressesShown((s) => !s)}>
               <PiEyeFill size={14} />
-              {addressesShown ? "Hide addresses" : "Show addresses"}
+              {addressesShown ? i18n.t("settingsFull.m039ccd4b37") : i18n.t("settingsFull.mc192e1f085")}
             </Button>
           </div>
           {latency.sfuEndpoint && (
-            <AddressRow label="SFU endpoint" address={latency.sfuEndpoint.replace(/^wss?:\/\//, "")} shown={addressesShown} />
+            <AddressRow label={i18n.t("settingsFull.mfba9578f25")} address={latency.sfuEndpoint.replace(/^wss?:\/\//, "")} shown={addressesShown} />
           )}
           {latency.remoteAddress && (
-            <AddressRow label="ICE remote" address={latency.remoteAddress} shown={addressesShown} />
+            <AddressRow label={i18n.t("settingsFull.m3363df424b")} address={latency.remoteAddress} shown={addressesShown} />
           )}
           {latency.localAddress && (
-            <AddressRow label="ICE local" address={latency.localAddress} shown={addressesShown} />
+            <AddressRow label={i18n.t("settingsFull.m2825669b46")} address={latency.localAddress} shown={addressesShown} />
           )}
           {latency.candidateType && (
             <div className="flex justify-between items-center py-1">
-              <span className="text-xs text-gryt-muted">Candidate type</span>
+              <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.m5b4c7385b2")}</span>
               <span className="text-xs font-medium" style={{ fontFamily: "var(--code-font-family)" }}>
                 {latency.candidateType}
               </span>
@@ -220,33 +226,33 @@ export function LatencyPanel() {
       {/* Transport stats */}
       {hasNetworkData && (
         <div className="flex flex-col gap-1">
-          <span className="text-xs font-bold text-gryt-muted">Transport</span>
+          <span className="text-xs font-bold text-gryt-muted">{i18n.t("settingsFull.mc10d76c9a4")}</span>
           <div className="flex justify-between items-center py-1">
-            <span className="text-xs text-gryt-muted">Codec</span>
+            <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.ma336769a99")}</span>
             <span className="text-xs font-medium" style={{ fontFamily: "var(--code-font-family)" }}>
               {latency.codec || "—"}
             </span>
           </div>
           <div className="flex justify-between items-center py-1">
-            <span className="text-xs text-gryt-muted">Bitrate</span>
+            <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.md153e75080")}</span>
             <span className="text-xs font-medium" style={{ fontFamily: "var(--code-font-family)" }}>
               {latency.bitrateKbps !== null ? `${latency.bitrateKbps.toFixed(1)} kbps` : "—"}
             </span>
           </div>
           <div className="flex justify-between items-center py-1">
-            <span className="text-xs text-gryt-muted">Available out</span>
+            <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.m1795330406")}</span>
             <span className="text-xs font-medium" style={{ fontFamily: "var(--code-font-family)" }}>
               {latency.availableOutKbps !== null ? `${Math.round(latency.availableOutKbps)} kbps` : "—"}
             </span>
           </div>
           <div className="flex justify-between items-center py-1">
-            <span className="text-xs text-gryt-muted">Packets sent / recv</span>
+            <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.m2050934de9")}</span>
             <span className="text-xs font-medium" style={{ fontFamily: "var(--code-font-family)" }}>
               {latency.packetsSent ?? "—"} / {latency.packetsReceived ?? "—"}
             </span>
           </div>
           <div className="flex justify-between items-center py-1">
-            <span className="text-xs text-gryt-muted">Packets lost</span>
+            <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.m530423de22")}</span>
             <span className="text-xs font-medium" style={{
                 fontFamily: "var(--code-font-family)",
                 color: latency.packetsLost !== null && latency.packetsLost > 0 ? "var(--gryt-danger-11)" : undefined,
@@ -258,9 +264,7 @@ export function LatencyPanel() {
       )}
 
       {!hasNetworkData && (
-        <span className="text-xs text-gryt-muted">
-          Connect to a voice channel to see network latency metrics.
-        </span>
+        <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.maffd25a7da")}</span>
       )}
     </div>
   );

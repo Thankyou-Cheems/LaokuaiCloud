@@ -20,6 +20,7 @@ import {
   setServerFileAccess,
   shouldNotifyForMessage,
 } from "@/common";
+import { i18n as socketHooksI18n } from "@/i18n";
 import { channelNamesFor } from "@/lib/channelDirectory";
 import { notificationBody, showDesktopNotification } from "@/lib/desktopNotification";
 import { playNotificationSound, preloadNotificationSound } from "@/lib/notificationSound";
@@ -38,6 +39,7 @@ import { challengeHostMatches } from "../utils/challengeHost";
 import { isOnScreen, warnUnreadOnScreen } from "../utils/onScreenConversation";
 import { sealedNotificationBody } from "../utils/sealedNotification";
 import { idleRecovery, planRecovery, type RecoveryState } from "../utils/sessionRecovery";
+import { socketHookToast } from "../utils/socketHookMessages";
 import { getDirectorySnapshot } from "./dmDirectory";
 import { registerServerSocketEvents } from "./registerServerSocketEvents";
 import { muteLiftsAt, parseMuteExpiry, setTextMute } from "./textMute";
@@ -184,7 +186,7 @@ export function useSocketEvents(sockets: Sockets, deps: SocketEventDeps) {
     const sender = getDirectorySnapshot()
       .find((e) => e.host === host && e.conversation.conversation_id === conversationId)
       ?.conversation.members.find((m) => m.server_user_id === senderId)?.nickname;
-    showDesktopNotification(sender || "New message", notificationBody(msg, channelNamesFor(host)));
+    showDesktopNotification(sender || socketHooksI18n.t("socketHooksFull.useSocketEvents_1ed2e7b50f"), notificationBody(msg, channelNamesFor(host)));
   }), [currentlyViewingServerRef]);
 
   useEffect(() => {
@@ -196,7 +198,7 @@ export function useSocketEvents(sockets: Sockets, deps: SocketEventDeps) {
 
       socket.on("voice:error", (error: { type: string; message: string; existingConnection?: unknown }) => {
         if (error.type === "duplicate_connection") {
-          toast.error(error.message);
+          toast.error(socketHookToast(() => error.message));
           window.dispatchEvent(new CustomEvent("server_voice_disconnect", {
             detail: { host, reason: "duplicate_connection" },
           }));
@@ -234,7 +236,7 @@ export function useSocketEvents(sockets: Sockets, deps: SocketEventDeps) {
       });
 
       socket.on("voice:kicked", (data: { reason?: string }) => {
-        toast.error(data?.reason || "You were disconnected from voice by an admin.");
+        toast.error(socketHookToast(() => data?.reason || socketHooksI18n.t("socketHooksFull.useSocketEvents_1148cf41b8")));
         window.dispatchEvent(new CustomEvent("server_voice_disconnect", {
           detail: { host, reason: "kicked" },
         }));
@@ -244,14 +246,14 @@ export function useSocketEvents(sockets: Sockets, deps: SocketEventDeps) {
       // and short, since the member list is what shows the result.
       type ModerationResult = { muted?: boolean; deafened?: boolean };
       const moderationResult = (event: string, message: (p: ModerationResult) => string) => {
-        socket.on(event, (payload: ModerationResult) => toast.success(message(payload ?? {})));
+        socket.on(event, (payload: ModerationResult) => toast.success(socketHookToast(() => message(payload ?? {}))));
       };
 
-      moderationResult("server:kick:success", () => "Kicked.");
-      moderationResult("server:ban:success", () => "Banned.");
-      moderationResult("server:unban:success", () => "Unbanned.");
-      moderationResult("server:mute:success", (p) => (p.muted ? "Server muted." : "Server mute removed."));
-      moderationResult("server:deafen:success", (p) => (p.deafened ? "Server deafened." : "Server deafen removed."));
+      moderationResult("server:kick:success", () => socketHooksI18n.t("socketHooksFull.useSocketEvents_c1b57bad90"));
+      moderationResult("server:ban:success", () => socketHooksI18n.t("socketHooksFull.useSocketEvents_27b295edd1"));
+      moderationResult("server:unban:success", () => socketHooksI18n.t("socketHooksFull.useSocketEvents_d6c60fe25d"));
+      moderationResult("server:mute:success", (p) => (p.muted ? socketHooksI18n.t("socketHooksFull.useSocketEvents_68023e3dc6") : socketHooksI18n.t("socketHooksFull.useSocketEvents_68bc7ff4fb")));
+      moderationResult("server:deafen:success", (p) => (p.deafened ? socketHooksI18n.t("socketHooksFull.useSocketEvents_24fef09e05") : socketHooksI18n.t("socketHooksFull.useSocketEvents_0164c663a5")));
 
       socket.on("server:muted", (data: { muted: boolean; expiresAt?: string | null; reason?: string }) => {
         setIsServerMuted(data.muted);
@@ -259,17 +261,17 @@ export function useSocketEvents(sockets: Sockets, deps: SocketEventDeps) {
         const until = parseMuteExpiry(data.expiresAt);
         setTextMute(host, data.muted ? { until } : null);
         // Nobody pressed a button for a spam timeout, so "by an admin" would be wrong.
-        const mutedText = data.reason === "spam" && until
-          ? `The spam filter muted you until ${muteLiftsAt(until)}.`
-          : "You have been server muted by an admin.";
-        toast(data.muted ? mutedText : "Your server mute has been removed.", {
+        const mutedText = () => data.reason === "spam" && until
+          ? socketHooksI18n.t("socketHooksFull.useSocketEvents_f7cf039793", { p0: muteLiftsAt(until) })
+          : socketHooksI18n.t("socketHooksFull.useSocketEvents_094d21820b");
+        toast(socketHookToast(() => data.muted ? mutedText() : socketHooksI18n.t("socketHooksFull.useSocketEvents_d8d05326a1")), {
           icon: createElement(data.muted ? PiMicrophoneSlashFill : PiMicrophoneFill, { size: 18 }),
         });
       });
 
       socket.on("server:deafened", (data: { deafened: boolean }) => {
         setIsServerDeafened(data.deafened);
-        toast(data.deafened ? "You have been server deafened by an admin." : "Your server deafen has been removed.", {
+        toast(socketHookToast(() => data.deafened ? socketHooksI18n.t("socketHooksFull.useSocketEvents_a8f9a75432") : socketHooksI18n.t("socketHooksFull.useSocketEvents_f8e374ce0c")), {
           icon: createElement(data.deafened ? PiSpeakerSlashFill : PiSpeakerHighFill, { size: 18 }),
         });
       });
@@ -295,7 +297,7 @@ export function useSocketEvents(sockets: Sockets, deps: SocketEventDeps) {
             ...prev,
             [host]: {
               error: "session_ended",
-              message: "You signed this device out. Sign in again to use this server here.",
+              get message() { return socketHooksI18n.t("socketHooksFull.socketSession_47"); },
               timestamp: Date.now(),
             },
           }));
@@ -319,12 +321,12 @@ export function useSocketEvents(sockets: Sockets, deps: SocketEventDeps) {
                   error: "session_expired",
                   // The card's heading already says the session expired, so
                   // this says what to do about it rather than repeating it.
-                  message: "Sign in again to reconnect to this server.",
+                  get message() { return socketHooksI18n.t("socketHooksFull.socketSession_48"); },
                   timestamp: Date.now(),
                 }
               : {
                   error: "identity_failed",
-                  message: `Could not prove who you are to this server: ${msg}`,
+                  get message() { return socketHooksI18n.t("socketHooksFull.socketSession_49", { p0: msg }); },
                   timestamp: Date.now(),
                 },
           }));
@@ -386,30 +388,30 @@ export function useSocketEvents(sockets: Sockets, deps: SocketEventDeps) {
             // Written down, or the refusal lives only in memory and the next launch
             // rejoins with the keypair as if nothing happened.
             markSignedOut(host);
-            toast.error(info?.message || `Your session on ${host} was ended.`);
+            toast.error(socketHookToast(() => info?.message || socketHooksI18n.t("socketHooksFull.useSocketEvents_b391a06584", { p0: host })));
             setFailedServerDetails(prev => ({
               ...prev,
               [host]: {
                 error: "session_ended",
-                message: "Sign in again to reconnect to this server.",
+                get message() { return socketHooksI18n.t("socketHooksFull.socketSession_48"); },
                 timestamp: Date.now(),
               },
             }));
             return;
           }
 
-          const givenUp = `Stopped reconnecting to ${host}. It keeps ending your session.`;
-          toast.error(givenUp);
+          const givenUp = () => socketHooksI18n.t("socketHooksFull.socketSession_52", { p0: host });
+          toast.error(socketHookToast(() => givenUp()));
           setFailedServerDetails(prev => ({
             ...prev,
-            [host]: { error: "revocation_loop", message: givenUp, timestamp: Date.now() },
+            [host]: { error: "revocation_loop", get message() { return givenUp(); }, timestamp: Date.now() },
           }));
           return;
         }
 
         // Once, on the first try: the message is about a session being replaced,
         // and five toasts saying so is worse than none.
-        if (plan.retry === 1 && info?.message) toast.error(info.message);
+        if (plan.retry === 1 && info?.message) toast.error(socketHookToast(() => info.message));
 
         const refreshToken = getServerRefreshToken(host);
         revokedTimersRef.current[host] = setTimeout(() => {
@@ -425,7 +427,7 @@ export function useSocketEvents(sockets: Sockets, deps: SocketEventDeps) {
       socket.on("token:invalid", (message: string) => {
         removeServerAccessToken(host);
         removeServerRefreshToken(host);
-        toast.error(`Session expired: ${message}`);
+        toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useSocketEvents_534771bde5", { p0: message })));
         setTimeout(() => window.location.reload(), 2000);
       });
 
@@ -444,7 +446,7 @@ export function useSocketEvents(sockets: Sockets, deps: SocketEventDeps) {
 
         if (TERMINAL.includes(errorInfo.error)) {
           removeServerRefreshToken(host);
-          toast.error(errorInfo.message || `Signed out of ${host}.`);
+          toast.error(socketHookToast(() => errorInfo.message || socketHooksI18n.t("socketHooksFull.useSocketEvents_1304ef85e2", { p0: host })));
           return;
         }
 
@@ -455,7 +457,7 @@ export function useSocketEvents(sockets: Sockets, deps: SocketEventDeps) {
         } else {
           removeServerRefreshToken(host);
           const msg = errorInfo.message || errorInfo.error;
-          toast.error(`Auth failed for ${host}: ${msg}`);
+          toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useSocketEvents_c29992462c", { p0: host, p1: msg })));
         }
       });
 
@@ -537,7 +539,7 @@ export function useSocketEvents(sockets: Sockets, deps: SocketEventDeps) {
                 (channel) => channel.id === msg.conversation_id,
               ) === true;
             showDesktopNotification(
-              msg.sender_nickname || "New message",
+              msg.sender_nickname || socketHooksI18n.t("socketHooksFull.useSocketEvents_1ed2e7b50f"),
               body,
               isChannel && msg.conversation_id
                 ? { host, channelId: msg.conversation_id }

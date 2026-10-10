@@ -7,6 +7,7 @@ import type { ImportEmote } from "./emoteImportUtils";
 export interface EmoteListing {
   /** Shown above the list: a channel, a profile, a pack. */
   title: string | null;
+  titleKey?: string;
   emotes: ImportEmote[];
   /** Said out loud when a listing was cut short rather than being complete. */
   note?: string;
@@ -66,7 +67,7 @@ export const BTTV_SOURCE: EmoteSource = {
       const raw = data.emote && typeof data.emote === "object" ? (data.emote as Record<string, unknown>) : {};
       const emote = bttvEmote({ id: emoteMatch[1], ...raw }, base);
       if (!emote) throw new Error("BetterTTV returned an invalid emote payload.");
-      return { title: "Single emote", emotes: [emote] };
+      return { title: "Single emote", titleKey: "socketHooksFull.singleEmote", emotes: [emote] };
     }
 
     const userMatch = url.match(BTTV_USER_URL_RE);

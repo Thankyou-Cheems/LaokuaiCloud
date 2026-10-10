@@ -8,9 +8,13 @@ import {
 import { Alert, Button, Checkbox, Dialog, Divider, TextField } from "@gryt/ui";
 import { useMemo, useState } from "react";
 
+import { i18n, LocalizedText, useTranslation } from "@/i18n";
+
 import { PiBugFill, PiChatCircleDotsFill, PiPaperPlaneRightFill } from "../lib/icons";
+import { localizeAttachmentLines } from "../lib/reports/attachmentLabels";
 import { callTimeline } from "../lib/reports/callTimeline";
 import { useDiagnostics } from "../lib/reports/diagnostics";
+import { localizeReportError } from "../lib/reports/errorLabels";
 import { recentLogs } from "../lib/reports/logs";
 import { submitReport } from "../lib/reports/submit";
 import { useReportForm } from "../lib/reports/useReportForm";
@@ -20,6 +24,7 @@ import { useReportForm } from "../lib/reports/useReportForm";
  * version, the server's version and the log tail. Mobile has the same form.
  */
 export function ReportDialog() {
+  useTranslation();
   const { openAs, draft, close } = useReportForm();
 
   return (
@@ -48,20 +53,21 @@ export function ReportDialog() {
  */
 const COPY: Record<ReportType, { title: string; description: string; placeholder: string; send: string }> = {
   bug: {
-    title: "Report a bug",
-    description: "What happened, and what you were doing when it did.",
-    placeholder: "The call dropped when I switched network…",
-    send: "Send report",
+    get title() { return i18n.t("shellFull.reportDialog_tsx_fbb446a61a"); },
+    get description() { return i18n.t("shellFull.reportDialog_tsx_4c5b7af201"); },
+    get placeholder() { return i18n.t("shellFull.reportDialog_tsx_c8e9884e16"); },
+    get send() { return i18n.t("shellFull.reportDialog_tsx_a5b32af957"); },
   },
   feedback: {
-    title: "Give feedback",
-    description: "Something missing, something in the way, something you liked.",
-    placeholder: "I wish I could…",
-    send: "Send feedback",
+    get title() { return i18n.t("shellFull.reportDialog_tsx_086158f0df"); },
+    get description() { return i18n.t("shellFull.reportDialog_tsx_0032d242de"); },
+    get placeholder() { return i18n.t("shellFull.reportDialog_tsx_8e48bc448b"); },
+    get send() { return i18n.t("shellFull.reportDialog_tsx_c431a26258"); },
   },
 };
 
 function ReportForm({ type, draft, onDone }: { type: ReportType; draft: string; onDone: () => void }) {
+  useTranslation();
   const diagnostics = useDiagnostics();
 
   const [message, setMessage] = useState(draft);
@@ -98,7 +104,7 @@ function ReportForm({ type, draft, onDone }: { type: ReportType; draft: string; 
     } catch (e) {
       /* Deliberately keeps the message in the box. Somebody who typed three
          paragraphs and lost them to a failed send does not type them again. */
-      setError(e instanceof Error ? e.message : "That did not send.");
+      setError(e instanceof Error ? e.message : i18n.t("shellFull.reportDialog_tsx_ade0fb0cc7"));
     } finally {
       setSending(false);
     }
@@ -139,15 +145,15 @@ function ReportForm({ type, draft, onDone }: { type: ReportType; draft: string; 
           onIncludeLogs={(on) => setLogs(on ? [...recentLogs(), ...callTimeline()] : null)}
         />
 
-        {error && <Alert severity="error">{error}</Alert>}
+        {error && <Alert severity="error">{localizeReportError(error, (key, values) => i18n.t(key, values))}</Alert>}
 
         <Divider />
 
         <div className="flex justify-end gap-3">
-          <Dialog.Close render={<Button tone="neutral" size="small">Cancel</Button>} />
+          <Dialog.Close render={<Button tone="neutral" size="small">{<LocalizedText translationKey="shellFull.reportDialog_tsx_77dfd2135f" />}</Button>} />
           <Button size="small" disabled={empty || sending} onClick={() => void send()}>
             <PiPaperPlaneRightFill size={14} />
-            {sending ? "Sending…" : copy.send}
+            {sending ? i18n.t("shellFull.reportDialog_tsx_cf765512cc") : copy.send}
           </Button>
         </div>
       </div>
@@ -170,15 +176,14 @@ function Attached({
   includeLogs: boolean;
   onIncludeLogs: (on: boolean) => void;
 }) {
+  useTranslation();
   return (
     <div className="flex flex-col gap-2">
       {lines.length > 0 && (
         <details className="rounded-(--gryt-radius-lg) border border-gryt-neutral-6 px-3 py-2">
-          <summary className="cursor-pointer text-sm text-gryt-muted">
-            What gets sent with this
-          </summary>
+          <summary className="cursor-pointer text-sm text-gryt-muted">{<LocalizedText translationKey="shellFull.reportDialog_tsx_07d847ad22" />}</summary>
           <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
-            {lines.map((line) => (
+            {localizeAttachmentLines(lines, (key, values) => i18n.t(key, values)).map((line) => (
               <div key={line.label} className="contents">
                 <dt className="text-gryt-muted">{line.label}</dt>
                 <dd style={{ fontFamily: "var(--code-font-family)" }}>{line.value}</dd>
@@ -189,9 +194,7 @@ function Attached({
       )}
 
       <details className="rounded-(--gryt-radius-lg) border border-gryt-neutral-6 px-3 py-2">
-        <summary className="cursor-pointer text-sm text-gryt-muted">
-          Read the exact data
-        </summary>
+        <summary className="cursor-pointer text-sm text-gryt-muted">{<LocalizedText translationKey="shellFull.reportDialog_tsx_d778ed37d4" />}</summary>
         <pre
           className="mt-2 max-h-64 overflow-auto text-xs leading-relaxed"
           style={{ fontFamily: "var(--code-font-family)" }}
@@ -202,19 +205,15 @@ function Attached({
 
       <label className="flex cursor-pointer items-start gap-2 text-xs text-gryt-muted">
         <Checkbox checked={includeLogs} onCheckedChange={onIncludeLogs} />
-        <span>
-          Include the app&rsquo;s recent log. It makes a bug far easier to find, and it
-          can contain personal information — a failed connection records the address of
-          the server, which for a self-hosted one is often a home address.
-        </span>
+        <span>{<LocalizedText translationKey="shellFull.reportDialog_tsx_7214aff4c5" />}</span>
       </label>
 
       {/* Accurate rather than reassuring, and it has to change with the box. A
           server's version is a number about software; its address is not. */}
       <span className="text-xs text-gryt-muted">
         {includeLogs
-          ? "No messages and no names. The log may name servers you connect to."
-          : "No messages, no names, and nothing about who you talk to."}
+          ? i18n.t("shellFull.reportDialog_tsx_bba5b5d21a")
+          : i18n.t("shellFull.reportDialog_tsx_87a24a3d47")}
       </span>
     </div>
   );
@@ -225,24 +224,23 @@ function Attached({
  * **The title is the words mobile's toast already uses.**
  */
 function Sent({ type, onDone }: { type: ReportType; onDone: () => void }) {
+  useTranslation();
   const bug = type === "bug";
 
   return (
     <>
-      <Dialog.Title>{bug ? "Bug report received" : "Feedback received"}</Dialog.Title>
+      <Dialog.Title>{bug ? i18n.t("shellFull.reportDialog_tsx_833d7f8ffc") : i18n.t("shellFull.reportDialog_tsx_afa36a888b")}</Dialog.Title>
       <Dialog.Description>
         {bug
-          ? "Thanks for your bug report, we greatly appreciate it."
-          : "Thanks for your feedback, we greatly appreciate it."}
+          ? i18n.t("shellFull.reportDialog_tsx_1a8ee50ed1")
+          : i18n.t("shellFull.reportDialog_tsx_c7385caf0b")}
       </Dialog.Description>
 
       {/* Focused on mount so Enter closes it without reaching for the mouse,
           which is the whole reason somebody is still looking at this. Esc and
           the backdrop already close it through Dialog.Root. */}
       <div className="mt-6 flex justify-end">
-        <Button size="small" autoFocus onClick={onDone}>
-          Done
-        </Button>
+        <Button size="small" autoFocus onClick={onDone}>{<LocalizedText translationKey="shellFull.reportDialog_tsx_e9b450d14b" />}</Button>
       </div>
     </>
   );

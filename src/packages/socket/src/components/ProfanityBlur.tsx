@@ -1,6 +1,8 @@
 import { Tooltip } from "@gryt/ui";
 import { memo, useCallback, useState } from "react";
 
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
+
 import type { ProfanityMatchRange } from "./chatUtils";
 
 interface ProfanityBlurProps {
@@ -10,6 +12,7 @@ interface ProfanityBlurProps {
 }
 
 export const BlurredWord = ({ word }: { word: string }) => {
+  useSocketTranslation();
   const [revealed, setRevealed] = useState(false);
 
   const toggle = useCallback(() => setRevealed((r) => !r), []);
@@ -33,7 +36,7 @@ export const BlurredWord = ({ word }: { word: string }) => {
   }
 
   return (
-    <Tooltip title="Click to reveal">
+    <Tooltip title={socketI18n.t("ui.clickToReveal")}>
       <span
         role="button"
         tabIndex={0}
@@ -49,7 +52,7 @@ export const BlurredWord = ({ word }: { word: string }) => {
           padding: "0 2px",
           transition: "filter 0.2s",
         }}
-        aria-label="Blurred profanity — click to reveal"
+        aria-label={socketI18n.t("socketFull.profanityBlur_46a3cc8d14")}
       >
         {word}
       </span>
@@ -74,6 +77,7 @@ function mergeOverlapping(matches: ProfanityMatchRange[]): ProfanityMatchRange[]
 }
 
 export const ProfanityBlurText = memo(({ text, matches, blurEnabled }: ProfanityBlurProps) => {
+  useSocketTranslation();
   if (!blurEnabled || matches.length === 0) {
     return <>{text}</>;
   }

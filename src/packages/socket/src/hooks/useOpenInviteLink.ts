@@ -2,15 +2,16 @@ import { createElement, useCallback } from "react";
 import toast from "react-hot-toast";
 
 import {
-  ADD_PUBLIC_ADDRESS,
   hostedAdvertisement,
   isLoopbackHost,
   NO_PUBLIC_ADDRESS,
   openServerLink,
 } from "@/common";
+import { i18n as socketHooksI18n } from "@/i18n";
 
 import { getElectronAPI } from "../../../../lib/electron";
 import { PiInfoFill } from "../../../../lib/icons";
+import { socketHookToast } from "../utils/socketHookMessages";
 import { useServerJoinPolicy } from "./useServerJoinPolicy";
 
 /** "Copy invite link", offered only where the server has said anyone can join. */
@@ -26,9 +27,9 @@ export function useOpenInviteLink(host: string | undefined) {
     const link = openServerLink(host, hostedAdvertisement(host, embedded));
 
     if (link.kind === "no-public-address") {
-      toast.error(NO_PUBLIC_ADDRESS, { duration: 7000 });
+      toast.error(socketHookToast(() => NO_PUBLIC_ADDRESS), { duration: 7000 });
       if (link.hosted) {
-        toast(`${ADD_PUBLIC_ADDRESS.slice(0, -1)}, then copy the link again.`, {
+        toast(socketHookToast(() => socketHooksI18n.t("socketHooksFull.addPublicInviteInstruction")), {
           duration: 10000,
           icon: createElement(PiInfoFill, { size: 18 }),
         });
@@ -38,9 +39,9 @@ export function useOpenInviteLink(host: string | undefined) {
 
     try {
       await navigator.clipboard.writeText(link.url);
-      toast.success("Copied invite link");
+      toast.success(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useOpenInviteLink_762220a924")));
     } catch {
-      toast.error("Could not copy the link");
+      toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useOpenInviteLink_7a456d6f43")));
     }
   }, [host]);
 

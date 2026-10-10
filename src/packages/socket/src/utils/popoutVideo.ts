@@ -1,3 +1,5 @@
+import { i18n as socketHooksI18n } from "@/i18n";
+
 import { watchDrawnSize } from "../lib/drawnVideoSize";
 
 export interface PopoutHandle {
@@ -161,6 +163,7 @@ function setupPopupWindow(
   style.textContent = POPUP_STYLES;
   doc.head.appendChild(style);
 
+  const displayUpdates: Array<() => void> = [];
   doc.title = title;
 
   const toolbar = doc.createElement("div");
@@ -183,7 +186,8 @@ function setupPopupWindow(
 
     const muteBtn = doc.createElement("button");
     muteBtn.className = "icon-btn";
-    muteBtn.title = currentVolume > 0 ? "Mute" : "Unmute";
+    displayUpdates.push(() => { muteBtn.title = currentVolume > 0 ? socketHooksI18n.t("socketHooksFull.popupMute") : socketHooksI18n.t("socketHooksFull.popupUnmute"); });
+    muteBtn.title = currentVolume > 0 ? socketHooksI18n.t("socketHooksFull.popupMute") : socketHooksI18n.t("socketHooksFull.popupUnmute");
     muteBtn.innerHTML = currentVolume > 0 ? VOLUME_UP_SVG : VOLUME_OFF_SVG;
 
     const slider = doc.createElement("input");
@@ -197,7 +201,7 @@ function setupPopupWindow(
     const syncUI = (vol: number) => {
       currentVolume = vol;
       muteBtn.innerHTML = vol > 0 ? VOLUME_UP_SVG : VOLUME_OFF_SVG;
-      muteBtn.title = vol > 0 ? "Mute" : "Unmute";
+      muteBtn.title = vol > 0 ? socketHooksI18n.t("socketHooksFull.popupMute") : socketHooksI18n.t("socketHooksFull.popupUnmute");
       slider.value = String(vol);
       updateSliderFill(slider);
     };
@@ -224,12 +228,16 @@ function setupPopupWindow(
   if (electronAPI) {
     const pinBtn = doc.createElement("button");
     let pinned = false;
-    pinBtn.innerHTML = `${PIN_SVG} Pin`;
-    pinBtn.title = "Keep window on top";
+    const syncPinText = () => {
+      pinBtn.innerHTML = `${PIN_SVG} ${pinned ? socketHooksI18n.t("socketHooksFull.popupPinned") : socketHooksI18n.t("socketHooksFull.popupPin")}`;
+      pinBtn.title = socketHooksI18n.t("socketHooksFull.popupKeepOnTop");
+    };
+    syncPinText();
+    displayUpdates.push(syncPinText);
     pinBtn.onclick = () => {
       pinned = !pinned;
       pinBtn.classList.toggle("pinned", pinned);
-      pinBtn.innerHTML = `${PIN_SVG} ${pinned ? "Pinned" : "Pin"}`;
+      syncPinText();
       electronAPI.toggleAlwaysOnTop(pinned, title);
     };
     controls.appendChild(pinBtn);
@@ -239,7 +247,8 @@ function setupPopupWindow(
   const closeBtn = doc.createElement("button");
   closeBtn.className = "close-btn";
   closeBtn.innerHTML = CLOSE_SVG;
-  closeBtn.title = "Close";
+  closeBtn.title = socketHooksI18n.t("socketHooksFull.popupClose");
+  displayUpdates.push(() => { closeBtn.title = socketHooksI18n.t("socketHooksFull.popupClose"); });
   closeBtn.onclick = () => win.close();
   controls.appendChild(closeBtn);
 
@@ -253,6 +262,9 @@ function setupPopupWindow(
   video.muted = true;
   doc.body.appendChild(video);
 
+  const updateLanguage = () => displayUpdates.forEach((update) => update());
+  socketHooksI18n.on("languageChanged", updateLanguage);
+  win.addEventListener("unload", () => socketHooksI18n.off("languageChanged", updateLanguage), { once: true });
   return video;
 }
 

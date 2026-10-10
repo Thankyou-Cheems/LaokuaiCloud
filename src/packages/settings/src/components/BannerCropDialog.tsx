@@ -2,6 +2,8 @@ import { Button, Dialog } from "@gryt/ui";
 import { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
+import { i18n, useTranslation } from "@/i18n";
+
 import { BANNER_H, BANNER_W, clampCrop, type Crop, initialCrop, MAX_ZOOM, renderBanner, zoomAbout } from "./bannerCrop";
 
 /**
@@ -9,6 +11,7 @@ import { BANNER_H, BANNER_W, clampCrop, type Crop, initialCrop, MAX_ZOOM, render
  * zooms, and it can never leave a gap. Save hands back exactly what the card will show.
  */
 export function BannerCropDialog({ file, onDone }: { file: File | null; onDone: (cropped: File | null) => void }) {
+  useTranslation();
   const [url, setUrl] = useState<string | null>(null);
   const [img, setImg] = useState<HTMLImageElement | null>(null);
   const [crop, setCrop] = useState<Crop | null>(null);
@@ -28,7 +31,7 @@ export function BannerCropDialog({ file, onDone }: { file: File | null; onDone: 
     const el = new Image();
     el.onload = () => setImg(el);
     el.onerror = () => {
-      toast.error("Couldn't open that picture");
+      toast.error(i18n.t("settingsFull.m2090dc3bb2"));
       onDone(null);
     };
     el.src = next;
@@ -116,7 +119,7 @@ export function BannerCropDialog({ file, onDone }: { file: File | null; onDone: 
     try {
       onDone(await renderBanner(img, crop, frame.w, frame.h));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Couldn't crop the banner");
+      toast.error(err instanceof Error ? err.message : i18n.t("settingsFull.m99bdc8cdaa"));
     } finally {
       setBusy(false);
     }
@@ -129,10 +132,8 @@ export function BannerCropDialog({ file, onDone }: { file: File | null; onDone: 
       <Dialog.Portal>
         <Dialog.Backdrop />
         <Dialog.Popup className="flex w-[40rem] max-w-[calc(100vw-2rem)] flex-col gap-4 p-4">
-          <Dialog.Title className="text-lg">Frame your banner</Dialog.Title>
-          <Dialog.Description className="text-xs text-gryt-muted">
-            Drag to move it, scroll or pinch to zoom. The box is exactly what your card shows.
-          </Dialog.Description>
+          <Dialog.Title className="text-lg">{i18n.t("settingsFull.m7f39ea2a7a")}</Dialog.Title>
+          <Dialog.Description className="text-xs text-gryt-muted">{i18n.t("settingsFull.m86dae129d3")}</Dialog.Description>
           <div
             ref={setFrameEl}
             className="relative w-full cursor-grab touch-none overflow-hidden rounded-(--gryt-radius-lg) border border-gryt-border bg-gryt-surface select-none active:cursor-grabbing"
@@ -152,9 +153,7 @@ export function BannerCropDialog({ file, onDone }: { file: File | null; onDone: 
               />
             )}
           </div>
-          <label className="flex items-center gap-3 text-xs text-gryt-muted">
-            Zoom
-            <input
+          <label className="flex items-center gap-3 text-xs text-gryt-muted">{i18n.t("settingsFull.m9b3cbed5c4")}<input
               type="range"
               min={1}
               max={MAX_ZOOM}
@@ -165,17 +164,13 @@ export function BannerCropDialog({ file, onDone }: { file: File | null; onDone: 
                 const z = Number(e.target.value);
                 zoomBy(() => z);
               }}
-              aria-label="Zoom"
+              aria-label={i18n.t("settingsFull.m9b3cbed5c4")}
               className="flex-1 accent-(--gryt-accent)"
             />
           </label>
           <div className="flex flex-wrap justify-end gap-2">
-            <Button size="small" tone="neutral" onClick={() => onDone(null)}>
-              Cancel
-            </Button>
-            <Button size="small" disabled={!crop || busy} onClick={() => void save()}>
-              Use this
-            </Button>
+            <Button size="small" tone="neutral" onClick={() => onDone(null)}>{i18n.t("ui.cancel")}</Button>
+            <Button size="small" disabled={!crop || busy} onClick={() => void save()}>{i18n.t("settingsFull.mb80ded59db")}</Button>
           </div>
         </Dialog.Popup>
       </Dialog.Portal>

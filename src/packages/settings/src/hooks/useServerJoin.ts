@@ -217,7 +217,14 @@ const JOIN_ERROR_KEYS: Record<string, string> = {
 function describeJoinError(error: { error: string; message?: string }): JoinOutcome {
   const outcome = describeJoinErrorRaw(error);
   const clientCopy = !error.message || error.error === "identity_tier_refused" || error.error === "approval_pending";
-  return { ...outcome, messageKey: clientCopy ? JOIN_ERROR_KEYS[error.error] : undefined };
+  if (outcome.ok) return outcome;
+  return {
+    ...outcome,
+    // The socket's local diagnostic may be a current-language getter. Keep it
+    // through the UI instead of flattening it while this async request settles.
+    get message() { return !clientCopy && error.message ? error.message : outcome.message; },
+    messageKey: clientCopy ? JOIN_ERROR_KEYS[error.error] : undefined,
+  };
 }
 
 export interface JoinRequest {

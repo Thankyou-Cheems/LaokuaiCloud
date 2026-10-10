@@ -1,4 +1,5 @@
 import type { NotificationLevel } from "@/common";
+import { i18n as socketI18n } from "@/i18n";
 
 /**
  * The four things a channel can be, and the fields they map to. Out of the picker
@@ -13,9 +14,9 @@ export function defaultLevelForKind(kind: ChannelKind): NotificationLevel {
 
 /** The same three words as the member's own menu, so the two read alike. */
 export const NOTIFICATION_LEVEL_OPTIONS: { label: string; value: NotificationLevel }[] = [
-  { label: "Everything", value: "all" },
-  { label: "Only mentions", value: "mentions" },
-  { label: "Nothing", value: "none" },
+  { get label() { return socketI18n.t("shellFull.NotificationLevelMenu_tsx_4a66d14807"); }, value: "all" },
+  { get label() { return socketI18n.t("shellFull.NotificationLevelMenu_tsx_e7be45b885"); }, value: "mentions" },
+  { get label() { return socketI18n.t("shellFull.NotificationLevelMenu_tsx_4481948392"); }, value: "none" },
 ];
 
 export function kindToFields(kind: ChannelKind): {

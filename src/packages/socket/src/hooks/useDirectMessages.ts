@@ -2,6 +2,10 @@
    the empty-group case, so an unnamed group drew a blank row (GRYT-898). */
 import { type DirectConversation } from "@gryt/core";
 
+import { i18n as socketHooksI18n } from "@/i18n";
+
+import { socketHookToast } from "../utils/socketHookMessages";
+
 export { conversationTitle, type DirectConversation } from "@gryt/core";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -95,12 +99,12 @@ export function useDirectMessages({
     const onError = (payload: DmErrorPayload) => {
       if (payload?.error === "dms_disabled") {
         setDmsDisabled(true);
-        const message = payload.message || "Direct messages are turned off on this server";
-        toast.error(message, { id: `dm:error:${message}` });
+        const message = payload.message || socketHooksI18n.t("socketHooksFull.useDirectMessages_818897f86d");
+        toast.error(socketHookToast(() => (payload.message || socketHooksI18n.t("socketHooksFull.useDirectMessages_818897f86d"))), { id: `dm:error:${message}` });
         return;
       }
       // Rate limiting already carries its own wait in the message.
-      if (payload?.message) toast.error(payload.message, { id: `dm:error:${payload.message}` });
+      if (payload?.message) toast.error(socketHookToast(() => payload.message), { id: `dm:error:${payload.message}` });
     };
 
     /* Read off the message, not the server: one older than 1.10.1 never says a

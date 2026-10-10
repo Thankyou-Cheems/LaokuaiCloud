@@ -1,7 +1,10 @@
 import { Button, Checkbox, IconButton, Surface, Switch } from "@gryt/ui";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { Trans } from "react-i18next";
 import type { Socket } from "socket.io-client";
+
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 
 import { PiCopyBold, PiTrashBold } from "../../../../lib/icons";
 import { useSocketEvent } from "../hooks/useSocketEvent";
@@ -36,6 +39,7 @@ export function ServerBotsTab({
   socket?: Socket;
   accessToken: string | null;
 }) {
+  useSocketTranslation();
   const [bots, setBots] = useState<BotEntry[] | null>(null);
   const [policy, setPolicy] = useState<"request" | "disabled">("disabled");
   const [ticked, setTicked] = useState<Record<string, Set<string>>>({});
@@ -87,8 +91,8 @@ export function ServerBotsTab({
   }, [host, socket?.connected, accessToken]);
 
   const emit = (event: string, payload: Record<string, unknown>) => {
-    if (!socket?.connected) return toast.error("Not connected to the server yet.");
-    if (!accessToken) return toast.error("Join the server first.");
+    if (!socket?.connected) return toast.error(socketI18n.t("socketFull.serverBotsTab_213e89eca7"));
+    if (!accessToken) return toast.error(socketI18n.t("socketFull.serverBotsTab_097a88ed92"));
     setBusy(true);
     socket.emit(event, { accessToken, ...payload });
   };
@@ -106,26 +110,18 @@ export function ServerBotsTab({
   const settled = useMemo(() => (bots ?? []).filter((b) => b.status !== "pending"), [bots]);
 
   if (!bots) {
-    return <span className="text-sm text-gryt-muted">Loading bots…</span>;
+    return <span className="text-sm text-gryt-muted">{socketI18n.t("socketFull.serverBotsTab_ac51e53197")}</span>;
   }
 
   return (
     <div className="flex flex-col gap-6">
-      <span className="text-sm text-gryt-muted">
-        A bot is a member like any other — it holds only what you give it, and it can never
-        give itself more. What it asked for is fixed the first time it turns up, so a bot
-        that has been tampered with since cannot come back asking for the keys.
-      </span>
+      <span className="text-sm text-gryt-muted">{socketI18n.t("socketFull.serverBotsTab_623c38d83a")}</span>
 
       <Surface>
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div className="flex flex-col" style={{ maxWidth: "34rem" }}>
-            <span className="text-sm font-bold">Let bots ask to join</span>
-            <span className="text-xs text-gryt-muted">
-              With this on, a bot that knows the address can leave a request here. It is
-              admitted by nothing — it waits until you answer. Turn it off and the only way
-              in is a token you hand out yourself.
-            </span>
+            <span className="text-sm font-bold">{socketI18n.t("socketFull.serverBotsTab_58920e6ccc")}</span>
+            <span className="text-xs text-gryt-muted">{socketI18n.t("socketFull.serverBotsTab_fdf1ef2074")}</span>
           </div>
           <Switch
             checked={policy === "request"}
@@ -140,30 +136,24 @@ export function ServerBotsTab({
       {issued && (
         <Surface>
           <div className="flex flex-col gap-2">
-            <span className="text-sm font-bold">{issued.nickname} is ready to be deployed</span>
-            <span className="text-xs text-gryt-muted">
-              This is the only time you will see this token. Put it in the container's
-              environment as <code>GRYT_BOT_TOKEN</code>. The first bot to use it becomes this
-              registration; after that it stops working.
-            </span>
+            <span className="text-sm font-bold">{issued.nickname}{" "}{socketI18n.t("socketFull.serverBotsTab_3445197b2e")}</span>
+            <span className="text-xs text-gryt-muted"><Trans i18n={socketI18n} i18nKey="socketFull.botTokenInstructions" components={{ token: <code /> }} /></span>
             <div className="flex items-center gap-2 flex-wrap">
               <code className="text-xs" style={{ wordBreak: "break-all" }}>{issued.token}</code>
               <IconButton
                 tone="neutral"
                 size="xsmall"
-                aria-label="Copy token"
+                aria-label={socketI18n.t("socketFull.serverBotsTab_70f703ba75")}
                 onClick={() => {
                   navigator.clipboard.writeText(issued.token).then(
-                    () => toast.success("Copied"),
-                    () => toast.error("Could not copy"),
+                    () => toast.success(socketI18n.t("settingsFull.m8e3df45a49")),
+                    () => toast.error(socketI18n.t("settingsFull.m4dfbe46077")),
                   );
                 }}
               >
                 <PiCopyBold size={14} />
               </IconButton>
-              <Button tone="ghost" size="xsmall" onClick={() => setIssued(null)}>
-                I have it
-              </Button>
+              <Button tone="ghost" size="xsmall" onClick={() => setIssued(null)}>{socketI18n.t("socketFull.serverBotsTab_b55ea16820")}</Button>
             </div>
           </div>
         </Surface>
@@ -171,14 +161,12 @@ export function ServerBotsTab({
 
       <div className="flex flex-col gap-3">
         <div className="flex flex-col">
-          <span className="text-sm font-bold">Waiting for an answer</span>
-          <span className="text-xs text-gryt-muted">
-            Bots that turned up and asked to join. They can do nothing until you say so.
-          </span>
+          <span className="text-sm font-bold">{socketI18n.t("socketFull.serverBotsTab_ff6e6c9a18")}</span>
+          <span className="text-xs text-gryt-muted">{socketI18n.t("socketFull.serverBotsTab_b4300ee3d0")}</span>
         </div>
 
         {pending.length === 0 ? (
-          <span className="text-sm text-gryt-muted">Nothing waiting.</span>
+          <span className="text-sm text-gryt-muted">{socketI18n.t("socketFull.serverBotsTab_adb3211d9c")}</span>
         ) : (
           pending.map((bot) => {
             const chosen = ticked[bot.registrationId] ?? new Set<string>();
@@ -196,15 +184,9 @@ export function ServerBotsTab({
                   </div>
 
                   <div className="flex flex-col gap-1">
-                    <span className="text-xs text-gryt-muted">
-                      It is asking for {bot.requested.length}
-                      {bot.requested.length === 1 ? " permission" : " permissions"}. Untick
-                      anything you would rather it did not have — you cannot add to this list.
-                    </span>
+                    <span className="text-xs text-gryt-muted"><Trans i18n={socketI18n} i18nKey="socketFull.botPermissionRequest" values={{ count: bot.requested.length }} count={bot.requested.length} /></span>
                     {bot.requested.length === 0 ? (
-                      <span className="text-sm text-gryt-muted">
-                        Nothing at all. It only wants to be here.
-                      </span>
+                      <span className="text-sm text-gryt-muted">{socketI18n.t("socketFull.serverBotsTab_50b6f1689a")}</span>
                     ) : (
                       bot.requested.map((permission) => {
                         const meta = describePermission(permission);
@@ -239,9 +221,7 @@ export function ServerBotsTab({
                       size="small"
                       disabled={busy}
                       onClick={() => emit("server:bots:decide", { botId: bot.botId, decision: "denied" })}
-                    >
-                      Turn away
-                    </Button>
+                    >{socketI18n.t("socketFull.serverBotsTab_43aacd97da")}</Button>
                     <Button
                       size="small"
                       disabled={busy}
@@ -252,8 +232,7 @@ export function ServerBotsTab({
                           permissions: [...chosen],
                         })
                       }
-                    >
-                      Let it in with {chosen.size}
+                    >{socketI18n.t("socketFull.serverBotsTab_45645b65b8")}{" "}{chosen.size}
                     </Button>
                   </div>
                 </div>
@@ -265,19 +244,16 @@ export function ServerBotsTab({
 
       <div className="flex flex-col gap-3">
         <div className="flex flex-col">
-          <span className="text-sm font-bold">Set one up in advance</span>
-          <span className="text-xs text-gryt-muted">
-            For a bot that has to start on its own — in a compose file, or from CI. Decide what
-            it may do now, and hand the token to whoever deploys it.
-          </span>
+          <span className="text-sm font-bold">{socketI18n.t("socketFull.serverBotsTab_1094b7db86")}</span>
+          <span className="text-xs text-gryt-muted">{socketI18n.t("socketFull.serverBotsTab_7bb745022f")}</span>
         </div>
         <RegisterBot busy={busy} onCreate={(nickname) => emit("server:bots:register", { nickname, permissions: [] })} />
       </div>
 
       <div className="flex flex-col gap-3">
-        <span className="text-sm font-bold">Answered</span>
+        <span className="text-sm font-bold">{socketI18n.t("socketFull.serverBotsTab_193b8769b3")}</span>
         {settled.length === 0 ? (
-          <span className="text-sm text-gryt-muted">No bots yet.</span>
+          <span className="text-sm text-gryt-muted">{socketI18n.t("socketFull.serverBotsTab_8404f67dac")}</span>
         ) : (
           settled.map((bot) => (
             <Surface key={bot.registrationId}>
@@ -286,20 +262,20 @@ export function ServerBotsTab({
                   <span className="text-sm font-bold">
                     {bot.nickname}{" "}
                     <span className="text-xs text-gryt-muted">
-                      {bot.status === "approved" ? "· allowed" : "· turned away"}
-                      {bot.awaitingClaim ? " · waiting to be deployed" : ""}
+                      {bot.status === "approved" ? socketI18n.t("socketFull.serverBotsTab_e9fba9e004") : socketI18n.t("socketFull.serverBotsTab_df0a7cbd03")}
+                      {bot.awaitingClaim ? socketI18n.t("socketFull.serverBotsTab_ae40dc8300") : ""}
                     </span>
                   </span>
                   <span className="text-xs text-gryt-muted">
                     {bot.granted.length > 0
                       ? bot.granted.map((p) => describePermission(p).label).join(", ")
-                      : "Can do nothing"}
+                      : socketI18n.t("socketFull.serverBotsTab_8ad616eb54")}
                   </span>
                 </div>
                 <IconButton
                   tone="danger"
                   size="xsmall"
-                  aria-label="Withdraw this bot"
+                  aria-label={socketI18n.t("socketFull.serverBotsTab_ded7599589")}
                   disabled={busy}
                   onClick={() => emit("server:bots:revoke", { registrationId: bot.registrationId })}
                 >
@@ -319,17 +295,18 @@ export function ServerBotsTab({
  * half-filled form leaves a bot that can do nothing.
  */
 function RegisterBot({ busy, onCreate }: { busy: boolean; onCreate: (nickname: string) => void }) {
+  useSocketTranslation();
   const [nickname, setNickname] = useState("");
 
   return (
     <Surface>
       <div className="flex items-end gap-2 flex-wrap">
         <label className="flex flex-col gap-1 text-sm" style={{ flex: "1 1 12rem" }}>
-          <span className="text-gryt-muted text-xs">What should it be called?</span>
+          <span className="text-gryt-muted text-xs">{socketI18n.t("socketFull.serverBotsTab_9baa3497a7")}</span>
           <input
             value={nickname}
             maxLength={32}
-            placeholder="Deploybot"
+            placeholder={socketI18n.t("socketFull.serverBotsTab_041725430c")}
             onChange={(e) => setNickname(e.target.value)}
             className="bg-transparent border-b border-gryt-border outline-none"
           />
@@ -341,9 +318,7 @@ function RegisterBot({ busy, onCreate }: { busy: boolean; onCreate: (nickname: s
             onCreate(nickname.trim());
             setNickname("");
           }}
-        >
-          Create token
-        </Button>
+        >{socketI18n.t("socketFull.serverBotsTab_5f8434b698")}</Button>
       </div>
     </Surface>
   );

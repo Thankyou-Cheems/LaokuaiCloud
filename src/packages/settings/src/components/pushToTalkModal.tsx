@@ -73,7 +73,7 @@ export function PushToTalkModal() {
             color={captured ? "green" : "blue"}
             style={{ fontFamily: "var(--code-font-family)", minWidth: "120px", textAlign: "center", padding: "8px 16px", fontSize: 16 }}
           >
-            {captured ? formatCombo(captured) : tr("ui.pressAKeyOrButton")}
+            {captured ? formatCombo(captured, (key, values) => tr(key, values)) : tr("ui.pressAKeyOrButton")}
           </Chip>
 
           {captured && (

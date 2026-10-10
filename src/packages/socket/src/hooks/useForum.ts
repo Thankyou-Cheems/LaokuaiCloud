@@ -2,6 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
 import { getServerAccessToken } from "@/common";
+import { i18n as socketHooksI18n, useTranslation as useSocketHooksTranslation } from "@/i18n";
+
+import { socketDisplayText, socketHookToast } from "../utils/socketHookMessages";
 
 /**
  * A forum channel's topic index, fetched as summary rows. It refetches on create,
@@ -69,6 +72,7 @@ export function useForum(
   conversationId: string,
   serverHost: string | undefined,
 ): UseForumResult {
+  useSocketHooksTranslation();
   const [topics, setTopics] = useState<ForumTopic[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -115,7 +119,7 @@ export function useForum(
         setCreating(false);
         setCreateError(message || "The server refused that topic.");
       }
-      if (message) toast.error(message);
+      if (message) toast.error(socketHookToast(() => message));
     };
 
     socket.on("forum:topics:list", onList as (p: never) => void);
@@ -148,7 +152,7 @@ export function useForum(
        forum:error ever arrive and `creating` never clears (GRYT-1389). */
     if (socket.connected === false) {
       setCreateError("Not connected to this server.");
-      toast.error("Not connected to this server");
+      toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useForum_2577b159c1")));
       return;
     }
     creatingRef.current = true;
@@ -159,5 +163,5 @@ export function useForum(
 
   const clearCreateError = useCallback(() => setCreateError(null), []);
 
-  return { topics, loading, creating, createError, createdToken, clearCreateError, createTopic };
+  return { topics, loading, creating, createError: socketDisplayText(createError), createdToken, clearCreateError, createTopic };
 }

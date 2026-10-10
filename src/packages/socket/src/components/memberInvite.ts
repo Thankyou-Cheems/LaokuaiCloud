@@ -1,3 +1,4 @@
+import { i18n as socketI18n } from "@/i18n";
 /**
  * How a member's invite reads on the Members tab. Deleted and revoked both mean
  * the door is shut, but they are different sentences (GRYT-923).
@@ -45,7 +46,7 @@ export function inviteState(invite: MemberInvite): InviteState {
       invite.code,
       // Only where the invite still exists. "0 of 0 used" under a deleted one
       // is a number invented to fill a gap.
-      invite.maxUses ? `${invite.usesConsumed ?? 0} of ${invite.maxUses} used` : null,
+      invite.maxUses ? socketI18n.t("socketFull.memberInvite_7d981888dd", { p0: (invite.usesConsumed ?? 0), p1: (invite.maxUses) }) : null,
     ]
       .filter(Boolean)
       .join(" · "),

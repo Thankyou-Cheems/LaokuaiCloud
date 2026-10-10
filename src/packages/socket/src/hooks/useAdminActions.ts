@@ -2,7 +2,10 @@ import { useCallback, useState } from "react";
 import toast from "react-hot-toast";
 import { Socket } from "socket.io-client";
 
+import { i18n as socketHooksI18n } from "@/i18n";
+
 import type { MemberInfo } from "../components/MemberSidebar";
+import { socketHookToast } from "../utils/socketHookMessages";
 import { emitAuthenticated } from "../utils/tokenManager";
 
 interface PendingUser {
@@ -47,7 +50,7 @@ export function useAdminActions({
         currentlyViewingServer.host,
       );
       if (!sent) {
-        toast.error("Not signed in to this server — try reconnecting.");
+        toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useAdminActions_665011c3ff")));
       }
     },
     [currentConnection, currentlyViewingServer],
@@ -127,19 +130,19 @@ export function useAdminActions({
 
   const lookupNickname = useCallback((serverUserId: string) => {
     const members = currentlyViewingServer ? memberLists[currentlyViewingServer.host] : undefined;
-    return members?.find((m) => m.serverUserId === serverUserId)?.nickname || "this user";
+    return members?.find((m) => m.serverUserId === serverUserId)?.nickname || socketHooksI18n.t("socketHooksFull.thisUser");
   }, [currentlyViewingServer, memberLists]);
 
   const requestDisconnectUser = useCallback((targetServerUserId: string) => {
-    setPendingDisconnectUser({ id: targetServerUserId, nickname: lookupNickname(targetServerUserId) });
+    setPendingDisconnectUser({ id: targetServerUserId, get nickname() { return lookupNickname(targetServerUserId); } });
   }, [lookupNickname]);
 
   const requestKickUser = useCallback((targetServerUserId: string) => {
-    setPendingKickUser({ id: targetServerUserId, nickname: lookupNickname(targetServerUserId) });
+    setPendingKickUser({ id: targetServerUserId, get nickname() { return lookupNickname(targetServerUserId); } });
   }, [lookupNickname]);
 
   const requestBanUser = useCallback((targetServerUserId: string) => {
-    setPendingBanUser({ id: targetServerUserId, nickname: lookupNickname(targetServerUserId) });
+    setPendingBanUser({ id: targetServerUserId, get nickname() { return lookupNickname(targetServerUserId); } });
   }, [lookupNickname]);
 
   return {

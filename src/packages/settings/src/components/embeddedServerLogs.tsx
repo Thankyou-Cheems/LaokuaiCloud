@@ -1,14 +1,16 @@
 import { Button, Chip, Tabs } from "@gryt/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { i18n, useTranslation } from "@/i18n";
+
 import type { EmbeddedLogLine, EmbeddedLogSource } from "../../../../lib/electron";
 import { getElectronAPI } from "../../../../lib/electron";
 import { PiTrashFill } from "../../../../lib/icons";
 
 const SOURCE_LABEL: Record<EmbeddedLogSource, string> = {
-  server: "Server",
+  get server() { return i18n.t("settingsFull.mcb0cb170d1"); },
   sfu: "SFU",
-  worker: "Media worker",
+  get worker() { return i18n.t("settingsFull.m81c85f251c"); },
 };
 
 const LEVEL_COLOR = {
@@ -26,6 +28,7 @@ const LEVEL_RANK = { debug: 0, info: 1, warn: 2, error: 3 } as const;
  * console, which is invisible from inside the app.
  */
 export function EmbeddedServerLogs({ serverId }: { serverId: string }) {
+  useTranslation();
   const [lines, setLines] = useState<EmbeddedLogLine[]>([]);
   const [source, setSource] = useState<EmbeddedLogSource | "all">("all");
   const [level, setLevel] = useState<keyof typeof LEVEL_RANK>("info");
@@ -72,21 +75,21 @@ export function EmbeddedServerLogs({ serverId }: { serverId: string }) {
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-3 flex-wrap">
         <Tabs value={source} onValueChange={(v) => setSource(v as EmbeddedLogSource | "all")}>
-          <Tabs.List aria-label="source">
-          <Tabs.Tab value="all">All</Tabs.Tab>
-          <Tabs.Tab value="server">Server</Tabs.Tab>
+          <Tabs.List aria-label={i18n.t("settingsFull.m828d338a9b")}>
+          <Tabs.Tab value="all">{i18n.t("settingsFull.m6a72085653")}</Tabs.Tab>
+          <Tabs.Tab value="server">{i18n.t("settingsFull.mcb0cb170d1")}</Tabs.Tab>
           <Tabs.Tab value="sfu">SFU</Tabs.Tab>
-          <Tabs.Tab value="worker">Worker</Tabs.Tab>
+          <Tabs.Tab value="worker">{i18n.t("settingsFull.m99edd8c8e6")}</Tabs.Tab>
         <Tabs.Indicator />
         </Tabs.List>
         </Tabs>
 
         <Tabs value={level} onValueChange={(v) => setLevel(v as keyof typeof LEVEL_RANK)}>
-          <Tabs.List aria-label="level">
-          <Tabs.Tab value="debug">Debug</Tabs.Tab>
-          <Tabs.Tab value="info">Info</Tabs.Tab>
-          <Tabs.Tab value="warn">Warnings</Tabs.Tab>
-          <Tabs.Tab value="error">Errors</Tabs.Tab>
+          <Tabs.List aria-label={i18n.t("settingsFull.mad60c535ff")}>
+          <Tabs.Tab value="debug">{i18n.t("settingsFull.mbd604d99e7")}</Tabs.Tab>
+          <Tabs.Tab value="info">{i18n.t("settingsFull.m4b631f6984")}</Tabs.Tab>
+          <Tabs.Tab value="warn">{i18n.t("settingsFull.m1430f976c5")}</Tabs.Tab>
+          <Tabs.Tab value="error">{i18n.t("settingsFull.m805e86a8cb")}</Tabs.Tab>
         <Tabs.Indicator />
         </Tabs.List>
         </Tabs>
@@ -97,9 +100,7 @@ export function EmbeddedServerLogs({ serverId }: { serverId: string }) {
             setLines([]);
           }}
         >
-          <PiTrashFill size={14} />
-          Clear
-        </Button>
+          <PiTrashFill size={14} />{i18n.t("ui.clear")}</Button>
       </div>
 
       <div
@@ -124,8 +125,8 @@ export function EmbeddedServerLogs({ serverId }: { serverId: string }) {
         {visible.length === 0 ? (
           <span className="text-xs text-gryt-muted">
             {lines.length === 0
-              ? "Nothing yet. Start the server and its output shows up here."
-              : "Nothing at this level from this source."}
+              ? i18n.t("settingsFull.mba9655e970")
+              : i18n.t("settingsFull.mff759b3160")}
           </span>
         ) : (
           visible.map((l, i) => (

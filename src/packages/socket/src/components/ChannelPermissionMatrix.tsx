@@ -1,5 +1,6 @@
 import { Tooltip } from "@gryt/ui";
 
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 import {
   type CellState,
   cellState,
@@ -18,12 +19,13 @@ import { describePermission } from "../lib/permissions";
  */
 
 const CELL_LABEL: Record<CellState, string> = {
-  inherit: "Inherits from the role",
-  allow: "Allowed here, even if the role cannot elsewhere",
-  deny: "Denied here, even if the role can elsewhere",
+  get inherit() { return socketI18n.t("socketFull.channelPermissionMatrix_8b8a4b2777"); },
+  get allow() { return socketI18n.t("socketFull.channelPermissionMatrix_30e8debbf3"); },
+  get deny() { return socketI18n.t("socketFull.channelPermissionMatrix_fbf0c0b0d5"); },
 };
 
 function CellIcon({ state, inherited }: { state: CellState; inherited: boolean }) {
+  useSocketTranslation();
   if (state === "allow") return <PiCheckBold size={13} aria-hidden />;
   if (state === "deny") return <PiProhibitBold size={13} aria-hidden />;
   // Inheriting. The icon shows what it inherits rather than nothing, so a
@@ -49,13 +51,14 @@ export function ChannelPermissionMatrix({
   onChange: (next: ChannelRule[]) => void;
   disabled?: boolean;
 }) {
+  useSocketTranslation();
   const index = indexRules(rules);
   // Low rank first, so the columns run from the people a channel is usually
   // being closed to towards the people it is being kept open for.
   const ordered = [...roles].sort((a, b) => a.rank - b.rank);
 
   if (ordered.length === 0 || permissions.length === 0) {
-    return <span className="text-xs">This server has no roles to set permissions for yet.</span>;
+    return <span className="text-xs">{socketI18n.t("socketFull.channelPermissionMatrix_9343077f9b")}</span>;
   }
 
   return (
@@ -63,7 +66,7 @@ export function ChannelPermissionMatrix({
       <table className="w-full border-collapse text-xs">
         <thead>
           <tr>
-            <th className="sticky left-0 z-10 bg-inherit p-1 text-left font-medium">Permission</th>
+            <th className="sticky left-0 z-10 bg-inherit p-1 text-left font-medium">{socketI18n.t("socketFull.channelPermissionMatrix_bd1c797edd")}</th>
             {ordered.map((role) => (
               <th key={role.id} className="p-1 text-center font-medium">
                 {role.name}
@@ -86,7 +89,7 @@ export function ChannelPermissionMatrix({
                       <button
                         type="button"
                         disabled={disabled}
-                        aria-label={`${describePermission(permission).label} for ${role.name}: ${state}`}
+                        aria-label={socketI18n.t("socketFull.channelPermissionMatrix_3252c425bf", { p0: (describePermission(permission).label), p1: (role.name), p2: (CELL_LABEL[state]) })}
                         data-state={state}
                         className="inline-flex h-6 w-6 items-center justify-center rounded"
                         onClick={() =>

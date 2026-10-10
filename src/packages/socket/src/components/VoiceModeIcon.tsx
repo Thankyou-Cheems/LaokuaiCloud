@@ -4,22 +4,33 @@ import { useMicrophone } from "@gryt/voice";
 import { useTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 
+import { PiGameControllerFill, PiMicrophoneFill, PiMicrophoneSlashFill, PiWarningFill } from "../../../../lib/icons";
 import { useSquadSnapshot } from "../../../../lib/squadRuntime";
 import { deriveVoiceMode, type VoiceModeState } from "../../../../lib/voiceMode";
 import { useLocalVoiceMode, useRemoteVoiceMode } from "../../../../lib/voiceModeStore";
 
-const SYMBOLS: Record<VoiceModeState["transmit"], string> = {
-  normal: "●", "manual-muted": "⊘", "server-muted": "⊗", "ptt-idle": "⌨", "squad-suppressed": "S⊘",
-  resuming: "↻", pending: "…", suspended: "Ⅱ", error: "!",
-};
-export function VoiceModeGlyph({ state }: { state: VoiceModeState | null }) {
+export function VoiceModeGlyph({ state, keyLabel }: { state: VoiceModeState | null; keyLabel?: string }) {
   const { t } = useTranslation();
-  const label = state ? `${t(`voiceMode.${state.inputMode}`)} · ${t(`voiceMode.squad.${state.squad}`)} · ${t(`voiceMode.transmit.${state.transmit}`)}`
+  const label = state ? `${t(`voiceMode.${state.inputMode}`)} · ${t(`voiceMode.squad.${state.squad}`)} · ${t(`voiceMode.transmit.${state.transmit}`)}${keyLabel ? ` · ${keyLabel}` : ""}`
     : t("voiceMode.unknown");
-  return <Tooltip title={label}><span role="img" aria-label={label} data-testid="voice-mode-icon"
-    className="inline-flex shrink-0 items-center gap-0.5 text-[10px] font-mono" style={{ minWidth: 22 }}>
-    {state ? <><span aria-hidden="true">{state.inputMode === "push_to_talk" ? "⌨" : "V"}</span>
-      <span aria-hidden="true">{SYMBOLS[state.transmit]}</span></> : <span aria-hidden="true">?</span>}
+  const closed = state && (state.squad === "suppressed" || ["manual-muted", "server-muted"].includes(state.transmit));
+  const warning = state && (state.squad === "unavailable" || ["error", "suspended"].includes(state.transmit));
+  const MicrophoneIcon = closed ? PiMicrophoneSlashFill : PiMicrophoneFill;
+  return <Tooltip title={label}><span role="img" tabIndex={0} aria-label={label} data-testid="voice-mode-icon"
+    data-squad-confirmed={state?.squad === "suppressed"} data-mic-closed={Boolean(closed)}
+    className="inline-flex max-w-full flex-wrap items-center gap-x-1 gap-y-0.5 text-[10px] leading-tight" style={{ maxWidth: 155 }}>
+    {state ? <>
+      <span aria-hidden="true" className="inline-flex items-center gap-0.5">
+        {state.inputMode === "push_to_talk" && <kbd className="rounded border border-gryt-border px-0.5 text-[9px]">PTT</kbd>}
+        <MicrophoneIcon size={13} />{t(`voiceMode.${state.inputMode}`)}
+      </span>
+      {state.squad !== "off" && <span aria-hidden="true" className="inline-flex items-center gap-0.5">
+        <PiGameControllerFill size={13} />{t(`voiceMode.compact.squad.${state.squad}`)}
+      </span>}
+      <span aria-hidden="true" className="inline-flex items-center gap-0.5 text-gryt-muted">
+        {warning && <PiWarningFill size={12} />}{t(`voiceMode.compact.transmit.${state.transmit}`)}
+      </span>
+    </> : <span aria-hidden="true">? {t("voiceMode.compact.unknown")}</span>}
   </span></Tooltip>;
 }
 export function VoiceModeIcon({ host, member, isSelf }: { host?: string; member?: string; isSelf?: boolean }) {
@@ -32,5 +43,6 @@ export function VoiceModeIcon({ host, member, isSelf }: { host?: string; member?
     manualMuted: s.isMuted || s.isDeafened, serverMuted: s.isServerMuted || s.isServerDeafened,
     squadEnabled: s.squadConfig.enabled, squadStatus: squad.status, gateStatus: transmissionState.status,
     requestedSuppression: squad.suppressed });
-  return <VoiceModeGlyph state={isSelf ? observedLocal ?? { ...local, seq: 0 } : remote} />;
+  return <VoiceModeGlyph state={isSelf ? observedLocal ?? { ...local, seq: 0 } : remote}
+    keyLabel={isSelf && s.inputMode === "push_to_talk" ? s.pushToTalkKey : undefined} />;
 }

@@ -8,6 +8,7 @@ import {
   setGlobalLevel,
   subscribeToPrefs,
 } from "@/common";
+import { i18n, useTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 
 import { NoticeDialog } from "../../../socket/src/components/NoticeDialog";
@@ -16,12 +17,13 @@ import { SettingGroup, SettingsContainer, ToggleSetting } from "./settingsCompon
 import { SoundSettings } from "./SoundSettings";
 
 const GLOBAL_LEVELS: { label: string; value: NotificationLevel }[] = [
-  { label: "Everything", value: "all" },
-  { label: "Only mentions", value: "mentions" },
-  { label: "Nothing", value: "none" },
+  { get label() { return i18n.t("settingsFull.m4a66d14807"); }, value: "all" },
+  { get label() { return i18n.t("settingsFull.me7be45b885"); }, value: "mentions" },
+  { get label() { return i18n.t("settingsFull.m4481948392"); }, value: "none" },
 ];
 
 export function NotificationSettings() {
+  useTranslation();
   const {
     notificationBadgeEnabled,
     desktopNotificationsEnabled,
@@ -65,12 +67,13 @@ export function NotificationSettings() {
 
   return (
     <SettingsContainer>
-      <h2>Notifications</h2>
+      <h2>{i18n.t("ui.notifications")}</h2>
 
       {/* First, because it is the one that decides what the rest can do. */}
       <SettingGroup
-        title="Notification level"
-        description="Applies to every server. It can only quieten one, never make one louder — a server you have already muted stays muted."
+        anchorId="notification-level"
+        title={i18n.t("settingsFull.m1621a1b7d1")}
+        description={i18n.t("settingsFull.m8e770ce31f")}
       >
         {/* max-[369px]: the three toggles are 71px wider than the 300px
             Electron minimum leaves it. Each one stands alone, with no shared
@@ -97,8 +100,9 @@ export function NotificationSettings() {
       <Divider />
 
       <SettingGroup
-        title="Per server"
-        description="How loud each server is on its own. Set from the right-click menu too — this is the same setting, in one place."
+        anchorId="per-server"
+        title={i18n.t("settingsFull.m4867f61838")}
+        description={i18n.t("settingsFull.me6ee5c0068")}
       >
         <ServerNotificationList />
       </SettingGroup>
@@ -106,8 +110,9 @@ export function NotificationSettings() {
       <Divider />
 
       <ToggleSetting
-        title="Desktop notifications"
-        description="Show a notification when a message arrives somewhere you are not looking. Never plays its own sound — the message sound below does that."
+        anchorId="desktop-notifications"
+        title={i18n.t("settingsFull.m53a3505aad")}
+        description={i18n.t("settingsFull.m4c72c9dc4e")}
         checked={desktopNotificationsEnabled}
         onCheckedChange={setDesktopNotificationsEnabled}
       />
@@ -115,8 +120,9 @@ export function NotificationSettings() {
       <Divider />
 
       <ToggleSetting
-        title="Unread message badge"
-        description="Show an unread message count on the taskbar icon when the app is not focused."
+        anchorId="unread-message-badge"
+        title={i18n.t("settingsFull.m370744ea83")}
+        description={i18n.t("settingsFull.m54e929ea8b")}
         checked={notificationBadgeEnabled}
         onCheckedChange={setNotificationBadgeEnabled}
       />
@@ -124,8 +130,8 @@ export function NotificationSettings() {
       <Divider />
 
       <SoundSettings
-        label="Message sound"
-        description="Play a sound when a new message arrives while the app is not focused"
+        label={i18n.t("settingsFull.m79c85dc39e")}
+        description={i18n.t("settingsFull.mc8d40ba74d")}
         enabled={messageSoundEnabled}
         onEnabledChange={setMessageSoundEnabled}
         volume={messageSoundVolume}

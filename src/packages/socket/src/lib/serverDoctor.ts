@@ -1,3 +1,4 @@
+import { i18n as socketI18n } from "@/i18n";
 /** The checks run in the order the connection does, so the first failure is the
     one to act on and anything after it is reported as untested. */
 
@@ -27,15 +28,15 @@ const DOCS = "https://docs.gryt.chat/docs/use/troubleshooting";
 
 const HELP = {
   server: {
-    label: "Server unreachable",
+    get label() { return socketI18n.t("ui.serverUnreachable"); },
     href: `${DOCS}#websocket-connection-fails`,
   },
   sfu: {
-    label: "SFU connection fails",
+    get label() { return socketI18n.t("socketFull.serverDoctor_d0490c5ac7"); },
     href: `${DOCS}#sfu-connection-fails`,
   },
   media: {
-    label: "Chat works but nobody can hear anyone",
+    get label() { return socketI18n.t("socketFull.serverDoctor_07272d9f30"); },
     href: `${DOCS}#people-connect-and-chat-but-nobody-can-hear-anyone`,
   },
 } as const;
@@ -102,7 +103,7 @@ async function probe(
     return {
       ok: false,
       latencyMs: Math.round(performance.now() - started),
-      error: aborted ? `no answer within ${PROBE_TIMEOUT_MS / 1000}s` : "refused",
+      get error() { return aborted ? socketI18n.t("socketFull.serverDoctor_7f11519f02", { p0: (PROBE_TIMEOUT_MS / 1000) }) : socketI18n.t("socketFull.serverDoctor_bab74bd395"); },
     };
   } finally {
     clearTimeout(timer);
@@ -111,12 +112,12 @@ async function probe(
 
 export function initialChecks(): CheckResult[] {
   return [
-    { id: "server-http", label: "Server reachable", status: "pending" },
-    { id: "server-socket", label: "Server connection", status: "pending" },
-    { id: "sfu-http", label: "Voice signalling reachable", status: "pending" },
-    { id: "sfu-ws", label: "Voice signalling accepts a connection", status: "pending" },
-    { id: "media", label: "Voice and video path", status: "pending" },
-    { id: "call", label: "A real call to this server", status: "pending" },
+    { id: "server-http", get label() { return socketI18n.t("socketFull.serverDoctor_6369fe7b77"); }, status: "pending" },
+    { id: "server-socket", get label() { return socketI18n.t("socketFull.serverDoctor_cc1b53c044"); }, status: "pending" },
+    { id: "sfu-http", get label() { return socketI18n.t("socketFull.serverDoctor_0e853dcdb2"); }, status: "pending" },
+    { id: "sfu-ws", get label() { return socketI18n.t("socketFull.serverDoctor_0d64e8f433"); }, status: "pending" },
+    { id: "media", get label() { return socketI18n.t("socketFull.serverDoctor_4bc04fb5db"); }, status: "pending" },
+    { id: "call", get label() { return socketI18n.t("socketFull.serverDoctor_8fe61f78a5"); }, status: "pending" },
   ];
 }
 
@@ -126,17 +127,17 @@ async function checkServerHttp(host: string): Promise<CheckResult> {
   if (result.ok) {
     return {
       id: "server-http",
-      label: "Server reachable",
+      get label() { return socketI18n.t("socketFull.serverDoctor_6369fe7b77"); },
       status: "pass",
-      detail: `${host} answered in ${result.latencyMs} ms`,
+      get detail() { return socketI18n.t("socketFull.serverDoctor_8cb429dde0", { p0: (host), p1: (result.latencyMs) }); },
     };
   }
 
   return {
     id: "server-http",
-    label: "Server reachable",
+    get label() { return socketI18n.t("socketFull.serverDoctor_6369fe7b77"); },
     status: "fail",
-    detail: `${host} ${result.error}. Chat and joining go over this address, so nothing will work until it does.`,
+    get detail() { return socketI18n.t("socketFull.serverDoctor_640ec6fb00", { p0: (host), p1: (result.error) }); },
     help: HELP.server,
   };
 }
@@ -149,9 +150,9 @@ async function checkSfuHttp(sfuHosts: string[]): Promise<CheckResult> {
   if (sfuHosts.length === 0) {
     return {
       id: "sfu-http",
-      label: "Voice signalling reachable",
+      get label() { return socketI18n.t("socketFull.serverDoctor_0e853dcdb2"); },
       status: "fail",
-      detail: "This server advertises no address for voice at all.",
+      get detail() { return socketI18n.t("socketFull.serverDoctor_01975860d6"); },
       help: HELP.sfu,
     };
   }
@@ -163,7 +164,7 @@ async function checkSfuHttp(sfuHosts: string[]): Promise<CheckResult> {
         address: raw,
         ok: result.ok,
         latencyMs: result.latencyMs,
-        error: result.error,
+        get error() { return result.error; },
       };
     }),
   );
@@ -173,10 +174,9 @@ async function checkSfuHttp(sfuHosts: string[]): Promise<CheckResult> {
   if (reachable.length === 0 && isHttpsPage()) {
     return {
       id: "sfu-http",
-      label: "Voice signalling reachable",
+      get label() { return socketI18n.t("socketFull.serverDoctor_0e853dcdb2"); },
       status: "fail",
-      detail:
-        "This is the browser client, which may only open secure connections. A server on a plain IP address cannot be reached from here no matter how it is configured, and the desktop app is the way round it.",
+      get detail() { return socketI18n.t("socketFull.serverDoctor_173f8cca5f"); },
       addresses,
       help: HELP.sfu,
     };
@@ -185,12 +185,11 @@ async function checkSfuHttp(sfuHosts: string[]): Promise<CheckResult> {
   if (reachable.length === 0) {
     return {
       id: "sfu-http",
-      label: "Voice signalling reachable",
+      get label() { return socketI18n.t("socketFull.serverDoctor_0e853dcdb2"); },
       status: "fail",
-      detail:
-        addresses.length === 1
-          ? "The only address advertised for voice cannot be reached from here."
-          : `None of the ${addresses.length} addresses advertised for voice can be reached from here.`,
+      get detail() { return addresses.length === 1
+          ? socketI18n.t("socketFull.serverDoctor_0cf2062aeb")
+          : socketI18n.t("socketFull.serverDoctor_f9a342ea89", { p0: (addresses.length) }); },
       addresses,
       help: HELP.sfu,
     };
@@ -200,14 +199,13 @@ async function checkSfuHttp(sfuHosts: string[]): Promise<CheckResult> {
   // a public one, and any given person is on one side or the other.
   return {
     id: "sfu-http",
-    label: "Voice signalling reachable",
+    get label() { return socketI18n.t("socketFull.serverDoctor_0e853dcdb2"); },
     status: reachable.length === addresses.length ? "pass" : "warn",
-    detail:
-      reachable.length !== addresses.length
-        ? `${reachable.length} of ${addresses.length} answered, which is normal if the others are for people on a different network.`
+    get detail() { return reachable.length !== addresses.length
+        ? socketI18n.t("socketFull.serverDoctor_59d901def9", { p0: (reachable.length), p1: (addresses.length) })
         : addresses.length === 1
-          ? "The address advertised for voice answered."
-          : `All ${addresses.length} advertised addresses answered.`,
+          ? socketI18n.t("socketFull.serverDoctor_153bd3321b")
+          : socketI18n.t("socketFull.serverDoctor_3574f69c16", { p0: (addresses.length) }); },
     addresses,
   };
 }
@@ -215,7 +213,7 @@ async function checkSfuHttp(sfuHosts: string[]): Promise<CheckResult> {
 /** The upgrade, which can fail on its own even when /health answers. */
 function checkSfuWebSocket(url: string): Promise<CheckResult> {
   return new Promise((resolve) => {
-    const label = "Voice signalling accepts a connection";
+    const label = () => socketI18n.t("socketFull.serverDoctor_0d64e8f433");
     let settled = false;
 
     const finish = (result: CheckResult) => {
@@ -230,9 +228,9 @@ function checkSfuWebSocket(url: string): Promise<CheckResult> {
     } catch {
       finish({
         id: "sfu-ws",
-        label,
+        get label() { return label(); },
         status: "fail",
-        detail: `Could not open a connection to ${url}.`,
+        get detail() { return socketI18n.t("socketFull.serverDoctor_613361b7bf", { p0: (url) }); },
         help: HELP.sfu,
       });
       return;
@@ -242,9 +240,9 @@ function checkSfuWebSocket(url: string): Promise<CheckResult> {
       ws.close();
       finish({
         id: "sfu-ws",
-        label,
+        get label() { return label(); },
         status: "fail",
-        detail: `${url} answered a health check but never completed a connection.`,
+        get detail() { return socketI18n.t("socketFull.serverDoctor_51cb99d61e", { p0: (url) }); },
         help: HELP.sfu,
       });
     }, PROBE_TIMEOUT_MS);
@@ -252,16 +250,16 @@ function checkSfuWebSocket(url: string): Promise<CheckResult> {
     ws.onopen = () => {
       clearTimeout(timer);
       ws.close();
-      finish({ id: "sfu-ws", label, status: "pass", detail: `Connected to ${url}.` });
+      finish({ id: "sfu-ws", get label() { return label(); }, status: "pass", get detail() { return socketI18n.t("socketFull.serverDoctor_be1b794f87", { p0: (url) }); } });
     };
 
     ws.onerror = () => {
       clearTimeout(timer);
       finish({
         id: "sfu-ws",
-        label,
+        get label() { return label(); },
         status: "fail",
-        detail: `${url} refused the connection.`,
+        get detail() { return socketI18n.t("socketFull.serverDoctor_49f90e2713", { p0: (url) }); },
         help: HELP.sfu,
       });
     };
@@ -274,14 +272,14 @@ function checkSfuWebSocket(url: string): Promise<CheckResult> {
  */
 function checkMedia(stunHosts: string[]): Promise<CheckResult> {
   return new Promise((resolve) => {
-    const label = "Voice and video path";
+    const label = () => socketI18n.t("socketFull.serverDoctor_4bc04fb5db");
 
     if (typeof RTCPeerConnection === "undefined") {
       resolve({
         id: "media",
-        label,
+        get label() { return label(); },
         status: "skipped",
-        detail: "This client cannot test WebRTC.",
+        get detail() { return socketI18n.t("socketFull.serverDoctor_a0bd284d8a"); },
       });
       return;
     }
@@ -301,12 +299,13 @@ function checkMedia(stunHosts: string[]): Promise<CheckResult> {
     };
 
     const verdict = () => {
+      const found = { host, srflx };
       if (srflx > 0) {
         finish({
           id: "media",
-          label,
+          get label() { return label(); },
           status: "pass",
-          detail: `UDP leaves this machine: ${host} local and ${srflx} public candidate${srflx === 1 ? "" : "s"}. This does not prove the server's media port is open, only that this end can send.`,
+          get detail() { return socketI18n.t("socketFull.serverDoctor_6e27d91656", { p0: found.host, p1: found.srflx, count: found.srflx }); },
         });
         return;
       }
@@ -314,9 +313,9 @@ function checkMedia(stunHosts: string[]): Promise<CheckResult> {
       if (host > 0) {
         finish({
           id: "media",
-          label,
+          get label() { return label(); },
           status: "warn",
-          detail: `Found ${host} local candidate${host === 1 ? "" : "s"} but no public one, so STUN got no answer. On mobile data this is expected and voice will not connect; on Wi-Fi it usually means UDP is blocked.`,
+          get detail() { return socketI18n.t("socketFull.serverDoctor_722103c8e7", { p0: found.host, count: found.host }); },
           help: HELP.media,
         });
         return;
@@ -324,9 +323,9 @@ function checkMedia(stunHosts: string[]): Promise<CheckResult> {
 
       finish({
         id: "media",
-        label,
+        get label() { return label(); },
         status: "fail",
-        detail: "No network candidates at all, so this machine cannot open a media connection to anything.",
+        get detail() { return socketI18n.t("socketFull.serverDoctor_86e60f438e"); },
         help: HELP.media,
       });
     };
@@ -348,9 +347,9 @@ function checkMedia(stunHosts: string[]): Promise<CheckResult> {
       .catch(() =>
         finish({
           id: "media",
-          label,
+          get label() { return label(); },
           status: "fail",
-          detail: "WebRTC refused to start on this machine.",
+          get detail() { return socketI18n.t("socketFull.serverDoctor_08441ed064"); },
           help: HELP.media,
         }),
       );
@@ -362,7 +361,7 @@ function checkMedia(stunHosts: string[]): Promise<CheckResult> {
  * — Chrome reports `nominated: false` on every pair, including the one it uses.
  */
 function describeSelectedPair(stats: RTCStatsReport): string {
-  const generic = "Connected to the voice server and media flowed.";
+  const generic = socketI18n.t("socketFull.serverDoctor_0e6a555b81");
 
   let selectedId: string | undefined;
   let succeeded: RTCIceCandidatePairStats | undefined;
@@ -385,7 +384,7 @@ function describeSelectedPair(stats: RTCStatsReport): string {
   const remote = stats.get(pair.remoteCandidateId ?? "");
   if (!local || !remote) return generic;
 
-  return `Connected. Media took ${local.candidateType} → ${remote.candidateType}, reaching the server at ${remote.address}:${remote.port} over ${String(remote.protocol ?? "udp").toUpperCase()}.`;
+  return socketI18n.t("socketFull.serverDoctor_84e2062695", { p0: (local.candidateType), p1: (remote.candidateType), p2: (remote.address), p3: (remote.port), p4: (String(remote.protocol ?? "udp").toUpperCase()) });
 }
 
 /**
@@ -413,10 +412,10 @@ async function checkCall(
   grant: DoctorRoomGrant,
   stunHosts: string[],
 ): Promise<CheckResult> {
-  const label = "A real call to this server";
+  const label = () => socketI18n.t("socketFull.serverDoctor_8fe61f78a5");
 
   if (typeof RTCPeerConnection === "undefined") {
-    return { id: "call", label, status: "skipped", detail: "This client cannot test WebRTC." };
+    return { id: "call", get label() { return label(); }, status: "skipped", get detail() { return socketI18n.t("socketFull.serverDoctor_a0bd284d8a"); } };
   }
 
   const url = sfuWsUrl(grant.sfu_urls?.[0] ?? grant.sfu_url ?? "");
@@ -448,9 +447,9 @@ async function checkCall(
       () =>
         finish({
           id: "call",
-          label,
+          get label() { return label(); },
           status: "fail",
-          detail: `Negotiation started but never connected within ${CALL_TIMEOUT_MS / 1000}s. Signalling works and media does not, which almost always means the UDP port is closed or the network drops UDP.`,
+          get detail() { return socketI18n.t("socketFull.serverDoctor_ef9239f41a", { p0: (CALL_TIMEOUT_MS / 1000) }); },
           help: HELP.media,
         }),
       CALL_TIMEOUT_MS,
@@ -459,9 +458,9 @@ async function checkCall(
     ws.onerror = () =>
       finish({
         id: "call",
-        label,
+        get label() { return label(); },
         status: "fail",
-        detail: `Could not open a connection to ${url}.`,
+        get detail() { return socketI18n.t("socketFull.serverDoctor_613361b7bf", { p0: (url) }); },
         help: HELP.sfu,
       });
 
@@ -487,9 +486,9 @@ async function checkCall(
       if (message.event === "error") {
         finish({
           id: "call",
-          label,
+          get label() { return label(); },
           status: "fail",
-          detail: `The voice server refused the test room: ${message.data ?? "no reason given"}.`,
+          get detail() { return socketI18n.t("socketFull.serverDoctor_3f7b66646a", { p0: (message.data ?? socketI18n.t("socketFull.serverDoctor_e81ba6962f")) }); },
           help: HELP.sfu,
         });
         return;
@@ -507,9 +506,9 @@ async function checkCall(
           } catch {
             finish({
               id: "call",
-              label,
+              get label() { return label(); },
               status: "fail",
-              detail: "The voice server offered a connection this client could not answer.",
+              get detail() { return socketI18n.t("socketFull.serverDoctor_41dd8a5cbe"); },
               help: HELP.media,
             });
           }
@@ -536,10 +535,9 @@ async function checkCall(
         clearTimeout(timer);
         finish({
           id: "call",
-          label,
+          get label() { return label(); },
           status: "fail",
-          detail:
-            "ICE tried every path it had and none worked. Gryt has no relay, so a network that will not pass UDP cannot carry a call.",
+          get detail() { return socketI18n.t("socketFull.serverDoctor_aeb79ce6dd"); },
           help: HELP.media,
         });
         return;
@@ -556,17 +554,17 @@ async function checkCall(
         .then((stats) => {
           finish({
             id: "call",
-            label,
+            get label() { return label(); },
             status: "pass",
-            detail: describeSelectedPair(stats),
+            get detail() { return describeSelectedPair(stats); },
           });
         })
         .catch(() =>
           finish({
             id: "call",
-            label,
+            get label() { return label(); },
             status: "pass",
-            detail: "Connected to the voice server and media flowed.",
+            get detail() { return socketI18n.t("socketFull.serverDoctor_0e6a555b81"); },
           }),
         );
     };
@@ -599,7 +597,13 @@ export async function runDoctor(
 
   const set = (id: CheckId, patch: Partial<CheckResult>) => {
     const index = results.findIndex((r) => r.id === id);
-    if (index >= 0) results[index] = { ...results[index], ...patch };
+    if (index >= 0) {
+      // Preserve lazy display fields while the diagnostic data stays unchanged.
+      results[index] = Object.defineProperties({}, {
+        ...Object.getOwnPropertyDescriptors(results[index]),
+        ...Object.getOwnPropertyDescriptors(patch),
+      }) as CheckResult;
+    }
     onUpdate([...results]);
   };
 
@@ -609,9 +613,9 @@ export async function runDoctor(
 
   set("server-socket", {
     status: input.socketConnected ? "pass" : "fail",
-    detail: input.socketConnected
-      ? "Chat and presence are connected."
-      : "Not connected. Chat will not work either, so this is the thing to fix first.",
+    get detail() { return input.socketConnected
+      ? socketI18n.t("socketFull.serverDoctor_b0acdf4332")
+      : socketI18n.t("socketFull.serverDoctor_3bb80b4337"); },
     help: input.socketConnected ? undefined : HELP.server,
   });
 
@@ -621,7 +625,7 @@ export async function runDoctor(
     for (const id of ["sfu-http", "sfu-ws", "media"] as CheckId[]) {
       set(id, {
         status: "skipped",
-        detail: "Not tested, because the server itself could not be reached.",
+        get detail() { return socketI18n.t("socketFull.serverDoctor_c4ce07c303"); },
       });
     }
     return results;
@@ -636,7 +640,7 @@ export async function runDoctor(
   if (!firstReachable) {
     set("sfu-ws", {
       status: "skipped",
-      detail: "Not tested, because no voice address answered.",
+      get detail() { return socketI18n.t("socketFull.serverDoctor_ed9bfaabd8"); },
     });
   } else {
     set("sfu-ws", { status: "running" });
@@ -650,7 +654,7 @@ export async function runDoctor(
   if (!input.requestDoctorRoom) {
     set("call", {
       status: "skipped",
-      detail: "Not tested. This client cannot ask the server for a test room.",
+      get detail() { return socketI18n.t("socketFull.serverDoctor_e1efa9c3fc"); },
     });
     return results;
   }
@@ -658,7 +662,7 @@ export async function runDoctor(
   if (!firstReachable) {
     set("call", {
       status: "skipped",
-      detail: "Not tested, because no voice address answered.",
+      get detail() { return socketI18n.t("socketFull.serverDoctor_ed9bfaabd8"); },
     });
     return results;
   }
@@ -673,10 +677,9 @@ export async function runDoctor(
   } catch (err) {
     set("call", {
       status: "fail",
-      detail:
-        err instanceof Error
-          ? `The server would not open a test room: ${err.message}`
-          : "The server would not open a test room.",
+      get detail() { return err instanceof Error
+          ? socketI18n.t("socketFull.serverDoctor_12967fd7af", { p0: (err.message) })
+          : socketI18n.t("socketFull.serverDoctor_bbe713d494"); },
       help: HELP.sfu,
     });
     return results;
@@ -687,10 +690,9 @@ export async function runDoctor(
   } catch (err) {
     set("call", {
       status: "fail",
-      detail:
-        err instanceof Error
-          ? `The test call could not be started: ${err.message}`
-          : "The test call could not be started.",
+      get detail() { return err instanceof Error
+          ? socketI18n.t("socketFull.serverDoctor_8f5582344c", { p0: (err.message) })
+          : socketI18n.t("socketFull.serverDoctor_84b7983539"); },
       help: HELP.media,
     });
   }

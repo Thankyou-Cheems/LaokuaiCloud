@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
 import { getUploadsFileUrl, resolveAvatarSrc } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 
 import { PiEyeFill, PiEyeSlashFill, PiMicrophoneSlashFill, PiScreencastFill, PiSpeakerSlashFill, PiVideoCameraFill } from "../../../../lib/icons";
 import { useDrawnVideoSize } from "../hooks/useDrawnVideoSize";
@@ -13,6 +14,7 @@ import { cameraStreamFor } from "../lib/cameraStream";
 import type { Client } from "../types/clients";
 import { stopWatchingShare, useWatchedShares, watchShare } from "../utils/watchedShares";
 import type { AdminActions, MemberInfo } from "./MemberSidebar";
+import { RemoteReceiveCorrection } from "./RemoteReceiveCorrection";
 import { SpeakingHalo } from "./SpeakingHalo";
 import {
   SPEAKING_RING,
@@ -58,8 +60,8 @@ export function VideoCard({
   objectFit = "cover",
   objectPosition,
   onClick,
-  pendingLabel = "Connecting video…",
-  stalledLabel = "Video isn't coming through",
+  pendingLabel = socketI18n.t("socketFull.voiceParticipantCard_d43332fe69"),
+  stalledLabel = socketI18n.t("socketFull.voiceParticipantCard_6dd817b1b3"),
 }: {
   stream: MediaStream | null;
   nickname: string;
@@ -76,6 +78,7 @@ export function VideoCard({
   /** Shown instead of `pendingLabel` once the stream is overdue. */
   stalledLabel?: string;
 }) {
+  useSocketTranslation();
   const ref = useRef<HTMLVideoElement | null>(null);
   const [isStalled, setIsStalled] = useState(false);
   useDrawnVideoSize(ref, stream, objectFit);
@@ -219,6 +222,7 @@ function MutedBadge({
   deafened: boolean;
   tileHeight: number;
 }) {
+  useSocketTranslation();
   const size = tileHeight >= 170 ? 28 : 20;
 
   return (
@@ -294,19 +298,20 @@ function LatencyBadge({
   stats: LatencyDisplayStats | undefined;
   isSelf: boolean;
 }) {
+  useSocketTranslation();
   const oneWay = stats?.estimatedOneWayMs;
   if (oneWay == null) return null;
 
   const tooltipParts = [
-    `RTT: ${stats?.networkRttMs?.toFixed(0) ?? "—"}ms`,
-    `Jitter: ${stats?.jitterMs?.toFixed(1) ?? "—"}ms`,
+    socketI18n.t("socketFull.voiceParticipantCard_f6b355050f", { p0: (stats?.networkRttMs?.toFixed(0) ?? "—") }),
+    socketI18n.t("socketFull.voiceParticipantCard_a7ccb57663", { p0: (stats?.jitterMs?.toFixed(1) ?? "—") }),
     stats?.codec ?? "—",
   ];
 
   /* The route, never the address: a tile is on screen during a stream, and the
      address is the server's. */
   if (isSelf && stats?.candidateType) {
-    tooltipParts.push(`Route: ${stats.candidateType}`);
+    tooltipParts.push(socketI18n.t("socketFull.voiceParticipantCard_5816ff1a3a", { p0: (stats.candidateType) }));
   }
 
   return (
@@ -316,8 +321,7 @@ function LatencyBadge({
           fontVariantNumeric: "tabular-nums",
           cursor: "default",
         }}>
-        {Math.round(oneWay)}ms
-      </span>
+        {Math.round(oneWay)}{socketI18n.t("socketFull.voiceParticipantCard_2373c7fd93")}</span>
     </Tooltip>
   );
 }
@@ -377,6 +381,7 @@ export function VoiceParticipantCard({
   /** Overridden to 12 for the two-participant picture-in-picture tile. */
   tileRadius?: number;
 }) {
+  useSocketTranslation();
   const isScreenTile = itemId.startsWith("screen:");
   const { framingByClient, localFraming } = useVideoFraming();
   const serverUserId: string | undefined = client?.serverUserId;
@@ -413,7 +418,7 @@ export function VoiceParticipantCard({
 
     if (!screenStream && !hasPendingRemoteScreen) return null;
 
-    const screenTitle = isSelf ? "Your Screen" : `${client.nickname}'s Screen`;
+    const screenTitle = isSelf ? socketI18n.t("socketFull.voiceParticipantCard_701b0d9320") : socketI18n.t("socketFull.voiceParticipantCard_4857ce7b94", { p0: (client.nickname) });
     const shareId = client.screenShareVideoStreamID;
     // Someone else's share waits for a click: nothing draws or plays until you choose to watch.
     const watching = isSelf || (!!shareId && watchedShares.has(shareId));
@@ -480,10 +485,9 @@ export function VoiceParticipantCard({
             style={{ borderRadius: tileRadius, background: "var(--gryt-neutral-3)", color: "var(--gryt-neutral-11)" }}
           >
             <PiScreencastFill size={28} />
-            <span className="text-sm">{client.nickname} is sharing their screen</span>
+            <span className="text-sm">{client.nickname}{" "}{socketI18n.t("socketFull.voiceParticipantCard_ebab14942a")}</span>
             <Button size="small" onClick={() => shareId && watchShare(shareId)}>
-              <PiEyeFill size={14} /> Watch stream
-            </Button>
+              <PiEyeFill size={14} />{" "}{socketI18n.t("socketFull.voiceParticipantCard_6f402b7660")}</Button>
           </div>
         ) : (
           <div className="group relative h-full w-full">
@@ -497,13 +501,13 @@ export function VoiceParticipantCard({
               objectFit="contain"
               pendingLabel={
                 isSelf
-                  ? "Starting your screen share…"
-                  : `${client.nickname} is starting their screen share…`
+                  ? socketI18n.t("socketFull.voiceParticipantCard_2b49434be7")
+                  : socketI18n.t("socketFull.voiceParticipantCard_94545e6685", { p0: (client.nickname) })
               }
               stalledLabel={
                 isSelf
-                  ? "Your screen isn't coming through"
-                  : `${client.nickname}'s screen isn't coming through`
+                  ? socketI18n.t("socketFull.voiceParticipantCard_1e0780b5e2")
+                  : socketI18n.t("socketFull.voiceParticipantCard_2bfc47025c", { p0: (client.nickname) })
               }
               statusIcons={<PiScreencastFill size={10} color="var(--gryt-secondary-9)" />}
               onClick={
@@ -521,10 +525,10 @@ export function VoiceParticipantCard({
               }
             />
             {!isSelf && shareId && (
-              <Tooltip title="Stop watching">
+              <Tooltip title={socketI18n.t("socketFull.voiceParticipantCard_1676589255")}>
                 <button
                   type="button"
-                  aria-label="Stop watching"
+                  aria-label={socketI18n.t("socketFull.voiceParticipantCard_1676589255")}
                   data-gryt="share-stop-watching"
                   className="absolute bottom-2 right-2 flex items-center rounded-full border-0 p-2 opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
                   style={{ background: "rgba(0,0,0,0.6)", color: "white", cursor: "pointer" }}
@@ -571,12 +575,11 @@ export function VoiceParticipantCard({
   const statusBadges = (
     <>
       <VoiceModeIcon host={serverHost} member={serverUserId} isSelf={isSelf} />
+      {!isSelf && <RemoteReceiveCorrection />}
       {/* Mute and deafen are the top-right badge now, not an icon in the name
           row. Everything else still belongs beside the name. */}
       {client.isAFK && (
-        <span className="text-xs font-bold" style={{ color: "#fff" }}>
-          AFK
-        </span>
+        <span className="text-xs font-bold" style={{ color: "#fff" }}>{socketI18n.t("socketFull.voiceParticipantCard_47ce15dbdf")}</span>
       )}
 
       {(client.cameraEnabled || fallbackCameraStreamID) && (
@@ -701,7 +704,7 @@ export function VoiceParticipantCard({
           </div>
         )}
 
-        {compact && <VoiceModeIcon host={serverHost} member={serverUserId} isSelf={isSelf} />}
+        {compact && <><VoiceModeIcon host={serverHost} member={serverUserId} isSelf={isSelf} />{!isSelf && <RemoteReceiveCorrection />}</>}
 
         {/* Mute state moved to the tile's top-right badge, so this chip is
             only still carrying it in the compact strip, which has no tile to
@@ -719,9 +722,7 @@ export function VoiceParticipantCard({
             ) : null}
 
             {client.isAFK && (
-              <span className="text-xs font-bold text-gryt-warning">
-                AFK
-              </span>
+              <span className="text-xs font-bold text-gryt-warning">{socketI18n.t("socketFull.voiceParticipantCard_47ce15dbdf")}</span>
             )}
           </div>
         )}
@@ -793,7 +794,7 @@ export function VoiceParticipantCard({
               <MutedBadge deafened={!!client.isDeafened} tileHeight={tileHeight} />
             ) : undefined
           }
-          pendingLabel="Connecting video…"
+          pendingLabel={socketI18n.t("socketFull.voiceParticipantCard_d43332fe69")}
           onClick={
             cameraStream
               ? () =>
@@ -801,8 +802,8 @@ export function VoiceParticipantCard({
                     itemId,
                     stream: cameraStream,
                     title: isSelf
-                      ? "Your Camera"
-                      : `${client.nickname}'s Camera`,
+                      ? socketI18n.t("socketFull.voiceParticipantCard_c7c7f2868a")
+                      : socketI18n.t("socketFull.voiceParticipantCard_ce50fb3488", { p0: (client.nickname) }),
                     objectFit: "cover",
                     mirrored: isSelf ? cameraMirrored : false,
                   })
@@ -862,7 +863,7 @@ export function VoiceParticipantCard({
               onPopout(
                 itemId,
                 cameraStream,
-                isSelf ? "Your Camera" : `${client.nickname}'s Camera`,
+                isSelf ? socketI18n.t("socketFull.voiceParticipantCard_c7c7f2868a") : socketI18n.t("socketFull.voiceParticipantCard_ce50fb3488", { p0: (client.nickname) }),
               )
           : undefined
       }

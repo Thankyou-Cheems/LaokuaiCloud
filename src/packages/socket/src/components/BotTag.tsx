@@ -1,14 +1,16 @@
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 /**
  * The mark that says a bot wrote this. Derived by the server from the identity,
  * so a person cannot spell their way into it and a bot cannot spell its way out.
  */
 export function BotTag({ size = "normal" }: { size?: "normal" | "small" }) {
+  useSocketTranslation();
   return (
     <span
       // Read out as a word rather than as three letters, for anyone listening
       // rather than looking.
-      aria-label="This account is a bot"
-      title="A bot. Its permissions were granted by a server admin."
+      aria-label={socketI18n.t("socketFull.botTag_23c7a7d4f5")}
+      title={socketI18n.t("socketFull.botTag_d2a674398e")}
       style={{
         display: "inline-flex",
         alignItems: "center",
@@ -25,8 +27,6 @@ export function BotTag({ size = "normal" }: { size?: "normal" | "small" }) {
         textTransform: "uppercase",
         verticalAlign: "middle",
       }}
-    >
-      Bot
-    </span>
+    >{socketI18n.t("socketFull.botTag_a8520fa1f2")}</span>
   );
 }

@@ -84,7 +84,7 @@ test("guest application shell starts in Chinese without hardware or external ser
   await page.goto("/");
   await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
   await expect(page.getByRole("button", { name: "设置与账号", exact: true })).toBeVisible({ timeout: 30000 });
-  await expect(page.getByRole("heading", { name: "欢迎使用老蒯聊" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "欢迎使用唠蒯" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "我自己看看" })).toHaveCount(0);
   await page.getByRole("button", { name: "设置与账号", exact: true }).click();
   await page.getByRole("menuitem", { name: "设置", exact: true }).click();
@@ -96,9 +96,10 @@ test("guest application shell starts in Chinese without hardware or external ser
   await nickname.dispatchEvent("keydown", { key: "Enter", keyCode: 229 });
   await expect(nickname).toBeFocused();
   await nickname.press("Enter");
-  await expect(nickname).not.toBeFocused();
+  await expect(page.getByRole("button", { name: "保存昵称", exact: true })).toBeDisabled();
+  await expect(nickname).toHaveValue("中文昵称 Alice");
   await page.getByPlaceholder("搜索设置").fill("均衡");
-  await page.locator(".gryt-settings-result").filter({ hasText: "接收响度均衡" }).first().click();
+  await page.locator(".gryt-settings-result").filter({ hasText: "自动平衡队友音量" }).first().click();
   const leveling = page.locator('[data-setting="receive-leveling"]');
   await expect(leveling).toBeVisible();
   await expect(leveling.getByRole("switch")).toHaveAttribute("aria-checked", "true");

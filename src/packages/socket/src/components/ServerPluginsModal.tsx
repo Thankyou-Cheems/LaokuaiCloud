@@ -1,7 +1,9 @@
 import { Dialog, IconButton, Surface } from "@gryt/ui";
 import { useEffect, useState } from "react";
+import { Trans } from "react-i18next";
 
 import { type AnnouncedPlugin,pluginsOn, useAddons } from "@/addons";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 
 import { PiX } from "../../../../lib/icons";
 import {
@@ -18,6 +20,7 @@ import {
 type OpenDetail = { host: string };
 
 export function ServerPluginsModal() {
+  useSocketTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [host, setHost] = useState("");
   const [plugins, setPlugins] = useState<AnnouncedPlugin[]>([]);
@@ -55,7 +58,7 @@ export function ServerPluginsModal() {
         <Dialog.Popup className="w-[40rem] max-h-[calc(100dvh-3rem)] overflow-y-auto">
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
-              <Dialog.Title>What {host || "this server"} runs</Dialog.Title>
+              <Dialog.Title><Trans i18n={socketI18n} i18nKey="socketFull.serverPluginsTitle" values={{ server: host || socketI18n.t("socketFull.serverPluginsModal_007b4db740") }} /></Dialog.Title>
               <Dialog.Close>
                 <IconButton tone="ghost" size="xsmall" onClick={close}>
                   <PiX size={16} />
@@ -63,10 +66,7 @@ export function ServerPluginsModal() {
               </Dialog.Close>
             </div>
 
-            <span className="text-sm text-gryt-muted">
-              Plugins run inside the server, so they see what goes through it.
-              Whoever runs this server chose these.
-            </span>
+            <span className="text-sm text-gryt-muted">{socketI18n.t("socketFull.serverPluginsModal_5408ca9351")}</span>
 
             {/*
               The Minecraft line, without the throwing-out. A server plugin
@@ -79,13 +79,10 @@ export function ServerPluginsModal() {
                 <div className="flex flex-col gap-1">
                   <span className="text-sm font-bold">
                     {missing.length === 1
-                      ? "One of these has a part you do not have"
-                      : `${missing.length} of these have parts you do not have`}
+                      ? socketI18n.t("socketFull.serverPluginsModal_20907636a6")
+                      : socketI18n.t("socketFull.serverPluginsModal_3546d4af2d", { p0: (missing.length) })}
                   </span>
-                  <span className="text-xs text-gryt-muted">
-                    Everything here works without them. You will just not see
-                    whatever they add.
-                  </span>
+                  <span className="text-xs text-gryt-muted">{socketI18n.t("socketFull.serverPluginsModal_e60bfe4de6")}</span>
                 </div>
               </Surface>
             ) : null}
@@ -100,10 +97,10 @@ export function ServerPluginsModal() {
                       <span className="text-sm font-bold">
                         {plugin.name}
                         {plugin.author ? (
-                          <span className="font-normal text-gryt-muted"> by {plugin.author}</span>
+                          <span className="font-normal text-gryt-muted">{" "}{socketI18n.t("settingsFull.m408158643e")}{" "}{plugin.author}</span>
                         ) : null}
                         {missingIds.has(plugin.id) ? (
-                          <span className="font-normal text-gryt-muted"> · not installed here</span>
+                          <span className="font-normal text-gryt-muted">{" "}{socketI18n.t("socketFull.serverPluginsModal_44796c0d2e")}</span>
                         ) : null}
                       </span>
 
@@ -124,9 +121,7 @@ export function ServerPluginsModal() {
                       </ul>
 
                       {plugin.capabilities.length === 0 ? (
-                        <span className="text-xs text-gryt-muted">
-                          Asked for nothing, so it only sees what the server tells it.
-                        </span>
+                        <span className="text-xs text-gryt-muted">{socketI18n.t("socketFull.serverPluginsModal_674f9feadd")}</span>
                       ) : null}
 
                       {/* Nowhere to send them. Worth saying, because "you are
@@ -134,9 +129,7 @@ export function ServerPluginsModal() {
                           broken link rather than as a plugin whose author gave
                           no address. */}
                       {missingIds.has(plugin.id) && !plugin.homepage ? (
-                        <span className="text-xs text-gryt-muted">
-                          Whoever runs the server knows where this came from.
-                        </span>
+                        <span className="text-xs text-gryt-muted">{socketI18n.t("socketFull.serverPluginsModal_abc6f60874")}</span>
                       ) : null}
 
                       {plugin.homepage ? (
@@ -148,7 +141,7 @@ export function ServerPluginsModal() {
                           target="_blank"
                           rel="noreferrer noopener"
                         >
-                          {missingIds.has(plugin.id) ? "Where to get it" : "Read about it"}
+                          {missingIds.has(plugin.id) ? socketI18n.t("socketFull.serverPluginsModal_59ef0d8e70") : socketI18n.t("socketFull.serverPluginsModal_ec321f829b")}
                         </a>
                       ) : null}
                     </div>

@@ -1,9 +1,11 @@
 import { Button, Chip, Dialog, IconButton, ScrollArea, Spinner, Tooltip } from "@gryt/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
+import { Trans } from "react-i18next";
 import type { Socket } from "socket.io-client";
 
 import { getServerAccessToken } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 
 import { PiBootFill, PiCheck, PiProhibitFill, PiTrashFill, PiWarningCircle, PiWarningFill } from "../../../../lib/icons";
@@ -64,6 +66,7 @@ export function ReportsPanel({
   serverHost: string;
   memberList?: Array<{ nickname: string; serverUserId: string }>;
 }) {
+  useSocketTranslation();
   const [reports, setReports] = useState<AggregatedReport[]>([]);
   const [userReports, setUserReports] = useState<AggregatedUserReport[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -71,7 +74,7 @@ export function ReportsPanel({
    * Why the queue is not here, when it is not here. The spinner was cleared in
    * one place — the reply — so a refusal or a dead socket left it turning.
    */
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | { key: string; values?: Record<string, string | number> } | null>(null);
 
   /* The handlers below outlive the render they were attached in, so they ask a
      ref rather than a closure over `isLoading` from whenever that was. */
@@ -101,13 +104,13 @@ export function ReportsPanel({
        here — no socket, or no token — so a spinner would wait for nothing. */
     if (!socket || !socket.connected || !serverHost) {
       setIsLoading(false);
-      setLoadError("Not connected to this server.");
+      setLoadError({ key: "socketFull.reportsPanel_98395f15d6" });
       return;
     }
     const accessToken = getServerAccessToken(serverHost);
     if (!accessToken) {
       setIsLoading(false);
-      setLoadError("Join this server again to see its reports.");
+      setLoadError({ key: "socketFull.reportsPanel_273b1f7251" });
       return;
     }
 
@@ -137,13 +140,13 @@ export function ReportsPanel({
     const onServerError = (payload?: { message?: string }) => {
       if (!loadingRef.current) return;
       setIsLoading(false);
-      setLoadError(payload?.message || "Couldn't load the reports.");
+      setLoadError(payload?.message || { key: "socketFull.reportsPanel_687974530b" });
     };
 
     const onDisconnect = () => {
       if (!loadingRef.current) return;
       setIsLoading(false);
-      setLoadError("Lost the connection to this server.");
+      setLoadError({ key: "socketFull.reportsPanel_a4c2dbf991" });
     };
 
     const onResolved = (payload: { messageId: string; action: string; deletedCount?: number }) => {
@@ -155,16 +158,16 @@ export function ReportsPanel({
             (r) => r.senderServerUserId !== target.senderServerUserId,
           );
         });
-        toast.success(`User banned & ${payload.deletedCount ?? 0} messages deleted`);
+        toast.success(socketI18n.t("socketFull.reportsPanel_1ed2d2d055", { p0: (payload.deletedCount ?? 0) }));
       } else {
         const wasUnverified = reportsRef.current.find(
           (r) => r.messageId === payload.messageId,
         )?.unverified;
         setReports((prev) => prev.filter((r) => r.messageId !== payload.messageId));
         if (payload.action === "approve") {
-          toast.success("Report dismissed");
+          toast.success(socketI18n.t("socketFull.reportsPanel_9d0988b45a"));
         } else if (payload.action === "delete") {
-          toast.success(wasUnverified ? "Report closed" : "Message deleted");
+          toast.success(wasUnverified ? socketI18n.t("socketFull.reportsPanel_fabfcf3d72") : socketI18n.t("socketFull.reportsPanel_dcfa20cac1"));
         }
       }
       setConfirmAction(null);
@@ -177,9 +180,9 @@ export function ReportsPanel({
       setUserReports((prev) =>
         prev.filter((r) => r.reportedServerUserId !== payload.reportedServerUserId),
       );
-      if (payload.action === "dismiss") toast.success("Report dismissed");
-      else if (payload.action === "kick") toast.success("User kicked");
-      else toast.success("User banned");
+      if (payload.action === "dismiss") toast.success(socketI18n.t("socketFull.reportsPanel_9d0988b45a"));
+      else if (payload.action === "kick") toast.success(socketI18n.t("socketFull.reportsPanel_82715fe9b5"));
+      else toast.success(socketI18n.t("socketFull.reportsPanel_3790d0dcf9"));
       setConfirmUserAction(null);
     };
 
@@ -275,19 +278,14 @@ export function ReportsPanel({
           <Dialog.Popup className="w-[43.75rem] max-h-[80vh]">
           <Dialog.Title>
             <div className="flex items-center gap-2">
-              <PiWarningFill size={16} />
-              Reports
-              {reports.length + userReports.length > 0 && (
+              <PiWarningFill size={16} />{socketI18n.t("ui.reports")}{reports.length + userReports.length > 0 && (
                 <Chip tone="danger">
                   {reports.length + userReports.length}
                 </Chip>
               )}
             </div>
           </Dialog.Title>
-          <Dialog.Description>
-            Reported messages, and people reported for something with no single
-            message behind it.
-          </Dialog.Description>
+          <Dialog.Description>{socketI18n.t("socketFull.reportsPanel_d316b2d8ba")}</Dialog.Description>
 
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
@@ -298,17 +296,13 @@ export function ReportsPanel({
                panel admitting it does not know. */
             <div className="flex flex-col items-center justify-center py-12 gap-3">
               <PiWarningCircle size={32} style={{ color: "var(--gryt-warning-9)" }} />
-              <span className="text-base text-gryt-muted">{loadError}</span>
-              <Button tone="neutral" size="small" onClick={fetchReports}>
-                Try again
-              </Button>
+              <span className="text-base text-gryt-muted">{typeof loadError === "string" ? loadError : socketI18n.t(loadError.key, loadError.values)}</span>
+              <Button tone="neutral" size="small" onClick={fetchReports}>{socketI18n.t("ui.tryAgain")}</Button>
             </div>
           ) : reports.length === 0 && userReports.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 gap-2">
               <PiCheck size={32} style={{ color: "var(--gryt-success-9)" }} />
-              <span className="text-base text-gryt-muted">
-                No pending reports
-              </span>
+              <span className="text-base text-gryt-muted">{socketI18n.t("socketFull.reportsPanel_77a1513187")}</span>
             </div>
           ) : (
             <ScrollArea.Root className="max-h-[55vh]">
@@ -321,8 +315,7 @@ export function ReportsPanel({
                     channel doing the work of being the evidence. */}
                 {userReports.length > 0 && (
                   <>
-                    <span className="text-xs font-bold text-gryt-muted">
-                      People — {userReports.length}
+                    <span className="text-xs font-bold text-gryt-muted">{socketI18n.t("socketFull.reportsPanel_a0c70300f9")}{" "}{userReports.length}
                     </span>
                     {userReports.map((report) => (
                       <UserReportCard
@@ -343,8 +336,7 @@ export function ReportsPanel({
                   <span
                     className="text-xs font-bold text-gryt-muted"
                     style={{ marginTop: userReports.length > 0 ? 8 : undefined }}
-                  >
-                    Messages — {reports.length}
+                  >{socketI18n.t("socketFull.reportsPanel_8b6d08edb9")}{" "}{reports.length}
                   </span>
                 )}
                 {reports.map((report) => (
@@ -369,9 +361,7 @@ export function ReportsPanel({
 
           <div className="flex justify-end mt-4">
             <Dialog.Close>
-              <Button tone="neutral" size="small">
-                Close
-              </Button>
+              <Button tone="neutral" size="small">{socketI18n.t("ui.close")}</Button>
             </Dialog.Close>
           </div>
         </Dialog.Popup>
@@ -383,30 +373,26 @@ export function ReportsPanel({
         onOpenChange={(open) => !open && setConfirmAction(null)}
         title={
           confirmAction?.action === "delete_all_and_ban"
-            ? "Delete all messages & ban user?"
+            ? socketI18n.t("socketFull.reportsPanel_1cea99f001")
             : confirmAction?.report.unverified
-              ? "Close this report?"
-              : "Delete this message?"
+              ? socketI18n.t("socketFull.reportsPanel_b2090b103d")
+              : socketI18n.t("socketFull.reportsPanel_5c6f7e3163")
         }
         description={
           confirmAction?.action === "delete_all_and_ban" ? (
-            <>
-              This will permanently delete <strong>all messages</strong> from{" "}
-              <strong>{confirmAction.report.senderNickname || "this user"}</strong> across
-              every channel and ban them from the server. This cannot be undone.
-            </>
+            <><Trans i18n={socketI18n} i18nKey="socketFull.deleteAllAndBanDescription" values={{ name: confirmAction.report.senderNickname || socketI18n.t("socketFull.reportsPanel_4ae773f31c") }} components={{ all: <strong />, name: <strong /> }} /></>
           ) : confirmAction?.report.unverified ? (
-            "This closes the report. The message itself stays untouched. It's end-to-end encrypted, so only the people in that conversation have a copy."
+            socketI18n.t("socketFull.reportsPanel_0c6c287cb6")
           ) : (
-            "This will permanently delete this reported message. This cannot be undone."
+            socketI18n.t("socketFull.reportsPanel_fa4eac669f")
           )
         }
         confirmLabel={
           confirmAction?.action === "delete_all_and_ban"
-            ? "Delete All & Ban"
+            ? socketI18n.t("socketFull.reportsPanel_5cb690b0d7")
             : confirmAction?.report.unverified
-              ? "Close Report"
-              : "Delete Message"
+              ? socketI18n.t("socketFull.reportsPanel_e2101cff8e")
+              : socketI18n.t("socketFull.reportsPanel_3f719800c2")
         }
         onConfirm={() => {
           if (!confirmAction) return;
@@ -423,7 +409,7 @@ export function ReportsPanel({
         onOpenChange={(open) => !open && setConfirmUserAction(null)}
         title={
           <>
-            {confirmUserAction?.action === "ban" ? "Ban" : "Kick"}{" "}
+            {confirmUserAction?.action === "ban" ? socketI18n.t("socketFull.reportsPanel_19b2282d14") : socketI18n.t("socketFull.reportsPanel_cf95f06020")}{" "}
             {confirmUserAction?.report.reportedNickname ||
               (confirmUserAction ? getNickname(confirmUserAction.report.reportedServerUserId) : "")}
             ?
@@ -432,12 +418,10 @@ export function ReportsPanel({
         description={
           <>
             {confirmUserAction?.action === "ban"
-              ? "They are removed and cannot rejoin. Their messages stay where they are — delete those from the message queue or their profile if they should go too."
-              : "They are removed now and can rejoin. Their messages stay where they are."}{" "}
-            Every open report about them is closed either way.
-          </>
+              ? socketI18n.t("socketFull.reportsPanel_3cb0084e3f")
+              : socketI18n.t("socketFull.reportsPanel_f789489538")}{" "}{socketI18n.t("socketFull.reportsPanel_216ea21c4c")}</>
         }
-        confirmLabel={confirmUserAction?.action === "ban" ? "Ban" : "Kick"}
+        confirmLabel={confirmUserAction?.action === "ban" ? socketI18n.t("socketFull.reportsPanel_19b2282d14") : socketI18n.t("socketFull.reportsPanel_cf95f06020")}
         onConfirm={() => {
           if (!confirmUserAction) return;
           resolveUser(confirmUserAction.report, confirmUserAction.action);
@@ -464,6 +448,7 @@ function UserReportCard({
   onKick: () => void;
   onBan: () => void;
 }) {
+  useSocketTranslation();
   const name = report.reportedNickname || getNickname(report.reportedServerUserId);
 
   return (
@@ -480,7 +465,7 @@ function UserReportCard({
               {name}
             </span>
             <Chip tone="danger">
-              {report.reportCount} {report.reportCount === 1 ? "report" : "reports"}
+              {report.reportCount} {report.reportCount === 1 ? socketI18n.t("socketFull.reportsPanel_4fd06eef30") : socketI18n.t("socketFull.reportsPanel_e7ccabb120")}
             </Chip>
           </div>
 
@@ -520,11 +505,11 @@ function UserReportCard({
           {/* Named as well as tooltipped. A tooltip is not an accessible name,
               and three unlabelled icons on a moderation card are three
               identical buttons to a screen reader. */}
-          <Tooltip title="Dismiss (nothing to do here)">
+          <Tooltip title={socketI18n.t("socketFull.reportsPanel_76e8df43b2")}>
             <IconButton
               tone="neutral"
               size="medium"
-              aria-label={`Dismiss the reports about ${name}`}
+              aria-label={socketI18n.t("socketFull.reportsPanel_2f337b855e", { p0: (name) })}
               onClick={onDismiss}
               style={{ cursor: "pointer" }}
             >
@@ -533,11 +518,11 @@ function UserReportCard({
           </Tooltip>
 
           {canKick && (
-            <Tooltip title="Kick them from the server">
+            <Tooltip title={socketI18n.t("socketFull.reportsPanel_8e9553b5ed")}>
               <IconButton
                 tone="danger"
                 size="medium"
-                aria-label={`Kick ${name} from the server`}
+                aria-label={socketI18n.t("socketFull.reportsPanel_4877ca3b43", { p0: (name) })}
                 onClick={onKick}
                 style={{ cursor: "pointer" }}
               >
@@ -547,11 +532,11 @@ function UserReportCard({
           )}
 
           {canBan && (
-            <Tooltip title="Ban them from the server">
+            <Tooltip title={socketI18n.t("socketFull.reportsPanel_1e0cb74777")}>
               <IconButton
                 tone="danger"
                 size="medium"
-                aria-label={`Ban ${name} from the server`}
+                aria-label={socketI18n.t("socketFull.reportsPanel_bfe9009f51", { p0: (name) })}
                 onClick={onBan}
                 style={{ cursor: "pointer" }}
               >
@@ -577,11 +562,12 @@ function ReportAttachment({
   serverHost: string;
   onOpenImage: (src: string, alt: string) => void;
 }) {
+  useSocketTranslation();
   const { chatMediaVolume, setChatMediaVolume } = useSettings();
   const [url, refreshUrl] = useStableFileUrl(serverHost, fileId);
   const [thumbUrl, refreshThumb] = useStableFileUrl(serverHost, fileId, true);
   const mime = meta?.mime || "";
-  const name = meta?.original_name || "Attachment";
+  const name = meta?.original_name || socketI18n.t("socketFull.reportsPanel_6f6cfef69c");
 
   if (mime.startsWith("image/")) {
     return (
@@ -645,6 +631,7 @@ function ReportCard({
   onDelete: () => void;
   onDeleteAllAndBan: () => void;
 }) {
+  useSocketTranslation();
   const [lightboxImage, setLightboxImage] = useState<{ src: string; alt: string } | null>(null);
 
   return (
@@ -662,11 +649,11 @@ function ReportCard({
                 {report.senderNickname || getNickname(report.senderServerUserId)}
               </span>
               <Chip tone="danger">
-                {report.reportCount} {report.reportCount === 1 ? "report" : "reports"}
+                {report.reportCount} {report.reportCount === 1 ? socketI18n.t("socketFull.reportsPanel_4fd06eef30") : socketI18n.t("socketFull.reportsPanel_e7ccabb120")}
               </Chip>
               {report.unverified && (
-                <Tooltip title="This came from an encrypted DM, so the server never had a copy. It's what the reporter's app says the message was.">
-                  <Chip>Reporter&rsquo;s copy, unverified</Chip>
+                <Tooltip title={socketI18n.t("socketFull.reportsPanel_8eb68441d2")}>
+                  <Chip>{socketI18n.t("socketFull.reportsPanel_0cfa33c017")}</Chip>
                 </Tooltip>
               )}
             </div>
@@ -702,22 +689,19 @@ function ReportCard({
               )}
 
               {!report.messageText && (!report.attachments || report.attachments.length === 0) && (
-                <span className="text-sm text-gryt-muted" style={{ fontStyle: "italic" }}>
-                  (empty message)
-                </span>
+                <span className="text-sm text-gryt-muted" style={{ fontStyle: "italic" }}>{socketI18n.t("socketFull.reportsPanel_e9075af20b")}</span>
               )}
             </div>
 
             <div className="flex items-center gap-1">
-              <span className="text-xs text-gryt-muted">
-                Reported by:{" "}
+              <span className="text-xs text-gryt-muted">{socketI18n.t("socketFull.reportsPanel_60b2027d89")}{" "}
                 {report.reporters.map((r) => getNickname(r)).join(", ")}
               </span>
             </div>
           </div>
 
           <div className="flex flex-col gap-2 items-center" style={{ flexShrink: 0 }}>
-            <Tooltip title="Dismiss (message is fine)">
+            <Tooltip title={socketI18n.t("socketFull.reportsPanel_3c8ede906a")}>
               <IconButton tone="neutral" size="medium"
                 onClick={onApprove}
                 style={{ cursor: "pointer" }}
@@ -726,7 +710,7 @@ function ReportCard({
               </IconButton>
             </Tooltip>
 
-            <Tooltip title={report.unverified ? "Close this report" : "Delete this message"}>
+            <Tooltip title={report.unverified ? socketI18n.t("socketFull.reportsPanel_14de4ff717") : socketI18n.t("socketFull.reportsPanel_ff3107fd9b")}>
               <IconButton tone="danger" size="medium"
                 onClick={onDelete}
                 style={{ cursor: "pointer" }}
@@ -735,7 +719,7 @@ function ReportCard({
               </IconButton>
             </Tooltip>
 
-            <Tooltip title="Delete all messages from user & ban">
+            <Tooltip title={socketI18n.t("socketFull.reportsPanel_0d7d105f19")}>
               <IconButton tone="danger" size="medium"
                 onClick={onDeleteAllAndBan}
                 style={{ cursor: "pointer" }}

@@ -1,8 +1,10 @@
 import { Button, IconButton, Surface, TextField } from "@gryt/ui";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { Trans } from "react-i18next";
 import type { Socket } from "socket.io-client";
 
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 import type { ChannelRule } from "@/settings/src/channelPermissionRules";
 
 import { PiPlusBold, PiTrashBold } from "../../../../lib/icons";
@@ -42,6 +44,7 @@ export function ServerPermissionTemplatesTab({
   socket?: Socket;
   accessToken: string | null;
 }) {
+  useSocketTranslation();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [permissions, setPermissions] = useState<string[]>([]);
   const [roles, setRoles] = useState<{ id: string; name: string; rank: number; permissions: string[] }[]>([]);
@@ -100,9 +103,9 @@ export function ServerPermissionTemplatesTab({
   };
 
   const save = () => {
-    if (!socket?.connected || !accessToken) return toast.error("Not connected to the server yet.");
+    if (!socket?.connected || !accessToken) return toast.error(socketI18n.t("socketFull.serverPermissionTemplatesTab_213e89eca7"));
     const name = draftName.trim();
-    if (!name) return toast.error("Give the template a name first.");
+    if (!name) return toast.error(socketI18n.t("socketFull.serverPermissionTemplatesTab_ac1165a90f"));
 
     setSaving(true);
     socket.emit("server:permissions:template:save", {
@@ -129,21 +132,16 @@ export function ServerPermissionTemplatesTab({
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-1">
-          <span className="text-sm font-medium">Permission templates</span>
-          <span className="text-xs">
-            A named set of channel permissions. Change it here and every channel using it changes with it.
-          </span>
+          <span className="text-sm font-medium">{socketI18n.t("socketFull.serverPermissionTemplatesTab_44557ed166")}</span>
+          <span className="text-xs">{socketI18n.t("socketFull.serverPermissionTemplatesTab_b06af636b6")}</span>
         </div>
-        <IconButton size="small" onClick={startNew} aria-label="New template">
+        <IconButton size="small" onClick={startNew} aria-label={socketI18n.t("socketFull.serverPermissionTemplatesTab_95b4494644")}>
           <PiPlusBold size={14} />
         </IconButton>
       </div>
 
       {templates.length === 0 && !isNew && (
-        <span className="text-xs">
-          No templates yet. Channels can still have their own permissions — a template is for when
-          several of them should match.
-        </span>
+        <span className="text-xs">{socketI18n.t("socketFull.serverPermissionTemplatesTab_b3be91a161")}</span>
       )}
 
       <div className="flex flex-col gap-1">
@@ -165,14 +163,14 @@ export function ServerPermissionTemplatesTab({
                     frightening, so it sits on the row rather than behind a
                     click. */}
                 {template.channelCount === 0
-                  ? "Not used by any channel yet"
-                  : `Used by ${template.channelCount} channel${template.channelCount === 1 ? "" : "s"}`}
+                  ? socketI18n.t("socketFull.serverPermissionTemplatesTab_55213a0b34")
+                  : socketI18n.t("socketFull.serverPermissionTemplatesTab_f7d386c796", { p0: (template.channelCount), count: (template.channelCount) })}
               </span>
             </button>
             {!template.isSystem && (
               <IconButton
                 size="xsmall"
-                aria-label={`Delete ${template.name}`}
+                aria-label={socketI18n.t("socketFull.serverPermissionTemplatesTab_65bafae410", { p0: (template.name) })}
                 onClick={() => remove(template)}
               >
                 <PiTrashBold size={13} />
@@ -185,11 +183,11 @@ export function ServerPermissionTemplatesTab({
       {(selected || isNew) && (
         <Surface className="flex flex-col gap-3 p-3">
           <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium">Name</span>
+            <span className="text-sm font-medium">{socketI18n.t("settingsFull.m709a23220f")}</span>
             <TextField
               value={draftName}
               onChange={(e) => setDraftName(e.target.value)}
-              placeholder="Owners only"
+              placeholder={socketI18n.t("socketFull.serverPermissionTemplatesTab_c5fd020bf3")}
             />
           </div>
 
@@ -204,20 +202,14 @@ export function ServerPermissionTemplatesTab({
           {/* Said before the save, not after. By the time it lands, anybody in
               a voice room they can no longer see has already been removed. */}
           {selected && selected.channelCount > 0 && (
-            <span className="text-xs">
-              Saving changes {selected.channelCount} channel
-              {selected.channelCount === 1 ? "" : "s"}. Anyone who loses access to one will be
-              removed from its voice room.
-            </span>
+            <span className="text-xs"><Trans i18n={socketI18n} i18nKey="socketFull.saveTemplateImpact" values={{ count: selected.channelCount }} count={selected.channelCount} /></span>
           )}
 
           <div className="flex gap-2">
             <Button size="small" disabled={saving} onClick={save}>
-              {saving ? "Saving…" : isNew ? "Create template" : "Save template"}
+              {saving ? socketI18n.t("socketFull.serverPermissionTemplatesTab_a0f752322b") : isNew ? socketI18n.t("socketFull.serverPermissionTemplatesTab_00bcc5dbe2") : socketI18n.t("socketFull.serverPermissionTemplatesTab_81fad1a780")}
             </Button>
-            <Button size="small" onClick={() => setSelectedId(null)}>
-              Cancel
-            </Button>
+            <Button size="small" onClick={() => setSelectedId(null)}>{socketI18n.t("ui.cancel")}</Button>
           </div>
         </Surface>
       )}

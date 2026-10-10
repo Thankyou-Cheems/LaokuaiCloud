@@ -4,6 +4,7 @@ import { Socket } from "socket.io-client";
 import { v4 as uuidv4 } from "uuid";
 
 import { getServerAccessToken, type NotificationLevel } from "@/common";
+import { i18n as socketHooksI18n } from "@/i18n";
 import {
   type ChannelRule,
   EVERYONE_VALUE,
@@ -18,6 +19,7 @@ import { Channel, serverDetailsList as ServerDetailsList,SidebarItem, SidebarReo
 import { type ChannelKind, fieldsToKind, kindToFields } from "../components/channelKind";
 import type { ForumTagDraft } from "../components/ForumTagsField";
 import { type ChannelPlacement, folderOf, orderBelow, placeNewChannel } from "../components/sidebarTree";
+import { socketHookToast } from "../utils/socketHookMessages";
 
 interface UseSidebarEditorParams {
   currentlyViewingServer: { host: string; name: string } | null;
@@ -241,9 +243,9 @@ export function useSidebarEditor({
   const saveScope = useCallback((choice?: string, rules?: ChannelRule[]) => {
     const item = selectedItemRef.current;
     if (!currentlyViewingServer || (item?.kind !== "channel" && item?.kind !== "folder")) return;
-    if (!currentConnection?.connected) return toast.error("Not connected to the server yet.");
+    if (!currentConnection?.connected) return toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useSidebarEditor_cdf050757e")));
     const accessToken = getFreshAccessToken();
-    if (!accessToken) return toast.error("Join the server first.");
+    if (!accessToken) return toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useSidebarEditor_f6cbf50f22")));
 
     const payload = scopeSetPayload(scopeChoiceFromValue(choice ?? sheetScopeChoice), rules ?? sheetScopeRules);
     if (item.kind === "folder") {
@@ -261,9 +263,9 @@ export function useSidebarEditor({
   const followFolder = useCallback(() => {
     const item = selectedItemRef.current;
     if (!currentlyViewingServer || item?.kind !== "channel") return;
-    if (!currentConnection?.connected) return toast.error("Not connected to the server yet.");
+    if (!currentConnection?.connected) return toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useSidebarEditor_cdf050757e")));
     const accessToken = getFreshAccessToken();
-    if (!accessToken) return toast.error("Join the server first.");
+    if (!accessToken) return toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useSidebarEditor_f6cbf50f22")));
     currentConnection.emit("server:channels:scope:follow", { accessToken, channelId: item.channelId ?? item.id });
     // The reply brings the folder's rules; the choice is already made.
     setSheetScopeFollowsFolder(true);
@@ -283,9 +285,9 @@ export function useSidebarEditor({
     (order: SidebarReorderEntry[]) => {
       if (!currentlyViewingServer) return;
       if (!currentConnection || !currentConnection.connected)
-        return toast.error("Not connected to the server yet.");
+        return toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useSidebarEditor_cdf050757e")));
       const accessToken = getFreshAccessToken();
-      if (!accessToken) return toast.error("Join the server first.");
+      if (!accessToken) return toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useSidebarEditor_f6cbf50f22")));
       currentConnection.emit("server:sidebar:reorder", { accessToken, order });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -379,9 +381,9 @@ export function useSidebarEditor({
     async (paletteKind: string, index: number) => {
       if (!currentlyViewingServer) return;
       if (!currentConnection || !currentConnection.connected)
-        return toast.error("Not connected to the server yet.");
+        return toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useSidebarEditor_cdf050757e")));
       const accessToken = getFreshAccessToken();
-      if (!accessToken) return toast.error("Join the server first.");
+      if (!accessToken) return toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useSidebarEditor_f6cbf50f22")));
 
       const getNextPosition = () => {
         const maxPos = Math.max(
@@ -493,12 +495,12 @@ export function useSidebarEditor({
     async (opts: { name: string; type: "text" | "voice"; layout?: "chat" | "forum"; automated?: boolean; description?: string | null; forumTags?: { id: string; name: string; emoji?: string | null; color?: string | null }[]; defaultNotificationLevel?: NotificationLevel; placement?: ChannelPlacement }) => {
       if (!currentlyViewingServer) return;
       if (!currentConnection || !currentConnection.connected) {
-        toast.error("Not connected to the server yet.");
+        toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useSidebarEditor_cdf050757e")));
         return;
       }
       const accessToken = getFreshAccessToken();
       if (!accessToken) {
-        toast.error("Join the server first.");
+        toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useSidebarEditor_f6cbf50f22")));
         return;
       }
       const spot = placeNewChannel(effectiveSidebarItems, opts.placement);
@@ -550,9 +552,9 @@ export function useSidebarEditor({
 
     if (!currentlyViewingServer) return;
     if (!currentConnection || !currentConnection.connected)
-      return toast.error("Not connected to the server yet.");
+      return toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useSidebarEditor_cdf050757e")));
     const accessToken = getFreshAccessToken();
-    if (!accessToken) return toast.error("Join the server first.");
+    if (!accessToken) return toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useSidebarEditor_f6cbf50f22")));
 
     if (selectedSidebarItemId === item.id) {
       setSelectedSidebarItemId(null);
@@ -582,9 +584,9 @@ export function useSidebarEditor({
     if (!currentlyViewingServer) return;
     if (!selectedSidebarItem) return;
     if (!currentConnection || !currentConnection.connected)
-      return toast.error("Not connected to the server yet.");
+      return toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useSidebarEditor_cdf050757e")));
     const accessToken = getFreshAccessToken();
-    if (!accessToken) return toast.error("Join the server first.");
+    if (!accessToken) return toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useSidebarEditor_f6cbf50f22")));
 
     if (selectedSidebarItem.kind === "channel") {
       const chId = selectedSidebarItem.channelId ?? selectedSidebarItem.id;

@@ -60,12 +60,12 @@ for(const platform of ["Web","Electron"] as const) for(const quality of ["720p",
     await page.goto(`/e2e/share-defaults-harness.html?quality=${quality}`);
     await expect(page.getByTestId("starts")).toHaveText("[]");await page.getByRole("button",{name:"Open picker"}).click();
     await expect(page.getByRole("dialog")).toBeVisible();await expect(page.getByTestId("quality")).toHaveText(quality);
-    const audio=page.getByRole("checkbox",{name:"Include audio",exact:true});await expect(audio).not.toBeChecked();
+    const audio=page.getByRole("checkbox",{name:"同时共享音频",exact:true});await expect(audio).not.toBeChecked();
     expect(await counters(page)).toEqual({capture:0,display:0,permission:0});
-    await page.getByRole("button",{name:"Share",exact:true}).click();
+    await page.getByRole("button",{name:"共享",exact:true}).click();
     await expect(page.getByTestId("starts")).toContainText('"withAudio":false');
     await page.getByRole("button",{name:"Open picker"}).click();await audio.check();
-    await page.getByRole("button",{name:"Share",exact:true}).click();await expect(page.getByTestId("starts")).toContainText('"withAudio":true');
+    await page.getByRole("button",{name:"共享",exact:true}).click();await expect(page.getByTestId("starts")).toContainText('"withAudio":true');
     expect(await counters(page)).toEqual({capture:0,display:0,permission:0});
   });
 }

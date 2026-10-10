@@ -2,6 +2,7 @@ import { Avatar, Button, Dialog } from "@gryt/ui";
 import type { ReactNode } from "react";
 
 import { getUploadsFileUrl, resolveAvatarSrc, serverIconSrc } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 
 import {
   confirmServerFriend,
@@ -22,6 +23,7 @@ import { ServerMark } from "./ServerChip";
  * Friends never cross servers, so neither does a row here.
  */
 export function FriendsDialog() {
+  useSocketTranslation();
   const open = useFriendsOpen();
   const all = useAllFriends();
   const { servers } = useServerManagement();
@@ -31,7 +33,7 @@ export function FriendsDialog() {
 
   function person(host: string, p: ServerFriendPerson, actions: ReactNode, note?: string) {
     const member = memberLists[host]?.find((m) => m.serverUserId === p.serverUserId);
-    const name = member?.nickname || p.nickname || "Somebody";
+    const name = member?.nickname || p.nickname || socketI18n.t("socketFull.friendsDialog_9d801edd77");
     return (
       <div key={`${host}/${p.serverUserId}`} data-gryt="friend-row" data-server-user-id={p.serverUserId} className="flex items-center gap-2 px-2 py-1">
         <Avatar
@@ -76,36 +78,36 @@ export function FriendsDialog() {
           {name}
         </h3>
         {section(
-          "Requests",
+          socketI18n.t("socketFull.friendsDialog_f20d1732b9"),
           h.incoming.map((p) =>
             person(h.host, p, (
               <>
-                <Button size="xsmall" onClick={act("accept", p.serverUserId)}>Accept</Button>
-                <Button size="xsmall" tone="ghost" onClick={act("decline", p.serverUserId)}>Decline</Button>
+                <Button size="xsmall" onClick={act("accept", p.serverUserId)}>{socketI18n.t("socketFull.friendsDialog_022daab84c")}</Button>
+                <Button size="xsmall" tone="ghost" onClick={act("decline", p.serverUserId)}>{socketI18n.t("socketFull.friendsDialog_dd75a6be62")}</Button>
               </>
             )),
           ),
         )}
         {section(
-          "Friends",
+          socketI18n.t("shellFull.ContactPrivacyMenu_tsx_c11d5e1d35"),
           h.friends.map((p) =>
             person(
               h.host,
               p,
               <>
                 {!p.confirmed && (
-                  <Button size="xsmall" onClick={() => confirmServerFriend(h.host, p)}>Confirm</Button>
+                  <Button size="xsmall" onClick={() => confirmServerFriend(h.host, p)}>{socketI18n.t("ui.confirm")}</Button>
                 )}
-                <Button size="xsmall" tone="ghost" onClick={act("remove", p.serverUserId)}>Remove</Button>
+                <Button size="xsmall" tone="ghost" onClick={act("remove", p.serverUserId)}>{socketI18n.t("ui.remove")}</Button>
               </>,
-              p.confirmed ? undefined : "Not added on this device. Confirm it if you know them.",
+              p.confirmed ? undefined : socketI18n.t("socketFull.friendsDialog_27a9759a3d"),
             ),
           ),
         )}
         {section(
-          "Sent",
+          socketI18n.t("socketFull.friendsDialog_0d86bade93"),
           h.outgoing.map((p) =>
-            person(h.host, p, <Button size="xsmall" tone="ghost" onClick={act("cancel", p.serverUserId)}>Cancel</Button>),
+            person(h.host, p, <Button size="xsmall" tone="ghost" onClick={act("cancel", p.serverUserId)}>{socketI18n.t("ui.cancel")}</Button>),
           ),
         )}
       </section>
@@ -117,21 +119,17 @@ export function FriendsDialog() {
       <Dialog.Portal>
         <Dialog.Backdrop />
         <Dialog.Popup data-gryt="friends-dialog">
-          <Dialog.Title>Friends</Dialog.Title>
-          <Dialog.Description>
-            You make friends on one server at a time. Your list stays on this device.
-          </Dialog.Description>
+          <Dialog.Title>{socketI18n.t("shellFull.ContactPrivacyMenu_tsx_c11d5e1d35")}</Dialog.Title>
+          <Dialog.Description>{socketI18n.t("socketFull.friendsDialog_c17e398359")}</Dialog.Description>
           <div className="flex max-h-[60vh] flex-col gap-4 overflow-y-auto">
             {shown.length === 0 ? (
-              <p className="text-sm text-gryt-muted">
-                No friends yet. Right-click somebody on a server, or open your conversation with them, and pick Add friend.
-              </p>
+              <p className="text-sm text-gryt-muted">{socketI18n.t("socketFull.friendsDialog_0c1e2f37a5")}</p>
             ) : (
               shown.map(server)
             )}
           </div>
           <Dialog.Footer>
-            <Button tone="ghost" onClick={() => setFriendsOpen(false)}>Close</Button>
+            <Button tone="ghost" onClick={() => setFriendsOpen(false)}>{socketI18n.t("ui.close")}</Button>
           </Dialog.Footer>
         </Dialog.Popup>
       </Dialog.Portal>

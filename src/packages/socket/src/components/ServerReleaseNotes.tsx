@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 import { useEmbeddedServer } from "@/settings/src/hooks/useEmbeddedServer";
 import { hostedServerAt } from "@/settings/src/hostedServers";
 
@@ -17,30 +18,28 @@ const serverLines = (feed: Record<string, unknown> | null): Release[] | null =>
  * three are listed unless this app is the one hosting it.
  */
 function UpdateSteps({ hostedHere }: { hostedHere: boolean }) {
+  useSocketTranslation();
   return (
     <section className="whats-new-update" data-server-update-steps>
       <h3 className="whats-new-area">
         <PiArrowsClockwiseFill className="whats-new-area-icon" size={15} />
-        <span className="whats-new-area-name">How to update</span>
+        <span className="whats-new-area-name">{socketI18n.t("socketFull.serverReleaseNotes_2ccc5f1576")}</span>
       </h3>
       {hostedHere ? (
-        <p className="whats-new-line">
-          This app hosts the server, so there&rsquo;s nothing to do. It updates when the app does.
-        </p>
+        <p className="whats-new-line">{socketI18n.t("socketFull.serverReleaseNotes_bd50e91ed8")}</p>
       ) : (
         <>
-          <p className="whats-new-line">It depends on how the server is run.</p>
+          <p className="whats-new-line">{socketI18n.t("socketFull.serverReleaseNotes_79d45f7abb")}</p>
           <ul className="whats-new-routes">
             <li>
               <h4>Gryt CLI</h4>
               <code className="whats-new-command">gryt pull &lt;server&gt;</code>
               <p>
-                <code>gryt list</code> shows the name.
-              </p>
+                <code>gryt list</code>{" "}{socketI18n.t("socketFull.serverReleaseNotes_a776e03c72")}</p>
             </li>
             <li>
               <h4>Docker Compose</h4>
-              <p>In the folder with the compose file:</p>
+              <p>{socketI18n.t("socketFull.serverReleaseNotes_87eaa4c4c9")}</p>
               <code className="whats-new-command">
                 docker compose pull
                 <br />
@@ -48,8 +47,8 @@ function UpdateSteps({ hostedHere }: { hostedHere: boolean }) {
               </code>
             </li>
             <li>
-              <h4>Gryt desktop app</h4>
-              <p>Nothing to do. It updates when the app does.</p>
+              <h4>{socketI18n.t("socketFull.serverReleaseNotes_523f15a5a9")}</h4>
+              <p>{socketI18n.t("socketFull.serverReleaseNotes_f38ce359d6")}</p>
             </li>
           </ul>
         </>
@@ -75,6 +74,7 @@ export function ServerReleaseNotes({
   beta: boolean;
   onClose: () => void;
 }) {
+  useSocketTranslation();
   const feed = useSyncExternalStore(subscribeChangelog, getChangelog, getChangelog);
   /* What was there on opening. A copy fetched since is the one that can say "none yet". */
   const [opened] = useState(feed);
@@ -101,10 +101,10 @@ export function ServerReleaseNotes({
 
   const empty =
     lines && (feed !== opened || gaveUp)
-      ? "There aren't any notes for these releases yet."
+      ? socketI18n.t("socketFull.serverReleaseNotes_9f3b5ce452")
       : gaveUp
-        ? "The release notes didn't load."
-        : "Loading the release notes…";
+        ? socketI18n.t("socketFull.serverReleaseNotes_8338ec785b")
+        : socketI18n.t("socketFull.serverReleaseNotes_87cb2e8a47");
 
   return (
     <WhatsNewDialog

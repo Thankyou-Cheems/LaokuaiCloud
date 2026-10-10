@@ -6,16 +6,19 @@ import { Alert, Button, Dialog, IconButton, Progress, TextField } from "@gryt/ui
 import { useState } from "react";
 
 import { useAccount } from "@/common";
+import { i18n, LocalizedText, useTranslation } from "@/i18n";
 
 import { PiX } from "../lib/icons";
 import { approverEndText, sendingHistoryText, sentHistoryText } from "../lib/pairing/approverWords";
 import { deviceCapLine } from "../lib/pairing/deviceCap";
+import { pairingFailureText } from "../lib/pairing/failureText";
 import { useApproveDevice } from "../lib/pairing/useApproveDevice";
 import { useSecondsLeft } from "../lib/pairing/useSecondsLeft";
 import { openUserSettings } from "../packages/socket/src/components/dmKeyWarningToast";
 import { EmojiRow, Waiting } from "./pairingParts";
 
 function CodeEntry() {
+  useTranslation();
   const { claim, close } = useApproveDevice();
   const [code, setCode] = useState("");
   const [wrong, setWrong] = useState(false);
@@ -33,32 +36,31 @@ function CodeEntry() {
         submit();
       }}
     >
-      <Dialog.Description className="m-0">
-        On the new device, choose Link with another device. Type the code it shows under the QR code.
-      </Dialog.Description>
+      <Dialog.Description className="m-0">{<LocalizedText translationKey="shellFull.approveDevice_tsx_d7945b6757" />}</Dialog.Description>
       <TextField
-        label="Code"
+        label={i18n.t("shellFull.approveDevice_tsx_adac69379a")}
         placeholder="XXXX-XXXX"
         autoComplete="off"
         spellCheck={false}
         autoFocus
         value={code}
         error={wrong}
-        helperText={wrong ? "That's 8 letters and numbers, like 7KQM-X4TD." : undefined}
+        helperText={wrong ? i18n.t("shellFull.approveDevice_tsx_ba345d029a") : undefined}
         onChange={(e) => {
           setCode(e.target.value);
           setWrong(false);
         }}
       />
       <div className="flex flex-wrap gap-2">
-        <Button size="small" type="submit" disabled={!code.trim()}>Continue</Button>
-        <Button size="small" tone="neutral" onClick={close}>Cancel</Button>
+        <Button size="small" type="submit" disabled={!code.trim()}>{<LocalizedText translationKey="shellFull.approveDevice_tsx_2e02623966" />}</Button>
+        <Button size="small" tone="neutral" onClick={close}>{<LocalizedText translationKey="shellFull.approveDevice_tsx_77dfd2135f" />}</Button>
       </div>
     </form>
   );
 }
 
 function Confirm({ state }: { state: Extract<ApproverState, { phase: "confirming" }> }) {
+  useTranslation();
   const { approve, deny, mismatch, fullServers, close } = useApproveDevice();
   const { isSignedIn } = useAccount();
   const secondsLeft = useSecondsLeft(state.deadline);
@@ -68,13 +70,13 @@ function Confirm({ state }: { state: Extract<ApproverState, { phase: "confirming
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
         <span className="text-sm">
-          <strong>{device.name || "A device"}</strong>
+          <strong>{device.name || i18n.t("shellFull.approveDevice_tsx_4d60af7c11")}</strong>
           {device.app && `, ${device.app}`}
-          {device.platform && ` on ${device.platform}`}
+          {device.platform && i18n.t("shellFull.approveDevice_tsx_d57bcba7ee", { value0: device.platform })}
         </span>
         <span className="text-xs text-gryt-muted">
-          {state.location ? `Near ${state.location}.` : "Its location is unknown."}
-          {state.yourLocation && ` You're near ${state.yourLocation}.`}
+          {state.location ? i18n.t("shellFull.approveDevice_tsx_6196bceb0c", { value0: state.location }) : i18n.t("shellFull.approveDevice_tsx_016afd794d")}
+          {state.yourLocation && i18n.t("shellFull.approveDevice_tsx_b501bf1648", { value0: state.yourLocation })}
         </span>
       </div>
       <EmojiRow emoji={state.emoji} />
@@ -82,7 +84,7 @@ function Confirm({ state }: { state: Extract<ApproverState, { phase: "confirming
         <Alert severity="info">
           <div className="flex flex-col gap-2">
             {fullServers.map((s) => (
-              <span key={s.host}>{deviceCapLine(s.name)}</span>
+              <span key={s.host}>{deviceCapLine(s.name, i18n)}</span>
             ))}
             <Button
               size="xsmall"
@@ -92,36 +94,33 @@ function Confirm({ state }: { state: Extract<ApproverState, { phase: "confirming
                 close();
                 openUserSettings("security");
               }}
-            >
-              Your devices
-            </Button>
+            >{<LocalizedText translationKey="shellFull.approveDevice_tsx_33c455a097" />}</Button>
           </div>
         </Alert>
       )}
       <Alert severity="warning">
-        This device gets your messages, your keys and {isSignedIn ? "your account" : "your servers"}. Only approve
-        a device that&rsquo;s in front of you, and only if it shows the same emoji. Gryt never asks you to type or
-        scan a code from somebody else&rsquo;s device or a website.
+        {isSignedIn ? i18n.t("shellFull.approveAccountDisclosure") : i18n.t("shellFull.approveGuestDisclosure")}
       </Alert>
       <div className="flex flex-wrap gap-2">
         <Button size="small" onClick={approve} disabled={secondsLeft === 0}>
-          {secondsLeft > 0 ? `Approve (${secondsLeft})` : "Time's up"}
+          {secondsLeft > 0 ? i18n.t("shellFull.approveDevice_tsx_3894338da6", { value0: secondsLeft }) : i18n.t("shellFull.approveDevice_tsx_a06072cecc")}
         </Button>
-        <Button size="small" tone="neutral" onClick={() => void deny()}>Deny</Button>
-        <Button size="small" tone="ghost" onClick={() => void mismatch()}>They don&rsquo;t match</Button>
+        <Button size="small" tone="neutral" onClick={() => void deny()}>{<LocalizedText translationKey="shellFull.approveDevice_tsx_53577bb5df" />}</Button>
+        <Button size="small" tone="ghost" onClick={() => void mismatch()}>{<LocalizedText translationKey="shellFull.approveDevice_tsx_33bd49b26c" />}</Button>
       </div>
     </div>
   );
 }
 
 function Body() {
+  useTranslation();
   const { state, failure, history, open, close } = useApproveDevice();
 
   if (failure) {
     return (
       <div className="flex flex-col gap-3">
-        <Alert severity="error">Nothing was sent. {failure}</Alert>
-        <Button size="small" tone="neutral" style={{ alignSelf: "flex-start" }} onClick={close}>Close</Button>
+        <Alert severity="error">{<LocalizedText translationKey="shellFull.approveDevice_tsx_f6305b7b15" />}{" "}{pairingFailureText(failure, (key) => i18n.t(key))}</Alert>
+        <Button size="small" tone="neutral" style={{ alignSelf: "flex-start" }} onClick={close}>{<LocalizedText translationKey="shellFull.approveDevice_tsx_bbfa773e5a" />}</Button>
       </div>
     );
   }
@@ -129,56 +128,53 @@ function Body() {
 
   switch (state.phase) {
     case "claiming":
-      return <Waiting>Finding the new device…</Waiting>;
+      return <Waiting>{<LocalizedText translationKey="shellFull.approveDevice_tsx_df989c1ced" />}</Waiting>;
     case "waiting":
-      return <Waiting>Waiting for the new device…</Waiting>;
+      return <Waiting>{<LocalizedText translationKey="shellFull.approveDevice_tsx_c2ea7bdbd8" />}</Waiting>;
     case "confirming":
       return <Confirm state={state} />;
     case "signing_in":
-      return <Waiting>Signing in {state.device.name}…</Waiting>;
+      return <Waiting>{i18n.t("shellFull.approvingSignIn", { name: state.device.name })}</Waiting>;
     case "browser":
       return (
         <div className="flex flex-col gap-3">
-          <Dialog.Description className="m-0">
-            Your sign-in server can&rsquo;t approve this from inside Gryt, so it opened in your browser. Choose Yes
-            there, then come back here.
-          </Dialog.Description>
-          <Waiting>Waiting for {state.device.name} to sign in…</Waiting>
+          <Dialog.Description className="m-0">{<LocalizedText translationKey="shellFull.approveDevice_tsx_9d503713c7" />}</Dialog.Description>
+          <Waiting>{i18n.t("shellFull.waitingSignIn", { name: state.device.name })}</Waiting>
         </div>
       );
     case "waiting_ready":
-      return <Waiting>Waiting for {state.device.name} to join your servers…</Waiting>;
+      return <Waiting>{i18n.t("shellFull.waitingServers", { name: state.device.name })}</Waiting>;
     case "adding":
       return (
         <div className="flex flex-col gap-2" role="status">
           <span className="text-sm">
-            Adding {state.device.name} to your conversations: {state.done} of {state.total}.
+            {i18n.t("shellFull.addingConversations", { name: state.device.name, done: state.done, total: state.total })}
           </span>
-          <Progress value={state.total ? (state.done / state.total) * 100 : null} aria-label="Conversations done" />
+          <Progress value={state.total ? (state.done / state.total) * 100 : null} aria-label={i18n.t("shellFull.approveDevice_tsx_3b03a0c86f")} />
         </div>
       );
     case "sending":
       return (
         <div className="flex flex-col gap-2" role="status">
-          <span className="text-sm">{sendingHistoryText(history)}</span>
+          <span className="text-sm">{sendingHistoryText(history, i18n)}</span>
           <Progress
             value={history?.total ? (Math.min(history.messages, history.total) / history.total) * 100 : null}
-            aria-label="History sent"
+            aria-label={i18n.t("shellFull.approveDevice_tsx_30e2f65060")}
           />
         </div>
       );
     case "done": {
       const failed = Object.values(state.added).flat().filter((a) => a.outcome === "failed").length;
-      const sent = sentHistoryText(history);
+      const sent = sentHistoryText(history, i18n);
       return (
         <div className="flex flex-col gap-3">
           <Dialog.Description className="m-0">
-            {state.device.name} is linked.
+            {i18n.t("shellFull.deviceLinked", { name: state.device.name })}
             {sent && ` ${sent}`}
             {failed > 0 &&
-              ` It couldn't be added to ${failed === 1 ? "one conversation" : `${failed} conversations`} yet. It joins ${failed === 1 ? "that one" : "those"} the next time someone sends a message there.`}
+              i18n.t("shellFull.missingConversations", { count: failed })}
           </Dialog.Description>
-          <Button size="small" style={{ alignSelf: "flex-start" }} onClick={close}>Done</Button>
+          <Button size="small" style={{ alignSelf: "flex-start" }} onClick={close}>{<LocalizedText translationKey="shellFull.approveDevice_tsx_e9b450d14b" />}</Button>
         </div>
       );
     }
@@ -186,11 +182,11 @@ function Body() {
       return (
         <div className="flex flex-col gap-3">
           <Alert severity={state.reason === "mismatch" || state.reason === "tampered" ? "error" : "info"}>
-            {approverEndText(state.reason)}
+            {approverEndText(state.reason, i18n)}
           </Alert>
           <div className="flex flex-wrap gap-2">
-            <Button size="small" onClick={open}>Try again</Button>
-            <Button size="small" tone="neutral" onClick={close}>Close</Button>
+            <Button size="small" onClick={open}>{<LocalizedText translationKey="shellFull.approveDevice_tsx_042c862e44" />}</Button>
+            <Button size="small" tone="neutral" onClick={close}>{<LocalizedText translationKey="shellFull.approveDevice_tsx_bbfa773e5a" />}</Button>
           </div>
         </div>
       );
@@ -199,15 +195,16 @@ function Body() {
 
 /** Link a new device to this one (GRYT-1484), from the side that's already signed in. */
 export function ApproveDeviceDialog() {
+  useTranslation();
   const { isOpen, state, close } = useApproveDevice();
-  const title = state?.phase === "confirming" ? "Link this device?" : "Link a new device";
+  const title = state?.phase === "confirming" ? i18n.t("shellFull.approveDevice_tsx_9ad7ea193a") : i18n.t("shellFull.approveDevice_tsx_377ef34f56");
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => { if (!open) close(); }}>
       <Dialog.Portal>
         <Dialog.Backdrop />
         <Dialog.Popup className="w-[28rem] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto">
-          <Dialog.Close className="absolute top-3 right-3" render={<IconButton size="small" aria-label="Close" />}>
+          <Dialog.Close className="absolute top-3 right-3" render={<IconButton size="small" aria-label={i18n.t("shellFull.approveDevice_tsx_bbfa773e5a")} />}>
             <PiX size={16} />
           </Dialog.Close>
           <Dialog.Title className="pr-10">{title}</Dialog.Title>

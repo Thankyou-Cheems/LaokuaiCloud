@@ -2,6 +2,7 @@ import { Alert, Button, Chip, Dialog, IconButton, TextField, Toggle, ToggleGroup
 import { useEffect, useMemo, useState } from "react";
 
 import { useThreadMentions, useThreadUnread } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 import type { ForumTag } from "@/settings/src/types/server";
 
 import { PiChatsFill, PiCheck, PiLockSimpleFill, PiPlus, PiX } from "../../../../lib/icons";
@@ -23,28 +24,28 @@ interface ForumViewProps {
 }
 
 const FILTERS: { key: ForumFilter; label: string }[] = [
-  { key: "all", label: "All" },
-  { key: "unanswered", label: "Unanswered" },
-  { key: "solved", label: "Solved" },
+  { key: "all", get label() { return socketI18n.t("settingsFull.m6a72085653"); } },
+  { key: "unanswered", get label() { return socketI18n.t("socketFull.forumView_d8543e847b"); } },
+  { key: "solved", get label() { return socketI18n.t("socketFull.forumView_ede4b534e0"); } },
   // All leaves closed topics out, so without this one there is no way back to
   // them (GRYT-1389).
-  { key: "closed", label: "Closed" },
-  { key: "mine", label: "Mine" },
+  { key: "closed", get label() { return socketI18n.t("socketFull.forumView_b878cc5a64"); } },
+  { key: "mine", get label() { return socketI18n.t("socketFull.forumView_91e08e2fca"); } },
 ];
 
 function relativeTime(value: string): string {
   const then = new Date(value).getTime();
   if (Number.isNaN(then)) return "";
   const secs = Math.max(0, Math.floor((Date.now() - then) / 1000));
-  if (secs < 60) return "just now";
+  if (secs < 60) return socketI18n.t("socketFull.forumView_4ac5067f5d");
   const mins = Math.floor(secs / 60);
-  if (mins < 60) return `${mins}m`;
+  if (mins < 60) return socketI18n.t("socketFull.forumView_b589b68d0d", { p0: (mins) });
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h`;
+  if (hours < 24) return socketI18n.t("socketFull.forumView_df92c47e0a", { p0: (hours) });
   const days = Math.floor(hours / 24);
-  if (days === 1) return "yesterday";
-  if (days < 7) return `${days}d`;
-  return new Date(value).toLocaleDateString([], { month: "short", day: "numeric" });
+  if (days === 1) return socketI18n.t("socketFull.forumView_14b56a929e");
+  if (days < 7) return socketI18n.t("socketFull.forumView_e695ad81d3", { p0: (days) });
+  return new Date(value).toLocaleDateString(socketI18n.resolvedLanguage, { month: "short", day: "numeric" });
 }
 
 function toSummary(t: ForumTopic): ThreadSummary {
@@ -75,6 +76,7 @@ function matchesFilter(t: ForumTopic, filter: ForumFilter, currentUserId?: strin
 }
 
 export function ForumView({ socketConnection, conversationId, serverHost, currentUserId, forumTags, onOpenTopic, readOnlyLine }: ForumViewProps) {
+  useSocketTranslation();
   const { topics, loading, creating, createError, createdToken, clearCreateError, createTopic } = useForum(socketConnection, conversationId, serverHost);
   const [filter, setFilter] = useState<ForumFilter>("all");
   const { threadUnreadCount } = useThreadUnread();
@@ -152,9 +154,7 @@ export function ForumView({ socketConnection, conversationId, serverHost, curren
             size="small"
             startIcon={<PiPlus size={14} />}
             onClick={() => { setNewTags(new Set()); setComposing(true); }}
-          >
-            New topic
-          </Button>
+          >{socketI18n.t("socketFull.forumView_a542a71098")}</Button>
         )}
       </div>
 
@@ -174,12 +174,12 @@ export function ForumView({ socketConnection, conversationId, serverHost, curren
       {/* Topic list */}
       <div style={{ flex: 1, overflowY: "auto" }}>
         {loading ? (
-          <div style={{ padding: 24, color: "var(--gryt-neutral-10)", fontSize: 13 }}>Loading topics…</div>
+          <div style={{ padding: 24, color: "var(--gryt-neutral-10)", fontSize: 13 }}>{socketI18n.t("socketFull.forumView_30edf210c9")}</div>
         ) : shown.length === 0 ? (
           <div style={{ padding: "40px 24px", textAlign: "center", color: "var(--gryt-neutral-10)" }}>
             <PiChatsFill size={28} style={{ opacity: 0.5 }} />
             <p style={{ marginTop: 8, fontSize: 14 }}>
-              {topics.length === 0 ? "No topics yet. Start the first one." : "Nothing matches this filter."}
+              {topics.length === 0 ? socketI18n.t("socketFull.forumView_0260906519") : socketI18n.t("socketFull.forumView_45ddfe132b")}
             </p>
           </div>
         ) : (
@@ -197,7 +197,7 @@ export function ForumView({ socketConnection, conversationId, serverHost, curren
               className="hover:bg-gryt-neutral-3"
             >
               <div style={{ fontWeight: 700, fontSize: 14.5, color: "var(--gryt-neutral-12)", gridColumn: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                <EmojiText text={t.title || t.preview || "Untitled topic"} />
+                <EmojiText text={t.title || t.preview || socketI18n.t("socketFull.forumView_8dd7c503c5")} />
               </div>
               {t.tags.length > 0 && (
                 <div style={{ gridColumn: 1 }} className="flex flex-wrap items-center gap-1.5">
@@ -208,11 +208,11 @@ export function ForumView({ socketConnection, conversationId, serverHost, curren
                 </div>
               )}
               <div style={{ gridColumn: 1, color: "var(--gryt-neutral-10)", fontSize: 12, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-                <span>{t.creator_nickname || "Someone"}</span>
+                <span>{t.creator_nickname || socketI18n.t("socketFull.forumView_e7e4044b27")}</span>
                 <span>·</span>
-                <span>{t.reply_count} {t.reply_count === 1 ? "reply" : "replies"}</span>
+                <span>{t.reply_count} {t.reply_count === 1 ? socketI18n.t("socketFull.forumView_1af3b3bc0d") : socketI18n.t("socketFull.forumView_5dd1d7fbb1")}</span>
                 <span>·</span>
-                <span>{t.participant_count} {t.participant_count === 1 ? "participant" : "participants"}</span>
+                <span>{t.participant_count} {t.participant_count === 1 ? socketI18n.t("socketFull.forumView_d6f66d007a") : socketI18n.t("socketFull.forumView_e0bd1642af")}</span>
                 <span>·</span>
                 <span>{relativeTime(t.last_message_at)}</span>
               </div>
@@ -230,7 +230,7 @@ export function ForumView({ socketConnection, conversationId, serverHost, curren
                 <Chip
                   tone="success"
                   icon={<PiCheck size={11} />}
-                  label="Solved"
+                  label={socketI18n.t("socketFull.forumView_ede4b534e0")}
                   className="px-2.5 py-0.5 text-[11px] whitespace-nowrap"
                 />
               )}
@@ -238,7 +238,7 @@ export function ForumView({ socketConnection, conversationId, serverHost, curren
                 <Chip
                   tone="neutral"
                   icon={<PiLockSimpleFill size={11} />}
-                  label="Closed"
+                  label={socketI18n.t("socketFull.forumView_b878cc5a64")}
                   className="px-2.5 py-0.5 text-[11px] whitespace-nowrap"
                 />
               )}
@@ -263,7 +263,7 @@ export function ForumView({ socketConnection, conversationId, serverHost, curren
           <Dialog.Popup>
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
-                <Dialog.Title style={{ margin: 0 }}>New topic</Dialog.Title>
+                <Dialog.Title style={{ margin: 0 }}>{socketI18n.t("socketFull.forumView_a542a71098")}</Dialog.Title>
                 <Dialog.Close>
                   <IconButton size="xsmall"><PiX size={16} /></IconButton>
                 </Dialog.Close>
@@ -272,7 +272,7 @@ export function ForumView({ socketConnection, conversationId, serverHost, curren
               <TextField
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Title"
+                placeholder={socketI18n.t("socketFull.forumView_5bdb7dcf4a")}
                 autoFocus
                 maxLength={200}
               />
@@ -281,12 +281,12 @@ export function ForumView({ socketConnection, conversationId, serverHost, curren
                 minRows={5}
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
-                placeholder="Describe what&rsquo;s happening…"
+                placeholder={socketI18n.t("socketFull.forumView_30e9b03347")}
               />
 
               {forumTags.length > 0 && (
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-sm font-medium">Tags</span>
+                  <span className="text-sm font-medium">{socketI18n.t("socketFull.forumView_1855069ef6")}</span>
                   <div className="flex flex-wrap gap-[7px]">
                     {forumTags.map((tag) => (
                       <ForumTagChip
@@ -303,17 +303,17 @@ export function ForumView({ socketConnection, conversationId, serverHost, curren
               {(createError || tooLong) && (
                 <Alert severity="error" className="text-xs">
                   {tooLong
-                    ? `That message is ${body.length - BODY_MAX} characters over the ${BODY_MAX} limit.`
+                    ? socketI18n.t("socketFull.forumView_1e0e3857cd", { p0: (body.length - BODY_MAX), p1: (BODY_MAX) })
                     : createError}
                 </Alert>
               )}
 
               <div className="flex flex-wrap justify-end gap-3">
                 <Dialog.Close>
-                  <Button tone="neutral" size="small">Cancel</Button>
+                  <Button tone="neutral" size="small">{socketI18n.t("ui.cancel")}</Button>
                 </Dialog.Close>
                 <Button size="small" onClick={submit} disabled={!canSubmit}>
-                  {creating ? "Creating…" : "Create topic"}
+                  {creating ? socketI18n.t("settingsFull.m94d7d8ee47") : socketI18n.t("socketFull.forumView_9769939040")}
                 </Button>
               </div>
             </div>

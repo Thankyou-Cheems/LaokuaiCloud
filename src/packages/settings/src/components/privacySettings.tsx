@@ -7,32 +7,35 @@ import {
   setGlobalContactRule,
   subscribeToContactPrefs,
 } from "@/common";
+import { i18n, useTranslation } from "@/i18n";
 
 import { SettingGroup, SettingsContainer } from "./settingsComponents";
 
 const MESSAGE_CHOICES: { label: string; value: ContactRule }[] = [
-  { label: "Anyone on the server", value: "everyone" },
-  { label: "Friends", value: "friends" },
-  { label: "Nobody", value: "nobody" },
+  { get label() { return i18n.t("settingsFull.m22e4c60058"); }, value: "everyone" },
+  { get label() { return i18n.t("settingsFull.mc11d5e1d35"); }, value: "friends" },
+  { get label() { return i18n.t("settingsFull.m148ba2d236"); }, value: "nobody" },
 ];
 
 const CALL_CHOICES: { label: string; value: ContactRule }[] = [
-  { label: "Anyone who can message me", value: "everyone" },
-  { label: "Friends", value: "friends" },
-  { label: "Nobody", value: "nobody" },
+  { get label() { return i18n.t("settingsFull.m94ea1ddb7c"); }, value: "everyone" },
+  { get label() { return i18n.t("settingsFull.mc11d5e1d35"); }, value: "friends" },
+  { get label() { return i18n.t("settingsFull.m148ba2d236"); }, value: "nobody" },
 ];
 
 /** GRYT-1470. Saved as it's picked, like every setting. */
 export function PrivacySettings() {
+  useTranslation();
   const { global } = useSyncExternalStore(subscribeToContactPrefs, getContactPrefsSnapshot, getContactPrefsSnapshot);
 
   return (
     <SettingsContainer>
-      <h2>Privacy</h2>
+      <h2>{i18n.t("ui.privacy")}</h2>
 
       <SettingGroup
-        title="Who can send me messages"
-        description="Friends are people you've added on that server. Until you add your first one there, anybody you've written to one-to-one counts. Nobody also stops friend requests. This counts for every server, and you can right-click a server to give it its own answer. A server finds out the next time you connect to it. Your app checks every message too, so a server that ignores this still can't get them to you."
+        anchorId="who-can-send-me-messages"
+        title={i18n.t("settingsFull.m0424662b37")}
+        description={i18n.t("settingsFull.medc8c5ebff")}
       >
         <ToggleGroup
           className="max-[439px]:flex-wrap"
@@ -54,8 +57,9 @@ export function PrivacySettings() {
       <Divider />
 
       <SettingGroup
-        title="Who can call me"
-        description="Somebody who can't message you can't call you either. Your app checks every ring too, and one it wouldn't let through never rings."
+        anchorId="who-can-call-me"
+        title={i18n.t("settingsFull.m4e6838764c")}
+        description={i18n.t("settingsFull.m807c4e9447")}
       >
         <ToggleGroup
           className="max-[439px]:flex-wrap"

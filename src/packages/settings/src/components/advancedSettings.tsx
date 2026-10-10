@@ -1,11 +1,13 @@
 import { Divider, Switch } from "@gryt/ui";
 
+import { i18n, useTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 
 import { LatencyPanel } from "./latencyPanel";
 import { SettingsContainer } from "./settingsComponents";
 
 export function AdvancedSettings() {
+  useTranslation();
   const {
     showAdvanced,
     setShowAdvanced,
@@ -19,7 +21,7 @@ export function AdvancedSettings() {
 
   return (
     <SettingsContainer>
-      <h2 color="cyan">Advanced</h2>
+      <h2 color="cyan">{i18n.t("ui.advanced")}</h2>
 
       {/*
         The toggle stays visible; what it reveals does not. Everything below is
@@ -32,16 +34,13 @@ export function AdvancedSettings() {
       */}
       <div>
         <div className="flex items-center gap-3">
-          <span className="font-medium">Show advanced settings</span>
+          <span className="font-medium">{i18n.t("settingsFull.m065144e113")}</span>
           <Switch
             checked={showAdvanced}
             onCheckedChange={setShowAdvanced}
           />
         </div>
-        <span className="text-gryt-muted mt-1">
-          Reveals diagnostics and internals across every section. They appear in
-          a different colour so you can tell them apart.
-        </span>
+        <span className="text-gryt-muted mt-1">{i18n.t("settingsFull.m4ba8ca871f")}</span>
       </div>
 
       {!showAdvanced ? null : (
@@ -50,45 +49,39 @@ export function AdvancedSettings() {
 
       <Divider />
 
-      <span className="font-bold text-gryt-muted">Diagnostics</span>
+      <span className="font-bold text-gryt-muted">{i18n.t("settingsFull.m3af2279f9e")}</span>
 
       <div>
         <div className="flex items-center gap-3">
-          <span className="font-medium">Show Peer Latency</span>
+          <span className="font-medium">{i18n.t("settingsFull.m2c7e9bff2c")}</span>
           <Switch
             checked={showPeerLatency}
             onCheckedChange={setShowPeerLatency}
           />
         </div>
-        <span className="text-gryt-muted mt-1">
-          Display latency (ping) next to each user in the voice view
-        </span>
+        <span className="text-gryt-muted mt-1">{i18n.t("settingsFull.m3759181dbd")}</span>
       </div>
 
       <div>
         <div className="flex items-center gap-3">
-          <span className="font-medium">Show Microphone Debug Overlay</span>
+          <span className="font-medium">{i18n.t("settingsFull.m601d79214f")}</span>
           <Switch
             checked={showDebugOverlay}
             onCheckedChange={setShowDebugOverlay}
           />
         </div>
-        <span className="text-gryt-muted mt-1">
-          Display a floating debug overlay with real-time microphone information
-        </span>
+        <span className="text-gryt-muted mt-1">{i18n.t("settingsFull.m03a958705a")}</span>
       </div>
 
       <div>
         <div className="flex items-center gap-3">
-          <span className="font-medium">Show Video Debug Overlay</span>
+          <span className="font-medium">{i18n.t("settingsFull.m79af3fb741")}</span>
           <Switch
             checked={showVideoDebugOverlay}
             onCheckedChange={setShowVideoDebugOverlay}
           />
         </div>
-        <span className="text-gryt-muted mt-1">
-          Display a floating debug overlay with real-time video codec, resolution, and bitrate information
-        </span>
+        <span className="text-gryt-muted mt-1">{i18n.t("settingsFull.mba124550f9")}</span>
       </div>
       </>
       )}

@@ -15,8 +15,19 @@ export function receiveAudioRoles(clients: RemoteAudioClient[]): Map<string, Rec
 
 export function applyReceiveAudioRoles(sources: StreamSources, clients: RemoteAudioClient[]): void {
   const roles = receiveAudioRoles(clients);
+  const controls = new Map<NonNullable<StreamSources[string]["receiveCleanup"]>, ReceiveAudioRole>();
   for (const [id, source] of Object.entries(sources)) {
-    source.receiveCleanup?.setRole(roles.get(id) || "unknown");
+    const control = source.receiveCleanup;
+    if (!control) continue;
+    const role = roles.get(id) || "unknown";
+    const current = controls.get(control);
+    // Aliases can share one audio route. Screen audio must never receive mic AGC.
+    if (!current || role === "screen" || (current === "unknown" && role === "microphone")) {
+      controls.set(control, role);
+    }
+  }
+  for (const [control, role] of controls) {
+    control.setRole(role);
   }
 }
 

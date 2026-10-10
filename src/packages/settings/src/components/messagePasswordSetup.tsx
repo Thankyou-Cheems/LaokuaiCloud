@@ -8,6 +8,9 @@ import {
   generateRecoveryKey,
   generateVaultPassword,
 } from "@/common";
+import { i18n, useTranslation } from "@/i18n";
+
+import { settingsPasswordProblem } from "./settingsMessage";
 
 /**
  * Choosing the message password, with the warning decision 2 of the design asks for at
@@ -32,8 +35,8 @@ interface Props {
 
 const copy = (text: string, what: string) =>
   navigator.clipboard.writeText(text).then(
-    () => toast.success(`${what} copied.`),
-    () => toast.error("Couldn’t copy. Select it and copy it by hand."),
+    () => toast.success(i18n.t("settingsFull.mf1e9fed570", { value0: what })),
+    () => toast.error(i18n.t("settingsFull.m1bc6aed2ef")),
   );
 
 export function MessagePasswordSetup({
@@ -45,6 +48,7 @@ export function MessagePasswordSetup({
   onSubmit,
   onCancel,
 }: Props) {
+  useTranslation();
   const [words, setWords] = useState(() => generateVaultPassword());
   const [typing, setTyping] = useState(false);
   const [typed, setTyped] = useState("");
@@ -57,11 +61,11 @@ export function MessagePasswordSetup({
     let password = words;
     if (typing) {
       const problem = describePasswordProblem(typed);
-      if (problem) return void toast.error(problem);
-      if (typed !== again) return void toast.error("The two passwords don’t match.");
+      if (problem) return void toast.error(settingsPasswordProblem(problem));
+      if (typed !== again) return void toast.error(i18n.t("settingsFull.md624e5037b"));
       password = typed;
     }
-    if (!saved) return void toast.error("Tick the box once you’ve saved them.");
+    if (!saved) return void toast.error(i18n.t("settingsFull.m9ad125abc9"));
     onSubmit({ password, recoveryKey: skipRecovery ? undefined : recoveryKey });
   }, [words, typing, typed, again, saved, skipRecovery, recoveryKey, onSubmit]);
 
@@ -70,116 +74,85 @@ export function MessagePasswordSetup({
 
   return (
     <div className="flex flex-col gap-3">
-      <Alert severity="warning">
-        This password is the only way to open your messages on a new device. Gryt
-        can&rsquo;t reset it, can&rsquo;t recover it, and can&rsquo;t read your
-        messages without it. If you lose it and have no other device signed in and
-        no recovery key, every message you&rsquo;ve already received stays locked
-        for good.
-      </Alert>
+      <Alert severity="warning">{i18n.t("settingsFull.ma1f28abc16")}</Alert>
 
       {children}
 
       {!typing ? (
         <div className="flex flex-col gap-2">
-          <span className="font-medium text-sm">Your message password</span>
+          <span className="font-medium text-sm">{i18n.t("settingsFull.m46f1aa41da")}</span>
           <code className="text-sm" style={mono} data-testid="message-password-words">
             {words}
           </code>
           <div className="flex gap-2 flex-wrap">
-            <Button size="small" tone="neutral" onClick={() => void copy(words, "Password")}>
-              Copy
-            </Button>
-            <Button size="small" tone="neutral" onClick={() => setWords(generateVaultPassword())}>
-              New words
-            </Button>
-            <Button size="small" tone="ghost" onClick={() => setTyping(true)}>
-              Type my own instead
-            </Button>
+            <Button size="small" tone="neutral" onClick={() => void copy(words, i18n.t("settingsFull.m8be3c943b1"))}>{i18n.t("settingsFull.maf74f7c536")}</Button>
+            <Button size="small" tone="neutral" onClick={() => setWords(generateVaultPassword())}>{i18n.t("settingsFull.m2748136064")}</Button>
+            <Button size="small" tone="ghost" onClick={() => setTyping(true)}>{i18n.t("settingsFull.m7d9e1d81ab")}</Button>
           </div>
         </div>
       ) : (
         <div className="flex flex-col gap-2">
           <TextField
             type="password"
-            label="Message password"
+            label={i18n.t("settingsFull.md71ea51285")}
             autoComplete="new-password"
             value={typed}
             onChange={(e) => setTyped(e.target.value)}
-            helperText="At least 12 characters. A 12-character password somebody made up takes one graphics card about a year to guess, and 10,000 of them about an hour. Six generated words would take billions of years."
+            helperText={i18n.t("settingsFull.mda6ad279f9")}
           />
           <TextField
             type="password"
-            label="Again"
+            label={i18n.t("settingsFull.mfcd7610540")}
             autoComplete="new-password"
             value={again}
             onChange={(e) => setAgain(e.target.value)}
           />
           <div>
-            <Button size="small" tone="ghost" onClick={() => setTyping(false)}>
-              Use six words instead
-            </Button>
+            <Button size="small" tone="ghost" onClick={() => setTyping(false)}>{i18n.t("settingsFull.me995f16a6f")}</Button>
           </div>
         </div>
       )}
 
       {!skipRecovery ? (
         <div className="flex flex-col gap-2">
-          <span className="font-medium text-sm">Recovery key</span>
-          <span className="text-xs text-gryt-muted">
-            If you lose the password, this opens your messages on its own. You only
-            see it once, here.
-          </span>
+          <span className="font-medium text-sm">{i18n.t("ui.recoveryKey")}</span>
+          <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.m6acbb063b6")}</span>
           <code className="text-sm" style={mono} data-testid="message-recovery-key">
             {shownKey}
           </code>
           <div className="flex gap-2 flex-wrap">
-            <Button size="small" tone="neutral" onClick={() => void copy(shownKey, "Recovery key")}>
-              Copy
-            </Button>
-            <Button size="small" tone="ghost" onClick={() => setSkipRecovery(true)}>
-              Skip it
-            </Button>
+            <Button size="small" tone="neutral" onClick={() => void copy(shownKey, i18n.t("ui.recoveryKey"))}>{i18n.t("settingsFull.maf74f7c536")}</Button>
+            <Button size="small" tone="ghost" onClick={() => setSkipRecovery(true)}>{i18n.t("settingsFull.m57c63f49ea")}</Button>
           </div>
         </div>
       ) : (
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-gryt-muted">
-            No recovery key. If you lose the password and every signed-in device,
-            your messages are gone.
-          </span>
-          <Button size="small" tone="ghost" onClick={() => setSkipRecovery(false)}>
-            Add one after all
-          </Button>
+          <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.m70f5715e56")}</span>
+          <Button size="small" tone="ghost" onClick={() => setSkipRecovery(false)}>{i18n.t("settingsFull.mfca03576f8")}</Button>
         </div>
       )}
 
       {replacesRecoveryKey && (
-        <span className="text-xs text-gryt-muted">
-          This also replaces your recovery key. The old one stops working.
-        </span>
+        <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.m143b82e8e6")}</span>
       )}
 
-      <span className="text-xs text-gryt-muted">
-        A password manager is a good place to keep {skipRecovery ? "it" : "both"}.
+      <span className="text-xs text-gryt-muted">{i18n.t(skipRecovery ? "shellSecond.storePassword" : "shellSecond.storePasswordAndRecovery")}
       </span>
 
       <label className="flex cursor-pointer items-start gap-2 text-xs">
         <Checkbox checked={saved} onCheckedChange={(v) => setSaved(v === true)} />
         <span>
           {skipRecovery
-            ? "I’ve saved the password somewhere I won’t lose it"
-            : "I’ve saved them somewhere I won’t lose them"}
+            ? i18n.t("settingsFull.m93c1185eee")
+            : i18n.t("settingsFull.m6d953135ea")}
         </span>
       </label>
 
       <div className="flex gap-2">
         <Button size="small" tone={tone} onClick={submit} disabled={busy}>
-          {busy ? "Working…" : submitLabel}
+          {busy ? i18n.t("settingsFull.m13b7bfcac4") : submitLabel}
         </Button>
-        <Button tone="neutral" size="small" onClick={onCancel} disabled={busy}>
-          Cancel
-        </Button>
+        <Button tone="neutral" size="small" onClick={onCancel} disabled={busy}>{i18n.t("ui.cancel")}</Button>
       </div>
     </div>
   );

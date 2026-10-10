@@ -9,7 +9,7 @@ import {
   parseServerInput,
   useAccount,
 } from "@/common";
-import { useTranslation } from "@/i18n";
+import { i18n,useTranslation } from "@/i18n";
 
 import {
   PiCaretRightBold,
@@ -154,6 +154,7 @@ export function AddNewServer({
   const [joinNote, setJoinNote] = useState("");
   const [awaitingApproval, setAwaitingApproval] = useState(false);
   const [joinError, setJoinError] = useState("");
+  const [joinErrorSource, setJoinErrorSource] = useState<{ readonly message: string } | null>(null);
   const [joinErrorKey, setJoinErrorKey] = useState<string>();
 
   const isJoining = joiningHost !== null;
@@ -181,7 +182,7 @@ export function AddNewServer({
     setInviteRequired(false);
     setJoinNote("");
     setAwaitingApproval(false);
-    setJoinError(""); setJoinErrorKey(undefined);
+    setJoinError(""); setJoinErrorSource(null); setJoinErrorKey(undefined);
   }
 
   function closeDialog() {
@@ -201,7 +202,7 @@ export function AddNewServer({
     setManualCode("");
     setInviteRequired(false);
     setAwaitingApproval(false);
-    setJoinError(""); setJoinErrorKey(undefined);
+    setJoinError(""); setJoinErrorSource(null); setJoinErrorKey(undefined);
 
     if (!serverHost || webAddressError) {
       setIsSearching(false);
@@ -242,14 +243,14 @@ export function AddNewServer({
   }, [showAddServer]);
 
   useEffect(() => {
-    setJoinError(""); setJoinErrorKey(undefined);
+    setJoinError(""); setJoinErrorSource(null); setJoinErrorKey(undefined);
   }, [manualCode]);
 
   async function handleJoin() {
     if (!serverHost || webAddressError) return;
     if (!serverInfo && !serverPrivate) return;
 
-    setJoinError(""); setJoinErrorKey(undefined);
+    setJoinError(""); setJoinErrorSource(null); setJoinErrorKey(undefined);
 
     const outcome = await join({
       host: serverHost,
@@ -271,7 +272,7 @@ export function AddNewServer({
     }
 
     if (outcome.kind === "invite_required") setInviteRequired(true);
-    setJoinError(outcome.message); setJoinErrorKey(outcome.messageKey);
+    setJoinError(outcome.message); setJoinErrorSource(outcome); setJoinErrorKey(outcome.messageKey);
   }
 
   function openMyServers() {
@@ -607,7 +608,7 @@ export function AddNewServer({
                       <Alert severity="error" role="alert">
                         <span className="inline-flex items-center gap-2">
                           <PiWarningFill size={16} />
-                          {joinErrorKey ? tr(joinErrorKey) : joinError}
+                          {joinErrorKey ? tr(joinErrorKey) : (joinErrorSource?.message ?? joinError)}
                         </span>
                       </Alert>
                     </motion.div>
@@ -684,6 +685,7 @@ function EntryCard({
   onPick: () => void;
   tour: string;
 }) {
+  useTranslation();
   return (
     <button
       type="button"
@@ -770,8 +772,8 @@ function OfficialServerCard({
             of them is a number we did not make up. */}
         <span className="text-sm truncate">
           {info
-            ? `Run by us. ${info.members} ${info.members === "1" ? "member" : "members"}.`
-            : `Run by us. ${host}`}
+            ? i18n.t("settingsFull.m70fb48179b", { count: Number(info.members) })
+            : i18n.t("settingsFull.m998f88cd08", { value0: host })}
         </span>
       </span>
 
@@ -896,7 +898,7 @@ function ServerPreview({
               className="text-xs tabular-nums"
               style={{ color: "var(--gryt-neutral-11)" }}
             >
-              {info.members} {info.members === "1" ? "member" : "members"}
+              {tr(info.members === "1" ? "shellSecond.oneMember" : "shellSecond.manyMembers", { members: info.members })}
             </span>
           )}
         </div>

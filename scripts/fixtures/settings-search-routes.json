@@ -1,0 +1,382 @@
+[
+  {
+    "id": "squad-mode",
+    "destination": "sound-video",
+    "page": "voice"
+  },
+  {
+    "id": "squad-process",
+    "destination": "sound-video",
+    "page": "voice"
+  },
+  {
+    "id": "squad-target",
+    "destination": "sound-video",
+    "page": "voice"
+  },
+  {
+    "id": "squad-keys",
+    "destination": "sound-video",
+    "page": "voice"
+  },
+  {
+    "id": "receive-leveling",
+    "destination": "sound-video",
+    "page": "audio"
+  },
+  {
+    "id": "language",
+    "destination": "appearance",
+    "page": "display"
+  },
+  {
+    "id": "updates",
+    "destination": "about",
+    "page": "updates",
+    "panel": true
+  },
+  {
+    "id": "profile",
+    "destination": "profile",
+    "page": "profile",
+    "panel": true
+  },
+  {
+    "id": "edit-my-card",
+    "destination": "profile",
+    "page": "card",
+    "panel": true
+  },
+  {
+    "id": "pronouns",
+    "destination": "profile",
+    "page": "card"
+  },
+  {
+    "id": "bio",
+    "destination": "profile",
+    "page": "card"
+  },
+  {
+    "id": "status-line",
+    "destination": "profile",
+    "page": "card"
+  },
+  {
+    "id": "banner",
+    "destination": "profile",
+    "page": "card"
+  },
+  {
+    "id": "security",
+    "destination": "account",
+    "page": "security",
+    "panel": true
+  },
+  {
+    "id": "privacy",
+    "destination": "account",
+    "page": "privacy",
+    "panel": true
+  },
+  {
+    "id": "who-can-send-me-messages",
+    "destination": "account",
+    "page": "privacy"
+  },
+  {
+    "id": "who-can-call-me",
+    "destination": "account",
+    "page": "privacy"
+  },
+  {
+    "id": "message-history-on-this-device",
+    "destination": "account",
+    "page": "security"
+  },
+  {
+    "id": "your-devices",
+    "destination": "account",
+    "page": "security"
+  },
+  {
+    "id": "message-key-warnings",
+    "destination": "account",
+    "page": "security"
+  },
+  {
+    "id": "persist-server-access-tokens",
+    "destination": "account",
+    "page": "security"
+  },
+  {
+    "id": "server-identities",
+    "destination": "servers",
+    "page": "identities",
+    "panel": true
+  },
+  {
+    "id": "my-servers",
+    "destination": "servers",
+    "page": "my-servers",
+    "panel": true
+  },
+  {
+    "id": "microphone-volume",
+    "destination": "sound-video",
+    "page": "audio"
+  },
+  {
+    "id": "test-microphone",
+    "destination": "sound-video",
+    "page": "audio"
+  },
+  {
+    "id": "noise-reduction",
+    "destination": "sound-video",
+    "page": "audio"
+  },
+  {
+    "id": "auto-gain",
+    "destination": "sound-video",
+    "page": "audio"
+  },
+  {
+    "id": "target-level",
+    "destination": "sound-video",
+    "page": "audio"
+  },
+  {
+    "id": "compressor",
+    "destination": "sound-video",
+    "page": "audio"
+  },
+  {
+    "id": "compression-amount",
+    "destination": "sound-video",
+    "page": "audio"
+  },
+  {
+    "id": "output-volume",
+    "destination": "sound-video",
+    "page": "audio"
+  },
+  {
+    "id": "input-mode",
+    "destination": "sound-video",
+    "page": "audio"
+  },
+  {
+    "id": "afk-timeout",
+    "destination": "sound-video",
+    "page": "voice"
+  },
+  {
+    "id": "flip-camera",
+    "destination": "sound-video",
+    "page": "camera"
+  },
+  {
+    "id": "center-my-face-automatically",
+    "destination": "sound-video",
+    "page": "camera"
+  },
+  {
+    "id": "mirror-preview",
+    "destination": "sound-video",
+    "page": "camera"
+  },
+  {
+    "id": "appearance",
+    "destination": "appearance",
+    "page": "theme",
+    "panel": true
+  },
+  {
+    "id": "theme",
+    "destination": "appearance",
+    "page": "theme"
+  },
+  {
+    "id": "the-server-we-run",
+    "destination": "servers",
+    "page": "adding-servers"
+  },
+  {
+    "id": "typefaces-from-google",
+    "destination": "appearance",
+    "page": "theme"
+  },
+  {
+    "id": "ui-scale",
+    "destination": "appearance",
+    "page": "display"
+  },
+  {
+    "id": "chat-font-size",
+    "destination": "appearance",
+    "page": "display"
+  },
+  {
+    "id": "standalone-emoji-size",
+    "destination": "appearance",
+    "page": "display"
+  },
+  {
+    "id": "tile-layout",
+    "destination": "sound-video",
+    "page": "voice"
+  },
+  {
+    "id": "two-people",
+    "destination": "sound-video",
+    "page": "voice"
+  },
+  {
+    "id": "smiley-conversion",
+    "destination": "chat-notifications",
+    "page": "chat"
+  },
+  {
+    "id": "blur-profanity",
+    "destination": "chat-notifications",
+    "page": "chat"
+  },
+  {
+    "id": "load-link-embeds-automatically",
+    "destination": "chat-notifications",
+    "page": "chat"
+  },
+  {
+    "id": "hotkeys",
+    "destination": "behaviour",
+    "page": "hotkeys",
+    "panel": true
+  },
+  {
+    "id": "push-to-talk-key",
+    "destination": "behaviour",
+    "page": "hotkeys"
+  },
+  {
+    "id": "toggle-mute",
+    "destination": "behaviour",
+    "page": "hotkeys"
+  },
+  {
+    "id": "toggle-deafen",
+    "destination": "behaviour",
+    "page": "hotkeys"
+  },
+  {
+    "id": "disconnect",
+    "destination": "behaviour",
+    "page": "hotkeys"
+  },
+  {
+    "id": "desktop-notifications",
+    "destination": "chat-notifications",
+    "page": "notifications"
+  },
+  {
+    "id": "notification-level",
+    "destination": "chat-notifications",
+    "page": "notifications"
+  },
+  {
+    "id": "per-server",
+    "destination": "chat-notifications",
+    "page": "notifications"
+  },
+  {
+    "id": "unread-message-badge",
+    "destination": "chat-notifications",
+    "page": "notifications"
+  },
+  {
+    "id": "open-at-login",
+    "destination": "behaviour",
+    "page": "desktop"
+  },
+  {
+    "id": "start-with-windows",
+    "destination": "behaviour",
+    "page": "desktop"
+  },
+  {
+    "id": "start-minimized-on-login",
+    "destination": "behaviour",
+    "page": "desktop"
+  },
+  {
+    "id": "minimize-to-tray-on-close",
+    "destination": "behaviour",
+    "page": "desktop"
+  },
+  {
+    "id": "hardware-acceleration",
+    "destination": "behaviour",
+    "page": "desktop"
+  },
+  {
+    "id": "esports-mode",
+    "destination": "sound-video",
+    "page": "voice"
+  },
+  {
+    "id": "warn-me-when-my-microphone-goes-silent",
+    "destination": "sound-video",
+    "page": "audio"
+  },
+  {
+    "id": "experimental-screen-share",
+    "destination": "sound-video",
+    "page": "screen"
+  },
+  {
+    "id": "fake-participants",
+    "destination": "developer"
+  },
+  {
+    "id": "in-the-voice-channel-with-you",
+    "destination": "developer"
+  },
+  {
+    "id": "in-the-server-not-in-voice",
+    "destination": "developer"
+  },
+  {
+    "id": "how-many-are-muted",
+    "destination": "developer"
+  },
+  {
+    "id": "one-is-deafened",
+    "destination": "developer"
+  },
+  {
+    "id": "they-talk",
+    "destination": "developer"
+  },
+  {
+    "id": "fake-screen-share",
+    "destination": "developer"
+  },
+  {
+    "id": "fake-chat",
+    "destination": "developer"
+  },
+  {
+    "id": "a-message-every",
+    "destination": "developer"
+  },
+  {
+    "id": "addons",
+    "destination": "extensions",
+    "panel": true
+  },
+  {
+    "id": "support-gryt",
+    "destination": "support",
+    "panel": true
+  }
+]

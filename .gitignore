@@ -108,3 +108,7 @@ profile-*.json
 profile-*.txt
 startup-*.txt
 startup-*.json
+
+integration-*.txt
+integration-*.json
+release-laokuai-integration-1/

@@ -3,9 +3,11 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 
 import { GeneratedServerIcon } from "@/common";
+import { i18n, useTranslation } from "@/i18n";
 
 import { PiCheckCircleFill, PiWarningFill, PiX } from "../../../../lib/icons";
 import { useEmbeddedServer } from "../hooks/useEmbeddedServer";
+import { settingsMessage } from "./settingsMessage";
 
 interface CreateServerPanelProps {
   /** Called once the new server is up and reachable. */
@@ -19,6 +21,7 @@ interface CreateServerPanelProps {
  * Create writes the config, starts the process and hands the address back.
  */
 export function CreateServerPanel({ onServerReady, onBack }: CreateServerPanelProps) {
+  useTranslation();
   const { isAvailable, creating, createServer, suggestPort, checkPort } =
     useEmbeddedServer();
 
@@ -87,7 +90,7 @@ export function CreateServerPanel({ onServerReady, onBack }: CreateServerPanelPr
     );
 
     if (!created?.serverUrl || !created.config) {
-      setError("Could not create the server. The startup log has the details.");
+      setError("settingsFull.m822c95d555");
       return;
     }
 
@@ -107,7 +110,7 @@ export function CreateServerPanel({ onServerReady, onBack }: CreateServerPanelPr
 
           No caption underneath: it changes as you type, which says it. */}
       <div className="flex flex-col gap-1">
-        <span className="text-sm font-bold">Name</span>
+        <span className="text-sm font-bold">{i18n.t("settingsFull.m709a23220f")}</span>
         <div className="flex items-end gap-3">
           <Avatar
             size="medium"
@@ -117,7 +120,7 @@ export function CreateServerPanel({ onServerReady, onBack }: CreateServerPanelPr
           <TextField
             autoFocus
             className="flex-1"
-            placeholder="My Server"
+            placeholder={i18n.t("settingsFull.m5ddbad1831")}
             value={serverName}
             onChange={(e) => setServerName(e.target.value)}
             disabled={creating}
@@ -134,7 +137,7 @@ export function CreateServerPanel({ onServerReady, onBack }: CreateServerPanelPr
           "Available" rather than "Free": on a product surface Free reads as a
           price, and nothing here costs money. */}
       <div className="flex flex-col gap-1">
-        <span className="text-sm font-bold">Port</span>
+        <span className="text-sm font-bold">{i18n.t("settingsFull.mfe035157cd")}</span>
         <div className="flex items-center gap-3">
           {/* The width goes on a wrapper, not on TextField: the class lands on
               the input and its wrapper stays full-width, which pushed the
@@ -158,24 +161,16 @@ export function CreateServerPanel({ onServerReady, onBack }: CreateServerPanelPr
               className="inline-flex items-center gap-1 text-xs"
               style={{ color: "var(--gryt-success-11)" }}
             >
-              <PiCheckCircleFill size={13} />
-              Available
-            </span>
+              <PiCheckCircleFill size={13} />{i18n.t("settingsFull.m7c62a14244")}</span>
           )}
           {portState === "taken" && (
-            <span className="text-xs" style={{ color: "var(--gryt-danger-11)" }}>
-              Something else is using this port
-            </span>
+            <span className="text-xs" style={{ color: "var(--gryt-danger-11)" }}>{i18n.t("settingsFull.m0040153595")}</span>
           )}
           {portState === "invalid" && (
-            <span className="text-xs" style={{ color: "var(--gryt-danger-11)" }}>
-              Must be a number between 1 and 65535
-            </span>
+            <span className="text-xs" style={{ color: "var(--gryt-danger-11)" }}>{i18n.t("settingsFull.m2ebc6db117")}</span>
           )}
           {portState === "loading" && (
-            <span className="text-xs" style={{ color: "var(--gryt-neutral-11)" }}>
-              Checking&hellip;
-            </span>
+            <span className="text-xs" style={{ color: "var(--gryt-neutral-11)" }}>{i18n.t("settingsFull.m820d6004b0")}</span>
           )}
         </div>
       </div>
@@ -189,9 +184,7 @@ export function CreateServerPanel({ onServerReady, onBack }: CreateServerPanelPr
             onCheckedChange={(c) => setLanDiscoverable(c === true)}
             disabled={creating}
           />
-          <span className="text-sm">
-            Let others on my network find it
-          </span>
+          <span className="text-sm">{i18n.t("settingsFull.m6f7901eb02")}</span>
         </label>
 
       <AnimatePresence>
@@ -202,23 +195,19 @@ export function CreateServerPanel({ onServerReady, onBack }: CreateServerPanelPr
             exit={{ height: 0, opacity: 0 }}
             style={{ overflow: "hidden" }}
           >
-            <Alert severity="info" role="alert"><span className="inline-flex items-start gap-2"><PiWarningFill size={16} />{error}</span></Alert>
+            <Alert severity="info" role="alert"><span className="inline-flex items-start gap-2"><PiWarningFill size={16} />{settingsMessage(error)}</span></Alert>
             <div className="flex mt-2 justify-end">
               <Button tone="ghost" size="xsmall"
                 onClick={() => setError("")}
               >
-                <PiX size={14} />
-                Dismiss
-              </Button>
+                <PiX size={14} />{i18n.t("settingsFull.m70afe9eff3")}</Button>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
       <Dialog.Footer className="justify-between">
-        <Button tone="ghost" size="small" onClick={onBack} disabled={creating}>
-          Back
-        </Button>
+        <Button tone="ghost" size="small" onClick={onBack} disabled={creating}>{i18n.t("ui.back")}</Button>
 
         <Button size="small"
           onClick={() => {
@@ -229,7 +218,7 @@ export function CreateServerPanel({ onServerReady, onBack }: CreateServerPanelPr
           }
         >
           {creating ? <Spinner size={16} /> : null}
-          {creating ? "Creating…" : "Create"}
+          {creating ? i18n.t("settingsFull.m94d7d8ee47") : i18n.t("settingsFull.m6e157c5da4")}
         </Button>
       </Dialog.Footer>
     </div>

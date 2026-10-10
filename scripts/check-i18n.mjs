@@ -15,7 +15,7 @@ const english = new Map(flatten(en));
 const chinese = new Map(flatten(zh));
 assert.deepEqual([...english.keys()].sort(), [...chinese.keys()].sort());
 for (const [key, value] of english) {
-  const placeholders = (text) => [...text.matchAll(/\{\{([^}]+)\}\}/g)].map((match) => match[1]).sort();
+  const placeholders = (text) => [...new Set([...text.matchAll(/\{\{([^}]+)\}\}/g)].map((match) => match[1]))].sort();
   assert.deepEqual(placeholders(value), placeholders(chinese.get(key)), key);
   const tags = (text) => [...text.matchAll(/<\/?([a-z]+)>/g)].map((match) => match[0]).sort();
   assert.deepEqual(tags(value), tags(chinese.get(key)), `${key}: translator component tags`);
@@ -27,10 +27,19 @@ function checkSource(dir) {
     if (item.isDirectory()) checkSource(file);
     else if (/\.tsx?$/.test(file)) {
       const source = fs.readFileSync(file, "utf8");
-      for (const match of source.matchAll(/\b(?:tr|i18n\.t)\("([\w.-]+)"/g)) {
-        assert.ok(english.has(match[1]) || english.has(match[1] + "_other"), `${file}: unknown locale key ${match[1]}`);
-      }
-      for (const match of source.matchAll(/\bi18nKey="([\w.-]+)"/g)) assert.ok(english.has(match[1]), `${file}: unknown Trans key ${match[1]}`);
+      const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true);
+      const visit = (node) => {
+        if (ts.isCallExpression(node) && node.arguments.length && ts.isStringLiteral(node.arguments[0])) {
+          const callee = node.expression.getText(tree);
+          if (callee === "tr" || callee === "i18n.t") {
+            const key = node.arguments[0].text;
+            assert.ok(english.has(key) || english.has(key + "_other"), `${file}: unknown locale key ${key}`);
+          }
+        }
+        ts.forEachChild(node, visit);
+      };
+      visit(tree);
+      for (const match of source.matchAll(/\bi18nKey="([\w.-]+)"/g)) assert.ok(english.has(match[1]) || english.has(match[1] + "_other"), `${file}: unknown Trans key ${match[1]}`);
     }
   }
 }

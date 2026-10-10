@@ -13,6 +13,7 @@ import {
   useThreadUnread,
   useUnreadTracker,
 } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 
 import { useSockets } from "../hooks/useSockets";
 
@@ -30,6 +31,7 @@ export type MarkReadScope =
  * one badge, two the client's and two the server's, so each scope clears both.
  */
 export function MarkAsReadItem({ host, scope }: { host: string; scope: MarkReadScope }) {
+  useSocketTranslation();
   const { sockets } = useSockets();
   const { serverUnreadCount, channelUnreadCount } = useUnreadTracker();
   const { serverMentionCount, conversationMentionCount } = useMentionTracker();
@@ -79,8 +81,6 @@ export function MarkAsReadItem({ host, scope }: { host: string; scope: MarkReadS
   };
 
   return (
-    <ContextMenu.Item disabled={waiting === 0} onClick={onClick}>
-      Mark as read
-    </ContextMenu.Item>
+    <ContextMenu.Item disabled={waiting === 0} onClick={onClick}>{socketI18n.t("socketFull.markAsReadItem_3159690739")}</ContextMenu.Item>
   );
 }

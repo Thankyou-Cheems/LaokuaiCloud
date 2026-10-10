@@ -2,9 +2,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
 import { clearThreadMentions, getServerAccessToken, setOpenThread } from "@/common";
+import { i18n as socketHooksI18n } from "@/i18n";
 
 import type { ChatMessage } from "../components/chatUtils";
 import { mergeSender, mergeSenders } from "../utils/mergeSender";
+import { socketHookToast } from "../utils/socketHookMessages";
 import { type ChatErrorPayload, type ChatErrorRef, isMutedError, isNonRetryableError } from "./chatEventHandlers";
 import { mergeMessages } from "./mergeMessages";
 import { forgetOpenThread, recallOpenThread, rememberOpenThread } from "./openThreadMemory";
@@ -90,8 +92,8 @@ function refusedReply(queue: Map<string, ThreadRetryEntry>, ref?: ChatErrorRef):
 }
 
 function errorText(e: ChatErrorPayload): string {
-  if (typeof e === "string") return e || "Something went wrong.";
-  return e?.message || e?.error || "Something went wrong.";
+  if (typeof e === "string") return e || socketHooksI18n.t("socketHooksFull.useThreads_bee54c9cc3");
+  return e?.message || e?.error || socketHooksI18n.t("socketHooksFull.useThreads_bee54c9cc3");
 }
 
 // The slice of a socket.io client this hook touches, so nothing has to be typed
@@ -453,7 +455,7 @@ export function useThreads(
         setOpen((o) => (o ? { ...o, loading: false, loadingOlder: false, error: message } : o));
         return;
       }
-      toast.error(message);
+      toast.error(socketHookToast(() => message));
     };
 
     /* A refused reply follows the channel: one automatic retry, and if that
@@ -473,7 +475,7 @@ export function useThreads(
 
       failReply(entry.payload.nonce);
       // The composer draws the mute, and the server's own wording carries a raw ISO date.
-      if (!isMutedError(e)) toast.error(errorText(e));
+      if (!isMutedError(e)) toast.error(socketHookToast(() => errorText(e)));
     };
 
     /* The panel was open before the window was resized and this hook was mounted
@@ -518,7 +520,7 @@ export function useThreads(
     /* A dead socket swallows the emit, and the root stays queued to open a panel
        that no thread:created ever arrives for. Say so instead (GRYT-1389). */
     if (socket.connected === false) {
-      toast.error("Not connected to this server");
+      toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useThreads_2577b159c1")));
       return;
     }
     // Already threaded — just open it.
@@ -640,7 +642,7 @@ export function useThreads(
           fileIds = uploaded.map((u) => u.fileId);
         } catch (err) {
           const msg = err instanceof Error && err.message ? err.message : "Failed to upload file(s)";
-          toast.error(msg);
+          toast.error(socketHookToast(() => msg));
           // The optimistic row is marked rather than removed, the same way a
           // failed send is in a channel — a reply that vanishes reads as sent.
           setOpen((o) =>

@@ -3,6 +3,7 @@ import { useReducedMotion } from "motion/react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { i18n, LocalizedText, useTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 import { useServerManagement } from "@/socket";
 
@@ -74,6 +75,7 @@ function readRect(target: string): Rect | null {
 }
 
 export function OnboardingTour({ onFinish }: { onFinish: () => void }) {
+  useTranslation();
   const [index, setIndex] = useState(0);
   const [rect, setRect] = useState<Rect | null>(null);
 
@@ -368,7 +370,7 @@ export function OnboardingTour({ onFinish }: { onFinish: () => void }) {
         }}
       >
         <p className="m-0 font-mono text-xs tracking-wide text-gryt-accent">
-          Step {index + 1} of {tourSteps.length}
+          {i18n.t("shellFull.tourProgress", { current: index + 1, total: tourSteps.length })}
         </p>
 
         <h2
@@ -384,12 +386,10 @@ export function OnboardingTour({ onFinish }: { onFinish: () => void }) {
           {/* Ghost rather than a bare element: it sits next to a real Button
               and was the only control in the app hand-rolling its own hover and
               focus. Same tone as the secondary in the welcome that hands here. */}
-          <Button tone="ghost" size="small" onClick={onFinish}>
-            Skip
-          </Button>
+          <Button tone="ghost" size="small" onClick={onFinish}>{<LocalizedText translationKey="shellFull.OnboardingTour_tsx_3da474537a" />}</Button>
 
           <Button size="small" onClick={advance}>
-            {isLast ? "Done" : "Next"}
+            {isLast ? i18n.t("shellFull.OnboardingTour_tsx_e9b450d14b") : i18n.t("shellFull.OnboardingTour_tsx_bc981983e7")}
           </Button>
         </div>
       </div>

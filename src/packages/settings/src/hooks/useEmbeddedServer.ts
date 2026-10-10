@@ -163,18 +163,18 @@ export function useEmbeddedServer() {
       id: string,
       ports: { serverPort?: number; sfuPort?: number; mediaPort?: number },
     ): Promise<string | null> => {
-      if (!api) return "Not available";
+      if (!api) return "settingsFull.md1a17af19f";
       markBusy(id, true);
       try {
         const updated = await api.updateEmbeddedServerPorts(id, ports);
-        if (!updated) return "That server no longer exists";
+        if (!updated) return "settingsFull.m28745fdcf6";
         setServers((current) =>
           current.map((server) => (server.id === id ? updated : server)),
         );
         return null;
       } catch (err) {
         console.error("[EmbeddedServer] port update failed:", err);
-        return err instanceof Error ? err.message : "Could not change the ports";
+        return err instanceof Error ? err.message : "settingsFull.mdbf2e0d495";
       } finally {
         markBusy(id, false);
       }

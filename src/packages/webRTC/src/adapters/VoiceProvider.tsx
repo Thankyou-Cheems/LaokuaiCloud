@@ -1,10 +1,11 @@
 import type { VoiceConfigCallbacks } from "@gryt/voice";
-import { setVoiceHost,VoiceConfigProvider, VoiceSingletonHooks } from "@gryt/voice";
+import { setVoiceHost, useSpeakers, VoiceConfigProvider, VoiceSingletonHooks } from "@gryt/voice";
 import { type ReactNode,useMemo, useRef } from "react";
 
 import { useSettings } from "@/settings";
 import { useServerManagement, useSockets } from "@/socket";
 
+import { ReceiveLevelingProvider } from "../components/ReceiveLevelingAdapter";
 import { createRoomCoordinator } from "./roomCoordinator";
 import { useOutputDevice } from "./useOutputDevice";
 import { useReceiveAudioRoles } from "./useReceiveAudioRoles";
@@ -21,6 +22,16 @@ import { electronVoiceHost } from "./voiceHost";
 setVoiceHost(electronVoiceHost);
 
 const NO_STUN: string[] = [];
+
+function ReceiveLevelingBridge({ children }: { children?: ReactNode }) {
+  const { receiveLevelingEnabled, setReceiveLevelingEnabled } = useSettings();
+  const { receiveLevelingState } = useSpeakers();
+  const value = useMemo(() => ({ available: true as const, enabled: receiveLevelingEnabled,
+    runtime: receiveLevelingState.status, reason: receiveLevelingState.reason,
+    latencyMs: receiveLevelingState.latencyMs, setEnabled: setReceiveLevelingEnabled }),
+  [receiveLevelingEnabled, receiveLevelingState, setReceiveLevelingEnabled]);
+  return <ReceiveLevelingProvider value={value}>{children}</ReceiveLevelingProvider>;
+}
 
 function VoiceLifecycle() {
   useVoiceLifecycle();
@@ -90,7 +101,7 @@ export function VoiceProvider({ children }: { children?: ReactNode }) {
           sound, ending a call when its server is removed, and the server hanging
           up on us. */}
       <VoiceLifecycle />
-      {children}
+      <ReceiveLevelingBridge>{children}</ReceiveLevelingBridge>
     </VoiceConfigProvider>
   );
 }

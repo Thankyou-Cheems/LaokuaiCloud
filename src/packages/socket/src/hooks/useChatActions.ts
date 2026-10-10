@@ -3,11 +3,13 @@ import { useCallback, useState } from "react";
 import toast from "react-hot-toast";
 
 import { getServerAccessToken } from "@/common";
+import { i18n as socketHooksI18n } from "@/i18n";
 
 import type { ChatEditorHandle } from "../components/ChatEditor";
 import type { ChatMessage } from "../components/chatUtils";
 import { mlsReportCopy } from "../mls/timeline";
 import { recordReaction } from "../utils/recentReactions";
+import { socketHookToast } from "../utils/socketHookMessages";
 import { useServerPermissions } from "./usePermissions";
 
 interface UseChatActionsParams {
@@ -56,7 +58,7 @@ export function useChatActions({
     // Refused here as well as by the server. The picker is left in place: it is
     // reached from three menus, and one that says why beats three that vanish.
     if (!canIn(message.conversation_id, "add_reactions")) {
-      toast.error("You do not have permission to react here.");
+      toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useChatActions_1fe147b299")));
       return;
     }
     recordReaction(reactionSrc, serverHost);

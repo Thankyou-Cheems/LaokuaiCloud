@@ -91,18 +91,18 @@ export function buildMouseCombo(e: MouseLike): string | null {
   return [...modifiersOf(e), `Mouse${button}`].join("+");
 }
 
-export function formatCombo(combo: string): string {
-  if (!combo) return "Not set";
+export function formatCombo(combo: string, translate?: (key: string, values?: Record<string, unknown>) => string): string {
+  if (!combo) return translate?.("shellSecond.hotkeyNotSet") ?? "Not set";
   return combo
     .split("+")
     .map((part) => {
       switch (part) {
-        case "Space": return "Space";
+        case "Space": return translate?.("shellSecond.hotkeySpace") ?? "Space";
         case "Escape": return "Esc";
         default:
           if (part.startsWith("Key")) return part.slice(3);
           if (part.startsWith("Digit")) return part.slice(5);
-          if (isMouseToken(part)) return `Mouse ${part.slice(5)}`;
+          if (isMouseToken(part)) return translate?.("shellSecond.hotkeyMouse", { number: part.slice(5) }) ?? `Mouse ${part.slice(5)}`;
           return part;
       }
     })

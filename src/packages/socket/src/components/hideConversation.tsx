@@ -2,6 +2,7 @@ import { Button } from "@gryt/ui";
 import toast from "react-hot-toast";
 
 import { markChannelRead } from "@/common";
+import { i18n as socketI18n } from "@/i18n";
 
 import { hideConversation, showConversation } from "../hooks/hiddenConversations";
 
@@ -30,7 +31,7 @@ export function hideConversationWithUndo(
   toast(
     () => (
       <span className="flex items-center gap-3">
-        <span className="min-w-0 flex-1 truncate">Hid {title}</span>
+        <span className="min-w-0 flex-1 truncate">{socketI18n.t("socketFull.hideConversation_d68769414f")}{" "}{title}</span>
         <Button
           size="xsmall"
           tone="ghost"
@@ -38,9 +39,7 @@ export function hideConversationWithUndo(
             showConversation(host, serverUserId, conversationId);
             toast.dismiss(id);
           }}
-        >
-          Undo
-        </Button>
+        >{socketI18n.t("socketFull.hideConversation_a53485b2cc")}</Button>
       </span>
     ),
     { id, duration: UNDO_MS },

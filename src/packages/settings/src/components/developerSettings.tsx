@@ -1,5 +1,6 @@
 import { Button, Chip, Divider } from "@gryt/ui";
 
+import { i18n, useTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 import {
   setFakeChatRunning,
@@ -26,6 +27,7 @@ const MAX_FAKE_MEMBERS = 12;
  * false, so the whole panel and its tab disappear from a release.
  */
 export function DeveloperSettings() {
+  useTranslation();
   const {
     devFakeParticipants,
     setDevFakeParticipants,
@@ -47,26 +49,26 @@ export function DeveloperSettings() {
   return (
     <SettingsContainer>
       <div className="flex items-center gap-2">
-        <h2>Developer</h2>
-        <Chip tone="warning" label="Dev build only" />
+        <h2>{i18n.t("ui.developer")}</h2>
+        <Chip tone="warning" label={i18n.t("settingsFull.m23e4eb327c")} />
       </div>
 
-      <span className="text-gryt-muted">
-        These do not exist in a release build.
-      </span>
+      <span className="text-gryt-muted">{i18n.t("settingsFull.me5c0f54e98")}</span>
 
       <Divider />
 
       <SettingGroup
-        title="Fake participants"
-        description="Invents people in the voice channel you are in and in the member list around it, so both can be seen at counts a single account cannot reach — the server allows one voice connection per user, so a second tab gets kicked. They render through the real voice view and the real member list, so this proves layout and nothing about the socket path."
+        anchorId="fake-participants"
+        title={i18n.t("settingsFull.m35feb4fa87")}
+        description={i18n.t("settingsFull.m5adf7275be")}
       >
         <SliderSetting
-          title="In the voice channel with you"
+          anchorId="in-the-voice-channel-with-you"
+          title={i18n.t("settingsFull.m49e5462548")}
           description={
             devFakeParticipants === 0
-              ? "Off — only real people in the channel."
-              : `${devFakeParticipants} invented, on top of anyone actually there.`
+              ? i18n.t("settingsFull.m7ca1cc4cd6")
+              : i18n.t("settingsFull.mf73aa18790", { value0: devFakeParticipants })
           }
           value={devFakeParticipants}
           onChange={setDevFakeParticipants}
@@ -76,11 +78,12 @@ export function DeveloperSettings() {
         />
 
         <SliderSetting
-          title="In the server, not in voice"
+          anchorId="in-the-server-not-in-voice"
+          title={i18n.t("settingsFull.mc59e168ea2")}
           description={
             devFakeMembers === 0
-              ? "Off — the member list shows only the people in the call."
-              : `${devFakeMembers} more in the member list, spread across online, AFK and offline.`
+              ? i18n.t("settingsFull.m3638de89a3")
+              : i18n.t("settingsFull.m0fe8202631", { value0: devFakeMembers })
           }
           value={devFakeMembers}
           onChange={setDevFakeMembers}
@@ -90,8 +93,9 @@ export function DeveloperSettings() {
         />
 
         <SliderSetting
-          title="How many are muted"
-          description="Of the people in voice. Muted and deafened ones stay silent — nothing talks that should not be able to."
+          anchorId="how-many-are-muted"
+          title={i18n.t("settingsFull.m7acd250f39")}
+          description={i18n.t("settingsFull.mfba205976e")}
           value={Math.min(devFakeMuted, devFakeParticipants)}
           onChange={setDevFakeMuted}
           min={0}
@@ -100,22 +104,25 @@ export function DeveloperSettings() {
         />
 
         <ToggleSetting
-          title="One is deafened"
-          description="Deafens the last one, and mutes them with it, since that is what deafening does here. The deafened badge is a different icon from the muted one."
+          anchorId="one-is-deafened"
+          title={i18n.t("settingsFull.mbae20a5acb")}
+          description={i18n.t("settingsFull.m2a491432c1")}
           checked={devFakeDeafened}
           onCheckedChange={setDevFakeDeafened}
         />
 
         <ToggleSetting
-          title="They talk"
-          description="Everyone not muted takes turns talking, in bursts of a few seconds with longer gaps. Each one gets a real silent audio track, so the halo and the speaking ring are driven by a level the same way a real participant's are."
+          anchorId="they-talk"
+          title={i18n.t("settingsFull.m7b4baeee7f")}
+          description={i18n.t("settingsFull.m0ce9484099")}
           checked={devFakeSpeaking}
           onCheckedChange={setDevFakeSpeaking}
         />
 
         <ToggleSetting
-          title="Fake screen share"
-          description="Gives the first fake participant a share, backed by an animated canvas rather than a placeholder, so the tile takes the same path a real share does."
+          anchorId="fake-screen-share"
+          title={i18n.t("settingsFull.mf7712616ee")}
+          description={i18n.t("settingsFull.m3914c64161")}
           checked={devFakeScreenShare}
           onCheckedChange={setDevFakeScreenShare}
         />
@@ -124,12 +131,14 @@ export function DeveloperSettings() {
       <Divider />
 
       <SettingGroup
-        title="Fake chat"
-        description="Posts messages from the invented people into the channel you are looking at — mentions, custom emoji, links with previews, code blocks, replies and a wall of text, so each one can be seen rendered. Delivered through the same handler a real message arrives on, so unread badges and the message sound behave normally. Nothing is sent to the server: nobody else sees any of it and none of it is saved."
+        anchorId="fake-chat"
+        title={i18n.t("settingsFull.mb0a5991e3c")}
+        description={i18n.t("settingsFull.mb8a2f44563")}
       >
         <SliderSetting
-          title="A message every"
-          description={`${devFakeChatSeconds} second${devFakeChatSeconds === 1 ? "" : "s"}, while it is running.`}
+          anchorId="a-message-every"
+          title={i18n.t("settingsFull.ma85fd942ff")}
+          description={i18n.t("settingsFull.m29ed08341b", { seconds: devFakeChatSeconds, count: devFakeChatSeconds })}
           value={devFakeChatSeconds}
           onChange={setDevFakeChatSeconds}
           min={1}
@@ -142,21 +151,19 @@ export function DeveloperSettings() {
             onClick={() => setFakeChatRunning(!chatRunning)}
           >
             {chatRunning ? <PiStopFill size={16} /> : <PiPlayFill size={16} />}
-            {chatRunning ? "Stop" : "Start"}
+            {chatRunning ? i18n.t("settingsFull.m9e253470c8") : i18n.t("settingsFull.m952f375412")}
           </Button>
           <span className="text-gryt-muted">
             {chatRunning
-              ? "Running. It keeps going until you stop it or quit — nothing turns it off on its own."
-              : "The message sound only plays when the window is not focused, which is what a real message does too. Click away from Gryt to hear it."}
+              ? i18n.t("settingsFull.m0735022813")
+              : i18n.t("settingsFull.m8041058edf")}
           </span>
         </div>
       </SettingGroup>
 
       <Divider />
 
-      <span className="text-gryt-muted">
-        The query string still works and overrides these while it is present:
-        <br />
+      <span className="text-gryt-muted">{i18n.t("settingsFull.md91766b4d5")}<br />
         <code>
           ?fake=6&amp;fakemembers=8&amp;fakemuted=2&amp;fakeshare=1&amp;fakedeaf=1&amp;fakespeak=0
         </code>

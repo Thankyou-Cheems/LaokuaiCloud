@@ -1,5 +1,7 @@
 import { useMemo, useSyncExternalStore } from "react";
 
+import { i18n as socketHooksI18n } from "@/i18n";
+
 /**
  * A mute stops text as well as voice, so the composer has to know about it.
  * `until` is null when the server named no end.
@@ -118,13 +120,13 @@ export function useTextMute(host: string | undefined): TextMute | null {
  * date in front of it otherwise.
  */
 export function muteLiftsAt(until: Date): string {
-  const time = until.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  const time = until.toLocaleTimeString(socketHooksI18n.resolvedLanguage, { hour: "numeric", minute: "2-digit" });
   const now = new Date();
   const sameDay = until.getFullYear() === now.getFullYear()
     && until.getMonth() === now.getMonth()
     && until.getDate() === now.getDate();
   if (sameDay) return time;
-  return `${until.toLocaleDateString(undefined, { day: "numeric", month: "short" })}, ${time}`;
+  return `${until.toLocaleDateString(socketHooksI18n.resolvedLanguage, { day: "numeric", month: "short" })}, ${time}`;
 }
 
 /** An `expiresAt` off the wire. Anything that is not a usable date is no end. */

@@ -8,6 +8,7 @@ import {
 } from "react";
 import toast from "react-hot-toast";
 
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 import { useTranslation } from "@/i18n";
 
 import { PiCode, PiFileAudioFill, PiFileFill, PiFileTextFill, PiFileVideoFill, PiFileZipFill, PiImageFill, PiPaperclipFill, PiPaperPlaneTiltFill, PiSmileyFill, PiX } from "../../../../lib/icons";
@@ -264,6 +265,7 @@ function replaceEmojiQueryAtCursor(entry: EmojiEntry): void {
 
 export const ChatEditor = forwardRef<ChatEditorHandle, ChatEditorProps>(
   ({ placeholder, disabled, allowFiles, maxFileSize, onSend, onArrowUpEmpty, onCancel, onTyping, onStopTyping, isEditing, memberList, channelList, serverHost }, ref) => {
+  useSocketTranslation();
   const { t: tr } = useTranslation();
     const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
     const pendingFilesRef = useRef<PendingFile[]>([]);
@@ -352,7 +354,7 @@ export const ChatEditor = forwardRef<ChatEditorHandle, ChatEditorProps>(
       for (const file of files) {
         if (maxFileSize && file.size > maxFileSize) {
           const limitMb = (maxFileSize / (1024 * 1024)).toFixed(0);
-          toast.error(`File "${file.name}" is too large. Max file size is ${limitMb} MB.`);
+          toast.error(socketI18n.t("socketFull.chatEditor_56c76d0477", { p0: (file.name), p1: (limitMb) }));
           continue;
         }
         const previewUrl = file.type.startsWith("image/") ? URL.createObjectURL(file) : null;
@@ -416,7 +418,7 @@ export const ChatEditor = forwardRef<ChatEditorHandle, ChatEditorProps>(
         if (text.length > MESSAGE_MAX_LENGTH) {
           if (isEditing) {
             toast.error(
-              `Edited messages are limited to ${MESSAGE_MAX_LENGTH.toLocaleString("en")} characters.`,
+              socketI18n.t("socketFull.chatEditor_1fd8a6e0cc", { p0: (MESSAGE_MAX_LENGTH.toLocaleString(socketI18n.resolvedLanguage)) }),
             );
             return;
           }
@@ -654,7 +656,7 @@ export const ChatEditor = forwardRef<ChatEditorHandle, ChatEditorProps>(
             {pendingFiles.map((pf) => (
               <div key={pf.id} className="chat-editor-file-preview">
                 {pf.previewUrl ? (
-                  <img src={pf.previewUrl} alt="Upload preview" />
+                  <img src={pf.previewUrl} alt={socketI18n.t("socketFull.chatEditor_834e944fb9")} />
                 ) : (
                   <div className="chat-editor-file-preview-icon">
                     {getFileIcon(pf.file.type)}

@@ -1,6 +1,7 @@
 import "./style.css";
 
 import { createGrytTheme, grytThemeToOptions } from "@gryt/ui";
+import { GrytUiI18nProvider, grytUiZhCN } from "@gryt/ui/i18n";
 import React, { useEffect, useRef } from "react";
 import ReactDOM from "react-dom/client";
 import { Toaster } from "react-hot-toast";
@@ -26,7 +27,7 @@ import {
   useThemeEditor,
   useZoomShortcuts,
 } from "@/common";
-import { restoreLanguagePreference } from "@/i18n";
+import { restoreLanguagePreference, useTranslation } from "@/i18n";
 import { ThemeEditorPanel } from "@/settings";
 import { useSettings } from "@/settings";
 import { ServerPluginsModal } from "@/socket";
@@ -47,6 +48,8 @@ import { pushTitlebarOverlay } from "./lib/titlebarOverlay";
 
 // eslint-disable-next-line react-refresh/only-export-components
 function ThemedApp() {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
   const {
     resolvedAppearance,
     accentColor,
@@ -162,6 +165,7 @@ function ThemedApp() {
   return (
   /* Radix's <Theme> defined the tokens @gryt/ui's stylesheet now carries, so what
      is left here is the layout. */
+    <GrytUiI18nProvider locale={language} labels={language.toLowerCase().startsWith("zh") ? grytUiZhCN : undefined}>
     <div className="gryt-app flex min-h-0 flex-1 flex-col">
       <Titlebar />
       <ServiceStatusBanner />
@@ -192,6 +196,7 @@ function ThemedApp() {
         }}
       />
     </div>
+    </GrytUiI18nProvider>
   );
 }
 

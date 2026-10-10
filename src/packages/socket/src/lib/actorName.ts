@@ -1,3 +1,4 @@
+import { i18n as socketI18n } from "@/i18n";
 /**
  * Who did this, in words. The server writes `plugin:<id>` when no member acted;
  * left alone the "by …" clause goes missing, which reads as nobody (GRYT-938).
@@ -28,8 +29,8 @@ export function describeActor(
     const pluginId = id.slice(PLUGIN_PREFIX.length).trim();
     /* A bare `plugin:` is not a plugin anybody can name. Reading it as one
        would print "the  plugin", which looks like a rendering bug. */
-    if (!pluginId) return { kind: "server", label: "the server" };
-    return { kind: "plugin", label: `the ${pluginId} plugin`, pluginId };
+    if (!pluginId) return { kind: "server", label: socketI18n.t("socketFull.actorName_0693e0034d") };
+    return { kind: "plugin", label: socketI18n.t("socketFull.actorName_8f9b8c599f", { p0: (pluginId) }), pluginId };
   }
 
   /*
@@ -40,5 +41,5 @@ export function describeActor(
   if (name) return { kind: "member", label: name };
   if (id) return { kind: "member", label: id };
 
-  return { kind: "server", label: "the server" };
+  return { kind: "server", label: socketI18n.t("socketFull.actorName_0693e0034d") };
 }

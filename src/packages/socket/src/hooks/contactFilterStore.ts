@@ -1,5 +1,7 @@
 import { useSyncExternalStore } from "react";
 
+import { i18n as socketHooksI18n } from "@/i18n";
+
 import { type ContactKnowledge, emptyKnowledge, type FilteredEvent } from "../utils/contactFilter";
 
 /**
@@ -93,12 +95,11 @@ function commit(next: FilteredItem[]): void {
 
 /** What they did, in a few words. */
 export function filteredSummary(item: FilteredItem): string {
-  const times = item.count === 1 ? "" : ` ${item.count} times`;
-  const what =
-    item.kind === "call" ? `Called you${times}`
-      : item.kind === "conversation" ? "Started a conversation"
-        : item.count === 1 ? "Sent a message" : `Sent ${item.count} messages`;
-  return item.reason === "flood" ? `${what}, in a burst` : what;
+  const burst = item.reason === "flood" ? "Burst" : "";
+  const key = item.kind === "call" ? "filteredCalls" + burst
+    : item.kind === "conversation" ? "filteredConversation" + burst
+      : "filteredMessages" + burst;
+  return socketHooksI18n.t("socketHooksFull." + key, { count: item.count });
 }
 
 /** A conversation and its messages are one row, and a call is its own. */

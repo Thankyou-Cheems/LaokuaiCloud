@@ -1,6 +1,8 @@
 import { Button, Select, TextField } from "@gryt/ui";
 import { useEffect, useState } from "react";
 
+import { i18n, useTranslation } from "@/i18n";
+
 import { isMacAppStoreBuild, type WatchedProgram } from "../../../../lib/electron";
 import { useWatchedPrograms } from "../hooks/useWatchedPrograms";
 import { HowItWorks } from "./howItWorks";
@@ -10,6 +12,7 @@ import { HowItWorks } from "./howItWorks";
  * what is running and tells anybody only about this list (GRYT-931).
  */
 export function WatchedPrograms() {
+  useTranslation();
   const { supported, watched, running, setWatched, listRunning, consentedAt, setConsent } =
     useWatchedPrograms();
 
@@ -32,15 +35,12 @@ export function WatchedPrograms() {
   if (!supported) {
     return (
       <div className="flex flex-col gap-1">
-        <span className="text-sm font-bold">Programs you add</span>
+        <span className="text-sm font-bold">{i18n.t("settingsFull.m9e1a71e91c")}</span>
         <span className="text-xs text-gryt-muted">
           {isMacAppStoreBuild() ? (
-            <>The Mac App Store version can&rsquo;t see what other apps you have open.</>
+            <>{i18n.t("settingsFull.me3a3808a32")}</>
           ) : (
-            <>
-              Only the desktop app can see what you have open. In a browser
-              there&rsquo;s nothing to look at.
-            </>
+            <>{i18n.t("settingsFull.md691d6b3e8")}</>
           )}
         </span>
       </div>
@@ -72,25 +72,14 @@ export function WatchedPrograms() {
   if (!consentedAt) {
     return (
       <div className="flex flex-col gap-2">
-        <span className="text-sm font-bold">Programs you add</span>
-        <span className="text-xs text-gryt-muted">
-          For games that don&rsquo;t report themselves, like CS2. Allow it, then add the game.
-        </span>
+        <span className="text-sm font-bold">{i18n.t("settingsFull.m9e1a71e91c")}</span>
+        <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.ma87f57cd0f")}</span>
         <HowItWorks>
-          <span className="text-xs text-gryt-muted">
-            Gryt reads which programs are running on this machine, every ten seconds,
-            and checks them against a list you pick.
-          </span>
-          <span className="text-xs text-gryt-muted">
-            That list of running programs never leaves this machine. Other people
-            only ever see the name of something you added yourself. If you add
-            nothing, Gryt doesn&rsquo;t look at all.
-          </span>
+          <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.m5b97524993")}</span>
+          <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.m6796b0be4c")}</span>
         </HowItWorks>
         <div className="flex items-center gap-2" style={{ marginTop: 4 }}>
-          <Button size="small" onClick={() => void setConsent(true)}>
-            Allow
-          </Button>
+          <Button size="small" onClick={() => void setConsent(true)}>{i18n.t("settingsFull.m3ad0e36982")}</Button>
         </div>
       </div>
     );
@@ -98,12 +87,8 @@ export function WatchedPrograms() {
 
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-sm font-bold">Programs you add</span>
-      <span className="text-xs text-gryt-muted">
-        List a program and Gryt says its name under yours while it&rsquo;s
-        running, instead of the line above. Nothing else you have open is
-        looked at or sent anywhere.
-      </span>
+      <span className="text-sm font-bold">{i18n.t("settingsFull.m9e1a71e91c")}</span>
+      <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.mbc442bd619")}</span>
 
       {watched.length > 0 && (
         <ul className="flex flex-col gap-1 m-0 p-0 list-none">
@@ -118,13 +103,9 @@ export function WatchedPrograms() {
                 {entry.match}
               </span>
               {running.includes(entry.name) && (
-                <span className="text-xs" style={{ color: "var(--gryt-success-9)" }}>
-                  running
-                </span>
+                <span className="text-xs" style={{ color: "var(--gryt-success-9)" }}>{i18n.t("settingsFull.m3c49d9cc3c")}</span>
               )}
-              <Button size="xsmall" tone="neutral" onClick={() => void remove(entry)}>
-                Remove
-              </Button>
+              <Button size="xsmall" tone="neutral" onClick={() => void remove(entry)}>{i18n.t("ui.remove")}</Button>
             </li>
           ))}
         </ul>
@@ -132,7 +113,7 @@ export function WatchedPrograms() {
 
       <div className="flex items-end gap-2">
         <div className="flex flex-col gap-1" style={{ flex: 1, minWidth: 0 }}>
-          <span className="text-xs text-gryt-muted">Something you have open</span>
+          <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.m303759e0a3")}</span>
           <Select
             value={picked}
             onValueChange={(value) => setPicked(String(value ?? ""))}
@@ -141,12 +122,12 @@ export function WatchedPrograms() {
             options={open
               .filter((name) => !watched.some((w) => w.match === name))
               .map((name) => ({ value: name, label: name }))}
-            placeholder={loading ? "Looking…" : "Pick a program"}
+            placeholder={loading ? i18n.t("settingsFull.m5e65f10e67") : i18n.t("settingsFull.m00621b896c")}
           />
         </div>
 
         <div className="flex flex-col gap-1" style={{ flex: 1, minWidth: 0 }}>
-          <span className="text-xs text-gryt-muted">Call it</span>
+          <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.m82928d5e26")}</span>
           <TextField
             placeholder={picked ? picked.replace(/\.exe$/i, "") : "Factorio"}
             value={label}
@@ -155,30 +136,20 @@ export function WatchedPrograms() {
           />
         </div>
 
-        <Button size="small" onClick={() => void add()} disabled={!picked}>
-          Add
-        </Button>
-        <Button size="small" tone="neutral" onClick={() => void refresh()} disabled={loading}>
-          Refresh
-        </Button>
+        <Button size="small" onClick={() => void add()} disabled={!picked}>{i18n.t("settingsFull.m61cc55aa04")}</Button>
+        <Button size="small" tone="neutral" onClick={() => void refresh()} disabled={loading}>{i18n.t("settingsFull.m56e3badc4e")}</Button>
       </div>
 
       {open.length === 0 && !loading && (
-        <span className="text-xs text-gryt-muted">
-          Nothing came back. Start the program first, then Refresh.
-        </span>
+        <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.m5398c03c29")}</span>
       )}
       <div className="flex items-center gap-2" style={{ marginTop: 8 }}>
         <Button
           size="xsmall"
           tone="neutral"
           onClick={() => void setConsent(false)}
-        >
-          Stop and forget
-        </Button>
-        <span className="text-xs text-gryt-muted">
-          Stops the checking and clears the list.
-        </span>
+        >{i18n.t("settingsFull.m192e670547")}</Button>
+        <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.m38a12c962b")}</span>
       </div>
 
     </div>

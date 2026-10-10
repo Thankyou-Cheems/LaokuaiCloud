@@ -1,5 +1,7 @@
 import { Tooltip } from "@gryt/ui";
 
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
+
 /** The number after a name somebody else here also uses (GRYT-1674): #1 joined
     first. Muted, so the name still reads first; the fingerprint is on the card. */
 export function NameTag({
@@ -11,6 +13,7 @@ export function NameTag({
   tooltip?: boolean;
   color?: string;
 }) {
+  useSocketTranslation();
   if (!tag) return null;
   const text = (
     <span
@@ -28,7 +31,7 @@ export function NameTag({
   );
   if (!tooltip) return text;
   return (
-    <Tooltip title="Someone else here uses this name too. #1 joined first, #2 after them, and so on.">
+    <Tooltip title={socketI18n.t("socketFull.nameTag_564714d749")}>
       {text}
     </Tooltip>
   );

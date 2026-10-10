@@ -1,6 +1,8 @@
 import { ContextMenu } from "@gryt/ui";
 import { useSyncExternalStore } from "react";
 
+import { i18n, LocalizedText, useTranslation } from "@/i18n";
+
 import {
   getGlobalLevel,
   getHideMuted,
@@ -19,7 +21,7 @@ import {
 
 const LEVEL_WORDS: Record<NotificationLevel, string> = {
   all: "everything",
-  mentions: "only mentions",
+  get mentions() { return i18n.t("shellFull.NotificationLevelMenu_tsx_0a3e43219f"); },
   none: "nothing",
 };
 
@@ -54,6 +56,7 @@ export function NotificationLevelMenu({
    */
   placement?: NotificationScopePlacement | null;
 }) {
+  useTranslation();
   /* Subscribed to the whole store rather than the servers map, so picking a
      level and changing the global ceiling both re-render this. */
   useSyncExternalStore(subscribeToPrefs, getStoredSnapshot, getStoredSnapshot);
@@ -80,18 +83,18 @@ export function NotificationLevelMenu({
   const overruled = globalOverrules(global, resolved);
 
   const choices: { label: string; value: NotificationLevel | null }[] = [
-    { label: "Everything", value: "all" },
-    { label: "Only mentions", value: "mentions" },
-    { label: "Nothing", value: "none" },
+    { label: i18n.t("shellFull.NotificationLevelMenu_tsx_4a66d14807"), value: "all" },
+    { label: i18n.t("shellFull.NotificationLevelMenu_tsx_e7be45b885"), value: "mentions" },
+    { label: i18n.t("shellFull.NotificationLevelMenu_tsx_4481948392"), value: "none" },
     {
-      label: `Default (${LEVEL_WORDS[inherited]})`,
+      label: i18n.t("shellFull.NotificationLevelMenu_tsx_1d0a6e5ed4", { value0: LEVEL_WORDS[inherited] }),
       value: null,
     },
   ];
 
   return (
     <ContextMenu.SubmenuRoot>
-      <ContextMenu.SubmenuTrigger>Notifications</ContextMenu.SubmenuTrigger>
+      <ContextMenu.SubmenuTrigger>{<LocalizedText translationKey="shellFull.NotificationLevelMenu_tsx_753a22b2eb" />}</ContextMenu.SubmenuTrigger>
       <ContextMenu.Portal>
         <ContextMenu.Positioner>
           <ContextMenu.Popup>
@@ -127,8 +130,8 @@ export function NotificationLevelMenu({
                 <ContextMenu.Group>
                   <ContextMenu.GroupLabel>
                     {global === "none"
-                      ? "Everything is muted in settings"
-                      : "Settings limits this to mentions"}
+                      ? i18n.t("shellFull.NotificationLevelMenu_tsx_29317bb5d7")
+                      : i18n.t("shellFull.NotificationLevelMenu_tsx_6fe70386f0")}
                   </ContextMenu.GroupLabel>
                 </ContextMenu.Group>
               </>
@@ -143,28 +146,26 @@ export function NotificationLevelMenu({
 /** The server menu's switch for leaving muted channels out of its sidebar. Both
     server menus show it, and it is the same setting in each. */
 export function HideMutedChannelsItem({ host }: { host: string }) {
+  useTranslation();
   const on = useSyncExternalStore(
     subscribeToPrefs,
     () => getHideMuted(host),
     () => getHideMuted(host),
   );
   return (
-    <ContextMenu.CheckboxItem checked={on} onCheckedChange={(next) => setHideMuted(host, next)}>
-      Hide muted channels
-    </ContextMenu.CheckboxItem>
+    <ContextMenu.CheckboxItem checked={on} onCheckedChange={(next) => setHideMuted(host, next)}>{<LocalizedText translationKey="shellFull.NotificationLevelMenu_tsx_e8425d5ab5" />}</ContextMenu.CheckboxItem>
   );
 }
 
 /** Per server and per device. Role mentions and being named still get through. */
 export function SuppressEveryoneItem({ host }: { host: string }) {
+  useTranslation();
   const on = useSyncExternalStore(
     subscribeToPrefs,
     () => getSuppressEveryone(host),
     () => getSuppressEveryone(host),
   );
   return (
-    <ContextMenu.CheckboxItem checked={on} onCheckedChange={(next) => setSuppressEveryone(host, next)}>
-      Suppress @everyone and @here
-    </ContextMenu.CheckboxItem>
+    <ContextMenu.CheckboxItem checked={on} onCheckedChange={(next) => setSuppressEveryone(host, next)}>{<LocalizedText translationKey="shellFull.NotificationLevelMenu_tsx_050cd5d995" />}</ContextMenu.CheckboxItem>
   );
 }

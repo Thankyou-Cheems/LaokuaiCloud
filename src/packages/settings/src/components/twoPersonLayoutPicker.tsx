@@ -1,3 +1,4 @@
+import { i18n, useTranslation } from "@/i18n";
 import {
   computeGridLayout,
   GRID_GAP,
@@ -29,6 +30,7 @@ function TwoPersonSwatch({
   layout: VoiceTwoPersonLayout;
   rule: VoiceTileLayout;
 }) {
+  useTranslation();
   const inner = {
     width: SWATCH.width - PADDING,
     height: SWATCH.height - PADDING,
@@ -120,13 +122,13 @@ const OPTIONS: Array<{
 }> = [
   {
     value: "hero",
-    label: "One large, one small",
-    hint: "The other person fills the panel, you sit in the corner.",
+    get label() { return i18n.t("settingsFull.m3ec17c555b"); },
+    get hint() { return i18n.t("settingsFull.md9bb622e9c"); },
   },
   {
     value: "equal",
-    label: "Same size",
-    hint: "Stacked in the sidebar, side by side once there is room.",
+    get label() { return i18n.t("settingsFull.m3e3579a133"); },
+    get hint() { return i18n.t("settingsFull.med57592e94"); },
   },
 ];
 
@@ -143,11 +145,12 @@ export function TwoPersonLayoutPicker({
   onChange: (layout: VoiceTwoPersonLayout) => void;
   rule: VoiceTileLayout;
 }) {
+  useTranslation();
   return (
     <div
       className="flex gap-3 flex-wrap"
       role="radiogroup"
-      aria-label="Two-person layout"
+      aria-label={i18n.t("settingsFull.m46aeff4962")}
     >
       {OPTIONS.map((option) => {
         const selected = value === option.value;

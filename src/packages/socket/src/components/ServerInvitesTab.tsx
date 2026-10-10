@@ -1,6 +1,7 @@
 import { Button, Select, Surface, Switch, TextField } from "@gryt/ui";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { Trans } from "react-i18next";
 import type { Socket } from "socket.io-client";
 
 import {
@@ -11,6 +12,7 @@ import {
   openServerLink,
   pickShareableHost,
 } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 import { useEmbeddedServer } from "@/settings/src/hooks/useEmbeddedServer";
 
 import { PiCopyFill, PiInfoFill, PiPlus } from "../../../../lib/icons";
@@ -48,9 +50,9 @@ function toDate(v: string | Date | null | undefined): Date | null {
 }
 
 function formatExpiry(d: Date | null): string {
-  if (!d) return "Never";
+  if (!d) return socketI18n.t("socketFull.serverInvitesTab_d8b568313d");
   const diff = d.getTime() - Date.now();
-  if (diff <= 0) return "Expired";
+  if (diff <= 0) return socketI18n.t("socketFull.serverInvitesTab_414c2efcb5");
   const days = Math.floor(diff / 86_400_000);
   const hours = Math.floor((diff % 86_400_000) / 3_600_000);
   const minutes = Math.floor((diff % 3_600_000) / 60_000);
@@ -78,6 +80,7 @@ export function ServerInvitesTab({
   socket?: Socket;
   accessToken: string | null;
 }) {
+  useSocketTranslation();
   const { servers: embeddedServers } = useEmbeddedServer();
 
   /* Roles an invite may be bound to, already filtered by the server — admin,
@@ -134,11 +137,11 @@ export function ServerInvitesTab({
 
   const refresh = async () => {
     if (!socket || !socket.connected) {
-      toast.error("Not connected to the server yet.");
+      toast.error(socketI18n.t("socketFull.serverInvitesTab_213e89eca7"));
       return;
     }
     if (!accessToken) {
-      toast.error("Join the server first.");
+      toast.error(socketI18n.t("socketFull.serverInvitesTab_097a88ed92"));
       return;
     }
     setLoading(true);
@@ -159,7 +162,7 @@ export function ServerInvitesTab({
     const raw = isRecord(payload) ? payload.invite : undefined;
     if (!isInviteItem(raw)) return;
     setInvites((prev) => [raw, ...prev.filter((p) => p.code !== raw.code)]);
-    toast.success("Invite created");
+    toast.success(socketI18n.t("socketFull.serverInvitesTab_be10774a2b"));
   });
 
   useSocketEvent<unknown>(socket, "server:invite:revoked", (payload) => {
@@ -178,8 +181,8 @@ export function ServerInvitesTab({
   }, [host, socket?.connected]);
 
   const create = async () => {
-    if (!socket || !socket.connected) return toast.error("Not connected to the server yet.");
-    if (!accessToken) return toast.error("Join the server first.");
+    if (!socket || !socket.connected) return toast.error(socketI18n.t("socketFull.serverInvitesTab_213e89eca7"));
+    if (!accessToken) return toast.error(socketI18n.t("socketFull.serverInvitesTab_097a88ed92"));
 
     const mu = Math.max(1, Math.min(1000, parseInt(maxUses || "1", 10) || 1));
     const ehRaw = expiresInHours.trim();
@@ -203,8 +206,8 @@ export function ServerInvitesTab({
   };
 
   const revoke = async (code: string) => {
-    if (!socket || !socket.connected) return toast.error("Not connected to the server yet.");
-    if (!accessToken) return toast.error("Join the server first.");
+    if (!socket || !socket.connected) return toast.error(socketI18n.t("socketFull.serverInvitesTab_213e89eca7"));
+    if (!accessToken) return toast.error(socketI18n.t("socketFull.serverInvitesTab_097a88ed92"));
     socket.emit("server:invites:revoke", { accessToken, code });
   };
 
@@ -214,9 +217,9 @@ export function ServerInvitesTab({
     const shareable = pickShareableHost(host, advertised);
 
     if (shareable.kind === "loopback-only") {
-      toast.error("This server has no address anyone else can reach.", { duration: 7000 });
+      toast.error(socketI18n.t("socketFull.serverInvitesTab_907bd4ff3e"), { duration: 7000 });
       toast(
-        "Add a public IP or hostname under Settings → My servers, then copy the invite again.",
+        socketI18n.t("socketFull.serverInvitesTab_7655eed2b8"),
         { duration: 10000, icon: <PiInfoFill size={18} /> },
       );
       return;
@@ -227,11 +230,11 @@ export function ServerInvitesTab({
       await navigator.clipboard.writeText(url);
       toast.success(
         shareable.host === host
-          ? "Copied invite link"
-          : `Copied invite link for ${shareable.host}`,
+          ? socketI18n.t("socketFull.serverInvitesTab_020ddde956")
+          : socketI18n.t("socketFull.serverInvitesTab_f25019db34", { p0: (shareable.host) }),
       );
     } catch {
-      toast.error("Failed to copy");
+      toast.error(socketI18n.t("ui.failedToCopy"));
     }
   };
 
@@ -239,28 +242,24 @@ export function ServerInvitesTab({
     <div className="flex flex-col gap-4">
       <span className="text-sm">
         {isOpen
-          ? "Anyone can join this server without a code. Make an invite code when you want to limit uses or time, or give people a role."
-          : "This server is invite-only. Create invite codes to share with people you want to join."}
+          ? socketI18n.t("socketFull.serverInvitesTab_b8c8208f0d")
+          : socketI18n.t("socketFull.serverInvitesTab_d5e498a496")}
       </span>
 
       {isOpen && (
         <Surface>
           <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium">Invite link</span>
+            <span className="text-sm font-medium">{socketI18n.t("socketFull.serverInvitesTab_2b9f187864")}</span>
             {openLink.kind === "ok" ? (
               <>
                 <div className="flex items-center gap-2">
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <TextField readOnly aria-label="Invite link" value={openLink.url} />
+                    <TextField readOnly aria-label={socketI18n.t("socketFull.serverInvitesTab_2b9f187864")} value={openLink.url} />
                   </div>
                   <Button size="small" onClick={() => void copyOpenLink()}>
-                    <PiCopyFill size={16} />
-                    Copy
-                  </Button>
+                    <PiCopyFill size={16} />{socketI18n.t("settingsFull.maf74f7c536")}</Button>
                 </div>
-                <span className="text-xs text-gryt-muted">
-                  Anyone who can join this server can use this link.
-                </span>
+                <span className="text-xs text-gryt-muted">{socketI18n.t("socketFull.serverInvitesTab_c8c29e3d73")}</span>
               </>
             ) : (
               <span className="text-xs text-gryt-muted">
@@ -276,14 +275,10 @@ export function ServerInvitesTab({
           <div className="flex gap-3 flex-wrap">
             <div className="flex items-center gap-2" style={{ minWidth: 170, paddingTop: 22 }}>
               <Switch checked={infiniteUses} onCheckedChange={setInfiniteUses} />
-              <span className="text-sm font-medium">
-                Infinite uses
-              </span>
+              <span className="text-sm font-medium">{socketI18n.t("socketFull.serverInvitesTab_71b17d42c3")}</span>
             </div>
             <div className="flex flex-col gap-1" style={{ minWidth: 140 }}>
-              <span className="text-sm font-medium">
-                Max uses
-              </span>
+              <span className="text-sm font-medium">{socketI18n.t("socketFull.serverInvitesTab_be07e6d79f")}</span>
               <TextField
                 value={infiniteUses ? "∞" : maxUses}
                 onChange={(e) => setMaxUses(e.target.value)}
@@ -292,30 +287,24 @@ export function ServerInvitesTab({
               />
             </div>
             <div className="flex flex-col gap-1" style={{ minWidth: 180 }}>
-              <span className="text-sm font-medium">
-                Expires (hours)
-              </span>
+              <span className="text-sm font-medium">{socketI18n.t("socketFull.serverInvitesTab_1506db9c93")}</span>
               <TextField
                 value={expiresInHours}
                 onChange={(e) => setExpiresInHours(e.target.value)}
-                placeholder="e.g. 24"
+                placeholder={socketI18n.t("socketFull.serverInvitesTab_212f37909b")}
               />
             </div>
             <div className="flex flex-col gap-1" style={{ minWidth: 180 }}>
-              <span className="text-sm font-medium">
-                Custom code
-              </span>
+              <span className="text-sm font-medium">{socketI18n.t("socketFull.serverInvitesTab_100a64e5d5")}</span>
               <TextField
                 value={customCode}
                 onChange={(e) => setCustomCode(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ""))}
-                placeholder="Leave blank for random"
+                placeholder={socketI18n.t("socketFull.serverInvitesTab_46d95f1fc3")}
               />
             </div>
             <div className="flex flex-col gap-1" style={{ flex: 1, minWidth: 220 }}>
-              <span className="text-sm font-medium">
-                Note
-              </span>
-              <TextField value={note} onChange={(e) => setNote(e.target.value)} placeholder="Optional" />
+              <span className="text-sm font-medium">{socketI18n.t("socketFull.serverInvitesTab_4f584cbf09")}</span>
+              <TextField value={note} onChange={(e) => setNote(e.target.value)} placeholder={socketI18n.t("ui.optional")} />
             </div>
           </div>
           {/* The empty case says so instead of rendering nothing.
@@ -325,18 +314,13 @@ export function ServerInvitesTab({
               whether the feature was missing, broken, or simply off. */}
           {grantableRoles.length === 0 && (
             <div className="flex flex-col gap-1" style={{ minWidth: 220 }}>
-              <span className="text-sm font-medium">Gives the role</span>
-              <span className="text-xs text-gryt-muted">
-                No role can be handed out by an invite yet, so there&rsquo;s nothing to
-                pick here. Turn on &ldquo;Can be given out by an invite&rdquo; for a role in
-                the Role editor and it&rsquo;ll show up. Owner, admin, and any role that
-                can hand out permissions are never eligible.
-              </span>
+              <span className="text-sm font-medium">{socketI18n.t("socketFull.serverInvitesTab_33d9303b1c")}</span>
+              <span className="text-xs text-gryt-muted">{socketI18n.t("socketFull.serverInvitesTab_9f0d695c2b")}</span>
             </div>
           )}
           {grantableRoles.length > 0 && (
             <div className="flex flex-col gap-1" style={{ minWidth: 220 }}>
-              <span className="text-sm font-medium">Gives the role</span>
+              <span className="text-sm font-medium">{socketI18n.t("socketFull.serverInvitesTab_33d9303b1c")}</span>
               {/* NO_ROLE rather than "": Base UI renders an option whose value
                   is the empty string as the placeholder, so the choice
                   somebody made would show as no choice at all. */}
@@ -347,38 +331,25 @@ export function ServerInvitesTab({
                   setGrantsRole(value === NO_ROLE ? "" : String(value))
                 }
                 options={[
-                  { label: "No role, they join as normal", value: NO_ROLE },
+                  { label: socketI18n.t("socketFull.serverInvitesTab_af33bfcef2"), value: NO_ROLE },
                   ...grantableRoles.map((r) => ({ label: r.name, value: r.id })),
                 ]}
               />
-              <span className="text-xs text-gryt-muted">
-                Anybody joining on this link arrives holding that role, so the link is
-                worth as much as the role is. Set the uses or an expiry unless you mean
-                to hand it out forever. Only roles you have marked as invite-grantable
-                appear here, and only ones below your own.
-              </span>
+              <span className="text-xs text-gryt-muted">{socketI18n.t("socketFull.serverInvitesTab_c4885ffadc")}</span>
             </div>
           )}
           <div className="flex justify-end gap-2">
-            <Button size="small" onClick={refresh} disabled={creating || loading}>
-              Refresh
-            </Button>
+            <Button size="small" onClick={refresh} disabled={creating || loading}>{socketI18n.t("settingsFull.m56e3badc4e")}</Button>
             <Button size="small" onClick={create} disabled={creating}>
-              <PiPlus size={16} />
-              Create invite
-            </Button>
+              <PiPlus size={16} />{socketI18n.t("socketFull.serverInvitesTab_67e3875baa")}</Button>
           </div>
         </div>
       </Surface>
 
       <div className="flex flex-col gap-2">
-        <span className="text-sm font-medium">
-          Active &amp; past invites
-        </span>
+        <span className="text-sm font-medium">{socketI18n.t("socketFull.serverInvitesTab_2acd975afd")}</span>
         {invites.length === 0 ? (
-          <span className="text-sm">
-            No invites yet.
-          </span>
+          <span className="text-sm">{socketI18n.t("socketFull.serverInvitesTab_68f30dfa30")}</span>
         ) : (
           invites.map((i) => {
             const expiry = formatExpiry(toDate(i.expiresAt));
@@ -394,10 +365,7 @@ export function ServerInvitesTab({
                       <span className="text-sm font-bold">
                         {i.code}
                       </span>
-                      <span className="text-xs">
-                        Uses: {uses} · Expires: {expiry}
-                        {i.revoked ? " · Revoked" : ""}
-                      </span>
+                      <span className="text-xs"><Trans i18n={socketI18n} i18nKey="socketFull.inviteUsageAndExpiry" values={{ uses, expiry, revoked: i.revoked ? socketI18n.t("socketFull.serverInvitesTab_2ee887aa5f") : "" }} /></span>
                       {i.note ? (
                         <span className="text-xs">
                           {i.note}
@@ -406,15 +374,11 @@ export function ServerInvitesTab({
                     </div>
                     <div className="flex gap-2">
                       <Button size="small" onClick={() => copy(i.code)}>
-                        <PiCopyFill size={16} />
-                        Copy
-                      </Button>
+                        <PiCopyFill size={16} />{socketI18n.t("settingsFull.maf74f7c536")}</Button>
                       <Button size="small"
                         disabled={!!i.revoked}
                         onClick={() => revoke(i.code)}
-                      >
-                        Revoke
-                      </Button>
+                      >{socketI18n.t("socketFull.serverInvitesTab_575a7c4074")}</Button>
                     </div>
                   </div>
                 </div>

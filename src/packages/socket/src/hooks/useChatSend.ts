@@ -5,9 +5,11 @@ import { v4 as uuidv4 } from "uuid";
 
 import type { SealDecision, SealedAttachmentKey } from "@/common";
 import { getServerAccessToken, getServerRefreshToken } from "@/common";
+import { i18n as socketHooksI18n } from "@/i18n";
 
 import type { AttachmentMeta, ChatMessage } from "../components/chatUtils";
 import { getMediaDimensions } from "../utils/imageUtils";
+import { socketHookToast } from "../utils/socketHookMessages";
 import { shouldRefreshToken } from "../utils/tokenManager";
 import { draftKey, returnDraft } from "./returnedDrafts";
 import { type EmitResult, SendQueue } from "./sendQueue";
@@ -297,13 +299,13 @@ export function useChatSend({
       // say something: a message that vanishes silently reads as one that sent.
       if (isRateLimitedRef.current) return;
       if (isVoiceChannelTextChatRef.current && !textInVoiceEnabledRef.current) {
-        toast.error("Text chat is disabled in this voice channel");
+        toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useChatSend_870d46027b")));
       } else if (isVoiceChannelTextChatRef.current && !isConnectedRef.current) {
-        toast.error("You must be connected to this voice channel to send messages");
+        toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useChatSend_ce4f8abcfb")));
       } else if (!isConnectedRef.current) {
-        toast.error("Not connected to this server");
+        toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useChatSend_2577b159c1")));
       } else {
-        toast.error("That message could not be sent");
+        toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useChatSend_3c17342fe4")));
       }
       return;
     }
@@ -405,7 +407,7 @@ export function useChatSend({
             : null;
         } catch (err) {
           const msg = err instanceof Error && err.message ? err.message : "Failed to upload file(s)";
-          toast.error(msg);
+          toast.error(socketHookToast(() => msg));
           // Nothing will confirm this row now, so it fails, and the files go back.
           const failed = (m: ChatMessage) => (m.message_id === pendingId ? { ...m, pending: false, failed: true } : m);
           const key = cacheKeyFor(activeConversationId);

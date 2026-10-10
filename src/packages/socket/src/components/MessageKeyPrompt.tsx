@@ -13,6 +13,7 @@ import {
   shouldOfferMessageKey,
   writeSealedVault,
 } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 
 import { PiKey } from "../../../../lib/icons";
 import {
@@ -25,6 +26,7 @@ import {
  * making one on an account that has none (GRYT-783, GRYT-1130).
  */
 export function MessageKeyPrompt() {
+  useSocketTranslation();
   const [grytUserId, setGrytUserId] = useState<string | null>(null);
   const [vault, setVault] = useState<SealedVault | null | undefined>(undefined);
   const [keyIsHere, setKeyIsHere] = useState(true);
@@ -70,18 +72,18 @@ export function MessageKeyPrompt() {
 
   const unlock = useCallback(async (choice?: MessagePasswordChoice) => {
     if (!grytUserId) return;
-    if (vault && !secret) return toast.error("Enter your message password or recovery key.");
+    if (vault && !secret) return toast.error(socketI18n.t("settingsFull.m34d4d514e8"));
 
     setBusy(true);
     try {
       if (vault) {
         await adoptSealedIdentity(vault, secret);
-        toast.success("This device has your message key now. Reload to read older conversations.");
+        toast.success(socketI18n.t("socketFull.messageKeyPrompt_28fcfc2073"));
       } else if (choice) {
         const sealed = await sealCurrentIdentity(choice.password, choice.recoveryKey);
         await writeSealedVault(sealed);
         setVault(sealed);
-        toast.success("Saved. Use this password on your other devices.");
+        toast.success(socketI18n.t("socketFull.messageKeyPrompt_91a33e19aa"));
       } else {
         return;
       }
@@ -90,7 +92,7 @@ export function MessageKeyPrompt() {
       setOpen(false);
       setSecret("");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not open the sealed key.");
+      toast.error(e instanceof Error ? e.message : socketI18n.t("settingsFull.md6bdc481f8"));
     } finally {
       setBusy(false);
     }
@@ -118,17 +120,9 @@ export function MessageKeyPrompt() {
         <PiKey aria-hidden="true" size={14} style={{ color: "var(--gryt-accent)", flexShrink: 0, marginTop: "2px" }} />
         <p className="m-0 text-xs" style={{ color: "var(--gryt-neutral-11)", lineHeight: 1.5 }}>
           {offer === "adopt" ? (
-            <>
-              Your account has a message key this device doesn&rsquo;t hold, so
-              conversations from your other devices won&rsquo;t open here. Enter
-              your message password to bring them across.
-            </>
+            <>{socketI18n.t("socketFull.messageKeyPrompt_cac94a2820")}</>
           ) : (
-            <>
-              This account has no message password. Sign in somewhere else and
-              that device makes its own key, which stops the people you talk to
-              from encrypting to you until you set one and use it there.
-            </>
+            <>{socketI18n.t("socketFull.messageKeyPrompt_9b4b2f2b4a")}</>
           )}
         </p>
       </div>
@@ -136,18 +130,16 @@ export function MessageKeyPrompt() {
       {!open ? (
         <div className="flex gap-2">
           <Button size="xsmall" onClick={() => setOpen(true)}>
-            {offer === "adopt" ? "Enter it" : "Set a password"}
+            {offer === "adopt" ? socketI18n.t("socketFull.messageKeyPrompt_53d5938d05") : socketI18n.t("socketFull.messageKeyPrompt_00ea657a23")}
           </Button>
           {/* For the session only. Not persisted: it is still true tomorrow,
               and quietly agreeing never to mention it again is how somebody
               ends up with two halves of their history and no explanation. */}
-          <Button tone="ghost" size="xsmall" onClick={() => setDismissed(true)}>
-            Not now
-          </Button>
+          <Button tone="ghost" size="xsmall" onClick={() => setDismissed(true)}>{socketI18n.t("terms.notNow")}</Button>
         </div>
       ) : offer === "protect" ? (
         <MessagePasswordSetup
-          submitLabel="Save"
+          submitLabel={socketI18n.t("settingsFull.mefc007a393")}
           busy={busy}
           onSubmit={(choice) => void unlock(choice)}
           onCancel={() => setOpen(false)}
@@ -157,17 +149,15 @@ export function MessageKeyPrompt() {
           <TextField
             type="password"
             size="small"
-            label="Message password or recovery key"
+            label={socketI18n.t("settingsFull.mddc04bda46")}
             autoComplete="current-password"
             value={secret}
             onChange={(e) => setSecret(e.target.value)}
           />
           <Button size="small" onClick={() => void unlock()} disabled={busy}>
-            {busy ? "Working…" : "Unlock"}
+            {busy ? socketI18n.t("settingsFull.m13b7bfcac4") : socketI18n.t("socketFull.messageKeyPrompt_29fa3bf27a")}
           </Button>
-          <Button tone="ghost" size="small" onClick={() => { setOpen(false); setSecret(""); }} disabled={busy}>
-            Cancel
-          </Button>
+          <Button tone="ghost" size="small" onClick={() => { setOpen(false); setSecret(""); }} disabled={busy}>{socketI18n.t("ui.cancel")}</Button>
         </div>
       )}
     </div>

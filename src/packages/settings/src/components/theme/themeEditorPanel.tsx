@@ -4,6 +4,7 @@ import { ArrowCounterClockwise, Link as LinkIcon, X } from "@phosphor-icons/reac
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useCustomThemes, useTheme, useThemeEditor } from "@/common";
+import { i18n, useTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 
 /**
@@ -52,6 +53,7 @@ function clamp(position: Position): Position {
 }
 
 export function ThemeEditorPanel() {
+  useTranslation();
   const { open, draft, closeEditor, setDraft, revert, openedWith } =
     useThemeEditor();
   const { saveTheme } = useCustomThemes();
@@ -144,25 +146,21 @@ export function ThemeEditorPanel() {
         className="flex cursor-grab touch-none select-none items-center gap-2 border-b border-gryt-border bg-gryt-surface-raised px-3 py-2 active:cursor-grabbing"
         onPointerDown={startDrag}
       >
-        <span className="pointer-events-none text-xs font-semibold uppercase tracking-wider text-gryt-muted">
-          Theme editor
-        </span>
+        <span className="pointer-events-none text-xs font-semibold uppercase tracking-wider text-gryt-muted">{i18n.t("settingsFull.m6836d649c8")}</span>
         <div className="ml-auto flex items-center gap-1">
           <Button
             disabled={!dirty}
             onClick={revert}
             size="small"
-            title="Back to the theme this opened on"
+            title={i18n.t("settingsFull.mfb6ccf7161")}
             tone="ghost"
           >
-            <ArrowCounterClockwise aria-hidden="true" size={14} />
-            Revert
-          </Button>
+            <ArrowCounterClockwise aria-hidden="true" size={14} />{i18n.t("settingsFull.m272607a7bd")}</Button>
           <Button onClick={copyLink} size="small" tone="ghost">
             <LinkIcon aria-hidden="true" size={14} />
-            {copied ? "Copied" : "Link"}
+            {copied ? i18n.t("settingsFull.m8e3df45a49") : i18n.t("settingsFull.md0517071aa")}
           </Button>
-          <Button aria-label="Close editor" onClick={closeEditor} size="small" tone="ghost">
+          <Button aria-label={i18n.t("settingsFull.m3adaf6db45")} onClick={closeEditor} size="small" tone="ghost">
             <X aria-hidden="true" size={14} />
           </Button>
         </div>
@@ -182,12 +180,10 @@ export function ThemeEditorPanel() {
 
       <div className="flex items-center gap-2 border-t border-gryt-border bg-gryt-surface-raised px-3 py-2">
         <span className="text-xs text-gryt-muted">
-          {dirty ? "Not saved" : "Saved"}
+          {dirty ? i18n.t("settingsFull.m3d56409d02") : i18n.t("ui.saved")}
         </span>
         <div className="ml-auto flex gap-2">
-          <Button onClick={closeEditor} size="small" tone="neutral">
-            Close
-          </Button>
+          <Button onClick={closeEditor} size="small" tone="neutral">{i18n.t("ui.close")}</Button>
           <Button
             disabled={!dirty}
             onClick={() => {
@@ -195,9 +191,7 @@ export function ThemeEditorPanel() {
               closeEditor();
             }}
             size="small"
-          >
-            Save as new theme
-          </Button>
+          >{i18n.t("settingsFull.me1e8f0b8ce")}</Button>
         </div>
       </div>
     </div>

@@ -3,8 +3,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
 import { getServerAccessToken, getServerHttpBase, getUploadsFileUrl } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 
 import { PiCopyFill, PiPlus, PiTrashFill } from "../../../../lib/icons";
+import { socketDisplayText, socketHookToast } from "../utils/socketHookMessages";
 import { uploadWebhookAvatar } from "../utils/uploadWebhookAvatar";
 
 type WebhookItem = {
@@ -29,6 +31,7 @@ export function ServerWebhooksTab({
   host: string;
   channels: ChannelOption[];
 }) {
+  useSocketTranslation();
   const [webhooks, setWebhooks] = useState<WebhookItem[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -47,11 +50,11 @@ export function ServerWebhooksTab({
     setLoading(true);
     try {
       const res = await fetch(apiBase, { headers: authHeaders() });
-      if (!res.ok) throw new Error("Failed to fetch webhooks");
+      if (!res.ok) throw new Error(socketI18n.t("socketFull.serverWebhooksTab_e9eb54c767"));
       const data = await res.json() as { items: WebhookItem[] };
       setWebhooks(data.items ?? []);
     } catch {
-      toast.error("Failed to load webhooks");
+      toast.error(socketI18n.t("socketFull.serverWebhooksTab_4b59c7b90a"));
     } finally {
       setLoading(false);
     }
@@ -70,12 +73,12 @@ export function ServerWebhooksTab({
         headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify({ channel_id: channelId, display_name: "New Webhook" }),
       });
-      if (!res.ok) throw new Error("Failed to create webhook");
+      if (!res.ok) throw new Error(socketI18n.t("socketFull.serverWebhooksTab_96b722a7bb"));
       const created = await res.json() as WebhookItem;
       setWebhooks((prev) => [created, ...prev]);
-      toast.success("Webhook created");
+      toast.success(socketI18n.t("socketFull.serverWebhooksTab_f73f1e1a4b"));
     } catch {
-      toast.error("Failed to create webhook");
+      toast.error(socketI18n.t("socketFull.serverWebhooksTab_96b722a7bb"));
     }
   };
 
@@ -85,39 +88,34 @@ export function ServerWebhooksTab({
         method: "DELETE",
         headers: authHeaders(),
       });
-      if (!res.ok) throw new Error("Failed to delete webhook");
+      if (!res.ok) throw new Error(socketI18n.t("socketFull.serverWebhooksTab_fe4de3c0a7"));
       setWebhooks((prev) => prev.filter((w) => w.webhook_id !== id));
-      toast.success("Webhook deleted");
+      toast.success(socketI18n.t("socketFull.serverWebhooksTab_8bf4a6f959"));
     } catch {
-      toast.error("Failed to delete webhook");
+      toast.error(socketI18n.t("socketFull.serverWebhooksTab_fe4de3c0a7"));
     }
   };
 
   return (
     <div className="flex flex-col gap-4">
-      <span className="text-sm">
-        Webhooks let external services post messages into your channels.
-        Each webhook gets a unique URL that can be used to send messages.
-      </span>
+      <span className="text-sm">{socketI18n.t("socketFull.serverWebhooksTab_e2bda24cb1")}</span>
 
       <div className="flex justify-between items-center gap-2 flex-wrap">
-        <span className="text-base font-bold">Webhooks</span>
+        <span className="text-base font-bold">{socketI18n.t("socketFull.webhooksTitle")}</span>
         <Button size="small" onClick={createWebhook} disabled={textChannels.length === 0}>
-          <PiPlus size={16} />
-          Create webhook
-        </Button>
+          <PiPlus size={16} />{socketI18n.t("socketFull.serverWebhooksTab_5c6ebb1c85")}</Button>
       </div>
 
       {textChannels.length === 0 && (
-        <span className="text-sm">No text channels available. Create a text channel first.</span>
+        <span className="text-sm">{socketI18n.t("socketFull.serverWebhooksTab_b024ba014e")}</span>
       )}
 
       {loading && webhooks.length === 0 && (
-        <span className="text-sm">Loading...</span>
+        <span className="text-sm">{socketI18n.t("shellFull.microphoneDebugOverlay_tsx_b04ba49f84")}</span>
       )}
 
       {!loading && webhooks.length === 0 && (
-        <span className="text-sm">No webhooks yet.</span>
+        <span className="text-sm">{socketI18n.t("socketFull.serverWebhooksTab_42b97cd928")}</span>
       )}
 
       <div className="flex flex-col gap-3">
@@ -161,6 +159,7 @@ function WebhookCard({
   onDelete: (id: string) => void;
   onUpdate: (w: WebhookItem) => void;
 }) {
+  useSocketTranslation();
   const [name, setName] = useState(webhook.display_name);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -175,12 +174,12 @@ function WebhookCard({
           headers: { "Content-Type": "application/json", ...authHeaders() },
           body: JSON.stringify(updates),
         });
-        if (!res.ok) throw new Error("Failed to update webhook");
+        if (!res.ok) throw new Error(socketI18n.t("socketFull.serverWebhooksTab_747a31bb50"));
         const updated = await res.json() as WebhookItem;
         onUpdate({ ...webhook, ...updated });
         return true;
       } catch {
-        toast.error("Failed to save webhook");
+        toast.error(socketI18n.t("socketFull.serverWebhooksTab_141eaa1adc"));
         return false;
       }
     },
@@ -229,9 +228,9 @@ function WebhookCard({
       if (!file) return;
       try {
         const fileId = await uploadWebhookAvatar(getServerHttpBase(host), authHeaders(), file, file.name);
-        if (await save({ avatar_file_id: fileId })) toast.success("Avatar updated");
+        if (await save({ avatar_file_id: fileId })) toast.success(socketI18n.t("ui.avatarUpdated"));
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Failed to upload avatar");
+        toast.error(socketHookToast(() => error instanceof Error ? socketDisplayText(error.message) : socketI18n.t("socketFull.serverWebhooksTab_a8169b3028")));
       }
       if (fileInputRef.current) fileInputRef.current.value = "";
     },
@@ -241,9 +240,9 @@ function WebhookCard({
   const copyUrl = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(webhookUrl);
-      toast.success("Webhook URL copied");
+      toast.success(socketI18n.t("socketFull.serverWebhooksTab_5480c58e8c"));
     } catch {
-      toast.error("Failed to copy");
+      toast.error(socketI18n.t("ui.failedToCopy"));
     }
   }, [webhookUrl]);
 
@@ -254,7 +253,7 @@ function WebhookCard({
   return (
     <Surface>
       <div className="flex gap-3 items-start">
-        <Tooltip title="Click to change avatar">
+        <Tooltip title={socketI18n.t("ui.clickToChangeAvatar")}>
           <button
             onClick={handleAvatarClick}
             style={{
@@ -280,21 +279,21 @@ function WebhookCard({
         <div className="flex flex-col gap-2" style={{ flex: 1, minWidth: 0 }}>
           <div className="flex gap-2 items-end flex-wrap">
             <div className="flex flex-col gap-1" style={{ flex: 1, minWidth: 160 }}>
-              <span className="text-xs font-medium">Name</span>
+              <span className="text-xs font-medium">{socketI18n.t("settingsFull.m709a23220f")}</span>
               <TextField
                 value={name}
                 onChange={(e) => handleNameChange(e.target.value)}
                 onBlur={handleNameBlur}
-                placeholder="Webhook name"
+                placeholder={socketI18n.t("socketFull.serverWebhooksTab_dce84efb1a")}
               />
             </div>
 
             <div className="flex flex-col gap-1" style={{ flex: 1, minWidth: 160, maxWidth: 320 }}>
-              <span className="text-xs font-medium">Channel</span>
+              <span className="text-xs font-medium">{socketI18n.t("ui.channel")}</span>
               <Select
                 value={webhook.channel_id}
                 onValueChange={(v) => handleChannelChange(String(v))}
-                placeholder="Select channel"
+                placeholder={socketI18n.t("socketFull.serverWebhooksTab_b324ba8689")}
                 options={textChannels.map((ch) => ({
                   label: `# ${ch.name}`,
                   value: ch.id,
@@ -303,12 +302,12 @@ function WebhookCard({
             </div>
 
             <div className="flex gap-1" style={{ paddingBottom: 1 }}>
-              <Tooltip title="Copy webhook URL">
+              <Tooltip title={socketI18n.t("socketFull.serverWebhooksTab_2d50843a65")}>
                 <IconButton size="xsmall" onClick={copyUrl}>
                   <PiCopyFill size={16} />
                 </IconButton>
               </Tooltip>
-              <Tooltip title="Delete webhook">
+              <Tooltip title={socketI18n.t("socketFull.serverWebhooksTab_7ec794cd26")}>
                 <IconButton size="xsmall" onClick={() => onDelete(webhook.webhook_id)}>
                   <PiTrashFill size={16} />
                 </IconButton>

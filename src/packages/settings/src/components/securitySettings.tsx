@@ -14,6 +14,7 @@ import {
   useAccount,
   useLocalArchive,
 } from "@/common";
+import { i18n, useTranslation } from "@/i18n";
 
 import { PiCheck, PiKeyFill, PiPencilSimpleFill, PiPlus, PiTrashFill, PiX } from "../../../../lib/icons";
 import { useApproveDevice } from "../../../../lib/pairing/useApproveDevice";
@@ -24,11 +25,12 @@ import { LocalIdentitySection } from "./localIdentitySection";
 import { MessageKeySection } from "./messageKeySection";
 import { OwnDevicesSection } from "./ownDevicesSection";
 import { SettingGroup, SettingsContainer } from "./settingsComponents";
+import { settingsMessage } from "./settingsMessage";
 
 const PASSKEY_TYPE = "webauthn-passwordless";
 
 function formatDate(epoch: number): string {
-  return new Date(epoch).toLocaleDateString(undefined, {
+  return new Date(epoch).toLocaleDateString(i18n.resolvedLanguage, {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -43,6 +45,7 @@ interface PasskeyRowProps {
 }
 
 function PasskeyRow({ credential, onDelete, onRename, deleting }: PasskeyRowProps) {
+  useTranslation();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(credential.userLabel);
   const [saving, setSaving] = useState(false);
@@ -116,9 +119,9 @@ function PasskeyRow({ credential, onDelete, onRename, deleting }: PasskeyRowProp
         ) : (
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium truncate">
-              {credential.userLabel || "Unnamed passkey"}
+              {credential.userLabel || i18n.t("settingsFull.md2cc549891")}
             </span>
-            <Tooltip title="Rename">
+            <Tooltip title={i18n.t("settingsFull.md3f4cb898f")}>
               <IconButton tone="ghost" size="xsmall"
                 onClick={() => setEditing(true)}
               >
@@ -127,12 +130,10 @@ function PasskeyRow({ credential, onDelete, onRename, deleting }: PasskeyRowProp
             </Tooltip>
           </div>
         )}
-        <span className="text-xs">
-          Added {formatDate(credential.createdDate)}
-        </span>
+        <span className="text-xs">{i18n.t("settingsFull.m32aaf86ba0", { date: formatDate(credential.createdDate) })}</span>
       </div>
 
-      <Tooltip title="Remove passkey">
+      <Tooltip title={i18n.t("settingsFull.m988b1b7eef")}>
         <IconButton tone="ghost" size="xsmall"
           disabled={deleting}
           onClick={() => setConfirmDelete(true)}
@@ -143,9 +144,9 @@ function PasskeyRow({ credential, onDelete, onRename, deleting }: PasskeyRowProp
       <ConfirmDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
-        title="Remove passkey?"
-        description="This passkey will be removed from your account. You won't be able to use it to sign in anymore."
-        confirmLabel="Remove"
+        title={i18n.t("settingsFull.m695a4e6909")}
+        description={i18n.t("settingsFull.me17309d734")}
+        confirmLabel={i18n.t("ui.remove")}
         onConfirm={() => onDelete(credential.id)}
       />
     </div>
@@ -153,6 +154,7 @@ function PasskeyRow({ credential, onDelete, onRename, deleting }: PasskeyRowProp
 }
 
 function LocalHistorySection() {
+  useTranslation();
   const { status } = useLocalArchive();
 
   useEffect(() => {
@@ -163,18 +165,19 @@ function LocalHistorySection() {
   const line =
     status.kind === "open"
       ? status.home === "browser"
-        ? "Kept in this browser. Clearing its site data deletes it."
+        ? i18n.t("settingsFull.mdbe715eb07")
         : status.sealed
-          ? "Kept on this device, encrypted with a key your computer's keychain holds."
-          : "Kept on this device. There's no keychain here, so it isn't encrypted on disk."
+          ? i18n.t("settingsFull.mdf39c0c626")
+          : i18n.t("settingsFull.m90007368c7")
       : status.kind === "failed"
         ? null
-        : "Opening…";
+        : i18n.t("settingsFull.mb1b8530bbd");
 
   return (
     <SettingGroup
-      title="Message history on this device"
-      description="End-to-end encrypted DMs can only be read on the devices they reached, so their history is kept here."
+      anchorId="message-history-on-this-device"
+      title={i18n.t("settingsFull.m8f62b57803")}
+      description={i18n.t("settingsFull.ma4b874ec76")}
     >
       {line && <span className="text-sm">{line}</span>}
       <LocalHistoryProblem />
@@ -183,6 +186,7 @@ function LocalHistorySection() {
 }
 
 export function SecuritySettings() {
+  useTranslation();
   const [keyWarnings, setKeyWarnings] = useState(() => !dmKeyWarningsOff());
   const { isSignedIn } = useAccount();
   const { open: openApproveDevice } = useApproveDevice();
@@ -203,7 +207,7 @@ export function SecuritySettings() {
       setCredentials(all.filter((c) => c.type === PASSKEY_TYPE));
       setError(null);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Failed to load credentials";
+      const msg = e instanceof Error ? e.message : "settingsFull.m8178412008";
       setError(msg);
     } finally {
       setLoading(false);
@@ -225,10 +229,10 @@ export function SecuritySettings() {
     try {
       await startPasskeySetup();
       await loadCredentials();
-      toast.success("Passkey added");
+      toast.success(i18n.t("settingsFull.m8670ad0f8e"));
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Passkey setup failed";
-      toast.error(msg);
+      const msg = e instanceof Error ? e.message : "settingsFull.ma849b77933";
+      toast.error(settingsMessage(msg));
     } finally {
       setAdding(false);
     }
@@ -240,10 +244,10 @@ export function SecuritySettings() {
       try {
         await deleteCredential(id);
         setCredentials((prev) => prev.filter((c) => c.id !== id));
-        toast.success("Passkey removed");
+        toast.success(i18n.t("settingsFull.ma3776d1a91"));
       } catch (e) {
-        const msg = e instanceof Error ? e.message : "Failed to remove passkey";
-        toast.error(msg);
+        const msg = e instanceof Error ? e.message : "settingsFull.mf3fbb56017";
+        toast.error(settingsMessage(msg));
       } finally {
         setDeletingId(null);
       }
@@ -258,10 +262,10 @@ export function SecuritySettings() {
         setCredentials((prev) =>
           prev.map((c) => (c.id === id ? { ...c, userLabel: label } : c)),
         );
-        toast.success("Passkey renamed");
+        toast.success(i18n.t("settingsFull.m82d32bdebf"));
       } catch (e) {
-        const msg = e instanceof Error ? e.message : "Failed to rename passkey";
-        toast.error(msg);
+        const msg = e instanceof Error ? e.message : "settingsFull.m1ec36b1759";
+        toast.error(settingsMessage(msg));
       }
     },
     [],
@@ -269,21 +273,14 @@ export function SecuritySettings() {
 
   return (
     <SettingsContainer>
-      <h2 className="text-lg">
-        Security
-      </h2>
+      <h2 className="text-lg">{i18n.t("ui.security")}</h2>
 
       <div className="flex flex-col gap-2">
         <div className="flex flex-col gap-1">
-          <span className="font-medium text-sm">Link a new device</span>
-          <span className="text-xs">
-            Set up a phone, browser or computer with your identity and servers, and your account if
-            you&rsquo;re signed in. The new device shows a code. Type it here.
-          </span>
+          <span className="font-medium text-sm">{i18n.t("settingsFull.m377ef34f56")}</span>
+          <span className="text-xs">{i18n.t("settingsFull.m2fb093bdc8")}</span>
         </div>
-        <Button size="small" style={{ alignSelf: "flex-start" }} onClick={openApproveDevice}>
-          Link a device
-        </Button>
+        <Button size="small" style={{ alignSelf: "flex-start" }} onClick={openApproveDevice}>{i18n.t("settingsFull.me716356061")}</Button>
       </div>
 
       {!isSignedIn && <LocalIdentitySection />}
@@ -291,12 +288,8 @@ export function SecuritySettings() {
       {!isSignedIn ? null : (
         <div className="flex flex-col gap-5">
           <div className="flex flex-col gap-1">
-            <span className="font-medium text-sm">Account identity</span>
-            <span className="text-xs text-gryt-muted">
-              Signing in on another device brings your account and your servers
-              with you. Your messages are a separate key, and they need the
-              message password below.
-            </span>
+            <span className="font-medium text-sm">{i18n.t("settingsFull.ma9698bfd64")}</span>
+            <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.m901a41e8f6")}</span>
           </div>
 
           <MessageKeySection />
@@ -304,11 +297,8 @@ export function SecuritySettings() {
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div className="flex flex-col gap-1">
-                <span className="font-medium text-sm">Passkeys</span>
-                <span className="text-xs">
-                  Passkeys let you sign in without a password using your
-                  fingerprint, face, or device PIN.
-                </span>
+                <span className="font-medium text-sm">{i18n.t("settingsFull.mcaab7827ab")}</span>
+                <span className="text-xs">{i18n.t("settingsFull.mcabb37d097")}</span>
               </div>
               <Chip tone="neutral">{credentials.length}</Chip>
             </div>
@@ -321,10 +311,8 @@ export function SecuritySettings() {
 
             {error && (
               <div className="flex flex-col items-center gap-2 py-4">
-                <span className="text-sm">{error}</span>
-                <Button size="xsmall" onClick={loadCredentials}>
-                  Retry
-                </Button>
+                <span className="text-sm">{settingsMessage(error)}</span>
+                <Button size="xsmall" onClick={loadCredentials}>{i18n.t("ui.retry")}</Button>
               </div>
             )}
 
@@ -340,7 +328,7 @@ export function SecuritySettings() {
                   size={32}
                   style={{ color: "var(--gryt-neutral-a8)" }}
                 />
-                <span className="text-sm">No passkeys registered yet</span>
+                <span className="text-sm">{i18n.t("settingsFull.m32a1d5f5b5")}</span>
               </div>
             )}
 
@@ -363,7 +351,7 @@ export function SecuritySettings() {
               style={{ alignSelf: "flex-start" }}
             >
               <PiPlus size={16} />
-              {adding ? "Redirecting..." : "Add passkey"}
+              {adding ? i18n.t("settingsFull.ma7e1d420ae") : i18n.t("settingsFull.m24819ce814")}
             </Button>
           </div>
         </div>
@@ -374,8 +362,9 @@ export function SecuritySettings() {
       <OwnDevicesSection />
 
       <SettingGroup
-        title="Message key warnings"
-        description="Warns when a server holds a message key this device didn't publish, which happens when you sign in on another device. Turn it off if your direct messages don't need to be private from the server."
+        anchorId="message-key-warnings"
+        title={i18n.t("settingsFull.m43097240bb")}
+        description={i18n.t("settingsFull.m6e161a46a4")}
       >
         <label className="flex cursor-pointer items-center gap-3 text-sm">
           <Switch
@@ -384,14 +373,13 @@ export function SecuritySettings() {
               setKeyWarnings(on);
               setDmKeyWarningsOff(!on);
             }}
-          />
-          Warn me about message keys
-        </label>
+          />{i18n.t("settingsFull.m65c3992e3a")}</label>
       </SettingGroup>
 
       <SettingGroup
-        title="Persist server access tokens"
-        description="Keep server sign-in tokens between app sessions. Turn this off to keep them only until you close Gryt or the browser."
+        anchorId="persist-server-access-tokens"
+        title={i18n.t("settingsFull.m532c2bfc5b")}
+        description={i18n.t("settingsFull.mbedb3f74e9")}
       >
         <label className="flex cursor-pointer items-center gap-3 text-sm">
           <Switch
@@ -400,9 +388,7 @@ export function SecuritySettings() {
               setPersistTokens(enabled);
               migrateAccessTokensToMode(enabled ? "local" : "session");
             }}
-          />
-          Keep server sessions between launches
-        </label>
+          />{i18n.t("settingsFull.me6ffb406cd")}</label>
       </SettingGroup>
     </SettingsContainer>
   );

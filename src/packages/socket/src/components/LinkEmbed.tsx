@@ -2,6 +2,7 @@ import {  } from "@gryt/ui";
 import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { getServerHttpBase } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 import { useSettings } from "@/settings/src/hooks/useSettings";
 
 import { trustEmbedHost, useTrustedEmbedHosts } from "../lib/trustedEmbedHosts";
@@ -33,17 +34,17 @@ import { LinkPreviewCard } from "./LinkPreviewCard";
 /* The embeds that run another company's JavaScript, so the only ones held back.
    `link` is unfurled by our server; image, video and audio are files. */
 const THIRD_PARTY: Partial<Record<EmbedType, EmbedProvider>> = {
-  youtube: { name: "YouTube video", host: "youtube-nocookie.com" },
-  vimeo: { name: "Vimeo video", host: "player.vimeo.com" },
+  youtube: { get name() { return socketI18n.t("socketFull.linkEmbed_6dff939f55"); }, host: "youtube-nocookie.com" },
+  vimeo: { get name() { return socketI18n.t("socketFull.linkEmbed_17be88d1f4"); }, host: "player.vimeo.com" },
   twitch: { name: "Twitch", host: "twitch.tv" },
-  soundcloud: { name: "SoundCloud track", host: "soundcloud.com" },
+  soundcloud: { get name() { return socketI18n.t("socketFull.linkEmbed_a713b2ce8c"); }, host: "soundcloud.com" },
   spotify: { name: "Spotify", host: "open.spotify.com" },
   tiktok: { name: "TikTok", host: "tiktok.com" },
-  instagram: { name: "Instagram post", host: "instagram.com" },
-  x: { name: "Post on X", host: "platform.twitter.com" },
+  instagram: { get name() { return socketI18n.t("socketFull.linkEmbed_65e5ada2e6"); }, host: "instagram.com" },
+  x: { get name() { return socketI18n.t("socketFull.linkEmbed_09f4367c2d"); }, host: "platform.twitter.com" },
 };
 
-const FILE_KINDS: Partial<Record<EmbedType, string>> = { image: "Picture", video: "Video", audio: "Audio" };
+const FILE_KINDS: Partial<Record<EmbedType, string>> = { get image() { return socketI18n.t("socketFull.linkEmbed_d45e851ae5"); }, get video() { return socketI18n.t("shellFull.videoDebugOverlay_tsx_bc17c1f017"); }, get audio() { return socketI18n.t("ui.audio"); } };
 
 /* A file on another site is fetched by every reader's app, so that site sees who read it (GRYT-1670). */
 function fileFromElsewhere(type: EmbedType, url: string, serverHost: string): EmbedProvider | null {
@@ -68,6 +69,7 @@ function AskFirst({
   onDismiss: () => void;
   children: React.ReactNode;
 }) {
+  useSocketTranslation();
   const { autoLoadEmbeds } = useSettings();
   const trusted = useTrustedEmbedHosts();
   const [loaded, setLoaded] = useState(false);
@@ -129,6 +131,7 @@ export const MessageEmbeds = memo(({
   text: string | null;
   serverHost: string;
 }) => {
+  useSocketTranslation();
   const urls = useMemo(() => extractUrls(text), [text]);
   const prevTextRef = useRef(text);
 
@@ -185,9 +188,9 @@ export const MessageEmbeds = memo(({
       <ConfirmDialog
         open={!!pendingDismissUrl}
         onOpenChange={(open) => { if (!open) setPendingDismissUrl(null); }}
-        title="Remove embed?"
-        description="This hides the embed for you. Edit the message to bring it back."
-        confirmLabel="Remove"
+        title={socketI18n.t("socketFull.linkEmbed_4d0766c91b")}
+        description={socketI18n.t("socketFull.linkEmbed_6f5dc33005")}
+        confirmLabel={socketI18n.t("ui.remove")}
         width="25rem"
         onConfirm={confirmDismiss}
       />

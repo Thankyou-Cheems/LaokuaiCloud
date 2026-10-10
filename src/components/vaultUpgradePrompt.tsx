@@ -12,6 +12,7 @@ import {
   useAccount,
   vaultHasRecoverySlot,
 } from "@/common";
+import { i18n, LocalizedText, useTranslation } from "@/i18n";
 
 import {
   type MessagePasswordChoice,
@@ -41,6 +42,7 @@ type Step = "password" | "short" | "forgot";
  * rather than a dialog, so it never stands between somebody and the app (GRYT-1498).
  */
 export function VaultUpgradePrompt() {
+  useTranslation();
   const { isSignedIn } = useAccount();
   const [grytUserId, setGrytUserId] = useState<string | null>(null);
   const [keyIsHere, setKeyIsHere] = useState(false);
@@ -85,14 +87,10 @@ export function VaultUpgradePrompt() {
     toast(
       () => (
         <div className="flex flex-col gap-2" style={{ minWidth: 0 }}>
-          <span className="text-sm font-medium">Your message backup can use stronger protection</span>
-          <span className="text-xs text-gryt-muted" style={{ lineHeight: 1.5 }}>
-            Enter your message password once to upgrade it.
-          </span>
+          <span className="text-sm font-medium">{<LocalizedText translationKey="shellFull.vaultUpgradePrompt_tsx_bebcb05d85" />}</span>
+          <span className="text-xs text-gryt-muted" style={{ lineHeight: 1.5 }}>{<LocalizedText translationKey="shellFull.vaultUpgradePrompt_tsx_53d23be19b" />}</span>
           <div className="flex gap-2 justify-end">
-            <Button tone="ghost" size="xsmall" onClick={finish}>
-              Not now
-            </Button>
+            <Button tone="ghost" size="xsmall" onClick={finish}>{<LocalizedText translationKey="shellFull.vaultUpgradePrompt_tsx_e457149073" />}</Button>
             <Button
               size="xsmall"
               onClick={() => {
@@ -100,9 +98,7 @@ export function VaultUpgradePrompt() {
                 setStep("password");
                 setOpen(true);
               }}
-            >
-              Upgrade
-            </Button>
+            >{<LocalizedText translationKey="shellFull.vaultUpgradePrompt_tsx_a6f47e00e0" />}</Button>
           </div>
         </div>
       ),
@@ -114,7 +110,7 @@ export function VaultUpgradePrompt() {
 
   const upgrade = useCallback(async () => {
     if (!vault) return;
-    if (!secret) return void toast.error("Enter your message password.");
+    if (!secret) return void toast.error(<LocalizedText translationKey="shellFull.vaultUpgradePrompt_tsx_b3cf186213" />);
     setBusy(true);
     try {
       const next = await upgradeWithPassword(vault, secret, calls);
@@ -123,16 +119,16 @@ export function VaultUpgradePrompt() {
         setSecret("");
         setStep("short");
       } else if (next.kind === "done") {
-        toast.success("Done. Your message backup uses the new lock now.");
+        toast.success(<LocalizedText translationKey="shellFull.vaultUpgradePrompt_tsx_8a4a4ff907" />);
         finish();
       } else if (next.kind === "changed") {
-        toast.error("Another device changed your message password in the meantime, so nothing was saved here.");
+        toast.error(<LocalizedText translationKey="shellFull.vaultUpgradePrompt_tsx_67c24d541b" />);
         finish();
       } else {
-        toast.error("Couldn’t save the upgrade. Your backup still opens with the same password.");
+        toast.error(<LocalizedText translationKey="shellFull.vaultUpgradePrompt_tsx_9b99f50809" />);
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn’t open your message backup.");
+      toast.error(e instanceof Error ? e.message : i18n.t("shellFull.vaultUpgradePrompt_tsx_095c618420"));
     } finally {
       setBusy(false);
     }
@@ -144,16 +140,16 @@ export function VaultUpgradePrompt() {
     try {
       const outcome = await chooseNewPassword(vault, choice, calls);
       if (outcome === "resealed") {
-        toast.success("New message password set.");
+        toast.success(<LocalizedText translationKey="shellFull.vaultUpgradePrompt_tsx_d974dd4afb" />);
         finish();
       } else if (outcome === "changed") {
-        toast.error("Another device changed your message password in the meantime, so nothing was saved here.");
+        toast.error(<LocalizedText translationKey="shellFull.vaultUpgradePrompt_tsx_67c24d541b" />);
         finish();
       } else {
-        toast.error("Couldn’t save the new password. Your old one still works.");
+        toast.error(<LocalizedText translationKey="shellFull.vaultUpgradePrompt_tsx_763a791089" />);
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn’t save the message password.");
+      toast.error(e instanceof Error ? e.message : i18n.t("shellFull.vaultUpgradePrompt_tsx_12f3b45d67"));
     } finally {
       setBusy(false);
     }
@@ -166,20 +162,14 @@ export function VaultUpgradePrompt() {
       <Dialog.Portal>
         <Dialog.Backdrop />
         <Dialog.Popup className="w-[36rem] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto">
-          <Dialog.Title>Your message backup can use stronger protection</Dialog.Title>
+          <Dialog.Title>{<LocalizedText translationKey="shellFull.vaultUpgradePrompt_tsx_bebcb05d85" />}</Dialog.Title>
 
           {step === "password" && (
             <div className="flex flex-col gap-3">
-              <Dialog.Description className="mt-2">
-                Your account keeps a locked copy of your message key. It&rsquo;s
-                how your messages reach a new device. That copy still uses an
-                older lock that&rsquo;s much quicker to crack. Enter your message
-                password and Gryt locks it again with the new one. Your password
-                stays the same.
-              </Dialog.Description>
+              <Dialog.Description className="mt-2">{<LocalizedText translationKey="shellFull.vaultUpgradePrompt_tsx_9c76e9059c" />}</Dialog.Description>
               <TextField
                 type="password"
-                label="Message password"
+                label={i18n.t("shellFull.vaultUpgradePrompt_tsx_d71ea51285")}
                 autoComplete="current-password"
                 value={secret}
                 disabled={busy}
@@ -188,34 +178,23 @@ export function VaultUpgradePrompt() {
               />
               <div className="flex gap-2 flex-wrap">
                 <Button size="small" onClick={() => void upgrade()} disabled={busy}>
-                  {busy ? "Upgrading…" : "Upgrade"}
+                  {busy ? i18n.t("shellSecond.upgrading") : i18n.t("shellFull.vaultUpgradePrompt_tsx_a6f47e00e0")}
                 </Button>
-                <Button tone="neutral" size="small" onClick={finish} disabled={busy}>
-                  Not now
-                </Button>
-                <Button tone="ghost" size="small" onClick={() => setStep("forgot")} disabled={busy}>
-                  Forgotten it?
-                </Button>
+                <Button tone="neutral" size="small" onClick={finish} disabled={busy}>{<LocalizedText translationKey="shellFull.vaultUpgradePrompt_tsx_e457149073" />}</Button>
+                <Button tone="ghost" size="small" onClick={() => setStep("forgot")} disabled={busy}>{<LocalizedText translationKey="shellFull.vaultUpgradePrompt_tsx_f0fbb48ad4" />}</Button>
               </div>
               <div className="flex flex-col gap-2 border-t border-gryt-border pt-3">
-                <AccountWordsReveal keyIsHere label="Show my 24 words to save them" />
+                <AccountWordsReveal keyIsHere label={i18n.t("shellFull.vaultUpgradePrompt_tsx_a7f35ffb59")} />
               </div>
-              <span className="text-xs text-gryt-muted">
-                Skip it for now and you&rsquo;ll find it in Settings, under Security.
-              </span>
+              <span className="text-xs text-gryt-muted">{<LocalizedText translationKey="shellFull.vaultUpgradePrompt_tsx_18e4bc3b36" />}</span>
             </div>
           )}
 
           {step === "short" && (
             <div className="flex flex-col gap-3">
-              <Dialog.Description className="mt-2">
-                Done. Your backup uses the new lock now. But your password is
-                under 12 characters, and short ones are the quickest to guess.
-                You can choose a longer one here. This device has your message
-                key, so you don&rsquo;t need the old one.
-              </Dialog.Description>
+              <Dialog.Description className="mt-2">{<LocalizedText translationKey="shellFull.vaultUpgradePrompt_tsx_a8365b3940" />}</Dialog.Description>
               <MessagePasswordSetup
-                submitLabel="Set new password"
+                submitLabel={i18n.t("shellFull.vaultUpgradePrompt_tsx_25c6fc7ca6")}
                 busy={busy}
                 replacesRecoveryKey={vaultHasRecoverySlot(vault)}
                 onSubmit={(choice) => void choose(choice)}
@@ -226,13 +205,9 @@ export function VaultUpgradePrompt() {
 
           {step === "forgot" && (
             <div className="flex flex-col gap-3">
-              <Dialog.Description className="mt-2">
-                This device still has your message key, so you don&rsquo;t need
-                the old password. Choose a new one and your backup moves to the
-                new lock at the same time.
-              </Dialog.Description>
+              <Dialog.Description className="mt-2">{<LocalizedText translationKey="shellFull.vaultUpgradePrompt_tsx_ded595d86d" />}</Dialog.Description>
               <MessagePasswordSetup
-                submitLabel="Set new password"
+                submitLabel={i18n.t("shellFull.vaultUpgradePrompt_tsx_25c6fc7ca6")}
                 busy={busy}
                 replacesRecoveryKey={vaultHasRecoverySlot(vault)}
                 onSubmit={(choice) => void choose(choice)}

@@ -2,6 +2,7 @@ import { type ChangeEvent, useCallback, useEffect, useRef, useState } from "reac
 import toast from "react-hot-toast";
 
 import { getServerHttpBase } from "@/common";
+import { i18n as socketHooksI18n, useTranslation as useSocketHooksTranslation } from "@/i18n";
 
 import type { PendingEmoji } from "../utils/emojiFileUtils";
 import {
@@ -11,6 +12,7 @@ import {
   isZipFile,
   validateName,
 } from "../utils/emojiFileUtils";
+import { socketDisplayText, socketHookToast } from "../utils/socketHookMessages";
 import { stageEmojiViaXhr } from "../utils/stageEmojiViaXhr";
 import { getFreshServerAccessToken, type TokenRefreshSocketLike } from "../utils/tokenManager";
 
@@ -39,6 +41,7 @@ export function useEmojiUpload({
   existingNames,
   emojiMaxBytes,
 }: UseEmojiUploadParams) {
+  useSocketHooksTranslation();
   const [pendingEmojis, setPendingEmojis] = useState<PendingEmoji[]>([]);
   const [uploading, setUploading] = useState(false);
   const [lastSelectSummary, setLastSelectSummary] = useState<SelectSummary | null>(null);
@@ -127,14 +130,14 @@ export function useEmojiUpload({
         skippedZipTooLarge += extracted.skippedTooLarge;
         skippedZipEmpty += extracted.skippedEmpty;
         if (extracted.images.length === 0) {
-          toast.error(`"${zip.name}": no valid images found in archive.`);
+          toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useEmojiUpload_7c3c1698af", { p0: zip.name })));
         } else {
-          toast.success(`Extracted ${extracted.images.length} image(s) from "${zip.name}".`);
+          toast.success(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useEmojiUpload_f05824966a", { p0: extracted.images.length, p1: zip.name, count: extracted.images.length })));
           imageFiles.push(...extracted.images);
         }
       } catch (err) {
         console.error("[EmojiUpload] handleFileSelect: zip extraction failed:", zip.name, err);
-        toast.error(`"${zip.name}": failed to read archive.`);
+        toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useEmojiUpload_2e0e1db8fb", { p0: zip.name })));
       }
     }
 
@@ -153,12 +156,12 @@ export function useEmojiUpload({
     });
     const skippedTotal = skippedTooLarge + skippedUnsupported + skippedZipNonImage + skippedZipTooLarge + skippedZipEmpty;
     if (skippedTotal > 0) {
-      const parts = [
-        skippedTooLarge > 0 ? `${skippedTooLarge} too large (>${Math.round((emojiMaxBytes / (1024 * 1024)) * 10) / 10} MB)` : null,
-        skippedUnsupported > 0 ? `${skippedUnsupported} unsupported` : null,
-        (skippedZipTooLarge + skippedZipEmpty) > 0 ? `${skippedZipTooLarge + skippedZipEmpty} zip entries too large/empty` : null,
+      const parts = () => [
+        skippedTooLarge > 0 ? socketHooksI18n.t("socketHooksFull.useEmojiUpload_c982b7b129", { p0: skippedTooLarge, p1: Math.round((emojiMaxBytes / (1024 * 1024)) * 10) / 10 }) : null,
+        skippedUnsupported > 0 ? socketHooksI18n.t("socketHooksFull.useEmojiUpload_4296fa1d7a", { p0: skippedUnsupported }) : null,
+        (skippedZipTooLarge + skippedZipEmpty) > 0 ? socketHooksI18n.t("socketHooksFull.useEmojiUpload_a90242a1f1", { p0: skippedZipTooLarge + skippedZipEmpty }) : null,
       ].filter((p): p is string => p !== null);
-      toast.error(`Skipped ${skippedTotal} item(s). ${parts.join(", ")}`);
+      toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useEmojiUpload_a125f296dd", { p0: skippedTotal, p1: parts().join(", "), count: skippedTotal })));
     }
     addImageFiles(imageFiles);
   };
@@ -199,7 +202,7 @@ export function useEmojiUpload({
   const uploadOne = async (item: PendingEmoji): Promise<boolean> => {
     const token = await getFreshServerAccessToken(host, socket);
     if (!token) {
-      toast.error("Not authenticated. Join the server first.");
+      toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useEmojiUpload_853cdb4018")));
       return false;
     }
 
@@ -245,7 +248,7 @@ export function useEmojiUpload({
     }
 
     if (result.ok) {
-      toast.success(`Emoji :${item.name}: queued for processing.`);
+      toast.success(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useEmojiUpload_1e1883e9c5", { p0: item.name })));
       setPendingEmojis((prev) => {
         const existing = prev.find((p) => p.id === item.id);
         if (existing) URL.revokeObjectURL(existing.previewUrl);
@@ -259,7 +262,7 @@ export function useEmojiUpload({
       return true;
     }
 
-    toast.error(`:${item.name}: — ${result.message}`);
+    toast.error(socketHookToast(() => `:${item.name}: — ${result.message}`));
     setPendingEmojis((prev) => prev.map((p) => (p.id === item.id ? { ...p, status: "error", progress: 0 } : p)));
     return false;
   };
@@ -268,7 +271,7 @@ export function useEmojiUpload({
     const toUpload = pendingEmojis.filter((p) => p.status === "pending" && !p.nameError);
     if (toUpload.length === 0) return;
     if (!effectiveAccessToken) {
-      toast.error("Not authenticated. Join the server first.");
+      toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useEmojiUpload_853cdb4018")));
       return;
     }
 
@@ -291,7 +294,7 @@ export function useEmojiUpload({
     await Promise.all(Array.from({ length: concurrencyLimit }, worker));
 
     if (successCount > 0) {
-      toast.success(`Queued ${successCount} emoji(s) for processing.`);
+      toast.success(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useEmojiUpload_e14932dee7", { p0: successCount, count: successCount })));
     }
 
     setPendingEmojis((prev) => {
@@ -324,7 +327,8 @@ export function useEmojiUpload({
   const uploadableCount = pendingEmojis.filter((p) => p.status === "pending" && !p.nameError).length;
 
   return {
-    pendingEmojis,
+    pendingEmojis: pendingEmojis.map((item) => ({ ...item, nameError: socketDisplayText(item.nameError), nameWarning: socketDisplayText(item.nameWarning) })),
+
     uploading,
     lastSelectSummary,
     fileInputRef,

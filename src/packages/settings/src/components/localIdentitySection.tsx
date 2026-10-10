@@ -10,7 +10,7 @@ import {
   restoreIdentityFromWords,
   unlockBackup,
 } from "@/common";
-import { useTranslation } from "@/i18n";
+import { i18n,useTranslation } from "@/i18n";
 import { clearRemovedEverywhere } from "@/socket";
 
 import {
@@ -91,7 +91,7 @@ export function LocalIdentitySection() {
       clearRemovedEverywhere();
       refresh();
       toast.success(
-        `Restored ${restored.length} identit${restored.length === 1 ? "y" : "ies"}. Reloading…`,
+        i18n.t("settingsFull.m8bd74b6cd6", { count: restored.length }),
         { duration: 4000 },
       );
       // Reloaded rather than carried on with: anything holding a key keeps
@@ -177,7 +177,7 @@ export function LocalIdentitySection() {
       {panel === "words" && (
         <RecoveryWordsPanel
           words={words}
-          copyLabel="Copy recovery key"
+          copyLabel={i18n.t("settingsFull.mb40f53a2e0")}
           onHide={closePanel}
           note={
             <>
@@ -198,7 +198,7 @@ export function LocalIdentitySection() {
               id="recovery-key"
               type="password"
               autoComplete="current-password"
-              placeholder="word word word …"
+              placeholder={i18n.t("settingsFull.m4b5e138e89")}
               value={wordsInput}
               disabled={busy}
               onChange={(e) => setWordsInput(e.target.value)}

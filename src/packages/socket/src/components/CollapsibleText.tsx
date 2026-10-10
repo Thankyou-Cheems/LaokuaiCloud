@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Trans } from "react-i18next";
+
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 
 /**
  * Folds a tall message down until somebody asks for the rest. Height rather than
@@ -22,6 +25,7 @@ const ASSUMED_LINE_RATIO = 1.5;
  * computed to the identity matrix in the running client, measured several ways.
  */
 function Chevron({ up }: { up: boolean }) {
+  useSocketTranslation();
   return (
     <svg
       className="message-fold-chevron"
@@ -43,6 +47,7 @@ function Chevron({ up }: { up: boolean }) {
 }
 
 export function CollapsibleText({ children }: { children: React.ReactNode }) {
+  useSocketTranslation();
   const inner = useRef<HTMLDivElement>(null);
   const [fold, setFold] = useState<{ maxPx: number; hiddenLines: number } | null>(null);
   const [expanded, setExpanded] = useState(false);
@@ -127,12 +132,9 @@ export function CollapsibleText({ children }: { children: React.ReactNode }) {
         aria-expanded={expanded}
       >
         {expanded ? (
-          "Show less"
+          socketI18n.t("socketFull.collapsibleText_a5a63ddc6b")
         ) : (
-          <>
-            Show <span className="message-fold-count">{fold.hiddenLines}</span> more{" "}
-            {fold.hiddenLines === 1 ? "line" : "lines"}
-          </>
+          <><Trans i18n={socketI18n} i18nKey="socketFull.showMoreLines" values={{ count: fold.hiddenLines }} components={{ amount: <span className="message-fold-count" /> }} count={fold.hiddenLines} /></>
         )}
         <Chevron up={expanded} />
       </button>

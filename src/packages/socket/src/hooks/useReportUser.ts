@@ -2,7 +2,10 @@ import { createElement, useCallback, useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 import type { Socket } from "socket.io-client";
 
+import { i18n as socketHooksI18n } from "@/i18n";
+
 import { PiInfoFill } from "../../../../lib/icons";
+import { socketHookToast } from "../utils/socketHookMessages";
 
 /**
  * Reporting a person to the moderators of the server you are both on. This waits
@@ -38,13 +41,13 @@ export function useReportUser({
 
     const onSubmitted = (payload: { serverUserId?: string }) => {
       if (!payload?.serverUserId) return;
-      if (settle(payload.serverUserId)) toast.success("Report sent to the moderators");
+      if (settle(payload.serverUserId)) toast.success(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useReportUser_92c29dd23e")));
     };
 
     const onAlready = (payload: { serverUserId?: string }) => {
       if (!payload?.serverUserId) return;
       if (settle(payload.serverUserId)) {
-        toast("You already have an open report about them", { icon: createElement(PiInfoFill, { size: 18 }) });
+        toast(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useReportUser_369e357795")), { icon: createElement(PiInfoFill, { size: 18 }) });
       }
     };
 
@@ -78,7 +81,7 @@ export function useReportUser({
         serverUserId,
         setTimeout(() => {
           waiting.current.delete(serverUserId);
-          toast.error("This server is too old to take reports about a person");
+          toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useReportUser_aa45053920")));
         }, NO_ANSWER_MS),
       );
 

@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 
 import { getOwnServerUserId, getServerAccessToken } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 
 import { PiCaretDownFill, PiCaretRightFill, PiPlus, PiUsersFill } from "../../../../lib/icons";
 import { admitConversation, dismissFiltered, type FilteredItem } from "../hooks/contactFilterStore";
@@ -41,6 +42,7 @@ export function DmSpaceSidebar({
   /** The whole of what it's in, for the phone's sheet and the tiny window, rather than a 300px column. */
   fill?: boolean;
 }) {
+  useSocketTranslation();
   const entries = useDirectory();
   const { countFor } = useDirectoryUnread();
   const { servers, viewServerBehindDmSpace } = useServerManagement();
@@ -155,15 +157,13 @@ export function DmSpaceSidebar({
       style={{ width: fill ? "100%" : 300, height: fill ? "100%" : undefined, background: "var(--gryt-neutral-2)" }}
     >
       <div className="flex items-center justify-between gap-2 pb-3 pl-4 pr-3 pt-4">
-        <h1 className="text-lg" style={{ fontWeight: 700, letterSpacing: "-0.01em" }}>
-          Messages
-        </h1>
+        <h1 className="text-lg" style={{ fontWeight: 700, letterSpacing: "-0.01em" }}>{socketI18n.t("socketFull.dmSpaceSidebar_f204eaabef")}</h1>
         <div className="flex items-center gap-1">
-        <Tooltip title={incomingFriends > 0 ? `Friends, ${incomingFriends} waiting` : "Friends"}>
+        <Tooltip title={incomingFriends > 0 ? socketI18n.t("socketFull.dmSpaceSidebar_d81c4a8a51", { p0: (incomingFriends) }) : socketI18n.t("shellFull.ContactPrivacyMenu_tsx_c11d5e1d35")}>
           <IconButton
             tone="ghost"
             size="xsmall"
-            aria-label={incomingFriends > 0 ? `Friends, ${incomingFriends} waiting` : "Friends"}
+            aria-label={incomingFriends > 0 ? socketI18n.t("socketFull.dmSpaceSidebar_d81c4a8a51", { p0: (incomingFriends) }) : socketI18n.t("shellFull.ContactPrivacyMenu_tsx_c11d5e1d35")}
             data-gryt="friends-open"
             onClick={() => setFriendsOpen(true)}
             style={{ position: "relative" }}
@@ -176,11 +176,11 @@ export function DmSpaceSidebar({
             )}
           </IconButton>
         </Tooltip>
-        <Tooltip title="New message">
+        <Tooltip title={socketI18n.t("socketFull.dmSpaceSidebar_199aa9bf73")}>
           <IconButton
             tone="ghost"
             size="xsmall"
-            aria-label="New message"
+            aria-label={socketI18n.t("socketFull.dmSpaceSidebar_199aa9bf73")}
             onClick={() => setNewMessageOpen(true)}
           >
             <PiPlus size={16} />
@@ -193,7 +193,7 @@ export function DmSpaceSidebar({
         <div className="px-3 pb-2">
           <TextField
             size="small"
-            placeholder="Search conversations"
+            placeholder={socketI18n.t("socketFull.dmSpaceSidebar_08c1acf3a6")}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -201,12 +201,9 @@ export function DmSpaceSidebar({
       )}
 
       {listed.length === 0 ? (
-        <p className="px-4 text-xs" style={{ color: "var(--gryt-neutral-10)" }}>
-          No conversations yet.
-        </p>
+        <p className="px-4 text-xs" style={{ color: "var(--gryt-neutral-10)" }}>{socketI18n.t("socketFull.dmSpaceSidebar_e3b7aeb1af")}</p>
       ) : matching.shown.length === 0 && matching.shownHidden.length === 0 ? (
-        <p className="px-4 text-xs" style={{ color: "var(--gryt-neutral-10)" }}>
-          Nothing matches &ldquo;{query}&rdquo;.
+        <p className="px-4 text-xs" style={{ color: "var(--gryt-neutral-10)" }}>{socketI18n.t("socketFull.dmSpaceSidebar_2b66706636")}{query}&rdquo;.
         </p>
       ) : (
         <div className="flex flex-col overflow-y-auto px-2 pb-2">
@@ -226,7 +223,7 @@ export function DmSpaceSidebar({
                 type="button"
                 onClick={() => setHiddenExpanded(!expanded)}
                 aria-expanded={expanded}
-                aria-label={`Hidden, ${matching.shownHidden.length} ${matching.shownHidden.length === 1 ? "conversation" : "conversations"}`}
+                aria-label={socketI18n.t("socketFull.dmSpaceSidebar_aa4691f5a7", { p0: (matching.shownHidden.length), count: (matching.shownHidden.length) })}
                 className={[
                   "mt-2 flex w-full items-center gap-2 rounded-(--gryt-radius-md) px-2 py-1 text-left",
                   "text-xs font-semibold tracking-wide transition-colors",
@@ -234,7 +231,7 @@ export function DmSpaceSidebar({
                   "text-gryt-muted hover:text-gryt-text active:text-gryt-text",
                 ].join(" ")}
               >
-                <span className="shrink-0">Hidden</span>
+                <span className="shrink-0">{socketI18n.t("ui.hidden")}</span>
                 <span aria-hidden="true" className="h-px min-w-2 flex-1 bg-gryt-border" />
                 <span aria-hidden="true" className="shrink-0 tabular-nums opacity-70">
                   {matching.shownHidden.length}

@@ -1,6 +1,7 @@
 import { Alert, Button, TextField } from "@gryt/ui";
 import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { Trans } from "react-i18next";
 
 import {
   adoptSealedIdentity,
@@ -17,6 +18,7 @@ import {
   vaultNeedsUpgrade,
   writeSealedVault,
 } from "@/common";
+import { i18n, useTranslation } from "@/i18n";
 
 import { phraseMatches } from "../../../socket/src/lib/confirmPhrase";
 import { type MessagePasswordChoice, MessagePasswordSetup } from "./messagePasswordSetup";
@@ -39,17 +41,12 @@ function showAdoptedToast(lead: string): void {
   toast.success(
     () => (
       <div className="flex flex-col gap-2" style={{ minWidth: 0 }}>
-        <span className="text-sm" style={{ lineHeight: 1.5 }}>
-          {lead} Gryt has to restart before it can send or read encrypted
-          messages again.
-        </span>
+        <span className="text-sm" style={{ lineHeight: 1.5 }}>{i18n.t("settingsFull.m8113949e44", { lead })}</span>
         <Button
           size="small"
           style={{ alignSelf: "flex-end" }}
           onClick={() => window.location.reload()}
-        >
-          Restart now
-        </Button>
+        >{i18n.t("settingsFull.maf2c3d8ef2")}</Button>
       </div>
     ),
     { duration: 30000 },
@@ -57,6 +54,7 @@ function showAdoptedToast(lead: string): void {
 }
 
 export function MessageKeySection() {
+  useTranslation();
   const [vault, setVault] = useState<SealedVault | null | undefined>(undefined);
   const [open, setOpen] = useState<"set" | "use" | "forgot" | "reset" | null>(null);
   const [keyIsHere, setKeyIsHere] = useState(false);
@@ -97,9 +95,9 @@ export function MessageKeySection() {
       setKeyIsHere(true);
       setVault(sealed);
       close();
-      toast.success("Message password set.");
+      toast.success(i18n.t("settingsFull.md6d8ef107b"));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not save the message password.");
+      toast.error(e instanceof Error ? e.message : i18n.t("settingsFull.mec79231789"));
     } finally {
       setBusy(false);
     }
@@ -113,18 +111,18 @@ export function MessageKeySection() {
       const outcome = await resealCurrentIdentity(vault, password, recoveryKey);
       setVault(await readSealedVault().catch(() => vault));
       if (outcome === "changed") {
-        toast.error("Another device changed your message password in the meantime, so nothing was saved here.");
+        toast.error(i18n.t("settingsFull.m67c24d541b"));
       } else if (outcome === "restored") {
-        toast.error("Couldn\u2019t save the new password. Your old one still works.");
+        toast.error(i18n.t("settingsFull.m763a791089"));
       } else {
         const sub = await getAccountProfile().then((p) => p.sub).catch(() => null);
         if (sub) rememberMessageKeyHere(sub);
         setKeyIsHere(true);
         close();
-        toast.success("New message password set.");
+        toast.success(i18n.t("settingsFull.md974dd4afb"));
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not save the message password.");
+      toast.error(e instanceof Error ? e.message : i18n.t("settingsFull.mec79231789"));
     } finally {
       setBusy(false);
     }
@@ -136,7 +134,7 @@ export function MessageKeySection() {
    */
   const use = useCallback(async () => {
     if (!vault) return;
-    if (!secret) return toast.error("Enter your message password or recovery key.");
+    if (!secret) return toast.error(i18n.t("settingsFull.m34d4d514e8"));
 
     setBusy(true);
     try {
@@ -146,9 +144,9 @@ export function MessageKeySection() {
       if (sub) rememberMessageKeyHere(sub);
       setKeyIsHere(true);
       close();
-      showAdoptedToast("This device now uses your message key.");
+      showAdoptedToast(i18n.t("settingsFull.m87bcbc5db5"));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not open the sealed key.");
+      toast.error(e instanceof Error ? e.message : i18n.t("settingsFull.md6bdc481f8"));
     } finally {
       setBusy(false);
     }
@@ -156,7 +154,7 @@ export function MessageKeySection() {
 
   const reset = useCallback(async ({ password, recoveryKey }: MessagePasswordChoice) => {
     if (!phraseMatches(confirmReset, RESET_PHRASE)) {
-      return toast.error(`Type "${RESET_PHRASE}" to confirm.`);
+      return toast.error(i18n.t("settingsFull.m3921e568b9", { value0: RESET_PHRASE }));
     }
 
     setBusy(true);
@@ -168,9 +166,9 @@ export function MessageKeySection() {
       setKeyIsHere(true);
       setVault(sealed);
       close();
-      showAdoptedToast("New message key set. Older conversations stay unreadable.");
+      showAdoptedToast(i18n.t("settingsFull.ma77c076172"));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not reset the message key.");
+      toast.error(e instanceof Error ? e.message : i18n.t("settingsFull.m636f3e40e3"));
     } finally {
       setBusy(false);
     }
@@ -181,49 +179,30 @@ export function MessageKeySection() {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
-        <span className="font-medium text-sm">Message password</span>
-        <span className="text-xs text-gryt-muted">
-          Your messages are encrypted with a key that lives on this device. Set a
-          message password and Gryt keeps a sealed copy of that key on your
-          account, so signing in somewhere else brings your conversations with
-          you. We cannot open it &mdash; only this password does.
-        </span>
+        <span className="font-medium text-sm">{i18n.t("settingsFull.md71ea51285")}</span>
+        <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.m214311b280")}</span>
       </div>
 
       {vault && !open && (
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-gryt-muted">
-            A sealed copy is saved to your account.
-          </span>
-          <Button size="small" onClick={() => setOpen("use")}>
-            Use it on this device
-          </Button>
-          <Button tone="neutral" size="small" onClick={() => setOpen("set")}>
-            Change it
-          </Button>
-          <Button tone="ghost" size="small" onClick={() => setOpen(keyIsHere ? "forgot" : "reset")}>
-            Forgotten it?
-          </Button>
+          <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.me01fea89b8")}</span>
+          <Button size="small" onClick={() => setOpen("use")}>{i18n.t("settingsFull.md53b3c164f")}</Button>
+          <Button tone="neutral" size="small" onClick={() => setOpen("set")}>{i18n.t("settingsFull.m0b2cad8a7f")}</Button>
+          <Button tone="ghost" size="small" onClick={() => setOpen(keyIsHere ? "forgot" : "reset")}>{i18n.t("settingsFull.mf0fbb48ad4")}</Button>
         </div>
       )}
 
       {/* Decision 5's third moment: a device that already holds the key never
           unlocks, so nothing else would ever move its old bundle forward. */}
       {vault && !open && vaultNeedsUpgrade(vault) && (
-        <Alert severity="warning">
-          Your sealed copy uses an older lock that&rsquo;s much quicker to crack.
-          Change the password to move it to the new one. You can add a recovery
-          key at the same time.
-        </Alert>
+        <Alert severity="warning">{i18n.t("settingsFull.maf96734898")}</Alert>
       )}
 
       {keyIsHere && !open && (
         <div className="flex flex-col gap-2">
           <div className="flex flex-col gap-1">
-            <span className="font-medium text-sm">Your 24 words</span>
-            <span className="text-xs text-gryt-muted">
-              Your message key, written out as 24 words.
-            </span>
+            <span className="font-medium text-sm">{i18n.t("settingsFull.m94183cc134")}</span>
+            <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.mbeeeac0f28")}</span>
           </div>
           <AccountWordsReveal keyIsHere={keyIsHere} />
         </div>
@@ -231,14 +210,8 @@ export function MessageKeySection() {
 
       {vault === null && !open && (
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs text-gryt-muted">
-            Not set. Sign in somewhere else and that device makes its own
-            message key, which stops the people you talk to from encrypting to
-            you until you set a password here and use it there.
-          </span>
-          <Button size="small" onClick={() => setOpen("set")}>
-            Set a message password
-          </Button>
+          <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.m2d13293ed2")}</span>
+          <Button size="small" onClick={() => setOpen("set")}>{i18n.t("settingsFull.m33d3bea662")}</Button>
         </div>
       )}
 
@@ -247,16 +220,12 @@ export function MessageKeySection() {
       {open === "forgot" && vault && (
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1">
-            <span className="font-medium text-sm">Set a new password</span>
-            <span className="text-xs text-gryt-muted">
-              This device still has your message key, so you don&rsquo;t need
-              the old password. You can still read your conversations here and
-              on your other devices.
-            </span>
+            <span className="font-medium text-sm">{i18n.t("settingsFull.m1e83ae49d1")}</span>
+            <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.m48e8d91500")}</span>
           </div>
 
           <MessagePasswordSetup
-            submitLabel="Set new password"
+            submitLabel={i18n.t("settingsFull.m25c6fc7ca6")}
             busy={busy}
             replacesRecoveryKey={vaultHasRecoverySlot(vault)}
             onSubmit={(choice) => void reseal(choice)}
@@ -264,9 +233,7 @@ export function MessageKeySection() {
           />
 
           <div>
-            <Button tone="ghost" size="small" onClick={() => setOpen("reset")} disabled={busy}>
-              Start again with a new key instead
-            </Button>
+            <Button tone="ghost" size="small" onClick={() => setOpen("reset")} disabled={busy}>{i18n.t("settingsFull.m94c0c487dd")}</Button>
           </div>
         </div>
       )}
@@ -275,12 +242,7 @@ export function MessageKeySection() {
         <div className="flex flex-col gap-3">
           <Alert severity="error">
             <div className="flex flex-col gap-2">
-              <span>
-                This makes a new message key. Everything already sealed with the
-                old one stays unreadable &mdash; on this device and every other.
-                Nobody can undo it, including us. That is the same property that
-                stops us reading your messages in the first place.
-              </span>
+              <span>{i18n.t("settingsFull.m7aae6e23be")}</span>
               {/* Three cases, and the third is the one that matters. A count
                   of zero used to print nothing at all, so somebody whose
                   history could not be read — or who set this device up from a
@@ -288,25 +250,12 @@ export function MessageKeySection() {
                   about the guest servers they were about to lose. */}
               {guests.certain ? (
                 <span>
-                  <strong>
-                    It also replaces your identity on {guests.count} server
-                    {guests.count === 1 ? "" : "s"} you joined without an
-                    account.
-                  </strong>{" "}
-                  You would arrive there as a stranger, and any roles or
-                  ownership you had are gone with no way back.{" "}
+                  <strong>{i18n.t("settingsFull.m9f082aaa1c", { count: guests.count })}</strong>{" "}{i18n.t("settingsFull.mf688347ef9")}{" "}
                   <SaveWordsFirst keyIsHere={keyIsHere} onClick={() => setResetWords(true)} />
                 </span>
               ) : (
                 <span>
-                  <strong>
-                    It also replaces your identity on any server you joined
-                    without an account.
-                  </strong>{" "}
-                  This device has no record of those, which does not mean there
-                  are none &mdash; a device set up from a 24-word phrase never
-                  has one. You would arrive at any such server as a stranger,
-                  and any roles or ownership there are gone with no way back.{" "}
+                  <strong>{i18n.t("settingsFull.m949456ac18")}</strong>{" "}{i18n.t("settingsFull.me9fe389231")}{" "}
                   <SaveWordsFirst keyIsHere={keyIsHere} onClick={() => setResetWords(true)} />
                 </span>
               )}
@@ -316,14 +265,14 @@ export function MessageKeySection() {
           {resetWords && <AccountWordsReveal keyIsHere={keyIsHere} startAt="confirming" />}
 
           <MessagePasswordSetup
-            submitLabel="Start again"
+            submitLabel={i18n.t("settingsFull.mb6fffc5ab7")}
             tone="danger"
             busy={busy}
             onSubmit={(choice) => void reset(choice)}
             onCancel={close}
           >
             <TextField
-              label={`Type \u201c${RESET_PHRASE}\u201d to confirm`}
+              label={i18n.t("settingsFull.m9d890757b0", { value0: RESET_PHRASE })}
               value={confirmReset}
               onChange={(e) => setConfirmReset(e.target.value)}
             />
@@ -333,15 +282,11 @@ export function MessageKeySection() {
 
       {open === "use" && (
         <div className="flex flex-col gap-3">
-          <span className="text-xs text-gryt-muted">
-            Enter the message password you set, or your recovery key. This
-            device will take on the message key your account already has, and
-            your existing conversations become readable here.
-          </span>
+          <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.m7d7adef47b")}</span>
 
           <TextField
             type="password"
-            label="Message password or recovery key"
+            label={i18n.t("settingsFull.mddc04bda46")}
             autoComplete="current-password"
             value={secret}
             onChange={(e) => setSecret(e.target.value)}
@@ -349,18 +294,16 @@ export function MessageKeySection() {
 
           <div className="flex gap-2">
             <Button size="small" onClick={use} disabled={busy}>
-              {busy ? "Opening\u2026" : "Use it here"}
+              {busy ? i18n.t("settingsFull.mb1b8530bbd") : i18n.t("settingsFull.m4b20e9d734")}
             </Button>
-            <Button tone="neutral" size="small" onClick={close} disabled={busy}>
-              Cancel
-            </Button>
+            <Button tone="neutral" size="small" onClick={close} disabled={busy}>{i18n.t("ui.cancel")}</Button>
           </div>
         </div>
       )}
 
       {open === "set" && (
         <MessagePasswordSetup
-          submitLabel="Save"
+          submitLabel={i18n.t("settingsFull.mefc007a393")}
           busy={busy}
           replacesRecoveryKey={!!vault && vaultHasRecoverySlot(vault)}
           onSubmit={(choice) => void (vault ? reseal(choice) : save(choice))}
@@ -373,17 +316,9 @@ export function MessageKeySection() {
 
 /** The reset warning's advice, as a link where this device can actually show the words. */
 function SaveWordsFirst({ keyIsHere, onClick }: { keyIsHere: boolean; onClick(): void }) {
-  if (!keyIsHere) return <>Save your 24 words first if you want to keep them.</>;
+  useTranslation();
+  if (!keyIsHere) return <><Trans i18n={i18n} i18nKey="settingsFull.m237aeb7b8c" components={{ words: <button type="button" className="cursor-pointer appearance-none border-0 bg-transparent p-0 text-inherit underline" onClick={onClick} /> }} /></>;
   return (
-    <>
-      <button
-        type="button"
-        className="cursor-pointer appearance-none border-0 bg-transparent p-0 text-inherit underline"
-        onClick={onClick}
-      >
-        Save your 24 words first
-      </button>{" "}
-      if you want to keep them.
-    </>
+    <><Trans i18n={i18n} i18nKey="settingsFull.m237aeb7b8c" components={{ words: <button type="button" className="cursor-pointer appearance-none border-0 bg-transparent p-0 text-inherit underline" onClick={onClick} /> }} /></>
   );
 }

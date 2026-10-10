@@ -1,3 +1,4 @@
+import { i18n as socketI18n } from "@/i18n";
 /**
  * How a key's history and a key's change are put into words. This is the part
  * that can be wrong without looking wrong — "same key for 0 days" (GRYT-728).
@@ -9,15 +10,15 @@
  */
 export function describePin(firstSeenAt: number): string {
   const days = Math.floor((Date.now() - firstSeenAt) / 86_400_000);
-  if (days < 1) return "Same key since today";
-  if (days === 1) return "Same key since yesterday";
-  if (days < 30) return `Same key for ${days} days`;
+  if (days < 1) return socketI18n.t("socketFull.memberKeyWording_a2206b3df6");
+  if (days === 1) return socketI18n.t("socketFull.memberKeyWording_b5c013eba9");
+  if (days < 30) return socketI18n.t("socketFull.memberKeyWording_7acedbc621", { p0: (days) });
 
-  return `Same key since ${new Date(firstSeenAt).toLocaleDateString(undefined, {
+  return socketI18n.t("socketFull.memberKeyWording_a71e6b242c", { p0: (new Date(firstSeenAt).toLocaleDateString(socketI18n.resolvedLanguage, {
     year: "numeric",
     month: "short",
     day: "numeric",
-  })}`;
+  })) });
 }
 
 /**
@@ -26,11 +27,11 @@ export function describePin(firstSeenAt: number): string {
  */
 export function describeChange(changedIdentity: boolean, changedKey: boolean): string {
   if (changedIdentity && changedKey) {
-    return "Both their identity key and their message key are different from the ones seen before.";
+    return socketI18n.t("socketFull.memberKeyWording_82551963a3");
   }
   if (changedIdentity) {
-    return "A different identity key is vouching for their message key than the one seen before.";
+    return socketI18n.t("socketFull.memberKeyWording_6ebc03e560");
   }
-  return "Their message key is different from the one seen before, though the same identity key vouches for it.";
+  return socketI18n.t("socketFull.memberKeyWording_1b4cc20ef3");
 }
 

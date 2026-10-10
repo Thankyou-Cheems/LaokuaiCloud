@@ -1,6 +1,7 @@
 import { io } from "socket.io-client";
 
 import { answerChallenge, clearIdentityCertificate, getServerWsBase } from "@/common";
+import { i18n as socketHooksI18n } from "@/i18n";
 
 import { challengeHostMatches } from "./challengeHost";
 import { describeGap, guardSocket, serverProofErrorMessage } from "./serverAuth";
@@ -66,25 +67,25 @@ function describeConnectError(err: unknown, host: string): JoinServerOnceError {
   if (/websocket/i.test(raw)) {
     return {
       error: "connect_error",
-      message: `WebSocket connection failed — retrying with fallback. If this persists, the server may be unreachable. (${raw})`,
+      get message() { return socketHooksI18n.t("socketHooksFull.connectWebSocket", { detail: raw }); },
     };
   }
   if (/timeout/i.test(raw)) {
     return {
       error: "connect_error",
-      message: `Connection timed out. The server may be down or your network is blocking the connection.`,
+      get message() { return socketHooksI18n.t("socketHooksFull.connectTimeout"); },
     };
   }
   if (/cors/i.test(raw)) {
     return {
       error: "connect_error",
-      message: `Connection blocked by CORS policy. The server may not allow connections from this client.`,
+      get message() { return socketHooksI18n.t("socketHooksFull.connectCors"); },
     };
   }
   if (raw) {
-    return { error: "connect_error", message: `Could not connect to the server: ${raw}` };
+    return { error: "connect_error", get message() { return socketHooksI18n.t("socketHooksFull.connectFailedDetail", { detail: raw }); } };
   }
-  return { error: "connect_error", message: "Could not connect to the server." };
+  return { error: "connect_error", get message() { return socketHooksI18n.t("socketHooksFull.connectFailed"); } };
 }
 
 /**
@@ -126,11 +127,7 @@ export async function joinServerOnce(
       error: {
         error: "identity_verification_failed",
         reason: second.error.reason,
-        message:
-          `${req.host} would not accept your identity, and renewing it did not help. ` +
-          `This usually means the server trusts a different identity service. ` +
-          `Sign out and back in, and if it keeps happening the server's administrator ` +
-          `needs to check that it points at the same Gryt identity service you do.`,
+        get message() { return socketHooksI18n.t("socketHooksFull.identityRenewalFailed", { host: req.host }); },
       },
     };
   }
@@ -143,16 +140,15 @@ export async function joinServerOnce(
  * the one the reader can do something about.
  */
 function clockSkewError(host: string, skewMs: number): JoinServerOnceError {
-  const direction = skewMs > 0 ? "behind" : "ahead of";
-
   return {
     error: "identity_verification_failed",
     reason: "assertion_rejected",
     skewMs,
-    message:
-      `Your clock is about ${describeGap(Math.abs(skewMs))} ${direction} ` +
-      `${host}'s, so the proof this app signs to join had already expired when ` +
-      `it arrived. Turn on automatic time sync on this machine and try again.`,
+    get message() {
+      return skewMs > 0
+        ? socketHooksI18n.t("socketHooksFull.clientClockBehind", { gap: describeGap(Math.abs(skewMs)), host })
+        : socketHooksI18n.t("socketHooksFull.clientClockAhead", { gap: describeGap(Math.abs(skewMs)), host });
+    },
   };
 }
 
@@ -193,7 +189,7 @@ async function attemptJoin(
     guardSocket(socket, req.host, (decision) => {
       finish({
         ok: false,
-        error: { error: "identity_error", message: serverProofErrorMessage(decision) },
+        error: { error: "identity_error", get message() { return serverProofErrorMessage(decision); } },
       });
     });
 
@@ -201,7 +197,7 @@ async function attemptJoin(
       console.warn(`[JoinServer] Timed out after ${timeoutMs}ms for ${req.host}`);
       finish({
         ok: false,
-        error: { error: "timeout", message: "Timed out connecting to the server. Check the address and try again." },
+        error: { error: "timeout", get message() { return socketHooksI18n.t("socketHooksFull.joinTimeout"); } },
       });
     }, timeoutMs + 250);
 
@@ -226,9 +222,7 @@ async function attemptJoin(
           ok: false,
           error: {
             error: "identity_error",
-            message:
-              `This server identified itself as "${challenge.serverHost}" but you ` +
-              `connected to "${req.host}". Not signing in.`,
+            get message() { return socketHooksI18n.t("socketHooksFull.joinHostMismatch", { claimed: challenge.serverHost, host: req.host }); },
           },
         });
         return;
@@ -245,7 +239,7 @@ async function attemptJoin(
         clearTimeout(timer);
         finish({
           ok: false,
-          error: { error: "identity_error", message: `Identity verification failed: ${msg}` },
+          error: { error: "identity_error", get message() { return socketHooksI18n.t("socketHooksFull.joinIdentityFailed", { detail: msg }); } },
         });
       }
     });

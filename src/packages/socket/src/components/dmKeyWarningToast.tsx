@@ -1,5 +1,8 @@
+/* eslint-disable react-refresh/only-export-components -- Toast factories intentionally return subscribed React bodies. */
 import { Button } from "@gryt/ui";
 import toast from "react-hot-toast";
+
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 
 /**
  * The warning that a server holds a message key this device did not publish, and
@@ -27,9 +30,9 @@ export function openUserSettings(tab: string): void {
 
 /** "Gryt Chat has", "Gryt Chat and Home have", "Gryt Chat, Home and 2 more servers have". */
 export function serversHave(names: readonly string[]): string {
-  if (names.length <= 1) return `${names[0] ?? "This server"} has`;
-  if (names.length === 2) return `${names[0]} and ${names[1]} have`;
-  return `${names[0]}, ${names[1]} and ${names.length - 2} more server${names.length > 3 ? "s" : ""} have`;
+  if (names.length <= 1) return socketI18n.t("socketFull.dmKeyWarningToast_6f6aa32231", { p0: (names[0] ?? socketI18n.t("ui.thisServer")) });
+  if (names.length === 2) return socketI18n.t("socketFull.dmKeyWarningToast_a3dc38673e", { p0: (names[0]), p1: (names[1]) });
+  return socketI18n.t("socketFull.dmKeyWarningToast_861695bf9f", { p0: (names[0]), p1: (names[1]), p2: (names.length - 2), count: (names.length - 2) });
 }
 
 /* "I don't care", for people whose direct messages don't need to be private from the server.
@@ -54,42 +57,30 @@ export function setDmKeyWarningsOff(off: boolean): void {
 }
 
 const BODY: Record<DmKeyFix, (servers: readonly string[]) => string> = {
-  unlock: (servers) =>
-    `${serversHave(servers)} a message key this device didn't publish. Your account has a saved copy, ` +
-    `so unlock it here and both devices use the same key.`,
-  "set-up": (servers) =>
-    `${serversHave(servers)} a message key this device didn't publish. Each device makes its own key, ` +
-    `so signing in somewhere new does this. A message password lets them share one.`,
-  none: (servers) =>
-    `${serversHave(servers)} a message key this device didn't publish. If you haven't signed in on ` +
-    `another device, treat direct messages there as readable by the server.`,
+  unlock: (servers) => socketI18n.t("socketFull.dmKeyMismatchUnlock", { p0: serversHave(servers) }),
+  "set-up": (servers) => socketI18n.t("socketFull.dmKeyMismatchSetUp", { p0: serversHave(servers) }),
+  none: (servers) => socketI18n.t("socketFull.dmKeyMismatchWarning", { p0: serversHave(servers) }),
 };
 
 const ACTION: Record<DmKeyFix, string | null> = {
-  unlock: "Unlock it here",
-  "set-up": "Set a message password",
+  get unlock() { return socketI18n.t("socketFull.dmKeyWarningToast_dd6e0d4fd6"); },
+  get "set-up"() { return socketI18n.t("settingsFull.m33d3bea662"); },
   none: null,
 };
 
-export function showDmKeyWarning({
-  id,
-  serverNames,
-  fix,
-  onDismiss,
-}: {
+interface DmKeyWarningProps {
   id: string;
   /** Every server with the mismatch, in one toast rather than one each. */
   serverNames: readonly string[];
   fix: DmKeyFix;
   /** Called when Dismiss is pressed, so the warning stays gone. */
   onDismiss: () => void;
-}): void {
-  const action = ACTION[fix];
+}
 
-  /* `toast.error` for the red mark, with the body as a render function so the
-     buttons can sit inside it. Stacked: a toast is around 350px wide. */
-  toast.error(
-    () => (
+function DmKeyWarningBody({ id, serverNames, fix, onDismiss }: DmKeyWarningProps) {
+  useSocketTranslation();
+  const action = ACTION[fix];
+  return (
       <div className="flex flex-col gap-2" style={{ minWidth: 0 }}>
         <span className="text-sm" style={{ lineHeight: 1.5 }}>
           {BODY[fix](serverNames)}
@@ -103,9 +94,7 @@ export function showDmKeyWarning({
               toast.dismiss(id);
               onDismiss();
             }}
-          >
-            Dismiss
-          </Button>
+          >{socketI18n.t("shellFull.serviceStatusBanner_tsx_70afe9eff3")}</Button>
           <Button
             tone="ghost"
             size="xsmall"
@@ -114,9 +103,7 @@ export function showDmKeyWarning({
               setDmKeyWarningsOff(true);
               onDismiss();
             }}
-          >
-            Don&rsquo;t warn me again
-          </Button>
+          >{socketI18n.t("socketFull.dmKeyWarningToast_64e90c3c30")}</Button>
           {action && (
             <Button
               size="xsmall"
@@ -130,7 +117,14 @@ export function showDmKeyWarning({
           )}
         </div>
       </div>
-    ),
+  );
+}
+
+export function showDmKeyWarning({ id, serverNames, fix, onDismiss }: DmKeyWarningProps): void {
+  /* The subscribed component also updates a warning that stays open while the
+     language changes. Keep repair actions and toast lifetime independent of it. */
+  toast.error(
+    () => <DmKeyWarningBody id={id} serverNames={serverNames} fix={fix} onDismiss={onDismiss} />,
     { id, duration: Infinity },
   );
 }

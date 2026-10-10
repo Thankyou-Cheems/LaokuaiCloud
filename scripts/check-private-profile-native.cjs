@@ -13,6 +13,7 @@ const assert = require("node:assert/strict");
   const { privateProfilePaths } = await import(`data:text/javascript;base64,${Buffer.from(source).toString("base64")}`);
   const selected = mode === "write" ? { data: profile, sessions: profile }
     : privateProfilePaths(true, [`--user-data-dir=${profile}`], path.dirname(profile));
+  app.setName(mode === "write" ? "老蒯聊" : "唠蒯");
   app.setPath("userData", selected.data);
   app.setPath("sessionData", selected.sessions);
   await app.whenReady();
@@ -34,7 +35,7 @@ const assert = require("node:assert/strict");
   assert.equal(app.getPath("userData"), profile);
   assert.equal(app.getPath("sessionData"), profile);
   fs.writeFileSync(path.join(profile, `result-${mode}.json`), JSON.stringify({ mode, status: "passed", hiddenWindow: true,
-    publicSyntheticMarker: true, sessionRoot: true, realCredentialsRead: false, realMediaOpened: false }));
+    applicationName: app.getName(), publicSyntheticMarker: true, sessionRoot: true, realCredentialsRead: false, realMediaOpened: false }));
   server.close();
   app.quit();
 })().catch(error => { console.error(error.message); app.exit(1); });

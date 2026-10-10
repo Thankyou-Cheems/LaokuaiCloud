@@ -8,8 +8,10 @@ import {
   getUploadsFileUrl,
   resolveAvatarSrc,
 } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 
 import { conversationTitle, type DirectConversation } from "../hooks/useDirectMessages";
+import { socketDisplayText, socketHookToast } from "../utils/socketHookMessages";
 import { uploadGroupPicture } from "../utils/uploadGroupPicture";
 import { EmojiText } from "./EmojiText";
 import type { MemberInfo } from "./MemberSidebar";
@@ -42,6 +44,7 @@ export function GroupFaceFields({
   placeholder: string;
   autoFocus?: boolean;
 }) {
+  useSocketTranslation();
   const [uploading, setUploading] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -49,10 +52,10 @@ export function GroupFaceFields({
     setUploading(true);
     try {
       const token = getServerAccessToken(serverHost);
-      if (!token) throw new Error("Not signed in to this server");
+      if (!token) throw new Error(socketI18n.t("socketFull.groupDialog_ba6c2246db"));
       onIcon(await uploadGroupPicture(getServerHttpBase(serverHost), token, file, file.name || "group.png"));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not upload that");
+      toast.error(socketHookToast(() => error instanceof Error ? socketDisplayText(error.message) : socketI18n.t("socketFull.groupDialog_323d7a57ed")));
     } finally {
       setUploading(false);
     }
@@ -87,22 +90,20 @@ export function GroupFaceFields({
             disabled={uploading}
             onClick={() => fileInput.current?.click()}
           >
-            {uploading ? "Uploading…" : "Choose a picture"}
+            {uploading ? socketI18n.t("socketFull.groupDialog_1c9f0a06e8") : socketI18n.t("socketFull.groupDialog_d9383d8951")}
           </Button>
           {icon && (
-            <Button size="small" tone="ghost" onClick={() => onIcon(null)}>
-              Use the egg
-            </Button>
+            <Button size="small" tone="ghost" onClick={() => onIcon(null)}>{socketI18n.t("socketFull.groupDialog_46c319112f")}</Button>
           )}
         </div>
 
         <span className="text-xs text-gryt-muted">
-          {icon ? "Your picture" : "Drawn from the name"}
+          {icon ? socketI18n.t("socketFull.groupDialog_6daf67fa79") : socketI18n.t("socketFull.groupDialog_53eb26147d")}
         </span>
       </div>
 
       <div className="flex flex-col gap-2">
-        <span className="text-sm font-bold">Name</span>
+        <span className="text-sm font-bold">{socketI18n.t("settingsFull.m709a23220f")}</span>
         <TextField
           autoFocus={autoFocus}
           placeholder={placeholder}
@@ -114,9 +115,7 @@ export function GroupFaceFields({
           }}
           maxLength={80}
         />
-        <span className="text-xs text-gryt-muted">
-          Leave it empty and the group is named after whoever is in it.
-        </span>
+        <span className="text-xs text-gryt-muted">{socketI18n.t("socketFull.groupDialog_4de3b028e7")}</span>
       </div>
     </>
   );
@@ -155,6 +154,7 @@ export const GroupDialog = ({
   onAdd: (conversationId: string, targetServerUserId: string) => void;
   onLeave: (conversationId: string) => void;
 }) => {
+  useSocketTranslation();
   const [name, setName] = useState("");
   const [picked, setPicked] = useState<string[]>([]);
   const [iconFileId, setIconFileId] = useState<string | null>(null);
@@ -212,11 +212,11 @@ export const GroupDialog = ({
       <Dialog.Portal>
         <Dialog.Backdrop />
         <Dialog.Popup>
-          <Dialog.Title>Group settings</Dialog.Title>
+          <Dialog.Title>{socketI18n.t("socketFull.groupDialog_d81e53b508")}</Dialog.Title>
           <Dialog.Description>
             {canAdd
-              ? "Anybody here can rename it or add people. Nobody can remove anybody else."
-              : "Anybody here can rename it. Nobody can remove anybody else."}
+              ? socketI18n.t("socketFull.groupDialog_a299d03d2b")
+              : socketI18n.t("socketFull.groupDialog_c18bfed4ea")}
           </Dialog.Description>
 
           <div className="flex flex-col gap-4">
@@ -234,7 +234,7 @@ export const GroupDialog = ({
 
             {canAdd && (
               <div className="flex flex-col gap-2">
-                <span className="text-sm font-bold">Add people</span>
+                <span className="text-sm font-bold">{socketI18n.t("socketFull.groupDialog_0f9fa15c85")}</span>
                 <div className="flex max-h-60 flex-col gap-1 overflow-y-auto">
                   {candidates.map((member) => {
                     const inAlready = alreadyIn.has(member.serverUserId);
@@ -263,7 +263,7 @@ export const GroupDialog = ({
                           <EmojiText text={member.nickname} />
                         </span>
                         {inAlready && (
-                          <span className="ml-auto text-xs text-gryt-muted">Already in</span>
+                          <span className="ml-auto text-xs text-gryt-muted">{socketI18n.t("socketFull.groupDialog_84480f5938")}</span>
                         )}
                       </label>
                     );
@@ -280,10 +280,8 @@ export const GroupDialog = ({
                 onLeave(existing.conversation_id);
                 onOpenChange(false);
               }}
-            >
-              Leave group
-            </Button>
-            <Button onClick={() => onOpenChange(false)}>Done</Button>
+            >{socketI18n.t("socketFull.groupDialog_5b9a630052")}</Button>
+            <Button onClick={() => onOpenChange(false)}>{socketI18n.t("shellFull.approveDevice_tsx_e9b450d14b")}</Button>
           </Dialog.Footer>
         </Dialog.Popup>
       </Dialog.Portal>

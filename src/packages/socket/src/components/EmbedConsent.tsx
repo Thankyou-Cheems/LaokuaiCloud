@@ -1,4 +1,7 @@
 import { Button } from "@gryt/ui";
+import { Trans } from "react-i18next";
+
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 
 import { PiPlayFill } from "../../../../lib/icons";
 import { DismissButton } from "./EmbedRenderers";
@@ -24,6 +27,7 @@ export function EmbedConsent({
   onTrust: () => void;
   onDismiss: () => void;
 }) {
+  useSocketTranslation();
   return (
     <div className="link-embed-container">
       <DismissButton onDismiss={onDismiss} />
@@ -33,17 +37,12 @@ export function EmbedConsent({
 
         <div className="embed-consent-text">
           <span className="embed-consent-title">{provider.name}</span>
-          <span className="embed-consent-host">
-            Loads from {provider.host}, which can see that you opened it.
-          </span>
+          <span className="embed-consent-host"><Trans i18n={socketI18n} i18nKey="socketFull.embedSourceDisclosure" values={{ host: provider.host }} /></span>
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button size="small" tone="neutral" onClick={onLoad}>
-            Load
-          </Button>
-          <Button size="small" tone="ghost" onClick={onTrust}>
-            Always load from {provider.host}
+          <Button size="small" tone="neutral" onClick={onLoad}>{socketI18n.t("socketFull.embedConsent_e074a9c249")}</Button>
+          <Button size="small" tone="ghost" onClick={onTrust}>{socketI18n.t("socketFull.embedConsent_680598c823")}{" "}{provider.host}
           </Button>
         </div>
       </div>

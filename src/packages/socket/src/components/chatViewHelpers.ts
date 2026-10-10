@@ -1,3 +1,4 @@
+import { i18n as socketI18n } from "@/i18n";
 import { toPlainNotificationText } from "@/lib/desktopNotification";
 import type { ChannelName } from "@/lib/mentionTokens";
 
@@ -17,12 +18,12 @@ export function getAttachmentPreview(msg: ChatMessage): string {
     const names = enriched.map((a) => a.original_name).filter(Boolean) as string[];
     if (names.length > 0) return names.join(", ");
   }
-  return "Attachment";
+  return socketI18n.t("socketFull.chatViewHelpers_6f6cfef69c");
 }
 
 /** One line of what a reply answers, as words: mentions read as @name, and markdown is gone. */
 export function getReplyPreview(msg: ChatMessage | null | undefined, maxLen: number, channelName?: ChannelName): string {
-  if (!msg) return "Original message";
+  if (!msg) return socketI18n.t("socketFull.chatViewHelpers_13384da832");
   const text = msg.text ? toPlainNotificationText(msg.text, channelName) : "";
   if (text) return text.length > maxLen ? text.slice(0, maxLen) + "..." : text;
   return getAttachmentPreview(msg);
@@ -40,6 +41,7 @@ export function buildMessageMetadata(
    * member sidebar draws from the same map and the two must not drift.
    */
   roleColors?: Map<string, string | undefined>,
+  language?: string,
 ): MessageMeta[] {
   /* Members whose name somebody else here also uses, with the tag that tells them apart. */
   const tags = nameTagsFor(memberList);
@@ -75,7 +77,7 @@ export function buildMessageMetadata(
       ? (/\bleft the server\b/.test(m.text ?? "") ? "left" : "joined")
       : undefined;
 
-    const senderName = isSystem ? "System" : getSenderName(m);
+    const senderName = isSystem ? socketI18n.t("settingsFull.mbc0792d8dc", { lng: language }) : getSenderName(m);
     const avatarUrl = isSystem ? undefined : getSenderAvatarUrl(m);
     const isFirstEdited = isFirstInGroup && !!m.edited_at;
 

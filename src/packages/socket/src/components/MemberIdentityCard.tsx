@@ -13,6 +13,7 @@ import {
   resolveAvatarSrc,
   useTheme,
 } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 
 import { openLightbox } from "../../../../lib/lightboxStore";
@@ -37,39 +38,40 @@ const FALLBACK_OWL = "#7c5cff";
 function describeRenames(count?: number, at?: string | null): string | null {
   if (!count || count < 1) return null;
 
-  const times = count === 1 ? "Renamed once" : `Renamed ${count} times`;
+  const times = count === 1 ? socketI18n.t("socketFull.memberIdentityCard_bf92e26dfb") : socketI18n.t("socketFull.memberIdentityCard_0d0798af8d", { p0: (count) });
   if (!at) return times;
 
   const when = new Date(at);
   if (Number.isNaN(when.getTime())) return times;
 
   const minutes = Math.floor((Date.now() - when.getTime()) / 60_000);
-  if (minutes < 60) return `${times}, last just now`;
+  if (minutes < 60) return socketI18n.t("socketFull.memberIdentityCard_7e74975c2a", { p0: (times) });
 
   const hours = Math.floor(minutes / 60);
   if (hours < 24) {
-    return `${times}, last ${hours} hour${hours === 1 ? "" : "s"} ago`;
+    return socketI18n.t("socketFull.memberIdentityCard_41b0e197e4", { p0: (times), p1: (hours), count: (hours) });
   }
 
   const days = Math.floor(hours / 24);
-  if (days < 30) return `${times}, last ${days} day${days === 1 ? "" : "s"} ago`;
+  if (days < 30) return socketI18n.t("socketFull.memberIdentityCard_cda83a105c", { p0: (times), p1: (days), count: (days) });
 
-  return `${times}, last ${when.toLocaleDateString(undefined, {
+  return socketI18n.t("socketFull.memberIdentityCard_232dccfa81", { p0: (times), p1: (when.toLocaleDateString(socketI18n.resolvedLanguage, {
     year: "numeric",
     month: "short",
     day: "numeric",
-  })}`;
+  })) });
 }
 
 /** Grouped in fours and never shortened: a few characters could be ground out to match. */
 function Fingerprint({ value }: { value: string }) {
+  useSocketTranslation();
   return <code className="gmc-code">{value.replace(/(.{4})(?=.)/g, "$1 ")}</code>;
 }
 
 const copy = (text: string, done: string) =>
   void navigator.clipboard.writeText(text).then(
     () => toast.success(done),
-    () => toast.error("Could not copy"),
+    () => toast.error(socketI18n.t("settingsFull.m4dfbe46077")),
   );
 
 const STEP_ICON: Record<FriendStep["icon"], () => ReactElement> = {
@@ -91,6 +93,7 @@ export function MemberIdentityCard({
   /** Looked up from the member's channel when a caller does not pass it. */
   voiceChannelName?: string;
 }) {
+  const socketLanguage = useSocketTranslation().i18n.resolvedLanguage;
   const actions = useMemberCardActions();
   const { memberKeyStates, serverDetailsList, memberLists } = useSockets();
   const serverMembers = serverHost ? memberLists[serverHost] : undefined;
@@ -204,15 +207,15 @@ export function MemberIdentityCard({
 
   const blocked = actions.isBlocked?.(member.serverUserId) ?? false;
   const moreItems: CardMenuItem[] = [
-    { key: "id", label: "Copy ID", onSelect: () => copy(member.serverUserId, "Copied user ID") },
+    { key: "id", label: socketI18n.t("socketFull.memberIdentityCard_2ff2e1d319"), onSelect: () => copy(member.serverUserId, socketI18n.t("socketFull.memberIdentityCard_abc696f4c7")) },
     ...(!isSelf && actions.onToggleBlock
-      ? [{ key: "block", label: blocked ? "Unblock" : "Block", danger: !blocked, onSelect: () => actions.onToggleBlock!(member.serverUserId) }]
+      ? [{ key: "block", label: blocked ? socketI18n.t("settingsFull.m12aabd251c") : socketI18n.t("socketFull.memberIdentityCard_49566fca19"), danger: !blocked, onSelect: () => actions.onToggleBlock!(member.serverUserId) }]
       : []),
     {
       key: "style",
-      label: "Copy card style",
+      label: socketI18n.t("socketFull.memberIdentityCard_c71f79aa43"),
       divider: true,
-      onSelect: () => copy(encodeCardStyle(profile.cardStyle), "Card style copied. Paste it in Edit my card to use it."),
+      onSelect: () => copy(encodeCardStyle(profile.cardStyle), socketI18n.t("socketFull.memberIdentityCard_653a57d8a5")),
     },
   ];
 
@@ -256,16 +259,16 @@ export function MemberIdentityCard({
     >
       {identityIsTheQuestion && fingerprint && (
         <div className="gmc-sub" style={{ marginTop: 0 }}>
-          <span className="gmc-note">Fingerprint</span>
+          <span className="gmc-note">{socketI18n.t("socketFull.memberIdentityCard_d6234f9d28")}</span>
           <Fingerprint value={fingerprint} />
-          <span className="gmc-note">Names are not unique. Check the fingerprint if it matters.</span>
+          <span className="gmc-note">{socketI18n.t("socketFull.memberIdentityCard_c0bf4e2870")}</span>
         </div>
       )}
 
       <div className="gmc-acts">
         {!isSelf && actions.onOpenDm && can("send_direct_messages") && (
           <Popover.Close
-            render={<button type="button" className="gmc-ib" aria-label="Message" data-tip="Message" />}
+            render={<button type="button" className="gmc-ib" aria-label={socketI18n.t("socketFull.memberIdentityCard_7610962ecc")} data-tip="Message" />}
             onClick={() => actions.onOpenDm!(member.serverUserId)}
           >
             <CardIcon.chat />
@@ -290,7 +293,7 @@ export function MemberIdentityCard({
         })}
         {!isSelf && (
           <Popover.Close
-            render={<button type="button" className="gmc-ib quiet" aria-label="Mention" data-tip="Mention" />}
+            render={<button type="button" className="gmc-ib quiet" aria-label={socketI18n.t("socketFull.memberIdentityCard_1d5f6d9d7b")} data-tip="Mention" />}
             onClick={() =>
               window.dispatchEvent(
                 new CustomEvent("mention_user", { detail: { serverUserId: member.serverUserId, nickname: member.nickname } }),
@@ -301,13 +304,13 @@ export function MemberIdentityCard({
           </Popover.Close>
         )}
         {worn && (
-          <button type="button" className="gmc-ib quiet" aria-label="Copy avatar" data-tip="Copy avatar" onClick={() => copy(worn, "Avatar code copied")}>
+          <button type="button" className="gmc-ib quiet" aria-label={socketI18n.t("socketFull.memberIdentityCard_0dd712e772")} data-tip="Copy avatar" onClick={() => copy(worn, socketI18n.t("socketFull.memberIdentityCard_980af390ff"))}>
             <CardIcon.copy />
           </button>
         )}
         {isSelf && (
           <Popover.Close
-            render={<button type="button" className="gmc-ib quiet" aria-label="Edit my card" data-tip="Edit my card" />}
+            render={<button type="button" className="gmc-ib quiet" aria-label={socketI18n.t("ui.editMyCard")} data-tip="Edit my card" />}
             onClick={() => openSettings("profile/card")}
           >
             <CardIcon.pen />
@@ -318,29 +321,29 @@ export function MemberIdentityCard({
           <button
             type="button"
             className="gmc-ib danger"
-            aria-label="Report"
-            data-tip="Report"
+            aria-label={socketI18n.t("socketFull.memberIdentityCard_654eb38dad")}
+            data-tip={socketI18n.t("socketFull.memberIdentityCard_654eb38dad")}
             onClick={() => actions.onReport!({ serverUserId: member.serverUserId, nickname: member.nickname })}
           >
             <CardIcon.flag />
           </button>
         )}
-        <CardMenu className="gmc-ib quiet more" tip="More" icon={<CardIcon.more />} items={moreItems} onOpenChange={setMenuOpen} />
+        <CardMenu className="gmc-ib quiet more" tip={socketI18n.t("socketFull.memberIdentityCard_d7365408b0")} icon={<CardIcon.more />} items={moreItems} onOpenChange={setMenuOpen} />
       </div>
 
       {showMod && admin && (
         <div className="gmc-mod">
           <div className="gmc-mod-h">
-            <span>Moderation</span>
-            {outranksTarget && <span>You outrank them</span>}
+            <span>{socketI18n.t("socketFull.memberIdentityCard_d8c32436c7")}</span>
+            {outranksTarget && <span>{socketI18n.t("socketFull.memberIdentityCard_16c6320101")}</span>}
           </div>
           <div className="gmc-acts">
             {canAssignRoles && (
               <CardMenu
                 className="gmc-ib text"
-                tip="Give or take roles"
+                tip={socketI18n.t("socketFull.memberIdentityCard_23698d3949")}
                 icon={<CardIcon.roles />}
-                label={<> Roles <CardIcon.caret /></>}
+                label={<>{" "}{socketI18n.t("socketFull.memberIdentityCard_b6573859e9")}{" "}<CardIcon.caret /></>}
                 align="left"
                 onOpenChange={setMenuOpen}
                 items={assignableRoles.map((r) => {
@@ -353,9 +356,9 @@ export function MemberIdentityCard({
               <button
                 type="button"
                 className={member.isServerMuted ? "gmc-ib on" : "gmc-ib"}
-                aria-label={member.isServerMuted ? "Remove server mute" : "Server mute"}
+                aria-label={member.isServerMuted ? socketI18n.t("socketFull.memberIdentityCard_b46f7caf04") : socketI18n.t("socketFull.memberIdentityCard_c1f034cad5")}
                 aria-pressed={!!member.isServerMuted}
-                data-tip={member.isServerMuted ? "Remove server mute" : "Server mute"}
+                data-tip={member.isServerMuted ? socketI18n.t("socketFull.memberIdentityCard_b46f7caf04") : socketI18n.t("socketFull.memberIdentityCard_c1f034cad5")}
                 onClick={() => admin.onServerMuteUser!(member.serverUserId, !member.isServerMuted)}
               >
                 <CardIcon.mic />
@@ -365,27 +368,27 @@ export function MemberIdentityCard({
               <button
                 type="button"
                 className={member.isServerDeafened ? "gmc-ib on" : "gmc-ib"}
-                aria-label={member.isServerDeafened ? "Remove server deafen" : "Server deafen"}
+                aria-label={member.isServerDeafened ? socketI18n.t("socketFull.memberIdentityCard_4482b6c0d4") : socketI18n.t("socketFull.memberIdentityCard_6c9349325d")}
                 aria-pressed={!!member.isServerDeafened}
-                data-tip={member.isServerDeafened ? "Remove server deafen" : "Server deafen"}
+                data-tip={member.isServerDeafened ? socketI18n.t("socketFull.memberIdentityCard_4482b6c0d4") : socketI18n.t("socketFull.memberIdentityCard_6c9349325d")}
                 onClick={() => admin.onServerDeafenUser!(member.serverUserId, !member.isServerDeafened)}
               >
                 <CardIcon.deaf />
               </button>
             )}
             {canDisconnect && (
-              <button type="button" className="gmc-ib" aria-label="Disconnect from voice" data-tip="Disconnect from voice" onClick={() => admin.onDisconnectUser!(member.serverUserId)}>
+              <button type="button" className="gmc-ib" aria-label={socketI18n.t("socketFull.memberIdentityCard_96ee562d31")} data-tip="Disconnect from voice" onClick={() => admin.onDisconnectUser!(member.serverUserId)}>
                 <CardIcon.disc />
               </button>
             )}
             <span className="sp" />
             {canKick && (
-              <button type="button" className="gmc-ib danger" aria-label="Kick from server" data-tip="Kick from server" onClick={() => admin.onKickUser!(member.serverUserId)}>
+              <button type="button" className="gmc-ib danger" aria-label={socketI18n.t("socketFull.memberIdentityCard_0dded5d6fe")} data-tip="Kick from server" onClick={() => admin.onKickUser!(member.serverUserId)}>
                 <CardIcon.kick />
               </button>
             )}
             {canBan && (
-              <button type="button" className="gmc-ib danger" aria-label="Ban from server" data-tip="Ban from server" onClick={() => admin.onBanUser!(member.serverUserId)}>
+              <button type="button" className="gmc-ib danger" aria-label={socketI18n.t("socketFull.memberIdentityCard_1548d2af72")} data-tip="Ban from server" onClick={() => admin.onBanUser!(member.serverUserId)}>
                 <CardIcon.ban />
               </button>
             )}
@@ -402,50 +405,46 @@ export function MemberIdentityCard({
           if (!next) setVerifyOpen(false);
         }}
       >
-        <summary>
-          Who they are <CardIcon.caret />
+        <summary>{socketI18n.t("settingsFull.m26d829a218")}{" "}<CardIcon.caret />
         </summary>
         <dl>
           {tier && (
             <>
-              <dt>Account</dt>
+              <dt>{socketI18n.t("ui.account")}</dt>
               <dd>{tier.label}</dd>
             </>
           )}
           {joined && (
             <>
-              <dt>Joined</dt>
+              <dt>{socketI18n.t("ui.joined")}</dt>
               <dd>{joined}</dd>
             </>
           )}
           {renames && (
             <>
-              <dt>Name</dt>
+              <dt>{socketI18n.t("settingsFull.m709a23220f")}</dt>
               <dd>{renames}</dd>
             </>
           )}
           {keyState?.decision.kind === "known" && (
             <>
-              <dt>Message key</dt>
-              <dd>{keyState.decision.pin.comparedAt ? "Compared and matched" : describePin(keyState.decision.pin.firstSeenAt)}</dd>
+              <dt>{socketI18n.t("socketFull.memberIdentityCard_aa7b792745")}</dt>
+              <dd>{keyState.decision.pin.comparedAt ? socketI18n.t("socketFull.memberIdentityCard_92fa8c3a37") : describePin(keyState.decision.pin.firstSeenAt)}</dd>
             </>
           )}
           {keyState?.decision.kind === "first" && (
             <>
-              <dt>Message key</dt>
-              <dd>Seen for the first time</dd>
+              <dt>{socketI18n.t("socketFull.memberIdentityCard_aa7b792745")}</dt>
+              <dd>{socketI18n.t("socketFull.memberIdentityCard_dbdfb9dc0f")}</dd>
             </>
           )}
         </dl>
         {keyState?.decision.kind === "changed" && (
           // In the drawer and not a toast, which would be gone before anybody asked them.
           <div className="gmc-warn" style={{ marginTop: 10 }}>
-            <b>Their key changed</b>
+            <b>{socketI18n.t("socketFull.memberIdentityCard_c783910eac")}</b>
             <span className="gmc-note">{describeChange(keyState.decision.changedIdentity, keyState.decision.changedKey)}</span>
-            <span className="gmc-note">
-              That happens when somebody restores their identity on another device. It is also what a server
-              substituting a key looks like. Ask them somewhere other than here before treating messages as private.
-            </span>
+            <span className="gmc-note">{socketI18n.t("socketFull.memberIdentityCard_fe83650fc8")}</span>
           </div>
         )}
         {(code || (!identityIsTheQuestion && fingerprint)) && (
@@ -454,21 +453,16 @@ export function MemberIdentityCard({
             open={verifyOpen}
             onToggle={(e) => setVerifyOpen((e.currentTarget as HTMLDetailsElement).open)}
           >
-            <summary>
-              Check this is really them <CardIcon.caret />
+            <summary>{socketI18n.t("socketFull.memberIdentityCard_3509e39ae8")}{" "}<CardIcon.caret />
             </summary>
             {code && keyState?.decision.kind === "known" && (
               <>
-                <span className="gmc-note">Read this to them, somewhere other than Gryt</span>
+                <span className="gmc-note">{socketI18n.t("socketFull.memberIdentityCard_0ba029318d")}</span>
                 <code className="gmc-code" style={{ textAlign: "center", letterSpacing: ".06em" }}>{code}</code>
-                <span className="gmc-note">
-                  If they read back the same numbers, nobody is in the middle. It does not say who they are, only that
-                  you both hold the keys you think you do.
-                </span>
+                <span className="gmc-note">{socketI18n.t("socketFull.memberIdentityCard_ae455ad20b")}</span>
                 {keyState.decision.pin.comparedAt ? (
-                  <span className="gmc-note">
-                    Compared on{" "}
-                    {new Date(keyState.decision.pin.comparedAt).toLocaleDateString(undefined, {
+                  <span className="gmc-note">{socketI18n.t("socketFull.memberIdentityCard_d2c0ac40f9")}{" "}
+                    {new Date(keyState.decision.pin.comparedAt).toLocaleDateString(socketLanguage, {
                       year: "numeric",
                       month: "short",
                       day: "numeric",
@@ -489,23 +483,21 @@ export function MemberIdentityCard({
                         })
                       ) {
                         // The pin moved while they were reading, so say so rather than record a false match.
-                        toast.error("Their key changed while you were checking. Read the new code.");
+                        toast.error(socketI18n.t("socketFull.memberIdentityCard_0b09f38b5a"));
                         return;
                       }
                       setCompared(true);
-                      toast.success("Marked as compared.");
+                      toast.success(socketI18n.t("socketFull.memberIdentityCard_9f5400f654"));
                     }}
-                  >
-                    They read back the same
-                  </button>
+                  >{socketI18n.t("socketFull.memberIdentityCard_b50ea99f3a")}</button>
                 )}
               </>
             )}
             {!identityIsTheQuestion && fingerprint && (
               <>
-                <span className="gmc-note">Fingerprint</span>
+                <span className="gmc-note">{socketI18n.t("socketFull.memberIdentityCard_d6234f9d28")}</span>
                 <Fingerprint value={fingerprint} />
-                <span className="gmc-note">Names are not unique. Check the fingerprint if it matters.</span>
+                <span className="gmc-note">{socketI18n.t("socketFull.memberIdentityCard_c0bf4e2870")}</span>
               </>
             )}
           </details>
@@ -519,8 +511,8 @@ export function MemberIdentityCard({
         }}
         title={pendingStep?.confirm?.title ?? ""}
         description={pendingStep?.confirm?.description}
-        confirmLabel={pendingStep?.confirm?.confirmLabel ?? "Confirm"}
-        cancelLabel={pendingStep?.confirm?.cancelLabel ?? "Cancel"}
+        confirmLabel={pendingStep?.confirm?.confirmLabel ?? socketI18n.t("ui.confirm")}
+        cancelLabel={pendingStep?.confirm?.cancelLabel ?? socketI18n.t("ui.cancel")}
         confirmTone="primary"
         onConfirm={() => {
           if (pendingStep) runStep(pendingStep);

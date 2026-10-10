@@ -2,6 +2,8 @@ import { Button, IconButton, Slider, Switch, Tooltip } from "@gryt/ui";
 import { useEffect, useRef, useState } from "react";
 import useSound from "use-sound";
 
+import { i18n, useTranslation } from "@/i18n";
+
 import { PiArrowsClockwiseFill, PiCheck, PiPlayFill, PiStopFill } from "../../../../lib/icons";
 
 interface SoundSettingsProps {
@@ -35,6 +37,7 @@ export function SoundSettings({
   defaultSoundSrc,
   showAlert,
 }: SoundSettingsProps) {
+  useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
@@ -126,8 +129,8 @@ export function SoundSettings({
     if (file.size > maxSizeBytes) {
       showAlert(
         "error",
-        "File Too Large",
-        `Please choose a file smaller than 1MB.\nYour file: ${(file.size / 1024 / 1024).toFixed(2)}MB`,
+        i18n.t("settingsFull.mdfeb21f17d"),
+        i18n.t("settingsFull.m85e1932465", { value0: (file.size / 1024 / 1024).toFixed(2) }),
       );
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
@@ -141,15 +144,15 @@ export function SoundSettings({
           onCustomSoundFileChange(dataUrl);
           showAlert(
             "success",
-            "Sound File Saved",
-            `${label} sound file saved successfully`,
+            i18n.t("settingsFull.m8a34635299"),
+            i18n.t("settingsFull.m2b14786b36", { value0: label }),
           );
         } catch (error) {
           console.error(`Error saving ${label} sound file:`, error);
           showAlert(
             "error",
-            "Error Saving Sound File",
-            "Error saving sound file. Please try a smaller file.",
+            i18n.t("settingsFull.mcf4ec19a9d"),
+            i18n.t("settingsFull.m322347d099"),
           );
         }
       }
@@ -201,12 +204,10 @@ export function SoundSettings({
           {/* Volume */}
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <span className="font-medium text-sm">
-                Volume
-              </span>
+              <span className="font-medium text-sm">{i18n.t("settingsFull.m3b18e8e332")}</span>
               <div className="flex gap-1">
                 <Tooltip
-                  title={`Reset to default (${defaultVolume}%)`}
+                  title={i18n.t("settingsFull.m656b37db63", { value0: defaultVolume })}
                   side="top"
                 >
                   <IconButton tone="ghost" size="xsmall"
@@ -239,10 +240,8 @@ export function SoundSettings({
           {/* Custom Sound File */}
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <span className="font-medium text-sm">
-                Custom Sound File
-              </span>
-              <Tooltip title="Reset to default sound" side="top">
+              <span className="font-medium text-sm">{i18n.t("settingsFull.m7c6cd0addd")}</span>
+              <Tooltip title={i18n.t("settingsFull.m5045b9154c")} side="top">
                 <IconButton tone="ghost" size="xsmall"
                   onClick={resetSound}
                   disabled={!customSoundFile}
@@ -263,9 +262,9 @@ export function SoundSettings({
                 onClick={() => fileInputRef.current?.click()}
                 style={{ flexGrow: 1 }}
               >
-                {customSoundFile ? "Change File" : "Choose File"}
+                {customSoundFile ? i18n.t("settingsFull.m1062570190") : i18n.t("settingsFull.m54a2a8411d")}
               </Button>
-              <Tooltip title="Test sound" side="top">
+              <Tooltip title={i18n.t("settingsFull.m95f0d73eac")} side="top">
                 {isPlaying ? (
                   <Button tone="danger" size="small"
                     onClick={stopSoundTest}
@@ -281,9 +280,7 @@ export function SoundSettings({
             </div>
             {customSoundFile && (
               <span className="text-xs text-gryt-success inline-flex items-center gap-1">
-                <PiCheck size={12} />
-                Custom sound file loaded
-              </span>
+                <PiCheck size={12} />{i18n.t("settingsFull.me55188b5f8")}</span>
             )}
           </div>
         </>

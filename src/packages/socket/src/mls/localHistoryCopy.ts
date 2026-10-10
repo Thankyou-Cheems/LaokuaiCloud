@@ -1,22 +1,23 @@
 import type { ArchiveKeyErrorCode } from "@/common";
+import { i18n as socketI18n } from "@/i18n";
 
 /** What's wrong when the archive won't open. `where` is "on this device" or "in this browser". */
 export function localHistoryProblemText(code: ArchiveKeyErrorCode | null, where: string): string {
   switch (code) {
     case "unseal-failed":
-      return "Your keychain didn't let Gryt open its local history. Allow it when your computer asks, then try again. If it doesn't ask, quit and reopen Gryt first.";
+      return socketI18n.t("socketFull.localHistoryCopy_385ba703dc");
     case "no-keychain":
-      return `Your local history is locked with a keychain Gryt can't reach ${where}.`;
+      return socketI18n.t("socketFull.localHistoryCopy_e220da8609", { p0: (where) });
     case "mismatch":
-      return `Your local history doesn't match the key ${where}, so it won't open.`;
+      return socketI18n.t("socketFull.localHistoryCopy_ee1aa7b5f1", { p0: (where) });
     case "damaged":
-      return `The key to your local history ${where} is damaged, so it won't open.`;
+      return socketI18n.t("socketFull.localHistoryCopy_6484a08ac6", { p0: (where) });
     default:
-      return `Gryt couldn't open your local history ${where}.`;
+      return socketI18n.t("socketFull.localHistoryCopy_61c814a447", { p0: (where) });
   }
 }
 
-export const CLEAR_LOCAL_HISTORY = "Clear local history on this device";
-export const CLEAR_CONFIRM_TITLE = "Clear local history on this device?";
+export const CLEAR_LOCAL_HISTORY = "socketFull.localHistoryCopy_73722c67ee";
+export const CLEAR_CONFIRM_TITLE = "socketFull.localHistoryCopy_7759f03e05";
 export const CLEAR_CONFIRM_TEXT =
-  "Messages this device already decrypted will be gone for good. Messages from the last 30 days that are still on the server can't be read here either, because their keys go too. After that, this device starts over with new keys. The other person's app adds it back to each conversation by itself.";
+  "socketFull.localHistoryCopy_6fbba3da2d";

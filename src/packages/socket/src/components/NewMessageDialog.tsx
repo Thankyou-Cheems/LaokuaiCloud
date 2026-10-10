@@ -2,6 +2,7 @@ import { Avatar, Button, Checkbox, Dialog, Spinner, TextField } from "@gryt/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { getOwnServerUserId, getUploadsFileUrl, resolveAvatarSrc, serverIconSrc } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 
 import { useDirectory, useDmsOffHosts } from "../hooks/dmDirectory";
 import { requestConversation } from "../hooks/dmSpace";
@@ -36,6 +37,7 @@ type Waiting =
   | { kind: "group"; host: string; picked: string[]; before: ReadonlySet<string> };
 
 export function NewMessageDialog() {
+  useSocketTranslation();
   const open = useNewMessageOpen();
   const { sockets, memberLists, serverDetailsList, serverConnectionStatus } = useSockets();
   const { servers, currentlyViewingServer, viewServerBehindDmSpace } = useServerManagement();
@@ -48,7 +50,7 @@ export function NewMessageDialog() {
   /** The server a group goes on, fixed by the first person picked. */
   const [groupHost, setGroupHost] = useState<string | null>(null);
   const [waiting, setWaiting] = useState<Waiting | null>(null);
-  const [problem, setProblem] = useState<string | null>(null);
+  const [problem, setProblem] = useState<string | { key: string; values?: Record<string, string | number> } | null>(null);
   /** The group just made, once the server has sent it: the name and picture step. */
   const [made, setMade] = useState<{ host: string; conversationId: string } | null>(null);
   const [name, setName] = useState("");
@@ -137,7 +139,7 @@ export function NewMessageDialog() {
     socket.on("server:error", refused);
     const timer = setTimeout(() => {
       stop();
-      setProblem(`${serverName(host)} didn’t answer. Try again in a moment.`);
+      setProblem({ key: "socketFull.newMessageDialog_c97f9444ae", values: { p0: (serverName(host)) } });
     }, ANSWER_MS);
     return () => {
       socket.off("dm:error", stop);
@@ -162,7 +164,7 @@ export function NewMessageDialog() {
       .then((sent) => {
         if (sent) return;
         setWaiting(null);
-        setProblem(`You’re not signed in to ${serverName(candidate.host)}.`);
+        setProblem({ key: "socketFull.newMessageDialog_55523232f3", values: { p0: (serverName(candidate.host)) } });
       });
   };
 
@@ -186,7 +188,7 @@ export function NewMessageDialog() {
     void emitAuthenticated(socket, "dm:group:create", { memberIds: picked }, groupHost).then((sent) => {
       if (sent) return;
       setWaiting(null);
-      setProblem(`You’re not signed in to ${serverName(groupHost)}.`);
+      setProblem({ key: "socketFull.newMessageDialog_55523232f3", values: { p0: (serverName(groupHost)) } });
     });
   };
 
@@ -278,18 +280,18 @@ export function NewMessageDialog() {
         <span className="min-w-0 flex-1 truncate" style={{ textAlign: "left" }}>
           <EmojiText text={candidate.nickname} />
         </span>
-        {asking ? <Spinner size={14} aria-label="Opening the conversation" /> : server}
+        {asking ? <Spinner size={14} aria-label={socketI18n.t("socketFull.newMessageDialog_c8d03e148e")} /> : server}
       </Button>
     );
   };
 
   const emptyText = !canMessageSomewhere
-    ? "None of your servers let you start a conversation."
+    ? socketI18n.t("socketFull.newMessageDialog_ee9935239b")
     : mode === "group" && !canGroupSomewhere
-      ? "None of your servers let you start a group."
+      ? socketI18n.t("socketFull.newMessageDialog_8b92c796b6")
       : inScope.length === 0
-        ? "There’s nobody else on your servers yet."
-        : `Nobody matches “${query}”.`;
+        ? socketI18n.t("socketFull.newMessageDialog_32e292e49f")
+        : socketI18n.t("socketFull.newMessageDialog_2e6b520838", { p0: (query) });
 
   return (
     <Dialog.Root open={open} onOpenChange={(next) => { if (!next) close(); }}>
@@ -298,10 +300,8 @@ export function NewMessageDialog() {
         <Dialog.Popup>
           {made ? (
             <>
-              <Dialog.Title>Name and picture</Dialog.Title>
-              <Dialog.Description>
-                Both are optional, and you can change them later in Group settings.
-              </Dialog.Description>
+              <Dialog.Title>{socketI18n.t("socketFull.newMessageDialog_06e5294227")}</Dialog.Title>
+              <Dialog.Description>{socketI18n.t("socketFull.newMessageDialog_035b58755c")}</Dialog.Description>
               <div className="flex flex-col gap-4">
                 <GroupFaceFields
                   serverHost={made.host}
@@ -314,32 +314,32 @@ export function NewMessageDialog() {
                   name={name}
                   onName={setName}
                   onNameDone={sendName}
-                  placeholder={madeGroup ? conversationTitle(madeGroup) : "Optional"}
+                  placeholder={madeGroup ? conversationTitle(madeGroup) : socketI18n.t("ui.optional")}
                   autoFocus
                 />
               </div>
               <Dialog.Footer>
-                <Button onClick={close}>Done</Button>
+                <Button onClick={close}>{socketI18n.t("shellFull.approveDevice_tsx_e9b450d14b")}</Button>
               </Dialog.Footer>
             </>
           ) : (
             <>
-              <Dialog.Title>{mode === "group" ? "New group" : "New message"}</Dialog.Title>
+              <Dialog.Title>{mode === "group" ? socketI18n.t("socketFull.newMessageDialog_6d72a912d8") : socketI18n.t("socketFull.newMessageDialog_199aa9bf73")}</Dialog.Title>
               <Dialog.Description>
                 {mode === "group"
                   ? groupHost && severalServers
-                    ? `Everybody in a group is on one server, so this one goes on ${serverName(groupHost)}.`
-                    : "Pick two or more people. Everybody in a group has to be on the same server."
+                    ? socketI18n.t("socketFull.newMessageDialog_2a6ca4054c", { p0: (serverName(groupHost)) })
+                    : socketI18n.t("socketFull.newMessageDialog_842deb87a5")
                   : severalServers
-                    ? "Somebody you share two servers with shows up once for each. The conversation stays on the server you pick."
-                    : "Pick somebody to talk to."}
+                    ? socketI18n.t("socketFull.newMessageDialog_a2e1edb768")
+                    : socketI18n.t("socketFull.newMessageDialog_0f72f9eac2")}
               </Dialog.Description>
 
               <div className="flex flex-col gap-3">
                 <TextField
                   autoFocus
                   size="small"
-                  placeholder="Search people"
+                  placeholder={socketI18n.t("socketFull.newMessageDialog_2734d2413c")}
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                 />
@@ -353,11 +353,9 @@ export function NewMessageDialog() {
                 </div>
 
                 {mode === "group" && picked.length === 1 && (
-                  <span className="text-xs text-gryt-muted">
-                    Pick one more. With only two of you, it&rsquo;s a direct message.
-                  </span>
+                  <span className="text-xs text-gryt-muted">{socketI18n.t("socketFull.newMessageDialog_f84150fed5")}</span>
                 )}
-                {problem && <span className="text-xs text-gryt-danger">{problem}</span>}
+                {problem && <span className="text-xs text-gryt-danger">{typeof problem === "string" ? problem : socketI18n.t(problem.key, problem.values)}</span>}
               </div>
 
               <Dialog.Footer className="flex-wrap justify-between">
@@ -371,9 +369,7 @@ export function NewMessageDialog() {
                       setGroupHost(null);
                       setProblem(null);
                     }}
-                  >
-                    Back
-                  </Button>
+                  >{socketI18n.t("ui.back")}</Button>
                 ) : canGroupSomewhere ? (
                   <Button
                     tone="ghost"
@@ -381,19 +377,15 @@ export function NewMessageDialog() {
                       setMode("group");
                       setProblem(null);
                     }}
-                  >
-                    Create group
-                  </Button>
+                  >{socketI18n.t("socketFull.newMessageDialog_99a5bf1704")}</Button>
                 ) : (
                   <span />
                 )}
                 <div className="flex flex-wrap gap-2">
-                  <Button tone="ghost" onClick={close}>
-                    Cancel
-                  </Button>
+                  <Button tone="ghost" onClick={close}>{socketI18n.t("ui.cancel")}</Button>
                   {mode === "group" && (
                     <Button onClick={createGroup} disabled={picked.length < 2 || waiting !== null}>
-                      {waiting?.kind === "group" ? "Creating…" : "Create group"}
+                      {waiting?.kind === "group" ? socketI18n.t("settingsFull.m94d7d8ee47") : socketI18n.t("socketFull.newMessageDialog_99a5bf1704")}
                     </Button>
                   )}
                 </div>

@@ -2,6 +2,8 @@ import { Button } from "@gryt/ui";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useState } from "react";
 
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
+
 import { PiCaretDownFill, PiCaretRightFill } from "../../../../lib/icons";
 import { clearFiltered, type FilteredItem, filteredSummary, useFilteredContacts } from "../hooks/contactFilterStore";
 import { useServerManagement } from "../hooks/useServerManagement";
@@ -11,6 +13,7 @@ import { useServerManagement } from "../hooks/useServerManagement";
  * purpose: no badge, closed until opened, and gone once nothing is in it.
  */
 export function FilteredContacts({ onOpen }: { onOpen: (item: FilteredItem) => void }) {
+  useSocketTranslation();
   const items = useFilteredContacts();
   const { servers } = useServerManagement();
   const [expanded, setExpanded] = useState(false);
@@ -25,7 +28,7 @@ export function FilteredContacts({ onOpen }: { onOpen: (item: FilteredItem) => v
         type="button"
         onClick={() => setExpanded(!expanded)}
         aria-expanded={expanded}
-        aria-label={`Filtered, ${items.length}`}
+        aria-label={socketI18n.t("socketFull.filteredContacts_de4d0215ca", { p0: (items.length) })}
         className={[
           "mt-2 flex w-full items-center gap-2 rounded-(--gryt-radius-md) px-2 py-1 text-left",
           "text-xs font-semibold tracking-wide transition-colors",
@@ -33,7 +36,7 @@ export function FilteredContacts({ onOpen }: { onOpen: (item: FilteredItem) => v
           "text-gryt-muted hover:text-gryt-text active:text-gryt-text",
         ].join(" ")}
       >
-        <span className="shrink-0">Filtered</span>
+        <span className="shrink-0">{socketI18n.t("socketFull.filteredContacts_e8b1d9ad64")}</span>
         <span aria-hidden="true" className="h-px min-w-2 flex-1 bg-gryt-border" />
         <span aria-hidden="true" data-gryt="dm-filtered-count" className="shrink-0 tabular-nums opacity-70">
           {items.length}
@@ -50,9 +53,7 @@ export function FilteredContacts({ onOpen }: { onOpen: (item: FilteredItem) => v
             transition={{ duration: reduceMotion ? 0 : 0.15 }}
             className="flex flex-col gap-1 pt-1"
           >
-            <p className="px-2 text-xs text-gryt-muted">
-              Held back by your privacy settings. Nothing here made a sound or a badge.
-            </p>
+            <p className="px-2 text-xs text-gryt-muted">{socketI18n.t("socketFull.filteredContacts_3b31811672")}</p>
             {items.map((item) => (
               <Button
                 key={`${item.host}|${item.conversationId}|${item.kind}`}
@@ -62,16 +63,14 @@ export function FilteredContacts({ onOpen }: { onOpen: (item: FilteredItem) => v
                 onClick={() => onOpen(item)}
               >
                 <span className="flex min-w-0 flex-col items-start">
-                  <span className="truncate text-sm">{item.fromName || "Somebody"}</span>
+                  <span className="truncate text-sm">{item.fromName || socketI18n.t("socketFull.filteredContacts_9d801edd77")}</span>
                   <span className="truncate text-xs text-gryt-muted">
                     {filteredSummary(item)} &middot; {servers[item.host]?.name || item.host}
                   </span>
                 </span>
               </Button>
             ))}
-            <Button tone="ghost" size="small" onClick={clearFiltered} style={{ alignSelf: "start" }}>
-              Clear
-            </Button>
+            <Button tone="ghost" size="small" onClick={clearFiltered} style={{ alignSelf: "start" }}>{socketI18n.t("ui.clear")}</Button>
           </motion.div>
         )}
       </AnimatePresence>

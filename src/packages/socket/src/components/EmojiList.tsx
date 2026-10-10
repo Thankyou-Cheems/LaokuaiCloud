@@ -3,6 +3,7 @@ import { type ChangeEvent, useState } from "react";
 import toast from "react-hot-toast";
 
 import { getServerHttpBase } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 
 import { PiCheck, PiPencilSimpleFill, PiTrashFill, PiX } from "../../../../lib/icons";
 import { getCustomEmojiUrl } from "../utils/emojiData";
@@ -27,6 +28,7 @@ export function EmojiList({
   existingNames,
   refresh,
 }: EmojiListProps) {
+  useSocketTranslation();
   const [deletingName, setDeletingName] = useState<string | null>(null);
   const [deletingAll, setDeletingAll] = useState(false);
   const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
@@ -34,14 +36,14 @@ export function EmojiList({
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [editingEmoji, setEditingEmoji] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
-  const [editingError, setEditingError] = useState<string | null>(null);
+  const [editingError, setEditingError] = useState<string | { key: string; values?: Record<string, string | number> } | null>(null);
   const [renaming, setRenaming] = useState(false);
 
   const base = getServerHttpBase(host);
 
   const handleDelete = async (emojiName: string) => {
     if (!effectiveAccessToken) {
-      toast.error("Not authenticated.");
+      toast.error(socketI18n.t("socketFull.emojiList_de851e36a2"));
       return;
     }
 
@@ -61,10 +63,10 @@ export function EmojiList({
         );
       }
 
-      toast.success(`Emoji :${emojiName}: deleted.`);
+      toast.success(socketI18n.t("socketFull.emojiList_62dd3a705c", { p0: (emojiName) }));
       await refresh();
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Failed to delete emoji.");
+      toast.error(e instanceof Error ? e.message : socketI18n.t("socketFull.emojiList_1e578e8292"));
     } finally {
       setDeletingName(null);
     }
@@ -72,7 +74,7 @@ export function EmojiList({
 
   const handleDeleteAll = async () => {
     if (!effectiveAccessToken) {
-      toast.error("Not authenticated.");
+      toast.error(socketI18n.t("socketFull.emojiList_de851e36a2"));
       return;
     }
 
@@ -92,10 +94,10 @@ export function EmojiList({
         );
       }
 
-      toast.success(`Deleted ${data.deleted ?? "all"} emoji(s).`);
+      toast.success(socketI18n.t("socketFull.emojiList_c4f4633e72", { p0: (data.deleted ?? socketI18n.t("socketFull.emojiList_c857d9f055")) }));
       await refresh();
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Failed to delete emojis.");
+      toast.error(e instanceof Error ? e.message : socketI18n.t("socketFull.emojiList_7d26ff7805"));
     } finally {
       setDeletingAll(false);
     }
@@ -118,11 +120,11 @@ export function EmojiList({
     const newName = editingName.trim();
     if (newName === editingEmoji) { cancelEditing(); return; }
     if (!EMOJI_NAME_RE.test(newName)) {
-      setEditingError("2-32 letters (case-sensitive), numbers, or underscores.");
+      setEditingError({ key: "socketFull.emojiList_98951ba26d" });
       return;
     }
     if (existingNames.has(newName)) {
-      setEditingError(`":${newName}:" already exists.`);
+      setEditingError({ key: "socketFull.emojiList_95b49d3758", values: { p0: (newName) } });
       return;
     }
 
@@ -144,11 +146,11 @@ export function EmojiList({
           `HTTP ${resp.status}`,
         );
       }
-      toast.success(`Renamed :${editingEmoji}: to :${newName}:`);
+      toast.success(socketI18n.t("socketFull.emojiList_51203b8572", { p0: (editingEmoji), p1: (newName) }));
       cancelEditing();
       await refresh();
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Rename failed.";
+      const msg = e instanceof Error ? e.message : { key: "socketFull.emojiList_51e3c07153" };
       setEditingError(msg);
     } finally {
       setRenaming(false);
@@ -158,21 +160,20 @@ export function EmojiList({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex justify-between items-center">
-        <span className="text-sm font-medium">
-          Custom emojis {!loading && `(${emojis.length})`}
+        <span className="text-sm font-medium">{socketI18n.t("socketFull.emojiList_69820822f7")}{" "}{!loading && `(${emojis.length})`}
         </span>
         {emojis.length > 0 && (
           <>
             <Button size="xsmall" disabled={deletingAll} onClick={() => setConfirmDeleteAll(true)}>
               <PiTrashFill size={14} />
-              {deletingAll ? "Deleting..." : "Delete all"}
+              {deletingAll ? socketI18n.t("socketFull.emojiList_d7dcad67fa") : socketI18n.t("socketFull.emojiList_4552caf55a")}
             </Button>
             <ConfirmDialog
               open={confirmDeleteAll}
               onOpenChange={setConfirmDeleteAll}
-              title="Delete all emojis?"
-              description={`This will permanently delete all ${emojis.length} custom emoji${emojis.length !== 1 ? "s" : ""} from this server. This cannot be undone.`}
-              confirmLabel="Delete all"
+              title={socketI18n.t("socketFull.emojiList_5b4dc81c5b")}
+              description={socketI18n.t("socketFull.emojiList_e8e2bc5c89", { p0: (emojis.length), count: (emojis.length) })}
+              confirmLabel={socketI18n.t("socketFull.emojiList_4552caf55a")}
               onConfirm={handleDeleteAll}
             />
           </>
@@ -180,13 +181,9 @@ export function EmojiList({
       </div>
 
       {loading ? (
-        <span className="text-sm">
-          Loading...
-        </span>
+        <span className="text-sm">{socketI18n.t("shellFull.microphoneDebugOverlay_tsx_b04ba49f84")}</span>
       ) : emojis.length === 0 ? (
-        <span className="text-sm">
-          No custom emojis yet.
-        </span>
+        <span className="text-sm">{socketI18n.t("socketFull.emojiList_e077a2ecb9")}</span>
       ) : (
         <div className="flex flex-col gap-1">
           {emojis.map((e) => (
@@ -222,7 +219,7 @@ export function EmojiList({
                       style={{ flex: 1 }}
                     />
                     <IconButton tone="ghost" size="xsmall"
-                      title="Save"
+                      title={socketI18n.t("settingsFull.mefc007a393")}
                       disabled={renaming}
                       onClick={handleRename}
                       style={{ cursor: "pointer", flexShrink: 0 }}
@@ -230,7 +227,7 @@ export function EmojiList({
                       <PiCheck size={14} />
                     </IconButton>
                     <IconButton tone="ghost" size="xsmall"
-                      title="Cancel"
+                      title={socketI18n.t("ui.cancel")}
                       disabled={renaming}
                       onClick={cancelEditing}
                       style={{ cursor: "pointer", flexShrink: 0 }}
@@ -240,7 +237,7 @@ export function EmojiList({
                   </div>
                   {editingError && (
                     <span className="text-xs" style={{ lineHeight: 1.2 }}>
-                      {editingError}
+                      {typeof editingError === "string" ? editingError : socketI18n.t(editingError.key, editingError.values)}
                     </span>
                   )}
                 </div>
@@ -253,7 +250,7 @@ export function EmojiList({
                 <>
                   <IconButton tone="ghost" size="xsmall"
                     onClick={() => startEditing(e.name)}
-                    title={`Rename :${e.name}:`}
+                    title={socketI18n.t("socketFull.emojiList_6e76c66df6", { p0: (e.name) })}
                     style={{ cursor: "pointer" }}
                   >
                     <PiPencilSimpleFill size={14} />
@@ -261,7 +258,7 @@ export function EmojiList({
                   <IconButton tone="ghost" size="xsmall"
                     onClick={() => setConfirmDelete(e.name)}
                     disabled={deletingName === e.name}
-                    title={`Delete :${e.name}:`}
+                    title={socketI18n.t("socketFull.emojiList_5fe0aee65b", { p0: (e.name) })}
                     style={{ cursor: "pointer" }}
                   >
                     <PiTrashFill size={14} />
@@ -276,9 +273,9 @@ export function EmojiList({
       <ConfirmDialog
         open={confirmDelete !== null}
         onOpenChange={(open) => { if (!open) setConfirmDelete(null); }}
-        title={`Delete :${confirmDelete ?? ""}:?`}
-        description="It's removed from this server for everyone, and this can't be undone."
-        confirmLabel="Delete"
+        title={socketI18n.t("socketFull.emojiList_a64e387e7d", { p0: (confirmDelete ?? "") })}
+        description={socketI18n.t("socketFull.emojiList_dc9b018e91")}
+        confirmLabel={socketI18n.t("ui.delete")}
         confirmTone="danger"
         onConfirm={() => {
           if (confirmDelete) void handleDelete(confirmDelete);

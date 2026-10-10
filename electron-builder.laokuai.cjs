@@ -2,13 +2,13 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 const config = require("./electron-builder.i18n-test.cjs");
 config.appId = "local.laokuai.chat";
-config.productName = "老蒯聊";
+config.productName = "唠蒯";
 config.extraMetadata = { name: "laokuai-chat", productName: config.productName,
   grytI18nTest: true, grytLaokuai: true };
-config.directories.output = "release-laokuai-squad-3-profile-1";
+config.directories.output = "release-laokuai-integration-1";
 config.win.icon = "private-brand/icon.ico";
-config.win.executableName = "LaoKuai-Chat";
-config.portable.artifactName = "LaoKuai-Chat-${version}-zh-CN-win-x64-slim-portable.exe";
+config.win.executableName = "唠蒯";
+config.portable.artifactName = "唠蒯-${version}-zh-CN-win-x64-slim-portable.exe";
 config.extraResources = config.extraResources.filter(entry => entry.to !== "legal/I18N-PORTABLE-TEST.md");
 config.extraResources = config.extraResources.map(entry => entry.to === "icon.png"
   ? { from: "private-brand/icon.png", to: "icon.png" } : entry);

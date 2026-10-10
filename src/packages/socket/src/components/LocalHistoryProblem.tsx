@@ -3,6 +3,7 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 
 import { clearLocalArchive, openLocalArchive, useLocalArchive } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 
 import { isElectron } from "../../../../lib/electron";
 import { PiWarningFill } from "../../../../lib/icons";
@@ -19,18 +20,19 @@ import { ConfirmDialog } from "./ConfirmDialog";
  * Try again never deletes anything; only the confirmed clear does.
  */
 export function LocalHistoryProblem({ compact = false }: { compact?: boolean }) {
+  useSocketTranslation();
   const { status } = useLocalArchive();
   const [busy, setBusy] = useState<"retry" | "clear" | null>(null);
   const [confirming, setConfirming] = useState(false);
 
   if (status.kind !== "failed") return null;
-  const where = isElectron() ? "on this device" : "in this browser";
+  const where = isElectron() ? socketI18n.t("socketFull.localHistoryProblem_8bf7aa1c53") : socketI18n.t("socketFull.localHistoryProblem_6a25e70584");
   const canRetry = status.code === "unseal-failed" || status.code === null;
 
   const retry = () => {
     setBusy("retry");
     openLocalArchive()
-      .then(() => toast.success("Local history opened."))
+      .then(() => toast.success(socketI18n.t("socketFull.localHistoryProblem_5cef9e7c50")))
       .catch(() => undefined)
       .finally(() => setBusy(null));
   };
@@ -38,10 +40,10 @@ export function LocalHistoryProblem({ compact = false }: { compact?: boolean }) 
   const clear = () => {
     setBusy("clear");
     clearLocalArchive()
-      .then(() => toast.success("Local history cleared."))
+      .then(() => toast.success(socketI18n.t("socketFull.localHistoryProblem_6dcc577a98")))
       .catch((e: unknown) => {
         console.warn("[Archive] Clearing failed:", e);
-        toast.error("Couldn't clear local history.");
+        toast.error(socketI18n.t("socketFull.localHistoryProblem_7980859039"));
       })
       .finally(() => setBusy(null));
   };
@@ -55,7 +57,7 @@ export function LocalHistoryProblem({ compact = false }: { compact?: boolean }) 
       <div className="flex items-start gap-1.5">
         <PiWarningFill aria-hidden="true" size={compact ? 13 : 15} style={{ flexShrink: 0, marginTop: "1px", color: "var(--gryt-warning-11)" }} />
         <span>
-          {[localHistoryProblemText(status.code, where), compact && "Until then, you can't send messages here.", "Nothing has been deleted."]
+          {[localHistoryProblemText(status.code, where), compact && socketI18n.t("socketFull.localHistoryProblem_a3d3383dd4"), socketI18n.t("socketFull.localHistoryProblem_1a6271a501")]
             .filter(Boolean)
             .join(" ")}
         </span>
@@ -63,19 +65,19 @@ export function LocalHistoryProblem({ compact = false }: { compact?: boolean }) 
       <div className="flex flex-wrap gap-2">
         {canRetry && (
           <Button size="xsmall" tone="neutral" disabled={busy !== null} onClick={retry}>
-            {busy === "retry" ? "Trying…" : "Try again"}
+            {busy === "retry" ? socketI18n.t("socketFull.localHistoryProblem_0e23ebd58f") : socketI18n.t("ui.tryAgain")}
           </Button>
         )}
         <Button size="xsmall" tone="danger" disabled={busy !== null} onClick={() => setConfirming(true)}>
-          {busy === "clear" ? "Clearing…" : CLEAR_LOCAL_HISTORY}
+          {busy === "clear" ? socketI18n.t("socketFull.localHistoryProblem_a99c7b96bc") : socketI18n.t(CLEAR_LOCAL_HISTORY)}
         </Button>
       </div>
       <ConfirmDialog
         open={confirming}
         onOpenChange={setConfirming}
-        title={CLEAR_CONFIRM_TITLE}
-        description={CLEAR_CONFIRM_TEXT}
-        confirmLabel="Clear local history"
+        title={socketI18n.t(CLEAR_CONFIRM_TITLE)}
+        description={socketI18n.t(CLEAR_CONFIRM_TEXT)}
+        confirmLabel={socketI18n.t("socketFull.localHistoryProblem_d07e4e1e32")}
         focusCancel
         onConfirm={clear}
       />

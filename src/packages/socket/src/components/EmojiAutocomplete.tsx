@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 import { useTranslation } from "@/i18n";
 
 import { type EmojiEntry, getRecentEmojis, searchEmojis } from "../utils/emojiData";
@@ -13,6 +14,7 @@ interface EmojiAutocompleteProps {
 }
 
 export const EmojiAutocomplete = ({ query, visible, onSelect, onClose, serverHost }: EmojiAutocompleteProps) => {
+  useSocketTranslation();
   const { t: tr } = useTranslation();
   const [results, setResults] = useState<EmojiEntry[]>([]);
   const [isRecent, setIsRecent] = useState(false);
@@ -172,9 +174,7 @@ export const EmojiAutocomplete = ({ query, visible, onSelect, onClose, serverHos
                 borderRadius: "var(--gryt-radius-sm)",
                 flexShrink: 0,
               }}
-            >
-              custom
-            </span>
+            >{socketI18n.t("socketFull.emojiAutocomplete_9310aa8221")}</span>
           )}
         </div>
       ))}

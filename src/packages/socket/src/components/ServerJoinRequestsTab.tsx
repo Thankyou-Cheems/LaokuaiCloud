@@ -1,7 +1,10 @@
 import { Button, Surface } from "@gryt/ui";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { Trans } from "react-i18next";
 import type { Socket } from "socket.io-client";
+
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 
 import { useSocketEvent } from "../hooks/useSocketEvent";
 
@@ -14,7 +17,7 @@ type JoinRequestItem = {
 
 function fmt(v: string | Date): string {
   const d = v instanceof Date ? v : new Date(v);
-  return Number.isFinite(d.getTime()) ? d.toLocaleString() : String(v || "");
+  return Number.isFinite(d.getTime()) ? d.toLocaleString(socketI18n.resolvedLanguage) : String(v || "");
 }
 
 /**
@@ -30,13 +33,14 @@ export function ServerJoinRequestsTab({
   socket?: Socket;
   accessToken: string | null;
 }) {
+  useSocketTranslation();
   const [requests, setRequests] = useState<JoinRequestItem[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [deciding, setDeciding] = useState<string | null>(null);
 
   const refresh = () => {
-    if (!socket || !socket.connected) return toast.error("Not connected to the server yet.");
-    if (!accessToken) return toast.error("Join the server first.");
+    if (!socket || !socket.connected) return toast.error(socketI18n.t("socketFull.serverJoinRequestsTab_213e89eca7"));
+    if (!accessToken) return toast.error(socketI18n.t("socketFull.serverJoinRequestsTab_097a88ed92"));
     socket.emit("server:joinRequests:list", { accessToken });
   };
 
@@ -52,7 +56,7 @@ export function ServerJoinRequestsTab({
     socket,
     "server:joinRequest:decided",
     (payload) => {
-      toast.success(payload?.decision === "approved" ? "Let in." : "Turned down.");
+      toast.success(payload?.decision === "approved" ? socketI18n.t("socketFull.serverJoinRequestsTab_fca9d1d74c") : socketI18n.t("socketFull.serverJoinRequestsTab_8f8fabbb24"));
       refresh();
     },
   );
@@ -64,7 +68,7 @@ export function ServerJoinRequestsTab({
   }, [host, socket?.connected, accessToken]);
 
   const decide = (grytUserId: string, decision: "approved" | "denied") => {
-    if (!socket?.connected || !accessToken) return toast.error("Not connected to the server yet.");
+    if (!socket?.connected || !accessToken) return toast.error(socketI18n.t("socketFull.serverJoinRequestsTab_213e89eca7"));
     setDeciding(grytUserId);
     socket.emit("server:joinRequests:decide", { accessToken, grytUserId, decision });
   };
@@ -74,23 +78,16 @@ export function ServerJoinRequestsTab({
       <div className="flex items-center justify-between">
         <span className="text-sm text-gryt-muted">
           {loaded
-            ? `${requests.length} ${requests.length === 1 ? "person waiting" : "people waiting"}`
-            : "Loading…"}
+            ? socketI18n.t("socketHooksFull.peopleWaiting", { count: requests.length })
+            : socketI18n.t("settingsFull.m33ce417454")}
         </span>
-        <Button tone="neutral" size="xsmall" onClick={refresh}>
-          Refresh
-        </Button>
+        <Button tone="neutral" size="xsmall" onClick={refresh}>{socketI18n.t("settingsFull.m56e3badc4e")}</Button>
       </div>
 
-      <span className="text-xs text-gryt-muted" style={{ lineHeight: 1.4 }}>
-        Only fills up while <strong>Who can join</strong> is set to asking first. Approving
-        somebody does not pull them in — they get in the next time they try.
-      </span>
+      <span className="text-xs text-gryt-muted" style={{ lineHeight: 1.4 }}><Trans i18n={socketI18n} i18nKey="socketFull.joinRequestPolicyExplanation" components={{ policy: <strong /> }} /></span>
 
       {loaded && requests.length === 0 && (
-        <span className="text-sm text-gryt-muted">
-          Nobody is waiting.
-        </span>
+        <span className="text-sm text-gryt-muted">{socketI18n.t("socketFull.serverJoinRequestsTab_5a2c59b132")}</span>
       )}
 
       {requests.map((request) => (
@@ -113,15 +110,11 @@ export function ServerJoinRequestsTab({
               <Button tone="neutral" size="xsmall"
                 disabled={deciding === request.grytUserId}
                 onClick={() => decide(request.grytUserId, "denied")}
-              >
-                Turn down
-              </Button>
+              >{socketI18n.t("socketFull.serverJoinRequestsTab_fcbfdca1bd")}</Button>
               <Button tone="neutral" size="xsmall"
                 disabled={deciding === request.grytUserId}
                 onClick={() => decide(request.grytUserId, "approved")}
-              >
-                Let in
-              </Button>
+              >{socketI18n.t("socketFull.serverJoinRequestsTab_b606000286")}</Button>
             </div>
           </div>
         </Surface>

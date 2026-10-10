@@ -41,7 +41,7 @@ import { MiniControls } from "@/webRTC/src/components/miniControls";
 
 import { useIdentityClaim } from "../hooks/useIdentityClaim";
 import { PiChatsFill } from "../lib/icons";
-import { PiBroadcastFill, PiBugFill, PiChatCircleDotsFill, PiGearFill, PiMicrophoneFill, PiMicrophoneSlashFill, PiPlus, PiSignInFill } from "../lib/icons";
+import { PiBroadcastFill, PiBugFill, PiChatCircleDotsFill, PiGearFill, PiMicrophoneFill, PiMicrophoneSlashFill, PiPencilSimpleFill, PiPlus, PiSignInFill } from "../lib/icons";
 import { useReportForm } from "../lib/reports/useReportForm";
 import { inVoiceLine, voiceNicknames } from "./serverVoiceLine";
 
@@ -222,7 +222,7 @@ export function Sidebar({ setShowAddServer }: SidebarProps) {
                 // or it is not announced at all.
                 aria-label={
                   newLanServers.length > 0 && !showDiscovery
-                    ? `Servers on your network, ${newLanServers.length} new`
+                    ? tr("shellFull.sidebarLanNew", { count: newLanServers.length })
                     : tr("ui.serversOnYourNetwork")
                 }
                 onClick={() => setShowDiscovery(!showDiscovery)}
@@ -287,6 +287,15 @@ export function Sidebar({ setShowAddServer }: SidebarProps) {
           <Menu.Portal>
             <Menu.Positioner>
               <Menu.Popup>
+            <Menu.Item
+              data-tour="menu-edit-nickname"
+              onClick={() => openSettings("profile/profile/nickname")}
+            >
+              <div className="flex items-center gap-1">
+                <PiPencilSimpleFill size={14} />
+                {tr("nicknameScope.editNickname")}
+              </div>
+            </Menu.Item>
             <Menu.Item
               data-tour="menu-settings"
               onClick={() => setShowSettings(true)}
@@ -565,8 +574,8 @@ function ServerItem({
                         ring
                         title={
                           mentions > 0
-                            ? `${count} unread, ${mentions} naming you`
-                            : `${count} unread`
+                            ? tr("shellFull.sidebarUnreadMentions", { count, mentions })
+                            : tr("shellFull.sidebarUnread", { count })
                         }
                       />
                     </div>
@@ -685,20 +694,14 @@ function ServerItem({
         <ConfirmDialog
           open={mergeOpen}
           onOpenChange={setMergeOpen}
-          title={`Merge into ${host}?`}
+          title={tr("shellFull.sidebarMergeTitle", { host })}
           description={
             <>
-              {duplicateHosts.length === 1
-                ? `${duplicateHosts[0]} is the same server as ${host}, reached at a different address.`
-                : `${duplicateHosts.join(", ")} are the same server as ${host}, reached at different addresses.`}{" "}
-              Keeping {host} removes the{" "}
-              {duplicateHosts.length === 1 ? "other entry" : "other entries"} from
-              your list. You stay a member either way \u2014 this is your list, not
-              the server. Your place in the list and the channel you were last in
-              are kept.
+              {tr("shellFull.sidebarSameServer", { count: duplicateHosts.length, addresses: duplicateHosts.join(", "), host })}{" "}
+              {tr("shellFull.sidebarKeepExplanation", { host })}
             </>
           }
-          confirmLabel={`Keep ${host}`}
+          confirmLabel={tr("shellFull.sidebarKeep", { host })}
           confirmTone="primary"
           onConfirm={() => mergeDuplicates(host)}
         />
@@ -780,7 +783,7 @@ function ServerItem({
               <div className="text-xs" style={{ color: "var(--gryt-warning-11)", marginTop: 4 }}>
                 {duplicateHosts.length === 1
                   ? tr("ui.alsoInYourListUnderAnotherAddress")
-                  : `Also in your list under ${duplicateHosts.length} other addresses`}
+                  : tr("shellFull.sidebarOtherAddresses", { count: duplicateHosts.length })}
               </div>
             )}
           </div>

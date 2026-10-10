@@ -1,6 +1,8 @@
 import { useCamera, useScreenShare, useSFU } from "@gryt/voice";
 import { useEffect, useRef, useState } from "react";
 
+import { i18n, LocalizedText, useTranslation } from "@/i18n";
+
 import { PiVideoCameraFill } from "../lib/icons";
 import { DebugOverlay } from "./debugOverlay";
 import {
@@ -98,9 +100,9 @@ function resolution(w: number | null, h: number | null): string {
 }
 
 function labelTitle(label: VideoLabel): string {
-  if (label === "screen") return "Screen Share";
-  if (label === "camera") return "Camera";
-  return "Video";
+  if (label === "screen") return i18n.t("shellFull.videoDebugOverlay_tsx_e60de6b683");
+  if (label === "camera") return i18n.t("shellFull.videoDebugOverlay_tsx_4da9c9af96");
+  return i18n.t("shellFull.videoDebugOverlay_tsx_bc17c1f017");
 }
 
 function readSenders(pc: RTCPeerConnection, tracks: SenderTracks): SenderDiagnostics[] {
@@ -195,6 +197,7 @@ function useVideoDebugDiagnostics(enabled: boolean): VideoDiagnostics {
 }
 
 function SenderSection({ s }: { s: SenderDiagnostics }) {
+  useTranslation();
   const stateParts = [
     s.readyState ?? "—",
     s.enabled == null ? null : s.enabled ? "enabled" : "disabled",
@@ -203,16 +206,14 @@ function SenderSection({ s }: { s: SenderDiagnostics }) {
 
   return (
     <div style={{ marginBottom: "8px" }}>
-      <div style={sectionTitle}>Sender — {labelTitle(s.label)}:</div>
+      <div style={sectionTitle}>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_52b9519e4e" />}{" "}{labelTitle(s.label)}:</div>
       <div style={indent}>
-        <div>Track: {stateParts.join(" / ")}</div>
-        <div>
-          Capture: {resolution(s.width, s.height)}
+        <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_39babc1cca" />}{" "}{stateParts.join(" / ")}</div>
+        <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_ae9f06aca3" />}{" "}{resolution(s.width, s.height)}
           {s.frameRate != null ? ` @ ${fmt(s.frameRate, 1)} fps` : ""}
         </div>
-        <div>
-          Encoding: {s.encodingActive == null ? "—" : s.encodingActive ? "active" : "inactive"}
-          {" / "}max {s.maxBitrateKbps != null ? `${fmtInt(s.maxBitrateKbps)} kbps` : "—"}
+        <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_ba436524d4" />}{" "}{s.encodingActive == null ? "—" : s.encodingActive ? i18n.t("shellSecond.active") : i18n.t("shellSecond.inactive")}
+          {" / "}{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_0706025b2b" />}{" "}{s.maxBitrateKbps != null ? `${fmtInt(s.maxBitrateKbps)} kbps` : "—"}
         </div>
       </div>
     </div>
@@ -220,44 +221,39 @@ function SenderSection({ s }: { s: SenderDiagnostics }) {
 }
 
 function OutboundSection({ s }: { s: OutboundDiagnostics }) {
+  useTranslation();
   return (
     <div style={{ marginBottom: "8px" }}>
-      <div style={sectionTitle}>Outbound — {labelTitle(s.label)}:</div>
+      <div style={sectionTitle}>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_670988faf3" />}{" "}{labelTitle(s.label)}:</div>
       <div style={indent}>
-        <div>Codec: {s.codec ?? "—"}</div>
-        {s.codecFmtp && <div>Codec params: {s.codecFmtp}</div>}
-        <div>Resolution: {resolution(s.frameWidth, s.frameHeight)}</div>
-        <div>FPS: {fmt(s.framesPerSecond, 0)}</div>
-        <div>Bitrate: {s.bitrateKbps != null ? `${fmt(s.bitrateKbps)} kbps` : "—"}</div>
-        <div>Target: {s.targetBitrateKbps != null ? `${fmtInt(s.targetBitrateKbps)} kbps` : "—"}</div>
-        <div>Packets sent: {fmtInt(s.packetsSent)}</div>
-        <div>
-          Retransmit: {fmtInt(s.retransmittedPacketsSent)} pkts /{" "}
+        <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_d50f2c549f" />}{" "}{" "}{s.codec ?? "—"}</div>
+        {s.codecFmtp && <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_f8d1e654e0" />}{" "}{s.codecFmtp}</div>}
+        <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_222707d269" />}{" "}{" "}{resolution(s.frameWidth, s.frameHeight)}</div>
+        <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_3a2a5b74ed" />}{" "}{" "}{fmt(s.framesPerSecond, 0)}</div>
+        <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_fa1da0b1bf" />}{" "}{" "}{s.bitrateKbps != null ? `${fmt(s.bitrateKbps)} kbps` : "—"}</div>
+        <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_652ac2cbba" />}{" "}{s.targetBitrateKbps != null ? `${fmtInt(s.targetBitrateKbps)} kbps` : "—"}</div>
+        <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_dfbd597792" />}{" "}{fmtInt(s.packetsSent)}</div>
+        <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_f330226605" />}{" "}{fmtInt(s.retransmittedPacketsSent)}{" "}{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_5efad0cad2" />}{" "}
           {fmtBytes(s.retransmittedBytesSent)}
         </div>
-        <div>
-          Send delay: {s.averagePacketSendDelayMs != null
-            ? `${fmt(s.averagePacketSendDelayMs, 2)} ms/pkt`
+        <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_7df9b30403" />}{" "}{s.averagePacketSendDelayMs != null
+            ? i18n.t("shellSecond.packetTime", { value: fmt(s.averagePacketSendDelayMs, 2) })
             : "—"}
         </div>
-        <div>Frames: {fmtInt(s.framesEncoded)} enc / {fmtInt(s.keyFramesEncoded)} key</div>
-        <div>
-          Encode:{" "}
-          {s.averageEncodeTimeMs != null ? `${fmt(s.averageEncodeTimeMs, 2)} ms/frame avg` : "—"}
+        <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_80322c5744" />}{" "}{" "}{fmtInt(s.framesEncoded)}{" "}{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_a79b2fae15" />}{" "}{fmtInt(s.keyFramesEncoded)}{" "}{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_a62f2225bf" />}</div>
+        <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_277c67720e" />}{" "}
+          {s.averageEncodeTimeMs != null ? i18n.t("shellSecond.averageFrameTime", { value: fmt(s.averageEncodeTimeMs, 2) }) : "—"}
           {" / "}
-          {s.totalEncodeTimeMs != null ? `${fmt(s.totalEncodeTimeMs)} ms total` : "—"}
+          {s.totalEncodeTimeMs != null ? i18n.t("shellSecond.totalTime", { value: fmt(s.totalEncodeTimeMs) }) : "—"}
         </div>
-        <div>Avg QP: {fmt(s.averageQp, 1)}</div>
+        <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_4f77d7adeb" />}{" "}{fmt(s.averageQp, 1)}</div>
         <div>PLI: {fmtInt(s.pliCount)} / NACK: {fmtInt(s.nackCount)}</div>
-        <div>
-          Remote RTCP: RTT {s.remoteRttMs != null ? `${fmt(s.remoteRttMs)} ms` : "—"}
-          {s.remoteRttMeasurements != null && ` (${fmtInt(s.remoteRttMeasurements)} samples)`}
-          {" / "}jitter {s.remoteJitterMs != null ? `${fmt(s.remoteJitterMs)} ms` : "—"}
+        <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_5195594906" />}{" "}{s.remoteRttMs != null ? `${fmt(s.remoteRttMs)} ms` : "—"}
+          {s.remoteRttMeasurements != null && i18n.t("shellFull.videoDebugOverlay_tsx_636c839452", { value0: fmtInt(s.remoteRttMeasurements) })}
+          {" / "}{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_dd70fee731" />}{" "}{s.remoteJitterMs != null ? `${fmt(s.remoteJitterMs)} ms` : "—"}
         </div>
-        <div>
-          Remote loss: {s.remoteLossPct != null ? `${fmt(s.remoteLossPct, 2)}%` : "—"}
-          {" / "}{fmtInt(s.remotePacketsLost)} pkts
-        </div>
+        <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_6c67842013" />}{" "}{s.remoteLossPct != null ? `${fmt(s.remoteLossPct, 2)}%` : "—"}
+          {" / "}{fmtInt(s.remotePacketsLost)}{" "}{" "}{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_222576a654" />}</div>
         <div
           style={{
             color:
@@ -265,23 +261,21 @@ function OutboundSection({ s }: { s: OutboundDiagnostics }) {
                 ? "var(--gryt-warning-11)"
                 : undefined,
           }}
-        >
-          Quality limit: {s.qualityLimitationReason ?? "—"}
+        >{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_892cdbabcb" />}{" "}{s.qualityLimitationReason ?? "—"}
         </div>
-        <div>
-          Limit time: bw {fmt(s.bandwidthLimitedSeconds, 1)}s / cpu{" "}
-          {fmt(s.cpuLimitedSeconds, 1)}s / other{" "}
-          {fmt(s.otherLimitedSeconds, 1)}s
-        </div>
-        <div>Resolution changes: {fmtInt(s.resolutionChanges)}</div>
-        <div>SVC mode: {s.scalabilityMode ?? "—"}</div>
-        <div>Encoder: {s.encoderImplementation ?? "—"}</div>
+        <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_f34d2d6e83" />}{" "}{fmt(s.bandwidthLimitedSeconds, 1)}{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_57cb4e680f" />}{" "}
+          {fmt(s.cpuLimitedSeconds, 1)}{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_9103837abe" />}{" "}
+          {fmt(s.otherLimitedSeconds, 1)}{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_a0f1490a20" />}</div>
+        <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_ed55cb32d7" />}{" "}{fmtInt(s.resolutionChanges)}</div>
+        <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_c6d1e13f8e" />}{" "}{s.scalabilityMode ?? "—"}</div>
+        <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_5028545e60" />}{" "}{s.encoderImplementation ?? "—"}</div>
       </div>
     </div>
   );
 }
 
 function InboundSection({ s, index }: { s: InboundDiagnostics; index: number }) {
+  useTranslation();
   const recentDropColor =
     s.recentDropPct != null && s.recentDropPct >= 2 ? "var(--gryt-warning-11)" : undefined;
   const recentLossColor =
@@ -289,66 +283,49 @@ function InboundSection({ s, index }: { s: InboundDiagnostics; index: number }) 
 
   return (
     <div style={{ marginBottom: "8px" }}>
-      <div style={sectionTitle}>Inbound #{index + 1}:</div>
+      <div style={sectionTitle}>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_e7c572e339" />}{index + 1}:</div>
       <div style={indent}>
-        <div>Codec: {s.codec ?? "—"}</div>
-        <div>Resolution: {resolution(s.frameWidth, s.frameHeight)}</div>
-        <div>FPS: {fmt(s.framesPerSecond, 0)}</div>
-        <div>Bitrate: {s.bitrateKbps != null ? `${fmt(s.bitrateKbps)} kbps` : "—"}</div>
-        <div>Jitter: {s.jitterMs != null ? `${fmt(s.jitterMs)} ms` : "—"}</div>
-        <div>
-          Packets: {fmtInt(s.packetsReceived)} recv / {fmtInt(s.packetsLost)} lost /{" "}
-          {fmtInt(s.packetsDiscarded)} discarded
-        </div>
-        <div style={{ color: recentLossColor }}>
-          Recent loss:{" "}
+        <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_d50f2c549f" />}{s.codec ?? "—"}</div>
+        <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_222707d269" />}{resolution(s.frameWidth, s.frameHeight)}</div>
+        <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_3a2a5b74ed" />}{fmt(s.framesPerSecond, 0)}</div>
+        <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_fa1da0b1bf" />}{s.bitrateKbps != null ? `${fmt(s.bitrateKbps)} kbps` : "—"}</div>
+        <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_7d0ffb0cee" />}{" "}{s.jitterMs != null ? `${fmt(s.jitterMs)} ms` : "—"}</div>
+        <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_b37d0350c8" />}{" "}{fmtInt(s.packetsReceived)}{" "}{" "}{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_d298aa9b11" />}{" "}{" "}{fmtInt(s.packetsLost)}{" "}{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_93538cf905" />}{" "}
+          {fmtInt(s.packetsDiscarded)}{" "}{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_4056ef88d5" />}</div>
+        <div style={{ color: recentLossColor }}>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_04a535bfc4" />}{" "}
           {s.recentLossPct != null ? `${fmt(s.recentLossPct, 2)}%` : "—"}
           {" / "}
-          {fmt(s.recentPacketsReceivedPerSecond, 1)} recv/s
-          {" / "}
-          {fmt(s.recentPacketsLostPerSecond, 1)} lost/s
-        </div>
-        <div>
-          Frames: {fmtInt(s.framesReceived)} recv / {fmtInt(s.framesDecoded)}{" "}
-          decoded / {fmtInt(s.framesDropped)} dropped
-        </div>
-        <div style={{ color: recentDropColor }}>
-          Recent drops:{" "}
+          {fmt(s.recentPacketsReceivedPerSecond, 1)}{" "}{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_99027a9757" />}{" / "}
+          {fmt(s.recentPacketsLostPerSecond, 1)}{" "}{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_bb95c9a8ce" />}</div>
+        <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_80322c5744" />}{fmtInt(s.framesReceived)}{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_d298aa9b11" />}{fmtInt(s.framesDecoded)}{" "}{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_ac5db5ad69" />}{" "}{fmtInt(s.framesDropped)}{" "}{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_ad3f9aa5e8" />}</div>
+        <div style={{ color: recentDropColor }}>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_5e41ca51e0" />}{" "}
           {s.recentDropPct != null ? `${fmt(s.recentDropPct, 1)}%` : "—"}
           {" / "}
-          {fmt(s.recentDecodedFps, 1)} decoded/s
-          {" / "}
-          {fmt(s.recentDroppedFps, 1)} dropped/s
-        </div>
-        <div>
-          Decode: {s.averageDecodeTimeMs != null
-            ? `${fmt(s.averageDecodeTimeMs, 2)} ms/frame avg`
+          {fmt(s.recentDecodedFps, 1)}{" "}{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_dc7a3355e8" />}{" / "}
+          {fmt(s.recentDroppedFps, 1)}{" "}{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_8d3aced92a" />}</div>
+        <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_4cb6c2cb01" />}{" "}{s.averageDecodeTimeMs != null
+            ? i18n.t("shellSecond.averageFrameTime", { value: fmt(s.averageDecodeTimeMs, 2) })
             : "—"}
         </div>
-        <div>
-          Processing: {s.averageProcessingDelayMs != null
-            ? `${fmt(s.averageProcessingDelayMs, 2)} ms/frame avg`
+        <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_88b5d234f0" />}{" "}{s.averageProcessingDelayMs != null
+            ? i18n.t("shellSecond.averageFrameTime", { value: fmt(s.averageProcessingDelayMs, 2) })
             : "—"}
         </div>
-        <div>
-          Jitter buffer: {s.averageJitterBufferDelayMs != null
-            ? `${fmt(s.averageJitterBufferDelayMs, 2)} ms/frame avg`
+        <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_327b8b5b2a" />}{" "}{s.averageJitterBufferDelayMs != null
+            ? i18n.t("shellSecond.averageFrameTime", { value: fmt(s.averageJitterBufferDelayMs, 2) })
             : "—"}
         </div>
-        <div>
-          Assembly: {s.averageAssemblyTimeMs != null
-            ? `${fmt(s.averageAssemblyTimeMs, 2)} ms/frame avg`
+        <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_40f1fb2e0e" />}{" "}{s.averageAssemblyTimeMs != null
+            ? i18n.t("shellSecond.averageFrameTime", { value: fmt(s.averageAssemblyTimeMs, 2) })
             : "—"}
           {" / "}
-          {fmtInt(s.framesAssembledFromMultiplePackets)} multi-packet
-        </div>
-        <div>
-          Freezes: {fmtInt(s.freezeCount)} /{" "}
+          {fmtInt(s.framesAssembledFromMultiplePackets)}{" "}{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_b552ee9549" />}</div>
+        <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_010fbed2f0" />}{" "}{fmtInt(s.freezeCount)} /{" "}
           {s.totalFreezesDurationMs != null
-            ? `${fmt(s.totalFreezesDurationMs / 1000, 1)}s total`
+            ? i18n.t("shellFull.videoDebugOverlay_tsx_ad015878d6", { value0: fmt(s.totalFreezesDurationMs / 1000, 1) })
             : "—"}
         </div>
-        <div>Decoder: {s.decoderImplementation ?? "—"}</div>
+        <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_bc2e745b3b" />}{" "}{s.decoderImplementation ?? "—"}</div>
         <div>
           PLI: {fmtInt(s.pliCount)} (+{fmtInt(s.recentPliCount)}) / FIR:{" "}
           {fmtInt(s.firCount)} / NACK: {fmtInt(s.nackCount)} (+
@@ -360,6 +337,7 @@ function InboundSection({ s, index }: { s: InboundDiagnostics; index: number }) 
 }
 
 export function VideoDebugOverlay({ isVisible }: VideoDebugOverlayProps) {
+  useTranslation();
   const diagnostics = useVideoDebugDiagnostics(isVisible);
   const { cameraEnabled } = useCamera();
   const { screenShareActive } = useScreenShare();
@@ -372,42 +350,36 @@ export function VideoDebugOverlay({ isVisible }: VideoDebugOverlayProps) {
   return (
     <DebugOverlay
       isVisible={isVisible}
-      title="Video Debug"
+      title={i18n.t("shellFull.videoDebugOverlay_tsx_75825921c6")}
       icon={<PiVideoCameraFill size={16} />}
       status={{
         active: isConnected && hasVideo,
-        label: isConnected ? (hasVideo ? "Streaming" : "No video") : "Disconnected",
+        label: isConnected ? (hasVideo ? i18n.t("shellFull.videoDebugOverlay_tsx_1e8325521d") : i18n.t("shellFull.videoDebugOverlay_tsx_4fa77f0cff")) : i18n.t("shellFull.videoDebugOverlay_tsx_771e05f27b"),
       }}
       initialPosition={{ x: window.innerWidth - 680, y: 10 }}
     >
       <div style={{ maxHeight: `calc(100vh - ${CALL_CONTROLS_CLEARANCE}px)`, overflowY: "auto", paddingRight: "4px" }}>
         <div style={{ marginBottom: "8px" }}>
-          <div style={sectionTitle}>Connection:</div>
+          <div style={sectionTitle}>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_eeb4784e26" />}</div>
           <div style={indent}>
-            <div>RTT: {connection.rttMs != null ? `${fmt(connection.rttMs)} ms` : "—"}</div>
-            <div>Avail out: {connection.availableOutKbps != null ? `${fmtInt(connection.availableOutKbps)} kbps` : "—"}</div>
-            <div>Avail in: {connection.availableInKbps != null ? `${fmtInt(connection.availableInKbps)} kbps` : "—"}</div>
-            <div>
-              Path: {localPath || "—"} → {connection.remoteCandidateType ?? "—"} ({connection.protocol ?? "—"})
+            <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_086f0e76ea" />}{" "}{connection.rttMs != null ? `${fmt(connection.rttMs)} ms` : "—"}</div>
+            <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_b5dcd8bb4f" />}{" "}{connection.availableOutKbps != null ? `${fmtInt(connection.availableOutKbps)} kbps` : "—"}</div>
+            <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_64a25da7ca" />}{" "}{connection.availableInKbps != null ? `${fmtInt(connection.availableInKbps)} kbps` : "—"}</div>
+            <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_df395b4582" />}{" "}{localPath || "—"} → {connection.remoteCandidateType ?? "—"} ({connection.protocol ?? "—"})
             </div>
-            <div>
-              States: {diagnostics.connectionState ?? "—"} / ICE{" "}
-              {diagnostics.iceConnectionState ?? "—"} / signaling{" "}
+            <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_d3b6fe6aa3" />}{" "}{diagnostics.connectionState ?? "—"} / ICE{" "}
+              {diagnostics.iceConnectionState ?? "—"}{" "}{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_10a71daa91" />}{" "}
               {diagnostics.signalingState ?? "—"}
             </div>
-            <div>
-              Send discarded: {fmtBytes(connection.bytesDiscardedOnSend)} /{" "}
-              {fmtInt(connection.packetsDiscardedOnSend)} pkts
-            </div>
+            <div>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_700c389b40" />}{" "}{fmtBytes(connection.bytesDiscardedOnSend)} /{" "}
+              {fmtInt(connection.packetsDiscardedOnSend)}{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_222576a654" />}</div>
           </div>
         </div>
 
         {diagnostics.senders.length === 0 && (cameraEnabled || screenShareActive) && (
           <div style={{ marginBottom: "8px" }}>
-            <div style={sectionTitle}>Sender:</div>
-            <div style={{ ...indent, color: "var(--gryt-warning-11)" }}>
-              Video enabled but no RTCRtpSender track
-            </div>
+            <div style={sectionTitle}>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_a980337e0d" />}</div>
+            <div style={{ ...indent, color: "var(--gryt-warning-11)" }}>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_62c9714fa3" />}</div>
           </div>
         )}
         {diagnostics.senders.map((s, i) => (
@@ -416,8 +388,8 @@ export function VideoDebugOverlay({ isVisible }: VideoDebugOverlayProps) {
 
         {diagnostics.outbound.length === 0 && (
           <div style={{ marginBottom: "8px" }}>
-            <div style={sectionTitle}>Outbound:</div>
-            <div style={{ ...indent, color: "var(--gryt-neutral-9)" }}>No outbound video</div>
+            <div style={sectionTitle}>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_3b355794e7" />}</div>
+            <div style={{ ...indent, color: "var(--gryt-neutral-9)" }}>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_96fee6f7d0" />}</div>
           </div>
         )}
         {diagnostics.outbound.map((s) => (
@@ -426,8 +398,8 @@ export function VideoDebugOverlay({ isVisible }: VideoDebugOverlayProps) {
 
         {diagnostics.inbound.length === 0 && (
           <div style={{ marginBottom: "8px" }}>
-            <div style={sectionTitle}>Inbound:</div>
-            <div style={{ ...indent, color: "var(--gryt-neutral-9)" }}>No inbound video</div>
+            <div style={sectionTitle}>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_9d2b37dc84" />}</div>
+            <div style={{ ...indent, color: "var(--gryt-neutral-9)" }}>{<LocalizedText translationKey="shellFull.videoDebugOverlay_tsx_a5e67fb8f5" />}</div>
           </div>
         )}
         {diagnostics.inbound.map((s, i) => (

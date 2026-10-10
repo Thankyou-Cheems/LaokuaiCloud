@@ -1,4 +1,4 @@
-
+import { i18n, useTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 
 import { SettingsContainer, ToggleSetting } from "./settingsComponents";
@@ -8,21 +8,21 @@ import { SettingsContainer, ToggleSetting } from "./settingsComponents";
  * overlays, where nothing about the name said it changed how capture works.
  */
 export function ScreenShareSettings() {
+  useTranslation();
   const { experimentalScreenShare, setExperimentalScreenShare } = useSettings();
 
   return (
     <SettingsContainer>
-      <h2 className="text-lg">
-        Screen share
-      </h2>
+      <h2 className="text-lg">{i18n.t("ui.screenShare")}</h2>
 
       <ToggleSetting
-        title="Experimental screen share"
-        description="Unlock high frame rate options (144, 165, 240 FPS) for screen sharing. These require significant bandwidth and may not work on all hardware."
+        anchorId="experimental-screen-share"
+        title={i18n.t("settingsFull.m2995be43bd")}
+        description={i18n.t("settingsFull.m36322f0c53")}
         checked={experimentalScreenShare}
         onCheckedChange={setExperimentalScreenShare}
         statusText={experimentalScreenShare
-          ? "High FPS options (144, 165, 240) are available in the screen share picker"
+          ? i18n.t("settingsFull.m3e857d8b13")
           : undefined
         }
       />

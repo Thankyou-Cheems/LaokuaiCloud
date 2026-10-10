@@ -1,9 +1,11 @@
 import { Avatar, Button, Surface, TextField } from "@gryt/ui";
 import { useCallback, useRef, useState } from "react";
 import toast from "react-hot-toast";
+import { Trans } from "react-i18next";
 import type { Socket } from "socket.io-client";
 
 import { getUploadsFileUrl, resolveAvatarSrc } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 
 import { useSocketEvent } from "../hooks/useSocketEvent";
 import { useSockets } from "../hooks/useSockets";
@@ -39,6 +41,7 @@ function MemberDropdownItem({
   host: string;
   onSelect: (id: string) => void;
 }) {
+  useSocketTranslation();
   return (
     <div
       onMouseDown={(e) => {
@@ -67,8 +70,7 @@ function MemberDropdownItem({
         <span className="text-sm" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {member.nickname}
         </span>
-        <span className="text-xs">
-          Joined {formatJoined(member.createdAt) ?? "Unknown"}
+        <span className="text-xs">{socketI18n.t("ui.joined")}{" "}{formatJoined(member.createdAt) ?? socketI18n.t("shellFull.microphoneDebugOverlay_tsx_bc7819b34f")}
         </span>
       </div>
     </div>
@@ -88,6 +90,7 @@ function MemberCombobox({
   host: string;
   placeholder: string;
 }) {
+  useSocketTranslation();
   const [focused, setFocused] = useState(false);
   const blurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -172,6 +175,7 @@ export function ServerUserReplaceTab({
   socket?: Socket;
   accessToken: string | null;
 }) {
+  useSocketTranslation();
   const { memberLists, requestMemberList } = useSockets();
   const members = host ? memberLists[host] || [] : [];
 
@@ -188,8 +192,8 @@ export function ServerUserReplaceTab({
   useSocketEvent<ReplaceSuccessPayload>(socket, "server:user:replace:success", (payload) => {
     setSubmitting(false);
     toast.success(
-      `Replaced identity for ${payload.targetServerUserId}.` +
-        (payload.ownerUpdated ? " Server ownership was transferred." : ""),
+      socketI18n.t("socketFull.serverUserReplaceTab_65dab8d0ab", { p0: (payload.targetServerUserId) }) +
+        (payload.ownerUpdated ? socketI18n.t("socketFull.serverUserReplaceTab_335069b6c7") : ""),
     );
     setTargetServerUserId("");
     setNewGrytUserId("");
@@ -197,10 +201,10 @@ export function ServerUserReplaceTab({
   });
 
   const handleReplace = () => {
-    if (!socket?.connected) return toast.error("Not connected to the server yet.");
-    if (!accessToken) return toast.error("Join the server first.");
-    if (!targetServerUserId) return toast.error("Select a user to replace.");
-    if (!newGrytUserId.trim()) return toast.error("Enter the new Gryt User ID.");
+    if (!socket?.connected) return toast.error(socketI18n.t("socketFull.serverUserReplaceTab_213e89eca7"));
+    if (!accessToken) return toast.error(socketI18n.t("socketFull.serverUserReplaceTab_097a88ed92"));
+    if (!targetServerUserId) return toast.error(socketI18n.t("socketFull.serverUserReplaceTab_5c155040de"));
+    if (!newGrytUserId.trim()) return toast.error(socketI18n.t("socketFull.serverUserReplaceTab_1afbbdb3aa"));
 
     setSubmitting(true);
     socket.emit("server:user:replace", {
@@ -222,40 +226,31 @@ export function ServerUserReplaceTab({
 
   return (
     <div className="flex flex-col gap-4">
-      <span className="text-sm">
-        Re-map a user&apos;s Keycloak identity (gryt_user_id) while keeping their server user ID, messages, roles, and
-        all other data intact. This is useful when a user re-registers and gets a new Keycloak account.
-      </span>
+      <span className="text-sm">{socketI18n.t("socketFull.serverUserReplaceTab_ae333d0ed0")}</span>
 
       <Surface>
         <div className="flex flex-col gap-3">
           <div>
-            <p className="text-sm font-bold mb-1">
-              Old user (current member)
-            </p>
+            <p className="text-sm font-bold mb-1">{socketI18n.t("socketFull.serverUserReplaceTab_06e56a98d4")}</p>
             <MemberCombobox
               value={targetServerUserId}
               onChange={setTargetServerUserId}
               members={members}
               host={host}
-              placeholder="Search by name or ID…"
+              placeholder={socketI18n.t("socketFull.serverUserReplaceTab_3a5a011d04")}
             />
           </div>
 
           <div>
-            <p className="text-sm font-bold mb-1">
-              New Gryt User ID
-            </p>
+            <p className="text-sm font-bold mb-1">{socketI18n.t("socketFull.serverUserReplaceTab_44fd7692d1")}</p>
             <MemberCombobox
               value={newGrytUserId}
               onChange={setNewGrytUserId}
               members={members}
               host={host}
-              placeholder="Paste ID or search for a member…"
+              placeholder={socketI18n.t("socketFull.serverUserReplaceTab_dc00931b33")}
             />
-            <p className="text-xs mt-1">
-              The Keycloak subject ID from the new account, or select an existing member.
-            </p>
+            <p className="text-xs mt-1">{socketI18n.t("socketFull.serverUserReplaceTab_e5d511744f")}</p>
           </div>
 
           <div className="flex justify-end mt-2">
@@ -264,20 +259,16 @@ export function ServerUserReplaceTab({
               disabled={submitting || !targetServerUserId || !newGrytUserId.trim()}
               onClick={() => setConfirmReplace(true)}
             >
-              {submitting ? "Replacing…" : "Replace identity"}
+              {submitting ? socketI18n.t("socketFull.serverUserReplaceTab_d2f3788bb7") : socketI18n.t("socketFull.serverUserReplaceTab_bc57662aeb")}
             </Button>
             <ConfirmDialog
               open={confirmReplace}
               onOpenChange={setConfirmReplace}
-              title="Replace user identity?"
+              title={socketI18n.t("socketFull.serverUserReplaceTab_b5d6dd8280")}
               description={
-                <>
-                  This will permanently re-bind{" "}
-                  <strong>{selectedMember?.nickname ?? targetServerUserId}</strong>&apos;s server identity to a new
-                  Keycloak account. The old account will lose access and any active sessions will be revoked.
-                </>
+                <><Trans i18n={socketI18n} i18nKey="socketFull.replaceIdentityDescription" values={{ name: selectedMember?.nickname ?? targetServerUserId }} components={{ name: <strong /> }} /></>
               }
-              confirmLabel="Confirm replace"
+              confirmLabel={socketI18n.t("socketFull.serverUserReplaceTab_723bc307f6")}
               confirmDisabled={submitting}
               onConfirm={handleReplace}
             />

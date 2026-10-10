@@ -1,6 +1,7 @@
 import { Avatar, Button, ContextMenu } from "@gryt/ui";
 
 import { getUploadsFileUrl, resolveAvatarSrc, serverIconSrc } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 
 import type { DirectoryEntry } from "../hooks/dmDirectory";
 import { conversationTitle, type DirectConversation } from "../hooks/useDirectMessages";
@@ -24,9 +25,9 @@ function when(iso: string | null): string {
   const at = new Date(iso);
   if (Number.isNaN(at.getTime())) return "";
   const days = Math.floor((Date.now() - at.getTime()) / 86_400_000);
-  if (days < 1) return at.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-  if (days < 7) return at.toLocaleDateString(undefined, { weekday: "short" });
-  return at.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  if (days < 1) return at.toLocaleTimeString(socketI18n.resolvedLanguage, { hour: "2-digit", minute: "2-digit" });
+  if (days < 7) return at.toLocaleDateString(socketI18n.resolvedLanguage, { weekday: "short" });
+  return at.toLocaleDateString(socketI18n.resolvedLanguage, { day: "numeric", month: "short" });
 }
 
 function ConversationRow({
@@ -46,6 +47,7 @@ function ConversationRow({
   onHide?: () => void;
   onShow?: () => void;
 }) {
+  useSocketTranslation();
   const { host, conversation } = entry;
   const title = conversationTitle(conversation);
   const isGroup = conversation.kind === "group";
@@ -58,7 +60,7 @@ function ConversationRow({
           tone={selected ? "primary" : "ghost"}
           /* Named rather than dimmed for a screen reader, which has no opacity.
              Selected still reads as selected: the tone is untouched. */
-          aria-label={hidden ? `${title}, hidden` : undefined}
+          aria-label={hidden ? socketI18n.t("socketFull.dmSpaceList_58238584df", { p0: (title) }) : undefined}
           style={{
             width: "100%", justifyContent: "start", overflow: "hidden", gap: "10px",
             ...(hidden && !selected ? { opacity: 0.55 } : {}),
@@ -151,7 +153,7 @@ function ConversationRow({
             {onShow && (
               <>
                 <ContextMenu.Separator />
-                <ContextMenu.Item onClick={onShow}>Show in list</ContextMenu.Item>
+                <ContextMenu.Item onClick={onShow}>{socketI18n.t("socketFull.dmSpaceList_199a8b28a8")}</ContextMenu.Item>
               </>
             )}
             {onHide && (
@@ -159,12 +161,10 @@ function ConversationRow({
                 <ContextMenu.Separator />
                 <ContextMenu.Item onClick={onHide}>
                   <div className="flex flex-col">
-                    <span>Hide this conversation</span>
+                    <span>{socketI18n.t("socketFull.dmSpaceList_23f7cede4b")}</span>
                     {/* Two things people assume it does and it doesn't: leave,
                         and follow you to your other devices. */}
-                    <span className="text-xs text-gryt-muted">
-                      Only on this device. Comes back if they write.
-                    </span>
+                    <span className="text-xs text-gryt-muted">{socketI18n.t("socketFull.dmSpaceList_c42ac1b2b2")}</span>
                   </div>
                 </ContextMenu.Item>
               </>
@@ -190,6 +190,7 @@ export function DmSpaceList({
   /** Whether these are the hidden ones, which are drawn back. */
   hidden?: boolean;
 }) {
+  useSocketTranslation();
   const { servers } = useServerManagement();
   const { serverDetailsList, memberLists } = useSockets();
 

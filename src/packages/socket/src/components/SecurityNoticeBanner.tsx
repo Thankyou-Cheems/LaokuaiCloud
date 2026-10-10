@@ -1,6 +1,8 @@
 import { IconButton } from "@gryt/ui";
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
+
 import { getChangelog, loadChangelog, subscribeChangelog } from "../../../../lib/changelogFeed";
 import { PiShieldWarningFill, PiX } from "../../../../lib/icons";
 import {
@@ -10,7 +12,6 @@ import {
   managesServer,
   noticeForServer,
   parseSecurityNotices,
-  securityNoticeText,
   subscribeDismissals,
 } from "../../../../lib/securityNotices";
 
@@ -50,6 +51,7 @@ export function SecurityNoticeBanner({
   serverInfo: { is_owner?: boolean; role?: string; version?: string } | undefined;
   hostedHere: boolean;
 }) {
+  useSocketTranslation();
   const manages = managesServer(serverInfo);
   const feed = useChangelog(manages);
   const notices = useMemo(() => parseSecurityNotices(feed?.securityNotices), [feed]);
@@ -63,7 +65,7 @@ export function SecurityNoticeBanner({
   return (
     <div
       role="status"
-      aria-label="Security notice"
+      aria-label={socketI18n.t("socketFull.securityNoticeBanner_548701be92")}
       className="flex items-center gap-3 px-3 py-2"
       style={{
         flexShrink: 0,
@@ -74,21 +76,19 @@ export function SecurityNoticeBanner({
     >
       <PiShieldWarningFill size={16} style={{ flexShrink: 0, color: "var(--gryt-warning-11)" }} />
       <span className="text-sm" style={{ flex: 1, minWidth: 0 }}>
-        {securityNoticeText(notice.fixedIn, hostedHere)}{" "}
+        {socketI18n.t(hostedHere ? "shellSecond.securityHosted" : "shellSecond.securityServer", { version: notice.fixedIn })}{" "}
         <a
           className="gryt-link font-medium"
           href={notice.url}
           title={notice.title || undefined}
           target="_blank"
           rel="noopener noreferrer"
-        >
-          Details
-        </a>
+        >{socketI18n.t("socketFull.securityNoticeBanner_697899c071")}</a>
       </span>
       <IconButton
         tone="ghost"
         size="xsmall"
-        aria-label="Dismiss"
+        aria-label={socketI18n.t("shellFull.serviceStatusBanner_tsx_70afe9eff3")}
         style={{ flexShrink: 0 }}
         onClick={() => dismissNotices(host, notice.ids)}
       >

@@ -11,12 +11,15 @@ import {
   type SealedAttachmentKey,
   useLocalArchive,
 } from "@/common";
+import { useTranslation as useSocketHooksTranslation } from "@/i18n";
 
 import type { AttachmentMeta, ChatMessage } from "../components/chatUtils";
 import { draftKey, returnDraft } from "../hooks/returnedDrafts";
 import { uploadChatFile } from "../hooks/uploadChatFile";
 import { getMediaDimensions } from "../utils/imageUtils";
 import { openSealedAttachment } from "../utils/sealedAttachments";
+import { socketDisplayText } from "../utils/socketHookMessages";
+import { socketHookToast } from "../utils/socketHookMessages";
 import { useMlsSource } from "./serverMls";
 import type { ConversationProblems } from "./session";
 import { archivedRow, newMessage, sendFailure, withOpenedFiles } from "./timeline";
@@ -67,6 +70,7 @@ export function useMlsConversation({
   const archiveNow = useLocalArchive();
   const archiveOpen = archiveNow.status.kind === "open";
   const archiveEpoch = archiveNow.epoch;
+  const socketHooksLanguage = useSocketHooksTranslation().i18n.resolvedLanguage;
   const [mode, setMode] = useState<DmSealingMode | null>(null);
   const [archived, setArchived] = useState<ChatMessage[]>([]);
   const [limit, setLimit] = useState(PAGE);
@@ -287,7 +291,7 @@ export function useMlsConversation({
       if (!source || !conversationId || !peer) return;
       source.send(conversationId, peer, content).catch((e: unknown) => {
         console.warn(`[MLS] The ${content.type} didn't go:`, e);
-        toast.error(failure);
+        toast.error(socketHookToast(() => failure));
       });
     },
     [source, conversationId, peer],
@@ -300,8 +304,8 @@ export function useMlsConversation({
     const unsent = drafts
       .filter((d) => !archivedIds.has(d.nonce ?? ""))
       .map((d) => (d.pending && serverWaiting ? { ...d, waiting: true } : d));
-    return [...archived.map((m) => withOpenedFiles(m, opened)), ...unsent];
-  }, [active, archived, drafts, opened, serverWaiting]);
+    return [...archived.map((m) => withOpenedFiles(m, opened)), ...unsent].map((m) => ({ ...m, failure: m.failure ? socketDisplayText(m.failure, socketHooksLanguage) : m.failure }));
+  }, [active, archived, drafts, opened, serverWaiting, socketHooksLanguage]);
 
   useEffect(() => {
     const archivedIds = new Set(archived.map((m) => m.message_id));

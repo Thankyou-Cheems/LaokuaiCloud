@@ -1,9 +1,10 @@
+import { i18n } from "@/i18n";
 /* The hover card's "In voice" line on the server rail (GRYT-1657). */
 
 /** Up to four names and how many more, for a one-line hover. */
 export function inVoiceLine(names: string[]): string {
   if (names.length <= 4) return names.join(", ");
-  return `${names.slice(0, 3).join(", ")} and ${names.length - 3} more`;
+  return i18n.t("shellFull.serverVoiceLine_ts_de13b0f51a", { value0: names.slice(0, 3).join(", "), value1: names.length - 3 });
 }
 
 /** Nicknames in a server's voice channels, once each. Mirrors the channel list's own test. */

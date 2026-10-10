@@ -26,7 +26,8 @@ export function presetKey(quality: string, fps: number): string {
   return `${quality}@${fps}`;
 }
 
-export function presetLabel(quality: string, fps: number): string {
+export function presetLabel(quality: string, fps: number, translate?: (key: string, values?: Record<string, unknown>) => string): string {
+  if (translate) return translate("shellSecond.qualityAndFps", { quality: quality === "native" ? translate("shellSecond.nativeQuality") : quality === "4k" ? "4K" : quality, fps });
   return `${quality === "native" ? "Native" : quality === "4k" ? "4K" : quality} · ${fps} fps`;
 }
 
@@ -63,4 +64,10 @@ export async function liftScreenCapture(track: MediaStreamTrack, quality: string
 function maxOf(c: ConstrainULong | ConstrainDouble | undefined): number | null {
   if (typeof c === "object" && c && typeof c.max === "number") return c.max;
   return null;
+}
+
+/** Display-only names for the built-in presets; unknown names remain original. */
+export function presetHint(hint: string, translate: (key: string) => string): string {
+  const keys: Record<string, string> = { "Sharpest text": "shellSecond.sharpText", "Smoothest motion": "shellSecond.smoothMotion", "Uses less data": "shellSecond.lessData", "Sharpest": "shellSecond.sharpest", "HD": "shellSecond.hd" };
+  return Object.prototype.hasOwnProperty.call(keys, hint) ? translate(keys[hint]) : hint;
 }

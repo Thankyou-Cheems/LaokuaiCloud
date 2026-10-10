@@ -2,7 +2,10 @@ import { useEffect } from "react";
 import toast from "react-hot-toast";
 import type { Socket } from "socket.io-client";
 
+import { i18n as socketHooksI18n } from "@/i18n";
+
 import { parseFriendList } from "../utils/friendList";
+import { socketHookToast } from "../utils/socketHookMessages";
 import {
   firstNoticeOf,
   forgetServerFriendList,
@@ -36,11 +39,12 @@ export function useFriendsSync({
     };
     const onIncoming = (payload: { serverUserId?: unknown; nickname?: unknown }) => {
       if (typeof payload?.serverUserId !== "string" || !firstNoticeOf(host, payload.serverUserId)) return;
-      const name = typeof payload.nickname === "string" && payload.nickname ? payload.nickname : "Somebody";
-      toast(`${name} sent you a friend request on ${serverName}.`, { id: `friend:${host}:${payload.serverUserId}` });
+      const name = () => typeof payload.nickname === "string" && payload.nickname ? payload.nickname : socketHooksI18n.t("socketHooksFull.useFriendsSync_ff9d31cd6b");
+      toast(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useFriendsSync_1b356868b7", { p0: name(), p1: serverName })), { id: `friend:${host}:${payload.serverUserId}` });
     };
     const onError = (payload: { message?: unknown }) => {
-      if (typeof payload?.message === "string") toast.error(payload.message, { id: "friend:error" });
+      const message = payload?.message;
+      if (typeof message === "string") toast.error(socketHookToast(() => message), { id: "friend:error" });
     };
 
     socket.on("friend:list", onList);

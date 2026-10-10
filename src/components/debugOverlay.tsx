@@ -1,6 +1,8 @@
 import { motion, useDragControls } from "motion/react";
 import { ReactNode,useRef } from "react";
 
+import { i18n, useTranslation } from "@/i18n";
+
 import { PiCircleFill, PiDotsSixVerticalFill } from "../lib/icons";
 
 interface DebugOverlayProps {
@@ -26,6 +28,7 @@ export function DebugOverlay({
   children,
   initialPosition = { x: window.innerWidth - 340, y: 10 }
 }: DebugOverlayProps) {
+  useTranslation();
   // Drag functionality
   const dragControls = useDragControls();
   const constraintsRef = useRef<HTMLDivElement>(null);
@@ -108,7 +111,7 @@ export function DebugOverlay({
           <div style={{ fontSize: "10px", color: "var(--gryt-neutral-9)", display: "flex", alignItems: "center", gap: "4px" }}>
             <PiDotsSixVerticalFill size={12} />
             <PiCircleFill size={8} color={status.active ? "var(--gryt-success-11)" : "var(--gryt-danger-11)"} />
-            {status.active ? "Active" : "Inactive"} - {status.label}
+            {status.active ? i18n.t("shellFull.debugOverlay_tsx_a733b809d2") : i18n.t("shellFull.debugOverlay_tsx_09af574c7f")} - {status.label}
           </div>
         </div>
 

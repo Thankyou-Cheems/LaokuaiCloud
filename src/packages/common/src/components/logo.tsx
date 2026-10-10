@@ -4,7 +4,7 @@ export function LogoIcon({ size = 48 }: { size?: number; beta?: boolean }) {
 
 export function Logo() {
   return <div className="flex justify-center items-center gap-3">
-    <h2 className="text-4xl">老蒯聊</h2>
+    <h2 className="text-4xl">唠蒯</h2>
     <LogoIcon />
   </div>;
 }

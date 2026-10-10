@@ -2,7 +2,9 @@ import { useMicrophone } from "@gryt/voice";
 import { createElement, useCallback, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
+import { i18n as socketHooksI18n } from "@/i18n";
 import { useSettings } from "@/settings";
+import { socketHookToast } from "@/socket/src/utils/socketHookMessages";
 
 import { getElectronAPI, isElectron } from "../../../../lib/electron";
 import {
@@ -104,7 +106,7 @@ export function useGlobalHotkeys(onDisconnect?: () => void) {
 
       case "mute":
         if (s.isServerMuted) {
-          toast("You are server muted by an admin.", { icon: createElement(PiMicrophoneSlashFill, { size: 18 }), id: "server-muted" });
+          toast(socketHookToast(() => socketHooksI18n.t("socketHooksFull.hotkeyServerMuted")), { icon: createElement(PiMicrophoneSlashFill, { size: 18 }), id: "server-muted" });
           return;
         }
         s.setIsMuted(!s.isMuted);
@@ -112,7 +114,7 @@ export function useGlobalHotkeys(onDisconnect?: () => void) {
 
       case "deafen":
         if (s.isServerDeafened) {
-          toast("You are server deafened by an admin.", { icon: createElement(PiSpeakerSlashFill, { size: 18 }), id: "server-deafened" });
+          toast(socketHookToast(() => socketHooksI18n.t("socketHooksFull.hotkeyServerDeafened")), { icon: createElement(PiSpeakerSlashFill, { size: 18 }), id: "server-deafened" });
           return;
         }
         s.setIsDeafened(!s.isDeafened);

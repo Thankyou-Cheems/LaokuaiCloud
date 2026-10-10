@@ -15,6 +15,9 @@ import {
 import { useState } from "react";
 
 import { useCustomThemes, useTheme } from "@/common";
+import { i18n, useTranslation } from "@/i18n";
+
+import { settingsMessage } from "../settingsMessage";
 
 const GENERATOR = "https://ui.gryt.chat/theme/generator";
 
@@ -29,6 +32,7 @@ export function ImportThemeDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  useTranslation();
   const { saveTheme } = useCustomThemes();
   const { resolvedAppearance } = useTheme();
 
@@ -53,8 +57,8 @@ export function ImportThemeDialog({
       setIncoming(null);
       setError(
         text.trim().startsWith("{")
-          ? "There is no theme in that JSON."
-          : "There is no theme in that link. Copy it from the generator with Copy link.",
+          ? "settingsFull.maf8ad04e9d"
+          : "settingsFull.ma60c163cdf",
       );
       return;
     }
@@ -77,14 +81,12 @@ export function ImportThemeDialog({
       <Dialog.Portal>
         <Dialog.Backdrop />
         <Dialog.Popup>
-          <Dialog.Title>Import a theme</Dialog.Title>
-          <Dialog.Description>
-            Paste a link from the theme generator, or the JSON it exports.
-          </Dialog.Description>
+          <Dialog.Title>{i18n.t("settingsFull.mbeb1a9c2f4")}</Dialog.Title>
+          <Dialog.Description>{i18n.t("settingsFull.m17385d8351")}</Dialog.Description>
 
           <div className="mt-4 flex flex-col gap-3">
             <TextField
-              aria-label="Theme link or JSON"
+              aria-label={i18n.t("settingsFull.m659cc5b49b")}
               multiline
               minRows={2}
               placeholder={`${GENERATOR}?accent=…`}
@@ -101,28 +103,22 @@ export function ImportThemeDialog({
                 size="small"
                 disabled={input.trim() === ""}
                 onClick={() => read(input)}
-              >
-                Read it
-              </Button>
+              >{i18n.t("settingsFull.m90b1fdef30")}</Button>
               <a
                 className="gryt-link text-xs"
                 href={GENERATOR}
                 rel="noreferrer"
                 target="_blank"
-              >
-                Build one on ui.gryt.chat
-              </a>
+              >{i18n.t("settingsFull.m9431f6222c")}</a>
             </div>
 
-            {error ? <Alert severity="error">{error}</Alert> : null}
+            {error ? <Alert severity="error">{settingsMessage(error)}</Alert> : null}
 
             {incoming ? (
               <>
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-sm font-medium">Preview</span>
-                  <label className="flex items-center gap-2 text-xs text-gryt-muted">
-                    Light
-                    <Switch
+                  <span className="text-sm font-medium">{i18n.t("settingsFull.mf1fbb2b43d")}</span>
+                  <label className="flex items-center gap-2 text-xs text-gryt-muted">{i18n.t("settingsFull.ma36ef8aba2")}<Switch
                       checked={preview === "light"}
                       onCheckedChange={(next) =>
                         setPreview(next ? "light" : "dark")
@@ -134,10 +130,10 @@ export function ImportThemeDialog({
                 <ThemePreview appearance={preview} theme={incoming} />
 
                 <TextField
-                  label="Name"
+                  label={i18n.t("settingsFull.m709a23220f")}
                   value={name}
                   onChange={(event) => setName(event.target.value)}
-                  placeholder="Imported theme"
+                  placeholder={i18n.t("settingsFull.mafa61d75a2")}
                 />
               </>
             ) : null}
@@ -145,9 +141,7 @@ export function ImportThemeDialog({
 
           <Dialog.Footer className="flex-wrap justify-between">
             <Dialog.Close render={<span />}>
-              <Button size="small" tone="ghost">
-                Cancel
-              </Button>
+              <Button size="small" tone="ghost">{i18n.t("ui.cancel")}</Button>
             </Dialog.Close>
             <Button
               size="small"
@@ -158,9 +152,7 @@ export function ImportThemeDialog({
                 onOpenChange(false);
                 reset();
               }}
-            >
-              Save and use it
-            </Button>
+            >{i18n.t("settingsFull.mc2001efc5f")}</Button>
           </Dialog.Footer>
         </Dialog.Popup>
       </Dialog.Portal>
@@ -179,6 +171,7 @@ function ThemePreview({
   theme: GrytTheme;
   appearance: GrytAppearance;
 }) {
+  useTranslation();
   return (
     <GrytProvider
       className="rounded-(--gryt-radius-lg) border border-gryt-border bg-gryt-bg p-4"
@@ -186,29 +179,17 @@ function ThemePreview({
     >
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
-          <Button size="small">Join</Button>
-          <Button size="small" tone="secondary">
-            Invite
-          </Button>
-          <Button size="small" tone="neutral">
-            Cancel
-          </Button>
-          <Button size="small" tone="danger">
-            Leave
-          </Button>
+          <Button size="small">{i18n.t("ui.join")}</Button>
+          <Button size="small" tone="secondary">{i18n.t("settingsFull.mb136609f06")}</Button>
+          <Button size="small" tone="neutral">{i18n.t("ui.cancel")}</Button>
+          <Button size="small" tone="danger">{i18n.t("ui.leave")}</Button>
           <Chip label="3" tone="danger" />
         </div>
 
-        <MessageBubble from="assistant">
-          The SFU is dropping its second rebroadcast layer on Firefox again.
-        </MessageBubble>
-        <MessageBubble from="user">
-          Only on the 4-person calls, which is why nobody noticed.
-        </MessageBubble>
+        <MessageBubble from="assistant">{i18n.t("settingsFull.m0ca55d888c")}</MessageBubble>
+        <MessageBubble from="user">{i18n.t("settingsFull.mfd7ce53a67")}</MessageBubble>
 
-        <p className="m-0 text-xs text-gryt-muted">
-          Muted text, on the page it will sit on.
-        </p>
+        <p className="m-0 text-xs text-gryt-muted">{i18n.t("settingsFull.m64e790dc42")}</p>
       </div>
     </GrytProvider>
   );

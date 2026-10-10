@@ -2,6 +2,10 @@ import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import type { Socket } from "socket.io-client";
 
+import { i18n as socketHooksI18n } from "@/i18n";
+
+import { socketHookToast } from "../utils/socketHookMessages";
+
 /**
  * Ringing, and only ringing. A call is an SFU room whose id is the conversation
  * id, so answering is `connect(conversationId)` rather than an event.
@@ -73,13 +77,13 @@ export function useCalls({ socket, accessToken, isConnected }: UseCallsParams): 
 
       // Only the caller's end is worth saying out loud, and only when nobody
       // took it. "Answered" is followed by being in a call, which says itself.
-      if (payload.reason === "declined") toast("Call declined");
-      if (payload.reason === "timeout") toast("No answer");
+      if (payload.reason === "declined") toast(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useCalls_f8839a5f80")));
+      if (payload.reason === "timeout") toast(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useCalls_a9c16dd084")));
     };
 
     const onError = (payload: { error?: string; message?: string }) => {
       // The join that follows a refused ring fails too, and says it under this id.
-      if (payload?.message) toast.error(payload.message, payload.error === "contact_refused" ? { id: "call:start" } : undefined);
+      if (payload?.message) toast.error(socketHookToast(() => payload.message), payload.error === "contact_refused" ? { id: "call:start" } : undefined);
     };
 
     socket.on("call:incoming", onIncoming);

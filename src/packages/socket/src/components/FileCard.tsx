@@ -1,5 +1,7 @@
 import { useCallback } from "react";
 
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
+
 import { PiCode, PiDownloadSimpleFill, PiFileAudioFill, PiFileFill, PiFileTextFill, PiFileVideoFill, PiFileZipFill, PiImageFill } from "../../../../lib/icons";
 const FaFilePdf = PiFileTextFill;
 
@@ -21,18 +23,18 @@ function getFileIcon(mime: string | null) {
 }
 
 function mimeToLabel(mime: string | null): string {
-  if (!mime) return "File";
-  if (mime.startsWith("image/")) return "Image";
-  if (mime.startsWith("audio/")) return "Audio";
-  if (mime.startsWith("video/")) return "Video";
+  if (!mime) return socketI18n.t("socketFull.fileCard_b35a5f8e5c");
+  if (mime.startsWith("image/")) return socketI18n.t("socketFull.fileCard_dd5e3f2fea");
+  if (mime.startsWith("audio/")) return socketI18n.t("ui.audio");
+  if (mime.startsWith("video/")) return socketI18n.t("shellFull.videoDebugOverlay_tsx_bc17c1f017");
   if (mime === "application/pdf") return "PDF";
-  if (mime.includes("zip")) return "ZIP Archive";
-  if (mime.includes("tar")) return "TAR Archive";
-  if (mime.includes("rar")) return "RAR Archive";
-  if (mime.includes("gzip")) return "GZIP Archive";
+  if (mime.includes("zip")) return socketI18n.t("socketFull.fileCard_d3853e2b19");
+  if (mime.includes("tar")) return socketI18n.t("socketFull.fileCard_ce40ccf844");
+  if (mime.includes("rar")) return socketI18n.t("socketFull.fileCard_c950c4b3e3");
+  if (mime.includes("gzip")) return socketI18n.t("socketFull.fileCard_4c5ae85fd9");
   const sub = mime.split("/")[1];
   if (sub) return sub.toUpperCase();
-  return "File";
+  return socketI18n.t("socketFull.fileCard_b35a5f8e5c");
 }
 
 export const FileCard = ({
@@ -51,6 +53,7 @@ export const FileCard = ({
   /** The file itself, when it is here already. Encrypted, the server copy is ciphertext. */
   open?: () => Promise<Blob>;
 }) => {
+  useSocketTranslation();
   const fileUrl = getUploadsFileUrl(serverHost, fileId);
   const displayName = originalName || `${fileId.slice(0, 8)}...`;
 
@@ -75,7 +78,7 @@ export const FileCard = ({
         type="button"
         onClick={handleDownload}
         className="chat-file-card-download"
-        title="Download"
+        title={socketI18n.t("socketFull.fileCard_b512326e7f")}
       >
         <PiDownloadSimpleFill size={14} />
       </button>

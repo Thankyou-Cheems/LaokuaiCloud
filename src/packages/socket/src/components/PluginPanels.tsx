@@ -1,12 +1,14 @@
 import { useSyncExternalStore } from "react";
 
 import { shownPanels, subscribePanels } from "@/addons";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 
 /**
  * What plugins have asked to show, drawn under the member list. **Nothing is
  * markup**, and **the plugin's name is beside the title, not optional** (GRYT-951).
  */
 export const PluginPanels = () => {
+  useSocketTranslation();
   const panels = useSyncExternalStore(subscribePanels, shownPanels, shownPanels);
 
   if (panels.length === 0) return null;
@@ -44,7 +46,7 @@ export const PluginPanels = () => {
           </h3>
 
           {panel.rows.length === 0 ? (
-            <p className="px-1 py-1 text-xs text-gryt-muted opacity-70">Nothing to show.</p>
+            <p className="px-1 py-1 text-xs text-gryt-muted opacity-70">{socketI18n.t("socketFull.pluginPanels_47529981a7")}</p>
           ) : (
             <ul className="flex flex-col gap-1 m-0 p-0 list-none">
               {panel.rows.map((row, index) => (

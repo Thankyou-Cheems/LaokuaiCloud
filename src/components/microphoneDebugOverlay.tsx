@@ -2,6 +2,7 @@ import { useMicrophone, useVoiceLatency } from "@gryt/voice";
 import { useDeviceEnumeration } from "@gryt/voice";
 import { useEffect, useState } from "react";
 
+import { i18n, LocalizedText, useTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 import { useServerManagement,useSockets } from "@/socket";
 
@@ -17,6 +18,7 @@ const StateDot = ({ on }: { on: boolean }) => (
 );
 
 export function MicrophoneDebugOverlay({ isVisible }: MicrophoneDebugOverlayProps) {
+  useTranslation();
   const { 
     microphoneBuffer, 
     audioContext
@@ -130,20 +132,20 @@ export function MicrophoneDebugOverlay({ isVisible }: MicrophoneDebugOverlayProp
   return (
     <DebugOverlay
       isVisible={isVisible}
-      title="Microphone Debug"
+      title={i18n.t("shellFull.microphoneDebugOverlay_tsx_184d8b0360")}
       icon={<PiMicrophoneFill size={16} />}
       status={{
         active: !!audioContext,
-        label: audioContext?.state || "None"
+        label: audioContext?.state || i18n.t("shellFull.microphoneDebugOverlay_tsx_6eef664840")
       }}
     >
       {/* Device Information */}
       <div style={{ marginBottom: "8px" }}>
-        <div style={{ color: "var(--gryt-secondary-11)", fontWeight: "bold" }}>Device:</div>
+        <div style={{ color: "var(--gryt-secondary-11)", fontWeight: "bold" }}>{<LocalizedText translationKey="shellFull.microphoneDebugOverlay_tsx_153f113cc6" />}</div>
         <div style={{ marginLeft: "8px", fontSize: "11px" }}>
-          <div>ID: {micID ? micID.slice(0, 8) + "..." : "None"}</div>
-          <div>Name: {currentDevice?.label || "Unknown"}</div>
-          <div>Available: {devicesLoading ? "Loading..." : devicesError ? "Error" : `${devices.length} devices`}</div>
+          <div>ID: {micID ? micID.slice(0, 8) + "..." : i18n.t("shellFull.microphoneDebugOverlay_tsx_6eef664840")}</div>
+          <div>{<LocalizedText translationKey="shellFull.microphoneDebugOverlay_tsx_71dd2eff9b" />}{" "}{currentDevice?.label || i18n.t("shellFull.microphoneDebugOverlay_tsx_bc7819b34f")}</div>
+          <div>{<LocalizedText translationKey="shellFull.microphoneDebugOverlay_tsx_4a8c2fb2e5" />}{" "}{devicesLoading ? i18n.t("shellFull.microphoneDebugOverlay_tsx_b04ba49f84") : devicesError ? i18n.t("shellFull.microphoneDebugOverlay_tsx_7f2f6a15cf") : i18n.t("shellFull.microphoneDebugOverlay_tsx_d509764ac3", { value0: devices.length })}</div>
           {devicesError && (
             <div style={{ color: "var(--gryt-danger-11)", fontSize: "10px" }}>
               {devicesError}
@@ -154,43 +156,41 @@ export function MicrophoneDebugOverlay({ isVisible }: MicrophoneDebugOverlayProp
 
       {/* Audio Levels */}
       <div style={{ marginBottom: "8px" }}>
-        <div style={{ color: "var(--gryt-secondary-11)", fontWeight: "bold" }}>Audio Levels:</div>
+        <div style={{ color: "var(--gryt-secondary-11)", fontWeight: "bold" }}>{<LocalizedText translationKey="shellFull.microphoneDebugOverlay_tsx_3e1883dd5c" />}</div>
         <div style={{ marginLeft: "8px", fontSize: "11px" }}>
-          <div>Raw: {rawVolume.toFixed(1)}%</div>
-          <div>Processed: {processedVolume.toFixed(1)}%</div>
+          <div>{<LocalizedText translationKey="shellFull.microphoneDebugOverlay_tsx_6a145a03b0" />}{" "}{rawVolume.toFixed(1)}%</div>
+          <div>{<LocalizedText translationKey="shellFull.microphoneDebugOverlay_tsx_17b9bfdd8c" />}{" "}{processedVolume.toFixed(1)}%</div>
           <div>dB: {audioLevel === -Infinity ? "-∞" : audioLevel.toFixed(1)} dB</div>
         </div>
       </div>
 
       {/* Settings */}
       <div style={{ marginBottom: "8px" }}>
-        <div style={{ color: "var(--gryt-secondary-11)", fontWeight: "bold" }}>Settings:</div>
+        <div style={{ color: "var(--gryt-secondary-11)", fontWeight: "bold" }}>{<LocalizedText translationKey="shellFull.microphoneDebugOverlay_tsx_9591a3f419" />}</div>
         <div style={{ marginLeft: "8px", fontSize: "11px" }}>
-          <div>Volume: {micVolume}%</div>
-          <div>Noise Gate: {noiseGate}%</div>
-          <div>Muted: {isMuted ? "Yes" : "No"}</div>
-          <div>Deafened: {isDeafened ? "Yes" : "No"}</div>
+          <div>{<LocalizedText translationKey="shellFull.microphoneDebugOverlay_tsx_d9d9ee5820" />}{" "}{micVolume}%</div>
+          <div>{<LocalizedText translationKey="shellFull.microphoneDebugOverlay_tsx_ec4033f358" />}{" "}{noiseGate}%</div>
+          <div>{<LocalizedText translationKey="shellFull.microphoneDebugOverlay_tsx_bfc427cd49" />}{" "}{isMuted ? i18n.t("shellFull.microphoneDebugOverlay_tsx_5397e0583f") : i18n.t("shellFull.microphoneDebugOverlay_tsx_816c52fd2b")}</div>
+          <div>{<LocalizedText translationKey="shellFull.microphoneDebugOverlay_tsx_9ef0115a56" />}{" "}{isDeafened ? i18n.t("shellFull.microphoneDebugOverlay_tsx_5397e0583f") : i18n.t("shellFull.microphoneDebugOverlay_tsx_816c52fd2b")}</div>
         </div>
       </div>
 
       {/* Status */}
       <div style={{ marginBottom: "8px" }}>
-        <div style={{ color: "var(--gryt-secondary-11)", fontWeight: "bold" }}>Status:</div>
+        <div style={{ color: "var(--gryt-secondary-11)", fontWeight: "bold" }}>{<LocalizedText translationKey="shellFull.microphoneDebugOverlay_tsx_11dc9e1952" />}</div>
         <div style={{ marginLeft: "8px", fontSize: "11px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-            Transmitting: <StateDot on={isTransmitting} /> {isTransmitting ? "Yes" : "No"}
+          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>{<LocalizedText translationKey="shellFull.microphoneDebugOverlay_tsx_0c9fca06bf" />}{" "}<StateDot on={isTransmitting} /> {isTransmitting ? i18n.t("shellFull.microphoneDebugOverlay_tsx_5397e0583f") : i18n.t("shellFull.microphoneDebugOverlay_tsx_816c52fd2b")}
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-            Stream Active: <StateDot on={!!microphoneBuffer.mediaStream?.active} />{" "}
-            {microphoneBuffer.mediaStream?.active ? "Yes" : "No"}
+          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>{<LocalizedText translationKey="shellFull.microphoneDebugOverlay_tsx_1c3c2d591a" />}{" "}<StateDot on={!!microphoneBuffer.mediaStream?.active} />{" "}
+            {microphoneBuffer.mediaStream?.active ? i18n.t("shellFull.microphoneDebugOverlay_tsx_5397e0583f") : i18n.t("shellFull.microphoneDebugOverlay_tsx_816c52fd2b")}
           </div>
-          <div>Context State: {audioContext?.state || "None"}</div>
+          <div>{<LocalizedText translationKey="shellFull.microphoneDebugOverlay_tsx_691ef75a82" />}{" "}{audioContext?.state || i18n.t("shellFull.microphoneDebugOverlay_tsx_6eef664840")}</div>
         </div>
       </div>
 
       {/* Visual Audio Level Bar */}
       <div style={{ marginTop: "8px" }}>
-        <div style={{ color: "var(--gryt-secondary-11)", fontWeight: "bold", marginBottom: "4px" }}>Level:</div>
+        <div style={{ color: "var(--gryt-secondary-11)", fontWeight: "bold", marginBottom: "4px" }}>{<LocalizedText translationKey="shellFull.microphoneDebugOverlay_tsx_ff303351d1" />}</div>
         <div style={{ 
           width: "100%", 
           height: "8px", 
@@ -218,40 +218,37 @@ export function MicrophoneDebugOverlay({ isVisible }: MicrophoneDebugOverlayProp
 
       {/* Network / latency */}
       <div style={{ marginTop: "12px" }}>
-        <div style={{ color: "var(--gryt-secondary-11)", fontWeight: "bold", marginBottom: "4px" }}>Latency:</div>
+        <div style={{ color: "var(--gryt-secondary-11)", fontWeight: "bold", marginBottom: "4px" }}>{<LocalizedText translationKey="shellFull.microphoneDebugOverlay_tsx_4dea3dc643" />}</div>
         <div style={{ marginLeft: "8px", fontSize: "11px" }}>
-          <div>Socket RTT: {socketRttMs == null ? "—" : `${Math.round(socketRttMs)} ms`}</div>
-          <div>WebRTC RTT: {latency.networkRttMs == null ? "—" : `${latency.networkRttMs.toFixed(1)} ms`}</div>
-          <div>Jitter: {latency.jitterMs == null ? "—" : `${latency.jitterMs.toFixed(1)} ms`}</div>
-          <div>Packets lost: {latency.packetsLost == null ? "—" : `${latency.packetsLost}`}</div>
-          <div>Avail out: {latency.availableOutKbps == null ? "—" : `${Math.round(latency.availableOutKbps)} kbps`}</div>
-          <div>Bitrate: {latency.bitrateKbps == null ? "—" : `${latency.bitrateKbps.toFixed(1)} kbps`}</div>
-          <div>Codec: {latency.codec || "—"}</div>
+          <div>{<LocalizedText translationKey="shellFull.microphoneDebugOverlay_tsx_9f6ebae7ae" />}{" "}{socketRttMs == null ? "—" : `${Math.round(socketRttMs)} ms`}</div>
+          <div>{<LocalizedText translationKey="shellFull.microphoneDebugOverlay_tsx_687ee05508" />}{" "}{latency.networkRttMs == null ? "—" : `${latency.networkRttMs.toFixed(1)} ms`}</div>
+          <div>{<LocalizedText translationKey="shellFull.microphoneDebugOverlay_tsx_7d0ffb0cee" />}{" "}{latency.jitterMs == null ? "—" : `${latency.jitterMs.toFixed(1)} ms`}</div>
+          <div>{<LocalizedText translationKey="shellFull.microphoneDebugOverlay_tsx_8e54383fcb" />}{" "}{latency.packetsLost == null ? "—" : `${latency.packetsLost}`}</div>
+          <div>{<LocalizedText translationKey="shellFull.microphoneDebugOverlay_tsx_b5dcd8bb4f" />}{" "}{latency.availableOutKbps == null ? "—" : `${Math.round(latency.availableOutKbps)} kbps`}</div>
+          <div>{<LocalizedText translationKey="shellFull.microphoneDebugOverlay_tsx_fa1da0b1bf" />}{" "}{latency.bitrateKbps == null ? "—" : `${latency.bitrateKbps.toFixed(1)} kbps`}</div>
+          <div>{<LocalizedText translationKey="shellFull.microphoneDebugOverlay_tsx_d50f2c549f" />}{" "}{latency.codec || "—"}</div>
         </div>
       </div>
 
       {/* Pipeline latency */}
       <div style={{ marginTop: "8px" }}>
-        <div style={{ color: "var(--gryt-secondary-11)", fontWeight: "bold", marginBottom: "4px" }}>Pipeline ({modeLabel}):</div>
+        <div style={{ color: "var(--gryt-secondary-11)", fontWeight: "bold", marginBottom: "4px" }}>{i18n.t("shellFull.audioPipeline", { mode: modeLabel })}</div>
         <div style={{ marginLeft: "8px", fontSize: "11px" }}>
-          <div>Context base: {latency.contextBaseLatencyMs == null ? "—" : `${latency.contextBaseLatencyMs.toFixed(1)} ms`}</div>
-          <div>Context output: {latency.contextOutputLatencyMs == null ? "—" : `${latency.contextOutputLatencyMs.toFixed(1)} ms`}</div>
-          <div style={{ color: latency.rnnoiseBufferMs != null && latency.rnnoiseBufferMs > 50 ? "var(--gryt-warning-11)" : "inherit" }}>
-            RNNoise buffer: {latency.rnnoiseBufferMs == null ? "off" : `${latency.rnnoiseBufferMs.toFixed(1)} ms`}
+          <div>{<LocalizedText translationKey="shellFull.microphoneDebugOverlay_tsx_dd82a506e6" />}{" "}{latency.contextBaseLatencyMs == null ? "—" : `${latency.contextBaseLatencyMs.toFixed(1)} ms`}</div>
+          <div>{<LocalizedText translationKey="shellFull.microphoneDebugOverlay_tsx_fd934d4d0b" />}{" "}{latency.contextOutputLatencyMs == null ? "—" : `${latency.contextOutputLatencyMs.toFixed(1)} ms`}</div>
+          <div style={{ color: latency.rnnoiseBufferMs != null && latency.rnnoiseBufferMs > 50 ? "var(--gryt-warning-11)" : "inherit" }}>{<LocalizedText translationKey="shellFull.microphoneDebugOverlay_tsx_ead71485ce" />}{" "}{latency.rnnoiseBufferMs == null ? i18n.t("shellSecond.off") : `${latency.rnnoiseBufferMs.toFixed(1)} ms`}
           </div>
-          <div>Local pipeline: {latency.localPipelineMs == null ? "—" : `${latency.localPipelineMs.toFixed(1)} ms`}</div>
+          <div>{<LocalizedText translationKey="shellFull.microphoneDebugOverlay_tsx_ef1f453be5" />}{" "}{latency.localPipelineMs == null ? "—" : `${latency.localPipelineMs.toFixed(1)} ms`}</div>
         </div>
       </div>
 
       {/* Estimated totals */}
       <div style={{ marginTop: "8px" }}>
-        <div style={{ color: "var(--gryt-success-11)", fontWeight: "bold", marginBottom: "4px" }}>Estimated:</div>
+        <div style={{ color: "var(--gryt-success-11)", fontWeight: "bold", marginBottom: "4px" }}>{<LocalizedText translationKey="shellFull.microphoneDebugOverlay_tsx_7189ebcc32" />}</div>
         <div style={{ marginLeft: "8px", fontSize: "11px" }}>
-          <div style={{ fontWeight: "bold" }}>
-            One-way: {latency.estimatedOneWayMs == null ? "—" : `${latency.estimatedOneWayMs.toFixed(1)} ms`}
+          <div style={{ fontWeight: "bold" }}>{<LocalizedText translationKey="shellFull.microphoneDebugOverlay_tsx_a87cf11704" />}{" "}{latency.estimatedOneWayMs == null ? "—" : `${latency.estimatedOneWayMs.toFixed(1)} ms`}
           </div>
-          <div>
-            Round-trip: {latency.estimatedRoundTripMs == null ? "—" : `${latency.estimatedRoundTripMs.toFixed(1)} ms`}
+          <div>{<LocalizedText translationKey="shellFull.microphoneDebugOverlay_tsx_4dd4c60454" />}{" "}{latency.estimatedRoundTripMs == null ? "—" : `${latency.estimatedRoundTripMs.toFixed(1)} ms`}
           </div>
         </div>
       </div>

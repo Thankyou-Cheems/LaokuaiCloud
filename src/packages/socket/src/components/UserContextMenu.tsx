@@ -2,6 +2,7 @@ import { ContextMenu, Slider } from "@gryt/ui";
 import { ReactNode } from "react";
 import toast from "react-hot-toast";
 
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 
 import { PiAtFill, PiChatCircleFill, PiCheckBold, PiCopyFill, PiFlagFill, PiProhibitFill, PiUserPlusFill } from "../../../../lib/icons";
@@ -88,21 +89,22 @@ export function UserContextMenu({
   isBlocked,
   onReport,
 }: UserContextMenuProps) {
+  useSocketTranslation();
   const { userVolumes, updateUserVolume, resetUserVolume, openSettings } = useSettings();
   const { has, can, roles } = useServerPermissions(serverHost || "");
   const friendship = useFriendState(serverHost, isSelf ? undefined : serverUserId);
   // One step at a time. Removing a friend lives in the Friends list, away from a quick right-click.
   const friendItem = !serverHost || !serverUserId ? null
-    : friendship === "none" ? { label: "Add friend", onClick: () => friendAction(serverHost, "request", serverUserId) }
-      : friendship === "incoming" ? { label: "Accept friend request", onClick: () => friendAction(serverHost, "accept", serverUserId) }
-        : friendship === "outgoing" ? { label: "Cancel friend request", onClick: () => friendAction(serverHost, "cancel", serverUserId) }
+    : friendship === "none" ? { label: socketI18n.t("socketFull.userContextMenu_5a4eae4cab"), onClick: () => friendAction(serverHost, "request", serverUserId) }
+      : friendship === "incoming" ? { label: socketI18n.t("socketFull.userContextMenu_9e28013919"), onClick: () => friendAction(serverHost, "accept", serverUserId) }
+        : friendship === "outgoing" ? { label: socketI18n.t("socketFull.userContextMenu_ea5bbca548"), onClick: () => friendAction(serverHost, "cancel", serverUserId) }
           : null;
 
   const handleCopyId = () => {
     if (!serverUserId) return;
     navigator.clipboard.writeText(serverUserId).then(
-      () => toast.success("Copied user ID"),
-      () => toast.error("Failed to copy"),
+      () => toast.success(socketI18n.t("socketFull.userContextMenu_abc696f4c7")),
+      () => toast.error(socketI18n.t("ui.failedToCopy")),
     );
   };
 
@@ -131,22 +133,17 @@ export function UserContextMenu({
             </ContextMenu.GroupLabel>
           </ContextMenu.Group>
           <ContextMenu.Separator />
-          <ContextMenu.Item onClick={() => openSettings("profile")}>
-            Edit Profile
-          </ContextMenu.Item>
+          <ContextMenu.Item onClick={() => openSettings("profile")}>{socketI18n.t("socketFull.userContextMenu_45016325c7")}</ContextMenu.Item>
           {serverUserId && (
             <ContextMenu.Item onClick={handleCopyId}>
               <div className="flex items-center gap-2">
-                <PiCopyFill size={14} /> Copy ID
-              </div>
+                <PiCopyFill size={14} />{" "}{socketI18n.t("socketFull.userContextMenu_2ff2e1d319")}</div>
             </ContextMenu.Item>
           )}
           {onPopoutVideo && (
             <>
               <ContextMenu.Separator />
-              <ContextMenu.Item onClick={onPopoutVideo}>
-                Pop out video
-              </ContextMenu.Item>
+              <ContextMenu.Item onClick={onPopoutVideo}>{socketI18n.t("socketFull.userContextMenu_3453cee4ca")}</ContextMenu.Item>
             </>
           )}
         </ContextMenu.Popup>
@@ -215,8 +212,7 @@ export function UserContextMenu({
         {onOpenDm && can("send_direct_messages") && (
           <ContextMenu.Item onClick={onOpenDm}>
             <div className="flex items-center gap-2">
-              <PiChatCircleFill size={14} /> Message
-            </div>
+              <PiChatCircleFill size={14} />{" "}{socketI18n.t("socketFull.userContextMenu_7610962ecc")}</div>
           </ContextMenu.Item>
         )}
         {friendItem && (
@@ -228,13 +224,11 @@ export function UserContextMenu({
         )}
         <ContextMenu.Item onClick={handleMention}>
           <div className="flex items-center gap-2">
-            <PiAtFill size={14} /> Mention
-          </div>
+            <PiAtFill size={14} />{" "}{socketI18n.t("socketFull.userContextMenu_1d5f6d9d7b")}</div>
         </ContextMenu.Item>
         <ContextMenu.Item onClick={handleCopyId}>
           <div className="flex items-center gap-2">
-            <PiCopyFill size={14} /> Copy ID
-          </div>
+            <PiCopyFill size={14} />{" "}{socketI18n.t("socketFull.userContextMenu_2ff2e1d319")}</div>
         </ContextMenu.Item>
         {/* Above the volume slider and well above the moderator section, which
             is where it belongs on both counts: it is something anybody can do
@@ -249,7 +243,7 @@ export function UserContextMenu({
             onClick={onToggleBlock}
           >
             <div className="flex items-center gap-2">
-              <PiProhibitFill size={14} /> {isBlocked ? "Unblock" : "Block"}
+              <PiProhibitFill size={14} /> {isBlocked ? socketI18n.t("settingsFull.m12aabd251c") : socketI18n.t("socketFull.userContextMenu_49566fca19")}
             </div>
           </ContextMenu.Item>
         )}
@@ -260,14 +254,13 @@ export function UserContextMenu({
         {onReport && has("report_messages") && (
           <ContextMenu.Item className="text-gryt-danger" onClick={onReport}>
             <div className="flex items-center gap-2">
-              <PiFlagFill size={14} /> Report
-            </div>
+              <PiFlagFill size={14} />{" "}{socketI18n.t("socketFull.userContextMenu_654eb38dad")}</div>
           </ContextMenu.Item>
         )}
         <ContextMenu.Separator />
         <div className="flex flex-col gap-2 px-2 py-1" onPointerDown={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-between">
-            <span className="text-xs text-gryt-muted">Volume</span>
+            <span className="text-xs text-gryt-muted">{socketI18n.t("settingsFull.m3b18e8e332")}</span>
             <span className="text-xs font-medium" style={{ fontVariantNumeric: "tabular-nums" }}>
               {volume}%
             </span>
@@ -283,25 +276,19 @@ export function UserContextMenu({
         {volume !== 100 && (
           <>
             <ContextMenu.Separator />
-            <ContextMenu.Item onClick={() => resetUserVolume(serverUserId)}>
-              Reset volume
-            </ContextMenu.Item>
+            <ContextMenu.Item onClick={() => resetUserVolume(serverUserId)}>{socketI18n.t("socketFull.userContextMenu_82407175c8")}</ContextMenu.Item>
           </>
         )}
         {onPopoutVideo && (
           <>
             <ContextMenu.Separator />
-            <ContextMenu.Item onClick={onPopoutVideo}>
-              Pop out video
-            </ContextMenu.Item>
+            <ContextMenu.Item onClick={onPopoutVideo}>{socketI18n.t("socketFull.userContextMenu_3453cee4ca")}</ContextMenu.Item>
           </>
         )}
         {showDisconnect && (
           <>
             <ContextMenu.Separator />
-            <ContextMenu.Item className="text-gryt-danger" onClick={onDisconnectFromVoice}>
-              Disconnect from voice
-            </ContextMenu.Item>
+            <ContextMenu.Item className="text-gryt-danger" onClick={onDisconnectFromVoice}>{socketI18n.t("socketFull.userContextMenu_96ee562d31")}</ContextMenu.Item>
           </>
         )}
 
@@ -311,13 +298,13 @@ export function UserContextMenu({
 
             {canMute && onServerMute && (
               <ContextMenu.Item onClick={() => onServerMute(!isServerMuted)}>
-                {isServerMuted ? "Remove server mute" : "Server mute"}
+                {isServerMuted ? socketI18n.t("socketFull.userContextMenu_b46f7caf04") : socketI18n.t("socketFull.userContextMenu_c1f034cad5")}
               </ContextMenu.Item>
             )}
 
             {canDeafen && onServerDeafen && (
               <ContextMenu.Item onClick={() => onServerDeafen(!isServerDeafened)}>
-                {isServerDeafened ? "Remove server deafen" : "Server deafen"}
+                {isServerDeafened ? socketI18n.t("socketFull.userContextMenu_4482b6c0d4") : socketI18n.t("socketFull.userContextMenu_6c9349325d")}
               </ContextMenu.Item>
             )}
 
@@ -331,7 +318,7 @@ export function UserContextMenu({
                 roles at once is what the Members tab in settings is for. */}
             {canAssignRoles && onToggleRole && assignableRoles.length > 0 && (
               <ContextMenu.SubmenuRoot>
-                <ContextMenu.SubmenuTrigger>Roles</ContextMenu.SubmenuTrigger>
+                <ContextMenu.SubmenuTrigger>{socketI18n.t("socketFull.userContextMenu_b6573859e9")}</ContextMenu.SubmenuTrigger>
                 <ContextMenu.Portal>
                   <ContextMenu.Positioner>
                     <ContextMenu.Popup>
@@ -362,15 +349,11 @@ export function UserContextMenu({
             <ContextMenu.Separator />
 
             {canKick && onKick && (
-              <ContextMenu.Item className="text-gryt-danger" onClick={onKick}>
-                Kick from server
-              </ContextMenu.Item>
+              <ContextMenu.Item className="text-gryt-danger" onClick={onKick}>{socketI18n.t("socketFull.userContextMenu_0dded5d6fe")}</ContextMenu.Item>
             )}
 
             {canBan && onBan && (
-              <ContextMenu.Item className="text-gryt-danger" onClick={onBan}>
-                Ban from server
-              </ContextMenu.Item>
+              <ContextMenu.Item className="text-gryt-danger" onClick={onBan}>{socketI18n.t("socketFull.userContextMenu_1548d2af72")}</ContextMenu.Item>
             )}
           </>
         )}

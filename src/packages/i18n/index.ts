@@ -57,3 +57,4 @@ if (typeof window !== "undefined") {
 }
 
 export { useTranslation };
+export { LocalizedText } from "./LocalizedText";

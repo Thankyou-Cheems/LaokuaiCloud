@@ -1,4 +1,4 @@
-
+import { i18n, useTranslation } from "@/i18n";
 import { computeGridLayout, GRID_GAP } from "@/socket/src/lib/voiceLayout";
 
 import type { VoiceTileLayout } from "../hooks/settingsStorage";
@@ -19,6 +19,7 @@ const SWATCH = { width: 132, height: 74 };
  * function the voice grid runs, so the swatch cannot drift.
  */
 function LayoutSwatch({ rule }: { rule: VoiceTileLayout }) {
+  useTranslation();
   const layout = computeGridLayout(
     REFERENCE.width,
     REFERENCE.height,
@@ -76,13 +77,13 @@ const OPTIONS: Array<{
 }> = [
   {
     value: "meet",
-    label: "Match Google Meet",
-    hint: "More columns, and tiles may go tall and narrow.",
+    get label() { return i18n.t("settingsFull.m65a0cf955e"); },
+    get hint() { return i18n.t("settingsFull.m2892f9d640"); },
   },
   {
     value: "large",
-    label: "Biggest tiles",
-    hint: "Whichever arrangement makes the tiles largest.",
+    get label() { return i18n.t("settingsFull.m8183bace55"); },
+    get hint() { return i18n.t("settingsFull.m659db6b654"); },
   },
 ];
 
@@ -97,8 +98,9 @@ export function TileLayoutPicker({
   value: VoiceTileLayout;
   onChange: (layout: VoiceTileLayout) => void;
 }) {
+  useTranslation();
   return (
-    <div className="flex gap-3 flex-wrap" role="radiogroup" aria-label="Tile layout">
+    <div className="flex gap-3 flex-wrap" role="radiogroup" aria-label={i18n.t("ui.tileLayout")}>
       {OPTIONS.map((option) => {
         const selected = value === option.value;
         return (

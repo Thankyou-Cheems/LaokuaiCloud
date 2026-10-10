@@ -2,6 +2,7 @@ import type { StreamSources } from "@gryt/voice";
 import { motion } from "motion/react";
 import { RefObject } from "react";
 
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 import type { Channel, SidebarItem, SidebarReorderEntry } from "@/settings/src/types/server";
 
 import type { Client } from "../types/clients";
@@ -83,10 +84,10 @@ export const ServerSidebar = ({
   onChannelClick, clientsSpeaking, streamSources,
   canManage, onEditItem, onDeleteItem, onMoveItem, onReorder, orderResetKey, onAddItem,
   onDisconnectUser, currentUserRole, adminActions, unreadCounts, threadUnreadCounts, mentionCounts,
-}: ServerSidebarProps) => (
+}: ServerSidebarProps) => { useSocketTranslation(); return (
   <div
     role="navigation"
-    aria-label="Channels"
+    aria-label={socketI18n.t("ui.channels")}
     onMouseLeave={onMouseLeave}
     onMouseEnter={onMouseEnter}
     style={{ flexShrink: 0, display: "flex" }}
@@ -224,4 +225,4 @@ export const ServerSidebar = ({
       />
     </motion.div>
   </div>
-);
+); };

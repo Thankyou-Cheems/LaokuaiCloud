@@ -147,6 +147,7 @@ import {
   stopNativeScreenCapture,
 } from "./screenCaptureManager";
 import { SquadInputBroker } from "./squadInputBroker";
+import { nativeLanguage, nativeT, setNativeApplicationName,setNativeLanguagePreference } from "./uiLanguage";
 import {
   clockTime,
   findFeedRelease,
@@ -176,6 +177,7 @@ const __dirname = dirname(__filename);
 const require = createRequire(import.meta.url);
 
 const IS_LAOKUAI = isLaokuaiPackage();
+if (IS_LAOKUAI) setNativeApplicationName("唠蒯");
 const IS_I18N_TEST = isI18nTestPackage();
 if (IS_I18N_TEST) isolateI18nTestData();
 
@@ -452,7 +454,7 @@ function startRichPresence(): void {
       rpcHolder = holder;
       rpcVia = via;
       if (state !== "holding") board.reset();
-      board.note(`connection: ${state}${via ? ` via ${via}` : ""}${holder ? `, held by ${holder.name}` : ""}`);
+      board.note(`connection: ${state}${via ? ` via ${via}` : ""}${holder ? `, held by ${holder.name}` : ""}`, "connection", { state, via: via ?? "", holder: holder?.name ?? "" });
       mainWindow?.webContents.send("rich-presence-state", socketStatus());
     },
     createHost: createRpcHost,
@@ -590,8 +592,8 @@ let localServerUrl: string | null = null;
 process.on("uncaughtException", (err) => {
   startupLog(`FATAL uncaughtException: ${err.stack ?? err.message}`);
   dialog.showErrorBox(
-    "Gryt — Unexpected Error",
-    `${err.message}\n\nThe app will now quit. Check gryt-startup.log in the app data folder for details.`
+    nativeT("second_62649324d6a7"),
+    nativeT("second_498caef107e8", { detail: err.message })
   );
   app.exit(1);
 });
@@ -605,8 +607,8 @@ process.on("unhandledRejection", (reason) => {
   if (!mainWindow) {
     const short = reason instanceof Error ? reason.message : String(reason);
     dialog.showErrorBox(
-      "Gryt — Startup Error",
-      `${short}\n\nThe app will now quit. Check gryt-startup.log in the app data folder for details.`
+      nativeT("second_1ca61af127cd"),
+      nativeT("second_498caef107e8", { detail: short })
     );
     app.exit(1);
   }
@@ -643,6 +645,7 @@ if (process.platform !== "darwin") {
 /** True unless the AppImage moved from the path its `gryt://` handler names.
     The offer to fix it is only made when it can be honoured. */
 async function warnIfAppImageMoved(): Promise<boolean> {
+  refreshNativeLanguage();
   const state = appImageState(process.env.APPIMAGE);
   if (state.kind === "not-applicable" || state.kind === "present") return true;
 
@@ -651,14 +654,11 @@ async function warnIfAppImageMoved(): Promise<boolean> {
   if (state.kind === "trashed") {
     const { response } = await dialog.showMessageBox(parent!, {
       type: "warning",
-      title: "Gryt is in the Trash",
-      message: "Gryt is running from the Trash.",
+      title: nativeT("beed028814e3"),
+      message: nativeT("6ed4f99eefb5"),
       detail:
-        "An AppImage is the app itself rather than an installer, so deleting it " +
-        "leaves nothing to come back to. Signing in opens your browser, and the " +
-        "browser hands you back to Gryt — which it cannot do from here.\n\n" +
-        `Gryt can move itself to ${APPS_DIR} and carry on.`,
-      buttons: ["Move Gryt and continue", "Sign in anyway", "Cancel"],
+        nativeT("trashedDetail", { appsDir: APPS_DIR }),
+      buttons: [nativeT("22f6a8b10151"), nativeT("6a7af9dcba63"), nativeT("77dfd2135f4d")],
       defaultId: 0,
       cancelId: 2,
       noLink: true,
@@ -676,13 +676,11 @@ async function warnIfAppImageMoved(): Promise<boolean> {
 
       await dialog.showMessageBox(parent!, {
         type: "info",
-        title: "Gryt moved",
-        message: `Gryt now lives in ${APPS_DIR}.`,
+        title: nativeT("137af41793a2"),
+        message: nativeT("bb553feca214", { value0: APPS_DIR }),
         detail:
-          "Sign-in will work from here on. This copy is still the one that was " +
-          "in the Trash, so launch Gryt from its new home next time rather than " +
-          "from wherever you started it.",
-        buttons: ["Sign in"],
+          nativeT("movedDetail"),
+        buttons: [nativeT("ada2e9e96fa9")],
         noLink: true,
       });
       return true;
@@ -690,12 +688,11 @@ async function warnIfAppImageMoved(): Promise<boolean> {
       startupLog(`Could not recover AppImage: ${error}`);
       await dialog.showMessageBox(parent!, {
         type: "error",
-        title: "Could not move Gryt",
-        message: "Gryt could not move itself out of the Trash.",
+        title: nativeT("73a24b7ac527"),
+        message: nativeT("1c90eeec93c1"),
         detail:
-          `Move ${state.trashedAt} to ${APPS_DIR} yourself, then start Gryt from ` +
-          "there. Sign-in will work once it is running from a permanent home.",
-        buttons: ["OK"],
+          nativeT("moveFailedDetail", { trashedAt: state.trashedAt, appsDir: APPS_DIR }),
+        buttons: [nativeT("9ce3bd4224c8")],
         noLink: true,
       });
       return false;
@@ -706,15 +703,11 @@ async function warnIfAppImageMoved(): Promise<boolean> {
      wrong and what fixes it, rather than offering a button that cannot work. */
   const { response } = await dialog.showMessageBox(parent!, {
     type: "warning",
-    title: "Gryt has moved",
-    message: "Gryt is not where it was when it started.",
+    title: nativeT("506f5dbeb432"),
+    message: nativeT("9937a1c326c9"),
     detail:
-      `It was launched from ${state.path}, which is no longer there. An AppImage ` +
-      "is the app itself rather than an installer, so moving or deleting it " +
-      "breaks the link your browser uses to hand sign-in back.\n\n" +
-      `Put the AppImage somewhere permanent — ${APPS_DIR} is a good home — and ` +
-      "start Gryt from there.",
-    buttons: ["Sign in anyway", "Cancel"],
+      nativeT("locationChangedDetail", { path: state.path, appsDir: APPS_DIR }),
+    buttons: [nativeT("6a7af9dcba63"), nativeT("77dfd2135f4d")],
     defaultId: 1,
     cancelId: 1,
     noLink: true,
@@ -973,7 +966,11 @@ startupLog(`Started ${app.getVersion()} from ${process.execPath}${updatesComeFro
 const STORE_PACKAGE = updatesComeFromTheAppStore ? "the Mac App Store" : "the MSIX package";
 
 /** For the panel, which needs a name a person recognizes rather than a package format. */
-const STORE_NAME = updatesComeFromTheAppStore ? "the Mac App Store" : "the Microsoft Store";
+function storeUpdateMessage(): string {
+  return updatesComeFromTheAppStore
+    ? nativeT("second_83ddf9e450dd")
+    : nativeT("second_4dbaca095983");
+}
 
 autoUpdater.logger = {
   info: (m: unknown) => startupLog(`Update: ${String(m)}`),
@@ -1350,6 +1347,13 @@ function logUpdateFailure(
   startupLog(`${context}: ${message}`);
 }
 
+function nativeLookupFailedMessage(failure: Parameters<typeof lookupFailedMessage>[0], now: number): string {
+  const original = lookupFailedMessage(failure, now, (at) => clockTime(at, nativeLanguage()));
+  if (original === "Couldn't check GitHub for updates right now. Try again in a few minutes.") return nativeT("second_b1810a09d4f5");
+  const prefix = "Couldn't check GitHub for updates right now. Try again after ";
+  return original.startsWith(prefix) && original.endsWith(".") ? nativeT("second_abc5705e68e5", { time: original.slice(prefix.length, -1) }) : original;
+}
+
 function friendlyUpdateError(err: Error): string {
   const msg = err.message;
 
@@ -1357,7 +1361,7 @@ function friendlyUpdateError(err: Error): string {
     msg.includes("status 404") ||
     msg.includes("HttpError: 404")
   ) {
-    return "The update file was not found. A new release may not have all artifacts uploaded yet — try again in a few minutes.";
+    return nativeT("second_9407971d8963");
   }
 
   if (
@@ -1365,14 +1369,14 @@ function friendlyUpdateError(err: Error): string {
     msg.includes("latest-linux.yml") ||
     msg.includes("latest-mac.yml")
   ) {
-    return "No update available for this channel yet. The release may still be building — try again in a few minutes.";
+    return nativeT("second_dd64ba81e545");
   }
 
   if (
     msg.includes("HttpError: 429") ||
     msg.toLowerCase().includes("rate limit")
   ) {
-    return "GitHub is rate limiting this machine, so the update could not be fetched. It clears on its own, so try again in a few minutes.";
+    return nativeT("second_3b13e17a40ac");
   }
 
   if (
@@ -1382,7 +1386,7 @@ function friendlyUpdateError(err: Error): string {
     msg.includes("ERR_CONNECTION_RESET") ||
     msg.includes("ERR_EMPTY_RESPONSE")
   ) {
-    return "The update could not be fetched. The connection to GitHub closed before it finished. This is usually temporary, so try again in a few minutes.";
+    return nativeT("second_f1725a617c92");
   }
 
   if (
@@ -1390,18 +1394,18 @@ function friendlyUpdateError(err: Error): string {
     msg.includes("ENOTFOUND") ||
     msg.includes("ETIMEDOUT")
   ) {
-    return "Could not reach the update server. Check your internet connection and try again.";
+    return nativeT("second_6afa7147d24c");
   }
 
   if (
     msg.includes("HttpError: 403") ||
     msg.includes("HttpError: 401")
   ) {
-    return "Access denied while checking for updates. The release may be private or your token has expired.";
+    return nativeT("second_f1a73356fc04");
   }
 
   if (msg.includes("sha512 checksum mismatch")) {
-    return "Downloaded update failed integrity check. Try checking for updates again.";
+    return nativeT("second_2d94088bae0a");
   }
 
   return msg;
@@ -1553,7 +1557,7 @@ function checkForUpdatesInBackground(
     startupLog(`Update: skipped (${reason}) — installed from ${STORE_PACKAGE}`);
     /* A press, so the panel gets an answer instead of sitting on "Checking...". */
     if (force) {
-      sendToMain("store-managed", { message: `${STORE_NAME} keeps this version up to date.` });
+      sendToMain("store-managed", { message: storeUpdateMessage() });
     }
     return;
   }
@@ -1621,7 +1625,7 @@ function offerRelease(
   if (updatesComeFromAStore) {
     startupLog(`Update: not downloading — installed from ${STORE_PACKAGE}`);
     if (options.asked) {
-      sendToMain("store-managed", { message: `${STORE_NAME} keeps this version up to date.` });
+      sendToMain("store-managed", { message: storeUpdateMessage() });
     }
     return;
   }
@@ -2190,7 +2194,7 @@ function createMainWindow(): BrowserWindow {
     },
 
     autoHideMenuBar: true,
-    title: IS_LAOKUAI ? "老蒯聊" : "Gryt",
+    title: IS_LAOKUAI ? "唠蒯" : "Gryt",
   });
 
   mainWindow.loadURL(
@@ -2321,14 +2325,14 @@ function createMainWindow(): BrowserWindow {
           .showMessageBox({
             type: "error",
             title:
-              "Gryt — Renderer Crashed",
+              nativeT("second_ccae8a38758d"),
             message:
-              "The app encountered an error and needs to restart.",
+              nativeT("second_76295f80b8cc"),
             detail:
-              "If this keeps happening, try disabling hardware acceleration in Settings.",
+              nativeT("second_efaff98aa116"),
             buttons: [
-              "Restart",
-              "Quit",
+              nativeT("second_b134bd555a2f"),
+              nativeT("second_1a2285d8881f"),
             ],
           })
           .then(({ response }) => {
@@ -2709,12 +2713,17 @@ function ensureUiohook(): boolean {
 
 // ── System tray ─────────────────────────────────────────────────────────
 
+function refreshNativeLanguage(): void {
+  setNativeLanguagePreference(loadGlobalStore()["gryt.ui.language"] ?? (IS_LAOKUAI ? "zh-CN" : "system"), app.getPreferredSystemLanguages());
+}
+
 function buildTrayContextMenu(): Menu {
+  refreshNativeLanguage();
   return Menu.buildFromTemplate([
     {
       label: mainWindow?.isVisible()
-        ? (IS_LAOKUAI ? "隐藏老蒯聊" : "Hide Gryt")
-        : (IS_LAOKUAI ? "打开老蒯聊" : "Show Gryt"),
+        ? nativeT("6fffbcb6a2e6")
+        : nativeT("726dff642ff6"),
       click: toggleMainWindow,
     },
 
@@ -2726,13 +2735,13 @@ function buildTrayContextMenu(): Menu {
 
           {
             label: voiceState.serverName
-              ? `Voice — ${voiceState.serverName}`
-              : "Voice",
+              ? nativeT("c7f32bba3269", { value0: voiceState.serverName })
+              : nativeT("3091c8446f8d"),
             enabled: false,
           } as const,
 
           {
-            label: "Mute",
+            label: nativeT("0f0973483d91"),
             type: "checkbox" as const,
             checked:
               voiceState.muted,
@@ -2745,7 +2754,7 @@ function buildTrayContextMenu(): Menu {
           },
 
           {
-            label: "Deafen",
+            label: nativeT("2247b41f9ffb"),
             type: "checkbox" as const,
             checked:
               voiceState.deafened,
@@ -2764,7 +2773,7 @@ function buildTrayContextMenu(): Menu {
     ...(updates.ready()
       ? [
           {
-            label: `Restart and install ${updates.ready()}`,
+            label: nativeT("33750c53e2ae", { value0: updates.ready() }),
             click: installNewestUpdate,
           } as const,
 
@@ -2778,7 +2787,7 @@ function buildTrayContextMenu(): Menu {
       ? []
       : [
           {
-            label: "Check for Updates",
+            label: nativeT("8604ff8e6ae5"),
             click: () => {
               /* Forced: somebody pressed this, so it skips the floor and answers
                  either way. */
@@ -2792,7 +2801,7 @@ function buildTrayContextMenu(): Menu {
         ]),
 
     {
-      label: IS_LAOKUAI ? "退出老蒯聊" : "Quit",
+      label: nativeT(IS_LAOKUAI ? "privateQuit" : "1a2285d8881f"),
       click: () => {
         isQuitting = true;
         app.quit();
@@ -2880,7 +2889,7 @@ function currentTrayIconPath(): string {
 }
 
 function trayTooltip(): string {
-  const name = IS_LAOKUAI ? "老蒯聊" : "Gryt";
+  const name = IS_LAOKUAI ? "唠蒯" : "Gryt";
   if (!voiceState.inVoice) {
     return name;
   }
@@ -2891,14 +2900,14 @@ function trayTooltip(): string {
       : "";
 
   if (voiceState.deafened) {
-    return `${name} — ${IS_LAOKUAI ? "已关闭耳机" : "deafened"}${where}`;
+    return `${name} — ${nativeT("privateDeafened")}${where}`;
   }
 
   if (voiceState.muted) {
-    return `${name} — ${IS_LAOKUAI ? "已静音" : "muted"}${where}`;
+    return `${name} — ${nativeT("privateMuted")}${where}`;
   }
 
-  return `${name} — ${IS_LAOKUAI ? "语音中" : "in voice"}${where}`;
+  return `${name} — ${nativeT("privateInVoice")}${where}`;
 }
 
 /**
@@ -2969,12 +2978,12 @@ function prepareRuntimeInBackground(): void {
 
 // ── App lifecycle ───────────────────────────────────────────────────────
 
-const UPDATE_NOTICE = "Gryt Chat is updating. It'll open again by itself when it's done.";
+const updateNotice = () => nativeT("second_6c7b450def06");
 
 /** Another process, since a Gryt left open keeps its files locked mid-install. Through cmd's
     `start`: a PowerShell spawned detached exited before it drew anything. */
 function sayAnUpdateIsInstalling(done: () => void): void {
-  const text = UPDATE_NOTICE.replace(/'/g, "''");
+  const text = updateNotice().replace(/'/g, "''");
   const script = `(New-Object -ComObject WScript.Shell).Popup('${text}', 15, 'Gryt Chat', 64 + 4096) | Out-Null`;
   const powershell = ["powershell.exe", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script];
   // cmd returns once PowerShell has started, and dies with this process if it hasn't yet.
@@ -3140,9 +3149,7 @@ if (!gotSingleInstanceLock) {
                   });
                 } else {
                   sendToMain("error", {
-                    message: lookupFailedMessage(pin, Date.now(), (at) =>
-                      clockTime(at, app.getLocale())
-                    ),
+                    message: nativeLookupFailedMessage(pin, Date.now()),
                   });
                 }
 
@@ -3606,6 +3613,10 @@ if (!gotSingleInstanceLock) {
             key,
             value
           );
+          if (key === "gryt.ui.language") {
+            refreshNativeLanguage();
+            refreshTrayMenu();
+          }
         }
       );
 
@@ -3613,6 +3624,10 @@ if (!gotSingleInstanceLock) {
         "global-store:delete",
         (_event, key: string) => {
           deleteGlobalValue(key);
+          if (key === "gryt.ui.language") {
+            refreshNativeLanguage();
+            refreshTrayMenu();
+          }
         }
       );
 
@@ -3626,6 +3641,8 @@ if (!gotSingleInstanceLock) {
           >
         ) => {
           saveGlobalStore(data);
+          refreshNativeLanguage();
+          refreshTrayMenu();
         }
       );
 
@@ -3777,8 +3794,8 @@ if (!gotSingleInstanceLock) {
             AuthPortUnavailableError
           ) {
             dialog.showErrorBox(
-              IS_LAOKUAI ? "老蒯聊 · 端口被占用" : "Gryt is already running",
-              IS_LAOKUAI ? `固定端口 ${err.port} 被占用。请先手动退出原版 Gryt 或其他老蒯聊实例，再打开本版。若没有运行中的客户端，请检查占用此端口的程序。` : `${err.message}\n\nClose the other copy of Gryt and open it ` +
+              IS_LAOKUAI ? "唠蒯 · 端口被占用" : "Gryt is already running",
+              IS_LAOKUAI ? `固定端口 ${err.port} 被占用。请先手动退出原版 Gryt 或其他唠蒯实例，再打开本版。若没有运行中的客户端，请检查占用此端口的程序。` : `${err.message}\n\nClose the other copy of Gryt and open it ` +
                 `again. If none is open, something else on this machine is ` +
                 `using port ${err.port}.`
             );
@@ -4465,7 +4482,7 @@ if (!gotSingleInstanceLock) {
             try {
               openLaokuaiLogin(mainWindow, url);
             } catch {
-              dialog.showErrorBox("老蒯聊", "无法打开账户登录，请检查认证设置。");
+              dialog.showErrorBox("唠蒯", "无法打开账户登录，请检查认证设置。");
               mainWindow.webContents.send("auth-callback", "laokuai://auth?error=login_window_failed");
             }
             return;
@@ -4545,9 +4562,7 @@ if (!gotSingleInstanceLock) {
                   });
                 } else {
                   sendToMain("error", {
-                    message: lookupFailedMessage(pin, Date.now(), (at) =>
-                      clockTime(at, app.getLocale())
-                    ),
+                    message: nativeLookupFailedMessage(pin, Date.now()),
                   });
                 }
 
@@ -4766,8 +4781,8 @@ if (!gotSingleInstanceLock) {
       );
 
       dialog.showErrorBox(
-        "Gryt — Failed to Start",
-        `${msg}\n\nCheck gryt-startup.log in the app data folder for details.`
+        nativeT("second_ca7801c6cea0"),
+        nativeT("second_2881d7808e79", { detail: msg })
       );
 
       app.exit(1);

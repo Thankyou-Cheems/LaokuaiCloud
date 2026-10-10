@@ -1,18 +1,19 @@
+import { i18n as socketI18n } from "@/i18n";
 /**
  * The colours a role can be given without opening a picker: ten hues at
  * `oklch(0.66 0.15 h)`. Every one clears AA once `readableRoleColor` banded it.
  */
 export const ROLE_COLOR_PRESETS = [
-  { name: "Ember", value: "#df6862" },
-  { name: "Amber", value: "#d67523" },
-  { name: "Moss", value: "#af8f00" },
-  { name: "Fern", value: "#4ea954" },
-  { name: "Teal", value: "#00aea6" },
-  { name: "Sky", value: "#00a1db" },
-  { name: "Iris", value: "#648eed" },
-  { name: "Violet", value: "#a17adf" },
-  { name: "Plum", value: "#c46dbd" },
-  { name: "Rose", value: "#d76797" },
+  { get name() { return socketI18n.t("socketFull.roleColorPresets_882980614e"); }, value: "#df6862" },
+  { get name() { return socketI18n.t("socketFull.roleColorPresets_e187f3625b"); }, value: "#d67523" },
+  { get name() { return socketI18n.t("socketFull.roleColorPresets_47b68d717f"); }, value: "#af8f00" },
+  { get name() { return socketI18n.t("socketFull.roleColorPresets_3264775192"); }, value: "#4ea954" },
+  { get name() { return socketI18n.t("socketFull.roleColorPresets_6c41005059"); }, value: "#00aea6" },
+  { get name() { return socketI18n.t("socketFull.roleColorPresets_30e3e394a3"); }, value: "#00a1db" },
+  { get name() { return socketI18n.t("socketFull.roleColorPresets_3aa1e7ffa1"); }, value: "#648eed" },
+  { get name() { return socketI18n.t("socketFull.roleColorPresets_8e3a5514a5"); }, value: "#a17adf" },
+  { get name() { return socketI18n.t("socketFull.roleColorPresets_8ad4ee088f"); }, value: "#c46dbd" },
+  { get name() { return socketI18n.t("socketFull.roleColorPresets_f13137b373"); }, value: "#d76797" },
 ] as const;
 
 /**

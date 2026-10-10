@@ -9,6 +9,7 @@ import {
   restoreServerFileToken,
   type ServerProofDecision,
 } from "@/common";
+import { i18n as socketHooksI18n } from "@/i18n";
 
 import { markGone, markProved, markRefused, watchHost } from "./proofGate";
 
@@ -170,13 +171,13 @@ function logDecision(host: string, decision: ServerProofDecision): void {
  */
 export function describeGap(ms: number): string {
   const seconds = Math.round(ms / 1000);
-  if (seconds < 90) return `${seconds} second${seconds === 1 ? "" : "s"}`;
+  if (seconds < 90) return socketHooksI18n.t("socketHooksFull.gapSeconds", { count: seconds });
   const minutes = Math.round(seconds / 60);
-  if (minutes < 90) return `${minutes} minute${minutes === 1 ? "" : "s"}`;
+  if (minutes < 90) return socketHooksI18n.t("socketHooksFull.gapMinutes", { count: minutes });
   const hours = Math.round(minutes / 60);
-  if (hours < 48) return `${hours} hour${hours === 1 ? "" : "s"}`;
+  if (hours < 48) return socketHooksI18n.t("socketHooksFull.gapHours", { count: hours });
   const days = Math.round(hours / 24);
-  return `${days} day${days === 1 ? "" : "s"}`;
+  return socketHooksI18n.t("socketHooksFull.gapDays", { count: days });
 }
 
 /** Where to send somebody who cannot act on the sentence alone. */
@@ -199,14 +200,11 @@ export function serverProofErrorMessage(
   switch (failure.reason) {
     case "key_mismatch":
       return (
-        "This address is answering with a different server identity than the one " +
-        "you joined before. If you rebuilt this server on purpose, remove it from " +
-        "the blocked list in settings."
+        socketHooksI18n.t("socketHooksFull.proofIdentityChanged")
       );
     case "proof_withdrawn":
       return (
-        "This server proved its identity before and no longer does. If you rebuilt " +
-        "it on purpose, remove it from the blocked list in settings."
+        socketHooksI18n.t("socketHooksFull.proofWithdrawn")
       );
     case "blocked": {
       // Reconnect attempts after the first refusal land here, and a bare "it's
@@ -214,35 +212,30 @@ export function serverProofErrorMessage(
       const entry = listBlocked().find((b) => b.keyId === failure.keyId);
       if (entry?.reason === "key_mismatch") {
         return (
-          "Blocked: this address answered with a different server identity than " +
-          "the one you joined before. If you rebuilt this server on purpose, " +
-          "remove it from the blocked list in settings."
+          socketHooksI18n.t("socketHooksFull.proofBlockedIdentityChanged")
         );
       }
       if (entry?.reason === "proof_withdrawn") {
         return (
-          "Blocked: this server proved its identity before and no longer does. " +
-          "If you rebuilt it on purpose, remove it from the blocked list in settings."
+          socketHooksI18n.t("socketHooksFull.proofBlockedWithdrawn")
         );
       }
-      return "This server is on your blocked list.";
+      return socketHooksI18n.t("socketHooksFull.proofBlocked");
     }
     case "nonce_mismatch":
-      return "This server's identity proof answered a different request. Try again.";
+      return socketHooksI18n.t("socketHooksFull.proofWrongRequest");
     case "expired": {
       // The client already knows which clock is wrong: it compared the server's
       // timestamp against its own to decide the proof had expired.
       const skew = failure.skewMs;
       if (skew === undefined) {
-        return "This server's identity proof had expired, which usually means its clock is wrong.";
+        return socketHooksI18n.t("socketHooksFull.proofExpired");
       }
-      const direction = skew > 0 ? "behind" : "ahead of";
-      return (
-        `This server's clock is about ${describeGap(Math.abs(skew))} ${direction} ` +
-        "yours, so its identity proof looked expired. If it is your server, turn on time sync."
-      );
+      return skew > 0
+        ? socketHooksI18n.t("socketHooksFull.serverClockBehind", { gap: describeGap(Math.abs(skew)) })
+        : socketHooksI18n.t("socketHooksFull.serverClockAhead", { gap: describeGap(Math.abs(skew)) });
     }
     default:
-      return "This server's identity proof could not be checked.";
+      return socketHooksI18n.t("socketHooksFull.proofUnchecked");
   }
 }

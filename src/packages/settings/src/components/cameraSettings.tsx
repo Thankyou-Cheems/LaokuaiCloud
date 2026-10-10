@@ -2,14 +2,15 @@ import { Button, Chip, Divider, Select, Tooltip } from "@gryt/ui";
 import { CAMERA_FPS_OPTIONS, type CameraQuality, QUALITY_CONSTRAINTS, useCamera, useVideoStats } from "@gryt/voice";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { useTranslation } from "@/i18n";
+import { i18n, useTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 
 import { PiArrowsClockwiseFill } from "../../../../lib/icons";
 import { SettingsContainer, ToggleSetting } from "./settingsComponents";
+import { settingsMessage } from "./settingsMessage";
 
 const QUALITY_OPTIONS = [
-  { value: "native", label: "Native (camera default)" },
+  { value: "native", get label() { return i18n.t("settingsFull.m8f5c232f34"); } },
   { value: "4k", label: "4K (3840×2160)" },
   { value: "1440p", label: "1440p (2560×1440)" },
   { value: "1080p", label: "1080p (1920×1080)" },
@@ -100,13 +101,13 @@ export function CameraSettings() {
       const name = err instanceof DOMException ? err.name : "";
       switch (name) {
         case "NotAllowedError":
-          setPreviewError("Camera access was denied. Check your browser or system permissions.");
+          setPreviewError("settingsFull.mf62bc006ec");
           break;
         case "NotFoundError":
-          setPreviewError("No camera detected. Make sure one is connected.");
+          setPreviewError("settingsFull.mc565276577");
           break;
         default:
-          setPreviewError("Failed to start camera preview. Please try again.");
+          setPreviewError("settingsFull.m5658b040af");
       }
     }
   }, [cameraEnabled, cameraID, cameraQuality, cameraFps]);
@@ -210,10 +211,10 @@ export function CameraSettings() {
 
   return (
     <SettingsContainer>
-      <h2>Camera</h2>
+      <h2>{i18n.t("ui.camera")}</h2>
 
       <div className="flex flex-col gap-2">
-        <span className="font-medium">Preview</span>
+        <span className="font-medium">{i18n.t("settingsFull.mf1fbb2b43d")}</span>
         <div className="flex items-center justify-center" style={{
             background: "var(--gryt-neutral-3)",
             borderRadius: "var(--gryt-radius-md)",
@@ -241,9 +242,9 @@ export function CameraSettings() {
                   title={
                     sentRes
                       ? differs
-                        ? `Being sent at ${sentRes.w}×${sentRes.h}. Your camera is producing ${actualRes?.w}×${actualRes?.h}${limitedBy ? `, and the encoder is limited by ${limitedBy}` : ""}.`
-                        : `Being sent at ${sentRes.w}×${sentRes.h}, which is what your camera is producing.`
-                      : "What your camera is producing. Join a voice channel to see what is actually being sent."
+                        ? i18n.t("settingsFull.md1e7a5f253", { sentWidth: sentRes.w, sentHeight: sentRes.h, actualWidth: actualRes?.w, actualHeight: actualRes?.h, limitation: limitedBy ? i18n.t("settingsFull.mc9ef84da7d", { reason: i18n.t("settingsFull.cameraLimit." + limitedBy, { defaultValue: limitedBy }) }) : "" })
+                        : i18n.t("settingsFull.m0abfcf3460", { value0: sentRes.w, value1: sentRes.h })
+                      : i18n.t("settingsFull.m141da5010b")
                   }
                 >
                   <Chip tone="neutral"
@@ -260,7 +261,7 @@ export function CameraSettings() {
                     }}
                   >
                     {sentRes
-                      ? `${sentRes.w}×${sentRes.h} sent`
+                      ? i18n.t("settingsFull.m942ec819c6", { value0: sentRes.w, value1: sentRes.h })
                       : `${actualRes?.w}×${actualRes?.h}`}
                   </Chip>
                 </Tooltip>
@@ -269,12 +270,12 @@ export function CameraSettings() {
           ) : (
             <div className="flex flex-col items-center gap-2 p-4">
               <span color={activeError ? "red" : "gray"}>
-                {activeError ?? "No camera detected"}
+                {(settingsMessage(activeError) || undefined) ?? i18n.t("settingsFull.m0fb2c372ed")}
               </span>
               {!cameraEnabled && (
                 <Button tone="neutral" size="xsmall" onClick={startPreview}>
                   <PiArrowsClockwiseFill size={14} />
-                  {activeError ? "Retry" : tr("ui.startCameraPreview")}
+                  {activeError ? tr("ui.retry") : tr("ui.startCameraPreview")}
                 </Button>
               )}
             </div>
@@ -285,16 +286,16 @@ export function CameraSettings() {
       <Divider />
 
       <div className="flex flex-col gap-2">
-        <span className="font-medium">Camera Device</span>
+        <span className="font-medium">{i18n.t("settingsFull.mf6bb9861ed")}</span>
         <Select
           value={cameraID || ""}
           onValueChange={(value) => setCameraID(String(value))}
-          placeholder="Select a camera"
+          placeholder={i18n.t("settingsFull.me3367f73c0")}
           options={
             devices.length === 0
-              ? [{ label: "No cameras found", value: "__none__", disabled: true }]
+              ? [{ label: i18n.t("settingsFull.ma41e4c7080"), value: "__none__", disabled: true }]
               : devices.map((device) => ({
-                  label: device.label || `Camera ${device.deviceId.slice(0, 8)}`,
+                  label: device.label || i18n.t("settingsFull.mde2911d9b0", { value0: device.deviceId.slice(0, 8) }),
                   value: device.deviceId || `device-${device.label}`,
                 }))
           }
@@ -302,7 +303,7 @@ export function CameraSettings() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <span className="font-medium">Video Quality</span>
+        <span className="font-medium">{i18n.t("settingsFull.m13c634ddf1")}</span>
         <Select
           value={cameraQuality}
           onValueChange={(value) => setCameraQuality(String(value))}
@@ -314,7 +315,7 @@ export function CameraSettings() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <span className="font-medium">Frame Rate</span>
+        <span className="font-medium">{i18n.t("settingsFull.m990444a7e2")}</span>
         <Select
           value={String(cameraFps)}
           onValueChange={(v) => setCameraFps(Number(v))}
@@ -326,23 +327,26 @@ export function CameraSettings() {
       </div>
 
       <ToggleSetting
-        title="Flip camera"
-        description="Flips the video everyone else sees. This changes the stream itself, not just your preview."
+        anchorId="flip-camera"
+        title={i18n.t("settingsFull.med114d76bc")}
+        description={i18n.t("settingsFull.md00dfd3b06")}
         checked={cameraFlipped}
         onCheckedChange={setCameraFlipped}
       />
 
       <ToggleSetting
-        title="Center my face automatically"
-        description="Cameras get cropped to fit a tile, so a face off to one side gets cut off. This works out where yours is, so everyone else's crop follows you. It runs when your camera comes on, and the button beside the camera control does it any time after that. Detection runs on this machine; only two numbers are sent, never video."
+        anchorId="center-my-face-automatically"
+        title={i18n.t("settingsFull.m3e18b35f2c")}
+        description={i18n.t("settingsFull.m44c573fd1f")}
         checked={faceFramingEnabled}
         onCheckedChange={setFaceFramingEnabled}
       />
 
 
       <ToggleSetting
-        title="Mirror preview"
-        description="Mirrors your own preview. Nobody else sees any difference."
+        anchorId="mirror-preview"
+        title={i18n.t("settingsFull.ma2241ff744")}
+        description={i18n.t("settingsFull.mc768c5bd9f")}
         checked={cameraMirrored}
         onCheckedChange={setCameraMirrored}
       />

@@ -2,6 +2,7 @@ import { Button, Chip, Divider, Surface, Switch } from "@gryt/ui";
 import { useCallback, useEffect, useState } from "react";
 
 import { Wordmark } from "@/common";
+import { i18n, useTranslation } from "@/i18n";
 import { requestWhatsNew } from "@/socket";
 
 import { FaGithub } from "../../../../lib/brandIcons";
@@ -9,6 +10,7 @@ import { getElectronAPI, isElectron, isMacAppStoreBuild, isMicrosoftStoreBuild, 
 import { PiArrowsClockwiseFill, PiArrowSquareOutFill, PiBugFill, PiChatCircleDotsFill, PiCheckCircleFill, PiClockClockwiseFill, PiDesktopFill, PiDownloadSimpleFill, PiXCircleFill } from "../../../../lib/icons";
 import { useReportForm } from "../../../../lib/reports/useReportForm";
 import { ConfirmDialog } from "../../../socket/src/components/ConfirmDialog";
+import { nativeUpdateMessage } from "./nativeDisplayCopy";
 import { SettingsContainer } from "./settingsComponents";
 
 const GITHUB_URL = "https://github.com/Gryt-chat/gryt";
@@ -25,6 +27,7 @@ const PRIVACY_URL = "https://gryt.chat/privacy";
 const DOWNLOAD_URL = "https://gryt.chat/download";
 
 function UpdateControls() {
+  useTranslation();
   const [status, setStatus] = useState<UpdateStatus | null>(null);
   const [appVersion, setAppVersion] = useState<string>("…");
   const [betaChannel, setBetaChannel] = useState(false);
@@ -69,23 +72,23 @@ function UpdateControls() {
     if (!status) return null;
     switch (status.status) {
       case "checking":
-        return "Checking for updates…";
+        return i18n.t("settingsFull.m2817459eb0");
       case "available":
-        return `Update v${status.version} is available`;
+        return i18n.t("settingsFull.m7a0da1b4d7", { value0: status.version });
       case "downloading":
-        return `Downloading v${status.version}… ${status.percent != null ? `${status.percent}%` : ""}`;
+        return i18n.t("settingsFull.ma2a7eb5f41", { value0: status.version, value1: status.percent != null ? `${status.percent}%` : "" });
       case "downloaded":
-        return `v${status.version} is ready to install`;
+        return i18n.t("settingsFull.m0a50187b9c", { value0: status.version });
       case "not-available":
-        return "Gryt is up to date";
+        return i18n.t("settingsFull.ma41211af74");
       case "store-managed":
-        return status.message ?? "The Microsoft Store keeps this version up to date.";
+        return status.message === undefined ? i18n.t("settingsFull.m4dbaca0959") : nativeUpdateMessage(status.message);
       case "pending":
-        return `v${status.version} will finish installing when you quit Gryt`;
+        return i18n.t("settingsFull.m6d6cc94126", { value0: status.version });
       case "installing":
-        return `Installing v${status.version}…`;
+        return i18n.t("settingsFull.m1d09e9f274", { value0: status.version });
       case "error":
-        return `Update error: ${status.message}`;
+        return i18n.t("settingsFull.me6a816d199", { value0: nativeUpdateMessage(status.message) });
       default:
         return null;
     }
@@ -122,28 +125,26 @@ function UpdateControls() {
     <>
       <Divider />
 
-      <h2>Updates</h2>
+      <h2>{i18n.t("ui.updates")}</h2>
 
       <div className="flex flex-col gap-4">
         <div className="flex items-center gap-3">
-          <span className="font-medium">Running</span>
+          <span className="font-medium">{i18n.t("settingsFull.m73989d9c59")}</span>
           <Chip tone="neutral">v{appVersion}</Chip>
-          <Button tone="ghost" size="xsmall" onClick={requestWhatsNew}>
-            What&rsquo;s new
-          </Button>
-          {betaChannel && <Chip tone="warning" label="Beta" />}
+          <Button tone="ghost" size="xsmall" onClick={requestWhatsNew}>{i18n.t("settingsFull.m3697024201")}</Button>
+          {betaChannel && <Chip tone="warning" label={i18n.t("settingsFull.mf03b60f7e5")} />}
           {/* What is installed, not what has been asked for: a pending switch
               is described by the toggle below. */}
-          {slimVariant.installed && <Chip tone="neutral" label="Slim" />}
+          {slimVariant.installed && <Chip tone="neutral" label={i18n.t("settingsFull.m5ee371a198")} />}
         </div>
 
         <div className="flex items-center justify-between">
           <div className="flex flex-col gap-1">
-            <span className="font-medium">Automatic updates</span>
+            <span className="font-medium">{i18n.t("settingsFull.m1e138bf814")}</span>
             <span className="text-gryt-muted">
               {autoUpdate
-                ? "Gryt downloads new versions in the background and installs them when you quit."
-                : "Gryt tells you about a new version and waits for you to start it."}
+                ? i18n.t("settingsFull.m288b594b9a")
+                : i18n.t("settingsFull.m25d5b5f8aa")}
             </span>
           </div>
           <Switch checked={autoUpdate} onCheckedChange={handleAutoUpdateToggle} />
@@ -151,20 +152,17 @@ function UpdateControls() {
 
         <div className="flex items-center justify-between">
           <div className="flex flex-col gap-1">
-            <span className="font-medium">Built-in server</span>
+            <span className="font-medium">{i18n.t("settingsFull.ma7e15aedeb")}</span>
             <span className="text-gryt-muted">
               {slimVariant.pending
                 ? slimVariant.preferred
-                  ? "Switching to the build without it. Install the update below to finish."
-                  : "Switching to the build with it. Install the update below to finish."
+                  ? i18n.t("settingsFull.m6946ef7bbe")
+                  : i18n.t("settingsFull.m07cbcb391d")
                 : slimVariant.preferred
-                  ? "Off. The download is about 34MB smaller, and you cannot host a server from the app."
-                  : "On. You can host a server from this app. It makes the download about 34MB bigger."}
+                  ? i18n.t("settingsFull.m8b4e29726a")
+                  : i18n.t("settingsFull.m792e6724c1")}
             </span>
-            <span className="text-gryt-muted">
-              Servers you already host stay where they are either way — their data does not
-              live in the app.
-            </span>
+            <span className="text-gryt-muted">{i18n.t("settingsFull.mea6453f61e")}</span>
           </div>
           <Switch
             checked={!slimVariant.preferred}
@@ -177,11 +175,11 @@ function UpdateControls() {
 
         <div className="flex items-center justify-between">
           <div className="flex flex-col gap-1">
-            <span className="font-medium">Beta releases</span>
+            <span className="font-medium">{i18n.t("settingsFull.m3c684d47d5")}</span>
             <span className="text-gryt-muted">
               {betaChannel
-                ? "You get new versions early. They break more often."
-                : "Get new versions early, before they have been tested as much."}
+                ? i18n.t("settingsFull.mfdaeee7cb9")
+                : i18n.t("settingsFull.mdcafa8dc54")}
             </span>
           </div>
           <Switch checked={betaChannel} onCheckedChange={(enabled) => setPendingSwitch(enabled)} />
@@ -193,10 +191,7 @@ function UpdateControls() {
             failure. It cannot move without a restart: updates install while
             Gryt starts, never from the running app. */}
         {!statusText && (
-          <span className="text-gryt-muted">
-            Updates install while Gryt starts, so the version above only changes
-            after a restart.
-          </span>
+          <span className="text-gryt-muted">{i18n.t("settingsFull.m361186da5f")}</span>
         )}
 
         {statusText && (
@@ -219,7 +214,7 @@ function UpdateControls() {
               disabled={isBusy}
             >
               <PiArrowsClockwiseFill size={16} />
-              {isChecking ? "Checking…" : "Check for Updates"}
+              {isChecking ? i18n.t("settingsFull.m820d6004b0") : i18n.t("settingsFull.m8604ff8e6a")}
             </Button>
           )}
 
@@ -231,8 +226,7 @@ function UpdateControls() {
               className="bg-gryt-success text-gryt-bg hover:not-data-disabled:bg-gryt-success/85"
               onClick={handleUpdateNow}
             >
-              <PiClockClockwiseFill size={16} />
-              Restart and update to v{status?.version}
+              <PiClockClockwiseFill size={16} />{i18n.t("settingsFull.m5fe4e1955a", { version: status?.version })}
             </Button>
           )}
         </div>
@@ -241,13 +235,13 @@ function UpdateControls() {
       <ConfirmDialog
         open={pendingSwitch !== null}
         onOpenChange={(open) => { if (!open) setPendingSwitch(null); }}
-        title={switchingToBeta ? "Turn on beta releases?" : "Turn off beta releases?"}
+        title={switchingToBeta ? i18n.t("settingsFull.m71f83bc4c1") : i18n.t("settingsFull.mfc99a79776")}
         description={
           switchingToBeta
-            ? "Gryt will close and reopen to install the latest beta. Beta builds can have bugs and unfinished features."
-            : "Gryt will close and reopen to install the latest stable version. That is older than the beta you are on now, so anything added since will be gone until it reaches stable."
+            ? i18n.t("settingsFull.m11e38b666a")
+            : i18n.t("settingsFull.m9a367201e9")
         }
-        confirmLabel={switchingToBeta ? "Turn on beta" : "Turn off beta"}
+        confirmLabel={switchingToBeta ? i18n.t("settingsFull.m69305ab0ff") : i18n.t("settingsFull.mcc6e95e40a")}
         confirmTone="primary"
         onConfirm={confirmChannelSwitch}
       />
@@ -257,6 +251,7 @@ function UpdateControls() {
 
 /** The store installs updates here, so none of the switches above would do anything. */
 function AppStoreUpdates({ store, os }: { store: string; os: "macos" | "windows" }) {
+  useTranslation();
   const [appVersion, setAppVersion] = useState<string>("…");
 
   useEffect(() => {
@@ -267,30 +262,23 @@ function AppStoreUpdates({ store, os }: { store: string; os: "macos" | "windows"
     <>
       <Divider />
 
-      <h2>Updates</h2>
+      <h2>{i18n.t("ui.updates")}</h2>
 
       <div className="flex flex-col gap-4">
         <div className="flex items-center gap-3">
-          <span className="font-medium">Running</span>
+          <span className="font-medium">{i18n.t("settingsFull.m73989d9c59")}</span>
           <Chip tone="neutral">v{appVersion}</Chip>
-          <Button tone="ghost" size="xsmall" onClick={requestWhatsNew}>
-            What&rsquo;s new
-          </Button>
+          <Button tone="ghost" size="xsmall" onClick={requestWhatsNew}>{i18n.t("settingsFull.m3697024201")}</Button>
         </div>
-        <span className="text-gryt-muted">Updates come from {store}. You can check for a new version there.</span>
+        <span className="text-gryt-muted">{i18n.t("settingsFull.m160cb6d770", { store })}</span>
       </div>
 
       <Surface>
         <div className="flex flex-col gap-3">
-          <span className="font-medium">Want beta releases?</span>
-          <span className="text-gryt-muted">
-            Betas aren&rsquo;t in {store}. Uninstall this copy first, then install Gryt from gryt.chat and turn
-            on beta releases in Settings. If you skip the uninstall you&rsquo;ll have two copies of Gryt.
-          </span>
+          <span className="font-medium">{i18n.t("settingsFull.mb895094d4a")}</span>
+          <span className="text-gryt-muted">{i18n.t("settingsFull.m20663bdb39", { store })}</span>
           <Button size="small" render={<a href={`${DOWNLOAD_URL}?os=${os}`} target="_blank" rel="noopener noreferrer" />}>
-            <PiDownloadSimpleFill size={16} />
-            Download from gryt.chat
-            <PiArrowSquareOutFill size={14} />
+            <PiDownloadSimpleFill size={16} />{i18n.t("settingsFull.m63d4c00e28")}<PiArrowSquareOutFill size={14} />
           </Button>
         </div>
       </Surface>
@@ -299,6 +287,7 @@ function AppStoreUpdates({ store, os }: { store: string; os: "macos" | "windows"
 }
 
 function DesktopAppCard() {
+  useTranslation();
   return (
     <>
       <Divider />
@@ -307,23 +296,16 @@ function DesktopAppCard() {
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <PiDesktopFill size={18} />
-            <span className="font-medium">Get the desktop app</span>
+            <span className="font-medium">{i18n.t("settingsFull.m9c18e2a458")}</span>
           </div>
-          <span className="text-gryt-muted">
-            The desktop app includes auto-updates, system tray integration,
-            push-to-talk hotkeys, and native notifications.
-          </span>
-          <span className="text-gryt-muted">
-            Available for Windows, macOS, and Linux.
-          </span>
+          <span className="text-gryt-muted">{i18n.t("settingsFull.meff0cd9a92")}</span>
+          <span className="text-gryt-muted">{i18n.t("settingsFull.mb0e3c27289")}</span>
           <Button size="small"
             render={
               <a href={DOWNLOAD_URL} target="_blank" rel="noopener noreferrer" />
             }
           >
-            <PiDownloadSimpleFill size={16} />
-            Download Gryt Desktop
-            <PiArrowSquareOutFill size={14} />
+            <PiDownloadSimpleFill size={16} />{i18n.t("settingsFull.m8a8c7f19e8")}<PiArrowSquareOutFill size={14} />
           </Button>
         </div>
       </Surface>
@@ -332,11 +314,12 @@ function DesktopAppCard() {
 }
 
 export function AboutSettings() {
+  useTranslation();
   const { open: openReport } = useReportForm();
 
   return (
     <SettingsContainer>
-      <h2>About</h2>
+      <h2>{i18n.t("ui.about")}</h2>
 
       <div className="flex flex-col gap-1">
         <Wordmark size="5" />
@@ -347,8 +330,7 @@ export function AboutSettings() {
 
       <div className="flex flex-col gap-1">
         <span className="text-gryt-muted">&copy; 2022–2026 Sivert Gullberg Hansen</span>
-        <span className="text-gryt-muted">
-          Licensed under{" "}
+        <span className="text-gryt-muted">{i18n.t("settingsFull.m4e9a67b3cb")}{" "}
           <a
             className="gryt-link"
             href={`${GITHUB_URL}/blob/main/LICENSE`}
@@ -367,18 +349,14 @@ export function AboutSettings() {
             href={TERMS_URL}
             target="_blank"
             rel="noopener noreferrer"
-          >
-            Terms of use
-          </a>
+          >{i18n.t("settingsFull.m8a069ed1c6")}</a>
           {" · "}
           <a
             className="gryt-link"
             href={PRIVACY_URL}
             target="_blank"
             rel="noopener noreferrer"
-          >
-            Privacy policy
-          </a>
+          >{i18n.t("settingsFull.m7ceacdcaab")}</a>
         </span>
       </div>
 
@@ -397,13 +375,9 @@ export function AboutSettings() {
             and Fider is for public feature requests people vote on, which is
             not what most of what arrived there was. */}
         <Button size="small" tone="neutral" onClick={() => openReport("feedback")}>
-          <PiChatCircleDotsFill size={16} />
-          Give feedback
-        </Button>
+          <PiChatCircleDotsFill size={16} />{i18n.t("ui.giveFeedback")}</Button>
         <Button size="small" tone="neutral" onClick={() => openReport("bug")}>
-          <PiBugFill size={16} />
-          Report a bug
-        </Button>
+          <PiBugFill size={16} />{i18n.t("ui.reportABug")}</Button>
       </div>
 
     </SettingsContainer>
@@ -415,6 +389,7 @@ export function AboutSettings() {
  * the bottom of About. In the browser there is no updater, so it offers the app.
  */
 export function UpdatesSettings() {
+  useTranslation();
   const inElectron = isElectron();
 
   return (
@@ -422,9 +397,9 @@ export function UpdatesSettings() {
       {!inElectron ? (
         <DesktopAppCard />
       ) : isMacAppStoreBuild() ? (
-        <AppStoreUpdates store="the Mac App Store" os="macos" />
+        <AppStoreUpdates store={i18n.t("settingsFull.m002d8d4c25")} os="macos" />
       ) : isMicrosoftStoreBuild() ? (
-        <AppStoreUpdates store="the Microsoft Store" os="windows" />
+        <AppStoreUpdates store={i18n.t("settingsFull.ma8babe6f68")} os="windows" />
       ) : (
         <UpdateControls />
       )}

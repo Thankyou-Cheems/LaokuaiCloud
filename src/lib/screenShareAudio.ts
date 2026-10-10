@@ -1,34 +1,35 @@
+import { type CopyI18n,englishCopy } from "./copyI18n.ts";
 /**
  * What "include audio" picks up, which differs by platform and source. Windows
  * captures per process; macOS captures the machine either way (GRYT-564).
  */
-export function audioScopeHint(platform: string, sourceId: string | null): string {
+export function audioScopeHint(platform: string, sourceId: string | null, i18n: CopyI18n = englishCopy): string {
   const isWindows = platform === "win32";
   const isWindowSource = sourceId?.startsWith("window:") ?? false;
 
   if (isWindows && isWindowSource) {
-    return "Shares this window's audio only. Anything else playing stays out of it.";
+    return i18n.t("shellFull.screenShareAudio_ts_f58c34eac3");
   }
 
   if (isWindows) {
-    return "Shares every sound on this machine except Gryt, including any other voice app you are in. Pick a single window to send just that app.";
+    return i18n.t("shellFull.screenShareAudio_ts_8c7de971bf");
   }
 
-  return "Shares every sound on this machine except Gryt, including any other voice app you are in.";
+  return i18n.t("shellFull.screenShareAudio_ts_56d777418f");
 }
 
 /** Mirrors CaptureProblem in electron/captureHealth.ts. */
 export type ScreenAudioProblem = "permission" | "failed" | "no-audio";
 
 /** What to tell somebody whose share is going out without its sound. */
-export function screenAudioProblemMessage(problem: string): string | null {
+export function screenAudioProblemMessage(problem: string, i18n: CopyI18n = englishCopy): string | null {
   switch (problem) {
     case "permission":
-      return "Your screen share has no sound. macOS hasn't let Gryt record the screen. Turn on Gryt Chat in System Settings > Privacy & Security > Screen & System Audio Recording, then share again.";
+      return i18n.t("shellFull.screenShareAudio_ts_b84a397cd3");
     case "failed":
-      return "Your screen share has no sound. Gryt couldn't record it. Try sharing again.";
+      return i18n.t("shellFull.screenShareAudio_ts_5b6a127816");
     case "no-audio":
-      return "Your screen share has no sound. Gryt isn't getting any audio from macOS, so people only see your screen. Try sharing again.";
+      return i18n.t("shellFull.screenShareAudio_ts_3358f4d515");
     default:
       return null;
   }

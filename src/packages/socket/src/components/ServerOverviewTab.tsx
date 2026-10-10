@@ -1,8 +1,10 @@
 import { Avatar, Button, Select, Switch, TextField } from "@gryt/ui";
 import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
+import { Trans } from "react-i18next";
 
 import { GeneratedServerIcon, getServerAccessToken, getServerHttpBase } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 import type { Channel } from "@/settings/src/types/server";
 
@@ -78,6 +80,7 @@ export function ServerOverviewTab({
   initialSettings?: ServerOverviewInitialSettings;
   channels?: Channel[];
 }) {
+  useSocketTranslation();
   const { nickname } = useSettings();
 
   const MAX_ICON_SIZE_BYTES = 25 * 1024 * 1024;
@@ -197,7 +200,7 @@ export function ServerOverviewTab({
         setUploadMaxMb(toMbString(payload.uploadMaxBytes));
         setEmojiMaxMb(toMbString(payload.emojiMaxBytes));
       } else {
-        toast.success("Settings saved");
+        toast.success(socketI18n.t("socketFull.serverOverviewTab_61c54cbc75"));
       }
 
       pendingSaveCountRef.current = Math.max(0, pendingSaveCountRef.current - 1);
@@ -229,7 +232,7 @@ export function ServerOverviewTab({
         if (pendingSaveCountRef.current > 0) {
           pendingSaveCountRef.current = 0;
           setAutosaving(false);
-          toast.error(err.message || "Failed to save settings.");
+          toast.error(err.message || socketI18n.t("socketFull.serverOverviewTab_8dc1c01a8e"));
           socket.emit("server:settings:get");
         }
       }
@@ -284,16 +287,16 @@ export function ServerOverviewTab({
     externalEmojis: boolean;
   }>): boolean => {
     if (!host || !socket || !socket.connected) {
-      toast.error("Not connected to the server.");
+      toast.error(socketI18n.t("socketFull.serverOverviewTab_1358ba8f73"));
       return false;
     }
     if (!effectiveAccessToken) {
       ensureJoined();
-      toast.error("Missing access token. Try rejoining the server.");
+      toast.error(socketI18n.t("socketFull.serverOverviewTab_55bd9f5ecf"));
       return false;
     }
     if (!canEdit) {
-      toast.error("Only the server owner can change settings.");
+      toast.error(socketI18n.t("socketFull.serverOverviewTab_728652d8c0"));
       return false;
     }
 
@@ -323,7 +326,7 @@ export function ServerOverviewTab({
   const uploadIcon = async (file: File) => {
     if (!host) return;
     if (!socket || !socket.connected) {
-      toast.error("Not connected to the server.");
+      toast.error(socketI18n.t("socketFull.serverOverviewTab_1358ba8f73"));
       return;
     }
     if (!effectiveAccessToken) {
@@ -331,15 +334,15 @@ export function ServerOverviewTab({
       return;
     }
     if (!canEdit) {
-      toast.error("Only the server owner can change the icon.");
+      toast.error(socketI18n.t("socketFull.serverOverviewTab_5f90ca4958"));
       return;
     }
     if (file.size > MAX_ICON_SIZE_BYTES) {
-      toast.error("Icon too large (max 25MB).");
+      toast.error(socketI18n.t("socketFull.serverOverviewTab_c54eb4aab5"));
       return;
     }
     if (!/^image\/(png|jpeg|webp|gif|avif)$/i.test(file.type || "")) {
-      toast.error("Unsupported icon format. Use PNG, JPEG, WebP, GIF, or AVIF.");
+      toast.error(socketI18n.t("socketFull.serverOverviewTab_768b43c377"));
       return;
     }
     setIsUploadingIcon(true);
@@ -371,12 +374,12 @@ export function ServerOverviewTab({
                 : `HTTP ${resp.status} ${resp.statusText || ""}`.trim();
         throw new Error(msg);
       }
-      toast.success("Icon updated");
+      toast.success(socketI18n.t("socketFull.serverOverviewTab_7548966300"));
       setIconCacheBuster((v) => v + 1);
       socket?.emit("server:settings:get");
       socket?.emit("server:details");
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Icon upload failed");
+      toast.error(e instanceof Error ? e.message : socketI18n.t("socketFull.serverOverviewTab_9d18cad0bd"));
     } finally {
       setIsUploadingIcon(false);
     }
@@ -385,7 +388,7 @@ export function ServerOverviewTab({
   const clearIcon = async () => {
     if (!host) return;
     if (!socket || !socket.connected) {
-      toast.error("Not connected to the server.");
+      toast.error(socketI18n.t("socketFull.serverOverviewTab_1358ba8f73"));
       return;
     }
     if (!effectiveAccessToken) {
@@ -393,7 +396,7 @@ export function ServerOverviewTab({
       return;
     }
     if (!canEdit) {
-      toast.error("Only the server owner can change the icon.");
+      toast.error(socketI18n.t("socketFull.serverOverviewTab_5f90ca4958"));
       return;
     }
 
@@ -426,11 +429,11 @@ export function ServerOverviewTab({
 
       setIconUrl(null);
       setIconCacheBuster((v) => v + 1);
-      toast.success("Icon cleared");
+      toast.success(socketI18n.t("socketFull.serverOverviewTab_ebd61b916e"));
       socket?.emit("server:settings:get");
       socket?.emit("server:details");
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Failed to clear icon");
+      toast.error(e instanceof Error ? e.message : socketI18n.t("socketFull.serverOverviewTab_18cfcc7449"));
     } finally {
       setIsClearingIcon(false);
     }
@@ -440,52 +443,44 @@ export function ServerOverviewTab({
     <div className="flex flex-col gap-4">
       <span className="text-sm">
         {canEdit
-          ? "Update the server display name and icon."
-          : "You can see these settings, but your role cannot change them."}
+          ? socketI18n.t("socketFull.serverOverviewTab_2d5a0f2556")
+          : socketI18n.t("socketFull.serverOverviewTab_07c458fbeb")}
       </span>
 
       <div className="flex flex-col gap-2">
-        <span className="text-sm font-medium">
-          Server
-        </span>
+        <span className="text-sm font-medium">{socketI18n.t("settingsFull.mcb0cb170d1")}</span>
         <span className="text-sm">
           {host}
         </span>
       </div>
 
       <div className="flex flex-col gap-2">
-        <span className="text-sm font-medium">
-          Display name
-        </span>
+        <span className="text-sm font-medium">{socketI18n.t("socketFull.serverOverviewTab_b1b305be1b")}</span>
         <TextField
           value={displayName}
           onChange={(e: ChangeEvent<HTMLInputElement>) => setDisplayName(e.target.value)}
           onBlur={() => saveIfChanged({ displayName: displayName.trim() })}
-          placeholder="My Gryt Server"
+          placeholder={socketI18n.t("socketFull.serverOverviewTab_87f0cdb725")}
           disabled={!canEdit}
         />
       </div>
 
       <div className="flex flex-col gap-2">
-        <span className="text-sm font-medium">
-          Description
-        </span>
+        <span className="text-sm font-medium">{socketI18n.t("socketFull.serverOverviewTab_644c263467")}</span>
         <TextField
           multiline
           minRows={3}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           onBlur={() => saveIfChanged({ description: description.trim() })}
-          placeholder="A place to hang out"
+          placeholder={socketI18n.t("socketFull.serverOverviewTab_04e98abb55")}
           disabled={!canEdit}
           style={{ minHeight: 90 }}
         />
       </div>
 
       <div className="flex flex-col gap-2">
-        <span className="text-sm font-medium">
-          Server icon
-        </span>
+        <span className="text-sm font-medium">{socketI18n.t("socketFull.serverOverviewTab_ca2a2c61c9")}</span>
         {/** Only the avatar is clickable (not whitespace). */}
         <div className="flex flex-col items-center gap-2" style={{
             cursor: "default",
@@ -498,7 +493,7 @@ export function ServerOverviewTab({
             type="button"
             disabled={!canEdit || iconBusy}
             onClick={() => iconInputRef.current?.click()}
-            aria-label="Change server icon"
+            aria-label={socketI18n.t("socketFull.serverOverviewTab_2ca4b5b99a")}
             style={{
               all: "unset",
               cursor: canEdit && !iconBusy ? "pointer" : "default",
@@ -531,12 +526,12 @@ export function ServerOverviewTab({
           </button>
           <span className="text-xs">
             {isUploadingIcon
-              ? "Uploading..."
+              ? socketI18n.t("ui.uploading")
               : isClearingIcon
-                ? "Clearing..."
+                ? socketI18n.t("socketFull.serverOverviewTab_bcb85dcfbc")
                 : canEdit
-                  ? "Click to change icon"
-                  : "Server icon"}
+                  ? socketI18n.t("socketFull.serverOverviewTab_d6b23cb01e")
+                  : socketI18n.t("socketFull.serverOverviewTab_ca2a2c61c9")}
           </span>
         </div>
 
@@ -547,15 +542,13 @@ export function ServerOverviewTab({
               onClick={() => setShowClearIconConfirm(true)}
               style={{ alignSelf: "center" }}
             >
-              <PiTrashFill size={16} />
-              Clear icon
-            </Button>
+              <PiTrashFill size={16} />{socketI18n.t("socketFull.serverOverviewTab_61cd62f50a")}</Button>
             <ConfirmDialog
               open={showClearIconConfirm}
               onOpenChange={(open) => { if (!open) setShowClearIconConfirm(false); }}
-              title="Clear server icon?"
-              description="This will remove the current server icon. You can upload a new one at any time."
-              confirmLabel="Clear icon"
+              title={socketI18n.t("socketFull.serverOverviewTab_de703a311e")}
+              description={socketI18n.t("socketFull.serverOverviewTab_78f7c9d85c")}
+              confirmLabel={socketI18n.t("socketFull.serverOverviewTab_61cd62f50a")}
               onConfirm={clearIcon}
             />
           </>
@@ -576,11 +569,11 @@ export function ServerOverviewTab({
 
       {media && (
         <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium">Uploads</span>
+          <span className="text-sm font-medium">{socketI18n.t("socketFull.serverOverviewTab_38fbbee40d")}</span>
           <span className="text-xs" style={{ lineHeight: 1.4 }}>
             {media.checked
-              ? "New pictures and videos are checked and written out again in a sandbox before anyone sees them."
-              : "This server can't check uploads in a sandbox, so it shrinks pictures itself and can't take videos. Hosting from the Gryt desktop app, or with Docker, does both."}
+              ? socketI18n.t("socketFull.serverOverviewTab_ed0659075f")
+              : socketI18n.t("socketFull.serverOverviewTab_6374a2570c")}
           </span>
           <div className="flex items-center gap-2">
             <Switch
@@ -591,19 +584,19 @@ export function ServerOverviewTab({
               }}
               disabled={!canEdit || !media.video}
             />
-            <span className="text-sm">Let members use video avatars and banners</span>
+            <span className="text-sm">{socketI18n.t("socketFull.serverOverviewTab_931a5027c5")}</span>
           </div>
           <span className="text-xs text-gryt-muted" style={{ lineHeight: 1.4 }}>
             {media.video
-              ? "Each video becomes a silent clip of up to ten seconds, at the size of the card."
-              : "Not available here: it needs the same sandbox."}
+              ? socketI18n.t("socketFull.serverOverviewTab_9111906747")
+              : socketI18n.t("socketFull.serverOverviewTab_9a3ed44267")}
           </span>
         </div>
       )}
 
       {externalEmojis !== null && (
         <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium">Emoji from other servers</span>
+          <span className="text-sm font-medium">{socketI18n.t("socketFull.serverOverviewTab_0f3e089f3c")}</span>
           <div className="flex items-center gap-2">
             <Switch
               checked={externalEmojis}
@@ -613,26 +606,18 @@ export function ServerOverviewTab({
               }}
               disabled={!canEdit}
             />
-            <span className="text-sm">Let members use custom emoji from their other servers</span>
+            <span className="text-sm">{socketI18n.t("socketFull.serverOverviewTab_f6b60fc60d")}</span>
           </div>
-          <span className="text-xs text-gryt-muted" style={{ lineHeight: 1.4 }}>
-            Each one loads from the server it belongs to, so that server sees who reads it, and this server can't check what the picture shows.
-          </span>
+          <span className="text-xs text-gryt-muted" style={{ lineHeight: 1.4 }}>{socketI18n.t("socketFull.serverOverviewTab_355d3082ff")}</span>
         </div>
       )}
 
       <div className="flex flex-col gap-2">
-        <span className="text-sm font-medium">
-          Limits (optional)
-        </span>
-        <span className="text-sm">
-          Leave blank for defaults. These affect uploads and voice bandwidth.
-        </span>
+        <span className="text-sm font-medium">{socketI18n.t("socketFull.serverOverviewTab_a89b7d285d")}</span>
+        <span className="text-sm">{socketI18n.t("socketFull.serverOverviewTab_9497e5bfdd")}</span>
 
         <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium">
-            Max avatar upload (MB)
-          </span>
+          <span className="text-sm font-medium">{socketI18n.t("socketFull.serverOverviewTab_b03db383f9")}</span>
           <TextField
             type="number"
             inputMode="decimal"
@@ -641,15 +626,13 @@ export function ServerOverviewTab({
             value={avatarMaxMb}
             onChange={(e) => setAvatarMaxMb(e.target.value)}
             onBlur={() => saveIfChanged({ avatarMaxBytes: parseMbToBytes(avatarMaxMb) })}
-            placeholder="e.g. 5"
+            placeholder={socketI18n.t("socketFull.serverOverviewTab_54949e6cd7")}
             disabled={!canEdit}
           />
         </div>
 
         <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium">
-            Max file upload (MB)
-          </span>
+          <span className="text-sm font-medium">{socketI18n.t("socketFull.serverOverviewTab_b95fe865e0")}</span>
           <TextField
             type="number"
             inputMode="decimal"
@@ -658,15 +641,13 @@ export function ServerOverviewTab({
             value={uploadMaxMb}
             onChange={(e) => setUploadMaxMb(e.target.value)}
             onBlur={() => saveIfChanged({ uploadMaxBytes: parseMbToBytes(uploadMaxMb) })}
-            placeholder="e.g. 25"
+            placeholder={socketI18n.t("socketFull.serverOverviewTab_9fb8b76998")}
             disabled={!canEdit}
           />
         </div>
 
         <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium">
-            Max emoji upload (MB)
-          </span>
+          <span className="text-sm font-medium">{socketI18n.t("socketFull.serverOverviewTab_ce0fb2eddd")}</span>
           <TextField
             type="number"
             inputMode="decimal"
@@ -675,7 +656,7 @@ export function ServerOverviewTab({
             value={emojiMaxMb}
             onChange={(e) => setEmojiMaxMb(e.target.value)}
             onBlur={() => saveIfChanged({ emojiMaxBytes: parseMbToBytes(emojiMaxMb) })}
-            placeholder="e.g. 5"
+            placeholder={socketI18n.t("socketFull.serverOverviewTab_54949e6cd7")}
             disabled={!canEdit}
           />
         </div>
@@ -683,12 +664,8 @@ export function ServerOverviewTab({
       </div>
 
       <div className="flex flex-col gap-2">
-        <span className="text-sm font-medium">
-          Profanity filter
-        </span>
-        <span className="text-xs" style={{ lineHeight: 1.4 }}>
-          Controls how profane messages are handled on this server.
-        </span>
+        <span className="text-sm font-medium">{socketI18n.t("socketFull.serverOverviewTab_96e3f9a807")}</span>
+        <span className="text-xs" style={{ lineHeight: 1.4 }}>{socketI18n.t("socketFull.serverOverviewTab_5a56d5d4cb")}</span>
         <div className="flex gap-2 flex-wrap">
           <div style={{ flex: "1 1 180px", minWidth: 0 }}>
             <Select
@@ -700,13 +677,13 @@ export function ServerOverviewTab({
               }}
               disabled={!canEdit}
               options={[
-                { label: "Off — no filtering", value: "off" },
+                { label: socketI18n.t("socketFull.serverOverviewTab_e73ca35045"), value: "off" },
                 {
-                  label: "Flag — blur profanity (clients can reveal)",
+                  label: socketI18n.t("socketFull.serverOverviewTab_6785ec70d8"),
                   value: "flag",
                 },
-                { label: "Censor — replace profanity", value: "censor" },
-                { label: "Block — reject message entirely", value: "block" },
+                { label: socketI18n.t("socketFull.serverOverviewTab_70da520252"), value: "censor" },
+                { label: socketI18n.t("socketFull.serverOverviewTab_cbd69e2ce9"), value: "block" },
               ]}
             />
           </div>
@@ -720,13 +697,13 @@ export function ServerOverviewTab({
                   saveIfChanged({ profanityCensorStyle: style });
                 }}
                 disabled={!canEdit}
-                placeholder="Replacement style"
+                placeholder={socketI18n.t("socketFull.serverOverviewTab_ec0bc0de2d")}
                 options={[
-                  { label: "Symbols — $#@!%&*", value: "grawlix" },
-                  { label: "Asterisks — ****", value: "asterisks" },
-                  { label: "Swear emoji — 🤬🤬", value: "emoji" },
-                  { label: "Black bars — ████", value: "block" },
-                  { label: "Hearts — ♥♥♥♥", value: "hearts" },
+                  { label: socketI18n.t("socketFull.serverOverviewTab_1244c3a760"), value: "grawlix" },
+                  { label: socketI18n.t("socketFull.serverOverviewTab_b9f27f52a7"), value: "asterisks" },
+                  { label: socketI18n.t("socketFull.serverOverviewTab_0a38666b9a"), value: "emoji" },
+                  { label: socketI18n.t("socketFull.serverOverviewTab_5c8e136099"), value: "block" },
+                  { label: socketI18n.t("socketFull.serverOverviewTab_571fda399f"), value: "hearts" },
                 ]}
               />
             </div>
@@ -735,16 +712,8 @@ export function ServerOverviewTab({
       </div>
 
       <div className="flex flex-col gap-2">
-        <span className="text-sm font-medium">
-          Spam filter
-        </span>
-        <span className="text-xs" style={{ lineHeight: 1.4 }}>
-          Times out anyone who floods chat: the same message over and over, bursts
-          of links or mentions, or DMs to lots of people at once. It never touches
-          the owner, moderators or approved bots. Every timeout goes in the audit
-          log, and repeat offenders get longer ones each time: a minute, then ten,
-          then an hour, then a day.
-        </span>
+        <span className="text-sm font-medium">{socketI18n.t("socketFull.serverOverviewTab_b815dea119")}</span>
+        <span className="text-xs" style={{ lineHeight: 1.4 }}>{socketI18n.t("socketFull.serverOverviewTab_47cf092ec0")}</span>
         <div className="flex items-center gap-2">
           <Switch
             checked={spamFilter}
@@ -754,7 +723,7 @@ export function ServerOverviewTab({
             }}
             disabled={!canEdit}
           />
-          <span className="text-sm">Time out spammers automatically</span>
+          <span className="text-sm">{socketI18n.t("socketFull.serverOverviewTab_aa53196344")}</span>
         </div>
         {spamFilter && (
           <Select
@@ -768,21 +737,17 @@ export function ServerOverviewTab({
             }}
             disabled={!canEdit}
             options={[
-              { label: "Low: only obvious floods", value: "low" },
-              { label: "Normal", value: "normal" },
-              { label: "High: trips sooner, can catch real people", value: "high" },
+              { label: socketI18n.t("socketFull.serverOverviewTab_e08d81365f"), value: "low" },
+              { label: socketI18n.t("socketFull.serverOverviewTab_336cd5f6db"), value: "normal" },
+              { label: socketI18n.t("socketFull.serverOverviewTab_238995ce00"), value: "high" },
             ]}
           />
         )}
       </div>
 
       <div className="flex flex-col gap-2">
-        <span className="text-sm font-medium">
-          System messages channel
-        </span>
-        <span className="text-xs" style={{ lineHeight: 1.4 }}>
-          Choose which text channel receives system messages like &ldquo;user joined&rdquo; and &ldquo;user left&rdquo;.
-        </span>
+        <span className="text-sm font-medium">{socketI18n.t("socketFull.serverOverviewTab_6bfa4b2b5e")}</span>
+        <span className="text-xs" style={{ lineHeight: 1.4 }}>{socketI18n.t("socketFull.serverOverviewTab_5e42a3c5cb")}</span>
         <Select
           className="max-w-80"
           value={systemChannelId ?? "__auto__"}
@@ -793,21 +758,15 @@ export function ServerOverviewTab({
           }}
           disabled={!canEdit}
           options={[
-            { label: "Auto (first text channel)", value: "__auto__" },
+            { label: socketI18n.t("socketFull.serverOverviewTab_2358221b86"), value: "__auto__" },
             ...textChannels.map((ch) => ({ label: `#${ch.name}`, value: ch.id })),
           ]}
         />
       </div>
 
       <div className="flex flex-col gap-2">
-        <span className="text-sm font-medium">
-          Who can join
-        </span>
-        <span className="text-xs" style={{ lineHeight: 1.4 }}>
-          Bans still apply whichever of these you pick, but they hold only as
-          well as the identity behind them — somebody without a Gryt account can
-          make a new one, so lean on invites if that matters.
-        </span>
+        <span className="text-sm font-medium">{socketI18n.t("socketFull.serverOverviewTab_43ed71596e")}</span>
+        <span className="text-xs" style={{ lineHeight: 1.4 }}>{socketI18n.t("socketFull.serverOverviewTab_2d7c2b6c26")}</span>
         <Select
           className="max-w-80"
           value={joinPolicy}
@@ -819,26 +778,19 @@ export function ServerOverviewTab({
           }}
           disabled={!canEdit}
           options={[
-            { label: "With an invite", value: "invite" },
-            { label: "After you let them in", value: "request" },
-            { label: "Anyone, no invite", value: "open" },
+            { label: socketI18n.t("socketFull.serverOverviewTab_0e56106ca5"), value: "invite" },
+            { label: socketI18n.t("socketFull.serverOverviewTab_bfe4da3545"), value: "request" },
+            { label: socketI18n.t("socketFull.serverOverviewTab_1dcb6d8cc9"), value: "open" },
           ]}
         />
         {joinPolicy === "request" && (
-          <span className="text-xs" style={{ lineHeight: 1.4 }}>
-            People who ask show up under <strong>Requests</strong>. Nobody gets in
-            until somebody there approves them.
-          </span>
+          <span className="text-xs" style={{ lineHeight: 1.4 }}><Trans i18n={socketI18n} i18nKey="socketFull.whereJoinRequestsAppear" components={{ requests: <strong /> }} /></span>
         )}
       </div>
 
       <div className="flex flex-col gap-2">
-        <span className="text-sm font-medium">
-          LAN access
-        </span>
-        <span className="text-xs" style={{ lineHeight: 1.4 }}>
-          When enabled, clients on the same local network can join without an invite code. Remote connections still require an invite.
-        </span>
+        <span className="text-sm font-medium">{socketI18n.t("socketFull.serverOverviewTab_fbf5cba9f8")}</span>
+        <span className="text-xs" style={{ lineHeight: 1.4 }}>{socketI18n.t("socketFull.serverOverviewTab_0bcb459db2")}</span>
         <div className="flex items-center gap-2">
           <Switch
             checked={lanOpen}
@@ -848,17 +800,13 @@ export function ServerOverviewTab({
             }}
             disabled={!canEdit}
           />
-          <span className="text-sm">Allow anyone on LAN to join</span>
+          <span className="text-sm">{socketI18n.t("socketFull.serverOverviewTab_5f0685c61a")}</span>
         </div>
       </div>
 
       <div className="flex flex-col gap-2">
-        <span className="text-sm font-medium">
-          Discoverability
-        </span>
-        <span className="text-xs" style={{ lineHeight: 1.4 }}>
-          When disabled, the server&rsquo;s public info endpoint is hidden. Non-members will not be able to see the server name, description, or member count before joining.
-        </span>
+        <span className="text-sm font-medium">{socketI18n.t("socketFull.serverOverviewTab_5492d66b78")}</span>
+        <span className="text-xs" style={{ lineHeight: 1.4 }}>{socketI18n.t("socketFull.serverOverviewTab_a3f533cac4")}</span>
         <div className="flex items-center gap-2">
           <Switch
             checked={discoverable}
@@ -868,14 +816,14 @@ export function ServerOverviewTab({
             }}
             disabled={!canEdit}
           />
-          <span className="text-sm">Allow public server info</span>
+          <span className="text-sm">{socketI18n.t("socketFull.serverOverviewTab_235b297c08")}</span>
         </div>
       </div>
 
 
       {autosaving ? (
         <div className="flex justify-end">
-          <span className="text-sm">Saving…</span>
+          <span className="text-sm">{socketI18n.t("socketFull.serverOverviewTab_a0f752322b")}</span>
         </div>
       ) : null}
     </div>

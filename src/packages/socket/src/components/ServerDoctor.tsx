@@ -1,6 +1,8 @@
 import { Alert, Button, Dialog, IconButton, Spinner } from "@gryt/ui";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
+
 import {
   PiArrowSquareOutBold,
   PiCheckCircleFill,
@@ -21,6 +23,12 @@ import {
 
 const ROOM_GRANT_TIMEOUT_MS = 8000;
 
+function localDoctorError(key: string): Error {
+  const error = new Error();
+  Object.defineProperty(error, "message", { get: () => socketI18n.t(key) });
+  return error;
+}
+
 /**
  * What is broken between here and one server, in connection order. The value is
  * the per-address breakdown: "none answered" differs from "not the LAN one".
@@ -36,6 +44,7 @@ const ICON: Record<CheckStatus, ReactNode> = {
 };
 
 function CheckRow({ check }: { check: CheckResult }) {
+  useSocketTranslation();
   const dimmed = check.status === "pending" || check.status === "skipped";
 
   return (
@@ -62,12 +71,12 @@ function CheckRow({ check }: { check: CheckResult }) {
                     address.ok ? "text-gryt-success-9" : "text-gryt-danger-9"
                   }
                 >
-                  {address.ok ? "reachable" : "unreachable"}
+                  {address.ok ? socketI18n.t("socketFull.serverDoctor_46e5c43a65") : socketI18n.t("socketFull.serverDoctor_9a71f9990c")}
                 </span>{" "}
                 <span className="text-gryt-muted">
                   {address.address}
                   {address.ok
-                    ? ` — ${address.latencyMs} ms`
+                    ? socketI18n.t("socketFull.serverDoctor_901797efc0", { p0: (address.latencyMs) })
                     : address.error
                       ? ` — ${address.error}`
                       : ""}
@@ -110,6 +119,7 @@ export function ServerDoctor({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  useSocketTranslation();
   const [checks, setChecks] = useState<CheckResult[]>(initialChecks);
   const [running, setRunning] = useState(false);
   const { sockets } = useSockets();
@@ -123,7 +133,7 @@ export function ServerDoctor({
     () =>
       new Promise<DoctorRoomGrant>((resolve, reject) => {
         if (!socket) {
-          reject(new Error("no connection to this server"));
+          reject(localDoctorError("socketFull.serverDoctor_a675dad25a"));
           return;
         }
 
@@ -132,7 +142,7 @@ export function ServerDoctor({
           socket.off("voice:doctor:error", onError);
           // An older server has no handler for this and will never answer, so
           // silence has to be treated as an answer rather than hung on.
-          reject(new Error("the server did not answer, so it may be too old to have a Doctor"));
+          reject(localDoctorError("socketFull.serverDoctor_4f4f505de9"));
         }, ROOM_GRANT_TIMEOUT_MS);
 
         function done() {
@@ -199,13 +209,9 @@ export function ServerDoctor({
           </Dialog.Close>
 
           <div className="flex flex-col gap-3">
-            <Dialog.Title>Doctor — {serverName}</Dialog.Title>
+            <Dialog.Title>{socketI18n.t("socketFull.doctorTitle", { server: serverName })}</Dialog.Title>
 
-            <Dialog.Description>
-              Checks each hop between this device and the server, in the order
-              the connection makes them. The first failure is the one to fix;
-              anything after it is not tested.
-            </Dialog.Description>
+            <Dialog.Description>{socketI18n.t("socketFull.serverDoctor_16fc55e39a")}</Dialog.Description>
 
             <div className="flex flex-col">
               {checks.map((check) => (
@@ -215,17 +221,11 @@ export function ServerDoctor({
 
             {worst && worst.status === "fail" && (
               <Alert severity="error" role="alert">
-                {worst.label} is the first thing that failed. Fixing it may fix
-                everything after it.
-              </Alert>
+                {socketI18n.t("socketFull.doctorFirstFailure", { check: worst.label })}</Alert>
             )}
 
             {!running && !worst && (
-              <Alert severity="success" role="status">
-                Everything this device can test from here works. If voice still
-                fails, the problem is on the other side of the call rather than
-                this end.
-              </Alert>
+              <Alert severity="success" role="status">{socketI18n.t("socketFull.serverDoctor_42a15539c9")}</Alert>
             )}
 
             <div className="flex justify-between items-center gap-2">
@@ -233,12 +233,9 @@ export function ServerDoctor({
                   A renderer cannot send raw UDP, so nothing here can knock on
                   the server's media port and see who answers. Letting people
                   believe otherwise sends them to check the wrong thing. */}
-              <span className="text-xs text-gryt-muted">
-                These run from this device, into a room with nobody else in it.
-                A pass means voice works for you, not that it works for everyone.
-              </span>
+              <span className="text-xs text-gryt-muted">{socketI18n.t("socketFull.serverDoctor_6bafa4b55d")}</span>
               <Button size="small" disabled={running} onClick={run}>
-                {running ? "Running…" : "Run again"}
+                {running ? socketI18n.t("socketFull.serverDoctor_865a53b8a8") : socketI18n.t("socketFull.serverDoctor_e2a35d7cc2")}
               </Button>
             </div>
           </div>

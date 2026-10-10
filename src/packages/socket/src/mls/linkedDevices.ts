@@ -1,5 +1,7 @@
 import type { MlsOwnDevice } from "@gryt/core";
 
+import { i18n as socketI18n } from "@/i18n";
+
 /* "New device linked" (GRYT-1583): when one of your devices turns up on a server, your other
    devices say so, once per device id. The phone has the same in src/mls/linkedDevices.ts. */
 
@@ -26,9 +28,9 @@ export function newOwnDevices(
 
 export function linkedDeviceLine(notice: Pick<LinkedDeviceNotice, "name" | "at">, withTime: boolean): string {
   const name = notice.name ? `: ${notice.name}` : "";
-  if (!withTime) return `New device linked${name}. Not you? Remove it.`;
-  const when = new Date(notice.at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-  return `New device linked${name}, ${when}. Not you? Remove it.`;
+  if (!withTime) return socketI18n.t("socketFull.linkedDevices_92b2b0c469", { p0: (name) });
+  const when = new Date(notice.at).toLocaleString(socketI18n.resolvedLanguage, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  return socketI18n.t("socketFull.linkedDevices_31f6c26e35", { p0: (name), p1: (when) });
 }
 
 // ── Kept per browser, so a notice outlives a reload until it's dismissed ──

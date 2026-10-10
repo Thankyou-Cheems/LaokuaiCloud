@@ -2,6 +2,7 @@ import { Skeleton, VideoPlayer } from "@gryt/ui";
 import { useEffect, useState } from "react";
 
 import { getServerAccessToken, getServerHttpBase, useTheme } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 import { useSettings } from "@/settings/src/hooks/useSettings";
 
 import { PiX } from "../../../../lib/icons";
@@ -18,17 +19,18 @@ import {
 } from "./embedUtils";
 import { nextPreviewStep, type PreviewFailure } from "./linkPreviewRetry";
 
-export const DismissButton = ({ onDismiss }: { onDismiss: () => void }) => (
+export const DismissButton = ({ onDismiss }: { onDismiss: () => void }) => { useSocketTranslation(); return (
   <button
     className="link-embed-dismiss"
     onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDismiss(); }}
-    title="Remove embed"
+    title={socketI18n.t("socketFull.embedRenderers_45f694f91c")}
   >
     <PiX size={14} />
   </button>
-);
+); };
 
 export const ImageEmbed = ({ url, serverHost, onDismiss }: { url: string; serverHost: string; onDismiss: () => void }) => {
+  useSocketTranslation();
   const [cached, setCached] = useState(() => imageEmbedSizeCache.get(url));
 
   useEffect(() => {
@@ -61,7 +63,7 @@ export const ImageEmbed = ({ url, serverHost, onDismiss }: { url: string; server
       <DismissButton onDismiss={onDismiss} />
       <img
         src={url}
-        alt="Embedded image"
+        alt={socketI18n.t("socketFull.embedRenderers_302cd94183")}
         className="link-embed-image"
         width={cached?.width}
         height={cached?.height}
@@ -80,6 +82,7 @@ export const ImageEmbed = ({ url, serverHost, onDismiss }: { url: string; server
 };
 
 export const VideoEmbed = ({ url, onDismiss }: { url: string; onDismiss: () => void }) => {
+  useSocketTranslation();
   const { chatMediaVolume, setChatMediaVolume } = useSettings();
   return (
     <div className="link-embed-container link-embed-video">
@@ -90,6 +93,7 @@ export const VideoEmbed = ({ url, onDismiss }: { url: string; onDismiss: () => v
 };
 
 export const TwitchEmbed = ({ url, onDismiss }: { url: string; onDismiss: () => void }) => {
+  useSocketTranslation();
   const embed = getTwitchEmbed(url);
   if (!embed) return null;
   const parent = (() => {
@@ -138,6 +142,7 @@ export const TwitchEmbed = ({ url, onDismiss }: { url: string; onDismiss: () => 
 };
 
 export const SoundCloudEmbed = ({ url, onDismiss }: { url: string; onDismiss: () => void }) => {
+  useSocketTranslation();
   const src = `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&auto_play=false&hide_related=true&show_comments=false&show_reposts=false&visual=false`;
   return (
     <div className="link-embed-container">
@@ -155,6 +160,7 @@ export const SoundCloudEmbed = ({ url, onDismiss }: { url: string; onDismiss: ()
 };
 
 export const SpotifyEmbed = ({ url, onDismiss }: { url: string; onDismiss: () => void }) => {
+  useSocketTranslation();
   const info = getSpotifyEmbed(url);
   if (!info) return null;
   return (
@@ -174,6 +180,7 @@ export const SpotifyEmbed = ({ url, onDismiss }: { url: string; onDismiss: () =>
 };
 
 export const TikTokEmbed = ({ url, onDismiss }: { url: string; onDismiss: () => void }) => {
+  useSocketTranslation();
   const id = getTikTokVideoId(url);
   if (!id) return null;
   const src = `https://www.tiktok.com/player/v1/${encodeURIComponent(id)}`;
@@ -194,6 +201,7 @@ export const TikTokEmbed = ({ url, onDismiss }: { url: string; onDismiss: () => 
 };
 
 export const InstagramEmbed = ({ url, onDismiss }: { url: string; onDismiss: () => void }) => {
+  useSocketTranslation();
   const src = getInstagramEmbedSrc(url);
   if (!src) return null;
   return (
@@ -213,6 +221,7 @@ export const InstagramEmbed = ({ url, onDismiss }: { url: string; onDismiss: () 
 };
 
 export const YouTubeEmbed = ({ url, onDismiss }: { url: string; onDismiss: () => void }) => {
+  useSocketTranslation();
   const videoId = getYouTubeVideoId(url);
   if (!videoId) return null;
   const embedUrl = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}`;
@@ -222,7 +231,7 @@ export const YouTubeEmbed = ({ url, onDismiss }: { url: string; onDismiss: () =>
       <iframe
         className="link-embed-iframe"
         src={embedUrl}
-        title="YouTube video"
+        title={socketI18n.t("socketFull.embedRenderers_6dff939f55")}
         loading="lazy"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
         allowFullScreen
@@ -233,6 +242,7 @@ export const YouTubeEmbed = ({ url, onDismiss }: { url: string; onDismiss: () =>
 };
 
 export const VimeoEmbed = ({ url, onDismiss }: { url: string; onDismiss: () => void }) => {
+  useSocketTranslation();
   const videoId = getVimeoVideoId(url);
   if (!videoId) return null;
   const embedUrl = `https://player.vimeo.com/video/${encodeURIComponent(videoId)}`;
@@ -242,7 +252,7 @@ export const VimeoEmbed = ({ url, onDismiss }: { url: string; onDismiss: () => v
       <iframe
         className="link-embed-iframe"
         src={embedUrl}
-        title="Vimeo video"
+        title={socketI18n.t("socketFull.embedRenderers_17be88d1f4")}
         loading="lazy"
         allow="autoplay; fullscreen; picture-in-picture"
         allowFullScreen
@@ -253,6 +263,7 @@ export const VimeoEmbed = ({ url, onDismiss }: { url: string; onDismiss: () => v
 };
 
 export const XEmbed = ({ url, serverHost, onDismiss }: { url: string; serverHost: string; onDismiss: () => void }) => {
+  useSocketTranslation();
   const { resolvedAppearance } = useTheme();
   const [html, setHtml] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
@@ -353,9 +364,9 @@ export const XEmbed = ({ url, serverHost, onDismiss }: { url: string; serverHost
   );
 };
 
-export const AudioEmbed = ({ url, onDismiss }: { url: string; onDismiss: () => void }) => (
+export const AudioEmbed = ({ url, onDismiss }: { url: string; onDismiss: () => void }) => { useSocketTranslation(); return (
   <div className="link-embed-container link-embed-audio-wrap">
     <DismissButton onDismiss={onDismiss} />
     <audio src={url} controls className="link-embed-audio" preload="metadata" />
   </div>
-);
+); };

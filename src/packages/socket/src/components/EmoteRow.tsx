@@ -1,6 +1,8 @@
 import { Checkbox, Chip, TextField } from "@gryt/ui";
 import { type ChangeEvent } from "react";
 
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
+
 import { type ImportEmoteWithMeta } from "../utils/emoteImportUtils";
 
 interface EmoteRowProps {
@@ -16,6 +18,7 @@ export function EmoteRow({
   onToggleSelect,
   onUpdateName,
 }: EmoteRowProps) {
+  useSocketTranslation();
   return (
     <div className="flex items-center gap-2 py-1 px-2" style={{
         border: "1px solid var(--gryt-neutral-a4)",
@@ -45,9 +48,9 @@ export function EmoteRow({
           <div className="emoji-upload-preview-overlay">
             <div className="emoji-upload-preview-label">
               {e.status === "downloading"
-                ? `DL ${e.progress}%`
+                ? socketI18n.t("socketFull.emoteRow_64f4bc7823", { p0: (e.progress) })
                 : e.status === "processing"
-                  ? "PROC"
+                  ? socketI18n.t("socketFull.emoteRow_ed774814f7")
                   : `${e.progress}%`}
             </div>
             {(e.status === "downloading" || e.status === "uploading" || e.status === "processing") && (
@@ -68,7 +71,7 @@ export function EmoteRow({
             onChange={(ev: ChangeEvent<HTMLInputElement>) =>
               onUpdateName(e.id, ev.target.value)
             }
-            placeholder="shortcode"
+            placeholder={socketI18n.t("socketFull.emoteRow_aaeb320dc5")}
             disabled={importing || !e.selected}
             className="flex-1"
           />

@@ -1,5 +1,8 @@
 import { Checkbox, Select, TextField, Tooltip } from "@gryt/ui";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Trans } from "react-i18next";
+
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 
 import { PiInfoBold, PiMagnifyingGlassBold } from "../../../../lib/icons";
 import { hasRoomForPermissionMatrix } from "../lib/permissionGridLayout";
@@ -59,6 +62,7 @@ function matches(permission: PermissionMeta, query: string): boolean {
 }
 
 function RoleDot({ color }: { color: string | null }) {
+  useSocketTranslation();
   return (
     <span
       aria-hidden
@@ -74,13 +78,14 @@ function RoleDot({ color }: { color: string | null }) {
 }
 
 function PermissionName({ permission }: { permission: PermissionMeta }) {
+  useSocketTranslation();
   return (
     <span className="flex items-center gap-1.5 min-w-0">
       <span className="truncate">{permission.label}</span>
       {permission.description && (
         <Tooltip title={permission.description}>
           <span className="text-gryt-muted shrink-0 cursor-help" tabIndex={0}>
-            <PiInfoBold size={12} aria-label={`About ${permission.label}`} />
+            <PiInfoBold size={12} aria-label={socketI18n.t("socketFull.rolePermissionGrid_98f637d952", { p0: (permission.label) })} />
           </span>
         </Tooltip>
       )}
@@ -105,13 +110,14 @@ export function RolePermissionGrid({
   /** Roles the server refuses to save — drawn, but not editable. */
   readOnlyRoleIds: Set<string>;
 }) {
+  useSocketTranslation();
   const [containerRef, width] = useContainerWidth();
   const [query, setQuery] = useState("");
   const [compare, setCompare] = useState(false);
   const [left, setLeft] = useState<string>("");
   const [right, setRight] = useState<string>("");
 
-  const groups = useMemo(() => groupPermissions(catalogue), [catalogue]);
+  const groups = groupPermissions(catalogue);
 
   // Default the comparison to the two adjacent ranks somebody is most likely to
   // be deciding between — the pair with the smallest gap between them.
@@ -169,8 +175,8 @@ export function RolePermissionGrid({
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Filter permissions"
-            aria-label="Filter permissions"
+            placeholder={socketI18n.t("socketFull.rolePermissionGrid_38e9622454")}
+            aria-label={socketI18n.t("socketFull.rolePermissionGrid_38e9622454")}
             className="w-full"
           />
         </div>
@@ -180,9 +186,9 @@ export function RolePermissionGrid({
             <Checkbox
               checked={compare}
               onCheckedChange={(on: boolean) => setCompare(on)}
-              aria-label="Show only permissions where two roles differ"
+              aria-label={socketI18n.t("socketFull.rolePermissionGrid_9cfd8b7b66")}
             />
-            <span className="whitespace-nowrap">Only where</span>
+            <span className="whitespace-nowrap">{socketI18n.t("socketFull.rolePermissionGrid_0151d1a20e")}</span>
             <Select
               size="small"
               value={left}
@@ -192,7 +198,7 @@ export function RolePermissionGrid({
               }}
               options={roleOptions}
             />
-            <span className="whitespace-nowrap">differs from</span>
+            <span className="whitespace-nowrap">{socketI18n.t("socketFull.rolePermissionGrid_64a92d52d8")}</span>
             <Select
               size="small"
               value={right}
@@ -206,15 +212,15 @@ export function RolePermissionGrid({
         )}
 
         <span className="text-xs text-gryt-muted shrink-0">
-          {compare ? `${shown} differ` : `${shown} of ${catalogue.length}`}
+          {compare ? socketI18n.t("socketFull.rolePermissionGrid_aa4229c45e", { p0: (shown) }) : socketI18n.t("socketFull.rolePermissionGrid_73a54d9f7b", { p0: (shown), p1: (catalogue.length) })}
         </span>
       </div>
 
       {shown === 0 ? (
         <span className="text-sm text-gryt-muted py-6 text-center">
           {compare
-            ? "Those two roles have exactly the same permissions."
-            : "No permission matches that."}
+            ? socketI18n.t("socketFull.rolePermissionGrid_f67b86572e")
+            : socketI18n.t("socketFull.rolePermissionGrid_4576365810")}
         </span>
       ) : asMatrix ? (
         <PermissionMatrix
@@ -255,6 +261,7 @@ function PermissionMatrix({
   readOnlyRoleIds,
   highlight,
 }: ViewProps & { highlight: string[] }) {
+  useSocketTranslation();
   const highlighted = new Set(highlight.filter(Boolean));
 
   return (
@@ -262,18 +269,14 @@ function PermissionMatrix({
     // around it must not, so the overflow lives on this container.
     <div className="overflow-x-auto rounded-(--gryt-radius-md) border border-gryt-border">
       <table className="w-full border-collapse text-sm">
-        <caption className="sr-only">
-          Permissions by role. Each column is a role, each row a permission.
-        </caption>
+        <caption className="sr-only">{socketI18n.t("socketFull.rolePermissionGrid_069badefee")}</caption>
         <thead>
           <tr>
             <th
               scope="col"
               className="sticky left-0 z-2 bg-gryt-surface-raised text-left font-bold text-xs px-3 py-2"
               style={{ minWidth: 220 }}
-            >
-              Permission
-            </th>
+            >{socketI18n.t("socketFull.rolePermissionGrid_bd1c797edd")}</th>
             {roles.map((role) => (
               <th
                 key={role.id}
@@ -342,7 +345,7 @@ function PermissionMatrix({
                             disabled={locked}
                             tone={DESTRUCTIVE.has(permission.id) ? "danger" : undefined}
                             onCheckedChange={(on: boolean) => onToggle(role.id, permission.id, on)}
-                            aria-label={`${permission.label} for ${role.name}`}
+                            aria-label={socketI18n.t("socketFull.rolePermissionGrid_8dd2cb63c9", { p0: (permission.label), p1: (role.name) })}
                           />
                         </div>
                       </td>
@@ -363,6 +366,7 @@ function PermissionMatrix({
  * role shows only what it adds to the rank below it, which is what a role is.
  */
 function PermissionLadder({ groups, roles, held, onToggle, readOnlyRoleIds }: ViewProps) {
+  useSocketTranslation();
   const visible = new Set(groups.flatMap((g) => g.permissions.map((p) => p.id)));
   const meta = Object.fromEntries(
     groups.flatMap((g) => g.permissions.map((p) => [p.id, p] as const)),
@@ -387,20 +391,17 @@ function PermissionLadder({ groups, roles, held, onToggle, readOnlyRoleIds }: Vi
             <div className="flex items-center gap-2 flex-wrap">
               <RoleDot color={role.color} />
               <span className="text-sm font-bold">{role.name}</span>
-              <span className="text-xs text-gryt-muted tabular-nums">rank {role.rank}</span>
+              <span className="text-xs text-gryt-muted tabular-nums">{socketI18n.t("socketFull.rolePermissionGrid_1e6aaaaf0a")}{" "}{role.rank}</span>
               <span className="text-xs text-gryt-muted ml-auto tabular-nums">
-                {mine.size} {mine.size === 1 ? "permission" : "permissions"}
+                {mine.size} {mine.size === 1 ? socketI18n.t("socketFull.rolePermissionGrid_e6ddeaffd3") : socketI18n.t("socketFull.rolePermissionGrid_6492e889ff")}
               </span>
             </div>
 
             <span className="text-xs text-gryt-muted">
               {below ? (
-                <>
-                  Everything <b className="text-gryt-text font-medium">{below.name}</b> has
-                  {added.length ? ", and:" : " — and nothing more."}
-                </>
+                <><Trans i18n={socketI18n} i18nKey={added.length ? "socketFull.roleIncludesAndAdds" : "socketFull.roleIncludesOnly"} values={{ name: below.name }} components={{ role: <b className="text-gryt-text font-medium" /> }} /></>
               ) : (
-                "The floor. Somebody with no role at all."
+                socketI18n.t("socketFull.rolePermissionGrid_baf5dbd952")
               )}
             </span>
 
@@ -412,7 +413,7 @@ function PermissionLadder({ groups, roles, held, onToggle, readOnlyRoleIds }: Vi
                     type="button"
                     disabled={locked}
                     onClick={() => onToggle(role.id, id, false)}
-                    title={locked ? undefined : `Remove from ${role.name}`}
+                    title={locked ? undefined : socketI18n.t("socketFull.rolePermissionGrid_927a5058c2", { p0: (role.name) })}
                     className={`flex items-center gap-1.5 rounded-(--gryt-radius-sm) border px-2 py-1 text-xs ${
                       DESTRUCTIVE.has(id)
                         ? "border-gryt-danger/40 text-gryt-danger"
@@ -431,8 +432,7 @@ function PermissionLadder({ groups, roles, held, onToggle, readOnlyRoleIds }: Vi
             )}
 
             {removed.length > 0 && (
-              <span className="text-xs text-gryt-muted">
-                Takes away:{" "}
+              <span className="text-xs text-gryt-muted">{socketI18n.t("socketFull.rolePermissionGrid_e382ccd55e")}{" "}
                 <b className="text-gryt-text font-medium">
                   {removed.map((id) => meta[id]?.label ?? id).join(", ")}
                 </b>

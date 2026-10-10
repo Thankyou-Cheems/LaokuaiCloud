@@ -2,6 +2,7 @@ import { Avatar, IconButton, Popover, Tooltip } from "@gryt/ui";
 import { useCallback, useMemo, useState } from "react";
 
 import { getUploadsFileUrl, resolveAvatarSrc, useTheme } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 
 import { PiPushPinFill, PiPushPinSlashFill } from "../../../../lib/icons";
 import type { RichActivity } from "../../../../lib/richActivity";
@@ -168,6 +169,7 @@ const MemberItem = ({
   /** Unread in the conversation with this person, or nothing if there is none. */
   dmUnreadFor?: (serverUserId: string) => number;
 }) => {
+  useSocketTranslation();
   const isSelf = member.serverUserId === currentServerUserId;
   const dmUnread = dmUnreadFor?.(member.serverUserId) ?? 0;
   const { label: statusLabel, color: statusColor } = statusConfig[member.status];
@@ -319,6 +321,7 @@ export const MemberSidebar = ({
   pinned,
   onTogglePinned,
 }: MemberSidebarProps) => {
+  useSocketTranslation();
   const { roles } = useServerPermissions(serverHost);
   const { resolvedAppearance } = useTheme();
   const directory = useDirectory();
@@ -365,7 +368,7 @@ export const MemberSidebar = ({
   const nameTagMap = useMemo(() => nameTags(members), [members]);
 
   return (
-    <div role="complementary" aria-label="Members" style={{ width: "240px",
+    <div role="complementary" aria-label={socketI18n.t("chat.membersTitle")} style={{ width: "240px",
         background: "var(--gryt-neutral-3)",
         borderRadius: "var(--gryt-radius-lg)",
         height: "100%",
@@ -387,10 +390,10 @@ export const MemberSidebar = ({
         */}
         {onTogglePinned && (
           <div className="flex items-center justify-end pb-1">
-            <Tooltip title={pinned ? "Unpin sidebar" : "Pin sidebar"}>
+            <Tooltip title={pinned ? socketI18n.t("ui.unpinSidebar") : socketI18n.t("ui.pinSidebar")}>
               <IconButton tone="neutral" size="xsmall"
                 onClick={onTogglePinned}
-                aria-label={pinned ? "Unpin sidebar" : "Pin sidebar"}
+                aria-label={pinned ? socketI18n.t("ui.unpinSidebar") : socketI18n.t("ui.pinSidebar")}
               >
                 {pinned ? <PiPushPinFill size={14} /> : <PiPushPinSlashFill size={14} />}
               </IconButton>

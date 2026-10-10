@@ -3,6 +3,7 @@ import { type ReactNode, useCallback, useState } from "react";
 import toast from "react-hot-toast";
 
 import { getIdentityWords } from "@/common";
+import { i18n, useTranslation } from "@/i18n";
 
 import { PiCopySimple, PiEyeFill, PiWarningFill } from "../../../../lib/icons";
 import { HIDDEN, nextWordsView, type WordsAction, type WordsView } from "./recoveryWordsStep";
@@ -19,6 +20,7 @@ export function RecoveryWordsPanel({
   copyLabel: string;
   onHide(): void;
 }) {
+  useTranslation();
   const [copied, setCopied] = useState(false);
 
   return (
@@ -38,15 +40,13 @@ export function RecoveryWordsPanel({
                 setCopied(true);
                 window.setTimeout(() => setCopied(false), 2500);
               })
-              .catch(() => toast.error("Could not copy"));
+              .catch(() => toast.error(i18n.t("settingsFull.m4dfbe46077")));
           }}
         >
           <PiCopySimple size={16} />
-          <span aria-live="polite">{copied ? "Copied" : copyLabel}</span>
+          <span aria-live="polite">{copied ? i18n.t("settingsFull.m8e3df45a49") : copyLabel}</span>
         </Button>
-        <Button tone="neutral" size="small" onClick={onHide}>
-          Hide
-        </Button>
+        <Button tone="neutral" size="small" onClick={onHide}>{i18n.t("settingsFull.m34d8b60fe2")}</Button>
       </div>
     </div>
   );
@@ -59,12 +59,13 @@ export function RecoveryWordsPanel({
 export function AccountWordsReveal({
   keyIsHere,
   startAt = "hidden",
-  label = "Show my 24 words",
+  label = i18n.t("settingsFull.m1bb042aee4"),
 }: {
   keyIsHere: boolean;
   startAt?: "hidden" | "confirming";
   label?: string;
 }) {
+  useTranslation();
   const [view, setView] = useState<WordsView>(startAt === "confirming" ? { step: "confirming" } : HIDDEN);
   const [busy, setBusy] = useState(false);
 
@@ -74,7 +75,7 @@ export function AccountWordsReveal({
       try {
         setView(await nextWordsView(view, action, { keyIsHere, readWords: getIdentityWords }));
       } catch (e) {
-        toast.error(e instanceof Error ? e.message : "Couldn’t read your 24 words.");
+        toast.error(e instanceof Error ? e.message : i18n.t("settingsFull.m6b77f51d53"));
       } finally {
         setBusy(false);
       }
@@ -88,14 +89,10 @@ export function AccountWordsReveal({
     return (
       <RecoveryWordsPanel
         words={view.words}
-        copyLabel="Copy words"
+        copyLabel={i18n.t("settingsFull.m1e5945e246")}
         onHide={() => void act("hide")}
         note={
-          <>
-            Save these in a password manager. If you lose every device and forget
-            your message password, they&rsquo;re the only way to get your
-            messages back.
-          </>
+          <>{i18n.t("settingsFull.mf2022c10f1")}</>
         }
       />
     );
@@ -106,18 +103,11 @@ export function AccountWordsReveal({
       <div className="flex flex-col gap-3">
         <Alert severity="warning">
           <span className="inline-flex items-start gap-2">
-            <PiWarningFill className="mt-0.5 shrink-0" size={15} />
-            Anyone with these words can read your direct messages and become you.
-            Make sure nobody can see your screen.
-          </span>
+            <PiWarningFill className="mt-0.5 shrink-0" size={15} />{i18n.t("settingsFull.mf9cc988186")}</span>
         </Alert>
         <div className="flex gap-2">
-          <Button size="small" disabled={busy} onClick={() => void act("confirm")}>
-            Show them
-          </Button>
-          <Button tone="neutral" size="small" disabled={busy} onClick={() => void act("hide")}>
-            Cancel
-          </Button>
+          <Button size="small" disabled={busy} onClick={() => void act("confirm")}>{i18n.t("settingsFull.mbaa5b3ad9a")}</Button>
+          <Button tone="neutral" size="small" disabled={busy} onClick={() => void act("hide")}>{i18n.t("ui.cancel")}</Button>
         </div>
       </div>
     );

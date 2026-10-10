@@ -1,6 +1,8 @@
 import { Checkbox, Select, TextField } from "@gryt/ui";
 import { useEffect, useState } from "react";
+import { Trans } from "react-i18next";
 
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 import type { Channel, SidebarItem } from "@/settings/src/types/server";
 
 import type { MemberInviteInfo } from "../hooks/useAdminActions";
@@ -40,6 +42,7 @@ export const ServerConfirmDialogs = ({
   pendingBanUser, setPendingBanUser, onBanUser, fetchMemberInvite,
   pendingFolderMove, answerFolderMove,
 }: ServerConfirmDialogsProps) => {
+  useSocketTranslation();
   // Optional on both: a moderator acting quickly should not have to justify
   // themselves first. Given, the target sees it verbatim; it is logged either way.
   const [kickReason, setKickReason] = useState("");
@@ -81,18 +84,18 @@ export const ServerConfirmDialogs = ({
 
   const deletedChannelName =
     pendingDeleteItem?.kind === "channel"
-      ? channelById.get(pendingDeleteItem.channelId ?? pendingDeleteItem.id)?.name || "this channel"
+      ? channelById.get(pendingDeleteItem.channelId ?? pendingDeleteItem.id)?.name || socketI18n.t("socketFull.serverConfirmDialogs_86f33797dc")
       : null;
 
   return (
   <>
     <ConfirmDialog
       open={!!pendingFolderMove}
-      title="Follow the folder's permissions?"
-      description={`#${pendingFolderMove?.channelName} has its own permissions. Replace them with ${pendingFolderMove?.folderName ? `the ${pendingFolderMove.folderName} folder's` : "the folder's"}?`}
-      confirmLabel="Follow folder"
+      title={socketI18n.t("socketFull.serverConfirmDialogs_10b425fca7")}
+      description={socketI18n.t("socketFull.followFolderPermissionDescription", { channel: pendingFolderMove?.channelName, folder: pendingFolderMove?.folderName ? socketI18n.t("socketFull.serverConfirmDialogs_b5150c71e8", { p0: pendingFolderMove.folderName }) : socketI18n.t("socketFull.defaultFolderPermissions") })}
+      confirmLabel={socketI18n.t("socketFull.serverConfirmDialogs_68ecd2b3c3")}
       confirmTone="primary"
-      secondaryLabel="Keep its own"
+      secondaryLabel={socketI18n.t("socketFull.serverConfirmDialogs_78bb18ca61")}
       onSecondary={() => answerFolderMove?.("keep")}
       onConfirm={() => answerFolderMove?.("follow")}
       onCancel={() => answerFolderMove?.("cancel")}
@@ -101,22 +104,22 @@ export const ServerConfirmDialogs = ({
     <ConfirmDialog
       open={!!pendingDeleteItem}
       onOpenChange={(open) => { if (!open) cancelDelete(); }}
-      title={`Delete ${pendingDeleteItem?.kind === "channel" ? "channel" : "item"}?`}
+      title={socketI18n.t("socketFull.serverConfirmDialogs_baa41d112a", { p0: (pendingDeleteItem?.kind === "channel" ? socketI18n.t("socketFull.serverConfirmDialogs_fefe53f1b6") : socketI18n.t("socketFull.serverConfirmDialogs_80104ae852")) })}
       description={
         deletedChannelName
-          ? `This will permanently delete the channel "${deletedChannelName}" and all associated data. This action cannot be undone.`
-          : "This will remove this item from the sidebar. This action cannot be undone."
+          ? socketI18n.t("socketFull.serverConfirmDialogs_e508c3ebf1", { p0: (deletedChannelName) })
+          : socketI18n.t("socketFull.serverConfirmDialogs_2c76fe475f")
       }
-      confirmLabel="Delete"
+      confirmLabel={socketI18n.t("ui.delete")}
       onConfirm={confirmDelete}
     />
 
     <ConfirmDialog
       open={!!pendingDisconnectUser}
       onOpenChange={(open) => { if (!open) setPendingDisconnectUser(null); }}
-      title={`Disconnect ${pendingDisconnectUser?.nickname}?`}
-      description={`This will disconnect ${pendingDisconnectUser?.nickname} from the voice channel.`}
-      confirmLabel="Disconnect"
+      title={socketI18n.t("socketFull.serverConfirmDialogs_9407b15ea0", { p0: (pendingDisconnectUser?.nickname) })}
+      description={socketI18n.t("socketFull.serverConfirmDialogs_4408616443", { p0: (pendingDisconnectUser?.nickname) })}
+      confirmLabel={socketI18n.t("ui.disconnect")}
       onConfirm={() => {
         if (pendingDisconnectUser) onDisconnectUser(pendingDisconnectUser.id);
         setPendingDisconnectUser(null);
@@ -126,20 +129,20 @@ export const ServerConfirmDialogs = ({
     <ConfirmDialog
       open={!!pendingKickUser}
       onOpenChange={(open) => { if (!open) setPendingKickUser(null); }}
-      title={`Kick ${pendingKickUser?.nickname}?`}
-      description="They will be removed from the server and can rejoin later."
-      confirmLabel="Kick"
+      title={socketI18n.t("socketFull.serverConfirmDialogs_66d1d932e0", { p0: (pendingKickUser?.nickname) })}
+      description={socketI18n.t("socketFull.serverConfirmDialogs_4548841859")}
+      confirmLabel={socketI18n.t("socketFull.serverConfirmDialogs_cf95f06020")}
       onConfirm={() => {
         if (pendingKickUser) onKickUser(pendingKickUser.id, kickReason);
         setPendingKickUser(null);
       }}
     >
       <div className="flex flex-col gap-1">
-        <span className="text-xs">Reason (optional — shown to them)</span>
+        <span className="text-xs">{socketI18n.t("socketFull.serverConfirmDialogs_f0e4f1991f")}</span>
         <TextField
           value={kickReason}
           onChange={(e) => setKickReason(e.target.value)}
-          placeholder="Spamming the general channel"
+          placeholder={socketI18n.t("socketFull.serverConfirmDialogs_76b40f48f8")}
           maxLength={200}
         />
       </div>
@@ -148,11 +151,11 @@ export const ServerConfirmDialogs = ({
     <ConfirmDialog
       open={!!pendingBanUser}
       onOpenChange={(open) => { if (!open) setPendingBanUser(null); }}
-      title={`Ban ${pendingBanUser?.nickname}?`}
-      description="They will be removed and cannot rejoin until the ban lifts."
-      confirmLabel="Ban"
+      title={socketI18n.t("socketFull.serverConfirmDialogs_2351ec68d9", { p0: (pendingBanUser?.nickname) })}
+      description={socketI18n.t("socketFull.serverConfirmDialogs_3becbde5ab")}
+      confirmLabel={socketI18n.t("socketFull.serverConfirmDialogs_19b2282d14")}
       confirmPhrase={pendingBanUser?.nickname}
-      confirmPhraseLabel={<>Type <strong>{pendingBanUser?.nickname}</strong> to confirm</>}
+      confirmPhraseLabel={<><Trans i18n={socketI18n} i18nKey="socketFull.typeBanNameToConfirm" values={{ name: pendingBanUser?.nickname ?? "" }} components={{ name: <strong /> }} /></>}
       onConfirm={() => {
         if (!pendingBanUser) return;
         const minutes = BAN_DURATIONS.find((d) => d.value === banDuration)?.minutes ?? null;
@@ -161,16 +164,16 @@ export const ServerConfirmDialogs = ({
       }}
     >
       <div className="flex flex-col gap-1">
-        <span className="text-xs">Reason (optional — shown to them)</span>
+        <span className="text-xs">{socketI18n.t("socketFull.serverConfirmDialogs_f0e4f1991f")}</span>
         <TextField
           value={banReason}
           onChange={(e) => setBanReason(e.target.value)}
-          placeholder="Repeated harassment after a warning"
+          placeholder={socketI18n.t("socketFull.serverConfirmDialogs_7d741eb2d5")}
           maxLength={200}
         />
       </div>
       <div className="flex flex-col gap-1">
-        <span className="text-xs">Duration</span>
+        <span className="text-xs">{socketI18n.t("socketFull.serverConfirmDialogs_3ccbc2fee3")}</span>
         <Select
           value={banDuration}
           onValueChange={(v) => setBanDuration(String(v))}
@@ -181,9 +184,7 @@ export const ServerConfirmDialogs = ({
         <Checkbox
           checked={banDeleteContent}
           onCheckedChange={(v) => setBanDeleteContent(v === true)}
-        />
-        Delete their messages and reactions
-      </label>
+        />{socketI18n.t("socketFull.serverConfirmDialogs_bef0b9847d")}</label>
 
       {/*
         Only when there is a live invite to close. A ban on somebody who
@@ -198,23 +199,12 @@ export const ServerConfirmDialogs = ({
             <Checkbox
               checked={banRevokeInvite}
               onCheckedChange={(v) => setBanRevokeInvite(v === true)}
-            />
-            Revoke the invite they joined with
-          </label>
-          <span className="text-xs text-gryt-muted">
-            They joined with <code className="font-mono text-xs text-gryt-text">{banInvite.code}</code>, still
-            active and used {banInvite.usesConsumed}{" "}
-            {banInvite.usesConsumed === 1 ? "time" : "times"}. Leaving it open
-            lets them return on a new identity — and takes anyone else with
-            the link too, so weigh it.
-          </span>
+            />{socketI18n.t("socketFull.serverConfirmDialogs_4588efea4b")}</label>
+          <span className="text-xs text-gryt-muted"><Trans i18n={socketI18n} i18nKey="socketFull.revokeJoinedInviteWarning" values={{ code: banInvite.code, count: banInvite.usesConsumed }} components={{ code: <code className="font-mono text-xs text-gryt-text" /> }} count={banInvite.usesConsumed ?? 0} /></span>
         </div>
       )}
       {!banDeleteContent && (
-        <span className="text-xs text-gryt-muted">
-          Their messages stay. Unbanning restores access but never restores
-          deleted messages, so this is the only chance to keep them.
-        </span>
+        <span className="text-xs text-gryt-muted">{socketI18n.t("socketFull.serverConfirmDialogs_ada4dfed4f")}</span>
       )}
     </ConfirmDialog>
   </>

@@ -1,5 +1,7 @@
 import { Badge } from "@gryt/ui";
 
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
+
 /**
  * The count on a conversation with something waiting. Unread is counted from the
  * connection; mentions come from the server, so one can know without the other.
@@ -13,6 +15,7 @@ export function UnreadIndicator({
   /** Mentions the server is still holding, which a reload keeps and `unread` loses. */
   mentions?: number;
 }) {
+  useSocketTranslation();
   /* The larger of the two, not `unread || mentions`: neither contains the other,
      so three mentions kept over a reload plus one new reply read as 1. */
   const count = Math.max(unread, mentions);
@@ -20,8 +23,8 @@ export function UnreadIndicator({
 
   const title =
     mentions > 0
-      ? `${count} unread, ${mentions} naming you`
-      : `${count} unread`;
+      ? socketI18n.t("socketFull.unreadIndicator_a0f7511c26", { p0: (count), p1: (mentions) })
+      : socketI18n.t("socketFull.unreadIndicator_20e9165e41", { p0: (count) });
 
   return (
     <Badge

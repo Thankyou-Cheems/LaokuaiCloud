@@ -1,3 +1,4 @@
+import { i18n } from "@/i18n";
 /* The banner box: the card's 320 by 164 at 3x, the same box the server and media worker use. */
 export const BANNER_W = 960;
 export const BANNER_H = 492;
@@ -64,12 +65,12 @@ export async function renderBanner(img: HTMLImageElement, c: Crop, frameW: numbe
   canvas.width = BANNER_W;
   canvas.height = BANNER_H;
   const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("no canvas");
+  if (!ctx) throw new Error(i18n.t("settingsFull.m300168c692"));
   ctx.imageSmoothingQuality = "high";
   const { sx, sy, sw, sh } = sourceRect(c, img.naturalWidth, img.naturalHeight, frameW, frameH);
   ctx.drawImage(img, sx, sy, sw, sh, 0, 0, BANNER_W, BANNER_H);
   const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/webp", 0.9));
-  if (!blob) throw new Error("couldn't encode the banner");
+  if (!blob) throw new Error(i18n.t("settingsFull.m7c6eef01c1"));
   // Safari has no WebP encoder and hands back a PNG instead.
   const type = blob.type || "image/png";
   return new File([blob], type === "image/webp" ? "banner.webp" : "banner.png", { type });

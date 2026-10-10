@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
 import { clearMentions, clearSignedOut, getOwnServerUserId, getUploadsFileUrl, markChannelRead, serverIconSrc, useAccount, useMentionTracker, useThreadMentions, useThreadUnread, useUnreadTracker } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 import { NOTIFICATION_CHANNEL_OPEN_EVENT } from "@/lib/desktopNotification";
 import { useIsCompact, useIsMobile } from "@/mobile";
 import { useSettings } from "@/settings";
@@ -90,6 +91,7 @@ const fakeCallOptionsFromUrl = readFakeCallOptions(window.location.search);
  * the member panel. The rest is the same view, keys and all (GRYT-1134).
  */
 export const ServerView = ({ dmSpace = false }: { dmSpace?: boolean }) => {
+  const socketLanguage = useSocketTranslation().i18n.resolvedLanguage;
   const isMobile = useIsMobile();
   const isCompact = useIsCompact();
   const isTiny = useIsTinyWindow();
@@ -320,6 +322,9 @@ export const ServerView = ({ dmSpace = false }: { dmSpace?: boolean }) => {
   );
   const conversationMembers = activeConversation?.members ?? null;
 
+  // Existing-server messages use that server's confirmed profile, not the future-join default.
+  const serverNickname = serverProfiles[currentlyViewingServer?.host ?? ""]?.nickname || nickname;
+
   const {
     chatMessages, sealing, canSend, sendChat, editMessage, isLoadingMessages,
     isRateLimited, rateLimitCountdown, isVoiceChannelTextChat,
@@ -329,7 +334,7 @@ export const ServerView = ({ dmSpace = false }: { dmSpace?: boolean }) => {
     mlsNotice, composerHeld, deleteMlsMessage, reactMlsMessage, mlsReportsTaken, archiveFailed,
   } = useChat({
     currentConnection, activeConversationId, currentlyViewingServer,
-    currentChannelId, isConnected, serverDetailsList, nickname,
+    currentChannelId, isConnected, serverDetailsList, nickname: serverNickname,
     currentUserId: currentServerUserId,
     conversationMembers,
     dmPeer: activeConversation?.kind === "dm" ? activeConversation.other.server_user_id : null,
@@ -541,7 +546,7 @@ export const ServerView = ({ dmSpace = false }: { dmSpace?: boolean }) => {
     setShowVoiceView(true);
     connect(call.conversation_id).catch((error) => {
       console.error("Could not join the call:", error);
-      toast.error(error instanceof Error ? error.message : "Could not join the call");
+      toast.error(error instanceof Error ? error.message : socketI18n.t("socketFull.serverView_611ce83569"));
     });
   }, [acceptCall, connect, dmSpace, setSelectedDmId, setShowVoiceView]);
 
@@ -639,7 +644,7 @@ export const ServerView = ({ dmSpace = false }: { dmSpace?: boolean }) => {
       connect(conversationId).catch((error) => {
         console.error("Could not start the call:", error);
         // The same id as a refused ring, so their call setting is said once (GRYT-1470).
-        toast.error(error instanceof Error ? error.message : "Could not start the call", { id: "call:start" });
+        toast.error(error instanceof Error ? error.message : socketI18n.t("socketFull.serverView_80dbc619ae", { lng: socketLanguage }), { id: "call:start" });
         cancelCall(conversationId);
       });
     };
@@ -658,21 +663,21 @@ export const ServerView = ({ dmSpace = false }: { dmSpace?: boolean }) => {
             tone={ringing ? "primary" : "ghost"}
             onClick={() => (ringing ? stopCall() : startCall())}
           >
-            {ringing ? "Cancel" : "Call"}
+            {ringing ? socketI18n.t("ui.cancel", { lng: socketLanguage }) : socketI18n.t("socketFull.serverView_db7d3a436e", { lng: socketLanguage })}
           </Button>
         ) : null}
         {/* The only way into a group's settings since its section left the channel list.
             An icon, so a 300px window still has room for the group's name. */}
         {activeDm.kind === "group" ? (
-          <Tooltip title="Group settings">
-            <IconButton aria-label="Group settings" size="xsmall" tone="ghost" onClick={() => setGroupDialog(activeDm)}>
+          <Tooltip title={socketI18n.t("socketFull.serverView_d81e53b508", { lng: socketLanguage })}>
+            <IconButton aria-label={socketI18n.t("socketFull.serverView_d81e53b508", { lng: socketLanguage })} size="xsmall" tone="ghost" onClick={() => setGroupDialog(activeDm)}>
               <PiGearSixFill size={16} />
             </IconButton>
           </Tooltip>
         ) : null}
       </div>
     );
-  }, [activeDm, viewerPermissions, outgoingCall, cancelCall, ringConversation, setGroupDialog, connect, setShowVoiceView, handleVoiceDisconnect, viewingHost]);
+  }, [activeDm, viewerPermissions, outgoingCall, cancelCall, ringConversation, setGroupDialog, connect, setShowVoiceView, handleVoiceDisconnect, viewingHost, socketLanguage]);
 
   /* The same member list the sidebar reads presence off — someone it hides
      from this viewer has no entry here either (GRYT-1467). */
@@ -697,10 +702,9 @@ export const ServerView = ({ dmSpace = false }: { dmSpace?: boolean }) => {
     const online = known.filter((status) => status !== "offline").length;
     return (
       <span className="shrink-0 text-xs" style={{ color: "var(--gryt-neutral-10)" }}>
-        {online} online
-      </span>
+        {online}{" "}{socketI18n.t("socketFull.serverView_54ea46a60b", { lng: socketLanguage })}</span>
     );
-  }, [activeDm, memberListMap]);
+  }, [activeDm, memberListMap, socketLanguage]);
 
   /* Memoized like the actions: ChatView is memo'd, and a fresh element every render undoes it. */
   const dmHeaderDetail = useMemo(() => {
@@ -719,13 +723,13 @@ export const ServerView = ({ dmSpace = false }: { dmSpace?: boolean }) => {
     if (!isTiny || !dmSpace || !activeDm) return undefined;
     const over = activeDm.conversation_id;
     return (
-      <Tooltip title="Back to messages">
-        <IconButton aria-label="Back to messages" size="xsmall" tone="ghost" onClick={() => setTinyListOver(over)}>
+      <Tooltip title={socketI18n.t("socketFull.serverView_12a836beed", { lng: socketLanguage })}>
+        <IconButton aria-label={socketI18n.t("socketFull.serverView_12a836beed", { lng: socketLanguage })} size="xsmall" tone="ghost" onClick={() => setTinyListOver(over)}>
           <PiCaretLeftBold size={16} />
         </IconButton>
       </Tooltip>
     );
-  }, [isTiny, dmSpace, activeDm]);
+  }, [isTiny, dmSpace, activeDm, socketLanguage]);
 
   const currentAdminActions = useMemo(() => {
     // One handler per permission, not a bundle per role name, which gave a role
@@ -809,7 +813,6 @@ export const ServerView = ({ dmSpace = false }: { dmSpace?: boolean }) => {
   if (!currentlyViewingServer) return null;
 
   const serverDetails = serverDetailsList[currentlyViewingServer.host];
-  const serverNickname = serverProfiles[currentlyViewingServer.host]?.nickname || nickname;
   const channelById = new Map((serverDetails?.channels || []).map((c) => [c.id, c]));
 
   if (!serverDetails) {
@@ -894,8 +897,8 @@ export const ServerView = ({ dmSpace = false }: { dmSpace?: boolean }) => {
       style={{ color: "var(--gryt-muted)", padding: "2rem", textAlign: "center" }}
     >
       {directory.some((entry) => entry.conversation.last_message_at !== null)
-        ? "Choose a conversation."
-        : "No conversations yet. Start one with the + next to Messages."}
+        ? socketI18n.t("socketFull.serverView_f2b6b8b05d")
+        : socketI18n.t("socketFull.serverView_b3b7ec6466")}
     </div>
   ) : (
       <ChatView
@@ -908,7 +911,7 @@ export const ServerView = ({ dmSpace = false }: { dmSpace?: boolean }) => {
           <ServerNoticePanel
             host={currentlyViewingServer?.host}
             serverName={
-              currentlyViewingServer?.name || currentlyViewingServer?.host || "this server"
+              currentlyViewingServer?.name || currentlyViewingServer?.host || socketI18n.t("socketFull.serverView_007b4db740")
             }
           />
         }
@@ -1292,7 +1295,7 @@ forumTags={activeDm ? [] : activeChannelForumTags}
         pendingFolderMove={
           sidebarEditor.pendingFolderMove
             ? {
-                channelName: channelById.get(sidebarEditor.pendingFolderMove.channelId)?.name || "channel",
+                channelName: channelById.get(sidebarEditor.pendingFolderMove.channelId)?.name || socketI18n.t("socketFull.serverView_9cd7f451cf"),
                 folderName:
                   effectiveSidebarItems.find((i) => i.id === sidebarEditor.pendingFolderMove?.folderId)?.label ?? null,
               }
@@ -1317,21 +1320,18 @@ forumTags={activeDm ? [] : activeChannelForumTags}
         open={!!plaintextPrompt}
         onConfirm={confirmPlaintextSend}
         onCancel={cancelPlaintextSend}
-        title="Send this without encryption?"
+        title={socketI18n.t("socketFull.serverView_b3d9a9fc29")}
         description={
-          <>
-            This conversation cannot be encrypted right now, so whoever runs this
-            server will be able to read what you send, in the clear.
-            {plaintextPrompt?.kind === "plaintext" && plaintextPrompt.blockedBy.length > 0 && (
+          <>{socketI18n.t("socketFull.serverView_9c96cdbd5f")}{plaintextPrompt?.kind === "plaintext" && plaintextPrompt.blockedBy.length > 0 && (
               <>
                 {" "}
                 {plaintextPrompt.blockedBy
                   .map((blocked) => {
                     const who = memberNames[blocked.memberId]
-                      ?? "Somebody in this conversation";
-                    if (blocked.reason === "changed") return `${who} changed their key`;
-                    if (blocked.reason === "unusable") return `${who}'s key did not check out`;
-                    return `${who} has not published a key`;
+                      ?? socketI18n.t("socketFull.serverView_5805b28f02");
+                    if (blocked.reason === "changed") return socketI18n.t("socketFull.serverView_82e10b3941", { p0: (who) });
+                    if (blocked.reason === "unusable") return socketI18n.t("socketFull.serverView_21faf672a9", { p0: (who) });
+                    return socketI18n.t("socketFull.serverView_00aff76467", { p0: (who) });
                   })
                   .join(", ")}
                 .
@@ -1339,7 +1339,7 @@ forumTags={activeDm ? [] : activeChannelForumTags}
             )}
           </>
         }
-        confirmLabel="Send unencrypted"
+        confirmLabel={socketI18n.t("socketFull.serverView_7dbbd4c3fb")}
       />
 
     </MemberCardActionsContext.Provider>

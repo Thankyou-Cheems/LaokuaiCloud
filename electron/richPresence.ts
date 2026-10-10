@@ -88,6 +88,9 @@ export interface PresenceLogEntry {
   appId: string | null;
   name: string | null;
   text: string;
+  /** Display metadata for app-generated events only; raw text remains diagnostic truth. */
+  appEventKey?: "cleared" | "detected" | "empty" | "emptyHidden" | "hidden" | "connection";
+  appEventValues?: Record<string, string>;
 }
 
 export const LOG_MAX = 50;
@@ -111,7 +114,7 @@ export interface PresenceBoard {
   /** App ids reporting over Rich Presence right now, so detection can step aside for them. */
   liveAppIds(): Set<string>;
   /** A line that isn't an activity, like the connection changing hands. */
-  note(text: string): void;
+  note(text: string, appEventKey?: PresenceLogEntry["appEventKey"], appEventValues?: Record<string, string>): void;
   log(): PresenceLogEntry[];
   setHidden(appIds: readonly string[]): void;
   /** Every app that has connected since start, for the list somebody hides apps from. */
@@ -192,7 +195,7 @@ export function createPresenceBoard(options: PresenceBoardOptions): PresenceBoar
     update(event) {
       if (event.activity === null) {
         live.delete(event.connection);
-        add({ at: now(), appId: event.clientId, name: seenApps.get(event.clientId) ?? null, text: "cleared its activity" });
+        add({ at: now(), appId: event.clientId, name: seenApps.get(event.clientId) ?? null, text: "cleared its activity", appEventKey: "cleared" });
       } else {
         const listed = options.nameForApp(event.clientId);
         const given = line(event.activity.name, 64);
@@ -204,7 +207,8 @@ export function createPresenceBoard(options: PresenceBoardOptions): PresenceBoar
         live.set(event.connection, { appId: event.clientId, card, at });
         const parts = [card.details, card.state].filter(Boolean).join(" · ");
         const hide = hidden.has(event.clientId) ? " (hidden by you)" : "";
-        add({ at: now(), appId: event.clientId, name: card.name, text: (parts || "sent an activity with no details") + hide });
+        add({ at: now(), appId: event.clientId, name: card.name, text: (parts || "sent an activity with no details") + hide,
+          ...(!parts ? { appEventKey: hide ? "emptyHidden" as const : "empty" as const } : hide ? { appEventKey: "hidden" as const } : {}) });
       }
       schedule();
     },
@@ -217,14 +221,14 @@ export function createPresenceBoard(options: PresenceBoardOptions): PresenceBoar
       detected = [...apps];
       for (const app of detected) {
         if (!before.has(app.appId)) {
-          add({ at: now(), appId: app.appId, name: app.name ?? options.nameForApp(app.appId), text: "is running (spotted by its program)" });
+          add({ at: now(), appId: app.appId, name: app.name ?? options.nameForApp(app.appId), text: "is running (spotted by its program)", appEventKey: "detected" });
         }
       }
       schedule();
     },
     liveAppIds: () => new Set([...live.values()].map((entry) => entry.appId)),
-    note(text) {
-      add({ at: now(), appId: null, name: null, text });
+    note(text, appEventKey, appEventValues) {
+      add({ at: now(), appId: null, name: null, text, ...(appEventKey ? { appEventKey, appEventValues } : {}) });
     },
     log: () => [...entries],
     seen: () => [...seenApps].map(([id, name]) => ({ id, name })),

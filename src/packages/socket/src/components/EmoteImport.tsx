@@ -1,6 +1,8 @@
 import { Button, Chip, TextField } from "@gryt/ui";
 import { type ChangeEvent } from "react";
 
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
+
 import { PiDownloadSimpleFill, PiMagnifyingGlassFill, PiX } from "../../../../lib/icons";
 import { useEmoteImport } from "../hooks/useEmoteImport";
 import { type TokenRefreshSocketLike } from "../utils/tokenManager";
@@ -17,6 +19,7 @@ export function EmoteImport({
   socket: TokenRefreshSocketLike | null;
   existingNames: Set<string>;
 }) {
+  useSocketTranslation();
   const {
     url,
     setUrl,
@@ -42,17 +45,13 @@ export function EmoteImport({
         border: "1px solid var(--gryt-neutral-a5)",
         borderRadius: "var(--gryt-radius-sm)",
       }}>
-      <span className="text-sm font-medium">
-        Import from a link
-      </span>
-      <span className="text-xs text-gryt-muted" style={{ marginTop: -6 }}>
-        A BetterTTV user or emote, or an emoji.gg user, pack or emoji.
-      </span>
+      <span className="text-sm font-medium">{socketI18n.t("socketFull.emoteImport_6e0969d785")}</span>
+      <span className="text-xs text-gryt-muted" style={{ marginTop: -6 }}>{socketI18n.t("socketFull.emoteImport_da3db6f738")}</span>
 
       <div className="flex gap-2 items-center">
         <TextField
           size="small"
-          placeholder="https://emoji.gg/pack/... or https://betterttv.com/users/..."
+          placeholder={socketI18n.t("socketFull.emoteImport_50a5fc5e79")}
           value={url}
           onChange={(e: ChangeEvent<HTMLInputElement>) => setUrl(e.target.value)}
           onKeyDown={(e: React.KeyboardEvent) => {
@@ -65,7 +64,7 @@ export function EmoteImport({
           disabled={fetching || importing || !url.trim()}
           onClick={handleFetch}
         >
-          {fetching ? "Fetching..." : "Fetch"}
+          {fetching ? socketI18n.t("socketFull.emoteImport_a3d5a94a11") : socketI18n.t("socketFull.emoteImport_3ec95e22f0")}
         </Button>
       </div>
 
@@ -79,25 +78,20 @@ export function EmoteImport({
                 </span>
               )}
               <Chip tone="neutral">
-                {emotes.length} emote{emotes.length !== 1 && "s"}
+                {socketI18n.t("socketFull.emoteSelectionCount", { count: emotes.length })}
               </Chip>
               <Chip tone="success">
-                {selectedEmotes.length} selected
-              </Chip>
+                {selectedEmotes.length}{" "}{socketI18n.t("socketFull.emoteImport_4071008825")}</Chip>
             </div>
             <div className="flex gap-2">
               <Button tone="ghost" size="xsmall"
                 onClick={() => toggleAll(true)}
                 disabled={importing}
-              >
-                Select all
-              </Button>
+              >{socketI18n.t("socketFull.emoteImport_5cc56d7662")}</Button>
               <Button tone="ghost" size="xsmall"
                 onClick={() => toggleAll(false)}
                 disabled={importing}
-              >
-                Deselect all
-              </Button>
+              >{socketI18n.t("socketFull.emoteImport_a3cbf0dae4")}</Button>
             </div>
           </div>
 
@@ -112,7 +106,7 @@ export function EmoteImport({
               <TextField
                 className="pl-8"
                 size="small"
-                placeholder="Filter emotes..."
+                placeholder={socketI18n.t("socketFull.emoteImport_7c2bf97f0e")}
                 value={filterText}
                 onChange={(e: ChangeEvent<HTMLInputElement>) =>
                   setFilterText(e.target.value)
@@ -138,16 +132,15 @@ export function EmoteImport({
               disabled={importing}
               onClick={handleClear}
             >
-              <PiX size={14} /> Clear
-            </Button>
+              <PiX size={14} />{" "}{socketI18n.t("ui.clear")}</Button>
             <Button size="xsmall"
               disabled={importing || validSelectedCount === 0}
               onClick={handleImport}
             >
               <PiDownloadSimpleFill size={14} />
               {importing
-                ? "Importing..."
-                : `Import ${validSelectedCount} emoji${validSelectedCount !== 1 ? "s" : ""}`}
+                ? socketI18n.t("socketFull.emoteImport_1282255ef3")
+                : socketI18n.t("socketFull.emoteImport_f2c00b22e6", { p0: (validSelectedCount), count: (validSelectedCount) })}
             </Button>
           </div>
         </>

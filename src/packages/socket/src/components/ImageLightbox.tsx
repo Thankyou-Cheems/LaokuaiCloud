@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
+
 import { PiCheck, PiCloudArrowDownFill, PiImageFill } from "../../../../lib/icons";
 import { triggerDownload } from "../utils/downloadFile";
 import { copyImageToClipboard } from "../utils/mediaClipboard";
@@ -15,6 +17,7 @@ export const ImageLightbox = ({
   alt?: string;
   onClose: () => void;
 }) => {
+  useSocketTranslation();
   const [zoom, setZoom] = useState<ZoomLevel>("fit");
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [naturalSize, setNaturalSize] = useState({ w: 0, h: 0 });
@@ -121,7 +124,7 @@ export const ImageLightbox = ({
       <img
         ref={imgRef}
         src={src}
-        alt={alt || "Image"}
+        alt={alt || socketI18n.t("socketFull.imageLightbox_dd5e3f2fea")}
         draggable={false}
         className="lightbox-image"
         style={imgStyle}
@@ -142,8 +145,8 @@ export const ImageLightbox = ({
               copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
             });
           }}
-          title={copied ? "Copied!" : "Copy image"}
-          aria-label={copied ? "Copied" : "Copy image"}
+          title={copied ? socketI18n.t("ui.copied") : socketI18n.t("socketFull.imageLightbox_2141db002c")}
+          aria-label={copied ? socketI18n.t("settingsFull.m8e3df45a49") : socketI18n.t("socketFull.imageLightbox_2141db002c")}
           className="lightbox-toolbar-btn"
         >
           {copied ? <PiCheck size={18} /> : <PiImageFill size={18} />}
@@ -153,17 +156,17 @@ export const ImageLightbox = ({
             e.stopPropagation();
             void triggerDownload(src, alt);
           }}
-          title="Save image"
-          aria-label="Save image"
+          title={socketI18n.t("socketFull.imageLightbox_34cebf59ef")}
+          aria-label={socketI18n.t("socketFull.imageLightbox_34cebf59ef")}
           className="lightbox-toolbar-btn"
         >
           <PiCloudArrowDownFill size={18} />
         </button>
       </div>
       <div className="lightbox-hint">
-        {zoom === "fit" && "Click image to zoom 2x"}
-        {zoom === "2x" && "Click to view full size \u00b7 Drag to pan"}
-        {zoom === "full" && "Click to fit \u00b7 Drag to pan"}
+        {zoom === "fit" && socketI18n.t("socketFull.imageLightbox_24fd433afb")}
+        {zoom === "2x" && socketI18n.t("socketFull.imageLightbox_d67ec994ef")}
+        {zoom === "full" && socketI18n.t("socketFull.imageLightbox_3664294a77")}
       </div>
     </div>
   );

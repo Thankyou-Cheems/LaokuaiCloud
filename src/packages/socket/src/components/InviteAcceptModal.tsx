@@ -62,6 +62,7 @@ export function InviteAcceptModal({
   const [note, setNote] = useState("");
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState("");
+  const [joinErrorSource, setJoinErrorSource] = useState<{ readonly message: string } | null>(null);
   const [joinErrorKey, setJoinErrorKey] = useState<string>();
   const [inviteRequired, setInviteRequired] = useState(false);
   const [accountRequired, setAccountRequired] = useState(false);
@@ -70,7 +71,7 @@ export function InviteAcceptModal({
   useEffect(() => {
     setTypedCode("");
     setNote("");
-    setJoinError(""); setJoinErrorKey(undefined);
+    setJoinError(""); setJoinErrorSource(null); setJoinErrorKey(undefined);
     setInviteRequired(false);
     setAccountRequired(false);
     setAwaitingApproval(false);
@@ -104,7 +105,7 @@ export function InviteAcceptModal({
   async function join() {
     if (joining) return;
     setJoining(true);
-    setJoinError(""); setJoinErrorKey(undefined);
+    setJoinError(""); setJoinErrorSource(null); setJoinErrorKey(undefined);
     try {
       const outcome = await onJoin({ code: view.code, info, note: note.trim() || undefined });
       if (outcome.ok) return;
@@ -114,7 +115,7 @@ export function InviteAcceptModal({
       }
       if (outcome.kind === "invite_required") setInviteRequired(true);
       if (outcome.kind === "account_required") setAccountRequired(true);
-      setJoinError(outcome.message); setJoinErrorKey(outcome.messageKey);
+      setJoinError(outcome.message); setJoinErrorSource(outcome); setJoinErrorKey(outcome.messageKey);
     } finally {
       setJoining(false);
     }
@@ -234,7 +235,7 @@ export function InviteAcceptModal({
           )}
 
           {!alreadyMember && joinError && !view.needsAccount ? (
-            <Alert severity="error" role="alert"><span className="inline-flex items-start gap-2"><PiWarningFill size={16} />{joinErrorKey ? tr(joinErrorKey) : joinError}</span></Alert>
+            <Alert severity="error" role="alert"><span className="inline-flex items-start gap-2"><PiWarningFill size={16} />{joinErrorKey ? tr(joinErrorKey) : (joinErrorSource?.message ?? joinError)}</span></Alert>
           ) : null}
 
           <div className="flex flex-wrap justify-end gap-2">

@@ -2,6 +2,7 @@ import { Button, IconButton, Tooltip } from "@gryt/ui";
 import { useState } from "react";
 
 import { getOwnServerUserId } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 
 import { PiCheckBold, PiClockFill, PiUserPlusFill, PiXBold } from "../../../../lib/icons";
 import { confirmServerFriend, friendAction, useAllFriends, useFriendState } from "../hooks/friendsStore";
@@ -30,6 +31,7 @@ export function FriendButton({
   serverUserId: string | undefined;
   compact?: boolean;
 }) {
+  useSocketTranslation();
   const state = useFriendState(host, serverUserId);
   const all = useAllFriends();
   const isTiny = useIsTinyWindow();
@@ -42,7 +44,7 @@ export function FriendButton({
     hostFriends?.friends.find((p) => p.serverUserId === serverUserId) ??
     hostFriends?.incoming.find((p) => p.serverUserId === serverUserId) ??
     hostFriends?.outgoing.find((p) => p.serverUserId === serverUserId);
-  const name = person?.nickname || "them";
+  const name = person?.nickname || socketI18n.t("socketFull.friendButton_ca856f8cdc");
 
   const steps = friendButtonSteps(state, name);
   if (steps.length === 0) return null;
@@ -112,8 +114,8 @@ export function FriendButton({
         onOpenChange={(open) => { if (!open) setPending(null); }}
         title={pending?.confirm?.title ?? ""}
         description={pending?.confirm?.description}
-        confirmLabel={pending?.confirm?.confirmLabel ?? "Confirm"}
-        cancelLabel={pending?.confirm?.cancelLabel ?? "Cancel"}
+        confirmLabel={pending?.confirm?.confirmLabel ?? socketI18n.t("ui.confirm")}
+        cancelLabel={pending?.confirm?.cancelLabel ?? socketI18n.t("ui.cancel")}
         confirmTone="primary"
         onConfirm={() => { if (pending) run(pending); }}
       />

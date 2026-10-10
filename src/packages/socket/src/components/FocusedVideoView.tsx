@@ -2,6 +2,7 @@ import { Slider } from "@gryt/ui";
 import type { StreamSources } from "@gryt/voice";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 import { gainToSlider, sliderToGain } from "@/lib/audioVolume";
 import { setReceiveAudioGain } from "@/lib/receiveAudio";
 
@@ -45,6 +46,7 @@ export function FocusedVideoView({
   /** Someone else's screen share: stop watching it altogether (GRYT-1681). */
   onStopWatching?: () => void;
 }) {
+  useSocketTranslation();
   const ref = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [volume, setVolume] = useState(() => {
@@ -209,7 +211,7 @@ export function FocusedVideoView({
                 type="button"
                 style={iconBtnStyle}
                 onClick={toggleMute}
-                aria-label={volume > 0 ? "Mute stream" : "Unmute stream"}
+                aria-label={volume > 0 ? socketI18n.t("socketFull.focusedVideoView_c19fa6f15c") : socketI18n.t("socketFull.focusedVideoView_61e2f59847")}
               >
                 {volume > 0 ? <PiSpeakerHighFill size={16} /> : <PiSpeakerSlashFill size={16} />}
               </button>
@@ -229,7 +231,7 @@ export function FocusedVideoView({
               type="button"
               style={iconBtnStyle}
               onClick={onStopWatching}
-              aria-label="Stop watching"
+              aria-label={socketI18n.t("socketFull.focusedVideoView_1676589255")}
             >
               <PiEyeSlashFill size={16} />
             </button>
@@ -240,7 +242,7 @@ export function FocusedVideoView({
               type="button"
               style={iconBtnStyle}
               onClick={onPopout}
-              aria-label="Pop out video"
+              aria-label={socketI18n.t("socketFull.focusedVideoView_3453cee4ca")}
             >
               <PiArrowSquareOutFill size={16} />
             </button>
@@ -250,7 +252,7 @@ export function FocusedVideoView({
             type="button"
             style={iconBtnStyle}
             onClick={toggleFullscreen}
-            aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+            aria-label={isFullscreen ? socketI18n.t("socketFull.focusedVideoView_7fc38c011d") : socketI18n.t("ui.fullscreen")}
           >
             {isFullscreen ? <PiCornersInFill size={16} /> : <PiCornersOutFill size={16} />}
           </button>
@@ -259,7 +261,7 @@ export function FocusedVideoView({
             type="button"
             style={iconBtnStyle}
             onClick={onClose}
-            aria-label="Minimize"
+            aria-label={socketI18n.t("socketFull.focusedVideoView_bda16a074c")}
           >
             <PiArrowLineLeftFill size={16} />
           </button>

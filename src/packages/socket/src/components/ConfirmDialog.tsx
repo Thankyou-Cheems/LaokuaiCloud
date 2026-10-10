@@ -1,6 +1,7 @@
 import { AlertDialog, Button, TextField } from "@gryt/ui";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 import { useTranslation } from "@/i18n";
 
 import { phraseMatches } from "../lib/confirmPhrase";
@@ -60,6 +61,7 @@ export function ConfirmDialog({
   /** Extra fields -- a reason, a duration, a checkbox. */
   children?: ReactNode;
 }) {
+  useSocketTranslation();
   const { t } = useTranslation();
   const [typed, setTyped] = useState("");
   const cancelRef = useRef<HTMLButtonElement>(null);
@@ -93,7 +95,7 @@ export function ConfirmDialog({
           {confirmPhrase && (
             <div className="mt-4">
               <TextField
-                label={confirmPhraseLabel ?? `Type ${confirmPhrase} to confirm`}
+                label={confirmPhraseLabel ?? socketI18n.t("socketFull.confirmDialog_09a70a7cac", { p0: (confirmPhrase) })}
                 value={typed}
                 onChange={(e) => setTyped(e.target.value)}
                 autoFocus

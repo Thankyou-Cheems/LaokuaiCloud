@@ -1,6 +1,6 @@
 import { Button, Divider } from "@gryt/ui";
 
-import { useTranslation } from "@/i18n";
+import { i18n,useTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 
 import { forgetEmbedHost, useTrustedEmbedHosts } from "../../../socket/src/lib/trustedEmbedHosts";
@@ -46,7 +46,7 @@ export function ChatSettings() {
             {trustedHosts.map((host) => (
               <span key={host} className="flex items-center gap-1 rounded-(--gryt-radius-md) border border-gryt-border px-2 py-1 text-xs">
                 {host}
-                <Button size="xsmall" tone="ghost" onClick={() => forgetEmbedHost(host)} aria-label={`Stop always loading from ${host}`}>
+                <Button size="xsmall" tone="ghost" onClick={() => forgetEmbedHost(host)} aria-label={i18n.t("settingsFull.m7d989373fb", { value0: host })}>
                   {tr("ui.forget")}
                 </Button>
               </span>

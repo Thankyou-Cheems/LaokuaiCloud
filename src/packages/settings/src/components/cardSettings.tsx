@@ -14,6 +14,7 @@ import {
   useCustomThemes,
   useTheme,
 } from "@/common";
+import { i18n, useTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 import { useServerManagement, useSockets } from "@/socket";
 
@@ -48,7 +49,7 @@ const SAMPLE_GAME: RichActivity = {
   name: "Minecraft",
   appId: "1402418491272986635",
   details: "Harbourtown SMP",
-  state: "Survival",
+  get state() { return i18n.t("settingsFull.mfe88ea8d5f"); },
   party: { size: 2, max: 8 },
   startedAt: Date.now() - (23 * 60 + 41) * 1000,
 };
@@ -56,7 +57,7 @@ const SAMPLE_GAME: RichActivity = {
 
 async function sendBanner(host: string, file: File | null): Promise<void> {
   const token = getServerAccessToken(host);
-  if (!token) throw new Error("not signed in there");
+  if (!token) throw new Error(i18n.t("settingsFull.m15039ae0b1"));
   const form = new FormData();
   if (file) form.append("file", file, file.name || "banner");
   const r = await fetch(`${getServerHttpBase(host)}/api/uploads/banner`, {
@@ -64,11 +65,12 @@ async function sendBanner(host: string, file: File | null): Promise<void> {
     headers: { Authorization: `Bearer ${token}` },
     body: file ? form : undefined,
   });
-  if (r.status === 404) throw new Error("this server can't take a banner yet");
+  if (r.status === 404) throw new Error(i18n.t("settingsFull.md1abbcd7bc"));
   if (!r.ok) throw new Error((await r.text().catch(() => "")) || `HTTP ${r.status}`);
 }
 
 export function CardSettings() {
+  useTranslation();
   const stored = useStoredCard();
   const { sockets, serverProfiles, serverDetailsList, memberLists } = useSockets();
   const { servers } = useServerManagement();
@@ -133,16 +135,16 @@ export function CardSettings() {
   const pasteLink = () => {
     void navigator.clipboard.readText().then(
       (text) => {
-        if (!showShared(text)) toast.error("There's no card in what you copied. Copy a card link first.");
+        if (!showShared(text)) toast.error(i18n.t("settingsFull.mbb7c179a8c"));
       },
-      () => toast.error("Gryt couldn't read the clipboard."),
+      () => toast.error(i18n.t("settingsFull.m63d97252e2")),
     );
   };
   const shared = useSharedLook().card;
   useEffect(() => {
     if (!shared) return;
     const text = takeSharedLook("card");
-    if (text && !showShared(text)) toast.error("That link had no card in it.");
+    if (text && !showShared(text)) toast.error(i18n.t("settingsFull.mba7a69dccb"));
   }, [shared]);
 
   const text = (key: "bio" | "pronouns" | "statusLine", max: number) => ({
@@ -214,7 +216,7 @@ export function CardSettings() {
     setBannerBusy(false);
     const failed = results.filter((r): r is PromiseRejectedResult => r.status === "rejected");
     if (results.length > 0 && failed.length === results.length) {
-      toast.error(`Couldn't ${pendingBanner ? "upload" : "remove"} the banner: ${failed[0]?.reason?.message ?? "no server took it"}`);
+      toast.error(i18n.t("settingsFull.m166f717d8f", { action: pendingBanner ? i18n.t("settingsFull.mbb73aaafa1") : i18n.t("settingsFull.mdb99845855"), reason: failed[0]?.reason?.message ?? i18n.t("settingsFull.mb19f2a5e86") }));
       return;
     }
     if (pendingBanner !== undefined) {
@@ -222,7 +224,7 @@ export function CardSettings() {
       for (const h of bannerHosts) sockets[h]?.emit("avatar:updated");
     }
     saveCard(sent);
-    toast.success(failed.length ? `Card saved, but ${failed.length} server${failed.length > 1 ? "s" : ""} refused the banner` : "Card saved");
+    toast.success(failed.length ? i18n.t("settingsFull.m2860406885", { count: failed.length }) : i18n.t("settingsFull.mcdb2004afb"));
   };
 
   const worn = getStoredWorn();
@@ -259,8 +261,7 @@ export function CardSettings() {
           <span className="gmc-ib quiet"><CardIcon.more /></span>
         </div>
         <details className="gmc-who" aria-hidden="true">
-          <summary tabIndex={-1} onClick={(e) => e.preventDefault()}>
-            Who they are <CardIcon.caret />
+          <summary tabIndex={-1} onClick={(e) => e.preventDefault()}>{i18n.t("settingsFull.m26d829a218")}<CardIcon.caret />
           </summary>
         </details>
       </MemberCardView>
@@ -271,42 +272,41 @@ export function CardSettings() {
 
   const about = (
     <>
-      <SettingGroup title="Pronouns" description="Shown under your name.">
+      <SettingGroup anchorId="pronouns" title={i18n.t("settingsFull.m8a2abafdb9")} description={i18n.t("settingsFull.m24e578667e")}>
         <TextField placeholder="she/her, they/them…" {...text("pronouns", PRONOUNS_MAX)} />
       </SettingGroup>
 
-      <SettingGroup title="Bio" description={`A line or two about you. Up to ${BIO_MAX} characters.`}>
-        <TextField multiline minRows={2} placeholder="Mostly on after nine." {...text("bio", BIO_MAX)} />
+      <SettingGroup anchorId="bio" title={i18n.t("settingsFull.mb31fc969b4")} description={i18n.t("settingsFull.m6829e06138", { value0: BIO_MAX })}>
+        <TextField multiline minRows={2} placeholder={i18n.t("settingsFull.m533f8ce52b")} {...text("bio", BIO_MAX)} />
       </SettingGroup>
 
-      <SettingGroup title="Status line" description="Shown in the band on your card when you aren't playing anything.">
-        <TextField placeholder="Around tonight for co-op." {...text("statusLine", STATUS_LINE_MAX)} />
+      <SettingGroup anchorId="status-line" title={i18n.t("settingsFull.m79f8bb09cc")} description={i18n.t("settingsFull.m210f3a4218")}>
+        <TextField placeholder={i18n.t("settingsFull.mcf07a594c7")} {...text("statusLine", STATUS_LINE_MAX)} />
       </SettingGroup>
 
       {bannerHosts.length > 0 && (
         <SettingGroup
-          title="Banner"
+          anchorId="banner"
+          title={i18n.t("settingsFull.mc8af83fb4c")}
           description={
             bannerHosts.length === connected.length
-              ? "A picture across the top of your card. Everywhere else your pattern shows instead."
-              : `A picture across the top of your card, on the ${bannerHosts.length} of your servers that let you upload. The others show your pattern.`
+              ? i18n.t("settingsFull.m9d6b4abd3f")
+              : i18n.t("settingsFull.m9db7af763a", { value0: bannerHosts.length })
           }
         >
           <span className="text-xs text-gryt-muted">
             {videoBannerHosts.length === 0
-              ? "Pictures only: none of your servers takes a video banner."
+              ? i18n.t("settingsFull.mb66b3ab6cd")
               : videoBannerHosts.length < bannerHosts.length
-                ? `A video banner goes to the ${videoBannerHosts.length} of your servers that take one. The others keep the banner they have.`
-                : "A picture or a short video. A video plays silently, up to ten seconds."}
+                ? i18n.t("settingsFull.m5bec937dd5", { value0: videoBannerHosts.length })
+                : i18n.t("settingsFull.m2ee2332ffe")}
           </span>
           <div className="flex flex-wrap gap-2">
             <Button size="small" disabled={bannerBusy} onClick={() => bannerInput.current?.click()}>
-              {bannerUrl ? "Change banner" : "Upload a banner"}
+              {bannerUrl ? i18n.t("settingsFull.m0ad38169fc") : i18n.t("settingsFull.me8a47c0701")}
             </Button>
             {bannerUrl && (
-            <Button size="small" tone="neutral" disabled={bannerBusy} onClick={() => changeBanner(null)}>
-                Remove banner
-              </Button>
+            <Button size="small" tone="neutral" disabled={bannerBusy} onClick={() => changeBanner(null)}>{i18n.t("settingsFull.mc8da6e814a")}</Button>
             )}
           </div>
           <input
@@ -336,10 +336,8 @@ export function CardSettings() {
   return (
     <SettingsContainer>
       <div className="flex flex-col gap-1">
-        <h2 className="text-lg">Edit my card</h2>
-        <span className="text-xs text-gryt-muted">
-          The card people see when they hover your name. It's the same on every server you're on.
-        </span>
+        <h2 className="text-lg">{i18n.t("ui.editMyCard")}</h2>
+        <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.m9770333e80")}</span>
       </div>
 
       <div className="flex flex-wrap items-start gap-6">
@@ -347,11 +345,9 @@ export function CardSettings() {
           {preview(stage)}
         </div>
         <div className="flex flex-col gap-2" style={{ flex: "1 1 200px" }}>
-          <span className="text-xs text-gryt-muted">
-            Colours, patterns, banner, bio and styles, with your card beside you the whole time.
-          </span>
+          <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.m7d2b2f1680")}</span>
           <div>
-            <Button size="small" onClick={() => setEditing(true)}>Open the card editor</Button>
+            <Button size="small" onClick={() => setEditing(true)}>{i18n.t("settingsFull.m295dd35435")}</Button>
           </div>
         </div>
       </div>
@@ -362,25 +358,19 @@ export function CardSettings() {
           {/* Laid out like the owl designer: panes on the left, the card on the right, nothing long to scroll. */}
           <Dialog.Popup className="flex h-[min(46rem,calc(100dvh-2rem))] w-[64rem] max-w-[calc(100vw-2rem)] flex-col overflow-x-hidden p-0">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gryt-border px-4 py-3">
-              <Dialog.Title className="text-lg">Edit my card</Dialog.Title>
+              <Dialog.Title className="text-lg">{i18n.t("ui.editMyCard")}</Dialog.Title>
               <div className="flex flex-wrap items-center gap-2">
-                {dirty && <span className="text-xs text-gryt-muted">Not saved yet</span>}
+                {dirty && <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.m0a1dc843df")}</span>}
                 <CopyCardLink style={style} link={(code) => `https://ui.gryt.chat/card${code ? `?${code}` : ""}`} />
-                <Button size="small" tone="neutral" onClick={pasteLink}>
-                  Paste link
-                </Button>
+                <Button size="small" tone="neutral" onClick={pasteLink}>{i18n.t("settingsFull.m03592260b9")}</Button>
                 <Button size="small" tone="neutral" disabled={!dirty} onClick={() => {
                   setDraft(saved);
                   if (bannerPreview?.startsWith("blob:")) URL.revokeObjectURL(bannerPreview);
                   setBannerPreview(undefined);
                   setPendingBanner(undefined);
-                }}>
-                  Undo changes
-                </Button>
-                <Button size="small" disabled={!dirty || bannerBusy} onClick={() => void save()}>
-                  Save
-                </Button>
-                <Dialog.Close render={<Button size="small" tone="neutral" />}>Close</Dialog.Close>
+                }}>{i18n.t("settingsFull.m6f5e3125e1")}</Button>
+                <Button size="small" disabled={!dirty || bannerBusy} onClick={() => void save()}>{i18n.t("settingsFull.mefc007a393")}</Button>
+                <Dialog.Close render={<Button size="small" tone="neutral" />}>{i18n.t("ui.close")}</Dialog.Close>
               </div>
             </div>
             <div className="@container flex min-h-0 flex-1 flex-col overflow-y-auto">
@@ -395,27 +385,27 @@ export function CardSettings() {
                   appearance={stage}
                   bannerUrl={bannerUrl}
                   emojiGroups={emojiGroups}
-                  panes={[{ value: "about", label: "About you", icon: <UserCircle weight="fill" size={16} />, content: about }]}
+                  panes={[{ value: "about", label: i18n.t("settingsFull.m5c4698b6e0"), icon: <UserCircle weight="fill" size={16} />, content: about }]}
                 />
                 <figure className="m-0 flex shrink-0 flex-col gap-3 border-gryt-border bg-gryt-surface p-4 @max-3xl:border-t @3xl:w-[24rem] @3xl:border-l">
                   <figcaption className="flex flex-wrap items-center justify-between gap-3 text-xs font-bold text-gryt-muted">
                     <ToggleGroup
                       value={[stage]}
                       onValueChange={(v) => setStage(v[0] === "light" ? "light" : v[0] === "dark" ? "dark" : stage)}
-                      aria-label="Preview on"
+                      aria-label={i18n.t("settingsFull.m60840bec92")}
                     >
-                      <Toggle value="light" size="small">Light app</Toggle>
-                      <Toggle value="dark" size="small">Dark app</Toggle>
+                      <Toggle value="light" size="small">{i18n.t("settingsFull.m23595da679")}</Toggle>
+                      <Toggle value="dark" size="small">{i18n.t("settingsFull.m250691a6e2")}</Toggle>
                     </ToggleGroup>
                     <label className="flex items-center gap-2 font-normal text-gryt-text">
                       <Checkbox checked={playing} onCheckedChange={(on) => setPlaying(on === true)} />
-                      {gameCard ? "Show your game" : "With a game"}
+                      {gameCard ? i18n.t("settingsFull.mbf88d20937") : i18n.t("settingsFull.m0b002cee04")}
                     </label>
                   </figcaption>
                   <div className="overflow-hidden rounded-(--gryt-radius-lg) border border-gryt-border">{preview(stage)}</div>
                   {presets.length > 0 && (
                     <div className="flex flex-col gap-1.5">
-                      <span className="text-[0.65rem] font-semibold tracking-wider text-gryt-muted uppercase">Used before</span>
+                      <span className="text-[0.65rem] font-semibold tracking-wider text-gryt-muted uppercase">{i18n.t("settingsFull.mc503a9e25e")}</span>
                       <div className="flex flex-wrap gap-2">
                         {presets.map((preset) => (
                           <CardPresetTile key={preset.id} preset={preset} onPick={() => pickPreset(preset)} onForget={() => void forgetCardPreset(preset.id)} />

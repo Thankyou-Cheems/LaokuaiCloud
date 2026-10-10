@@ -47,7 +47,12 @@ const functions = main.slice(main.indexOf("function buildTrayContextMenu"), main
 const closing = main.slice(main.indexOf("  // Windows may close windows"), main.indexOf('  mainWindow.on("closed"'));
 const quitting = main.slice(main.lastIndexOf('  app.on(\n    "before-quit",'), main.lastIndexOf('  app.on(\n    "will-quit",'));
 const body = stripTypeScriptTypes(`${functions}\n${closing}\n${quitting}`, { mode: "transform" });
-const control = new Function("app", "process", "Tray", "nativeImage", "Menu", "window", `
+const nativeSource = stripTypeScriptTypes(read("electron/uiLanguage.ts"))
+  .replace(/^import .*;$/gm, "").replace(/^export /gm, "");
+const native = new Function("en", "zhCN", `${nativeSource}; return { nativeT, setNativeLanguagePreference, setNativeApplicationName };`)(
+  JSON.parse(read("src/packages/i18n/locales/en.json")), JSON.parse(read("src/packages/i18n/locales/zh-CN.json")));
+native.setNativeLanguagePreference("zh-CN", []); native.setNativeApplicationName("唠蒯");
+const control = new Function("app", "process", "Tray", "nativeImage", "Menu", "window", "nativeT", "refreshNativeLanguage", `
   let mainWindow=window, tray=null, closeToTray=true, isQuitting=false, IS_LAOKUAI=true, isUserSignedIn=false;
   let voiceState={inVoice:true,muted:false,deafened:false,serverName:'Fixture only'};
   const updates={ready:()=>false}, updatesComeFromTheAppStore=true;
@@ -60,7 +65,7 @@ const control = new Function("app", "process", "Tray", "nativeImage", "Menu", "w
       if('voice' in values)voiceState={...voiceState,...values.voice}; if(values.destroyTray)tray.destroyed=true; },
     tray:()=>tray, voice:()=>({...voiceState}), quitting:()=>isQuitting };
 `)(app, { platform: "win32" }, FakeTray, { createFromPath: file => ({ file, isEmpty: () => missingImage }) },
-  { buildFromTemplate: value => value }, window);
+  { buildFromTemplate: value => value }, window, native.nativeT, () => {});
 const close = () => { let prevented = false; windowEvents.close({ preventDefault: () => { prevented = true; } }); return prevented; };
 check("private guest X keeps voice state and hides only", () => {
   control.createTray(); const before = control.voice(); assert.equal(close(), true);
@@ -69,8 +74,8 @@ check("private guest X keeps voice state and hides only", () => {
 check("repeated X and createTray do not duplicate tray", () => { close(); control.createTray(); assert.equal(creates, 1); });
 check("tray click restores window", () => { control.tray().events.click(); assert.equal(visible, true); assert.ok(shown && focusCalls); });
 check("menu offers explicit restore and quit", () => {
-  close(); const menu = control.buildTrayContextMenu(); assert.equal(menu[0].label, "打开老蒯聊");
-  menu[0].click(); assert.equal(visible, true); menu.find(item => item.label === "退出老蒯聊").click();
+  close(); const menu = control.buildTrayContextMenu(); assert.equal(menu[0].label, native.nativeT("726dff642ff6"));
+  menu[0].click(); assert.equal(visible, true); menu.find(item => item.label === native.nativeT("privateQuit")).click();
   assert.equal(quitCalls, 1); assert.equal(control.quitting(), true); assert.equal(close(), false);
 });
 check("saved false close-to-tray is respected", () => { control.set({ quitting: false, closeToTray: false }); assert.equal(close(), false); });
@@ -96,7 +101,7 @@ check("all Windows idle/live/muted/deafened paths select Cheems packaged resourc
     assert.equal(path.basename(file), `tray-${name}.png`);
     const entry = trayAssets.find(asset => asset.to === path.basename(file));
     assert.equal(sha(path.join(root, entry.from)), sha(path.join(root, "private-brand/icon-16.png")));
-    control.refreshTray(); assert.equal(control.tray().image.file, file); assert.match(control.tray().tooltip, /老蒯聊/);
+    control.refreshTray(); assert.equal(control.tray().image.file, file); assert.match(control.tray().tooltip, /唠蒯/);
   }
 });
 check("hidden launch requires a usable tray", () => { assert.ok(main.includes("startHiddenOnLaunch && tray && !tray.isDestroyed()")); });

@@ -1,8 +1,10 @@
 import { Accordion, Alert, Avatar, Button, Checkbox, Chip, Spinner, Surface, TextField } from "@gryt/ui";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Trans } from "react-i18next";
 
 import { GeneratedServerIcon, normalizeHost } from "@/common";
+import { i18n, useTranslation } from "@/i18n";
 
 import type { EmbeddedServerState } from "../../../../lib/electron";
 import {
@@ -22,12 +24,14 @@ import { railEntriesFor } from "../hostedServerRail";
 import { serverToManage } from "../hostedServers";
 import { EmbeddedServerLogs } from "./embeddedServerLogs";
 import { HIGHLIGHT_MS, SettingsContainer } from "./settingsComponents";
+import { settingsMessage } from "./settingsMessage";
 
 /**
  * The servers you run, as opposed to the ones you have joined. They share one
  * SFU, so a second one costs a server process and an image worker.
  */
 export function MyServersSettings() {
+  useTranslation();
   const {
     isAvailable,
     servers,
@@ -57,39 +61,24 @@ export function MyServersSettings() {
   if (!isAvailable) {
     return (
       <SettingsContainer>
-        <h2 className="text-lg">
-          My servers
-        </h2>
-        <span className="text-sm">
-          This build does not have a server bundled with it, so there is nothing
-          to run here. Joining somebody else&rsquo;s works as normal.
-        </span>
+        <h2 className="text-lg">{i18n.t("ui.myServers")}</h2>
+        <span className="text-sm">{i18n.t("settingsFull.m36eba7425b")}</span>
       </SettingsContainer>
     );
   }
 
   return (
     <SettingsContainer>
-      <h2 className="text-lg">
-        My servers
-      </h2>
+      <h2 className="text-lg">{i18n.t("ui.myServers")}</h2>
 
       <div className="flex flex-col gap-3">
-        <span className="text-xs">
-          Servers Gryt runs on this machine. They are yours: each one holds its
-          own messages and members, and is only reachable while it is running
-          and this machine is on.
-        </span>
+        <span className="text-xs">{i18n.t("settingsFull.ma96e0b5194")}</span>
 
         {servers.length === 0 ? (
           <div className="flex flex-col gap-3 items-start">
-            <span className="text-sm">
-              You are not running one yet.
-            </span>
+            <span className="text-sm">{i18n.t("settingsFull.m4d84c167b3")}</span>
             <Button size="small" onClick={hostAServer}>
-              <PiHardDrivesFill size={16} />
-              Host a server
-            </Button>
+              <PiHardDrivesFill size={16} />{i18n.t("settingsFull.m6abc03961e")}</Button>
           </div>
         ) : (
           <>
@@ -131,9 +120,7 @@ export function MyServersSettings() {
 
             <div className="flex w-fit">
               <Button size="small" onClick={hostAServer}>
-                <PiPlusBold size={14} />
-                Host another server
-              </Button>
+                <PiPlusBold size={14} />{i18n.t("settingsFull.m44da1c984e")}</Button>
             </div>
           </>
         )}
@@ -157,6 +144,7 @@ function ManageTarget({
   onShown: () => void;
   children: ReactNode;
 }) {
+  useTranslation();
   const ref = useRef<HTMLDivElement>(null);
   const [flash, setFlash] = useState(false);
 
@@ -218,6 +206,7 @@ function HostedServerCard({
   onDelete: () => void;
   onDismissError: () => void;
 }) {
+  useTranslation();
   const { servers: joinedServers, addServer, switchToServer } =
     useServerManagement();
   const { setShowSettings } = useSettings();
@@ -238,7 +227,7 @@ function HostedServerCard({
   const isRunning = server.status === "running";
   const isStarting = server.status === "starting";
   const hasError = server.status === "error";
-  const name = server.config?.serverName ?? "My Server";
+  const name = server.config?.serverName ?? i18n.t("settingsFull.m5ddbad1831");
   const port = server.config?.serverPort;
   const host = server.serverUrl ? normalizeHost(server.serverUrl) : "";
 
@@ -273,7 +262,7 @@ function HostedServerCard({
               <Chip tone="neutral"
                 color={isRunning ? "green" : isStarting ? "amber" : "gray"}
               >
-                {isRunning ? "Running" : isStarting ? "Starting…" : "Stopped"}
+                {isRunning ? i18n.t("settingsFull.m73989d9c59") : isStarting ? i18n.t("settingsFull.me5f58095ac") : i18n.t("settingsFull.m51e9111b87")}
               </Chip>
             </div>
 
@@ -287,8 +276,7 @@ function HostedServerCard({
                 </code>
               </span>
               {server.config?.lanDiscoverable && (
-                <span className="text-xs">
-                  On your network{" "}
+                <span className="text-xs">{i18n.t("settingsFull.m7fcb2fb048")}{" "}
                   <code className="font-mono text-xs text-gryt-muted">
                     {lanIp}:{port}
                   </code>
@@ -303,22 +291,16 @@ function HostedServerCard({
                 onClick={onStop}
                 disabled={busy}
               >
-                {busy ? <Spinner size={16} /> : <PiStopFill size={16} />}
-                Stop
-              </Button>
+                {busy ? <Spinner size={16} /> : <PiStopFill size={16} />}{i18n.t("settingsFull.m9e253470c8")}</Button>
             ) : (
               <Button size="small"
                 onClick={onStart}
                 disabled={busy}
               >
-                {busy ? <Spinner size={16} /> : <PiPlayFill size={16} />}
-                Start
-              </Button>
+                {busy ? <Spinner size={16} /> : <PiPlayFill size={16} />}{i18n.t("settingsFull.m952f375412")}</Button>
             )}
 
-            <Button size="small" onClick={openServer} disabled={!isRunning}>
-              Open
-            </Button>
+            <Button size="small" onClick={openServer} disabled={!isRunning}>{i18n.t("settingsFull.mcf9b77061f")}</Button>
           </div>
         </div>
 
@@ -328,9 +310,7 @@ function HostedServerCard({
                 checked={autoStart}
                 onCheckedChange={(c) => onAutoStart(c === true)}
               />
-              <span className="text-xs">
-                Start automatically with app
-              </span>
+              <span className="text-xs">{i18n.t("settingsFull.m19daf37f58")}</span>
             </label>
 
           <Button
@@ -340,55 +320,31 @@ function HostedServerCard({
             disabled={busy}
             onClick={() => setConfirmDelete(true)}
           >
-            <PiTrashFill size={12} />
-            Delete
-          </Button>
+            <PiTrashFill size={12} />{i18n.t("ui.delete")}</Button>
 
           <ConfirmDialog
             open={confirmDelete}
             onOpenChange={setConfirmDelete}
-            title={`Delete ${name}?`}
+            title={i18n.t("settingsFull.m9b216b8c0c", { value0: name })}
             description={
-              <>
-                This deletes the server and everything on it — its messages, its
-                members, its uploads and its identity key. There is no other
-                copy.
-              </>
+              <>{i18n.t("settingsFull.m0e8aa19b28")}</>
             }
-            confirmLabel="Delete for good"
+            confirmLabel={i18n.t("settingsFull.m9c02b4c6ff")}
             confirmPhrase={name}
-            confirmPhraseLabel={<>Type <strong>{name}</strong> to confirm</>}
+            confirmPhraseLabel={<><Trans i18n={i18n} i18nKey="settingsFull.m9832f94e89" values={{ name }} components={{ name: <strong /> }} /></>}
             onConfirm={onDelete}
           >
             {/* Said separately because it is the part nobody expects.
                 Everyone who joined pinned this server's identity key, so a
                 new server with the same name and port is a different server
                 to them, and they are turned away rather than let back in. */}
-            <span className="text-sm">
-              Anybody who joined cannot rejoin a replacement, even with the
-              same name and port.
-            </span>
+            <span className="text-sm">{i18n.t("settingsFull.m7c8ee544fe")}</span>
           </ConfirmDialog>
         </div>
 
         <div className="flex flex-col gap-2 border-t border-gryt-border pt-3">
-          <span className="text-sm font-bold">Advertised addresses</span>
-          <span className="text-xs">
-            Voice currently advertises{" "}
-            {server.config?.advertisedAddresses.length ? (
-              server.config.advertisedAddresses.map((address, index) => (
-                <span key={address}>
-                  {index > 0 ? ", " : ""}
-                  <code className="font-mono text-xs text-gryt-muted">
-                    {address}
-                  </code>
-                </span>
-              ))
-            ) : (
-              "no external address"
-            )}
-            . Gryt adds usable addresses from this machine automatically.
-          </span>
+          <span className="text-sm font-bold">{i18n.t("settingsFull.mdfcff72435")}</span>
+          <span className="text-xs"><Trans i18n={i18n} i18nKey="settingsFull.m5aacce11a5" components={{ addresses: <AdvertisedAddressList addresses={server.config?.advertisedAddresses} /> }} /></span>
           {/* Where the symptom is, next to the thing that causes it.
               
               A wrong address here does not look like a network fault, it looks
@@ -400,16 +356,10 @@ function HostedServerCard({
               cannot tell from in here — a machine behind NAT may or may not
               reach its own public IP depending on the router, and neither
               answer describes what somebody outside sees. */}
-          <span className="text-xs text-gryt-muted">
-            If people can chat but nobody can hear anyone, this is the first
-            thing to check: voice connects directly to these addresses, so an
-            address that is wrong, or a UDP port that is not forwarded, breaks
-            audio and nothing else. It can only be tested from outside your
-            network.
-          </span>
+          <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.m71de7496c1")}</span>
           <div className="flex gap-2 items-end">
             <label className="flex flex-col gap-1 flex-1">
-              <span className="text-xs">Public IPs or hostnames</span>
+              <span className="text-xs">{i18n.t("settingsFull.m30191bd832")}</span>
               <TextField
                 value={customAddresses}
                 onChange={(event) => {
@@ -432,23 +382,13 @@ function HostedServerCard({
                   setAddressSaveFailed(!saved),
                 );
               }}
-            >
-              Save
-            </Button>
+            >{i18n.t("settingsFull.mefc007a393")}</Button>
           </div>
           {(isRunning || isStarting) && (
-            <span className="text-xs text-gryt-muted">
-              Stop the server before changing these addresses.
-            </span>
+            <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.mb2e3e62b8b")}</span>
           )}
           {addressSaveFailed && (
-            <Alert severity="info" role="alert">
-              Use IPv4 addresses or fully qualified hostnames without ports.
-              Not <code className="font-mono text-xs">0.0.0.0</code> or{" "}
-              <code className="font-mono text-xs">127.0.0.1</code> — those mean
-              &quot;this machine&quot; to whoever reads them, so a client sent
-              one looks for the server on its own computer.
-            </Alert>
+            <Alert severity="info" role="alert"><Trans i18n={i18n} i18nKey="settingsFull.m510cf2c952" components={{ wildcard: <code className="font-mono text-xs" />, loopback: <code className="font-mono text-xs" /> }} /></Alert>
           )}
         </div>
 
@@ -481,20 +421,14 @@ function HostedServerCard({
             }}
           >
             <Accordion.Item value="ports">
-              <Accordion.Trigger>Open these ports</Accordion.Trigger>
+              <Accordion.Trigger>{i18n.t("settingsFull.m8424551d48")}</Accordion.Trigger>
               <Accordion.Panel>
                 <div className="flex flex-col gap-3 pt-2">
-                  <span className="text-xs text-gryt-muted">
-                    Open these on this machine, and forward them on your router
-                    as well if anyone is joining from outside your network. The
-                    UDP one is the one people miss: it is a different protocol
-                    from the other two, and everything except voice works
-                    without it.
-                  </span>
+                  <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.m090900c3d9")}</span>
 
                   <div className="flex gap-2 items-end">
                     <label className="flex flex-col gap-1 flex-1">
-                      <span className="text-xs">TCP, the server</span>
+                      <span className="text-xs">{i18n.t("settingsFull.m839194221f")}</span>
                       <TextField
                         value={portDraft.server}
                         inputMode="numeric"
@@ -507,7 +441,7 @@ function HostedServerCard({
                       />
                     </label>
                     <label className="flex flex-col gap-1 flex-1">
-                      <span className="text-xs">TCP, voice signalling</span>
+                      <span className="text-xs">{i18n.t("settingsFull.mbf3f6bb93d")}</span>
                       <TextField
                         value={portDraft.sfu}
                         inputMode="numeric"
@@ -520,7 +454,7 @@ function HostedServerCard({
                       />
                     </label>
                     <label className="flex flex-col gap-1 flex-1">
-                      <span className="text-xs">UDP, voice and video</span>
+                      <span className="text-xs">{i18n.t("settingsFull.medb097168a")}</span>
                       <TextField
                         value={portDraft.media}
                         inputMode="numeric"
@@ -546,37 +480,27 @@ function HostedServerCard({
                           setPortsSaved(!error);
                         });
                       }}
-                    >
-                      Save
-                    </Button>
+                    >{i18n.t("settingsFull.mefc007a393")}</Button>
                   </div>
 
                   {/* Said here as well as under the addresses, because this
                       panel is collapsed by default and somebody who opens it
                       to change a port has not necessarily read that. */}
                   {(isRunning || isStarting) && (
-                    <span className="text-xs text-gryt-muted">
-                      Stop the server before changing its ports.
-                    </span>
+                    <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.md86b93d4b7")}</span>
                   )}
 
                   {portError && (
                     <Alert severity="info" role="alert">
-                      {portError}
+                      {settingsMessage(portError)}
                     </Alert>
                   )}
 
                   {portsSaved && (
-                    <Alert severity="success" role="status">
-                      Saved. Remember to forward the new port, if you had
-                      forwarded the old one.
-                    </Alert>
+                    <Alert severity="success" role="status">{i18n.t("settingsFull.mecac4524bb")}</Alert>
                   )}
 
-                  <span className="text-xs text-gryt-muted">
-                    Voice signalling is shared by every server this app hosts,
-                    so changing those two changes them for all of them.
-                  </span>
+                  <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.m32b7297f6f")}</span>
                 </div>
               </Accordion.Panel>
             </Accordion.Item>
@@ -593,7 +517,7 @@ function HostedServerCard({
             onValueChange={(value: unknown) => setLogsOpen(value as string[])}
           >
             <Accordion.Item value="logs">
-              <Accordion.Trigger>Server logs</Accordion.Trigger>
+              <Accordion.Trigger>{i18n.t("settingsFull.mfc2965d6b6")}</Accordion.Trigger>
               <Accordion.Panel>
                 {logsOpen.includes("logs") && (
                   <EmbeddedServerLogs serverId={server.id} />
@@ -605,16 +529,25 @@ function HostedServerCard({
 
         {hasError && server.error && (
           <div className="flex flex-col gap-2">
-            <Alert severity="info" role="alert"><span className="inline-flex items-start gap-2"><PiWarningFill size={16} />{server.error}</span></Alert>
+            <Alert severity="info" role="alert"><span className="inline-flex items-start gap-2"><PiWarningFill size={16} />{settingsMessage(server.error)}</span></Alert>
             <div className="flex justify-end">
               <Button tone="ghost" size="xsmall" onClick={onDismissError}>
-                <PiX size={14} />
-                Dismiss
-              </Button>
+                <PiX size={14} />{i18n.t("settingsFull.m70afe9eff3")}</Button>
             </div>
           </div>
         )}
       </div>
     </Surface>
   );
+}
+
+/** An atomic Trans component keeps hostnames as React text, independent of translated markup. */
+function AdvertisedAddressList({ addresses }: { addresses: readonly string[] | undefined }) {
+  useTranslation();
+  return <>{addresses?.length ? addresses.map((address, index) => (
+    <span key={address}>
+      {index > 0 ? ", " : ""}
+      <code className="font-mono text-xs text-gryt-muted">{address}</code>
+    </span>
+  )) : i18n.t("settingsFull.m7859584400")}</>;
 }

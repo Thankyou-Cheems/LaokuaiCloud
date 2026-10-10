@@ -1,6 +1,8 @@
 import { Button, Spinner, VideoPlayer } from "@gryt/ui";
 import { type CSSProperties, useCallback, useEffect, useLayoutEffect, useRef } from "react";
 
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
+
 import { PiWarningCircle } from "../../../../lib/icons";
 import type { SealedVideo } from "../hooks/useSealedVideo";
 import { formatFileSize } from "../utils/formatFileSize";
@@ -48,6 +50,7 @@ export const ChatMediaPlayer = ({
   onError?: () => void;
   onPosterError?: () => void;
 }) => {
+  useSocketTranslation();
   const label = mediaLabel(fileName, size);
 
   if (type === "video") {
@@ -92,6 +95,7 @@ function ChatVideo({
   onError?: () => void;
   onPosterError?: () => void;
 }) {
+  useSocketTranslation();
   return (
     <div className="chat-video-player" {...sizedBy(width, height)}>
       <VideoPlayer
@@ -130,6 +134,7 @@ export function ChatSealedVideo({
   volume: number;
   onVolumeChange: (v: number) => void;
 }) {
+  useSocketTranslation();
   const { src, phase, start } = video;
   const box = useRef<HTMLDivElement | null>(null);
   const focused = useRef(false);
@@ -143,7 +148,7 @@ export function ChatSealedVideo({
   useLayoutEffect(() => {
     const root = box.current?.querySelector<HTMLElement>(".gryt-video-player");
     if (!src || !root) return;
-    root.querySelector<HTMLButtonElement>('button[aria-label="Play video"]')?.click();
+    root.querySelector<HTMLButtonElement>('button[data-action="play-video"]')?.click();
     if (focused.current) root.focus();
   }, [src]);
 
@@ -165,7 +170,7 @@ export function ChatSealedVideo({
       {!src && phase !== "failed" && (
         <button
           type="button"
-          aria-label={phase === "opening" ? "Loading video" : "Play video"}
+          aria-label={phase === "opening" ? socketI18n.t("socketFull.chatMediaPlayer_8ceb6afdb1") : socketI18n.t("socketFull.chatMediaPlayer_960512488a")}
           aria-disabled={phase === "opening" || undefined}
           onClick={phase === "opening" ? undefined : press}
           className="absolute inset-0 grid cursor-pointer place-items-center rounded-(--gryt-radius-md) focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gryt-accent-light aria-disabled:cursor-progress"
@@ -173,7 +178,7 @@ export function ChatSealedVideo({
           {/* Drawn over the player's play button, the same size and colour, so the button turns into the spinner. */}
           {phase === "opening" && (
             <span className="grid h-14 w-14 place-items-center rounded-(--gryt-radius-control) bg-gryt-accent">
-              <Spinner size={28} aria-label="Loading video" className="text-gryt-on-accent" />
+              <Spinner size={28} aria-label={socketI18n.t("socketFull.chatMediaPlayer_8ceb6afdb1")} className="text-gryt-on-accent" />
             </span>
           )}
         </button>
@@ -184,10 +189,8 @@ export function ChatSealedVideo({
           className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-(--gryt-radius-md) bg-gryt-surface-raised p-4 text-center text-gryt-text"
         >
           <PiWarningCircle size={32} aria-hidden />
-          <p className="m-0 text-sm">This video couldn't be played.</p>
-          <Button size="xsmall" tone="neutral" onClick={press}>
-            Try again
-          </Button>
+          <p className="m-0 text-sm">{socketI18n.t("socketFull.chatMediaPlayer_1a1b170637")}</p>
+          <Button size="xsmall" tone="neutral" onClick={press}>{socketI18n.t("ui.tryAgain")}</Button>
         </div>
       )}
     </div>
@@ -207,6 +210,7 @@ function ChatAudio({
   onVolumeChange: (v: number) => void;
   onError?: () => void;
 }) {
+  useSocketTranslation();
   const mediaRef = useRef<HTMLAudioElement | null>(null);
   const suppressNextEvent = useRef(false);
   const resumeAt = useRef<number | null>(null);

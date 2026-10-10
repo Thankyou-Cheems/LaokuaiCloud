@@ -21,6 +21,7 @@ import {
   subscribeToPrefs,
   SuppressEveryoneItem,
 } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 import { useTranslation } from "@/i18n";
 import { channelHref } from "@/lib/mentionTokens";
 import { Channel, SidebarItem, SidebarReorderEntry } from "@/settings/src/types/server";
@@ -151,6 +152,7 @@ export const ChannelList = ({
   /** Unseen mentions per conversation id. Absent means none. */
   mentionCounts?: Map<string, number>;
 }) => {
+  useSocketTranslation();
   const { t: tr } = useTranslation();
   // The same analyser source the voice tile uses, so the row's ring and the
   // tile's agree. false takes no handle; useMicrophone is a singleton.
@@ -369,7 +371,7 @@ export const ChannelList = ({
             className={`truncate${unread > 0 || mentions > 0 ? " font-semibold text-gryt-text" : ""}`}
             style={{ flex: 1, minWidth: 0, textAlign: "left", display: "block" }}
           >
-            <EmojiText text={channel?.name || "(missing channel)"} />
+            <EmojiText text={channel?.name || socketI18n.t("socketFull.channelList_616645cc3e")} />
           </span>
           {hasIndicators && (
             <div className="flex gap-1 items-center" style={{ marginLeft: "auto", flexShrink: 0 }}>
@@ -395,7 +397,7 @@ export const ChannelList = ({
                 </Tooltip>
               )}
               {channel!.maxBitrate && (
-                <Tooltip title={`Max bitrate: ${Math.round(channel!.maxBitrate! / 1000)} kbps`}>
+                <Tooltip title={socketI18n.t("socketFull.channelList_f72288f980", { p0: (Math.round(channel!.maxBitrate! / 1000)) })}>
                   <div className="flex items-center" style={{ color: "var(--gryt-neutral-9)" }}>
                     <PiGaugeFill size={14} />
                   </div>
@@ -780,7 +782,7 @@ export const ChannelList = ({
       type="button"
       onClick={() => setHideMuted(serverHost, false)}
       title={tr("ui.showMutedChannels")}
-      aria-label={`Show ${hiddenCount} hidden muted ${hiddenCount === 1 ? "channel" : "channels"}`}
+      aria-label={socketI18n.t("socketFull.channelList_57890f11a0", { p0: (hiddenCount), count: (hiddenCount) })}
       className={[
         "mt-3 flex w-full items-center gap-2 rounded-(--gryt-radius-md) px-2 py-1 text-left",
         "text-xs font-semibold tracking-wide transition-colors",

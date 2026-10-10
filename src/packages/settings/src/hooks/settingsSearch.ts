@@ -1,12 +1,12 @@
 import { i18n } from "@/i18n";
-import en from "@/i18n/locales/en.json";
+
+import { isElectron, isMacDesktop } from "../../../../lib/electron";
+import { SETTINGS_SEARCH_KEYS } from "./settingsSearchKeys";
 
 /**
  * Search index for the settings modal. The `id` is the anchor SettingGroup
  * renders, and titles here are the stable part before any colon.
  */
-import { isElectron, isMacDesktop } from "../../../../lib/electron";
-
 export interface SettingsIndexEntry {
   id: string;
   title: string;
@@ -33,12 +33,12 @@ export function settingAnchorId(title: string): string {
 }
 
 export const SETTINGS_INDEX: SettingsIndexEntry[] = [
-  { id: "squad-mode", title: "Squad mode", description: "Squad 游戏语音 按键发送抑制 前台进程", destination: "sound-video", page: "voice", section: "Squad" },
-  { id: "squad-process", title: "Squad foreground detection", description: "Squad 游戏语音 按键发送抑制 前台进程", destination: "sound-video", page: "voice", section: "Squad" },
-  { id: "squad-target", title: "Squad process target", description: "Squad 游戏语音 按键发送抑制 前台进程", destination: "sound-video", page: "voice", section: "Squad" },
-  { id: "squad-keys", title: "Squad game voice keys", description: "Squad 游戏语音 按键发送抑制 前台进程", destination: "sound-video", page: "voice", section: "Squad" },
+  { id: "squad-mode", title: "Squad mode", description: "Squad game voice transmission suppression.", destination: "sound-video", page: "voice", section: "Squad"},
+  { id: "squad-process", title: "Squad foreground detection", description: "Detect the foreground game process.", destination: "sound-video", page: "voice", section: "Squad"},
+  { id: "squad-target", title: "Squad process target", description: "Choose the Squad executable name.", destination: "sound-video", page: "voice", section: "Squad"},
+  { id: "squad-keys", title: "Squad game voice keys", description: "Keys used by Squad voice chat.", destination: "sound-video", page: "voice", section: "Squad"},
 
-  { id: "receive-leveling", title: "Receive loudness leveling", description: "Keep remote voices at a steadier volume. 接收响度均衡 自动音量", destination: "sound-video", page: "audio", section: "Playback" },
+  { id: "receive-leveling", title: "Receive loudness leveling", description: "Gradually balance remote voices.", destination: "sound-video", page: "audio", section: "Playback"},
   { id: "language", title: "Language", description: "Choose the interface language. 中文 语言 English", destination: "appearance", page: "display", section: "Display" },
   { id: "updates", title: "Updates", description: "Check for updates and see your current version.", page: "updates", destination: "about", section: "About", panel: true },
   { id: "profile", title: "Profile", description: "Your display name, avatar and identity.", page: "profile", destination: "profile", section: "Profile", panel: true },
@@ -54,11 +54,11 @@ export const SETTINGS_INDEX: SettingsIndexEntry[] = [
   { id: "message-history-on-this-device", title: "Message history on this device", description: "Where your encrypted DM history is kept, and clearing it when it won't open.", page: "security", destination: "account", section: "Security" },
   { id: "your-devices", title: "Your devices", description: "Each app or browser you use for encrypted DMs, on each server. Remove one you don't use anymore.", page: "security", destination: "account", section: "Security" },
   { id: "message-key-warnings", title: "Message key warnings", description: "Warn when a server holds a message key this device didn't publish. Turn it off if your direct messages don't need to be private from the server.", page: "security", destination: "account", section: "Security" },
-  { id: "persist-server-access-tokens", title: "Persist server access tokens", description: "Keep server sign-in tokens between app sessions, or clear them when Gryt closes.", page: "security", destination: "account", section: "Security" },
-  { id: "server-identities", title: "Server identities", description: "Servers Gryt recognises by their identity key, and any it has blocked for answering with a different one. Unblock a server you rebuilt yourself.", page: "identities", destination: "servers", section: "Servers", panel: true },
+  { id: "persist-server-access-tokens", title: "Persist server access tokens", description: "Keep server sign-in tokens between app sessions, or clear them when 唠蒯 closes.", page: "security", destination: "account", section: "Security" },
+  { id: "server-identities", title: "Server identities", description: "Servers 唠蒯 recognises by their identity key, and any it has blocked for answering with a different one. Unblock a server you rebuilt yourself.", page: "identities", destination: "servers", section: "Servers", panel: true },
   ...(isElectron()
     ? ([
-    { id: "my-servers", title: "My servers", description: "Servers Gryt runs on this machine. Start them, stop them, read their logs, and choose whether they start with the app.", page: "my-servers", destination: "servers", section: "Servers", panel: true }
+    { id: "my-servers", title: "My servers", description: "Servers 唠蒯 runs on this machine. Start them, stop them, read their logs, and choose whether they start with the app.", page: "my-servers", destination: "servers", section: "Servers", panel: true }
       ] satisfies SettingsIndexEntry[])
     : []),
   { id: "microphone-volume", title: "Microphone volume", description: "Your microphone input level (100% = unchanged, 200% = 2x boost)", page: "audio", destination: "sound-video", section: "Microphone" },
@@ -76,9 +76,9 @@ export const SETTINGS_INDEX: SettingsIndexEntry[] = [
   { id: "mirror-preview", title: "Mirror preview", description: "Mirrors your own preview. Nobody else sees any difference.", page: "camera", destination: "sound-video", section: "Camera" },
   { id: "appearance", title: "Appearance", description: "Mode, themes and display sizes.", page: "theme", destination: "appearance", section: "Appearance", panel: true },
   { id: "theme", title: "Theme", description: "Pick one, or open the editor and change it while you use the app. A theme is a couple of dozen hex values, so a link is the whole thing.", page: "theme", destination: "appearance", section: "Theme" },
-  { id: "the-server-we-run", title: "The server we run", description: "Gryt runs one server itself, and the dialog for adding a server offers it when you have nothing to paste. Turning this off hides that row for good on this device, and turning it back on is what this is for.", page: "adding-servers", destination: "servers", section: "Adding servers" },
-  { id: "typefaces-from-google", title: "Typefaces from Google", description: "A theme can name any typeface. Letting Gryt fetch the ones you do not already have means Google sees your address and that you are running Gryt. Off, a theme that names one falls back to a face you have.", page: "theme", destination: "appearance", section: "Theme" },
-  { id: "ui-scale", title: "UI scale", description: "How large Gryt draws everything. Ctrl+Plus and Ctrl+Minus do the same, and Ctrl+0 puts it back to 100%.", page: "display", destination: "appearance", section: "Display" },
+  { id: "the-server-we-run", title: "The server we run", description: "唠蒯 runs one server itself, and the dialog for adding a server offers it when you have nothing to paste. Turning this off hides that row for good on this device, and turning it back on is what this is for.", page: "adding-servers", destination: "servers", section: "Adding servers" },
+  { id: "typefaces-from-google", title: "Typefaces from Google", description: "A theme can name any typeface. Letting 唠蒯 fetch the ones you do not already have means Google sees your address and that you are running 唠蒯. Off, a theme that names one falls back to a face you have.", page: "theme", destination: "appearance", section: "Theme" },
+  { id: "ui-scale", title: "UI scale", description: "How large 唠蒯 draws everything. Ctrl+Plus and Ctrl+Minus do the same, and Ctrl+0 puts it back to 100%.", page: "display", destination: "appearance", section: "Display" },
   { id: "chat-font-size", title: "Chat font size", description: "The size messages are set in, with a preview underneath.", page: "display", destination: "appearance", section: "Display" },
   { id: "standalone-emoji-size", title: "Standalone emoji size", description: "How big an emoji is drawn when a message is nothing but emoji.", page: "display", destination: "appearance", section: "Display" },
   { id: "tile-layout", title: "Tile layout", description: "How the voice grid arranges people once it is maximised or fullscreen. Match Google Meet allows tall narrow tiles and more columns; Biggest tiles picks whichever arrangement makes them largest.", page: "voice", destination: "sound-video", section: "Voice" },
@@ -100,13 +100,13 @@ export const SETTINGS_INDEX: SettingsIndexEntry[] = [
   ...(isElectron()
     ? ([
       ...(isMacDesktop()
-        ? [{ id: "open-at-login", title: "Open at login", description: "Opens Gryt when you log in to your Mac.", page: "desktop", destination: "behaviour", section: "Desktop" }]
+        ? [{ id: "open-at-login", title: "Open at login", description: "Opens 唠蒯 when you log in to your Mac.", page: "desktop", destination: "behaviour", section: "Desktop" }]
         : [
-            { id: "start-with-windows", title: "Start with Windows", description: "Launches Gryt when you sign in to Windows.", page: "desktop", destination: "behaviour", section: "Desktop" },
-            { id: "start-minimized-on-login", title: "Start minimized on login", description: "Only applies when Gryt is launched automatically on sign-in. Manual launches will still show the window.", page: "desktop", destination: "behaviour", section: "Desktop" },
+            { id: "start-with-windows", title: "Start with Windows", description: "Launches 唠蒯 when you sign in to Windows.", page: "desktop", destination: "behaviour", section: "Desktop" },
+            { id: "start-minimized-on-login", title: "Start minimized on login", description: "Only applies when 唠蒯 is launched automatically on sign-in. Manual launches will still show the window.", page: "desktop", destination: "behaviour", section: "Desktop" },
           ]),
-      { id: "minimize-to-tray-on-close", title: "Minimize to tray on close", description: "Closing the window hides Gryt in the system tray instead of quitting it.", page: "desktop", destination: "behaviour", section: "Desktop" },
-      { id: "hardware-acceleration", title: "Hardware acceleration", description: "Uses your GPU for rendering. Turn it off if you see visual glitches or high GPU usage. Changing this restarts Gryt.", page: "desktop", destination: "behaviour", section: "Desktop" }
+      { id: "minimize-to-tray-on-close", title: "Minimize to tray on close", description: "Closing the window hides 唠蒯 in the system tray instead of quitting it.", page: "desktop", destination: "behaviour", section: "Desktop" },
+      { id: "hardware-acceleration", title: "Hardware acceleration", description: "Uses your GPU for rendering. Turn it off if you see visual glitches or high GPU usage. Changing this restarts 唠蒯.", page: "desktop", destination: "behaviour", section: "Desktop" }
       ] satisfies SettingsIndexEntry[])
     : []),
   { id: "esports-mode", title: "eSports mode", description: "Lowest possible latency. Disables all audio processing, enables push-to-talk, caps bitrate at 128kbps (studio quality), and optimizes Opus packetization (10ms frames).", page: "voice", destination: "sound-video", section: "Voice" },
@@ -127,38 +127,29 @@ export const SETTINGS_INDEX: SettingsIndexEntry[] = [
         { id: "a-message-every", title: "A message every", description: "How often a fake message arrives, in seconds, while it is running.", destination: "developer", section: "Developer" }
       ] satisfies SettingsIndexEntry[])
     : []),
-  { id: "addons", title: "Addons", description: "Extensions that add features to Gryt.", destination: "extensions", section: "Addons", panel: true },
-  { id: "support-gryt", title: "Support Gryt", description: "Ways to support the project.", destination: "support", section: "Support", panel: true }
+  { id: "addons", title: "Addons", description: "Extensions that add features to 唠蒯.", destination: "extensions", section: "Addons", panel: true },
+  { id: "support-gryt", title: "Support 唠蒯", description: "Ways to support the project.", destination: "support", section: "Support", panel: true }
 ];
 
-/**
- * Case-insensitive match across titles, descriptions and section names. Results
- * come back in screen order, so a description match can outrank a title one.
- */
-const labelKeys = new Map(Object.entries(en.ui).map(([key, value]) => [value, `ui.${key}`]));
-labelKeys.set("Language", "language.title");
-labelKeys.set("Minimize to tray on close", "desktop.closeToTrayTitle");
-labelKeys.set("Receive loudness leveling", "receiveLeveling.title");
-labelKeys.set("Microphone volume", "settings.microphoneVolume");
-labelKeys.set("Target level", "settings.targetLevel");
-labelKeys.set("Compression amount", "settings.compressionAmount");
-labelKeys.set("Output volume", "settings.outputVolume");
-
-function localizeLabel(value: string, translate: (key: string) => string): string {
-  const key = labelKeys.get(value);
-  return key ? translate(key) : value;
-}
-
-export function searchSettings(query: string, translate: (key: string) => string = i18n.t): SettingsIndexEntry[] {
+// Search both languages while keeping catalog routing and screen order unchanged.
+export function searchSettings(query: string, translate: (key: string) => string = (key) => i18n.t(key)): SettingsIndexEntry[] {
   const q = query.trim().toLowerCase();
   if (!q) return [];
 
-  return SETTINGS_INDEX.filter((entry) =>
-    localizeLabel(entry.title, translate).toLowerCase().includes(q) ||
-    localizeLabel(entry.section, translate).toLowerCase().includes(q) ||
-    localizeLabel(entry.description, translate).toLowerCase().includes(q) ||
-    entry.title.toLowerCase().includes(q) ||
-    entry.section.toLowerCase().includes(q) ||
-    entry.description.toLowerCase().includes(q),
-  ).map((entry) => ({ ...entry, title: localizeLabel(entry.title, translate), section: localizeLabel(entry.section, translate), description: localizeLabel(entry.description, translate) }));
+  return SETTINGS_INDEX.flatMap((entry) => {
+    const keys = SETTINGS_SEARCH_KEYS[entry.id];
+    const localized = keys ? {
+      ...entry,
+      title: translate(keys.title),
+      description: translate(keys.description),
+      section: translate(keys.section),
+    } : { ...entry };
+    const labels = [localized.title, localized.description, localized.section,
+      entry.title, entry.description, entry.section];
+    // Both bundled languages remain searchable, without changing the app's
+    // language, initializing another i18n instance, or loading remote resources.
+    if (keys) labels.push(...[keys.title, keys.description, keys.section]
+      .map((key) => i18n.t(key, { lng: "zh-CN" })));
+    return labels.some((label) => label.toLowerCase().includes(q)) ? [localized] : [];
+  });
 }

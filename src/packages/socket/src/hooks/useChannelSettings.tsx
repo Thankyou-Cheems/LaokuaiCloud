@@ -2,10 +2,12 @@ import { MutableRefObject, useCallback, useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 
 import { ServerErrorToast, serverIconSrc } from "@/common";
+import { i18n as socketHooksI18n } from "@/i18n";
 import type { Channel } from "@/settings/src/types/server";
 
 import { PiClockClockwiseFill, PiFadersHorizontalFill } from "../../../../lib/icons";
 import { canInChannel } from "../lib/permissions";
+import { socketDisplayText, socketHookToast } from "../utils/socketHookMessages";
 import { useServerPermissions } from "./usePermissions";
 import { useSockets } from "./useSockets";
 
@@ -53,7 +55,7 @@ function useChannelSettings({
         messages.push("RNNoise disabled");
       }
     }
-    toast(`Channel rules applied: ${messages.join(", ")}`, { icon: <PiFadersHorizontalFill size={18} /> });
+    toast(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useChannelSettings_5a17c0b687", { p0: messages.map((message) => socketDisplayText(message)).join(socketHooksI18n.t("socketHooksFull.listSeparator")) })), { icon: <PiFadersHorizontalFill size={18} /> });
   }, [inputMode, rnnoiseEnabled, eSportsModeEnabled, noiseGate, setInputMode, setRnnoiseEnabled, setESportsModeEnabled]);
 
   const restoreChannelSettings = useCallback(() => {
@@ -64,7 +66,7 @@ function useChannelSettings({
     setRnnoiseEnabled(prev.rnnoiseEnabled);
     setNoiseGate(prev.noiseGate);
     prevSettingsRef.current = null;
-    toast("Settings restored to your defaults", { icon: <PiClockClockwiseFill size={18} /> });
+    toast(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useChannelSettings_b7c9e82750")), { icon: <PiClockClockwiseFill size={18} /> });
   }, [setInputMode, setRnnoiseEnabled, setESportsModeEnabled, setNoiseGate]);
 
   useEffect(() => {
@@ -116,13 +118,13 @@ function useHandleChannelClick({
           const host = currentlyViewingServer.host;
           const name = currentlyViewingServer.name || host;
           toast.error(
-            <ServerErrorToast
+            socketHookToast(() => <ServerErrorToast
                 iconSrc={serverIconSrc(host, name, serverDetailsList)}
                 seed={name}
                 serverName={name}
                 channelName={channel.name}
-                message="You do not have permission to join voice here."
-              />,
+                message={socketHooksI18n.t("socketHooksFull.useChannelSettings_b5ba3edce1")}
+              />),
           );
           return;
         }
@@ -163,7 +165,7 @@ function useHandleChannelClick({
             setPendingChannelId(channel.id);
             setSettingsTab("audio");
             setShowSettings(true);
-            toast.error("No microphone selected. Please choose a device in Settings → Audio.");
+            toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useChannelSettings_4672bf18d1")));
             return;
           }
 
@@ -172,15 +174,15 @@ function useHandleChannelClick({
           const host = currentlyViewingServer.host;
           const name = currentlyViewingServer.name || host;
           toast.error(
-            <ServerErrorToast
+            socketHookToast(() => <ServerErrorToast
                 iconSrc={serverIconSrc(host, name, serverDetailsList)}
                 seed={name}
                 serverName={name}
                 channelName={channel.name}
                 message={
-                  error instanceof Error ? error.message : "Could not join this voice channel."
+                  error instanceof Error ? socketDisplayText(error.message) : socketHooksI18n.t("socketHooksFull.useChannelSettings_969202a429")
                 }
-              />,
+              />),
               // useVoiceLifecycle's id: a refusal is reported there as well, and shows once.
               { id: "voice-connection" },
           );

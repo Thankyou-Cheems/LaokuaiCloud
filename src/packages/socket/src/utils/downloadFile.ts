@@ -1,6 +1,9 @@
 import toast from "react-hot-toast";
 
 import { freshUploadsFileUrl } from "@/common";
+import { i18n as socketHooksI18n } from "@/i18n";
+
+import { socketHookToast } from "./socketHookMessages";
 
 /** Hands `blob` to the browser's download under `fileName`, then frees the URL made for it. */
 export function saveBlob(blob: Blob, fileName?: string | null): void {
@@ -35,7 +38,7 @@ export async function saveOpenedFile(
   try {
     blob = await open();
   } catch {
-    toast.error("Couldn't save the file");
+    toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.downloadFile_0830aab888")));
     return;
   }
   saveBlob(blob, fileName);

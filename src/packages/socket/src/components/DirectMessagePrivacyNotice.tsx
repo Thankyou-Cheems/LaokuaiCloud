@@ -1,4 +1,7 @@
+import { Trans } from "react-i18next";
+
 import type { SealDecision } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 
 import { PiLockOpen, PiLockSimpleFill } from "../../../../lib/icons";
 
@@ -20,9 +23,9 @@ const SECURITY_DOC_SEALED = "https://docs.gryt.chat/docs/about/security";
 function plaintextReason(decision: SealDecision | undefined): string | null {
   if (!decision || decision.kind !== "plaintext") return null;
   const reasons = new Set(decision.blockedBy.map((b) => b.reason));
-  if (reasons.has("changed")) return "Somebody here changed their key.";
-  if (reasons.has("unusable")) return "Somebody here has a key this app can't use.";
-  if (reasons.has("no-key")) return "Somebody here hasn't set up a key yet.";
+  if (reasons.has("changed")) return socketI18n.t("socketFull.directMessagePrivacyNotice_1a555d32ef");
+  if (reasons.has("unusable")) return socketI18n.t("socketFull.directMessagePrivacyNotice_dd984f436b");
+  if (reasons.has("no-key")) return socketI18n.t("socketFull.directMessagePrivacyNotice_ee39da2c61");
   return null;
 }
 
@@ -35,6 +38,7 @@ export function DirectMessagePrivacyNotice({
      has decided it cannot seal to us, and nothing else here would say so. */
   peerInClear?: string | null;
 }) {
+  useSocketTranslation();
   const sealed = decision?.kind === "seal";
   const oneWay = sealed && !!peerInClear;
   const reason = plaintextReason(decision);
@@ -60,20 +64,12 @@ export function DirectMessagePrivacyNotice({
         style={{ color: "var(--gryt-neutral-11)", lineHeight: 1.5 }}
       >
         {oneWay ? (
-          <>
-            You are encrypting, {peerInClear} isn&rsquo;t. Whoever runs this
-            server can&rsquo;t read what you send, and can read what they
-            send.{" "}
-          </>
+          <><Trans i18n={socketI18n} i18nKey="socketFull.mixedEncryptionNotice" values={{ peer: peerInClear }} /></>
         ) : sealed ? (
-          <>
-            This conversation is encrypted. Whoever runs this server can&rsquo;t
-            read it.{" "}
+          <>{socketI18n.t("socketFull.directMessagePrivacyNotice_041324a2cc")}{" "}
           </>
         ) : (
-          <>
-            This conversation isn&rsquo;t encrypted. Whoever runs this server can
-            read it.{reason ? ` ${reason}` : ""}{" "}
+          <>{socketI18n.t("socketFull.directMessagePrivacyNotice_c11936b087")}{reason ? ` ${reason}` : ""}{" "}
           </>
         )}
         <a
@@ -82,9 +78,7 @@ export function DirectMessagePrivacyNotice({
           rel="noreferrer"
           style={{ color: "var(--gryt-neutral-12)" }}
           target="_blank"
-        >
-          Read more
-        </a>
+        >{socketI18n.t("socketFull.directMessagePrivacyNotice_314a873571")}</a>
       </p>
     </div>
   );

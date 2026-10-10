@@ -3,6 +3,8 @@ import type { StreamSources } from "@gryt/voice";
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
+
 import { PiPhoneCallFill } from "../../../../lib/icons";
 import type { PeerLatencyStats } from "../hooks/usePeerLatency";
 import type { Client } from "../types/clients";
@@ -40,6 +42,7 @@ export const VoiceSheetButton = ({
   videoStreams?: Record<string, MediaStream>;
   streamSources?: StreamSources;
 }) => {
+  useSocketTranslation();
   const [open, setOpen] = useState(false);
 
   return (
@@ -60,7 +63,7 @@ export const VoiceSheetButton = ({
           >
             <IconButton
               size="large"
-              aria-label="Open call controls"
+              aria-label={socketI18n.t("socketFull.voiceSheetButton_dd8f227c3e")}
               onClick={() => setOpen(true)}
               style={{
                 width: 56,

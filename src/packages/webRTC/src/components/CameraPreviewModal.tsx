@@ -2,6 +2,7 @@ import { Button, Checkbox, Chip, Dialog, IconButton, Select } from "@gryt/ui";
 import { CAMERA_FPS_OPTIONS, type CameraQuality, QUALITY_CONSTRAINTS } from "@gryt/voice";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { i18n, LocalizedText, useTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 
 import { PiArrowsClockwiseFill, PiVideoCameraFill, PiX } from "../../../../lib/icons";
@@ -23,7 +24,7 @@ interface CameraPreviewModalProps {
 }
 
 const QUALITY_OPTIONS: { value: CameraQuality; label: string }[] = [
-  { value: "native", label: "Native" },
+  { value: "native", get label() { return i18n.t("shellFull.CameraPreviewModal_tsx_4fc6e7f740"); } },
   { value: "4k", label: "4K" },
   { value: "1440p", label: "1440p" },
   { value: "1080p", label: "1080p" },
@@ -58,6 +59,7 @@ export function CameraPreviewModal({
   onFlippedChange,
   onStart,
 }: CameraPreviewModalProps) {
+  useTranslation();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [previewStream, setPreviewStream] = useState<MediaStream | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
@@ -111,15 +113,15 @@ export function CameraPreviewModal({
     switch (name) {
       case "NotReadableError":
       case "AbortError":
-        return "Failed to start camera — is it in use by another application?";
+        return i18n.t("shellFull.CameraPreviewModal_tsx_d3a459e832");
       case "NotAllowedError":
-        return "Camera access was denied. Check your permissions.";
+        return i18n.t("shellFull.CameraPreviewModal_tsx_943c71580e");
       case "NotFoundError":
-        return "No camera detected. Make sure one is connected.";
+        return i18n.t("shellFull.CameraPreviewModal_tsx_c565276577");
       case "OverconstrainedError":
-        return "Camera doesn't support the selected quality. Try a lower setting.";
+        return i18n.t("shellFull.CameraPreviewModal_tsx_8ca1b13b17");
       default:
-        return "Failed to start camera. Please try again.";
+        return i18n.t("shellFull.CameraPreviewModal_tsx_fbd6338b57");
     }
   }
 
@@ -268,7 +270,7 @@ export function CameraPreviewModal({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <PiVideoCameraFill size={16} />
-              <Dialog.Title>Camera Preview</Dialog.Title>
+              <Dialog.Title>{<LocalizedText translationKey="shellFull.CameraPreviewModal_tsx_3005cb168c" />}</Dialog.Title>
             </div>
             <Dialog.Close>
               <IconButton tone="ghost" size="xsmall" onClick={handleClose}>
@@ -316,13 +318,11 @@ export function CameraPreviewModal({
             {!previewStream && (
               <div className="flex items-center justify-center flex-col gap-2" style={{ position: "absolute", inset: 0 }}>
                 <span className="text-sm" color={previewError ? "red" : "gray"}>
-                  {previewError ?? "Starting camera..."}
+                  {previewError ?? i18n.t("shellFull.CameraPreviewModal_tsx_1393ef466c")}
                 </span>
                 {previewError && (
                   <Button tone="neutral" size="xsmall" onClick={() => setRetryCount((c) => c + 1)}>
-                    <PiArrowsClockwiseFill size={14} />
-                    Retry
-                  </Button>
+                    <PiArrowsClockwiseFill size={14} />{<LocalizedText translationKey="shellFull.CameraPreviewModal_tsx_9f5cd8a2e8" />}</Button>
                 )}
               </div>
             )}
@@ -330,16 +330,16 @@ export function CameraPreviewModal({
 
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-3">
-              <span className="text-sm" style={{ minWidth: 60 }}>Camera</span>
+              <span className="text-sm" style={{ minWidth: 60 }}>{<LocalizedText translationKey="shellFull.CameraPreviewModal_tsx_4da9c9af96" />}</span>
               <Select
                 className="flex-1 min-w-0"
                 value={localCameraID}
                 onValueChange={(v) => setLocalCameraID(String(v))}
                 options={
                   devices.length === 0
-                    ? [{ label: "No cameras found", value: "__none__", disabled: true }]
+                    ? [{ label: i18n.t("shellFull.CameraPreviewModal_tsx_a41e4c7080"), value: "__none__", disabled: true }]
                     : devices.map((d, i) => ({
-                        label: d.label || `Camera ${i + 1}`,
+                        label: d.label || i18n.t("shellFull.CameraPreviewModal_tsx_d935c2ee86", { value0: i + 1 }),
                         value: d.deviceId || `device-${i}`,
                       }))
                 }
@@ -347,7 +347,7 @@ export function CameraPreviewModal({
             </div>
 
             <div className="flex items-center gap-3">
-              <span className="text-sm" style={{ minWidth: 60 }}>Quality</span>
+              <span className="text-sm" style={{ minWidth: 60 }}>{<LocalizedText translationKey="shellFull.CameraPreviewModal_tsx_a60f2c7360" />}</span>
               <Select
                 className="flex-1"
                 value={localQuality}
@@ -357,7 +357,7 @@ export function CameraPreviewModal({
             </div>
 
             <div className="flex items-center gap-3">
-              <span className="text-sm" style={{ minWidth: 60 }}>FPS</span>
+              <span className="text-sm" style={{ minWidth: 60 }}>{<LocalizedText translationKey="shellFull.CameraPreviewModal_tsx_fce204ae55" />}</span>
               <Select
                 className="flex-1"
                 value={String(localFps)}
@@ -370,14 +370,10 @@ export function CameraPreviewModal({
             </div>
 
             <label className="text-sm" style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
-              <Checkbox checked={localFlipped} onCheckedChange={(v) => setLocalFlipped(v === true)} />
-              Flip camera (affects what everyone sees)
-            </label>
+              <Checkbox checked={localFlipped} onCheckedChange={(v) => setLocalFlipped(v === true)} />{<LocalizedText translationKey="shellFull.CameraPreviewModal_tsx_707f897192" />}</label>
 
             <label className="text-sm" style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
-              <Checkbox checked={localMirrored} onCheckedChange={(v) => setLocalMirrored(v === true)} />
-              Mirror preview
-            </label>
+              <Checkbox checked={localMirrored} onCheckedChange={(v) => setLocalMirrored(v === true)} />{<LocalizedText translationKey="shellFull.CameraPreviewModal_tsx_a2241ff744" />}</label>
 
             {/* Here as well as in settings, because this is the moment you are
                 looking at your own framing and can see whether it needs it. */}
@@ -385,18 +381,12 @@ export function CameraPreviewModal({
               <Checkbox
                 checked={faceFramingEnabled}
                 onCheckedChange={(v) => setFaceFramingEnabled(v === true)}
-              />
-              Center my face automatically
-            </label>
+              />{<LocalizedText translationKey="shellFull.CameraPreviewModal_tsx_3e18b35f2c" />}</label>
           </div>
 
           <div className="flex flex-wrap justify-end gap-2">
-            <Button tone="neutral" size="small" onClick={handleClose}>
-              Cancel
-            </Button>
-            <Button size="small" onClick={handleStart} disabled={!previewStream}>
-              Start Camera
-            </Button>
+            <Button tone="neutral" size="small" onClick={handleClose}>{<LocalizedText translationKey="shellFull.CameraPreviewModal_tsx_77dfd2135f" />}</Button>
+            <Button size="small" onClick={handleStart} disabled={!previewStream}>{<LocalizedText translationKey="shellFull.CameraPreviewModal_tsx_7014243c18" />}</Button>
           </div>
         </div>
       </Dialog.Popup>

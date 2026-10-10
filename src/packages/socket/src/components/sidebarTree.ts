@@ -1,3 +1,4 @@
+import { i18n as socketI18n } from "@/i18n";
 import type { SidebarItem, SidebarItemKind, SidebarReorderEntry } from "@/settings/src/types/server";
 
 /**
@@ -309,13 +310,13 @@ export function orderBelow(
 }
 
 const SETTINGS_TITLES: Record<SidebarItemKind, string> = {
-  channel: "Channel settings",
-  folder: "Folder settings",
-  separator: "Separator settings",
-  spacer: "Spacer settings",
+  get channel() { return socketI18n.t("socketFull.sidebarTree_f765c29e95"); },
+  get folder() { return socketI18n.t("socketFull.sidebarTree_05bb17f33e"); },
+  get separator() { return socketI18n.t("socketFull.sidebarTree_95b941127d"); },
+  get spacer() { return socketI18n.t("socketFull.sidebarTree_6b62db5c67"); },
 };
 
 /** The edit dialog's title for a row of this kind. */
 export function settingsTitle(kind: SidebarItemKind | undefined): string {
-  return (kind && SETTINGS_TITLES[kind]) || "Settings";
+  return (kind && SETTINGS_TITLES[kind]) || socketI18n.t("ui.settings");
 }

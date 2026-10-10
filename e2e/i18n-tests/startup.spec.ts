@@ -17,7 +17,7 @@ test.beforeEach(async ({ context, page }) => {
 });
 async function assertDirectMain(page: import("@playwright/test").Page) {
   await expect(page.getByRole("button", { name: "设置与账号", exact: true })).toBeVisible({ timeout: 30000 });
-  await expect(page.getByRole("heading", { name: "欢迎使用老蒯聊" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "欢迎使用唠蒯" })).toHaveCount(0);
   await expect(page.locator('[data-gryt="tour"]')).toHaveCount(0);
   await expect(page.getByRole("button", { name: "我自己看看" })).toHaveCount(0);
 }

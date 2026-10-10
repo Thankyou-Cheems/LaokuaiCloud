@@ -1,6 +1,8 @@
 import { WebhookCard } from "@gryt/ui";
 import { memo, type SyntheticEvent, useCallback } from "react";
 
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
+
 import { useStableFileUrl } from "../hooks/useStableFileUrl";
 import type { CustomEmojiEntry } from "../utils/remarkEmoji";
 import { toWebhookCardData } from "../utils/webhookCards";
@@ -21,6 +23,7 @@ interface MessageCardsProps {
 
 /** The cards a webhook posted, in order (GRYT-1186). */
 export const MessageCards = memo(function MessageCards({ cards, ...rest }: MessageCardsProps) {
+  useSocketTranslation();
   return (
     <div className="flex flex-col gap-2" style={{ marginTop: 4 }}>
       {cards.map((card, index) => (
@@ -41,6 +44,7 @@ function MessageCard({
   disabledSmileys,
   onLightboxOpen,
 }: Omit<MessageCardsProps, "cards"> & { card: StoredWebhookCard }) {
+  useSocketTranslation();
   const [authorIcon, refreshAuthorIcon] = useStableFileUrl(serverHost, card.author?.icon_file_id ?? "", true);
   const [footerIcon, refreshFooterIcon] = useStableFileUrl(serverHost, card.footer?.icon_file_id ?? "", true);
   const [thumbnail, refreshThumbnail] = useStableFileUrl(serverHost, card.thumbnail_file_id ?? "");
@@ -77,7 +81,7 @@ function MessageCard({
     <WebhookCard
       card={data}
       renderMarkdown={renderMarkdown}
-      onPressImage={(src) => onLightboxOpen(src, card.title || "Image")}
+      onPressImage={(src) => onLightboxOpen(src, card.title || socketI18n.t("socketFull.messageCards_dd5e3f2fea"))}
       onError={onError}
     />
   );

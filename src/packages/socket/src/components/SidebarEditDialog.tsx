@@ -2,6 +2,7 @@ import { Dialog, IconButton, Select, Switch, TextField } from "@gryt/ui";
 import { useCallback, useMemo, useRef } from "react";
 
 import type { NotificationLevel } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 import {
   type ChannelRule,
   CUSTOM_VALUE,
@@ -76,6 +77,7 @@ interface SidebarEditDialogProps {
 }
 
 export const SidebarEditDialog = ({ open, onOpenChange, editor }: SidebarEditDialogProps) => {
+  useSocketTranslation();
   const {
     selectedSidebarItem,
     sheetChannelName, setSheetChannelName,
@@ -198,29 +200,28 @@ export const SidebarEditDialog = ({ open, onOpenChange, editor }: SidebarEditDia
           {selectedSidebarItem?.kind === "channel" && (
             <>
               <div className="flex flex-col gap-2">
-                <span className="text-sm font-medium">Name</span>
+                <span className="text-sm font-medium">{socketI18n.t("settingsFull.m709a23220f")}</span>
                 <TextField
                   value={sheetChannelName}
                   onChange={(e) => setSheetChannelName(e.target.value)}
                   onBlur={flushSave}
                   onKeyDown={handleKeyEnter}
-                  placeholder="Channel name"
+                  placeholder={socketI18n.t("socketFull.sidebarEditDialog_005961b03d")}
                 />
               </div>
               <div className="flex flex-col gap-2">
-                <span className="text-sm font-medium">
-                  Description <span style={{ color: "var(--gryt-neutral-10)", fontWeight: 400 }}>(optional)</span>
+                <span className="text-sm font-medium">{socketI18n.t("socketFull.sidebarEditDialog_644c263467")}{" "}<span style={{ color: "var(--gryt-neutral-10)", fontWeight: 400 }}>{socketI18n.t("socketFull.sidebarEditDialog_855691da5b")}</span>
                 </span>
                 <TextField
                   value={sheetChannelDescription}
                   onChange={(e) => setSheetChannelDescription(e.target.value)}
                   onBlur={flushSave}
                   onKeyDown={handleKeyEnter}
-                  placeholder="What's this channel for?"
+                  placeholder={socketI18n.t("socketFull.sidebarEditDialog_23a625980f")}
                 />
               </div>
               <div className="flex flex-col gap-2">
-                <span className="text-sm font-medium">Channel type</span>
+                <span className="text-sm font-medium">{socketI18n.t("socketFull.sidebarEditDialog_7e4fb732d2")}</span>
                 <ChannelKindPicker
                   value={sheetChannelKind}
                   onChange={(k) => {
@@ -233,7 +234,7 @@ export const SidebarEditDialog = ({ open, onOpenChange, editor }: SidebarEditDia
               </div>
               {sheetChannelKind === "forum" && (
                 <div className="flex flex-col gap-2">
-                  <span className="text-sm font-medium">Tags</span>
+                  <span className="text-sm font-medium">{socketI18n.t("socketFull.sidebarEditDialog_1855069ef6")}</span>
                   <ForumTagsField
                     tags={sheetForumTags}
                     onChange={(t) => { setSheetForumTags(t); debouncedSave(); }}
@@ -241,7 +242,7 @@ export const SidebarEditDialog = ({ open, onOpenChange, editor }: SidebarEditDia
                 </div>
               )}
               <div className="flex flex-col gap-2">
-                <span className="text-sm font-medium">Default notifications</span>
+                <span className="text-sm font-medium">{socketI18n.t("socketFull.sidebarEditDialog_bf1ac989af")}</span>
                 <Select
                   value={sheetDefaultNotificationLevel}
                   onValueChange={(v) => {
@@ -251,12 +252,10 @@ export const SidebarEditDialog = ({ open, onOpenChange, editor }: SidebarEditDia
                   }}
                   options={NOTIFICATION_LEVEL_OPTIONS}
                 />
-                <span className="text-xs">
-                  What members get from this channel until they pick their own level for it.
-                </span>
+                <span className="text-xs">{socketI18n.t("socketFull.sidebarEditDialog_44e37891c9")}</span>
               </div>
               <div className="flex flex-col gap-2">
-                <span className="text-sm font-medium">Who can use this channel</span>
+                <span className="text-sm font-medium">{socketI18n.t("socketFull.sidebarEditDialog_7308d94df9")}</span>
                 {sheetScopeFolder && !sheetScopeFollowsFolder && (
                   <span className="text-xs">{folderFollowNote(sheetScopeFolder.name)}</span>
                 )}
@@ -279,10 +278,10 @@ export const SidebarEditDialog = ({ open, onOpenChange, editor }: SidebarEditDia
                             : null,
                         )
                       : sheetScopeChoice === EVERYONE_VALUE
-                        ? "Everyone on the server can see and use this channel."
+                        ? socketI18n.t("socketFull.sidebarEditDialog_e4aec873f9")
                         : sheetScopeChoice === CUSTOM_VALUE
                           ? describeRules(sheetScopeRules, roleNames)
-                          : "Follows a template. Change it in server settings and every channel using it changes with it."
+                          : socketI18n.t("socketFull.sidebarEditDialog_726ff2092f")
                   }
                   onChoice={pickChannelScope}
                   onRules={drawRules}
@@ -292,8 +291,8 @@ export const SidebarEditDialog = ({ open, onOpenChange, editor }: SidebarEditDia
                 <>
                   <div className="flex items-center justify-between">
                     <div className="flex flex-col gap-1">
-                      <span className="text-sm font-medium">eSports Mode</span>
-                      <span className="text-xs">Lowest latency: PTT, no RNNoise, 128 kbps bitrate, 10ms Opus</span>
+                      <span className="text-sm font-medium">{socketI18n.t("socketFull.sidebarEditDialog_d33367aa63")}</span>
+                      <span className="text-xs">{socketI18n.t("socketFull.sidebarEditDialog_d0143463b4")}</span>
                     </div>
                     <Switch checked={sheetEsportsMode} onCheckedChange={(v) => {
                       setSheetEsportsMode(v);
@@ -303,20 +302,20 @@ export const SidebarEditDialog = ({ open, onOpenChange, editor }: SidebarEditDia
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex flex-col gap-1">
-                      <span className="text-sm font-medium">Require Push to Talk</span>
-                      <span className="text-xs">Users must hold a key to transmit</span>
+                      <span className="text-sm font-medium">{socketI18n.t("socketFull.sidebarEditDialog_a5d4052fc7")}</span>
+                      <span className="text-xs">{socketI18n.t("socketFull.sidebarEditDialog_feb7857392")}</span>
                     </div>
                     <Switch checked={sheetRequirePtt} onCheckedChange={(v) => { setSheetRequirePtt(v); debouncedSave(); }} />
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex flex-col gap-1">
-                      <span className="text-sm font-medium">Disable Noise Reduction</span>
-                      <span className="text-xs">Raw audio with no processing for lower latency</span>
+                      <span className="text-sm font-medium">{socketI18n.t("socketFull.sidebarEditDialog_f1e222d9e4")}</span>
+                      <span className="text-xs">{socketI18n.t("socketFull.sidebarEditDialog_70f480cc42")}</span>
                     </div>
                     <Switch checked={sheetDisableRnnoise} disabled={sheetEsportsMode} onCheckedChange={(v) => { setSheetDisableRnnoise(v); debouncedSave(); }} />
                   </div>
                   <div className="flex flex-col gap-2">
-                    <span className="text-sm font-medium">Max Bitrate</span>
+                    <span className="text-sm font-medium">{socketI18n.t("socketFull.sidebarEditDialog_d091d646be")}</span>
                     {/* The separator under Default is gone: the library's
                         Select takes a flat list of options, and Default reads
                         as the first of them well enough without a rule. */}
@@ -327,7 +326,7 @@ export const SidebarEditDialog = ({ open, onOpenChange, editor }: SidebarEditDia
                         debouncedSave();
                       }}
                       options={[
-                        { label: "Default", value: "default" },
+                        { label: socketI18n.t("ui.default"), value: "default" },
                         { label: "32 kbps", value: "32000" },
                         { label: "64 kbps", value: "64000" },
                         { label: "96 kbps", value: "96000" },
@@ -339,8 +338,8 @@ export const SidebarEditDialog = ({ open, onOpenChange, editor }: SidebarEditDia
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex flex-col gap-1">
-                      <span className="text-sm font-medium">Enable Text Chat</span>
-                      <span className="text-xs">Allow text messages in this voice channel</span>
+                      <span className="text-sm font-medium">{socketI18n.t("socketFull.sidebarEditDialog_cc759496b9")}</span>
+                      <span className="text-xs">{socketI18n.t("socketFull.sidebarEditDialog_c248a6bcef")}</span>
                     </div>
                     <Switch checked={sheetTextInVoice} onCheckedChange={(v) => { setSheetTextInVoice(v); debouncedSave(); }} />
                   </div>
@@ -351,7 +350,7 @@ export const SidebarEditDialog = ({ open, onOpenChange, editor }: SidebarEditDia
 
           {selectedSidebarItem?.kind === "spacer" && (
             <div className="flex flex-col gap-2">
-              <span className="text-sm font-medium">Height</span>
+              <span className="text-sm font-medium">{socketI18n.t("socketFull.sidebarEditDialog_b480a1dd71")}</span>
               <TextField
                 value={sheetSpacerHeight}
                 onChange={(e) => setSheetSpacerHeight(e.target.value)}
@@ -365,7 +364,7 @@ export const SidebarEditDialog = ({ open, onOpenChange, editor }: SidebarEditDia
           {(selectedSidebarItem?.kind === "separator" || selectedSidebarItem?.kind === "folder") && (
             <div className="flex flex-col gap-2">
               <span className="text-sm font-medium">
-                {selectedSidebarItem.kind === "folder" ? "Name" : "Label"}
+                {selectedSidebarItem.kind === "folder" ? socketI18n.t("settingsFull.m709a23220f") : socketI18n.t("socketFull.sidebarEditDialog_1e03e4d819")}
               </span>
               <TextField
                 value={sheetSeparatorLabel}
@@ -374,18 +373,15 @@ export const SidebarEditDialog = ({ open, onOpenChange, editor }: SidebarEditDia
                 onKeyDown={handleKeyEnter}
                 /* A separator with no label is a plain rule, which is reasonable
                    to want. A folder with no name is a row you cannot tell apart. */
-                placeholder={selectedSidebarItem.kind === "folder" ? "New folder" : "Optional"}
+                placeholder={selectedSidebarItem.kind === "folder" ? socketI18n.t("socketFull.sidebarEditDialog_3e8914415e") : socketI18n.t("ui.optional")}
               />
             </div>
           )}
 
           {selectedSidebarItem?.kind === "folder" && folderPermissions && (
             <div className="flex flex-col gap-2">
-              <span className="text-sm font-medium">Who can use this folder</span>
-              <span className="text-xs">
-                Channels in this folder follow these permissions unless they have their own.
-                If someone can&rsquo;t see any of its channels, they won&rsquo;t see the folder either.
-              </span>
+              <span className="text-sm font-medium">{socketI18n.t("socketFull.sidebarEditDialog_e0e4a4a08f")}</span>
+              <span className="text-xs">{socketI18n.t("socketFull.sidebarEditDialog_eebc83afa0")}</span>
               <ScopePicker
                 choice={sheetScopeChoice}
                 rules={sheetScopeRules}
@@ -395,10 +391,10 @@ export const SidebarEditDialog = ({ open, onOpenChange, editor }: SidebarEditDia
                 loading={scopeLoading}
                 description={
                   sheetScopeChoice === EVERYONE_VALUE
-                    ? "Everyone on the server can see and use the channels in this folder."
+                    ? socketI18n.t("socketFull.sidebarEditDialog_53f3648a42")
                     : sheetScopeChoice === CUSTOM_VALUE
                       ? describeFolderRules(sheetScopeRules, roleNames)
-                      : "Uses a template. Edit it in server settings and everything using it changes too."
+                      : socketI18n.t("socketFull.sidebarEditDialog_705a67b770")
                 }
                 onChoice={pickScope}
                 onRules={drawRules}

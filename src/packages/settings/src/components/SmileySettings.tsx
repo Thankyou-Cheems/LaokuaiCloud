@@ -2,6 +2,7 @@ import { Button, Divider } from "@gryt/ui";
 import { nameToEmoji } from "gemoji";
 import { useCallback, useMemo } from "react";
 
+import { i18n, useTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 
 import { SMILEY_ENTRIES } from "../../../socket/src/utils/remarkEmoji";
@@ -9,53 +10,53 @@ import { ToggleSetting } from "./settingsComponents";
 
 const CATEGORY_ORDER: { label: string; shortcodes: string[] }[] = [
   {
-    label: "Happy",
+    get label() { return i18n.t("settingsFull.mbe31a86c98"); },
     shortcodes: [
       "slightly_smiling_face", "smile", "grin", "blush", "smirk",
       "laughing", "joy", "sweat_smile", "wink",
     ],
   },
   {
-    label: "Love",
+    get label() { return i18n.t("settingsFull.m4f61ec4d2d"); },
     shortcodes: ["kissing_heart", "heart", "broken_heart"],
   },
   {
-    label: "Tongue",
+    get label() { return i18n.t("settingsFull.m2c0af9c54f"); },
     shortcodes: [
       "stuck_out_tongue", "stuck_out_tongue_winking_eye", "stuck_out_tongue_closed_eyes",
     ],
   },
   {
-    label: "Cool / Halo",
+    get label() { return i18n.t("settingsFull.mc3e740eefe"); },
     shortcodes: ["sunglasses", "innocent"],
   },
   {
-    label: "Sad",
+    get label() { return i18n.t("settingsFull.m8057f8b2a5"); },
     shortcodes: [
       "disappointed", "pensive", "cry", "sob", "anguished", "weary",
     ],
   },
   {
-    label: "Angry / Evil",
+    get label() { return i18n.t("settingsFull.ma0ac356226"); },
     shortcodes: ["angry", "rage", "smiling_imp", "imp"],
   },
   {
-    label: "Surprised",
+    get label() { return i18n.t("settingsFull.md46346ef89"); },
     shortcodes: ["open_mouth", "astonished", "scream"],
   },
   {
-    label: "Confused / Neutral",
+    get label() { return i18n.t("settingsFull.mba1c495376"); },
     shortcodes: [
       "confused", "neutral_face", "expressionless", "persevere",
       "flushed", "dizzy_face", "star_struck",
     ],
   },
   {
-    label: "Sealed / Tired",
+    get label() { return i18n.t("settingsFull.m3358d7c703"); },
     shortcodes: ["zipper_mouth_face", "no_mouth", "sleeping", "tired_face", "skull"],
   },
   {
-    label: "Other",
+    get label() { return i18n.t("settingsFull.m6e6a6f2086"); },
     shortcodes: ["smiley_cat", "raised_hands", "wave"],
   },
 ];
@@ -69,6 +70,7 @@ function primarySmiley(shortcode: string): string {
 }
 
 export function SmileySettings() {
+  useTranslation();
   const {
     smileyConversion,
     setSmileyConversion,
@@ -104,8 +106,9 @@ export function SmileySettings() {
   return (
     <div className="flex flex-col gap-3">
       <ToggleSetting
-        title="Smiley conversion"
-        description="Automatically convert text smileys like :) and :D into emoji"
+        anchorId="smiley-conversion"
+        title={i18n.t("settingsFull.macd06aaa47")}
+        description={i18n.t("settingsFull.mc605f4e325")}
         checked={smileyConversion}
         onCheckedChange={setSmileyConversion}
       />
@@ -113,16 +116,12 @@ export function SmileySettings() {
       {smileyConversion && (
         <div className="flex flex-col gap-3 pl-1">
           <div className="flex gap-2">
-            <Button tone="neutral" size="xsmall" onClick={enableAll}>
-              Enable All
-            </Button>
-            <Button tone="neutral" size="xsmall" onClick={disableAll}>
-              Disable All
-            </Button>
+            <Button tone="neutral" size="xsmall" onClick={enableAll}>{i18n.t("settingsFull.m5193d0205e")}</Button>
+            <Button tone="neutral" size="xsmall" onClick={disableAll}>{i18n.t("settingsFull.m6ce769b555")}</Button>
           </div>
 
           {CATEGORY_ORDER.map((cat) => (
-            <div className="flex flex-col gap-1" key={cat.label}>
+            <div className="flex flex-col gap-1" key={cat.shortcodes[0]}>
               <span className="text-gryt-muted font-medium">
                 {cat.label}
               </span>
@@ -164,10 +163,7 @@ export function SmileySettings() {
           ))}
 
           <Divider />
-          <span className="text-gryt-muted">
-            Click a chip to toggle that conversion on or off. Disabled
-            smileys stay as typed text.
-          </span>
+          <span className="text-gryt-muted">{i18n.t("settingsFull.mc283d46b0c")}</span>
         </div>
       )}
     </div>

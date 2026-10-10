@@ -28,7 +28,7 @@ const archive=path.join(resources,"app.asar");
 const readPacked=(file)=>asar.extractFile(archive,file.replaceAll("/",path.sep));
 const meta=JSON.parse(readPacked("package.json").toString());
 assert.equal(meta.name,"laokuai-chat");
-assert.equal(meta.productName,"老蒯聊");
+assert.equal(meta.productName,"唠蒯");
 assert.equal(meta.grytI18nTest,true);
 assert.equal(meta.grytLaokuai,true);
 assert.equal(meta.license,"AGPL-3.0-or-later");

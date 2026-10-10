@@ -1,3 +1,5 @@
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
+
 import { PiX } from "../../../../lib/icons";
 
 export interface DismissibleToastProps {
@@ -8,13 +10,14 @@ export interface DismissibleToastProps {
 /* A toast you can get rid of before its time is up. Presentational:
    react-hot-toast renders into its own subtree, outside the providers. */
 export function DismissibleToast({ message, onDismiss }: DismissibleToastProps) {
+  useSocketTranslation();
   return (
     <div className="dismissible-toast">
       <span className="dismissible-toast-message">{message}</span>
       <button
         type="button"
         className="dismissible-toast-close"
-        aria-label="Hide this"
+        aria-label={socketI18n.t("socketFull.dismissibleToast_d1422d98b1")}
         onClick={onDismiss}
       >
         <PiX size={12} />

@@ -1,6 +1,7 @@
 import { Skeleton } from "@gryt/ui";
 
 import type { SealDecision } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 
 import { PiArrowBendUpLeftFill, PiChatCircleFill, PiChatsFill, PiSmileyFill, PiSpeakerHighFill, PiTrashFill } from "../../../../lib/icons";
 import { EmojiText } from "./EmojiText";
@@ -29,6 +30,7 @@ export const MessageHoverToolbar = ({
   /** Open the full picker. Passed only when this person may react. */
   onOpenEmojiPicker?: () => void;
 }) => {
+  useSocketTranslation();
   const showQuick = !!onQuickReaction && !!quickReactions && quickReactions.length > 0;
   return (
     <div
@@ -57,8 +59,8 @@ export const MessageHoverToolbar = ({
         <button
           key={src}
           onClick={() => onQuickReaction(src)}
-          title={`React with ${src}`}
-          aria-label={`React with ${src}`}
+          title={socketI18n.t("socketFull.chatMessage_bab971e4d8", { p0: (src) })}
+          aria-label={socketI18n.t("socketFull.chatMessage_bab971e4d8", { p0: (src) })}
           style={{
             background: "none",
             border: "none",
@@ -81,8 +83,8 @@ export const MessageHoverToolbar = ({
       {onOpenEmojiPicker && (
         <button
           onClick={onOpenEmojiPicker}
-          title="React with another emoji"
-          aria-label="React with another emoji"
+          title={socketI18n.t("socketFull.chatMessage_76159633ef")}
+          aria-label={socketI18n.t("socketFull.chatMessage_76159633ef")}
           style={{
             background: "none",
             border: "none",
@@ -117,7 +119,7 @@ export const MessageHoverToolbar = ({
       {onReply && (
         <button
           onClick={onReply}
-          title="Reply"
+          title={socketI18n.t("socketFull.chatMessage_9a52802256")}
           style={{
             background: "none",
             border: "none",
@@ -141,8 +143,8 @@ export const MessageHoverToolbar = ({
       {onThread && (
         <button
           onClick={onThread}
-          title={hasThread ? "Open thread" : "Start thread"}
-          aria-label={hasThread ? "Open thread" : "Start thread"}
+          title={hasThread ? socketI18n.t("socketFull.chatMessage_4d9ab74e75") : socketI18n.t("socketFull.chatMessage_aa41cfb084")}
+          aria-label={hasThread ? socketI18n.t("socketFull.chatMessage_4d9ab74e75") : socketI18n.t("socketFull.chatMessage_aa41cfb084")}
           style={{
             background: "none",
             border: "none",
@@ -166,7 +168,7 @@ export const MessageHoverToolbar = ({
       {canDelete && onDelete && (
         <button
           onClick={onDelete}
-          title="Delete"
+          title={socketI18n.t("ui.delete")}
           style={{
             background: "none",
             border: "none",
@@ -192,6 +194,7 @@ export const MessageHoverToolbar = ({
 };
 
 export const MessageSkeleton = () => {
+  useSocketTranslation();
   const skeletonGroups = [
     { lines: ["60%", "80%"] },
     { lines: ["45%"] },
@@ -219,7 +222,7 @@ export const MessageSkeleton = () => {
 };
 
 const ChannelIcon = ({ type, size }: { type: "text" | "voice"; size: number }) =>
-  type === "voice" ? <PiSpeakerHighFill size={size} /> : <PiChatCircleFill size={size} />;
+  { useSocketTranslation(); return type === "voice" ? <PiSpeakerHighFill size={size} /> : <PiChatCircleFill size={size} />; };
 
 /* Hallmark · component: empty-chat-state · genre: playful · theme: Gryt UI
  * interaction: the existing composer remains the single primary action */
@@ -240,7 +243,7 @@ export const WelcomeMessage = ({
   /* Unknown reads as unencrypted, the same way the banner above this treats it:
      of the two ways to be wrong while the keys load, understating is free. */
   sealing?: SealDecision;
-}) => (
+}) => { useSocketTranslation(); return (
   <div className="flex w-full max-w-xl flex-col px-6 py-12 sm:px-8">
     <div className="flex items-start gap-4 sm:items-center sm:gap-6">
       <div
@@ -262,24 +265,22 @@ export const WelcomeMessage = ({
           style={{ color: "var(--gryt-neutral-12)", overflowWrap: "anywhere" }}
         >
           {conversationKind === "dm" ? (
-            <>
-              You and <EmojiText text={channelName || "them"} />.
+            <>{socketI18n.t("socketFull.chatMessage_08d8f3fdeb")}{" "}<EmojiText text={channelName || socketI18n.t("socketFull.chatMessage_ca856f8cdc")} />.
             </>
           ) : (
             <>
               {channelType === "text" && "#"}
-              <EmojiText text={channelName || "channel"} /> is open.
-            </>
+              <EmojiText text={channelName || socketI18n.t("socketFull.chatMessage_fefe53f1b6")} />{" "}{socketI18n.t("socketFull.chatMessage_0e6033b58c")}</>
           )}
         </h2>
         <p className="mt-2 text-lg text-gryt-muted" style={{ maxWidth: "45ch", lineHeight: 1.5 }}>
           {conversationKind === "dm"
             ? sealing?.kind === "seal"
-              ? "Nothing here yet. What you send is encrypted on this device, so the server stores something it can\u2019t open."
-              : "Nothing here yet. This one isn\u2019t encrypted, so whoever runs the server can read it."
+              ? socketI18n.t("socketFull.chatMessage_598cd7e29c")
+              : socketI18n.t("socketFull.chatMessage_5805550856")
             : automated
-              ? "Nothing here yet. This one fills up when a bot or the system posts."
-              : "There\u2019s nothing to catch up on. Start wherever you like."}
+              ? socketI18n.t("socketFull.chatMessage_5df9fa1235")
+              : socketI18n.t("socketFull.chatMessage_ff1935c03f")}
         </p>
       </div>
     </div>
@@ -290,10 +291,10 @@ export const WelcomeMessage = ({
       style={{ maxWidth: "45ch", fontFamily: "var(--code-font-family)" }}
     >
       {conversationKind === "dm"
-        ? `This conversation is on ${serverName || "this server"}. Messaging them on another server starts a separate one.`
+        ? socketI18n.t("socketFull.chatMessage_b2d3628657", { p0: (serverName || socketI18n.t("socketFull.chatMessage_007b4db740")) })
         : automated
-          ? "Only bots and the system write here."
-          : "The first message begins the history."}
+          ? socketI18n.t("socketFull.chatMessage_55d48498f8")
+          : socketI18n.t("socketFull.chatMessage_ea8906ab66")}
     </p>
   </div>
-);
+); };

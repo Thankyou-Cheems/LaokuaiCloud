@@ -1,7 +1,7 @@
 import { Divider } from "@gryt/ui";
 import { useCallback, useEffect, useState } from "react";
 
-import { useTranslation } from "@/i18n";
+import { i18n, useTranslation } from "@/i18n";
 
 import { getElectronAPI, isMacDesktop } from "../../../../lib/electron";
 import { SettingsContainer, ToggleSetting } from "./settingsComponents";
@@ -58,23 +58,23 @@ export function DesktopSettings() {
 
   return (
     <SettingsContainer>
-      <h2>
-        Desktop
-      </h2>
+      <h2>{i18n.t("ui.desktop")}</h2>
 
       {startWithWindowsSupported && (
         <>
           {isMac ? (
             <ToggleSetting
-              title="Open at login"
-              description="Opens Gryt when you log in to your Mac."
+              anchorId="open-at-login"
+              title={i18n.t("settingsFull.ma7a8de0b81")}
+              description={i18n.t("settingsFull.m6212f77fba")}
               checked={startWithWindows}
               onCheckedChange={handleStartWithWindowsToggle}
             />
           ) : (
             <ToggleSetting
-              title="Start with Windows"
-              description="Launches Gryt when you sign in to Windows."
+              anchorId="start-with-windows"
+              title={i18n.t("settingsFull.mee4e7bfb0e")}
+              description={i18n.t("settingsFull.md6d817aecd")}
               checked={startWithWindows}
               onCheckedChange={handleStartWithWindowsToggle}
             />
@@ -84,8 +84,9 @@ export function DesktopSettings() {
             <>
               <Divider />
               <ToggleSetting
-                title="Start minimized on login"
-                description="Only applies when Gryt is launched automatically on sign-in. Manual launches will still show the window."
+                anchorId="start-minimized-on-login"
+                title={i18n.t("settingsFull.mc49528a4c7")}
+                description={i18n.t("settingsFull.m89ed52e577")}
                 checked={startMinimizedOnLogin}
                 onCheckedChange={handleStartMinimizedOnLoginToggle}
               />
@@ -106,8 +107,9 @@ export function DesktopSettings() {
       <Divider />
 
       <ToggleSetting
-        title="Hardware acceleration"
-        description="Uses your GPU for rendering. Turn it off if you see visual glitches or high GPU usage. Changing this restarts Gryt."
+        anchorId="hardware-acceleration"
+        title={i18n.t("settingsFull.md840668996")}
+        description={i18n.t("settingsFull.me8f6f07f12")}
         checked={hwAccel}
         onCheckedChange={handleHwAccelToggle}
       />

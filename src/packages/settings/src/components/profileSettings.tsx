@@ -4,13 +4,14 @@ import { useCallback,useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
 import { compressStaticAvatarToLimit, freshUploadsFileUrl, getAvatarHash, getServerAccessToken, getServerHttpBase, getStoredAvatar, getStoredWorn, getUploadsFileUrl, resolveAvatarSrc, setStoredWorn, useUserId } from "@/common";
-import { useTranslation } from "@/i18n";
+import { i18n, LocalizedText, useTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 import { useServerManagement, useSockets } from "@/socket";
 
 import { PiArrowsClockwiseFill, PiCameraFill, PiCheck, PiCopyFill } from "../../../../lib/icons";
 import { takeSharedLook, useSharedLook } from "../../../../lib/sharedLook";
 import { ConfirmDialog } from "../../../socket/src/components/ConfirmDialog";
+import { nicknameFailureKey, type NicknameScope, planNicknameUpdate, requestNicknameUpdate } from "../utils/nicknameScope";
 import { RichPresenceSettings } from "./richPresence";
 import { SettingsContainer } from "./settingsComponents";
 import { WatchedPrograms } from "./watchedPrograms";
@@ -49,14 +50,14 @@ async function asUploadableAvatar(blob: Blob): Promise<File> {
   canvas.height = bitmap.height;
 
   const context = canvas.getContext("2d");
-  if (!context) throw new Error("no canvas context to read that avatar with");
+  if (!context) throw new Error(i18n.t("crossProfile.mb145578f29"));
   context.drawImage(bitmap, 0, 0);
   bitmap.close();
 
   const png = await new Promise<Blob | null>((resolve) =>
     canvas.toBlob(resolve, "image/png"),
   );
-  if (!png) throw new Error("could not re-encode that avatar");
+  if (!png) throw new Error(i18n.t("crossProfile.m2241fcd226"));
 
   return new File([png], "avatar.png", { type: "image/png" });
 }
@@ -72,7 +73,7 @@ async function posterOfVideo(file: File): Promise<File> {
   try {
     await new Promise<void>((resolve, reject) => {
       video.onloadeddata = () => resolve();
-      video.onerror = () => reject(new Error("That video can't be played here"));
+      video.onerror = () => reject(new Error(i18n.t("ui.thatVideoCanTBePlayedHere")));
       video.src = url;
     });
     const side = 256;
@@ -83,10 +84,10 @@ async function posterOfVideo(file: File): Promise<File> {
     canvas.width = side;
     canvas.height = side;
     const context = canvas.getContext("2d");
-    if (!context) throw new Error("no canvas context to read that video with");
+    if (!context) throw new Error(i18n.t("crossProfile.ma42c1243c4"));
     context.drawImage(video, (video.videoWidth - sw) / 2, (video.videoHeight - sh) / 2, sw, sh, 0, 0, side, side);
     const png = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
-    if (!png) throw new Error("could not take a still from that video");
+    if (!png) throw new Error(i18n.t("crossProfile.m6b3f668db0"));
     return new File([png], "avatar.png", { type: "image/png" });
   } finally {
     video.removeAttribute("src");
@@ -97,7 +98,7 @@ async function posterOfVideo(file: File): Promise<File> {
 /** A converted video avatar, fetched whole from a server that has it. */
 async function fetchVideoAvatar(host: string, fileId: string): Promise<File> {
   const response = await fetch(freshUploadsFileUrl(getUploadsFileUrl(host, fileId)));
-  if (!response.ok) throw new Error(`the server answered ${response.status}`);
+  if (!response.ok) throw new Error(i18n.t("crossProfile.mc7ed9482db", { value0: response.status }));
   const blob = await response.blob();
   const type = blob.type.startsWith("video/") ? blob.type : "video/mp4";
   return new File([blob], `avatar.${extForMime(type)}`, { type });
@@ -105,7 +106,7 @@ async function fetchVideoAvatar(host: string, fileId: string): Promise<File> {
 
 async function uploadAvatarToHost(host: string, file: Blob): Promise<{ avatarFileId?: string; processing?: boolean }> {
   const token = getServerAccessToken(host);
-  if (!token) throw new Error("Not authenticated with this server. Try reconnecting.");
+  if (!token) throw new Error(i18n.t("crossProfile.m4493750247"));
   const form = new FormData();
   const ext = extForMime(file.type || "");
   form.append("file", file, `avatar.${ext}`);
@@ -138,7 +139,7 @@ async function uploadAvatarToHost(host: string, file: Blob): Promise<{ avatarFil
 
 async function removeAvatarFromHost(host: string): Promise<void> {
   const token = getServerAccessToken(host);
-  if (!token) throw new Error("Not authenticated with this server. Try reconnecting.");
+  if (!token) throw new Error(i18n.t("crossProfile.m4493750247"));
   const base = getServerHttpBase(host);
   const r = await fetch(`${base}/api/uploads/avatar`, {
     method: "DELETE",
@@ -175,7 +176,7 @@ interface ProfileEditorProps {
   initial: string;
   uploading: boolean;
   removing: boolean;
-  onSaveNickname: (name: string) => void;
+  onSaveNickname: (name: string) => Promise<void>;
   onPickAvatar: () => void;
   onRemoveAvatar: () => void;
   serverLabel?: string;
@@ -184,7 +185,7 @@ interface ProfileEditorProps {
   scopedToServer?: string;
 }
 
-function ProfileEditor({
+export function ProfileEditor({
   nickname,
   avatarUrl,
   generatedAvatarUrl,
@@ -201,22 +202,36 @@ function ProfileEditor({
   const { t: tr } = useTranslation();
   const [draft, setDraft] = useState(nickname);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+  const [savingNickname, setSavingNickname] = useState(false);
+  const savingNicknameRef = useRef(false);
+  const previousNicknameRef = useRef(nickname);
 
   // From the box, not what is saved: the nickname is the seed, so this is the
   // only way to see what you are about to look like.
   const previewSrc = resolveAvatarSrc(avatarUrl, draft, worn) || generatedAvatarUrl;
 
   useEffect(() => {
-    setDraft(nickname);
+    const previous = previousNicknameRef.current;
+    previousNicknameRef.current = nickname;
+    // Remote refreshes must not overwrite an unsaved or failed draft.
+    setDraft((current) => current === previous ? nickname : current);
   }, [nickname]);
 
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     const trimmed = draft.trim().substring(0, 20);
-    if (trimmed.length > 0 && trimmed !== nickname) {
-      onSaveNickname(trimmed);
+    if (!trimmed || trimmed === nickname || savingNicknameRef.current) return;
+    savingNicknameRef.current = true;
+    setSavingNickname(true);
+    try {
+      await onSaveNickname(trimmed);
       setDraft(trimmed);
+    } catch (error) {
+      toast.error(tr(nicknameFailureKey(error)));
+    } finally {
+      savingNicknameRef.current = false;
+      setSavingNickname(false);
     }
-  }, [draft, nickname, onSaveNickname]);
+  }, [draft, nickname, onSaveNickname, tr]);
 
   return (
     <div className="flex flex-col gap-6 items-center" style={{ paddingTop: 8 }} data-tour="profile-editor">
@@ -225,6 +240,55 @@ function ProfileEditor({
           {serverLabel}
         </span>
       )}
+
+      <div className="flex items-center justify-center" style={{ width: "100%" }} data-setting="profile.nickname">
+        <div className="flex flex-col gap-2" style={{ maxWidth: 400, width: "100%" }}>
+          <span className="font-medium text-sm">
+            {scopedToServer ? tr("ui.nickname") : tr("nicknameScope.defaultNickname")}
+          </span>
+          {/*
+            On a server tab this is a statement of fact — the value comes from
+            that server's member list, so it is literally what everyone there
+            sees. On the All Servers tab it is not: that is the local default
+            applied to servers you join next, and it only reaches the servers
+            you are already on when you press Sync. Saying "will see you" in
+            both places is what let a local name of "Sivert" sit next to a
+            server holding "Unknown" without anything looking wrong.
+          */}
+          <span className="text-xs">
+            {scopedToServer
+              ? tr("profile.scopedName", { server: scopedToServer })
+              : tr("ui.usedOnServersYouJoinFromNowOn")}
+          </span>
+          <TextField
+            aria-label={scopedToServer ? tr("ui.nickname") : tr("nicknameScope.defaultNickname")}
+            placeholder={tr("ui.enterANickname")}
+            maxLength={20}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            disabled={savingNickname}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") { e.preventDefault(); setDraft(nickname); }
+              if (e.key === "Enter" && !e.nativeEvent.isComposing && e.nativeEvent.keyCode !== 229) {
+                void handleSave();
+              }
+            }}
+          />
+          {(draft !== nickname || savingNickname) && (
+            <span className="text-xs text-gryt-muted">{tr("nicknameScope.unsavedHint")}</span>
+          )}
+          <div className="flex gap-2">
+            <Button size="small" disabled={savingNickname || !draft.trim() || draft.trim() === nickname}
+              onClick={() => void handleSave()}>
+              {savingNickname ? tr("nicknameScope.saving") : tr("nicknameScope.save")}
+            </Button>
+            <Button size="small" disabled={savingNickname || draft === nickname}
+              onClick={() => setDraft(nickname)}>
+              {tr("nicknameScope.cancel")}
+            </Button>
+          </div>
+        </div>
+      </div>
 
       <div className="flex flex-col items-center gap-2" style={{ cursor: "default", opacity: uploading || removing ? 0.6 : 1, transition: "opacity 200ms" }}>
         <button
@@ -284,40 +348,7 @@ function ProfileEditor({
         </>
       ) : null}
 
-      <div className="flex items-center justify-center" style={{ width: "100%" }}>
-        <div className="flex flex-col gap-2" style={{ maxWidth: 400, width: "100%" }}>
-          <span className="font-medium text-sm">
-            {tr("ui.nickname")}
-          </span>
-          {/*
-            On a server tab this is a statement of fact — the value comes from
-            that server's member list, so it is literally what everyone there
-            sees. On the All Servers tab it is not: that is the local default
-            applied to servers you join next, and it only reaches the servers
-            you are already on when you press Sync. Saying "will see you" in
-            both places is what let a local name of "Sivert" sit next to a
-            server holding "Unknown" without anything looking wrong.
-          */}
-          <span className="text-xs">
-            {scopedToServer
-              ? tr("profile.scopedName", { server: scopedToServer })
-              : tr("ui.usedOnServersYouJoinFromNowOn")}
-          </span>
-          <TextField
-            placeholder={tr("ui.enterANickname")}
-            maxLength={20}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={handleSave}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.nativeEvent.isComposing && e.nativeEvent.keyCode !== 229) {
-                handleSave();
-                (e.target as HTMLInputElement).blur();
-              }
-            }}
-          />
-        </div>
-      </div>
+
     </div>
   );
 }
@@ -377,6 +408,7 @@ export function ProfileSettings() {
   const [syncing, setSyncing] = useState(false);
   const [copied, setCopied] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const nicknameOperationRef = useRef(false);
 
   const serverHosts = Object.keys(servers);
   const connectedHosts = serverHosts.filter(h => sockets[h]?.connected);
@@ -408,7 +440,7 @@ export function ProfileSettings() {
     const minAvatarMaxBytes = getAvatarMaxBytes(hosts);
 
     if (file.size > 25 * 1024 * 1024) {
-      toast.error("Avatar file too large (max 25MB).");
+      toast.error(i18n.t("crossProfile.m8d4ee54e75"));
       return;
     }
 
@@ -418,7 +450,7 @@ export function ProfileSettings() {
     let localFile: File = file;
     if (isVideo) {
       if (hosts.length === 0) {
-        toast.error("A video avatar lives on a server, so connect to one first.");
+        toast.error(i18n.t("crossProfile.m5988cc5e7c"));
         return;
       }
       try {
@@ -477,7 +509,7 @@ export function ProfileSettings() {
         return;
       }
       if (takesVideo.length < hosts.length) {
-        toast(`Your video goes to the ${takesVideo.length} of ${hosts.length} servers that take one. The others keep your current avatar.`);
+        toast(i18n.t("crossProfile.m9255ac6fa7", { value0: takesVideo.length, value1: hosts.length }));
       }
       hosts = takesVideo;
     }
@@ -541,14 +573,14 @@ export function ProfileSettings() {
 
       if (failed.length > 0) {
         if (hosts.length === 1) {
-          toast.error(`Avatar upload failed: ${failed[0].reason}`);
+          toast.error(i18n.t("crossProfile.mb016c16034", { value0: failed[0].reason }));
         } else {
-          toast.error(`Avatar upload failed for ${failed.length}/${hosts.length} servers`);
+          toast.error(i18n.t("crossProfile.m0461286d56", { value0: failed.length, value1: hosts.length }));
         }
       } else if (anySuccess && isVideo) {
         toast(tr("ui.yourVideoIsUploadedItShowsOnYour"));
       } else if (anySuccess && anyProcessing) {
-        toast("Your avatar has been uploaded. It's being processed by the server \u2014 once done, your avatar will be animated.");
+        toast(i18n.t("crossProfile.mcbb040ea46"));
       } else if (anySuccess) {
         toast.success(tr("ui.avatarUpdated"));
       }
@@ -604,7 +636,7 @@ export function ProfileSettings() {
       });
 
       if (!anySuccess) {
-        toast.error(failed.length === 1 ? `Remove avatar failed: ${failed[0].reason}` : tr("ui.removeAvatarFailed"));
+        toast.error(failed.length === 1 ? i18n.t("crossProfile.me36158e55f", { value0: failed[0].reason }) : tr("ui.removeAvatarFailed"));
         return;
       }
 
@@ -614,7 +646,7 @@ export function ProfileSettings() {
       }
 
       if (failed.length > 0) {
-        toast.error(`Removed avatar, but failed on ${failed.length}/${hosts.length} servers`);
+        toast.error(i18n.t("crossProfile.m63d14411b8", { value0: failed.length, value1: hosts.length }));
       } else {
         toast.success(tr("ui.avatarRemoved"));
       }
@@ -623,18 +655,38 @@ export function ProfileSettings() {
     }
   };
 
-  const handleSaveNickname = (name: string, hosts: string[]) => {
-    setNickname(name);
-    hosts.forEach(host => {
-      sockets[host]?.emit("profile:update", { nickname: name });
-      setServerProfiles(prev => ({
-        ...prev,
-        [host]: {
-          ...prev[host],
-          nickname: name,
-        },
-      }));
-    });
+  const handleSaveNickname = async (name: string, scope: NicknameScope) => {
+    if (nicknameOperationRef.current) throw new Error("nickname-operation-pending");
+    nicknameOperationRef.current = true;
+    try {
+      const plan = planNicknameUpdate(name, scope, serverHosts);
+      if (plan.updateDefault) {
+        setNickname(plan.nickname);
+        return;
+      }
+      // Check the whole batch before sending; never queue an offline nickname
+      // silently for reconnect, or quietly turn "all" into "connected only".
+      if (plan.hosts.some((host) => !sockets[host]?.connected)) {
+        throw new Error("server-offline");
+      }
+      const results = await Promise.allSettled(plan.hosts.map((host) =>
+        requestNicknameUpdate(sockets[host], plan.nickname),
+      ));
+      // Existing profile:updated listeners own serverProfiles. No optimistic write.
+      const failures = results.filter((result) => result.status === "rejected");
+      if (failures.length > 0) {
+        // A batch can mix applied, explicitly refused and unconfirmed writes.
+        // Only a wholly refused batch can truthfully say nothing was applied.
+        if (failures.length === results.length && failures.every((result) =>
+          result.reason instanceof Error && result.reason.message === "nickname-rejected")) {
+          throw new Error("nickname-rejected");
+        }
+        throw new Error("nickname-unconfirmed");
+      }
+
+    } finally {
+      nicknameOperationRef.current = false;
+    }
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -713,7 +765,7 @@ export function ProfileSettings() {
       }
       const response = await fetch(freshUploadsFileUrl(source));
       if (!response.ok) {
-        throw new Error(`the server answered ${response.status}`);
+        throw new Error(i18n.t("crossProfile.mc7ed9482db", { value0: response.status }));
       }
 
       const file = await asUploadableAvatar(await response.blob());
@@ -723,14 +775,14 @@ export function ProfileSettings() {
       await processAndUpload(file, connectedHosts, worn);
     } catch (error) {
       toast.error(
-        `Could not copy that avatar: ${error instanceof Error ? error.message : "unknown error"}`,
+        i18n.t("crossProfile.m79d5dd4e1f", { value0: error instanceof Error ? error.message : i18n.t("crossProfile.maf6321ca7a") }),
       );
     } finally {
       setSyncing(false);
     }
   };
 
-  const handleSyncToAll = async () => {
+  const handleSyncAvatarToAll = async () => {
     if (syncing || connectedHosts.length === 0) return;
     setSyncing(true);
 
@@ -741,10 +793,10 @@ export function ProfileSettings() {
       // is exactly the disagreement the button exists to settle.
       const worn = getStoredWorn();
       hosts.forEach(host => {
-        sockets[host]?.emit("profile:update", { nickname, avatarWorn: worn });
+        sockets[host]?.emit("profile:update", { avatarWorn: worn });
         setServerProfiles(prev => ({
           ...prev,
-          [host]: { ...prev[host], nickname, avatarWorn: worn },
+          [host]: { ...prev[host], avatarWorn: worn },
         }));
       });
 
@@ -796,13 +848,13 @@ export function ProfileSettings() {
         });
 
         if (avatarFailed > 0) {
-          toast.error(`Synced, but avatar failed on ${avatarFailed}/${hosts.length} server${hosts.length > 1 ? "s" : ""}`);
+          toast.error(i18n.t("crossProfile.m2d372e718c", { failed: avatarFailed, total: hosts.length, count: hosts.length }));
         } else {
-          toast.success(`Profile synced to ${hosts.length} server${hosts.length > 1 ? "s" : ""}`);
+          toast.success(<LocalizedText translationKey="shellFull.avatarSynced" values={{ count: hosts.length }} />);
         }
       } else {
-        // No avatar here means none anywhere: syncing only the nickname made
-        // "sync" quietly mean "sync some of it".
+        // Preserve the existing explicit avatar-sync contract: no default
+        // avatar clears uploaded avatars on the connected target servers.
         const results = await Promise.allSettled(hosts.map(h => removeAvatarFromHost(h)));
 
         let removeFailed = 0;
@@ -823,14 +875,34 @@ export function ProfileSettings() {
         });
 
         if (removeFailed > 0) {
-          toast.error(`Synced, but the avatar could not be cleared on ${removeFailed}/${hosts.length} server${hosts.length > 1 ? "s" : ""}`);
+          toast.error(i18n.t("crossProfile.m121ecba0de", { failed: removeFailed, total: hosts.length, count: hosts.length }));
         } else {
-          toast.success(`Profile synced to ${hosts.length} server${hosts.length > 1 ? "s" : ""}`);
+          toast.success(<LocalizedText translationKey="shellFull.avatarSynced" values={{ count: hosts.length }} />);
         }
       }
     } catch {
       toast.error(tr("ui.syncFailed"));
     } finally {
+      setSyncing(false);
+    }
+  };
+
+
+  const [showAvatarSyncConfirm, setShowAvatarSyncConfirm] = useState(false);
+  const [showNicknameSyncConfirm, setShowNicknameSyncConfirm] = useState(false);
+  const nicknameSyncRef = useRef(false);
+  const handleApplyNicknameToAll = async () => {
+    if (nicknameSyncRef.current || !serverHosts.length) return;
+    nicknameSyncRef.current = true;
+    setSyncing(true);
+    setShowNicknameSyncConfirm(false);
+    try {
+      await handleSaveNickname(nickname, { kind: "all-servers" });
+      toast.success(tr("nicknameScope.applied"));
+    } catch (error) {
+      toast.error(tr(nicknameFailureKey(error)));
+    } finally {
+      nicknameSyncRef.current = false;
       setSyncing(false);
     }
   };
@@ -862,17 +934,6 @@ export function ProfileSettings() {
         {tr("ui.profile")}
       </h2>
 
-      <ActivityField />
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1">
-          <span className="text-base font-bold">{tr("ui.whatYouRePlaying")}</span>
-          <span className="text-xs text-gryt-muted">
-            {tr("ui.twoWaysToShowItGamesThatReport")}
-          </span>
-        </div>
-        <RichPresenceSettings />
-        <WatchedPrograms />
-      </div>
 
       {serverHosts.length > 0 && (
         <div className="flex justify-center" style={{ paddingTop: 4, paddingBottom: 4 }}>
@@ -906,6 +967,7 @@ export function ProfileSettings() {
       {selectedTab === "all" ? (
         <>
           <ProfileEditor
+            key="default"
             nickname={nickname}
             avatarUrl={allServerAvatarUrl}
             generatedAvatarUrl={resolveAvatarSrc(undefined, nickname)}
@@ -913,20 +975,30 @@ export function ProfileSettings() {
             initial={initial}
             uploading={uploading}
             removing={removing}
-            onSaveNickname={(name) => handleSaveNickname(name, serverHosts)}
+            onSaveNickname={(name) => handleSaveNickname(name, { kind: "default" })}
             onPickAvatar={() => setChoosingFor(null)}
             onRemoveAvatar={() => handleRemoveAvatar(serverHosts)}
-            serverLabel={serverHosts.length > 0 ? tr("ui.changesApplyToAllServers") : undefined}
           />
           {connectedHosts.length > 0 && (
             <div className="flex justify-center" style={{ paddingTop: 4 }}>
+              <Button size="small" disabled={syncing || uploading || removing}
+                onClick={() => setShowAvatarSyncConfirm(true)}>
+                {tr("nicknameScope.applyAvatar")}
+              </Button>
+            </div>
+          )}
+          {serverHosts.length > 0 && (
+            <div className="flex flex-col items-center gap-1" style={{ paddingTop: 4 }}>
               <Button size="small"
-                disabled={syncing || uploading || removing}
-                onClick={handleSyncToAll}
+                disabled={syncing || uploading || removing || connectedHosts.length !== serverHosts.length}
+                onClick={() => setShowNicknameSyncConfirm(true)}
               >
                 <PiArrowsClockwiseFill size={16} style={syncing ? { animation: "spin 1s linear infinite" } : undefined} />
-                {syncing ? tr("ui.syncing") : tr("ui.syncToAllServers")}
+                {syncing ? tr("ui.syncing") : tr("nicknameScope.applyAll")}
               </Button>
+              {connectedHosts.length !== serverHosts.length && (
+                <span className="text-xs">{tr("nicknameScope.connectAll")}</span>
+              )}
             </div>
           )}
         </>
@@ -948,6 +1020,7 @@ export function ProfileSettings() {
           return (
             <>
               <ProfileEditor
+                key={host}
                 nickname={serverNickname}
                 avatarUrl={serverAvatarUrl}
                 generatedAvatarUrl={resolveAvatarSrc(undefined, serverNickname)}
@@ -955,7 +1028,7 @@ export function ProfileSettings() {
                 initial={serverInitial}
                 uploading={uploading}
                 removing={removing}
-                onSaveNickname={(name) => handleSaveNickname(name, [host])}
+                onSaveNickname={(name) => handleSaveNickname(name, { kind: "server", host })}
                 onPickAvatar={() => setChoosingFor(host)}
                 onRemoveAvatar={() => handleRemoveAvatar([host])}
                 serverLabel={serverName}
@@ -983,6 +1056,40 @@ export function ProfileSettings() {
           );
         })()
       )}
+
+      <ActivityField />
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1">
+          <span className="text-base font-bold">{tr("ui.whatYouRePlaying")}</span>
+          <span className="text-xs text-gryt-muted">
+            {tr("ui.twoWaysToShowItGamesThatReport")}
+          </span>
+        </div>
+        <RichPresenceSettings />
+        <WatchedPrograms />
+      </div>
+
+
+      <ConfirmDialog
+        open={showAvatarSyncConfirm}
+        onOpenChange={setShowAvatarSyncConfirm}
+        title={tr("nicknameScope.applyAvatar")}
+        description={tr("nicknameScope.confirmAvatar", { count: connectedHosts.length })}
+        confirmLabel={tr("nicknameScope.applyAvatar")}
+        onConfirm={() => {
+          setShowAvatarSyncConfirm(false);
+          void handleSyncAvatarToAll();
+        }}
+      />
+
+      <ConfirmDialog
+        open={showNicknameSyncConfirm}
+        onOpenChange={setShowNicknameSyncConfirm}
+        title={tr("nicknameScope.applyAll")}
+        description={tr("nicknameScope.confirmAll", { nickname, count: serverHosts.length })}
+        confirmLabel={tr("nicknameScope.applyAll")}
+        onConfirm={() => void handleApplyNicknameToAll()}
+      />
 
       {userId && (
         <div className="flex items-center justify-center gap-1" style={{ marginTop: "auto", paddingTop: 16 }}>

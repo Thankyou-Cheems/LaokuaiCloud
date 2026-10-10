@@ -1,50 +1,51 @@
 import type { HistoryProgress, PairingEndReason } from "@gryt/core";
 
+import { type CopyI18n,englishCopy } from "../copyI18n.ts";
+
 /* What the approving side says, kept out of the dialog so the check script can read it. */
 
-const ENDED: Partial<Record<PairingEndReason, string>> = {
-  cancelled: "Nothing was linked.",
-  cancelled_by_other: "It was cancelled on the new device.",
-  mismatch: "You said the emoji didn't match, so nothing was sent. Someone may have been in the middle of the connection.",
-  timed_out: "It wasn't approved in time, so nothing was sent.",
-  expired: "That code ran out. The new device shows a fresh one.",
-  already_claimed: "Somebody else already entered this code. If that wasn't you, cancel on the new device.",
-  unknown_code: "No device is showing that code. Check it, or wait for the new device to show a fresh one.",
-  wrong_relay: "That code is for a different linking service from the one this device uses.",
-  not_pairing: "That isn't a Gryt linking code.",
-  newer_version: "The new device is on a newer version of Gryt. Update this one first.",
-  tampered: "A message from the new device didn't check out, so nothing was sent.",
-  rate_limited: "Too many tries. Wait a while and try again.",
-  relay_error: "Couldn't reach the linking service. Check your connection.",
-  code_used: "That sign-in was already answered. Start again from the new device.",
-  code_expired: "The new device's sign-in ran out before you approved it. Start again from the new device.",
-  required_actions:
-    "Your account has something to finish first, like verifying your email. Do that in your account settings, then try again.",
-  stale_token: "This device's sign-in is too old to approve with. Sign in again, then try again.",
-  access_denied: "The sign-in service turned the new device down. Start again from the new device.",
-  expired_token: "The new device's sign-in ran out before you approved it. Start again from the new device.",
-  "approve:network": "Couldn't reach the sign-in server to approve the new device.",
-  "approve:user_locked": "Your account is locked for now after too many sign-in attempts.",
-};
+const ended = (i18n: CopyI18n): Partial<Record<PairingEndReason, string>> => ({
+  get cancelled() { return i18n.t("pairingFull.approverWords_ts_2add4b9127"); },
+  get cancelled_by_other() { return i18n.t("pairingFull.approverWords_ts_3792ef81d0"); },
+  get mismatch() { return i18n.t("pairingFull.approverWords_ts_ef6f723ba8"); },
+  get timed_out() { return i18n.t("pairingFull.approverWords_ts_a50c1d0ab0"); },
+  get expired() { return i18n.t("pairingFull.approverWords_ts_ac018cccfe"); },
+  get already_claimed() { return i18n.t("pairingFull.approverWords_ts_b56c6374dc"); },
+  get unknown_code() { return i18n.t("pairingFull.approverWords_ts_fcdca414ce"); },
+  get wrong_relay() { return i18n.t("pairingFull.approverWords_ts_b3150ae24f"); },
+  get not_pairing() { return i18n.t("pairingFull.approverWords_ts_fde627cc2c"); },
+  get newer_version() { return i18n.t("pairingFull.approverWords_ts_0a91791463"); },
+  get tampered() { return i18n.t("pairingFull.approverWords_ts_14193210e6"); },
+  get rate_limited() { return i18n.t("pairingFull.approverWords_ts_0f4f6abfef"); },
+  get relay_error() { return i18n.t("pairingFull.approverWords_ts_a771214cc9"); },
+  get code_used() { return i18n.t("pairingFull.approverWords_ts_cd51ecf9a2"); },
+  get code_expired() { return i18n.t("pairingFull.approverWords_ts_e342ca5a18"); },
+  get required_actions() { return i18n.t("pairingFull.approverWords_ts_07022e3391"); },
+  get stale_token() { return i18n.t("pairingFull.approverWords_ts_e60a53fbf1"); },
+  get access_denied() { return i18n.t("pairingFull.approverWords_ts_a8451ac1cb"); },
+  get expired_token() { return i18n.t("pairingFull.approverWords_ts_e342ca5a18"); },
+  get "approve:network"() { return i18n.t("pairingFull.approverWords_ts_dd297ef6a1"); },
+  get "approve:user_locked"() { return i18n.t("pairingFull.approverWords_ts_cd66f5d13c"); },
+});
 
-export function approverEndText(reason: PairingEndReason): string {
-  const known = ENDED[reason];
+export function approverEndText(reason: PairingEndReason, i18n: CopyI18n = englishCopy): string {
+  const known = ended(i18n)[reason];
   if (known) return known;
   if (reason.startsWith("approve:")) {
-    return `The sign-in service turned this down (${reason.slice("approve:".length)}). Start again from the new device.`;
+    return i18n.t("pairingFull.approverWords_ts_ec1dc1aaa5", { value0: reason.slice("approve:".length) });
   }
-  return "Linking stopped before it finished.";
+  return i18n.t("pairingFull.approverWords_ts_bf7f016246");
 }
 
 /** While the history goes across, after the new device is in every conversation. */
-export function sendingHistoryText(progress: HistoryProgress | null): string {
-  if (!progress) return "Sending your message history…";
-  if (progress.total === null) return `Sending your message history: ${progress.messages} so far`;
-  return `Sending your message history: ${Math.min(progress.messages, progress.total)} of ${progress.total}`;
+export function sendingHistoryText(progress: HistoryProgress | null, i18n: CopyI18n = englishCopy): string {
+  if (!progress) return i18n.t("pairingFull.approverWords_ts_2adfdc7317");
+  if (progress.total === null) return i18n.t("pairingFull.approverWords_ts_4a663e3685", { value0: progress.messages });
+  return i18n.t("pairingFull.approverWords_ts_83ed1d5300", { value0: Math.min(progress.messages, progress.total), value1: progress.total });
 }
 
 /** Null when no history went, so the done screen says nothing about it. */
-export function sentHistoryText(progress: HistoryProgress | null): string | null {
+export function sentHistoryText(progress: HistoryProgress | null, i18n: CopyI18n = englishCopy): string | null {
   if (!progress || progress.messages === 0) return null;
-  return `${progress.messages} ${progress.messages === 1 ? "message" : "messages"} of history came across.`;
+  return i18n.t("pairingFull.historySent", { count: progress.messages });
 }

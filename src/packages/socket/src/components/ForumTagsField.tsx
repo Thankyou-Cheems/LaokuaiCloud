@@ -1,6 +1,8 @@
 import { Chip } from "@gryt/ui";
 import { useState } from "react";
 
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
+
 export interface ForumTagDraft {
   id: string;
   name: string;
@@ -27,6 +29,7 @@ export function ForumTagsField({
   tags: ForumTagDraft[];
   onChange: (next: ForumTagDraft[]) => void;
 }) {
+  useSocketTranslation();
   const [draft, setDraft] = useState("");
 
   const add = () => {
@@ -72,13 +75,11 @@ export function ForumTagsField({
             }
           }}
           onBlur={add}
-          placeholder={tags.length ? "Add another…" : "Linux, macOS, Voice…"}
+          placeholder={tags.length ? socketI18n.t("socketFull.forumTagsField_9814d85faf") : socketI18n.t("socketFull.forumTagsField_b2cd3d728b")}
           style={{ flex: 1, minWidth: 120, background: "transparent", border: "none", outline: "none", color: "var(--gryt-neutral-12)", fontSize: 14, fontFamily: "inherit" }}
         />
       </div>
-      <span style={{ fontSize: 11.5, color: "var(--gryt-neutral-10)" }}>
-        Press Enter to add a tag. People pick from these when they post a topic.
-      </span>
+      <span style={{ fontSize: 11.5, color: "var(--gryt-neutral-10)" }}>{socketI18n.t("socketFull.forumTagsField_c95b863f0b")}</span>
     </div>
   );
 }

@@ -37,7 +37,12 @@ app.whenReady().then(async () => {
   const functions = main.slice(main.indexOf("function buildTrayContextMenu"), main.indexOf("/** Thousands of small files:"));
   const closing = main.slice(main.indexOf("  // Windows may close windows"), main.indexOf('  mainWindow.on("closed"'));
   const body = ts.transpileModule(`${functions}\n${closing}`, { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText;
-  control = new Function("app", "process", "Tray", "nativeImage", "Menu", "window", "resources", "path", `
+  const nativeSource = ts.transpileModule(fs.readFileSync(path.join(root,"electron/uiLanguage.ts"),"utf8"), {compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+  const nativeModule = {exports:{}};
+  new Function("exports","require",nativeSource)(nativeModule.exports, name => JSON.parse(fs.readFileSync(path.resolve(root,"electron",name),"utf8")));
+  nativeModule.exports.setNativeLanguagePreference("zh-CN",[]); nativeModule.exports.setNativeApplicationName("唠蒯");
+  const nativeFormatter = nativeModule.exports;
+  control = new Function("app", "process", "Tray", "nativeImage", "Menu", "window", "resources", "path", "nativeT", "refreshNativeLanguage", `
     let mainWindow=window,tray=null,isQuitting=false,closeToTray=true,IS_LAOKUAI=true,isUserSignedIn=false;
     const voiceState={inVoice:false},updates={ready:()=>false},updatesComeFromTheAppStore=true;
     const startupLog=()=>{},createMainWindow=()=>{},installNewestUpdate=()=>{},checkForUpdatesInBackground=()=>{};
@@ -45,15 +50,15 @@ app.whenReady().then(async () => {
     ${body}
     app.on('before-quit',()=>{isQuitting=true;});
     return {createTray,refreshTray,toggleMainWindow,buildTrayContextMenu,tray:()=>tray,allowQuit:()=>{isQuitting=true;}};
-  `)(app, process, Tray, nativeImage, Menu, window, resources, path);
+  `)(app, process, Tray, nativeImage, Menu, window, resources, path, nativeFormatter.nativeT, () => {});
   control.createTray(); assert.ok(control.tray());
   const first = control.tray(); control.createTray(); assert.equal(control.tray(), first);
   window.close(); await new Promise(resolve => setTimeout(resolve, 50));
   assert.equal(window.isDestroyed(), false); assert.equal(window.isVisible(), false);
   results.cases.push("actual BrowserWindow close is prevented only for usable tray; repeated tray creation reuses instance");
   const menu = control.buildTrayContextMenu();
-  assert.ok(menu.items.some(item => item.label === "打开老蒯聊"));
-  assert.ok(menu.items.some(item => item.label === "退出老蒯聊"));
+  assert.ok(menu.items.some(item => item.label === nativeFormatter.nativeT("726dff642ff6")));
+  assert.ok(menu.items.some(item => item.label === nativeFormatter.nativeT("privateQuit")));
   // Keep the synthetic window hidden: restore callback is exercised in the fake-handler test.
   window.emit("query-session-end", {}); window.close();
   await new Promise(resolve => setTimeout(resolve, 50));

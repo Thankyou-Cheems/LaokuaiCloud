@@ -1,7 +1,10 @@
 import { Avatar, Skeleton, Tooltip } from "@gryt/ui";
 import { motion } from "motion/react";
 
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
+
 import { PiMicrophoneSlashFill, PiScreencastFill, PiSpeakerSlashFill, PiVideoCameraFill } from "../../../../lib/icons";
+import { RemoteReceiveCorrection } from "./RemoteReceiveCorrection";
 import { SpeakingHalo } from "./SpeakingHalo";
 import {
   speakingRingStyle,
@@ -80,6 +83,7 @@ export function ConnectedUser({
   targetRoles?: Role[];
   serverHost?: string;
 }) {
+  useSocketTranslation();
   const hue = tileHue(nickname, avatarColor, { nickname, worn: avatarWorn });
 
   return (
@@ -109,7 +113,7 @@ export function ConnectedUser({
       transition={{ duration: 0.25 }}
       style={{ width: "100%", overflow: "hidden" }}
     >
-      <div className="flex gap-2 items-center px-3 py-2 w-full" style={{
+      <div className="flex flex-wrap gap-2 items-center px-3 py-2 w-full" style={{
           opacity: 1,
           transition: "opacity 0.3s ease",
         }}>
@@ -136,20 +140,21 @@ export function ConnectedUser({
           <span className="text-sm truncate" style={{ whiteSpace: "nowrap" }}>{nickname}</span>
         </div>
 
-        <div className="flex gap-1 items-center" style={{ flexShrink: 0 }}>
+        <div className="flex flex-wrap gap-1 items-center max-w-full" style={{ flexShrink: 0 }}>
           <VoiceModeIcon host={serverHost} member={serverUserId} isSelf={isSelf} />
+      {!isSelf && <RemoteReceiveCorrection />}
           {isConnectingToVoice && (
             <Skeleton variant="circular" width="12px" height="12px" />
           )}
           {screenShareEnabled && (
-            <Tooltip title="Streaming">
+            <Tooltip title={socketI18n.t("shellFull.videoDebugOverlay_tsx_1e8325521d")}>
               <div className="flex items-center">
                 <PiScreencastFill size={14} color="var(--gryt-accent-9)" />
               </div>
             </Tooltip>
           )}
           {cameraEnabled && (
-            <Tooltip title="Camera on">
+            <Tooltip title={socketI18n.t("socketFull.connectedUser_8fb6ce42cf")}>
               <div className="flex items-center">
                 <PiVideoCameraFill size={14} color="var(--gryt-accent-9)" />
               </div>
@@ -161,9 +166,7 @@ export function ConnectedUser({
             <PiMicrophoneSlashFill size={14} color="var(--gryt-danger-8)" />
           ) : null}
           {isAFK && (
-            <span className="text-xs font-bold text-gryt-warning">
-              AFK
-            </span>
+            <span className="text-xs font-bold text-gryt-warning">{socketI18n.t("socketFull.connectedUser_47ce15dbdf")}</span>
           )}
         </div>
       </div>

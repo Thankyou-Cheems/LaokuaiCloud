@@ -53,7 +53,7 @@ for (const file of sources(COMPONENTS)) {
     if ((ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) && /^(SettingGroup|ToggleSetting|SliderSetting)$/.test(node.tagName.getText(tree))) {
       const props = node.attributes.properties;
       const title = props.find((prop) => ts.isJsxAttribute(prop) && prop.name.getText(tree) === "title")?.initializer;
-      if (title && ts.isJsxExpression(title) && title.expression && ts.isCallExpression(title.expression) && /^(t|tr)$/.test(title.expression.expression.getText(tree))) {
+      if (title && ts.isJsxExpression(title) && title.expression && ts.isCallExpression(title.expression) && /^(t|tr|i18n\.t)$/.test(title.expression.expression.getText(tree))) {
         const key = title.expression.arguments[0];
         const anchor = props.find((prop) => ts.isJsxAttribute(prop) && prop.name.getText(tree) === "anchorId")?.initializer;
         assert.ok(anchor && ts.isStringLiteral(anchor), `${file}: a translated setting must have a stable literal anchorId`);
@@ -103,11 +103,18 @@ assert.deepEqual(
 /* An anchor can arrive three ways and only the first is a literal title, so this
    direction reads generously: a missed anchor would fail CI over a reachable one. */
 const anchors = new Set(controls.map((control) => control.anchor ?? settingAnchorId(control.title)));
+const explicitAnchors = new Map();
 for (const file of sources(COMPONENTS)) {
   const source = readFileSync(file, "utf8");
   for (const match of source.matchAll(/\blabel="([^"]+)"/g)) anchors.add(settingAnchorId(match[1]));
   for (const match of source.matchAll(/data-setting="([a-z0-9-]+)"/g)) anchors.add(match[1]);
-  for (const match of source.matchAll(/anchorId="([a-z0-9-]+)"/g)) anchors.add(match[1]);
+  for (const match of source.matchAll(/\banchorId="([^"]*)"/g)) {
+    const anchor = match[1];
+    assert.match(anchor, /^[a-z0-9]+(?:-[a-z0-9]+)*$/, `${file}: empty or invalid stable setting anchor`);
+    assert.ok(!explicitAnchors.has(anchor), `duplicate setting anchor ${anchor} in ${file} and ${explicitAnchors.get(anchor)}`);
+    explicitAnchors.set(anchor, file);
+    anchors.add(anchor);
+  }
 }
 const dangling = entries
   .filter((entry) => !entry.panel && !anchors.has(entry.id))
@@ -151,5 +158,5 @@ assert.deepEqual(
 
 console.log(
   `settings index: ${controls.length} settings, ${entries.length} entries, ` +
-    `${destinations.size} destinations, ${pages.size} pages — all agree`,
+    `${destinations.size} destinations, ${pages.size} pages, ${explicitAnchors.size} nonempty unique stable anchors — all agree`,
 );

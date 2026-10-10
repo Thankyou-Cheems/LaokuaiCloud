@@ -74,7 +74,7 @@ export function HotkeyCapture({
           color={listening ? "blue" : undefined}
           style={{ fontFamily: "var(--code-font-family)", minWidth: "80px", textAlign: "center" }}
         >
-          {listening ? tr("ui.pressAKeyOrButton") : formatCombo(value)}
+          {listening ? tr("ui.pressAKeyOrButton") : formatCombo(value, (key, values) => tr(key, values))}
         </Chip>
         <div className="flex gap-2">
           <Button size="xsmall"

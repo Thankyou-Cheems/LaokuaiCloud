@@ -6,6 +6,7 @@ import useSound from "use-sound";
 import messageSoundMp3 from "@/audio/src/assets/universfield-computer-mouse-click-02-383961.mp3";
 import type { SealDecision } from "@/common";
 import { getServerAccessToken, getSuppressEveryone, getUploadsFileUrl, markChannelUnread, markThreadUnread, mentionsMember, shouldNotifyForMessage, useAccount, useUnreadBadge } from "@/common";
+import { i18n as socketHooksI18n, useTranslation as useSocketHooksTranslation } from "@/i18n";
 import { showDesktopNotification } from "@/lib/desktopNotification";
 import { useSettings } from "@/settings";
 import { type ForumTag,serverDetailsList as ServerDetailsList } from "@/settings/src/types/server";
@@ -20,6 +21,7 @@ import { mergeSenders } from "../utils/mergeSender";
 import { isOnScreen, warnUnreadOnScreen } from "../utils/onScreenConversation";
 import { openSealedAttachment } from "../utils/sealedAttachments";
 import { sealedNotificationBody } from "../utils/sealedNotification";
+import { socketHookToast } from "../utils/socketHookMessages";
 import {
   ChatErrorPayload,
   type ChatErrorRef,
@@ -115,6 +117,7 @@ export function useChat({
   dmPeer = null,
   dmPeerName,
 }: UseChatParams): UseChatReturn {
+  useSocketHooksTranslation();
   const serverHost = currentlyViewingServer?.host || "";
   const serverDetailsListRef = useRef(serverDetailsList);
   useEffect(() => {
@@ -501,7 +504,7 @@ export function useChat({
                 (channel) => channel.id === msg.conversation_id,
               ) === true;
             showDesktopNotification(
-              msg.sender_nickname || "New message",
+              msg.sender_nickname || socketHooksI18n.t("socketHooksFull.useChat_1ed2e7b50f"),
               body,
               isChannel ? { host: serverHost, channelId: msg.conversation_id } : undefined,
             );
@@ -536,11 +539,11 @@ export function useChat({
       handleAttachmentsSettled(payload, activeConversationId, cacheKeyFor, setMessageCache, setChatMessages);
 
     const onReportSubmitted = () => {
-      toast.success("Report submitted");
+      toast.success(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useChat_5e324011f2")));
     };
 
     const onAlreadyReported = () => {
-      toast("You've already reported this message", { icon: createElement(PiInfoFill, { size: 18 }) });
+      toast(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useChat_b48e4d9e04")), { icon: createElement(PiInfoFill, { size: 18 }) });
     };
 
     const onPurgeUser = (payload: { sender_server_user_id: string; affected_conversations: string[] }) => {
@@ -826,7 +829,7 @@ export function useChat({
       ? mlsNotice(mls.mode, mls.problems, {
           lostHistory: mls.lostHistory,
           home: mls.home,
-          peerName: dmPeerName ?? "The other person",
+          peerName: dmPeerName ?? socketHooksI18n.t("socketHooksFull.useChat_530d82b181"),
           signedIn: isSignedIn,
         })
       : null,

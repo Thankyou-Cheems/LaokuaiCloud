@@ -34,6 +34,7 @@ import {
   ownPersonPublicKey,
   readSealedVault,
 } from "@/common";
+import { i18n as socketHooksI18n } from "@/i18n";
 import { rememberChannelNames } from "@/lib/channelDirectory";
 import { claimOutcomeToast, guestIsGone, takeClaimOutcome } from "@/lib/identityClaimOutcome";
 import {
@@ -60,6 +61,7 @@ import { fetchCustomEmojis, setCustomEmojis } from "../utils/emojiData";
 import { setExternalEmojisAllowed } from "../utils/externalEmojiPolicy";
 import { firstTimeOnThisSocket } from "../utils/publishedOnce";
 import { handleRateLimitError } from "../utils/rateLimitHandler";
+import { socketHookToast } from "../utils/socketHookMessages";
 import { syncAvatarToHost } from "../utils/syncAvatarToHost";
 import { noteServerMute } from "./textMute";
 import { setServerJoinPolicy } from "./useServerJoinPolicy";
@@ -328,7 +330,7 @@ export function registerServerSocketEvents(socket: Socket, host: string, ctx: Se
         ...prev,
         [host]: {
           error: data.error || 'unknown_error',
-          message: data.message || 'Unknown error occurred',
+          get message() { return data.message || socketHooksI18n.t("socketHooksFull.unknownServerError"); },
           timestamp: Date.now()
         }
       }));
@@ -336,7 +338,7 @@ export function registerServerSocketEvents(socket: Socket, host: string, ctx: Se
       if (data.error === 'rate_limited') {
         handleRateLimitError({ error: data.error, message: data.message }, "Server details");
       } else {
-        toast.error(`Access denied: ${data.message}`);
+        toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_1ad4e8ff6d", { p0: data.message })));
       }
       return;
     }
@@ -387,9 +389,9 @@ export function registerServerSocketEvents(socket: Socket, host: string, ctx: Se
     // No guest left there now, so stop offering to move one. Sign-out clears the answers, not this list.
     if (guestIsGone(joinInfo.identityClaim)) forgetGuestScope(identityScopeFor(host));
     const claimed = takeClaimOutcome(host) ? claimOutcomeToast(joinInfo.identityClaim) : null;
-    if (claimed?.tone === "success") toast.success(claimed.message, { duration: 6000 });
-    else if (claimed?.tone === "error") toast.error(claimed.message, { duration: 8000 });
-    else if (claimed) toast(claimed.message, { duration: 6000, icon: createElement(PiInfoFill, { size: 18 }) });
+    if (claimed?.tone === "success") toast.success(socketHookToast(() => claimed.message), { duration: 6000 });
+    else if (claimed?.tone === "error") toast.error(socketHookToast(() => claimed.message), { duration: 8000 });
+    else if (claimed) toast(socketHookToast(() => claimed.message), { duration: 6000, icon: createElement(PiInfoFill, { size: 18 }) });
 
     // Said out loud, because the request was made in a dialog that has long since
     // closed and grey going to normal is a change nobody is watching for.
@@ -399,7 +401,7 @@ export function registerServerSocketEvents(socket: Socket, host: string, ctx: Se
       const updated = { ...serversRef.current, [host]: rest };
       serversRef.current = updated;
       setServers(updated);
-      toast.success(`You were let in to ${rest.name || host}`, { duration: 8000 });
+      toast.success(socketHookToast(() => socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_c45d37ef7d", { p0: rest.name || host })), { duration: 8000 });
     }
 
     setServerProfiles(prev => ({
@@ -470,8 +472,8 @@ export function registerServerSocketEvents(socket: Socket, host: string, ctx: Se
   /* The worker could not process an avatar or banner this person uploaded, so they keep
      the old one (GRYT-1667). Asking for the profile again puts it back in settings. */
   socket.on("profile:media-refused", (data: { purpose?: unknown }) => {
-    const what = data?.purpose === "banner" ? "banner" : "avatar";
-    toast.error(`That ${what} couldn't be processed, so you still have your old one. Try a different file.`);
+    const what = () => data?.purpose === "banner" ? socketHooksI18n.t("socketHooksFull.banner") : socketHooksI18n.t("socketHooksFull.avatar");
+    toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.profileMediaRefused", { kind: what() })));
     socket.emit("avatar:updated");
   });
 
@@ -511,7 +513,7 @@ export function registerServerSocketEvents(socket: Socket, host: string, ctx: Se
 
   socket.on("server:kicked", (data: { reason?: string; action?: "kick" | "ban" }) => {
     const serverName = serversRef.current[host]?.name || host;
-    toast.error(data?.reason ? `${serverName}: ${data.reason}` : `You were removed from ${serverName}.`);
+    toast.error(socketHookToast(() => data?.reason ? `${serverName}: ${data.reason}` : socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_1596d72efc", { p0: serverName })));
 
     // Both, not just the access token: keeping the refresh token let a kicked
     // client mint a new one and walk straight back in.
@@ -529,7 +531,7 @@ export function registerServerSocketEvents(socket: Socket, host: string, ctx: Se
   });
 
   socket.on("server:session:replaced", (data: { message?: string }) => {
-    toast(data?.message || "You signed in from another device or tab.", {
+    toast(socketHookToast(() => data?.message || socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_2c29d65b8c")), {
       icon: createElement(PiArrowsClockwiseFill, { size: 18 }),
       duration: 8000,
     });
@@ -559,8 +561,8 @@ export function registerServerSocketEvents(socket: Socket, host: string, ctx: Se
     }
 
     if (errorInfo.error === 'invalid_invite') {
-      const message = errorInfo.message || 'Invalid invite code.';
-      toast.error(message, { duration: 6000 });
+      const message = () => errorInfo.message || socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_7a1b164d17");
+      toast.error(socketHookToast(() => message()), { duration: 6000 });
 
       const currentServers = serversRef.current;
       const existing = currentServers[host];
@@ -570,44 +572,43 @@ export function registerServerSocketEvents(socket: Socket, host: string, ctx: Se
         lastInviteJoinAttemptRef.current[host] = undefined;
       }
 
-      toast(`Open a fresh invite link to re-join ${host}.`, { duration: 8000 });
+      toast(socketHookToast(() => socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_01c6db6f09", { p0: host })), { duration: 8000 });
       return;
     }
 
     if (errorInfo.error === "invite_rate_limited") {
-      const message = errorInfo.message || "Too many incorrect invite attempts. Please wait.";
-      toast.error(message, { duration: 6000 });
+      const message = () => errorInfo.message || socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_d60bcdd44a");
+      toast.error(socketHookToast(() => message()), { duration: 6000 });
       return;
     }
 
     // Not an error toast: nothing went wrong and there is nothing to retry. A
     // denial reads the same, because the server will not say which it is.
     if (errorInfo.error === "approval_pending") {
-      const message =
-        errorInfo.message || "This server admits people by request. Yours is with the moderators.";
-      toast(message, { duration: 8000, icon: createElement(PiClockFill, { size: 18 }) });
+      const message = () => errorInfo.message || socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_6b141328a3");
+      toast(socketHookToast(() => message()), { duration: 8000, icon: createElement(PiClockFill, { size: 18 }) });
       return;
     }
 
     if (errorInfo.error === "invite_required") {
-      const message = errorInfo.message || "This server is invite-only.";
-      toast.error(message, { duration: 6000 });
-      toast(`Open an invite link to join ${host}.`, { duration: 8000 });
+      const message = () => errorInfo.message || socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_b18eb7e797");
+      toast.error(socketHookToast(() => message()), { duration: 6000 });
+      toast(socketHookToast(() => socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_b4d2c36516", { p0: host })), { duration: 8000 });
       return;
     }
 
     if (errorInfo.error === 'user_not_authorized' || errorInfo.error === 'join_token_invalid' || errorInfo.error === 'join_verification_failed') {
-      const message = errorInfo.message || 'You are not authorized to join this server.';
-      toast.error(message, { duration: 6000 });
+      const message = () => errorInfo.message || socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_70f4e4d8d7");
+      toast.error(socketHookToast(() => message()), { duration: 6000 });
       setTimeout(() => {
         if (errorInfo.canReapply) {
           toast(
-            `You can re-apply to join this server or remove it from your list. Check the server settings for more options.`,
+            socketHookToast(() => socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_df93b0cca6")),
             { duration: 8000, icon: createElement(PiInfoFill, { size: 18 }) }
           );
         } else {
           toast(
-            `You can remove this server from your list if you no longer need access.`,
+            socketHookToast(() => socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_2186aa54e4")),
             { duration: 6000, icon: createElement(PiInfoFill, { size: 18 }) }
           );
         }
@@ -622,7 +623,7 @@ export function registerServerSocketEvents(socket: Socket, host: string, ctx: Se
       errorInfo.error === "leave_failed" ||
       errorInfo.error === "not_registered"
     ) {
-      toast.error(errorInfo.message || "Could not leave this server.", { duration: 8000 });
+      toast.error(socketHookToast(() => errorInfo.message || socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_2441d2438e")), { duration: 8000 });
       return;
     }
 
@@ -639,22 +640,21 @@ export function registerServerSocketEvents(socket: Socket, host: string, ctx: Se
       "bans_failed",
     ];
     if (MODERATION_ERRORS.includes(errorInfo.error)) {
-      toast.error(errorInfo.message || "That action was refused.");
+      toast.error(socketHookToast(() => errorInfo.message || socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_a0504ccbc6")));
       return;
     }
 
     // Recorded like the refusals below, or the panel sits on a skeleton blaming
     // the network. Tokens are left alone: the identity was rejected, not them.
     if (errorInfo.error === "identity_tier_refused") {
-      const message =
-        errorInfo.message || "This server requires a Gryt account to join.";
-      toast.error(message, { duration: 6000 });
+      const message = () => errorInfo.message || socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_a0f422eec7");
+      toast.error(socketHookToast(() => message()), { duration: 6000 });
 
       setFailedServerDetails((prev) => ({
         ...prev,
         [host]: {
           error: errorInfo.error,
-          message,
+          get message() { return message(); },
           timestamp: Date.now(),
         },
       }));
@@ -670,7 +670,7 @@ export function registerServerSocketEvents(socket: Socket, host: string, ctx: Se
     ) {
       removeServerAccessToken(host);
       removeServerRefreshToken(host);
-      toast.error(errorInfo.message || `Sorry, you can't join ${host}.`);
+      toast.error(socketHookToast(() => errorInfo.message || socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_06cbac9094", { p0: host })));
 
       // Recording it here is what stops the retry loops asking again every few
       // seconds; without it the refusal repeats for as long as the app is open.
@@ -678,7 +678,7 @@ export function registerServerSocketEvents(socket: Socket, host: string, ctx: Se
         ...prev,
         [host]: {
           error: errorInfo.error,
-          message: errorInfo.message || "Sorry, you can't join this server.",
+          get message() { return errorInfo.message || socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_4fe6fa978c"); },
           timestamp: Date.now(),
         },
       }));
@@ -702,7 +702,7 @@ export function registerServerSocketEvents(socket: Socket, host: string, ctx: Se
       }
       return;
     } else {
-      toast.error(`Failed to join server ${host}: ${errorInfo.error}`);
+      toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_2221663033", { p0: host, p1: errorInfo.error })));
     }
   });
 
@@ -868,7 +868,7 @@ export function registerServerSocketEvents(socket: Socket, host: string, ctx: Se
   });
 
   socket.on("error", (msg: unknown) => {
-    const text = typeof msg === "string" ? msg : ((msg as Record<string, unknown>)?.message || "Unknown socket error");
-    toast.error(`[${host}] ${text}`);
+    const text = () => typeof msg === "string" ? msg : ((msg as Record<string, unknown>)?.message || socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_73274743c3"));
+    toast.error(socketHookToast(() => `[${host}] ${text()}`));
   });
 }

@@ -2,6 +2,7 @@ import { Alert, Avatar, Button, Chip, Divider, IconButton, Spinner, Surface, Too
 import { useCallback, useEffect, useState } from "react";
 
 import { GeneratedServerIcon, getServerHttpBase, normalizeHost } from "@/common";
+import { i18n, LocalizedText, useTranslation } from "@/i18n";
 import { useLanDiscovery } from "@/settings/src/hooks/useLanDiscovery";
 import { fetchServerInfo, useServerJoin } from "@/settings/src/hooks/useServerJoin";
 import {
@@ -28,6 +29,7 @@ const EMPTY_AFTER_MS = 4000;
  * the join dialog the list fought the address field for the same column.
  */
 export function Discovery() {
+  useTranslation();
   const { lanServers, rescan } = useLanDiscovery();
   const { servers, setShowAddServer, markLanServersSeen, newLanServers } =
     useServerManagement();
@@ -35,7 +37,7 @@ export function Discovery() {
 
   const [searchExpired, setSearchExpired] = useState(false);
   /** Whichever row's join failed, and why. Keyed so only that row says it. */
-  const [rowErrors, setRowErrors] = useState<Record<string, string>>({});
+  const [rowErrors, setRowErrors] = useState<Record<string, { message: string; messageKey?: string; requiresInvite: boolean } | undefined>>({});
   const [connecting, setConnecting] = useState<string | null>(null);
 
   // Arriving here is the "look" the badge counts against, servers arriving while
@@ -75,14 +77,14 @@ export function Discovery() {
       const key = lanServerKey(server);
       const host = normalizeHost(lanServerAddr(server));
 
-      setRowErrors((prev) => ({ ...prev, [key]: "" }));
+      setRowErrors((prev) => ({ ...prev, [key]: undefined }));
       setConnecting(key);
 
       try {
         const result = await fetchServerInfo(host);
         if (result.kind === "superseded") return;
         if (result.kind === "error") {
-          setRowErrors((prev) => ({ ...prev, [key]: result.message }));
+          setRowErrors((prev) => ({ ...prev, [key]: { get message() { return result.message; }, messageKey: result.messageKey, requiresInvite: false } }));
           return;
         }
 
@@ -92,7 +94,7 @@ export function Discovery() {
         });
 
         if (!outcome.ok) {
-          setRowErrors((prev) => ({ ...prev, [key]: outcome.message }));
+          setRowErrors((prev) => ({ ...prev, [key]: { get message() { return outcome.message; }, messageKey: outcome.messageKey, requiresInvite: outcome.kind === "invite_required" } }));
         }
       } finally {
         setConnecting(null);
@@ -122,14 +124,14 @@ export function Discovery() {
     <div className="flex flex-col grow gap-4 p-6 overflow-auto">
       <div className="flex items-center gap-3">
         <PiBroadcastFill size={20} />
-        <h2 className="text-xl">Servers on your network</h2>
+        <h2 className="text-xl">{<LocalizedText translationKey="shellFull.discovery_tsx_cffed7a2ef" />}</h2>
 
-        <Tooltip title="Look again">
+        <Tooltip title={i18n.t("shellFull.discovery_tsx_c394e963c1")}>
           <IconButton
             tone="neutral"
             size="xsmall"
             className="ml-auto"
-            aria-label="Look again"
+            aria-label={i18n.t("shellFull.discovery_tsx_c394e963c1")}
             onClick={() => {
               setSearchExpired(false);
               setRowErrors({});
@@ -142,20 +144,14 @@ export function Discovery() {
         </Tooltip>
       </div>
 
-      <span className="text-gryt-muted">
-        Gryt servers announce themselves on the local network. Anything running
-        on the same Wi-Fi or LAN turns up here on its own — no invite needed for
-        the ones that are open to it.
-      </span>
+      <span className="text-gryt-muted">{<LocalizedText translationKey="shellFull.discovery_tsx_b2bd563070" />}</span>
 
       <Divider />
 
       {undiscovered.length === 0 && !searchExpired && (
         <div className="flex items-center gap-2">
           <Spinner />
-          <span className="text-gryt-muted">
-            Searching&hellip;
-          </span>
+          <span className="text-gryt-muted">{<LocalizedText translationKey="shellFull.discovery_tsx_1a6a5ba8c2" />}</span>
         </div>
       )}
 
@@ -168,18 +164,13 @@ export function Discovery() {
               went blank. */}
           <span className="text-gryt-muted">
             {hiddenCount > 0
-              ? `Nothing new on your network. ${hiddenCount} ${hiddenCount === 1 ? "server is" : "servers are"} already in your sidebar.`
-              : "No servers found on your network."}
+              ? i18n.t("shellFull.noNewServers", { count: hiddenCount })
+              : i18n.t("shellFull.discovery_tsx_ca91ae8868")}
           </span>
-          <span className="text-gryt-muted">
-            Still looking — one will appear here as soon as it starts. If you
-            have an invite link, add it directly instead.
-          </span>
+          <span className="text-gryt-muted">{<LocalizedText translationKey="shellFull.discovery_tsx_325e2918ab" />}</span>
           <Button tone="neutral" size="small" className="mt-2"
             onClick={() => setShowAddServer(true)}
-          >
-            Add a server
-          </Button>
+          >{<LocalizedText translationKey="shellFull.discovery_tsx_5ee1e41320" />}</Button>
         </div>
       )}
 
@@ -225,7 +216,7 @@ export function Discovery() {
                       {/* Only for this visit. Arriving here marks everything
                           seen, so without the visit-scoped set above this would
                           flash once and vanish before it was read. */}
-                      {isNew && <Chip tone="primary" label="New" />}
+                      {isNew && <Chip tone="primary" label={i18n.t("shellFull.discovery_tsx_6403f2b7eb")} />}
                     </span>
                     {/*
                       Address only. The version is deliberately not shown:
@@ -248,7 +239,7 @@ export function Discovery() {
                         void handleJoin(server);
                       }}
                     >
-                      {isConnectingThis ? "Joining" : "Join"}
+                      {isConnectingThis ? i18n.t("shellFull.discovery_tsx_0bffd159bb") : i18n.t("shellFull.discovery_tsx_e0d73143de")}
                     </Button>
                   </div>
                 </div>
@@ -257,17 +248,15 @@ export function Discovery() {
                   <Alert severity="error" role="alert">
                     <span className="inline-flex items-center gap-2">
                       <PiWarningFill size={14} />
-                      {error}
+                      {error.messageKey ? i18n.t(error.messageKey) : error.message}
                       {/* An invite cannot be typed here, and saying so without
                           offering the field that takes one is a dead end. */}
-                      {error.toLowerCase().includes("invite") && (
+                      {error.requiresInvite && (
                         <>
                           {" "}
                           <Button tone="ghost" size="xsmall"
                             onClick={() => setShowAddServer(true)}
-                          >
-                            Use an invite
-                          </Button>
+                          >{<LocalizedText translationKey="shellFull.discovery_tsx_8b0a79458c" />}</Button>
                         </>
                       )}
                     </span>

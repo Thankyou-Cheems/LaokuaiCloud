@@ -2,6 +2,8 @@ import { Button, Divider, IconButton, Menu, Tooltip } from "@gryt/ui";
 import type { ReactNode } from "react";
 import { Fragment, useEffect, useLayoutEffect, useRef } from "react";
 
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
+
 import { PiCaretLeftBold, PiChatsFill, PiCheck, PiDotsThreeVerticalBold, PiX } from "../../../../lib/icons";
 import { THREAD_PANEL_WIDTH } from "../lib/narrowLayout";
 import type { ChatMessage } from "./chatUtils";
@@ -61,6 +63,7 @@ interface ThreadPanelProps {
 }
 
 export function ThreadPanel({ thread, root, messages, loading, renderMessage, renderComposer, hasOlder, loadingOlder, onLoadOlder, typingIndicator, onClose, onSetStatus, forumTags = [], onSetTags, error, onRetry, beside = false }: ThreadPanelProps) {
+  useSocketTranslation();
   /* What chat:send checks before it takes a reply. Drawing a composer the
      server will refuse is what GRYT-1389 was about. */
   const takesReplies = thread.status !== "closed" && thread.locked !== true;
@@ -118,7 +121,7 @@ export function ThreadPanel({ thread, root, messages, loading, renderMessage, re
 
   return (
     <aside
-      aria-label="Thread"
+      aria-label={socketI18n.t("socketFull.threadPanel_9810b3013f")}
       data-beside={beside ? "yes" : "no"}
       style={{
         /* Beside: a column in the row, so the conversation keeps the width it is
@@ -141,20 +144,20 @@ export function ThreadPanel({ thread, root, messages, loading, renderMessage, re
         {beside ? (
           <PiChatsFill size={18} style={{ color: "var(--gryt-neutral-11)", flexShrink: 0 }} />
         ) : (
-          <Tooltip title="Back to the conversation">
-            <IconButton size="xsmall" tone="ghost" aria-label="Back to the conversation" onClick={onClose}>
+          <Tooltip title={socketI18n.t("socketFull.threadPanel_b208438042")}>
+            <IconButton size="xsmall" tone="ghost" aria-label={socketI18n.t("socketFull.threadPanel_b208438042")} onClick={onClose}>
               <PiCaretLeftBold size={16} />
             </IconButton>
           </Tooltip>
         )}
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ fontWeight: 700, fontSize: 14, color: "var(--gryt-neutral-12)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {thread.title ? <EmojiText text={thread.title} /> : "Thread"}
+            {thread.title ? <EmojiText text={thread.title} /> : socketI18n.t("socketFull.threadPanel_9810b3013f")}
           </div>
           <div style={{ fontSize: 11, color: "var(--gryt-neutral-10)" }}>
-            {thread.reply_count} {thread.reply_count === 1 ? "reply" : "replies"}
-            {thread.status === "solved" && <span style={{ color: "var(--gryt-accent-11)", marginLeft: 8 }}>Solved</span>}
-            {!takesReplies && <span style={{ color: "var(--gryt-neutral-11)", marginLeft: 8 }}>Closed</span>}
+            {thread.reply_count} {thread.reply_count === 1 ? socketI18n.t("socketFull.threadPanel_1af3b3bc0d") : socketI18n.t("socketFull.threadPanel_5dd1d7fbb1")}
+            {thread.status === "solved" && <span style={{ color: "var(--gryt-accent-11)", marginLeft: 8 }}>{socketI18n.t("socketFull.threadPanel_ede4b534e0")}</span>}
+            {!takesReplies && <span style={{ color: "var(--gryt-neutral-11)", marginLeft: 8 }}>{socketI18n.t("socketFull.threadPanel_b878cc5a64")}</span>}
           </div>
         </div>
         {/* The old "Mark solved" was #5cc79a on a #5cc79a border — a green
@@ -166,21 +169,17 @@ export function ThreadPanel({ thread, root, messages, loading, renderMessage, re
             size="xsmall"
             tone="neutral"
             className="shrink-0 whitespace-nowrap"
-            title="Reopen this topic"
+            title={socketI18n.t("socketFull.threadPanel_8a190341d9")}
             onClick={() => onSetStatus("open")}
-          >
-            Reopen
-          </Button>
+          >{socketI18n.t("socketFull.threadPanel_eb8b9fce60")}</Button>
         ) : (
           <Button
             size="xsmall"
             className="shrink-0 whitespace-nowrap"
             startIcon={<PiCheck size={14} />}
-            title="Mark this topic solved"
+            title={socketI18n.t("socketFull.threadPanel_e4ed97c0ea")}
             onClick={() => onSetStatus("solved")}
-          >
-            Mark solved
-          </Button>
+          >{socketI18n.t("socketFull.threadPanel_7f957012c5")}</Button>
         ))}
         {/* Closing was the one status the apps could not set, so the state the
             panel already drew was reachable by nothing but the API (GRYT-1396). */}
@@ -188,9 +187,9 @@ export function ThreadPanel({ thread, root, messages, loading, renderMessage, re
           <Menu.Root>
             {/* In a menu rather than beside Mark solved: two buttons left the
                 title 33px of a 380px panel, which drew it as "Th…". */}
-            <Tooltip title="More for this topic">
+            <Tooltip title={socketI18n.t("socketFull.threadPanel_51e7f61319")}>
               <Menu.Trigger
-                render={<IconButton tone="neutral" size="xsmall" aria-label="More for this topic" />}
+                render={<IconButton tone="neutral" size="xsmall" aria-label={socketI18n.t("socketFull.threadPanel_51e7f61319")} />}
               >
                 <PiDotsThreeVerticalBold size={14} />
               </Menu.Trigger>
@@ -199,11 +198,9 @@ export function ThreadPanel({ thread, root, messages, loading, renderMessage, re
               <Menu.Positioner>
                 <Menu.Popup>
                   <Menu.Item
-                    title="Nothing is deleted, and you can open it again."
+                    title={socketI18n.t("socketFull.threadPanel_310827b75e")}
                     onClick={() => onSetStatus("closed")}
-                  >
-                    Close topic
-                  </Menu.Item>
+                  >{socketI18n.t("socketFull.threadPanel_624f2d679d")}</Menu.Item>
                 </Menu.Popup>
               </Menu.Positioner>
             </Menu.Portal>
@@ -213,7 +210,7 @@ export function ThreadPanel({ thread, root, messages, loading, renderMessage, re
           <Divider orientation="vertical" className="my-1 self-stretch" />
         )}
         {beside && (
-          <IconButton size="xsmall" aria-label="Close the thread panel" onClick={onClose}>
+          <IconButton size="xsmall" aria-label={socketI18n.t("socketFull.threadPanel_135cce2ae4")} onClick={onClose}>
             <PiX size={16} />
           </IconButton>
         )}
@@ -255,9 +252,7 @@ export function ThreadPanel({ thread, root, messages, loading, renderMessage, re
           otherwise held still. */}
       <div className="relative flex min-h-0 flex-1 flex-col">
         {loadingOlder && (
-          <div className="pointer-events-none absolute inset-x-0 top-0 z-1 py-2 text-center text-xs text-gryt-muted">
-            Loading older replies…
-          </div>
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-1 py-2 text-center text-xs text-gryt-muted">{socketI18n.t("socketFull.threadPanel_a20ce90dcf")}</div>
         )}
         {/* 14 inline, matching the header, the tag row and the composer. Without
             it an avatar sits against the panel edge while the channel's does not. */}
@@ -269,23 +264,19 @@ export function ThreadPanel({ thread, root, messages, loading, renderMessage, re
         ) : !loading && !error ? (
           /* The root can be gone while the replies are not: deleting it takes
              the thread with it, but a blocked sender only hides it. */
-          <div className="mb-1 border-b border-gryt-border pb-1.5" style={{ padding: "12px 2px", fontSize: 13, color: "var(--gryt-neutral-10)" }}>
-            The message this thread started from is gone.
-          </div>
+          <div className="mb-1 border-b border-gryt-border pb-1.5" style={{ padding: "12px 2px", fontSize: 13, color: "var(--gryt-neutral-10)" }}>{socketI18n.t("socketFull.threadPanel_6818a3376f")}</div>
         ) : null}
         {error ? (
           <div style={{ padding: 16, fontSize: 13, color: "var(--gryt-neutral-11)", display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 10 }}>
             <span>{error}</span>
             {onRetry && (
-              <Button size="xsmall" tone="neutral" onClick={onRetry}>
-                Try again
-              </Button>
+              <Button size="xsmall" tone="neutral" onClick={onRetry}>{socketI18n.t("ui.tryAgain")}</Button>
             )}
           </div>
         ) : loading ? (
-          <div style={{ padding: 16, fontSize: 13, color: "var(--gryt-neutral-10)" }}>Loading…</div>
+          <div style={{ padding: 16, fontSize: 13, color: "var(--gryt-neutral-10)" }}>{socketI18n.t("settingsFull.m33ce417454")}</div>
         ) : messages.length === 0 && root ? (
-          <div style={{ padding: 16, fontSize: 13, color: "var(--gryt-neutral-10)" }}>No replies yet. Start the conversation.</div>
+          <div style={{ padding: 16, fontSize: 13, color: "var(--gryt-neutral-10)" }}>{socketI18n.t("socketFull.threadPanel_d3b7b789f0")}</div>
         ) : (
           messages.map((m) => (
             <Fragment key={m.message_id}>{renderMessage(m)}</Fragment>
@@ -305,10 +296,7 @@ export function ThreadPanel({ thread, root, messages, loading, renderMessage, re
             {renderComposer()}
           </>
         ) : (
-          <p className="m-0 py-1.5 text-center text-xs text-gryt-muted">
-            This thread is closed, so you can&rsquo;t reply to it. Nothing is
-            deleted, and the author or a moderator can open it again.
-          </p>
+          <p className="m-0 py-1.5 text-center text-xs text-gryt-muted">{socketI18n.t("socketFull.threadPanel_6551e14ed1")}</p>
         )}
       </div>
     </aside>

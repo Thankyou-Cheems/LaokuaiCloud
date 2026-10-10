@@ -11,6 +11,7 @@ import {
   setNotificationLevel,
   subscribeToPrefs,
 } from "@/common";
+import { i18n, useTranslation } from "@/i18n";
 import { useServerManagement, useSockets } from "@/socket";
 
 /**
@@ -18,10 +19,10 @@ import { useServerManagement, useSockets } from "@/socket";
  * default hears everything *unless* the global level says otherwise.
  */
 const CHOICES: { label: string; value: string }[] = [
-  { label: "Default", value: "default" },
-  { label: "Everything", value: "all" },
-  { label: "Only mentions", value: "mentions" },
-  { label: "Nothing", value: "none" },
+  { get label() { return i18n.t("ui.default"); }, value: "default" },
+  { get label() { return i18n.t("settingsFull.m4a66d14807"); }, value: "all" },
+  { get label() { return i18n.t("settingsFull.me7be45b885"); }, value: "mentions" },
+  { get label() { return i18n.t("settingsFull.m4481948392"); }, value: "none" },
 ];
 
 /**
@@ -29,6 +30,7 @@ const CHOICES: { label: string; value: string }[] = [
  * reachable by right-clicking one icon at a time, with no way to see the set.
  */
 export function ServerNotificationList() {
+  useTranslation();
   useSyncExternalStore(subscribeToPrefs, getStoredSnapshot, getStoredSnapshot);
 
   const { servers, orderedServerHosts } = useServerManagement();
@@ -37,9 +39,7 @@ export function ServerNotificationList() {
 
   if (orderedServerHosts.length === 0) {
     return (
-      <span className="text-xs text-gryt-muted">
-        No servers yet. Join one and it will show up here.
-      </span>
+      <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.mc0c7a2b20c")}</span>
     );
   }
 
@@ -71,8 +71,8 @@ export function ServerNotificationList() {
               <span className="truncate text-xs text-gryt-muted">
                 {overruled
                   ? global === "none"
-                    ? "Muted by your global level"
-                    : "Limited to mentions by your global level"
+                    ? i18n.t("settingsFull.m45c18aa687")
+                    : i18n.t("settingsFull.mb66e9851e8")
                   : host}
               </span>
             </div>
@@ -87,7 +87,7 @@ export function ServerNotificationList() {
                   value === "default" ? null : (value as NotificationLevel),
                 )
               }
-              options={CHOICES}
+              options={CHOICES.map((choice) => ({ ...choice }))}
             />
           </div>
         );

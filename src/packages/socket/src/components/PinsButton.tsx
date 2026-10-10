@@ -1,6 +1,8 @@
 import { Popover, Tooltip } from "@gryt/ui";
 import { useState } from "react";
 
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
+
 import { PiPushPinFill } from "../../../../lib/icons";
 import type { usePins } from "../hooks/usePins";
 import { type ChatMessage, MessageTimestamp, toDate } from "./chatUtils";
@@ -18,8 +20,9 @@ export function PinsButton({
   memberList?: Record<string, MemberInfo>;
   onJump: (messageId: string) => void;
 }) {
+  useSocketTranslation();
   const [open, setOpen] = useState(false);
-  const nameOf = (m: ChatMessage) => memberList?.[m.sender_server_id]?.nickname ?? "Someone";
+  const nameOf = (m: ChatMessage) => memberList?.[m.sender_server_id]?.nickname ?? socketI18n.t("socketFull.pinsButton_e7e4044b27");
 
   return (
     <Popover.Root
@@ -29,9 +32,9 @@ export function PinsButton({
         if (next) pins.fetchList();
       }}
     >
-      <Tooltip title="Pinned messages">
+      <Tooltip title={socketI18n.t("socketFull.pinsButton_7998518cb3")}>
         <Popover.Trigger
-          aria-label="Pinned messages"
+          aria-label={socketI18n.t("socketFull.pinsButton_7998518cb3")}
           data-gryt="pins-button"
           render={<button type="button" className="flex cursor-pointer items-center rounded border-0 bg-transparent p-1 max-[360px]:hidden" style={{ color: "var(--gryt-neutral-11)" }} />}
         >
@@ -42,16 +45,12 @@ export function PinsButton({
         <Popover.Portal>
           <Popover.Positioner side="bottom" align="end" sideOffset={6}>
             <Popover.Popup className="w-80 max-w-[90vw] p-0" data-gryt="pins-list">
-              <div className="px-3 py-2 text-sm font-semibold" style={{ borderBottom: "1px solid var(--gryt-neutral-6)" }}>
-                Pinned messages
-              </div>
+              <div className="px-3 py-2 text-sm font-semibold" style={{ borderBottom: "1px solid var(--gryt-neutral-6)" }}>{socketI18n.t("socketFull.pinsButton_7998518cb3")}</div>
               <div className="max-h-96 overflow-y-auto">
                 {pins.list === null ? (
-                  <div className="px-3 py-4 text-sm" style={{ color: "var(--gryt-neutral-10)" }}>Loading…</div>
+                  <div className="px-3 py-4 text-sm" style={{ color: "var(--gryt-neutral-10)" }}>{socketI18n.t("settingsFull.m33ce417454")}</div>
                 ) : pins.list.length === 0 ? (
-                  <div className="px-3 py-4 text-sm" style={{ color: "var(--gryt-neutral-10)" }}>
-                    Nothing pinned yet. Right-click a message and pick Pin Message.
-                  </div>
+                  <div className="px-3 py-4 text-sm" style={{ color: "var(--gryt-neutral-10)" }}>{socketI18n.t("socketFull.pinsButton_391e462672")}</div>
                 ) : (
                   pins.list.map((m) => (
                     <button
@@ -68,7 +67,7 @@ export function PinsButton({
                         <MessageTimestamp date={toDate(m.created_at)} />
                       </div>
                       <div className="line-clamp-3 text-sm" style={{ color: "var(--gryt-neutral-11)", overflowWrap: "anywhere" }}>
-                        {m.text ? <EmojiText text={m.text} /> : m.attachments?.length ? "Attachment" : ""}
+                        {m.text ? <EmojiText text={m.text} /> : m.attachments?.length ? socketI18n.t("socketFull.pinsButton_6f6cfef69c") : ""}
                       </div>
                     </button>
                   ))

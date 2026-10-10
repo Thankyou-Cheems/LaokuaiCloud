@@ -1,5 +1,8 @@
 import { Button } from "@gryt/ui";
 import { useEffect, useState } from "react";
+import { Trans } from "react-i18next";
+
+import { i18n, useTranslation } from "@/i18n";
 
 import { getElectronAPI, isMacAppStoreBuild, type RichPresenceApp, type RichPresenceLogEntry } from "../../../../lib/electron";
 import { GameIcon } from "../../../socket/src/components/GameIcon";
@@ -7,6 +10,7 @@ import { useGameDetection } from "../hooks/useGameDetection";
 import { usePresenceHelper } from "../hooks/usePresenceHelper";
 import { useRichPresence } from "../hooks/useRichPresence";
 import { HowItWorks } from "./howItWorks";
+import { richPresenceLogText } from "./nativeDisplayCopy";
 import { PresenceHelperSettings } from "./presenceHelper";
 import { helperCopy } from "./presenceHelperCopy";
 import { socketLine } from "./richPresenceCopy";
@@ -16,6 +20,7 @@ import { socketLine } from "./richPresenceCopy";
  * Off until somebody turns it on, since any program on the machine can talk to it (GRYT-1310).
  */
 export function RichPresenceSettings() {
+  useTranslation();
   const rp = useRichPresence();
   const helper = usePresenceHelper();
 
@@ -24,10 +29,8 @@ export function RichPresenceSettings() {
     if (!isMacAppStoreBuild()) return null;
     return (
       <div className="flex flex-col gap-1">
-        <span className="text-sm font-bold">Rich Presence</span>
-        <span className="text-xs text-gryt-muted">
-          The Mac App Store version can&rsquo;t open the connection games use.
-        </span>
+        <span className="text-sm font-bold">{i18n.t("settingsFull.m63608c4067")}</span>
+        <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.mecce7ccee3")}</span>
       </div>
     );
   }
@@ -35,32 +38,20 @@ export function RichPresenceSettings() {
   if (!rp.consentedAt) {
     return (
       <div className="flex flex-col gap-2">
-        <span className="text-sm font-bold">Rich Presence</span>
-        <span className="text-xs text-gryt-muted">
-          Lots of games tell Discord what you&rsquo;re up to, like the map you&rsquo;re on or how
-          full your party is. Gryt can pick that up and show it under your name.
-        </span>
+        <span className="text-sm font-bold">{i18n.t("settingsFull.m63608c4067")}</span>
+        <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.mb092310f3f")}</span>
         <HowItWorks>
-          <span className="text-xs text-gryt-muted">
-            To do it, Gryt opens the same local connection Discord listens on. While Gryt has it,
-            games report to Gryt instead of Discord. Any program on this computer can talk to that
-            connection, not only games, so you can hide one here once it shows up.
-          </span>
-          <span className="text-xs text-gryt-muted">
-            People on your servers see the game&rsquo;s name and what it says about your game.
-            Nothing else leaves this computer.
-          </span>
+          <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.m10f4d07391")}</span>
+          <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.m641fd5e574")}</span>
         </HowItWorks>
         <div className="flex items-center gap-2" style={{ marginTop: 4 }}>
-          <Button size="small" onClick={() => void rp.setConsent(true)}>
-            Turn on
-          </Button>
+          <Button size="small" onClick={() => void rp.setConsent(true)}>{i18n.t("settingsFull.m26563efc2a")}</Button>
         </div>
       </div>
     );
   }
 
-  const line = socketLine(rp);
+  const line = socketLine(rp, (key, values) => i18n.t(key, values));
   const hiddenIds = new Set(rp.hidden.map((app) => app.id));
   // Hidden apps stay listed after a restart, when nothing has connected yet.
   const apps: RichPresenceApp[] = [...rp.seen, ...rp.hidden.filter((h) => !rp.seen.some((s) => s.id === h.id))];
@@ -76,7 +67,7 @@ export function RichPresenceSettings() {
 
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-sm font-bold">Rich Presence</span>
+      <span className="text-sm font-bold">{i18n.t("settingsFull.m63608c4067")}</span>
 
       {line.text && (
         <div
@@ -89,20 +80,16 @@ export function RichPresenceSettings() {
           {rp.holder?.isDiscord && helper.offered && !helper.enabledAt && (
             <div className="flex items-center gap-2" style={{ marginTop: 2 }}>
               <Button size="xsmall" onClick={showHelper}>
-                {helperCopy.turnOn}
+                {i18n.t("settingsFull.m4df5a435c2", { defaultValue: helperCopy.turnOn })}
               </Button>
-              <span className="text-xs">{helperCopy.warningHint}</span>
+              <span className="text-xs">{i18n.t("settingsFull.me0911290b5", { defaultValue: helperCopy.warningHint })}</span>
             </div>
           )}
         </div>
       )}
 
       {rp.current && (
-        <span className="flex items-center gap-1.5 text-xs text-gryt-muted">
-          <GameIcon appId={rp.current.appId} name={rp.current.name} size={16} />
-          Showing now: <strong>{rp.current.name}</strong>
-          {rp.current.details ? `, ${rp.current.details}` : ""}
-        </span>
+        <span className="flex items-center gap-1.5 text-xs text-gryt-muted"><Trans i18n={i18n} i18nKey="settingsFull.m673c241bbb" values={{ name: rp.current.name }} components={{ name: <strong /> }} /></span>
       )}
 
       {apps.length > 0 && (
@@ -114,14 +101,14 @@ export function RichPresenceSettings() {
               style={{ background: "var(--gryt-neutral-3)" }}
             >
               <span className="text-sm font-medium" style={{ flex: 1, minWidth: 0 }}>
-                {rp.names?.[app.id] ?? app.name ?? `Unknown app ${app.id}`}
+                {rp.names?.[app.id] ?? app.name ?? i18n.t("settingsFull.mf53b7c1c3e", { value0: app.id })}
               </span>
-              {hiddenIds.has(app.id) && <span className="text-xs text-gryt-muted">hidden</span>}
+              {hiddenIds.has(app.id) && <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.m99d72c7fc3")}</span>}
               {(!app.name || rp.names?.[app.id]) && (
                 <NameGame id={app.id} current={rp.names?.[app.id] ?? ""} onSave={(name) => void rp.setName(app.id, name)} />
               )}
               <Button size="xsmall" tone="neutral" onClick={() => toggle(app)}>
-                {hiddenIds.has(app.id) ? "Show" : "Hide"}
+                {hiddenIds.has(app.id) ? i18n.t("settingsFull.md97d1ee339") : i18n.t("settingsFull.m34d8b60fe2")}
               </Button>
             </li>
           ))}
@@ -135,21 +122,18 @@ export function RichPresenceSettings() {
       <PresenceHelperSettings helper={helper} />
 
       <div className="flex items-center gap-2" style={{ marginTop: 8 }}>
-        <Button size="xsmall" tone="neutral" onClick={() => void rp.setConsent(false)}>
-          Turn off
-        </Button>
-        <span className="text-xs text-gryt-muted">
-          Gryt lets go of the connection, and Discord gets it back the next time it starts.
-        </span>
+        <Button size="xsmall" tone="neutral" onClick={() => void rp.setConsent(false)}>{i18n.t("settingsFull.m8807c2b3fd")}</Button>
+        <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.mfc9fca1821")}</span>
       </div>
     </div>
   );
 }
 
-const time = (at: number) => new Date(at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+const time = (at: number) => new Date(at).toLocaleTimeString(i18n.resolvedLanguage, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
 /** What games actually sent, so it's clear whether a game talks to Gryt at all. */
 function ReceivedLog({ log, refresh }: { log: RichPresenceLogEntry[]; refresh: () => Promise<void> }) {
+  useTranslation();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -160,16 +144,10 @@ function ReceivedLog({ log, refresh }: { log: RichPresenceLogEntry[]; refresh: (
 
   return (
     <details onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)}>
-      <summary className="text-xs text-gryt-muted" style={{ cursor: "pointer", width: "fit-content" }}>
-        What Gryt receives
-      </summary>
+      <summary className="text-xs text-gryt-muted" style={{ cursor: "pointer", width: "fit-content" }}>{i18n.t("settingsFull.mcbde113b59")}</summary>
       <div className="flex flex-col gap-1" style={{ marginTop: 4 }}>
         {log.length === 0 ? (
-          <span className="text-xs text-gryt-muted">
-            Nothing yet. Start a game that has Discord Rich Presence and it shows up here within a
-            few seconds. Games that don&rsquo;t have it, like CS2, never connect: add those under
-            Programs you add instead.
-          </span>
+          <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.md10fa1e928")}</span>
         ) : (
           <ol
             className="flex flex-col gap-0.5 m-0 p-2 list-none rounded-md"
@@ -178,9 +156,9 @@ function ReceivedLog({ log, refresh }: { log: RichPresenceLogEntry[]; refresh: (
             {[...log].reverse().map((entry, i) => (
               <li key={`${entry.at}-${i}`} className="text-xs">
                 <span className="text-gryt-muted">{time(entry.at)}</span>{" "}
-                {entry.appId ? <strong>{entry.name ?? `Unknown app ${entry.appId}`}</strong> : null}
+                {entry.appId ? <strong>{entry.name ?? i18n.t("settingsFull.mf53b7c1c3e", { value0: entry.appId })}</strong> : null}
                 {entry.appId ? " " : ""}
-                {entry.text}
+                {richPresenceLogText(entry)}
               </li>
             ))}
           </ol>
@@ -192,44 +170,35 @@ function ReceivedLog({ log, refresh }: { log: RichPresenceLogEntry[]; refresh: (
 
 /** Known games spotted by their program. Off until turned on, and asks once per game. */
 function GameDetection() {
+  useTranslation();
   const detect = useGameDetection();
   if (!detect.supported) return null;
 
   return (
     <div className="flex flex-col gap-1 rounded-md px-2 py-2" style={{ background: "var(--gryt-neutral-3)" }}>
-      <span className="text-sm font-medium">Spot games and apps</span>
-      <span className="text-xs text-gryt-muted">
-        For games like CS2 and apps like Figma. Gryt asks once for each before it shows anything.
-      </span>
+      <span className="text-sm font-medium">{i18n.t("settingsFull.mbf433fb602")}</span>
+      <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.maaf1836990")}</span>
       <HowItWorks>
-        <span className="text-xs text-gryt-muted">
-          Every ten seconds Gryt checks which programs are running against a public list of about
-          10,000 games and a few apps. The list of what you have running never leaves this computer.
-        </span>
-        <span className="text-xs text-gryt-muted">
-          The first time it spots a game it asks whether to show it. Say no and it never shows or asks
-          again. A game that reports for itself always wins, since it says more.
-        </span>
+        <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.m40bc180b70")}</span>
+        <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.m5dad8f6bea")}</span>
       </HowItWorks>
       <div className="flex items-center gap-2" style={{ marginTop: 4 }}>
         <Button size="xsmall" tone={detect.enabled ? "neutral" : undefined} onClick={() => void detect.setEnabled(!detect.enabled)}>
-          {detect.enabled ? "Turn off" : "Turn on"}
+          {detect.enabled ? i18n.t("settingsFull.m8807c2b3fd") : i18n.t("settingsFull.m26563efc2a")}
         </Button>
       </div>
       {detect.answers.length > 0 && (
         <ul className="flex flex-col gap-1 m-0 p-0 list-none" style={{ marginTop: 6 }}>
           {detect.answers.map((game) => (
             <li key={game.id} className="flex items-center gap-2 rounded-md px-2 py-1" style={{ background: "var(--gryt-neutral-4)" }}>
-              <GameIcon appId={game.id} name={game.name ?? "A game"} size={16} />
-              <span className="text-sm" style={{ flex: 1, minWidth: 0 }}>{game.name ?? `Unknown app ${game.id}`}</span>
-              <span className="text-xs text-gryt-muted">{game.answer === "show" ? "shown" : "never shown"}</span>
+              <GameIcon appId={game.id} name={game.name ?? i18n.t("shellSecond.aGame")} size={16} />
+              <span className="text-sm" style={{ flex: 1, minWidth: 0 }}>{game.name ?? i18n.t("settingsFull.mf53b7c1c3e", { value0: game.id })}</span>
+              <span className="text-xs text-gryt-muted">{game.answer === "show" ? i18n.t("shellSecond.gameShown") : i18n.t("settingsFull.m629b738680")}</span>
               <Button size="xsmall" tone="neutral" onClick={() => void detect.answer(game.id, game.answer === "show" ? "hide" : "show")}>
-                {game.answer === "show" ? "Don't show" : "Show"}
+                {game.answer === "show" ? i18n.t("settingsFull.mf864aae810") : i18n.t("settingsFull.md97d1ee339")}
               </Button>
               {/* Takes it off the list; Gryt asks again the next time it spots the game. */}
-              <Button size="xsmall" tone="neutral" onClick={() => void detect.answer(game.id, null)}>
-                Remove
-              </Button>
+              <Button size="xsmall" tone="neutral" onClick={() => void detect.answer(game.id, null)}>{i18n.t("ui.remove")}</Button>
             </li>
           ))}
         </ul>
@@ -240,23 +209,22 @@ function GameDetection() {
 
 /** A name for a game no list knows. Kept on this device, with a way to add it for everyone. */
 function NameGame({ id, current, onSave }: { id: string; current: string; onSave: (name: string | null) => void }) {
+  useTranslation();
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(current);
   const suggest = () => {
-    const title = encodeURIComponent(`Add a game: ${value || current}`);
-    const body = encodeURIComponent(`Discord application id: ${id}\nName: ${value || current}\n\nFound through Gryt's Rich Presence, where it showed as an unknown app.`);
+    const title = encodeURIComponent(i18n.t("settingsFull.m77466b4f11", { value0: value || current }));
+    const body = encodeURIComponent(i18n.t("settingsFull.m074ad17f38", { value0: id, value1: value || current }));
     void getElectronAPI()?.openExternal?.(`https://github.com/Gryt-chat/rich-presence/issues/new?title=${title}&body=${body}`);
   };
   if (!editing) {
     return (
       <>
         <Button size="xsmall" tone="neutral" onClick={() => setEditing(true)}>
-          {current ? "Rename" : "Name it"}
+          {current ? i18n.t("settingsFull.md3f4cb898f") : i18n.t("settingsFull.m7f5060319b")}
         </Button>
         {current && (
-          <Button size="xsmall" tone="neutral" onClick={suggest}>
-            Suggest for everyone
-          </Button>
+          <Button size="xsmall" tone="neutral" onClick={suggest}>{i18n.t("settingsFull.m53273f712a")}</Button>
         )}
       </>
     );
@@ -268,7 +236,7 @@ function NameGame({ id, current, onSave }: { id: string; current: string; onSave
   return (
     <input
       autoFocus
-      aria-label="Game name"
+      aria-label={i18n.t("settingsFull.me617db3548")}
       value={value}
       maxLength={64}
       onChange={(e) => setValue(e.target.value)}

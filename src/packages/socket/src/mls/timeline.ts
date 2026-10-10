@@ -2,6 +2,7 @@ import type { DmSealingMode, MlsDmContent } from "@gryt/core";
 import type { SealedAttachmentKey } from "@gryt/crypto";
 
 import type { ArchivedMessage } from "@/common";
+import { i18n as socketHooksI18n } from "@/i18n";
 
 import type { AttachmentMeta, ChatMessage } from "../components/chatUtils";
 import { removedHereLine } from "./ownDevices.ts";
@@ -138,25 +139,25 @@ export function mlsNotice(
     signedIn = false,
   }: { lostHistory: boolean; home: "browser" | "app"; peerName: string; signedIn?: boolean },
 ): string | null {
-  const here = home === "browser" ? "this browser" : "this device";
-  const Here = home === "browser" ? "This browser" : "This device";
+  const here = home === "browser" ? socketHooksI18n.t("socketHooksFull.mlsThisBrowserLower") : socketHooksI18n.t("socketHooksFull.mlsThisDeviceLower");
+  const Here = home === "browser" ? socketHooksI18n.t("socketHooksFull.mlsThisBrowser") : socketHooksI18n.t("socketHooksFull.mlsThisDevice");
   if (problems.lost === "device_removed") {
     // Version 1 to a peer without MLS still works from here, and needs no warning.
     return mode?.kind === "sealed-v1" ? null : removedHereLine(home, signedIn ? "sign_in" : "recovery_key");
   }
   if (mode?.kind === "refused") {
-    if (mode.reason === "peer_left_mls") return `Can't send. ${peerName}'s app stopped using end-to-end encryption here.`;
-    if (mode.reason === "server_dropped_mls") return "Can't send. This server stopped supporting end-to-end encryption.";
-    return `Can't send yet. ${Here} isn't set up for end-to-end encryption here.`;
+    if (mode.reason === "peer_left_mls") return socketHooksI18n.t("socketHooksFull.mlsPeerStoppedEncryption", { peer: peerName });
+    if (mode.reason === "server_dropped_mls") return socketHooksI18n.t("socketHooksFull.mlsServerStoppedEncryption");
+    return socketHooksI18n.t("socketHooksFull.mlsNotConfigured", { place: Here });
   }
-  if (problems.lost === "removed") return `${Here} was taken out of this conversation, so new messages won't show here.`;
-  if (problems.lost) return `${Here} lost track of this conversation's encryption, so new messages won't show here.`;
+  if (problems.lost === "removed") return socketHooksI18n.t("socketHooksFull.mlsRemovedFromConversation", { place: Here });
+  if (problems.lost) return socketHooksI18n.t("socketHooksFull.mlsLostEncryption", { place: Here });
   if (problems.undecryptable > 0) {
     const n = problems.undecryptable;
-    return `${n} ${n === 1 ? "message" : "messages"} couldn't be decrypted on ${here}.`;
+    return socketHooksI18n.t("socketHooksFull.mlsUndecryptable", { count: n, place: here });
   }
-  if (lostHistory) return `Older messages were cleared from ${here}.`;
-  if (mode?.kind === "mls" && home === "browser") return "Messages here are only kept in this browser. Clearing its site data deletes them.";
+  if (lostHistory) return socketHooksI18n.t("socketHooksFull.mlsHistoryCleared", { place: here });
+  if (mode?.kind === "mls" && home === "browser") return socketHooksI18n.t("socketHooksFull.mlsBrowserLocalOnly");
   return null;
 }
 

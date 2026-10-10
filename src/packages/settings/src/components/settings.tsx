@@ -320,6 +320,23 @@ const PICKER_OPTIONS = DESTINATIONS.map(({ value, label, icon, pages }) =>
     return () => cancelAnimationFrame(frame);
   }, [active, activePage, jump]);
 
+  // A third route segment is a focus target; the existing first two segments
+  // still select the destination/page. Runs after the dialog content mounts.
+  useEffect(() => {
+    if (!showSettings || settingsTab !== "profile/profile/nickname") return;
+    setQuery("");
+    setResultsOpen(false);
+    const frame = requestAnimationFrame(() => {
+      const field = contentRef.current?.querySelector<HTMLInputElement>(
+        '[data-setting="profile.nickname"] input',
+      );
+      if (!field) return;
+      field.scrollIntoView({ block: "nearest" });
+      field.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [showSettings, settingsTab, active, activePage]);
+
   useEffect(() => {
     if (!highlighted) return;
     const timer = window.setTimeout(() => setHighlighted(null), HIGHLIGHT_MS);

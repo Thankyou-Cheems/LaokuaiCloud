@@ -7,7 +7,7 @@ import { useTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 
 import { PiMonitorArrowUpFill, PiMonitorFill } from "../../../../lib/icons";
-import { presetKey, presetLabel, SCREEN_PRESETS } from "../utils/streamQuality";
+import { presetHint, presetKey, presetLabel, SCREEN_PRESETS } from "../utils/streamQuality";
 import { CallControlButton } from "./CallControlButton";
 import { ScreenSharePickerModal } from "./ScreenSharePickerModal";
 
@@ -90,13 +90,13 @@ export function ScreenShareControl({ iconSize = 16, allowed = true, side = "top"
                       <Menu.RadioGroup value={current} onValueChange={(v) => pickPreset(String(v))}>
                         {!matchesPreset && (
                           <Menu.RadioItem value={current}>
-                            {presetLabel(screenShareQuality, screenShareFps)}
+                            {presetLabel(screenShareQuality, screenShareFps, (key, values) => tr(key, values))}
                           </Menu.RadioItem>
                         )}
                         {SCREEN_PRESETS.map((p) => (
                           <Menu.RadioItem key={presetKey(p.quality, p.fps)} value={presetKey(p.quality, p.fps)}>
-                            <span>{presetLabel(p.quality, p.fps)}</span>
-                            <span className="text-xs text-gryt-muted">{p.hint}</span>
+                            <span>{presetLabel(p.quality, p.fps, (key, values) => tr(key, values))}</span>
+                            <span className="text-xs text-gryt-muted">{presetHint(p.hint, tr)}</span>
                           </Menu.RadioItem>
                         ))}
                       </Menu.RadioGroup>

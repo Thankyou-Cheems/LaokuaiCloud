@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import toast from "react-hot-toast";
 
 import { GeneratedServerIcon, serverIconSrc, useAccount } from "@/common";
+import { i18n, useTranslation } from "@/i18n";
 import {
   linkedDeviceLine,
   type LinkedDeviceNotice,
@@ -29,6 +30,7 @@ import { SettingGroup } from "./settingsComponents";
 type Loaded = OwnDevicesAnswer | { kind: "loading" } | { kind: "failed" };
 
 function DeviceRow({ device, serverName, onRemove }: { device: MlsOwnDevice; serverName: string; onRemove: () => Promise<void> }) {
+  useTranslation();
   const [confirming, setConfirming] = useState(false);
   const [removing, setRemoving] = useState(false);
   const added = ownDeviceAdded(device);
@@ -42,12 +44,12 @@ function DeviceRow({ device, serverName, onRemove }: { device: MlsOwnDevice; ser
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-center gap-2">
           <span className="truncate text-sm">{ownDeviceLabel(device)}</span>
-          {device.thisDevice && <Chip tone="neutral">This device</Chip>}
+          {device.thisDevice && <Chip tone="neutral">{i18n.t("settingsFull.mfa5a6dd9d2")}</Chip>}
         </div>
         {added && <span className="text-xs text-gryt-muted">{added}</span>}
       </div>
       {!device.thisDevice && (
-        <Tooltip title="Remove device">
+        <Tooltip title={i18n.t("settingsFull.ma9c39dd38e")}>
           <IconButton tone="ghost" size="xsmall" disabled={removing} onClick={() => setConfirming(true)}>
             <PiTrashFill size={16} />
           </IconButton>
@@ -56,9 +58,9 @@ function DeviceRow({ device, serverName, onRemove }: { device: MlsOwnDevice; ser
       <ConfirmDialog
         open={confirming}
         onOpenChange={setConfirming}
-        title="Remove device?"
+        title={i18n.t("settingsFull.m0958645c38")}
         description={removeOwnDeviceWarning(device, serverName)}
-        confirmLabel="Remove"
+        confirmLabel={i18n.t("ui.remove")}
         onConfirm={() => {
           setRemoving(true);
           void onRemove().finally(() => setRemoving(false));
@@ -69,6 +71,7 @@ function DeviceRow({ device, serverName, onRemove }: { device: MlsOwnDevice; ser
 }
 
 function ServerDevices({ host, name, icon }: { host: string; name: string; icon: string | undefined }) {
+  useTranslation();
   const [loaded, setLoaded] = useState<Loaded>({ kind: "loading" });
   const source = useMlsSource(host);
   const { isSignedIn } = useAccount();
@@ -91,9 +94,9 @@ function ServerDevices({ host, name, icon }: { host: string; name: string; icon:
   const remove = async (device: MlsOwnDevice) => {
     try {
       await removeOwnMlsDevice(host, device.deviceId);
-      toast.success("Device removed");
+      toast.success(i18n.t("settingsFull.m48ae1b26a0"));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't remove the device");
+      toast.error(e instanceof Error ? e.message : i18n.t("settingsFull.m074e11f989"));
     }
     load();
   };
@@ -109,22 +112,20 @@ function ServerDevices({ host, name, icon }: { host: string; name: string; icon:
         />
         <span className="truncate text-sm">{name}</span>
       </div>
-      {loaded.kind === "loading" && <span className="text-xs text-gryt-muted">Loading…</span>}
-      {loaded.kind === "no_mls" && <span className="text-xs text-gryt-muted">This server doesn't have encrypted DMs.</span>}
+      {loaded.kind === "loading" && <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.m33ce417454")}</span>}
+      {loaded.kind === "no_mls" && <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.mf5eaab6226")}</span>}
       {loaded.kind === "removed" && (
         <span className="text-xs text-gryt-muted">
           {removedHereLine(isElectron() ? "app" : "browser", isSignedIn ? "sign_in" : "recovery_key")}
         </span>
       )}
       {loaded.kind === "not_connected" && (
-        <span className="text-xs text-gryt-muted">Connect to this server to see your devices there.</span>
+        <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.md8b0ec108a")}</span>
       )}
       {loaded.kind === "failed" && (
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gryt-muted">Couldn't load your devices here.</span>
-          <Button size="xsmall" onClick={load}>
-            Retry
-          </Button>
+          <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.mb87958fb97")}</span>
+          <Button size="xsmall" onClick={load}>{i18n.t("ui.retry")}</Button>
         </div>
       )}
       {loaded.kind === "devices" &&
@@ -137,6 +138,7 @@ function ServerDevices({ host, name, icon }: { host: string; name: string; icon:
 
 /** Stays until dismissed or the device is removed (GRYT-1583). */
 function LinkedDeviceNoticeRow({ notice, serverName }: { notice: LinkedDeviceNotice; serverName: string }) {
+  useTranslation();
   const [confirming, setConfirming] = useState(false);
   const [removing, setRemoving] = useState(false);
 
@@ -145,9 +147,9 @@ function LinkedDeviceNoticeRow({ notice, serverName }: { notice: LinkedDeviceNot
     try {
       await removeOwnMlsDevice(notice.host, notice.deviceId);
       linkedDeviceNotices.dismiss(notice.deviceId);
-      toast.success("Device removed");
+      toast.success(i18n.t("settingsFull.m48ae1b26a0"));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't remove the device");
+      toast.error(e instanceof Error ? e.message : i18n.t("settingsFull.m074e11f989"));
     } finally {
       setRemoving(false);
     }
@@ -156,24 +158,18 @@ function LinkedDeviceNoticeRow({ notice, serverName }: { notice: LinkedDeviceNot
   return (
     <Alert severity="warning">
       <div className="flex flex-col gap-2">
-        <span>
-          {linkedDeviceLine(notice, true)} It&rsquo;s on {serverName}.
-        </span>
+        <span>{linkedDeviceLine(notice, true)}{" "}{i18n.t("settingsFull.m4a58da6e7d", { server: serverName })}</span>
         <div className="flex flex-wrap gap-2">
-          <Button size="xsmall" tone="danger" disabled={removing} onClick={() => setConfirming(true)}>
-            Remove
-          </Button>
-          <Button size="xsmall" tone="neutral" onClick={() => linkedDeviceNotices.dismiss(notice.deviceId)}>
-            It was me
-          </Button>
+          <Button size="xsmall" tone="danger" disabled={removing} onClick={() => setConfirming(true)}>{i18n.t("ui.remove")}</Button>
+          <Button size="xsmall" tone="neutral" onClick={() => linkedDeviceNotices.dismiss(notice.deviceId)}>{i18n.t("settingsFull.m40383f3631")}</Button>
         </div>
       </div>
       <ConfirmDialog
         open={confirming}
         onOpenChange={setConfirming}
-        title="Remove device?"
+        title={i18n.t("settingsFull.m0958645c38")}
         description={removeOwnDeviceWarning(notice, serverName)}
-        confirmLabel="Remove"
+        confirmLabel={i18n.t("ui.remove")}
         onConfirm={() => void remove()}
       />
     </Alert>
@@ -182,20 +178,22 @@ function LinkedDeviceNoticeRow({ notice, serverName }: { notice: LinkedDeviceNot
 
 /** GRYT-1526. Your MLS devices on each server, and removing one you don't use anymore. */
 export function OwnDevicesSection() {
+  useTranslation();
   const { servers, orderedServerHosts } = useServerManagement();
   const { serverDetailsList } = useSockets();
   const notices = useSyncExternalStore(linkedDeviceNotices.subscribe, linkedDeviceNotices.get);
 
   return (
     <SettingGroup
-      title="Your devices"
-      description="Each app or browser you use for encrypted DMs is a device. Every server has its own list."
+      anchorId="your-devices"
+      title={i18n.t("settingsFull.m33c455a097")}
+      description={i18n.t("settingsFull.m87dc3fa7ba")}
     >
       {notices.map((n) => (
         <LinkedDeviceNoticeRow key={n.deviceId} notice={n} serverName={servers[n.host]?.name || n.host} />
       ))}
       {orderedServerHosts.length === 0 ? (
-        <span className="text-xs text-gryt-muted">No servers yet. Join one and it will show up here.</span>
+        <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.mc0c7a2b20c")}</span>
       ) : (
         <div className="flex flex-col gap-4">
           {orderedServerHosts.map((host) => {

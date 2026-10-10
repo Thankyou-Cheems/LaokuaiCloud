@@ -1,5 +1,7 @@
 import { Tooltip } from "@gryt/ui";
 
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
+
 import { LabelledDivider } from "./LabelledDivider";
 
 export type Reaction = {
@@ -114,11 +116,11 @@ function isSameCalendarDay(a: Date, b: Date): boolean {
 }
 
 function formatTime(d: Date): string {
-  return d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  return d.toLocaleTimeString(socketI18n.resolvedLanguage, { hour: "numeric", minute: "2-digit" });
 }
 
 function formatFullDate(d: Date): string {
-  return d.toLocaleString(undefined, {
+  return d.toLocaleString(socketI18n.resolvedLanguage, {
     weekday: "long",
     year: "numeric",
     month: "long",
@@ -135,25 +137,25 @@ function formatMessageTime(d: Date): string {
 
   const yesterday = new Date(now);
   yesterday.setDate(yesterday.getDate() - 1);
-  if (isSameCalendarDay(d, yesterday)) return `Yesterday at ${formatTime(d)}`;
+  if (isSameCalendarDay(d, yesterday)) return socketI18n.t("socketFull.chatUtils_3060d2077a", { p0: (formatTime(d)) });
 
   const diffMs = now.getTime() - d.getTime();
   const diffDays = Math.floor(diffMs / 86_400_000);
-  if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? "s" : ""} ago`;
+  if (diffDays < 7) return socketI18n.t("socketFull.chatUtils_ae22f6b470", { p0: (diffDays), count: (diffDays) });
 
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  return d.toLocaleDateString(socketI18n.resolvedLanguage, { month: "short", day: "numeric", year: "numeric" });
 }
 
 function formatDateSeparator(d: Date): string {
   const now = new Date();
-  if (isSameCalendarDay(d, now)) return "Today";
+  if (isSameCalendarDay(d, now)) return socketI18n.t("socketFull.chatUtils_ecfcc63d44");
   const yesterday = new Date(now);
   yesterday.setDate(yesterday.getDate() - 1);
-  if (isSameCalendarDay(d, yesterday)) return "Yesterday";
-  return d.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+  if (isSameCalendarDay(d, yesterday)) return socketI18n.t("socketFull.chatUtils_2078a2cdc2");
+  return d.toLocaleDateString(socketI18n.resolvedLanguage, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
 }
 
-export const MessageTimestamp = ({ date }: { date: Date }) => (
+export const MessageTimestamp = ({ date }: { date: Date }) => { useSocketTranslation(); return (
   <Tooltip title={formatFullDate(date)}>
     {/*
       gray-11 is Radix's low-contrast *text* step. gray-9 and gray-10 are solid
@@ -169,20 +171,18 @@ export const MessageTimestamp = ({ date }: { date: Date }) => (
       {formatMessageTime(date)}
     </span>
   </Tooltip>
-);
+); };
 
-export const DateSeparator = ({ date }: { date: Date }) => (
+export const DateSeparator = ({ date }: { date: Date }) => { useSocketTranslation(); return (
   <LabelledDivider className="py-2" labelClassName="text-gryt-muted font-medium">
     {formatDateSeparator(date)}
   </LabelledDivider>
-);
+); };
 
-export const NewMessagesDivider = () => (
+export const NewMessagesDivider = () => { useSocketTranslation(); return (
   <LabelledDivider
     className="py-2"
     lineClassName="bg-gryt-danger-8"
     labelClassName="text-gryt-danger font-medium"
-  >
-    New
-  </LabelledDivider>
-);
+  >{socketI18n.t("shellFull.discovery_tsx_6403f2b7eb")}</LabelledDivider>
+); };

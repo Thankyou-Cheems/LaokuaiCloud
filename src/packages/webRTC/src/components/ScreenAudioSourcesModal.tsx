@@ -1,6 +1,8 @@
 import { Button, Checkbox, Dialog } from "@gryt/ui";
 import { useEffect } from "react";
 
+import { LocalizedText, useTranslation } from "@/i18n";
+
 import { PiSquaresFourFill } from "../../../../lib/icons";
 import { useScreenAudioSources } from "../adapters/useScreenAudioSources";
 
@@ -14,6 +16,7 @@ interface ScreenAudioSourcesModalProps {
  * opens this is hidden where the OS cannot do it, so nothing here explains that.
  */
 export function ScreenAudioSourcesModal({ open, onOpenChange }: ScreenAudioSourcesModalProps) {
+  useTranslation();
   const { wholeMachine, apps, refresh, setCaptured, captureWholeMachine } = useScreenAudioSources();
 
   // Windows come and go while a call is running, so the list is read when it
@@ -27,11 +30,8 @@ export function ScreenAudioSourcesModal({ open, onOpenChange }: ScreenAudioSourc
       <Dialog.Portal>
         <Dialog.Backdrop />
         <Dialog.Popup className="w-[28.75rem]">
-          <Dialog.Title>Audio you&apos;re sharing</Dialog.Title>
-          <Dialog.Description>
-            Pick the applications to send. Anything you leave out stays out of the share,
-            including a voice app you're in.
-          </Dialog.Description>
+          <Dialog.Title>{<LocalizedText translationKey="shellFull.ScreenAudioSourcesModal_tsx_94b1230394" />}</Dialog.Title>
+          <Dialog.Description>{<LocalizedText translationKey="shellFull.ScreenAudioSourcesModal_tsx_1c302d57ab" />}</Dialog.Description>
 
           <div className="flex flex-col gap-2 py-3">
             <label
@@ -51,18 +51,14 @@ export function ScreenAudioSourcesModal({ open, onOpenChange }: ScreenAudioSourc
                 onCheckedChange={(v) => {
                   if (v === true) void captureWholeMachine();
                 }}
-              />
-              Everything except Gryt
-            </label>
+              />{<LocalizedText translationKey="shellFull.ScreenAudioSourcesModal_tsx_43f2002522" />}</label>
 
             <div
               className="flex flex-col gap-1"
               style={{ maxHeight: 260, overflowY: "auto" }}
             >
               {apps.length === 0 && (
-                <span className="text-sm text-gryt-muted" style={{ padding: 12, textAlign: "center" }}>
-                  No open windows found
-                </span>
+                <span className="text-sm text-gryt-muted" style={{ padding: 12, textAlign: "center" }}>{<LocalizedText translationKey="shellFull.ScreenAudioSourcesModal_tsx_3694b0c101" />}</span>
               )}
 
               {apps.map((app) => (
@@ -95,9 +91,7 @@ export function ScreenAudioSourcesModal({ open, onOpenChange }: ScreenAudioSourc
           </div>
 
           <div className="flex justify-end">
-            <Button size="small" onClick={() => onOpenChange(false)}>
-              Done
-            </Button>
+            <Button size="small" onClick={() => onOpenChange(false)}>{<LocalizedText translationKey="shellFull.ScreenAudioSourcesModal_tsx_e9b450d14b" />}</Button>
           </div>
         </Dialog.Popup>
       </Dialog.Portal>

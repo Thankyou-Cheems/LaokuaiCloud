@@ -1,3 +1,5 @@
+import { i18n as socketI18n } from "@/i18n";
+
 import type { FriendAction } from "../hooks/friendsStore";
 import type { FriendState } from "./friendList";
 
@@ -30,36 +32,36 @@ export interface FriendStep {
 export function friendButtonSteps(state: FriendState, name: string): FriendStep[] {
   switch (state) {
     case "none":
-      return [{ action: "request", label: "Add friend", icon: "add", tone: "ghost", hint: `Add ${name} as a friend` }];
+      return [{ action: "request", label: socketI18n.t("socketFull.friendButtonSteps_5a4eae4cab"), icon: "add", tone: "ghost", hint: socketI18n.t("socketFull.friendButtonSteps_27fdf5a22a", { p0: (name) }) }];
 
     case "outgoing":
       return [{
         action: "cancel",
-        label: "Requested",
+        label: socketI18n.t("socketFull.friendButtonSteps_8d5177eedb"),
         icon: "clock",
         tone: "ghost",
-        hint: `Waiting for ${name} to accept. Click to cancel.`,
+        hint: socketI18n.t("socketFull.friendButtonSteps_ac44752d57", { p0: (name) }),
         confirm: {
-          title: "Cancel friend request?",
-          description: `Cancel your friend request to ${name}?`,
-          confirmLabel: "Cancel request",
-          cancelLabel: "Keep waiting",
+          title: socketI18n.t("socketFull.friendButtonSteps_b7b272e97f"),
+          description: socketI18n.t("socketFull.friendButtonSteps_390620f75f", { p0: (name) }),
+          confirmLabel: socketI18n.t("socketFull.friendButtonSteps_e215b55da4"),
+          cancelLabel: socketI18n.t("socketFull.friendButtonSteps_caee5ae47a"),
         },
       }];
 
     case "incoming":
       return [
-        { action: "accept", label: "Accept", icon: "check", tone: "primary", hint: `Accept ${name}'s friend request` },
-        { action: "decline", label: "Decline", icon: "close", tone: "ghost", hint: `Decline ${name}'s friend request` },
+        { action: "accept", label: socketI18n.t("socketFull.friendButtonSteps_022daab84c"), icon: "check", tone: "primary", hint: socketI18n.t("socketFull.friendButtonSteps_5db7366d4f", { p0: (name) }) },
+        { action: "decline", label: socketI18n.t("socketFull.friendButtonSteps_dd75a6be62"), icon: "close", tone: "ghost", hint: socketI18n.t("socketFull.friendButtonSteps_9004e65f69", { p0: (name) }) },
       ];
 
     case "unconfirmed":
       return [{
         action: "confirm",
-        label: "Confirm friend",
+        label: socketI18n.t("socketFull.friendButtonSteps_a29d1d192b"),
         icon: "confirm",
         tone: "ghost",
-        hint: `${name} already has you as a friend on another device`,
+        hint: socketI18n.t("socketFull.friendButtonSteps_b8072053c3", { p0: (name) }),
       }];
 
     case "friend":

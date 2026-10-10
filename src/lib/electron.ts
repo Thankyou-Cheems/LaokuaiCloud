@@ -203,6 +203,9 @@ export interface RichPresenceLogEntry {
   appId: string | null;
   name: string | null;
   text: string;
+  /** Display metadata for app-generated events only; raw text remains diagnostic truth. */
+  appEventKey?: "cleared" | "detected" | "empty" | "emptyHidden" | "hidden" | "connection";
+  appEventValues?: Record<string, string>;
 }
 
 /** One entry in the watch list: an executable, and what to call it. */

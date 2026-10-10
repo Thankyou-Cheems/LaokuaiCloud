@@ -4,13 +4,14 @@ import toast from "react-hot-toast";
 
 import type { BlockedServer, ServerPin } from "@/common";
 import { forgetPin, listBlocked, listHostExpectations, listPins, unblockServer } from "@/common";
+import { i18n, useTranslation } from "@/i18n";
 
 import { PiHardDrivesFill, PiShieldCheckFill, PiTrashFill, PiWarningFill } from "../../../../lib/icons";
 import { ConfirmDialog } from "../../../socket/src/components/ConfirmDialog";
 import { SettingsContainer } from "./settingsComponents";
 
 function formatDate(epoch: number): string {
-  return new Date(epoch).toLocaleDateString(undefined, {
+  return new Date(epoch).toLocaleDateString(i18n.resolvedLanguage, {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -22,15 +23,16 @@ function formatDate(epoch: number): string {
  * way SSH does makes two of them comparable at a glance.
  */
 function Fingerprint({ value }: { value: string }) {
+  useTranslation();
   const grouped = (value.match(/.{1,8}/g) || [value]).join(" ");
   return (
-    <Tooltip title="Click to copy">
+    <Tooltip title={i18n.t("settingsFull.m8ef07790d3")}>
       <code className="font-mono text-xs text-gryt-muted"
         style={{ cursor: "pointer", wordBreak: "break-all" }}
         onClick={() => {
           navigator.clipboard?.writeText(value).then(
-            () => toast.success("Fingerprint copied"),
-            () => toast.error("Could not copy"),
+            () => toast.success(i18n.t("settingsFull.macb67f395d")),
+            () => toast.error(i18n.t("settingsFull.m4dfbe46077")),
           );
         }}
       >
@@ -49,6 +51,7 @@ function BlockedRow({
   firstPinnedAt?: number;
   onUnblock: (entry: BlockedServer) => void;
 }) {
+  useTranslation();
   const [confirm, setConfirm] = useState(false);
 
   return (
@@ -58,36 +61,28 @@ function BlockedRow({
         <span className="text-sm font-medium truncate" style={{ flex: 1, minWidth: 0 }}>
           {entry.host}
         </span>
-        <Chip tone="danger">
-          Blocked {formatDate(entry.blockedAt)}
-        </Chip>
+        <Chip tone="danger">{i18n.t("settingsFull.m5dd0f07770", { date: formatDate(entry.blockedAt) })}</Chip>
       </div>
 
       <span className="text-xs text-gryt-muted">
         {entry.reason === "key_mismatch"
-          ? "A different server answered at this address than the one you joined before."
-          : "This server proved its identity before, and then stopped."}
+          ? i18n.t("settingsFull.m4824e72af3")
+          : i18n.t("settingsFull.m625c81f33d")}
       </span>
 
       <div className="flex flex-col gap-2">
         <div className="flex flex-col gap-1">
-          <span className="text-xs text-gryt-muted">
-            Expected{firstPinnedAt ? `, first seen ${formatDate(firstPinnedAt)}` : ""}
-          </span>
+          <span className="text-xs text-gryt-muted">{firstPinnedAt ? i18n.t("settingsFull.m7ac7d822e1", { date: formatDate(firstPinnedAt) }) : i18n.t("settingsFull.m6ac87f3446")}</span>
           <Fingerprint value={entry.expectedKeyId} />
         </div>
 
         {entry.keyId ? (
           <div className="flex flex-col gap-1">
-            <span className="text-xs text-gryt-muted">
-              Got instead
-            </span>
+            <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.m045682060d")}</span>
             <Fingerprint value={entry.keyId} />
           </div>
         ) : (
-          <span className="text-xs text-gryt-muted">
-            No identity was offered at all, so there is no fingerprint to compare.
-          </span>
+          <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.meceb13be23")}</span>
         )}
       </div>
 
@@ -96,22 +91,20 @@ function BlockedRow({
           guess from two strings. */}
       <Alert severity="info">
           {entry.keyId
-            ? "If you rebuilt or replaced this server yourself, check its startup log — it prints its identity key on boot. Unblock only if that matches the fingerprint above."
-            : "If you downgraded this server to an older version, that would explain it. Otherwise treat it as suspicious."}
+            ? i18n.t("settingsFull.m2079cd604e")
+            : i18n.t("settingsFull.m73ffb7326c")}
         </Alert>
 
       <Button tone="danger" size="xsmall"
         style={{ alignSelf: "flex-start" }}
         onClick={() => setConfirm(true)}
-      >
-        Unblock
-      </Button>
+      >{i18n.t("settingsFull.m12aabd251c")}</Button>
       <ConfirmDialog
         open={confirm}
         onOpenChange={setConfirm}
-        title={`Unblock ${entry.host}?`}
-        description="Gryt will forget the identity it expected here and trust whatever answers next time, the same as joining a server for the first time. Only do this if you know why the identity changed."
-        confirmLabel="Unblock"
+        title={i18n.t("settingsFull.m444e1678aa", { value0: entry.host })}
+        description={i18n.t("settingsFull.mf81354f36c")}
+        confirmLabel={i18n.t("settingsFull.m12aabd251c")}
         onConfirm={() => onUnblock(entry)}
       />
     </div>
@@ -119,6 +112,7 @@ function BlockedRow({
 }
 
 function KnownRow({ pin, onForget }: { pin: ServerPin; onForget: (keyId: string) => void }) {
+  useTranslation();
   const [confirm, setConfirm] = useState(false);
 
   return (
@@ -137,13 +131,11 @@ function KnownRow({ pin, onForget }: { pin: ServerPin; onForget: (keyId: string)
         <span className="text-sm font-medium truncate">
           {pin.lastHost}
         </span>
-        <span className="text-xs text-gryt-muted">
-          Trusted since {formatDate(pin.firstSeenAt)}
-        </span>
+        <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.m979c1fbfa2", { date: formatDate(pin.firstSeenAt) })}</span>
         <Fingerprint value={pin.keyId} />
       </div>
 
-      <Tooltip title="Forget this server">
+      <Tooltip title={i18n.t("settingsFull.m874edaf6b6")}>
         <IconButton tone="danger" size="xsmall" onClick={() => setConfirm(true)}>
           <PiTrashFill size={16} />
         </IconButton>
@@ -151,9 +143,9 @@ function KnownRow({ pin, onForget }: { pin: ServerPin; onForget: (keyId: string)
       <ConfirmDialog
         open={confirm}
         onOpenChange={setConfirm}
-        title={`Forget ${pin.lastHost}?`}
-        description="Gryt will stop recognising this server's identity. The next time you connect it will be treated as a server you have never joined, and whatever answers will be trusted."
-        confirmLabel="Forget"
+        title={i18n.t("settingsFull.mc20791ab11", { value0: pin.lastHost })}
+        description={i18n.t("settingsFull.m5010bd916d")}
+        confirmLabel={i18n.t("ui.forget")}
         onConfirm={() => onForget(pin.keyId)}
       />
     </div>
@@ -161,6 +153,7 @@ function KnownRow({ pin, onForget }: { pin: ServerPin; onForget: (keyId: string)
 }
 
 export function ServerIdentitySettings() {
+  useTranslation();
   const [pins, setPins] = useState<ServerPin[]>([]);
   const [blocked, setBlocked] = useState<BlockedServer[]>([]);
 
@@ -183,7 +176,7 @@ export function ServerIdentitySettings() {
       if (!stillInUse) forgetPin(entry.expectedKeyId);
 
       refresh();
-      toast.success(`${entry.host} unblocked`);
+      toast.success(i18n.t("settingsFull.md204aee12b", { value0: entry.host }));
     },
     [refresh],
   );
@@ -192,30 +185,22 @@ export function ServerIdentitySettings() {
     (keyId: string) => {
       forgetPin(keyId);
       refresh();
-      toast.success("Server forgotten");
+      toast.success(i18n.t("settingsFull.m1744c92770"));
     },
     [refresh],
   );
 
   return (
     <SettingsContainer>
-      <h2 className="text-lg">
-        Server identities
-      </h2>
+      <h2 className="text-lg">{i18n.t("ui.serverIdentities")}</h2>
 
       <div className="flex flex-col gap-3">
-        <span className="text-xs text-gryt-muted">
-          Gryt remembers each server&apos;s identity key the first time you join,
-          so it can tell that a server which moved to a new address is still the
-          same one — and notice when something else answers in its place.
-        </span>
+        <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.mccd8de3070")}</span>
 
         {blocked.length > 0 && (
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              <span className="font-medium text-sm">
-                Blocked
-              </span>
+              <span className="font-medium text-sm">{i18n.t("settingsFull.m99613c74ce")}</span>
               <Chip tone="danger">
                 {blocked.length}
               </Chip>
@@ -232,9 +217,7 @@ export function ServerIdentitySettings() {
         )}
 
         <div className="flex items-center justify-between">
-          <span className="font-medium text-sm">
-            Known servers
-          </span>
+          <span className="font-medium text-sm">{i18n.t("settingsFull.mff8d8431ee")}</span>
           <Chip tone="neutral">
             {pins.length}
           </Chip>
@@ -243,9 +226,7 @@ export function ServerIdentitySettings() {
         {pins.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-8" style={{ borderRadius: "var(--gryt-radius-sm)", border: "1px dashed var(--gryt-neutral-a6)" }}>
             <PiHardDrivesFill size={32} style={{ color: "var(--gryt-neutral-a8)" }} />
-            <span className="text-sm text-gryt-muted">
-              No server identities remembered yet
-            </span>
+            <span className="text-sm text-gryt-muted">{i18n.t("settingsFull.m82f8bbc6da")}</span>
           </div>
         ) : (
           pins.map((pin) => <KnownRow key={pin.keyId} pin={pin} onForget={handleForget} />)

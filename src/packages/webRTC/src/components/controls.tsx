@@ -5,7 +5,7 @@ import { voiceLog } from "@gryt/voice";
 import { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
-import { useTranslation } from "@/i18n";
+import { i18n, useTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 import { SquadLiveStatus } from "@/settings/src/components/squadSettings";
 import { useSockets } from "@/socket";
@@ -13,7 +13,7 @@ import { useServerPermissions } from "@/socket/src/hooks/usePermissions";
 import { useVideoFraming } from "@/socket/src/hooks/useVideoFraming";
 
 import { getElectronAPI } from "../../../../lib/electron";
-import { PiMicrophoneFill, PiMicrophoneSlashFill, PiPhoneDisconnectFill, PiScanSmileyFill, PiSlidersHorizontalFill, PiSpeakerHighFill, PiSpeakerSimpleHighFill, PiSpeakerSimpleSlashFill, PiSpeakerSlashFill } from "../../../../lib/icons";
+import { PiPhoneDisconnectFill, PiScanSmileyFill, PiSlidersHorizontalFill, PiSpeakerSimpleHighFill, PiSpeakerSimpleSlashFill } from "../../../../lib/icons";
 import { screenAudioProblemMessage, screenAudioStreamId } from "../../../../lib/screenShareAudio";
 import { useScreenAudioMute } from "../adapters/useScreenAudioMute";
 import { useScreenAudioSources } from "../adapters/useScreenAudioSources";
@@ -25,28 +25,10 @@ import { CallControlButton, LEAVE_CLASS } from "./CallControlButton";
 import { CameraControl } from "./CameraControl";
 import { ScreenAudioSourcesModal } from "./ScreenAudioSourcesModal";
 import { ScreenShareControl } from "./ScreenShareControl";
+import { VoiceAudioControls } from "./VoiceAudioControls";
 
 interface ControlsProps {
   onDisconnect?: () => void;
-}
-
-/**
- * A tooltip that is absent rather than empty when it has nothing to say. Radix
- * renders the chrome even when `content` is undefined, leaving a blank bubble.
- */
-function MaybeTooltip({
-  content,
-  children,
-}: {
-  content: string | null;
-  children: React.ReactElement;
-}) {
-  if (!content) return children;
-  return (
-    <Tooltip title={content}>
-      {children}
-    </Tooltip>
-  );
 }
 
 export function Controls({ onDisconnect }: ControlsProps) {
@@ -77,8 +59,7 @@ export function Controls({ onDisconnect }: ControlsProps) {
   const { sockets } = useSockets();
   const { recentre: recentreFace, detecting: detectingFace } = useVideoFraming();
   const {
-    setIsMuted, isMuted, isDeafened, setIsDeafened,
-    isServerMuted, isServerDeafened,
+    setIsMuted, isMuted,
     screenShareQuality,
     screenShareFps,
     screenShareGamingMode,
@@ -398,26 +379,10 @@ export function Controls({ onDisconnect }: ControlsProps) {
 
   useEffect(() => {
     return getElectronAPI()?.onNativeAudioProblem?.((problem) => {
-      const message = screenAudioProblemMessage(problem);
+      const message = screenAudioProblemMessage(problem, i18n);
       if (message) toast.error(message, { id: "screen-audio-problem", duration: 12000 });
     });
   }, []);
-
-  function handleMute() {
-    if (isServerMuted) {
-      toast(tr("ui.youAreServerMutedByAnAdmin"), { icon: <PiMicrophoneSlashFill size={18} />, id: "server-muted" });
-      return;
-    }
-    setIsMuted(!isMuted);
-  }
-
-  function handleDeafen() {
-    if (isServerDeafened) {
-      toast(tr("ui.youAreServerDeafenedByAnAdmin"), { icon: <PiSpeakerSlashFill size={18} />, id: "server-deafened" });
-      return;
-    }
-    setIsDeafened(!isDeafened);
-  }
 
   function handleDisconnect() {
     // Camera and screen share are stopped inside disconnect(), so every way of
@@ -443,25 +408,7 @@ export function Controls({ onDisconnect }: ControlsProps) {
             an empty bubble on hover and kept it anchored to whichever control
             you hovered previously.
           */}
-          <MaybeTooltip content={isServerMuted ? tr("ui.serverMutedByAdmin") : null}>
-            <CallControlButton
-              state={isServerMuted ? "blocked" : isMuted ? "off" : "idle"}
-              aria-label={(isMuted || isServerMuted) ? tr("ui.unmuteMicrophone") : tr("ui.muteMicrophone")}
-              onClick={handleMute}
-            >
-              {(isMuted || isServerMuted) ? <PiMicrophoneSlashFill size={16} /> : <PiMicrophoneFill size={16} />}
-            </CallControlButton>
-          </MaybeTooltip>
-
-          <MaybeTooltip content={isServerDeafened ? tr("ui.serverDeafenedByAdmin") : null}>
-            <CallControlButton
-              state={isServerDeafened ? "blocked" : isDeafened ? "off" : "idle"}
-              aria-label={(isDeafened || isServerDeafened) ? tr("ui.undeafen") : tr("ui.deafen")}
-              onClick={handleDeafen}
-            >
-              {(isDeafened || isServerDeafened) ? <PiSpeakerSlashFill size={16} /> : <PiSpeakerHighFill size={16} />}
-            </CallControlButton>
-          </MaybeTooltip>
+          <VoiceAudioControls />
 
           <CameraControl allowed={canIn(currentChannelConnected, "share_video")} />
 

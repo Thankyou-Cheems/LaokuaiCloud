@@ -79,9 +79,10 @@ const profileCalls = [];
 const app = { getAppPath: () => "fake-package", setName: v => profileCalls.push(["name", v]),
   setPath: (key, value) => profileCalls.push(["path", key, value]), setAppUserModelId: v => profileCalls.push(["id", v]) };
 const profileBody = stripTypeScriptTypes(read("electron/i18nTestVariant.ts")).replace(/^import .*;$/gm, "").replace(/^export /gm, "");
-const profile = new Function("app", "readFileSync", "mkdirSync", "dirname", "join", "process", `${profileBody}\nreturn isolateI18nTestData;`)(
+const { privateProfilePaths } = await load("electron/privateProfile.ts");
+const profile = new Function("app", "readFileSync", "mkdirSync", "dirname", "join", "process", "privateProfilePaths", `${profileBody}\nreturn isolateI18nTestData;`)(
   app, () => JSON.stringify({ grytI18nTest: true, grytLaokuai: true }), () => {}, path.dirname, path.join,
-  { env: { PORTABLE_EXECUTABLE_DIR: "C:\\FAKE_OWN_PACKAGE" }, execPath: "C:\\FAKE_TEMP\\electron.exe" });
+  { argv: [], env: { PORTABLE_EXECUTABLE_DIR: "C:\\FAKE_OWN_PACKAGE" }, execPath: "C:\\FAKE_TEMP\\electron.exe" }, privateProfilePaths);
 profile();
 assert.ok(profileCalls.some(v => v[0] === "path" && v[1] === "userData" && v[2] === path.join("C:\\FAKE_OWN_PACKAGE", "laokuai-chat-data")));
 assert.ok(profileCalls.some(v => v[0] === "id" && v[1] === "local.laokuai.chat"));

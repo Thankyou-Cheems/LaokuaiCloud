@@ -3,6 +3,7 @@ import type { StreamSources } from "@gryt/voice";
 import { useCallback, useEffect, useState } from "react";
 
 import type { SealDecision } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 import type { Channel, SidebarItem, SidebarReorderEntry } from "@/settings/src/types/server";
 
 import { PiChatsFill, PiList, PiUsersFill } from "../../../../lib/icons";
@@ -127,6 +128,7 @@ interface MobileServerViewProps {
 }
 
 export const MobileServerView = (props: MobileServerViewProps) => {
+  useSocketTranslation();
   const { onChannelClick } = props;
   const [channelsOpen, setChannelsOpen] = useState(false);
 
@@ -177,7 +179,7 @@ export const MobileServerView = (props: MobileServerViewProps) => {
         }}>
         <IconButton tone="ghost" size="xsmall"
           onClick={() => setChannelsOpen(true)}
-          aria-label="Open channels"
+          aria-label={socketI18n.t("socketFull.mobileServerView_02556bf4a6")}
         >
           <PiList size={22} />
         </IconButton>
@@ -199,7 +201,7 @@ export const MobileServerView = (props: MobileServerViewProps) => {
         ) : (
           <IconButton tone="ghost" size="xsmall"
             onClick={() => setMembersOpen(true)}
-            aria-label="Open members"
+            aria-label={socketI18n.t("socketFull.mobileServerView_e847a30d0b")}
           >
             <PiUsersFill size={22} />
           </IconButton>
@@ -300,7 +302,7 @@ export const MobileServerView = (props: MobileServerViewProps) => {
               }}
             >
               <PiChatsFill size={18} />
-              <span style={{ flex: 1, textAlign: "left" }}>Direct messages</span>
+              <span style={{ flex: 1, textAlign: "left" }}>{socketI18n.t("ui.directMessages")}</span>
               {dmUnread > 0 && <Badge tone="unread">{dmUnread > 99 ? "99+" : dmUnread}</Badge>}
             </Button>
           </div>

@@ -15,7 +15,10 @@ import { CSS } from "@dnd-kit/utilities";
 import { Button, Checkbox, IconButton, Select, Surface } from "@gryt/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
+import { Trans } from "react-i18next";
 import type { Socket } from "socket.io-client";
+
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 
 import { PiPlusBold, PiTrashBold } from "../../../../lib/icons";
 import { useSocketEvent } from "../hooks/useSocketEvent";
@@ -77,6 +80,7 @@ function SortableRole({
   disabled: boolean;
   children: React.ReactNode;
 }) {
+  useSocketTranslation();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id, disabled });
 
@@ -110,6 +114,7 @@ function RoleColorField({
   /** Takes the colour rather than reading it back — see `commitSettings`. */
   onCommit: (color: string | null) => void;
 }) {
+  useSocketTranslation();
   const selected = value?.toLowerCase() ?? null;
   const isPreset = ROLE_COLOR_PRESETS.some((p) => p.value.toLowerCase() === selected);
 
@@ -147,14 +152,14 @@ function RoleColorField({
           swatch of its own rather than only as a value. */}
       <label
         className="flex items-center gap-1 text-xs text-gryt-muted cursor-pointer"
-        title="Any other colour"
+        title={socketI18n.t("socketFull.serverRoleEditorTab_b99ba258e6")}
       >
         <input
           type="color"
           value={value || "#888888"}
           onChange={(e) => onChange(e.target.value)}
           onBlur={(e) => onCommit(e.target.value)}
-          aria-label="Any other colour"
+          aria-label={socketI18n.t("socketFull.serverRoleEditorTab_b99ba258e6")}
           style={{
             width: 22,
             height: 22,
@@ -165,9 +170,7 @@ function RoleColorField({
             outline: value && !isPreset ? "2px solid var(--gryt-text)" : "none",
             outlineOffset: 2,
           }}
-        />
-        Custom
-      </label>
+        />{socketI18n.t("socketFull.serverRoleEditorTab_aeacd8656e")}</label>
 
       {value && (
         <Button
@@ -177,9 +180,7 @@ function RoleColorField({
             onChange(null);
             onCommit(null);
           }}
-        >
-          Clear
-        </Button>
+        >{socketI18n.t("ui.clear")}</Button>
       )}
     </div>
   );
@@ -196,6 +197,7 @@ export function ServerRoleEditorTab({
   socket?: Socket;
   accessToken: string | null;
 }) {
+  useSocketTranslation();
   const [state, setState] = useState<EditorState | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [draft, setDraft] = useState<RoleDefinition | null>(null);
@@ -249,8 +251,8 @@ export function ServerRoleEditorTab({
     (payload) => {
       toast.success(
         payload?.moved
-          ? `Role deleted. ${payload.moved} member${payload.moved === 1 ? "" : "s"} moved to ${payload.reassignTo}.`
-          : "Role deleted.",
+          ? socketI18n.t("socketFull.serverRoleEditorTab_4a62146ed5", { p0: (payload.moved), p2: (payload.reassignTo), count: (payload.moved) })
+          : socketI18n.t("socketFull.serverRoleEditorTab_69cefb5636"),
       );
       setSelectedId(null);
       refresh();
@@ -322,8 +324,8 @@ export function ServerRoleEditorTab({
   );
 
   const emit = (event: string, payload: Record<string, unknown>) => {
-    if (!socket?.connected) return toast.error("Not connected to the server yet.");
-    if (!accessToken) return toast.error("Join the server first.");
+    if (!socket?.connected) return toast.error(socketI18n.t("socketFull.serverRoleEditorTab_213e89eca7"));
+    if (!accessToken) return toast.error(socketI18n.t("socketFull.serverRoleEditorTab_097a88ed92"));
     socket.emit(event, { accessToken, ...payload });
   };
 
@@ -376,7 +378,7 @@ export function ServerRoleEditorTab({
 
     if (creating) {
       if (state.roles.some((r) => r.id === roleId)) {
-        toast.error(`There is already a role called "${next.name}".`);
+        toast.error(socketI18n.t("socketFull.serverRoleEditorTab_02a2a0400b", { p0: (next.name) }));
         return;
       }
       setSelectedId(roleId);
@@ -468,17 +470,13 @@ export function ServerRoleEditorTab({
   };
 
   if (!state) {
-    return <span className="text-sm text-gryt-muted">Loading roles…</span>;
+    return <span className="text-sm text-gryt-muted">{socketI18n.t("socketFull.serverRoleEditorTab_c38ebf72e9")}</span>;
   }
 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <span className="text-sm text-gryt-muted">
-          A role is a set of permissions and a rank. Permissions are what somebody may do;
-          rank is who they may act on. Kicks, bans and role changes always refuse against an
-          equal or higher rank.
-        </span>
+        <span className="text-sm text-gryt-muted">{socketI18n.t("socketFull.serverRoleEditorTab_81655e84c6")}</span>
       </div>
 
       <div className="flex gap-4 items-start flex-wrap">
@@ -518,9 +516,7 @@ export function ServerRoleEditorTab({
               </span>
               <span className="flex items-center gap-1 shrink-0">
                 {(role.autoGrantAfterDays !== null || role.autoGrantAfterMessages !== null) && (
-                  <span className="text-xs text-gryt-muted" title="Given out automatically">
-                    auto
-                  </span>
+                  <span className="text-xs text-gryt-muted" title={socketI18n.t("socketFull.serverRoleEditorTab_b99b50f7f5")}>{socketI18n.t("socketFull.serverRoleEditorTab_14ea9b82c4")}</span>
                 )}
                 <span className="text-xs text-gryt-muted">{role.memberCount}</span>
               </span>
@@ -533,40 +529,32 @@ export function ServerRoleEditorTab({
 
           {creating && (
             <div className="flex items-center gap-2 rounded-(--gryt-radius-md) bg-gryt-surface-raised px-3 py-2 text-sm">
-              <span className="truncate">{draft?.name || "New role"}</span>
-              <span className="text-xs text-gryt-muted">unsaved</span>
+              <span className="truncate">{draft?.name || socketI18n.t("socketFull.serverRoleEditorTab_284274254a")}</span>
+              <span className="text-xs text-gryt-muted">{socketI18n.t("socketFull.serverRoleEditorTab_8efd39f29c")}</span>
             </div>
           )}
 
           <Button tone="neutral" size="small" onClick={createRole} disabled={saving || creating}>
-            <PiPlusBold size={14} /> New role
-          </Button>
+            <PiPlusBold size={14} />{" "}{socketI18n.t("socketFull.serverRoleEditorTab_284274254a")}</Button>
         </div>
 
         <Surface style={{ flex: "1 1 380px", minWidth: "min(320px, 100%)" }}>
           {!draft ? (
-            <span className="text-sm text-gryt-muted">Pick a role to edit.</span>
+            <span className="text-sm text-gryt-muted">{socketI18n.t("socketFull.serverRoleEditorTab_253de4d03e")}</span>
           ) : draft.id === OWNER_ROLE ? (
             /* The server takes a colour-only save for this role and refuses the
                rest, so this panel offers that and says why. */
             <div className="flex flex-col gap-4">
-              <span className="text-sm text-gryt-muted">
-                The owner holds every permission, and its name, rank and permissions cannot
-                be changed. It is what the server falls back to if anything else here goes
-                wrong, which is the only reason a mistake on this screen is recoverable.
-              </span>
+              <span className="text-sm text-gryt-muted">{socketI18n.t("socketFull.serverRoleEditorTab_5b5c13adfa")}</span>
 
               <div className="flex flex-col gap-2">
-                <span className="text-gryt-muted text-sm">Colour</span>
+                <span className="text-gryt-muted text-sm">{socketI18n.t("socketFull.serverRoleEditorTab_209ef55544")}</span>
                 <RoleColorField
                   value={draft.color}
                   onChange={(color) => setDraft({ ...draft, color })}
                   onCommit={(color) => saveOwnerColor(color)}
                 />
-                <span className="text-xs text-gryt-muted">
-                  Colours the owner&rsquo;s name in the member list and in chat. It is the one
-                  thing here that changes nothing about what the owner can do.
-                </span>
+                <span className="text-xs text-gryt-muted">{socketI18n.t("socketFull.serverRoleEditorTab_06716c20c5")}</span>
               </div>
             </div>
           ) : (
@@ -576,7 +564,7 @@ export function ServerRoleEditorTab({
                   <input
                     value={draft.name}
                     maxLength={32}
-                    placeholder="Name this role"
+                    placeholder={socketI18n.t("socketFull.serverRoleEditorTab_2f8befa929")}
                     autoFocus={creating}
                     onChange={(e) => setDraft({ ...draft, name: e.target.value })}
                     onBlur={() => commitSettings()}
@@ -586,7 +574,7 @@ export function ServerRoleEditorTab({
                     {/* Shown while it is still being chosen, because it is the
                         one thing here that cannot be changed afterwards. */}
                     id: {creating ? slugify(draft.name) || "…" : draft.id}
-                    {draft.isSystem ? " · built in" : ""}
+                    {draft.isSystem ? socketI18n.t("socketFull.serverRoleEditorTab_79d7c1b91d") : ""}
                   </span>
                 </div>
 
@@ -594,7 +582,7 @@ export function ServerRoleEditorTab({
                   <IconButton
                     tone="danger"
                     size="xsmall"
-                    aria-label={creating ? "Discard this role" : "Delete this role"}
+                    aria-label={creating ? socketI18n.t("socketFull.serverRoleEditorTab_3c95a54e46") : socketI18n.t("socketFull.serverRoleEditorTab_1553f101ee")}
                     onClick={remove}
                     disabled={saving}
                   >
@@ -604,7 +592,7 @@ export function ServerRoleEditorTab({
               </div>
 
               <div className="flex flex-col gap-2">
-                <span className="text-gryt-muted text-sm">Colour</span>
+                <span className="text-gryt-muted text-sm">{socketI18n.t("socketFull.serverRoleEditorTab_209ef55544")}</span>
                 <RoleColorField
                   value={draft.color}
                   onChange={(color) => setDraft({ ...draft, color })}
@@ -622,14 +610,8 @@ export function ServerRoleEditorTab({
                         setDraft({ ...draft, mentionable: checked });
                         commitSettings({ mentionable: checked });
                       }}
-                    />
-                    Anyone can mention this role
-                  </label>
-                  <span className="text-xs text-gryt-muted">
-                    Anyone who can post in a channel can ping @{draft.name || "this role"} there. When
-                    it&rsquo;s off, only people with Mention everyone can, and anyone else&rsquo;s
-                    mention goes out as plain text.
-                  </span>
+                    />{socketI18n.t("socketFull.serverRoleEditorTab_81a20d49a8")}</label>
+                  <span className="text-xs text-gryt-muted"><Trans i18n={socketI18n} i18nKey="socketFull.roleMentionPolicyExplanation" values={{ name: draft.name || socketI18n.t("socketFull.serverRoleEditorTab_6d52756ca1") }} /></span>
                 </div>
               )}
 
@@ -644,32 +626,22 @@ export function ServerRoleEditorTab({
                           setDraft({ ...draft, grantableByInvite: checked });
                           commitSettings();
                         }}
-                      />
-                      Can be given out by an invite
-                    </label>
-                    <span className="text-xs text-gryt-muted">
-                      Off unless you turn it on, for every role. With it on, an invite
-                      can be bound to this role and whoever joins on that link arrives
-                      holding it — which is only as private as the link is.{" "}
+                      />{socketI18n.t("socketFull.serverRoleEditorTab_c10b434081")}</label>
+                    <span className="text-xs text-gryt-muted">{socketI18n.t("socketFull.serverRoleEditorTab_8a14bf24b2")}{" "}
                       {draft.isSystem
-                        ? "Built-in roles cannot be given out this way."
-                        : "Admin and owner can never be given out this way, and neither can a role that can hand out permissions. Those are given by hand."}
+                        ? socketI18n.t("socketFull.serverRoleEditorTab_4876aec23b")
+                        : socketI18n.t("socketFull.serverRoleEditorTab_3901f75991")}
                     </span>
                   </div>
 
                   <div className="flex flex-col">
-                    <span className="text-sm font-bold">Given out automatically</span>
-                    <span className="text-xs text-gryt-muted">
-                      Leave both blank and this role is only ever handed out by hand. Fill
-                      both in and somebody gets it once they have been here that long{" "}
-                      <em>and</em> posted that many messages — both, not either, because
-                      time on its own is something a patient stranger also has.
-                    </span>
+                    <span className="text-sm font-bold">{socketI18n.t("socketFull.serverRoleEditorTab_b99b50f7f5")}</span>
+                    <span className="text-xs text-gryt-muted"><Trans i18n={socketI18n} i18nKey="socketFull.automaticRoleRequirements" components={{ and: <em /> }} /></span>
                   </div>
 
                   <div className="flex gap-4 flex-wrap">
                     <label className="flex items-center gap-2 text-sm">
-                      <span className="text-gryt-muted">After days</span>
+                      <span className="text-gryt-muted">{socketI18n.t("socketFull.serverRoleEditorTab_1a75f1bb2c")}</span>
                       <input
                         type="number"
                         min={0}
@@ -687,7 +659,7 @@ export function ServerRoleEditorTab({
                     </label>
 
                     <label className="flex items-center gap-2 text-sm">
-                      <span className="text-gryt-muted">After messages</span>
+                      <span className="text-gryt-muted">{socketI18n.t("socketFull.serverRoleEditorTab_b6d20a9153")}</span>
                       <input
                         type="number"
                         min={0}
@@ -707,12 +679,7 @@ export function ServerRoleEditorTab({
                     </label>
                   </div>
 
-                  <span className="text-xs text-gryt-muted">
-                    It only ever promotes. Nobody is moved down for going quiet, and
-                    anyone already holding a higher role is left where they are. Checked
-                    when somebody joins and after they post, so a role earned while they
-                    were away arrives the next time they turn up.
-                  </span>
+                  <span className="text-xs text-gryt-muted">{socketI18n.t("socketFull.serverRoleEditorTab_60fe9af1d4")}</span>
                 </div>
               )}
 
@@ -729,13 +696,11 @@ export function ServerRoleEditorTab({
                     size="small"
                     disabled={!slugify(draft.name) || saving}
                     onClick={() => commitSettings()}
-                  >
-                    Create role
-                  </Button>
+                  >{socketI18n.t("socketFull.serverRoleEditorTab_34839486b9")}</Button>
                   <span className="text-xs text-gryt-muted">
                     {slugify(draft.name)
-                      ? "Everything after this saves as you edit it."
-                      : "Give it a name first."}
+                      ? socketI18n.t("socketFull.serverRoleEditorTab_b19aafe492")
+                      : socketI18n.t("socketFull.serverRoleEditorTab_6dc6985156")}
                   </span>
                 </div>
               )}
@@ -747,12 +712,8 @@ export function ServerRoleEditorTab({
       <Surface>
         <div className="flex flex-col gap-3 min-w-0">
           <div className="flex flex-col">
-            <span className="text-sm font-bold">What each role may do</span>
-            <span className="text-xs text-gryt-muted">
-              Every role at once. A column is a role, a row is a permission, and rank
-              orders the columns. On a narrow window this becomes one role at a time,
-              each showing what it adds to the rank below it.
-            </span>
+            <span className="text-sm font-bold">{socketI18n.t("socketFull.serverRoleEditorTab_24bd958f2e")}</span>
+            <span className="text-xs text-gryt-muted">{socketI18n.t("socketFull.serverRoleEditorTab_f1f8021ff8")}</span>
           </div>
 
           <RolePermissionGrid
@@ -767,18 +728,13 @@ export function ServerRoleEditorTab({
       <Surface>
         <div className="flex flex-col gap-3">
           <div className="flex flex-col">
-            <span className="text-sm font-bold">When somebody joins</span>
-            <span className="text-xs text-gryt-muted">
-              Split by how they proved who they are. An account is a durable identity a
-              certificate authority vouched for; a guest is a key generated in the browser,
-              which anybody can throw away and mint again. Only new members are affected —
-              changing this never re-sorts the people already here.
-            </span>
+            <span className="text-sm font-bold">{socketI18n.t("socketFull.serverRoleEditorTab_b986ec393e")}</span>
+            <span className="text-xs text-gryt-muted">{socketI18n.t("socketFull.serverRoleEditorTab_05264783e4")}</span>
           </div>
 
           <div className="flex gap-4 flex-wrap">
             <label className="flex flex-col gap-1 text-sm">
-              <span className="text-gryt-muted">With an account</span>
+              <span className="text-gryt-muted">{socketI18n.t("socketFull.serverRoleEditorTab_ac142ebf9a")}</span>
               <Select
                 value={state.defaults.account}
                 onValueChange={(v) => emit("server:roles:defaults:set", { accountRoleId: String(v) })}
@@ -788,7 +744,7 @@ export function ServerRoleEditorTab({
             </label>
 
             <label className="flex flex-col gap-1 text-sm">
-              <span className="text-gryt-muted">As a guest</span>
+              <span className="text-gryt-muted">{socketI18n.t("socketFull.serverRoleEditorTab_3f69504ffb")}</span>
               <Select
                 value={state.defaults.local}
                 onValueChange={(v) => emit("server:roles:defaults:set", { localRoleId: String(v) })}
@@ -800,9 +756,7 @@ export function ServerRoleEditorTab({
                   rather than joining it. A live control with a note underneath
                   explaining it does nothing is the thing this fixes. */}
               {guestsRefused && (
-                <span className="text-xs text-gryt-muted" style={{ maxWidth: 260 }}>
-                  No guests are allowed on this server, so this is never used.
-                </span>
+                <span className="text-xs text-gryt-muted" style={{ maxWidth: 260 }}>{socketI18n.t("socketFull.serverRoleEditorTab_7ad8abcc33")}</span>
               )}
             </label>
           </div>
@@ -811,11 +765,7 @@ export function ServerRoleEditorTab({
               tiers leaves this exactly as it was — the note is the best that
               can be offered when the answer is unknown. */}
           {state.identityTiers === undefined && (
-            <span className="text-xs text-gryt-muted">
-              Guests only reach this server at all if it accepts self-signed identities —
-              GRYT_IDENTITY_TIERS on the server. Where it does not, the guest default is
-              never used.
-            </span>
+            <span className="text-xs text-gryt-muted">{socketI18n.t("socketFull.serverRoleEditorTab_0291548fd7")}</span>
           )}
         </div>
       </Surface>

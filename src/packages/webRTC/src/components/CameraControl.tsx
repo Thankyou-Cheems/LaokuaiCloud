@@ -2,11 +2,12 @@ import { Menu } from "@gryt/ui";
 import { useCamera } from "@gryt/voice";
 import { useState } from "react";
 
+import { i18n } from "@/i18n";
 import { useTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 
 import { PiVideoCameraFill, PiVideoCameraSlashFill } from "../../../../lib/icons";
-import { CAMERA_PRESETS, presetKey, presetLabel } from "../utils/streamQuality";
+import { CAMERA_PRESETS, presetHint,presetKey, presetLabel } from "../utils/streamQuality";
 import { CallControlButton } from "./CallControlButton";
 import { CameraPreviewModal } from "./CameraPreviewModal";
 
@@ -54,12 +55,12 @@ export function CameraControl({ iconSize = 16, allowed = true, side = "top" }: C
                   <Menu.GroupLabel>{tr("ui.quality")}</Menu.GroupLabel>
                   <Menu.RadioGroup value={current} onValueChange={(v) => pickPreset(String(v))}>
                     {!matchesPreset && (
-                      <Menu.RadioItem value={current}>{presetLabel(cameraQuality, cameraFps)}</Menu.RadioItem>
+                      <Menu.RadioItem value={current}>{presetLabel(cameraQuality, cameraFps, (key, values) => tr(key, values))}</Menu.RadioItem>
                     )}
                     {CAMERA_PRESETS.map((p) => (
                       <Menu.RadioItem key={presetKey(p.quality, p.fps)} value={presetKey(p.quality, p.fps)}>
-                        <span>{presetLabel(p.quality, p.fps)}</span>
-                        <span className="text-xs text-gryt-muted">{p.hint}</span>
+                        <span>{presetLabel(p.quality, p.fps, (key, values) => tr(key, values))}</span>
+                        <span className="text-xs text-gryt-muted">{presetHint(p.hint, tr)}</span>
                       </Menu.RadioItem>
                     ))}
                   </Menu.RadioGroup>
@@ -73,7 +74,7 @@ export function CameraControl({ iconSize = 16, allowed = true, side = "top" }: C
                       <Menu.RadioGroup value={cameraID} onValueChange={(v) => setCameraID(String(v))}>
                         {cameras.map((d, i) => (
                           <Menu.RadioItem key={d.deviceId} value={d.deviceId}>
-                            <span className="truncate">{d.label || `Camera ${i + 1}`}</span>
+                            <span className="truncate">{d.label || i18n.t("shellFull.CameraControl_tsx_d935c2ee86", { value0: i + 1 })}</span>
                           </Menu.RadioItem>
                         ))}
                       </Menu.RadioGroup>

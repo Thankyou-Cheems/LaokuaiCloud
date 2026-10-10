@@ -1,6 +1,8 @@
 import { ContextMenu } from "@gryt/ui";
 import React, { type ReactNode, useCallback, useMemo } from "react";
 
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
+
 import { PiArrowBendUpLeftFill, PiArrowSquareOutFill, PiChatsFill, PiCloudArrowDownFill, PiCopyFill, PiFlagFill, PiImageFill, PiPencilSimpleFill, PiPushPinFill, PiPushPinSlashFill, PiSmileyFill, PiTrashFill } from "../../../../lib/icons";
 import { saveOpenedFile, triggerDownload } from "../utils/downloadFile";
 import { copyImageToClipboard } from "../utils/mediaClipboard";
@@ -63,6 +65,7 @@ async function copyToClipboard(text: string) {
 }
 
 function MediaItems({ media }: { media: MediaProps }) {
+  useSocketTranslation();
   const copyImage = "open" in media
     ? () => media.open().then(copyImageToClipboard)
     : () => copyImageToClipboard(media.src);
@@ -75,31 +78,23 @@ function MediaItems({ media }: { media: MediaProps }) {
       {media.isImage && (
         <ContextMenu.Item onClick={() => void copyImage()}>
           <div className="flex items-center gap-1">
-            <PiImageFill size={14} />
-            Copy Image
-          </div>
+            <PiImageFill size={14} />{socketI18n.t("socketFull.mediaContextMenu_490f876868")}</div>
         </ContextMenu.Item>
       )}
       <ContextMenu.Item onClick={() => void save()}>
         <div className="flex items-center gap-1">
-          <PiCloudArrowDownFill size={14} />
-          Save As
-        </div>
+          <PiCloudArrowDownFill size={14} />{socketI18n.t("socketFull.mediaContextMenu_26f740b872")}</div>
       </ContextMenu.Item>
       {src !== null && (
         <>
           <ContextMenu.Item onClick={() => copyToClipboard(src)}>
             <div className="flex items-center gap-1">
-              <PiCopyFill size={14} />
-              Copy Link
-            </div>
+              <PiCopyFill size={14} />{socketI18n.t("socketFull.mediaContextMenu_1b29f6b986")}</div>
           </ContextMenu.Item>
           <ContextMenu.Separator />
           <ContextMenu.Item onClick={() => window.open(src, "_blank", "noopener,noreferrer")}>
             <div className="flex items-center gap-1">
-              <PiArrowSquareOutFill size={14} />
-              Open in Browser
-            </div>
+              <PiArrowSquareOutFill size={14} />{socketI18n.t("socketFull.mediaContextMenu_f8dbaee87d")}</div>
           </ContextMenu.Item>
         </>
       )}
@@ -114,6 +109,7 @@ function QuickReactions({
   onReaction: (src: string) => void;
   serverHost?: string;
 }) {
+  useSocketTranslation();
   const recent = useMemo(() => getRecentReactions(4, serverHost), [serverHost]);
 
   const handleEmojiSelect = useCallback((src: string) => {
@@ -186,22 +182,19 @@ function QuickReactions({
 }
 
 function MessageActionItems({ actions }: { actions: MessageActions }) {
+  useSocketTranslation();
   return (
     <>
       {actions.messageText && (
         <ContextMenu.Item onClick={() => copyToClipboard(actions.messageText!)}>
           <div className="flex items-center gap-1">
-            <PiCopyFill size={14} />
-            Copy Message
-          </div>
+            <PiCopyFill size={14} />{socketI18n.t("socketFull.mediaContextMenu_a9c415ced8")}</div>
         </ContextMenu.Item>
       )}
       {actions.onReply && (
         <ContextMenu.Item onClick={actions.onReply}>
           <div className="flex items-center gap-1">
-            <PiArrowBendUpLeftFill size={14} />
-            Reply
-          </div>
+            <PiArrowBendUpLeftFill size={14} />{socketI18n.t("socketFull.mediaContextMenu_9a52802256")}</div>
         </ContextMenu.Item>
       )}
       {actions.onOpenThread ? (
@@ -210,50 +203,41 @@ function MessageActionItems({ actions }: { actions: MessageActions }) {
             <PiChatsFill size={14} />
             {/* What is waiting beats how big it is. The reply count says the
                 thread is nine long, which is the same the tenth time you look
-                at it; the unread count is the reason to open it (GRYT-1026). */}
-            Open thread{actions.unreadCount
-              ? ` (${actions.unreadCount} new)`
+                at it; the unread count is the reason to open it (GRYT-1026). */}{socketI18n.t("socketFull.mediaContextMenu_4d9ab74e75")}{actions.unreadCount
+              ? socketI18n.t("socketFull.mediaContextMenu_af9d128825", { p0: (actions.unreadCount) })
               : actions.replyCount ? ` (${actions.replyCount})` : ""}
           </div>
         </ContextMenu.Item>
       ) : actions.onStartThread ? (
         <ContextMenu.Item onClick={actions.onStartThread}>
           <div className="flex items-center gap-1">
-            <PiChatsFill size={14} />
-            Start thread
-          </div>
+            <PiChatsFill size={14} />{socketI18n.t("socketFull.mediaContextMenu_aa41cfb084")}</div>
         </ContextMenu.Item>
       ) : null}
       {actions.onTogglePin && (
         <ContextMenu.Item onClick={actions.onTogglePin}>
           <div className="flex items-center gap-1">
             {actions.pinned ? <PiPushPinSlashFill size={14} /> : <PiPushPinFill size={14} />}
-            {actions.pinned ? "Unpin Message" : "Pin Message"}
+            {actions.pinned ? socketI18n.t("socketFull.mediaContextMenu_850a5b186d") : socketI18n.t("socketFull.mediaContextMenu_e2e5441ed1")}
           </div>
         </ContextMenu.Item>
       )}
       {actions.canEdit && actions.onEdit && (
         <ContextMenu.Item onClick={actions.onEdit}>
           <div className="flex items-center gap-1">
-            <PiPencilSimpleFill size={14} />
-            Edit Message
-          </div>
+            <PiPencilSimpleFill size={14} />{socketI18n.t("socketFull.mediaContextMenu_fc25a6dc1a")}</div>
         </ContextMenu.Item>
       )}
       {actions.onReport && (
         <ContextMenu.Item onClick={actions.onReport}>
           <div className="flex items-center gap-1">
-            <PiFlagFill size={14} />
-            Report
-          </div>
+            <PiFlagFill size={14} />{socketI18n.t("socketFull.mediaContextMenu_654eb38dad")}</div>
         </ContextMenu.Item>
       )}
       {actions.canDelete && actions.onDelete && (
         <ContextMenu.Item onClick={actions.onDelete}>
           <div className="flex items-center gap-1">
-            <PiTrashFill size={14} />
-            Delete Message
-          </div>
+            <PiTrashFill size={14} />{socketI18n.t("socketFull.mediaContextMenu_3f719800c2")}</div>
         </ContextMenu.Item>
       )}
     </>
@@ -268,6 +252,7 @@ export function MessageContextMenu({
   onReaction,
   serverHost,
 }: MessageContextMenuProps) {
+  useSocketTranslation();
   const hasMessageActions = messageActions && (
     messageActions.onReply || messageActions.onEdit || messageActions.onReport || messageActions.onDelete || messageActions.onTogglePin
   );

@@ -1,5 +1,7 @@
 import { Spinner } from "@gryt/ui";
 
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
+
 import { useSealedVideo } from "../hooks/useSealedVideo";
 import { useStableFileUrl } from "../hooks/useStableFileUrl";
 import { readBlobUrl } from "../utils/downloadFile";
@@ -27,6 +29,7 @@ export function MessageAttachment({
   chatMediaVolume: number;
   setChatMediaVolume: (v: number) => void;
 }) {
+  useSocketTranslation();
   const [url, refreshUrl] = useStableFileUrl(serverHost, fileId);
   const [thumbUrl, refreshThumb] = useStableFileUrl(serverHost, fileId, true);
   const mime = meta?.mime || "";
@@ -39,7 +42,7 @@ export function MessageAttachment({
   if (meta?.refused) {
     return (
       <div className="text-xs text-gryt-muted" style={{ padding: "8px 0" }}>
-        {fileName ? `${fileName} couldn't be processed, so it isn't shown.` : "This file couldn't be processed, so it isn't shown."}
+        {fileName ? socketI18n.t("socketFull.messageAttachment_f70032c7f1", { p0: (fileName) }) : socketI18n.t("socketFull.messageAttachment_7043187e8b")}
       </div>
     );
   }
@@ -55,11 +58,11 @@ export function MessageAttachment({
       >
         <ImageAttachment
           src={imgSrc}
-          alt={meta?.original_name || "Attachment"}
+          alt={meta?.original_name || socketI18n.t("socketFull.messageAttachment_6f6cfef69c")}
           width={meta?.width}
           height={meta?.height}
           onError={local ? undefined : refreshUrl}
-          onClick={() => onLightboxOpen(imgSrc, meta?.original_name || "Attachment")}
+          onClick={() => onLightboxOpen(imgSrc, meta?.original_name || socketI18n.t("socketFull.messageAttachment_6f6cfef69c"))}
         />
       </MessageContextMenu>
     );
@@ -130,6 +133,7 @@ function SealedVideoAttachment({
   volume: number;
   onVolumeChange: (v: number) => void;
 }) {
+  useSocketTranslation();
   const video = useSealedVideo(open);
   return (
     <MessageContextMenu media={{ open: video.file, fileName }} messageActions={messageActions}>
@@ -148,12 +152,13 @@ function SealedVideoAttachment({
 
 /** A loader in the attachment's own shape, over the sender's local copy when there is one. */
 function ProcessingAttachment({ meta }: { meta: AttachmentMeta }) {
+  useSocketTranslation();
   const w = meta.width && meta.height ? Math.min(320, meta.width) : 320;
   const h = meta.width && meta.height ? Math.round((w * meta.height) / meta.width) : 180;
   return (
     <div
       role="status"
-      aria-label="Processing attachment"
+      aria-label={socketI18n.t("socketFull.messageAttachment_077f3e232f")}
       className="relative flex items-center justify-center overflow-hidden rounded-(--gryt-radius-md)"
       style={{ width: w, height: Math.min(h, 360), background: "var(--gryt-neutral-3)" }}
     >
@@ -161,9 +166,7 @@ function ProcessingAttachment({ meta }: { meta: AttachmentMeta }) {
         <img src={meta.local_url} alt="" className="absolute inset-0 h-full w-full object-cover" style={{ opacity: 0.4 }} />
       )}
       <div className="relative flex items-center gap-2 text-xs">
-        <Spinner size={14} />
-        Processing…
-      </div>
+        <Spinner size={14} />{socketI18n.t("socketFull.messageAttachment_73b73a6384")}</div>
     </div>
   );
 }

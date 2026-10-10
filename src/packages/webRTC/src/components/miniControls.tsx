@@ -1,19 +1,19 @@
 import { IconButton } from "@gryt/ui";
 import { useCamera, useScreenShare, useSFU } from "@gryt/voice";
 import { AnimatePresence, motion, Variants } from "motion/react";
-import toast from "react-hot-toast";
 
 import { useTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 import { useServerManagement } from "@/socket";
 import { useServerPermissions } from "@/socket/src/hooks/usePermissions";
 
-import { PiMicrophoneFill, PiMicrophoneSlashFill, PiPhoneDisconnectFill, PiSpeakerHighFill, PiSpeakerSimpleHighFill, PiSpeakerSimpleSlashFill, PiSpeakerSlashFill } from "../../../../lib/icons";
+import { PiPhoneDisconnectFill, PiSpeakerSimpleHighFill, PiSpeakerSimpleSlashFill } from "../../../../lib/icons";
 import { useScreenAudioMute } from "../adapters/useScreenAudioMute";
 import { useVoicePresence } from "../adapters/useVoicePresence";
 import { CallControlButton, LEAVE_CLASS } from "./CallControlButton";
 import { CameraControl } from "./CameraControl";
 import { ScreenShareControl } from "./ScreenShareControl";
+import { VoiceAudioControls } from "./VoiceAudioControls";
 
 const buttonAnimations: Variants = {
   hidden: { opacity: 0, x: -15, transition: { duration: 0.1 } },
@@ -35,15 +35,7 @@ export function MiniControls({
   direction: "row" | "column";
 }) {
   const { t: tr } = useTranslation();
-  const {
-    isMuted,
-    setIsMuted,
-    isDeafened,
-    showVoiceView,
-    setIsDeafened,
-    isServerMuted,
-    isServerDeafened,
-  } = useSettings();
+  const { showVoiceView } = useSettings();
   
   const {
     currentlyViewingServer,
@@ -92,39 +84,7 @@ export function MiniControls({
             }}
           >
             <motion.div variants={buttonAnimations}>
-              <CallControlButton
-                state={isServerMuted ? "blocked" : isMuted ? "off" : "idle"}
-                aria-label={(isMuted || isServerMuted) ? tr("ui.unmuteMicrophone") : tr("ui.muteMicrophone")}
-                onClick={() => {
-                  if (isServerMuted) {
-                    toast(tr("ui.youAreServerMutedByAnAdmin"), { icon: <PiMicrophoneSlashFill size={18} />, id: "server-muted" });
-                    return;
-                  }
-                  setIsMuted(!isMuted);
-                }}
-              >
-                {(isMuted || isServerMuted) ? <PiMicrophoneSlashFill size={iconSize} /> : <PiMicrophoneFill size={iconSize} />}
-              </CallControlButton>
-            </motion.div>
-
-            <motion.div variants={buttonAnimations}>
-              <CallControlButton
-                state={isServerDeafened ? "blocked" : isDeafened ? "off" : "idle"}
-                aria-label={(isDeafened || isServerDeafened) ? tr("ui.undeafen") : tr("ui.deafen")}
-                onClick={() => {
-                  if (isServerDeafened) {
-                    toast(tr("ui.youAreServerDeafenedByAnAdmin"), { icon: <PiSpeakerSlashFill size={18} />, id: "server-deafened" });
-                    return;
-                  }
-                  setIsDeafened(!isDeafened);
-                }}
-              >
-                {(isDeafened || isServerDeafened) ? (
-                  <PiSpeakerSlashFill size={iconSize} />
-                ) : (
-                  <PiSpeakerHighFill size={iconSize} />
-                )}
-              </CallControlButton>
+              <VoiceAudioControls direction={direction} iconSize={iconSize} />
             </motion.div>
 
             {showCamera && (

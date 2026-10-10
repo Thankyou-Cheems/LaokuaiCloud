@@ -1,7 +1,10 @@
 import { Button, Checkbox, Chip, Menu, Select, Surface, TextField, Tooltip } from "@gryt/ui";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { Trans } from "react-i18next";
 import type { Socket } from "socket.io-client";
+
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 
 import { PiBootFill, PiDotsThreeVerticalBold, PiProhibitFill } from "../../../../lib/icons";
 import { useServerPermissions } from "../hooks/usePermissions";
@@ -22,7 +25,7 @@ const OWNER_ROLE = "owner";
 /** "Member and Moderator", the way somebody would read a list out loud. */
 function listNames(names: string[]): string {
   if (names.length < 2) return names.join("");
-  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+  return socketI18n.t("socketFull.serverRolesTab_83c1ee5826", { p0: (names.slice(0, -1).join(", ")), p1: (names[names.length - 1]) });
 }
 
 export function ServerRolesTab({
@@ -34,6 +37,7 @@ export function ServerRolesTab({
   socket?: Socket;
   accessToken: string | null;
 }) {
+  useSocketTranslation();
   const { memberLists, requestMemberList } = useSockets();
   // Memoised because the search reads it: `|| []` is a fresh array every render,
   // so the filter would re-run whether or not anything moved.
@@ -72,8 +76,8 @@ export function ServerRolesTab({
   const maySeeInvites = has("manage_invites");
 
   const refresh = () => {
-    if (!socket || !socket.connected) return toast.error("Not connected to the server yet.");
-    if (!accessToken) return toast.error("Join the server first.");
+    if (!socket || !socket.connected) return toast.error(socketI18n.t("socketFull.serverRolesTab_213e89eca7"));
+    if (!accessToken) return toast.error(socketI18n.t("socketFull.serverRolesTab_097a88ed92"));
     socket.emit("server:roles:list", { accessToken });
     if (maySeeInvites) socket.emit("server:members:invites", { accessToken });
     requestMemberList(host);
@@ -106,8 +110,8 @@ export function ServerRolesTab({
       // server had said anything.
       toast.success(
         held.length === 0
-          ? "No roles now."
-          : `Now ${listNames(held.map(nameOf))}.`,
+          ? socketI18n.t("socketFull.serverRolesTab_2b70e9378b")
+          : socketI18n.t("socketFull.serverRolesTab_e87518b7ad", { p0: (listNames(held.map(nameOf))) }),
       );
     },
   );
@@ -140,8 +144,8 @@ export function ServerRolesTab({
   });
 
   const revokeInvite = (code: string) => {
-    if (!socket || !socket.connected) return toast.error("Not connected to the server yet.");
-    if (!accessToken) return toast.error("Join the server first.");
+    if (!socket || !socket.connected) return toast.error(socketI18n.t("socketFull.serverRolesTab_213e89eca7"));
+    if (!accessToken) return toast.error(socketI18n.t("socketFull.serverRolesTab_097a88ed92"));
     socket.emit("server:invites:revoke", { accessToken, code });
   };
 
@@ -171,9 +175,9 @@ export function ServerRolesTab({
   }, [pendingKick, pendingBan]);
 
   const moderate = async (event: string, payload: Record<string, unknown>) => {
-    if (!socket || !socket.connected) return toast.error("Not connected to the server yet.");
+    if (!socket || !socket.connected) return toast.error(socketI18n.t("socketFull.serverRolesTab_213e89eca7"));
     const sent = await emitAuthenticated(socket, event, payload, host);
-    if (!sent) toast.error("Not signed in to this server — try reconnecting.");
+    if (!sent) toast.error(socketI18n.t("socketFull.serverRolesTab_798e633802"));
   };
 
   const rankOf = makeRankOf(definitions);
@@ -186,8 +190,8 @@ export function ServerRolesTab({
    * whole set, but sending it here makes every change a chance to drop one.
    */
   const send = (event: string, serverUserId: string, role: Role) => {
-    if (!socket || !socket.connected) return toast.error("Not connected to the server yet.");
-    if (!accessToken) return toast.error("Join the server first.");
+    if (!socket || !socket.connected) return toast.error(socketI18n.t("socketFull.serverRolesTab_213e89eca7"));
+    if (!accessToken) return toast.error(socketI18n.t("socketFull.serverRolesTab_097a88ed92"));
     setSubmitting(true);
     try {
       // No success toast. It used to fire before any acknowledgement, so cases
@@ -200,11 +204,7 @@ export function ServerRolesTab({
 
   return (
     <div className="flex flex-col gap-4">
-      <span className="text-sm text-gryt-muted">
-        Who holds which role. Somebody can hold several, and the roles add up. They can do
-        anything any of their roles allows. What each role can do is on the Role editor tab.
-        You can only give a role to somebody you outrank. And only roles below your own rank.
-      </span>
+      <span className="text-sm text-gryt-muted">{socketI18n.t("socketFull.serverRolesTab_3c291a19cc")}</span>
 
       <div className="flex items-end gap-2">
         <div className="flex-1">
@@ -212,18 +212,16 @@ export function ServerRolesTab({
             size="small"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder={`Search ${allMembers.length} ${allMembers.length === 1 ? "member" : "members"}`}
+            placeholder={socketI18n.t("socketFull.serverRolesTab_f3ed5a3dfc", { p0: (allMembers.length), count: (allMembers.length) })}
           />
         </div>
-        <Button tone="neutral" size="small" onClick={refresh} disabled={submitting}>
-          Refresh
-        </Button>
+        <Button tone="neutral" size="small" onClick={refresh} disabled={submitting}>{socketI18n.t("settingsFull.m56e3badc4e")}</Button>
       </div>
 
       <div className="flex flex-col gap-2">
         {members.length === 0 ? (
           <span className="text-sm text-gryt-muted">
-            {query.trim() ? `Nobody here matches "${query.trim()}".` : "No members found."}
+            {query.trim() ? socketI18n.t("socketFull.serverRolesTab_c5999d27f3", { p0: (query.trim()) }) : socketI18n.t("socketFull.serverRolesTab_088807c2a4")}
           </span>
         ) : (
           members.map((m) => {
@@ -274,7 +272,7 @@ export function ServerRolesTab({
                     </span>
                     <span className="text-xs text-gryt-muted">
                       ID: {m.serverUserId}
-                      {joined && <> · Joined {joined}</>}
+                      {joined && <>{" "}{socketI18n.t("socketFull.serverRolesTab_e2e4962e05")}{" "}{joined}</>}
                     </span>
 
                     {/* How they got in (GRYT-923).
@@ -287,7 +285,7 @@ export function ServerRolesTab({
                         on most rows. */}
                     {maySeeInvites && invitesAnswered && invite && (
                       <span className="flex items-center gap-1.5 text-xs">
-                        <span className="text-gryt-muted">Joined with</span>
+                        <span className="text-gryt-muted">{socketI18n.t("socketFull.serverRolesTab_522ee6f654")}</span>
                         {/* The note where there is one, because "Kari's
                             friends" is what an operator recognises and the code
                             is a random string. The code stays reachable on
@@ -304,7 +302,7 @@ export function ServerRolesTab({
                           </span>
                         </Tooltip>
                         {state!.reason && (
-                          <span className="text-gryt-muted">· {state!.reason}</span>
+                          <span className="text-gryt-muted">· {socketI18n.t(state!.reason === "deleted" ? "socketFull.inviteStateDeleted" : "socketFull.inviteStateRevoked")}</span>
                         )}
                         {!state!.dead && (
                           <Button
@@ -312,9 +310,7 @@ export function ServerRolesTab({
                             size="xsmall"
                             onClick={() => revokeInvite(invite.code)}
                             disabled={submitting}
-                          >
-                            Revoke
-                          </Button>
+                          >{socketI18n.t("socketFull.serverRolesTab_5c69d32723")}</Button>
                         )}
                       </span>
                     )}
@@ -324,7 +320,7 @@ export function ServerRolesTab({
                     {held.length === 0 && (
                       // Not an error. Somebody with no role falls back to what
                       // the server gives a new arrival, so "none" would be wrong.
-                      <span className="text-sm text-gryt-muted">Same as a new member</span>
+                      <span className="text-sm text-gryt-muted">{socketI18n.t("socketFull.serverRolesTab_7309fdbdd3")}</span>
                     )}
 
                     {held.map((r) => (
@@ -352,7 +348,7 @@ export function ServerRolesTab({
                           send("server:roles:add", m.serverUserId, String(v));
                         }}
                         options={available}
-                        placeholder="Give a role"
+                        placeholder={socketI18n.t("socketFull.serverRolesTab_a63aa88299")}
                         size="small"
                         disabled={submitting}
                       />
@@ -362,7 +358,7 @@ export function ServerRolesTab({
                       <Menu.Root>
                         <Menu.Trigger
                           render={
-                            <Button tone="ghost" size="small" aria-label={`Actions for ${m.nickname}`}>
+                            <Button tone="ghost" size="small" aria-label={socketI18n.t("socketFull.serverRolesTab_6053b89c60", { p0: (m.nickname) })}>
                               <PiDotsThreeVerticalBold size={16} />
                             </Button>
                           }
@@ -376,9 +372,7 @@ export function ServerRolesTab({
                                     setPendingKick({ id: m.serverUserId, nickname: m.nickname })
                                   }
                                 >
-                                  <PiBootFill size={16} />
-                                  Kick from server
-                                </Menu.Item>
+                                  <PiBootFill size={16} />{socketI18n.t("socketFull.serverRolesTab_0dded5d6fe")}</Menu.Item>
                               )}
                               {canBan && (
                                 <Menu.Item
@@ -387,9 +381,7 @@ export function ServerRolesTab({
                                     setPendingBan({ id: m.serverUserId, nickname: m.nickname })
                                   }
                                 >
-                                  <PiProhibitFill size={16} />
-                                  Ban from server
-                                </Menu.Item>
+                                  <PiProhibitFill size={16} />{socketI18n.t("socketFull.serverRolesTab_1548d2af72")}</Menu.Item>
                               )}
                             </Menu.Popup>
                           </Menu.Positioner>
@@ -409,9 +401,9 @@ export function ServerRolesTab({
       <ConfirmDialog
         open={!!pendingKick}
         onOpenChange={(open) => { if (!open) setPendingKick(null); }}
-        title={`Kick ${pendingKick?.nickname}?`}
-        description="They are disconnected and can join again straight away."
-        confirmLabel="Kick"
+        title={socketI18n.t("socketFull.serverRolesTab_66d1d932e0", { p0: (pendingKick?.nickname) })}
+        description={socketI18n.t("socketFull.serverRolesTab_ad8d5bd7a7")}
+        confirmLabel={socketI18n.t("socketFull.serverRolesTab_cf95f06020")}
         onConfirm={() => {
           if (!pendingKick) return;
           void moderate("server:kick", {
@@ -421,11 +413,11 @@ export function ServerRolesTab({
         }}
       >
         <div className="flex flex-col gap-1">
-          <span className="text-xs">Reason (optional — shown to them)</span>
+          <span className="text-xs">{socketI18n.t("socketFull.serverRolesTab_f0e4f1991f")}</span>
           <TextField
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="Spamming the general channel"
+            placeholder={socketI18n.t("socketFull.serverRolesTab_76b40f48f8")}
             maxLength={200}
           />
         </div>
@@ -440,11 +432,11 @@ export function ServerRolesTab({
       <ConfirmDialog
         open={!!pendingBan}
         onOpenChange={(open) => { if (!open) setPendingBan(null); }}
-        title={`Ban ${pendingBan?.nickname}?`}
-        description="They are removed and cannot rejoin until the ban lifts."
-        confirmLabel="Ban"
+        title={socketI18n.t("socketFull.serverRolesTab_2351ec68d9", { p0: (pendingBan?.nickname) })}
+        description={socketI18n.t("socketFull.serverRolesTab_0eec141d18")}
+        confirmLabel={socketI18n.t("socketFull.serverRolesTab_19b2282d14")}
         confirmPhrase={pendingBan?.nickname}
-        confirmPhraseLabel={<>Type <strong>{pendingBan?.nickname}</strong> to confirm</>}
+        confirmPhraseLabel={<><Trans i18n={socketI18n} i18nKey="socketFull.typeBanNameToConfirm" values={{ name: pendingBan?.nickname ?? "" }} components={{ name: <strong /> }} /></>}
         onConfirm={() => {
           if (!pendingBan) return;
           const minutes = BAN_DURATIONS.find((d) => d.value === banDuration)?.minutes ?? null;
@@ -458,16 +450,16 @@ export function ServerRolesTab({
         }}
       >
         <div className="flex flex-col gap-1">
-          <span className="text-xs">Reason (optional — shown to them)</span>
+          <span className="text-xs">{socketI18n.t("socketFull.serverRolesTab_f0e4f1991f")}</span>
           <TextField
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="Repeated harassment after a warning"
+            placeholder={socketI18n.t("socketFull.serverRolesTab_7d741eb2d5")}
             maxLength={200}
           />
         </div>
         <div className="flex flex-col gap-1">
-          <span className="text-xs">Duration</span>
+          <span className="text-xs">{socketI18n.t("socketFull.serverRolesTab_3ccbc2fee3")}</span>
           <Select
             value={banDuration}
             onValueChange={(v) => setBanDuration(String(v))}
@@ -478,14 +470,9 @@ export function ServerRolesTab({
           <Checkbox
             checked={banDeleteContent}
             onCheckedChange={(v) => setBanDeleteContent(v === true)}
-          />
-          Delete their messages and reactions
-        </label>
+          />{socketI18n.t("socketFull.serverRolesTab_bef0b9847d")}</label>
         {!banDeleteContent && (
-          <span className="text-xs text-gryt-muted">
-            Their messages stay. Unbanning restores access but never restores
-            deleted messages, so this is the only chance to keep them.
-          </span>
+          <span className="text-xs text-gryt-muted">{socketI18n.t("socketFull.serverRolesTab_ada4dfed4f")}</span>
         )}
       </ConfirmDialog>
     </div>

@@ -1,11 +1,13 @@
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
+
 import { PiChatCircleFill, PiChatsFill, PiRobotFill, PiSpeakerHighFill } from "../../../../lib/icons";
 import type { ChannelKind } from "./channelKind";
 
 const KINDS: { key: ChannelKind; label: string; desc: string; Icon: typeof PiChatCircleFill }[] = [
-  { key: "chat", label: "Chat", desc: "Normal real-time messages.", Icon: PiChatCircleFill },
-  { key: "voice", label: "Voice", desc: "Talk and screen share.", Icon: PiSpeakerHighFill },
-  { key: "forum", label: "Forum", desc: "Topics you can browse and solve.", Icon: PiChatsFill },
-  { key: "automated", label: "Automated", desc: "Only bots and the system post.", Icon: PiRobotFill },
+  { key: "chat", get label() { return socketI18n.t("ui.chat"); }, get desc() { return socketI18n.t("socketFull.channelKindPicker_3708a43a21"); }, Icon: PiChatCircleFill },
+  { key: "voice", get label() { return socketI18n.t("ui.voice"); }, get desc() { return socketI18n.t("socketFull.channelKindPicker_c9b5e5d0ef"); }, Icon: PiSpeakerHighFill },
+  { key: "forum", get label() { return socketI18n.t("socketFull.channelKindPicker_ebed11a746"); }, get desc() { return socketI18n.t("socketFull.channelKindPicker_60c1ee4e31"); }, Icon: PiChatsFill },
+  { key: "automated", get label() { return socketI18n.t("socketFull.channelKindPicker_2d062ce2ce"); }, get desc() { return socketI18n.t("socketFull.channelKindPicker_1de5fcaf46"); }, Icon: PiRobotFill },
 ];
 
 export function ChannelKindPicker({
@@ -15,6 +17,7 @@ export function ChannelKindPicker({
   value: ChannelKind;
   onChange: (kind: ChannelKind) => void;
 }) {
+  useSocketTranslation();
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
       {KINDS.map(({ key, label, desc, Icon }) => {

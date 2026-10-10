@@ -10,6 +10,7 @@ import type { MemberKeyState } from "@/common";
 import { singletonHook } from "@/common";
 import { effectiveContactPrefs, ensureSchemeKnown, getOwnServerUserId, getServerAccessToken, getServerRefreshToken, getServerWsBase, removeServerAccessToken, removeServerRefreshToken, useUnreadBadge, useUserId } from "@/common";
 import { initKeycloak } from "@/common/src/auth/keycloak";
+import { i18n as socketHooksI18n, useTranslation as useSocketHooksTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 import { useServerSettings } from "@/settings/src/hooks/useServerSettings";
 import { railEntriesJustStarted } from "@/settings/src/hostedServerRail";
@@ -29,6 +30,7 @@ import { watchFriendTraffic } from "../utils/friendList";
 import { RECONNECT_GRACE_MS, watchReconnects } from "../utils/reconnectGrace";
 import { replayReconnect, retryNow } from "../utils/retryNow";
 import { guardSocket, serverProofErrorMessage, serverProofHelpUrl } from "../utils/serverAuth";
+import { socketHookToast } from "../utils/socketHookMessages";
 import { syncAvatarToHost } from "../utils/syncAvatarToHost";
 import { getTokenExpiryTime } from "../utils/tokenManager";
 import { refreshDelayMs, RETRY_DELAY_MS } from "../utils/tokenRefreshSchedule";
@@ -45,6 +47,7 @@ type Sockets = { [host: string]: Socket };
 
 function useSocketsHook() {
   const userId = useUserId();
+  useSocketHooksTranslation();
   const [sockets, setSockets] = useState<Sockets>({});
   const [tokenRevision, setTokenRevision] = useState(0);
   const [identityReady, setIdentityReady] = useState(false);
@@ -97,7 +100,7 @@ function useSocketsHook() {
   const [serverProfiles, setServerProfiles] = useState<Record<string, ServerProfile>>({});
   const [serverConnectionStatus, setServerConnectionStatus] = useState<Record<string, 'connected' | 'disconnected' | 'connecting' | 'reconnecting' | 'refused'>>({});
   // Why a server was refused, so the UI can say it rather than guessing.
-  const [refusalReason, setRefusalReason] = useState<Record<string, string>>({});
+  const [refusalReason, setRefusalReason] = useState<Record<string, () => string>>({});
   // Kept beside the sentence rather than baked into it, so the card can render
   // a real link and the toast can stay plain text.
   const [refusalHelpUrl, setRefusalHelpUrl] = useState<Record<string, string>>({});
@@ -344,10 +347,10 @@ function useSocketsHook() {
           // Not 'disconnected': saying a server "may be offline" when we refused
           // it on purpose sends somebody debugging the wrong thing.
           setServerConnectionStatus(prev => ({ ...prev, [host]: 'refused' }));
-          setRefusalReason(prev => ({ ...prev, [host]: serverProofErrorMessage(decision) }));
+          setRefusalReason(prev => ({ ...prev, [host]: () => serverProofErrorMessage(decision) }));
           const helpUrl = serverProofHelpUrl(decision);
           if (helpUrl) setRefusalHelpUrl(prev => ({ ...prev, [host]: helpUrl }));
-          toast.error(serverProofErrorMessage(decision), { id: toastId, duration: 12000 });
+          toast.error(socketHookToast(() => serverProofErrorMessage(decision)), { id: toastId, duration: 12000 });
         });
 
         socket.on("connect", () => {
@@ -399,7 +402,7 @@ function useSocketsHook() {
           },
           onReconnected: (wasShown) => {
             setServerConnectionStatus(prev => ({ ...prev, [host]: 'connected' }));
-            if (wasShown) toast.success(`Reconnected to ${serverName}`, { id: toastId });
+            if (wasShown) toast.success(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useSockets_bf0324b600", { p0: serverName })), { id: toastId });
             socket.emit("server:details");
             socket.emit("members:fetch");
             /* Unconditionally too, for a reconnect with no stash to restore, where
@@ -761,12 +764,12 @@ function useSocketsHook() {
   const leaveServer = (host: string) => {
     const socket = sockets[host];
     if (!socket) {
-      toast.error(`Not connected to ${host}, so it cannot be told you are leaving.`);
+      toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useSockets_a5d949d2aa", { p0: host })));
       return;
     }
 
     const toastId = `leave-${host}`;
-    toast.loading(`Leaving ${host}...`, { id: toastId });
+    toast.loading(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useSockets_38308a98c6", { p0: host })), { id: toastId });
 
     let settled = false;
     const finish = () => {
@@ -781,7 +784,7 @@ function useSocketsHook() {
       finish();
       removeServerAccessToken(host);
       removeServerRefreshToken(host);
-      toast.success(`Left ${host}`, { id: toastId });
+      toast.success(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useSockets_e23f476dbd", { p0: host })), { id: toastId });
       // The sidebar entry lives in useServerManagement, which this layer cannot
       // reach. Same event a kick uses, and it does the same job.
       window.dispatchEvent(new CustomEvent("server_force_remove", { detail: { host } }));
@@ -799,14 +802,14 @@ function useSocketsHook() {
       const message =
         typeof info === "string" ? info : info?.message || "The server refused.";
       finish();
-      toast.error(message, { id: toastId, duration: 8000 });
+      toast.error(socketHookToast(() => message), { id: toastId, duration: 8000 });
     };
 
     const timer = setTimeout(() => {
       if (settled) return;
       finish();
       toast.error(
-        `${host} did not answer, so you are still a member. Try again, or remove it from the sidebar.`,
+        socketHookToast(() => socketHooksI18n.t("socketHooksFull.useSockets_5f1d4601f3", { p0: host })),
         { id: toastId, duration: 8000 },
       );
     }, 8000);
@@ -816,7 +819,7 @@ function useSocketsHook() {
     socket.emit("server:leave");
   };
 
-  return { sockets, serverDetailsList, clients, memberLists, memberKeyStates, serverProfiles, setServerProfiles, getChannelDetails, requestMemberList, failedServerDetails, serverConnectionStatus, refusalReason, refusalHelpUrl, reconnectServer, leaveServer, tokenRevision };
+  return { sockets, serverDetailsList, clients, memberLists, memberKeyStates, serverProfiles, setServerProfiles, getChannelDetails, requestMemberList, failedServerDetails, serverConnectionStatus, refusalReason: Object.fromEntries(Object.entries(refusalReason).map(([host, read]) => [host, read()])), refusalHelpUrl, reconnectServer, leaveServer, tokenRevision };
 }
 
 export const useSockets = singletonHook(

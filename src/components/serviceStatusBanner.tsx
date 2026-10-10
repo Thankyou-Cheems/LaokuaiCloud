@@ -2,6 +2,8 @@ import { IconButton } from "@gryt/ui";
 import type { Icon } from "@phosphor-icons/react";
 import { useEffect, useState, useSyncExternalStore } from "react";
 
+import { i18n, LocalizedText, useTranslation } from "@/i18n";
+
 import { getGrytConfig } from "../config";
 import {
   PiCheckCircleFill,
@@ -59,6 +61,7 @@ const OFFLINE =
  * day has nothing that breaks when the account services go down.
  */
 export function ServiceStatusBanner() {
+  useTranslation();
   const { isSignedIn } = useAccount();
   const [banner, setBanner] = useState<ServiceBanner | null>(null);
   const launchTrouble = useSyncExternalStore(subscribeLaunchTrouble, getLaunchTrouble);
@@ -177,7 +180,7 @@ export function ServiceStatusBanner() {
         style={{ flexShrink: 0, color: `var(--gryt-${tone}-11)` }}
       />
       <span className="text-xs" style={{ color: `var(--gryt-${tone}-11)` }}>
-        {message}
+        {banner.kind === "announced" ? message : i18n.t(banner.kind === "offline" ? "shellFull.serviceStatusBanner_tsx_5ffd7dcb7e" : "shellFull.serviceStatusBanner_tsx_ef898ec298")}
         {/* No status page to open without a connection. */}
         {banner.kind !== "offline" && (
           <>
@@ -188,16 +191,14 @@ export function ServiceStatusBanner() {
               href={STATUS_PAGE}
               target="_blank"
               rel="noreferrer"
-            >
-              Status page
-            </a>
+            >{<LocalizedText translationKey="shellFull.serviceStatusBanner_tsx_accb5cd52e" />}</a>
           </>
         )}
       </span>
       <IconButton
         tone="ghost"
         size="xsmall"
-        aria-label="Dismiss"
+        aria-label={i18n.t("shellFull.serviceStatusBanner_tsx_70afe9eff3")}
         style={{ marginLeft: "auto", flexShrink: 0 }}
         onClick={() => {
           localStorage.setItem(DISMISSED_KEY, message);

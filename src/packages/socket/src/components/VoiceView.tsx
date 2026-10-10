@@ -28,6 +28,7 @@ import {
 } from "react";
 import toast from "react-hot-toast";
 
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 import { useTranslation } from "@/i18n";
 import { setReceiveAudioGain } from "@/lib/receiveAudio";
 import { useSettings } from "@/settings";
@@ -217,6 +218,7 @@ function SortableParticipant({
   id: string;
   children: ReactNode;
 }) {
+  useSocketTranslation();
   const {
     attributes,
     listeners,
@@ -302,6 +304,7 @@ export const VoiceView = ({
   isMaximized?: boolean;
   onToggleMaximize?: () => void;
 }) => {
+  useSocketTranslation();
   const { t: tr } = useTranslation();
   const {
     showPeerLatency,
@@ -547,14 +550,7 @@ export const VoiceView = ({
 
       return isInThisChannel || isUserConnecting;
     });
-  }, [
-    clientsForHost,
-    currentServerConnected,
-    serverHost,
-    currentConnectionId,
-    isConnecting,
-    currentChannelId,
-  ]);
+  }, [clientsForHost, currentServerConnected, serverHost, currentConnectionId, isConnecting, currentChannelId]);
 
   /** Counts `visibleClients`, so this means the same as "the panel is drawing one
       tile". Not while connecting, where the tile is your own placeholder. */
@@ -639,14 +635,7 @@ export const VoiceView = ({
     }
 
     return result;
-  }, [
-    videoStreams,
-    visibleClients,
-    clientsForHost,
-    currentConnectionId,
-    currentServerConnected,
-    serverHost,
-  ]);
+  }, [videoStreams, visibleClients, clientsForHost, currentConnectionId, currentServerConnected, serverHost]);
 
   const gridItems = useMemo(() => {
     const items: string[] = [];
@@ -675,14 +664,7 @@ export const VoiceView = ({
     }
 
     return items;
-  }, [
-    visibleClients,
-    clientsForHost,
-    currentConnectionId,
-    localScreenActive,
-    localScreenStream,
-    videoStreams,
-  ]);
+  }, [visibleClients, clientsForHost, currentConnectionId, localScreenActive, localScreenStream, videoStreams]);
 
   const {
     poppedOutItems,
@@ -829,13 +811,7 @@ export const VoiceView = ({
         return settings.width / settings.height;
     }
     return 16 / 9;
-  }, [
-    screenItems,
-    currentConnectionId,
-    localScreenStream,
-    videoStreams,
-    clientsForHost,
-  ]);
+  }, [screenItems, currentConnectionId, localScreenStream, videoStreams, clientsForHost]);
 
   const shareLayout =
     screenItems.length > 0 && usableWidth > 0 && availableHeight > 0
@@ -864,12 +840,7 @@ export const VoiceView = ({
     if (shareLayout?.orientation === "strip-above")
       return SHARE_STRIP_MAX_SLOTS;
     return gridCapacity(usableWidth, gridAreaHeight, prioritisedPeople.length);
-  }, [
-    shareLayout?.orientation,
-    usableWidth,
-    gridAreaHeight,
-    prioritisedPeople.length,
-  ]);
+  }, [shareLayout?.orientation, usableWidth, gridAreaHeight, prioritisedPeople.length]);
 
   // When everyone does not fit, the last slot becomes the "+N" tile rather
   // than a person, so the count sits inside the layout instead of over it.
@@ -1118,7 +1089,7 @@ export const VoiceView = ({
           +{hiddenCount}
         </span>
         <span className="text-xs" style={{ color: "var(--gryt-neutral-11)" }}>
-          {hiddenCount === 1 ? "other" : "others"}
+          {hiddenCount === 1 ? socketI18n.t("socketFull.voiceView_f5528d0195") : socketI18n.t("socketFull.voiceView_a77c92658c")}
         </span>
       </div>
     </motion.div>
@@ -1248,8 +1219,7 @@ export const VoiceView = ({
             }}
           >
             <span>
-              {tr("ui.youReTheOnlyOneHereEndingThe")} {secondsLeft}s.
-            </span>
+              {tr("ui.youReTheOnlyOneHereEndingThe")} {secondsLeft}{socketI18n.t("socketFull.voiceView_d30a6d5556")}</span>
             <Button tone="neutral" size="xsmall" onClick={stayInCall}>
               {tr("ui.stayInTheCall")}
             </Button>

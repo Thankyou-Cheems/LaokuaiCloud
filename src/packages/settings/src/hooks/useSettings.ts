@@ -9,6 +9,7 @@ import {
   setStoredAvatar,
   useUserId,
 } from "@/common";
+import { i18n } from "@/i18n";
 
 import { getElectronAPI, isElectron, type RichPresenceSocketStatus } from "../../../../lib/electron";
 import type { RichActivity } from "../../../../lib/richActivity";
@@ -260,7 +261,7 @@ function useSettingsHook() {
       } catch {
         return;
       }
-      toast(heldNotice(status.holder.name), { duration: 12_000, id: "rich-presence-held" });
+      toast(heldNotice(status.holder.name, (key, values) => i18n.t(key, values)), { duration: 12_000, id: "rich-presence-held" });
     };
     let cardRevision = 0;
     const drop = api.onRichPresenceChanged((card) => {

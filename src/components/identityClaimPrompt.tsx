@@ -2,6 +2,7 @@ import { Button, Dialog } from "@gryt/ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { getClaimDecision, getGuestVisit, identityScopeFor, useAccount } from "@/common";
+import { i18n, LocalizedText, useTranslation } from "@/i18n";
 import { useServerManagement } from "@/socket";
 
 import { useIdentityClaim } from "../hooks/useIdentityClaim";
@@ -11,6 +12,7 @@ import { useIdentityClaim } from "../hooks/useIdentityClaim";
  * **The proof is also the disclosure**, so the question has to be local (GRYT-285).
  */
 export function IdentityClaimPrompt() {
+  useTranslation();
   const { isSignedIn } = useAccount();
   const { currentlyViewingServer } = useServerManagement();
   const { claim, decline } = useIdentityClaim();
@@ -66,41 +68,21 @@ export function IdentityClaimPrompt() {
           initialFocus={popup}
           className="w-[36rem] max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-2rem)] overflow-y-auto outline-none"
         >
-          <Dialog.Title>Were you here as a guest before?</Dialog.Title>
+          <Dialog.Title>{<LocalizedText translationKey="shellFull.identityClaimPrompt_tsx_e985c0cfef" />}</Dialog.Title>
           <Dialog.Description className="mt-2 mb-3">
-            Someone on this device used{" "}
-            <span className="text-gryt-text">{serverName}</span> as a guest
-            before you signed in.
-            {lastUsed !== null && <> The last time was {formatLastUsed(lastUsed)}.</>}
+            {i18n.t("shellFull.previousGuest", { server: serverName })}
+            {lastUsed !== null && <>{i18n.t("shellFull.guestLastUsed", { date: formatLastUsed(lastUsed) })}</>}
           </Dialog.Description>
-          <p className="mb-3 text-sm">
-            You can move that guest to your account. Your account then gets the
-            guest&rsquo;s name, picture, roles and messages on this server. If
-            the guest owns the server, your account will own it instead.
-          </p>
-          <p className="mb-3 text-sm text-gryt-muted">
-            Only say yes if that was you. On a shared computer, it might be
-            someone else. You can&rsquo;t undo this, and the server will know
-            the guest was you.
-          </p>
-          <p className="mb-4 text-sm text-gryt-muted">
-            If you say no, the guest and your account stay separate. You can
-            still move it later by right-clicking the server and picking
-            &ldquo;I&rsquo;ve used this server before&rdquo;.
-          </p>
+          <p className="mb-3 text-sm">{<LocalizedText translationKey="shellFull.identityClaimPrompt_tsx_a6ae6a2c20" />}</p>
+          <p className="mb-3 text-sm text-gryt-muted">{<LocalizedText translationKey="shellFull.identityClaimPrompt_tsx_52ded8ef0a" />}</p>
+          <p className="mb-4 text-sm text-gryt-muted">{<LocalizedText translationKey="shellFull.identityClaimPrompt_tsx_f367028eac" />}</p>
           {/* Stacked with Yes on top when the card is narrow. In the DOM, Ask me
               later comes first, so Tab reaches it before either answer. */}
           <div className="@container">
             <div className="flex flex-col-reverse gap-2 @min-[33rem]:flex-row @min-[33rem]:flex-wrap @min-[33rem]:items-center @min-[33rem]:justify-end">
-              <Button tone="ghost" size="small" className="@min-[33rem]:mr-auto" onClick={postpone}>
-                Ask me later
-              </Button>
-              <Button tone="neutral" size="small" onClick={() => answer("no")}>
-                No, keep them separate
-              </Button>
-              <Button size="small" onClick={() => answer("yes")}>
-                Yes, move it to my account
-              </Button>
+              <Button tone="ghost" size="small" className="@min-[33rem]:mr-auto" onClick={postpone}>{<LocalizedText translationKey="shellFull.identityClaimPrompt_tsx_43623d0322" />}</Button>
+              <Button tone="neutral" size="small" onClick={() => answer("no")}>{<LocalizedText translationKey="shellFull.identityClaimPrompt_tsx_333fb56eb0" />}</Button>
+              <Button size="small" onClick={() => answer("yes")}>{<LocalizedText translationKey="shellFull.identityClaimPrompt_tsx_d5ea82f372" />}</Button>
             </div>
           </div>
         </Dialog.Popup>
@@ -119,7 +101,7 @@ const postponed = new Set<string>();
 function formatLastUsed(epochMs: number): string {
   const date = new Date(epochMs);
   const sameYear = date.getFullYear() === new Date().getFullYear();
-  return date.toLocaleDateString(undefined, {
+  return date.toLocaleDateString(i18n.resolvedLanguage, {
     day: "numeric",
     month: "long",
     ...(sameYear ? {} : { year: "numeric" }),

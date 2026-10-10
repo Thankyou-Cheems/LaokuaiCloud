@@ -10,6 +10,7 @@ import { useSettings } from "@/settings";
 
 import { PiArrowsClockwiseFill, PiWarningFill } from "../../../../lib/icons";
 import { ReceiveLevelingSettings } from "./receiveLevelingSettings";
+import { ReceiveVolumeSetting } from "./ReceiveVolumeSetting";
 import { SettingGroup, SettingsContainer, SliderSetting, ToggleSetting } from "./settingsComponents";
 
 /** Visualizer refresh rate. 30 fps is plenty for a level meter. */
@@ -51,8 +52,6 @@ export function AudioSettings() {
     setOutputDeviceID,
     micVolume,
     setMicVolume,
-    outputVolume,
-    setOutputVolume,
     noiseGate,
     setNoiseGate,
     noiseGateRelease,
@@ -314,6 +313,10 @@ export function AudioSettings() {
   return (
     <SettingsContainer>
       <h2>{tr("ui.audio")}</h2>
+
+      <span className="font-bold text-gryt-muted">{tr("receiveVolume.common")}</span>
+      <ReceiveVolumeSetting anchorId="output-volume" />
+      <Divider />
 
       {/* First, because it decides what the rest of this section even shows:
           push to talk hides the noise gate below. It used to live further down
@@ -599,19 +602,6 @@ export function AudioSettings() {
       <Divider />
 
       <ReceiveLevelingSettings />
-
-      {/* ── Output ── */}
-      <span className="font-bold text-gryt-muted">{tr("ui.output")}</span>
-
-      <SliderSetting
-        anchorId="output-volume" title={tr("audio.outputVolume", { value: outputVolume })}
-        description={tr("ui.volumeOfAllIncomingAudio100Unchanged200")}
-        value={outputVolume}
-        onChange={setOutputVolume}
-        max={MAX_VOLUME_PERCENT}
-      />
-
-      <Divider />
 
       {/* ── Screen Share ── */}
       <span className="font-bold text-gryt-muted">{tr("ui.screenShareVariant")}</span>

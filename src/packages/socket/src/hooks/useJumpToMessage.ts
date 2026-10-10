@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
+import { i18n as socketHooksI18n } from "@/i18n";
+
 import type { ChatMessage } from "../components/chatUtils";
+import { socketHookToast } from "../utils/socketHookMessages";
 import type { OpenAtResult } from "./useHistoryWindow";
 
 /* Older pages to load looking for a message before giving up: 1,000 messages at 50 a page.
@@ -40,7 +43,7 @@ export function useJumpToMessage({
   const finish = useCallback((found: boolean) => {
     pending.current = null;
     if (found) toast.dismiss(TOAST_ID);
-    else toast.error("Couldn't find that message in this conversation's history.", { id: TOAST_ID });
+    else toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useJumpToMessage_f6f16a22c6")), { id: TOAST_ID });
   }, []);
 
   const jumpToMessage = useCallback(
@@ -56,7 +59,7 @@ export function useJumpToMessage({
           return;
         }
         pending.current = { id: messageId, pages: 0, lastAt: 0 };
-        toast.loading("Looking further back…", { id: TOAST_ID });
+        toast.loading(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useJumpToMessage_89dc90c70c")), { id: TOAST_ID });
         setTick((t) => t + 1);
       };
       if (!openAt) {
@@ -70,7 +73,7 @@ export function useJumpToMessage({
         if (result === "window") setTick((t) => t + 1);
         else if (result === "missing") {
           pending.current = null;
-          toast.error("That message isn't there any more.", { id: TOAST_ID });
+          toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useJumpToMessage_18398a05ec")), { id: TOAST_ID });
         } else searchOlder();
       });
     },

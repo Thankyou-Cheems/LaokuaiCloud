@@ -1,8 +1,10 @@
 import { Button, Chip, IconButton, TextField } from "@gryt/ui";
 import { type ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { Trans } from "react-i18next";
 
 import { getServerAccessToken } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 
 import { PiUploadSimpleFill, PiX } from "../../../../lib/icons";
 import { useEmojiUpload } from "../hooks/useEmojiUpload";
@@ -43,6 +45,7 @@ export function ServerEmojisTab({
   };
   accessToken: string | null;
 }) {
+  useSocketTranslation();
   const [emojis, setEmojis] = useState<EmojiItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [emojiMaxBytes, setEmojiMaxBytes] = useState<number>(DEFAULT_MAX_EMOJI_BYTES);
@@ -62,14 +65,14 @@ export function ServerEmojisTab({
       // Null is a refused read rather than an empty server. This is the screen
       // somebody is on while importing, where empty reads as "they are gone".
       if (!list) {
-        toast.error("Could not refresh the list just now. Nothing has been lost.");
+        toast.error(socketI18n.t("socketFull.serverEmojisTab_7bf2a5cc70"));
         return;
       }
       setEmojis(list);
       setCustomEmojis(list, host);
     } catch (err) {
       console.error("[EmojiUpload] refresh: failed to fetch emojis:", err);
-      toast.error("Failed to fetch emojis.");
+      toast.error(socketI18n.t("socketFull.serverEmojisTab_7e6eb42b87"));
     } finally {
       setLoading(false);
     }
@@ -132,25 +135,18 @@ export function ServerEmojisTab({
 
   return (
     <div className="flex flex-col gap-4">
-      <span className="text-sm text-gryt-muted">
-        Upload custom emojis for this server. Members can use them with{" "}
-        <code>:name:</code> syntax.
-      </span>
+      <span className="text-sm text-gryt-muted"><Trans i18n={socketI18n} i18nKey="socketFull.emojiSyntaxExplanation" components={{ code: <code /> }} /></span>
 
       <div className="flex flex-col gap-3 p-3" style={{
           border: "1px solid var(--gryt-neutral-a5)",
           borderRadius: "var(--gryt-radius-sm)",
         }}>
         <div className="flex justify-between items-center">
-          <span className="text-sm font-medium">
-            Upload new emojis
-          </span>
+          <span className="text-sm font-medium">{socketI18n.t("socketFull.serverEmojisTab_208f7f6909")}</span>
           <Button tone="neutral" size="xsmall"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-          >
-            Choose files
-          </Button>
+          >{socketI18n.t("socketFull.serverEmojisTab_818b505a3e")}</Button>
           <input
             ref={fileInputRef}
             type="file"
@@ -169,12 +165,10 @@ export function ServerEmojisTab({
             lastSelectSummary.skippedZipEmpty;
           if (skippedTotal === 0) return null;
           const parts: string[] = [];
-          if (lastSelectSummary.tooLargeExamples.length > 0) parts.push(`Too large: ${lastSelectSummary.tooLargeExamples.join(", ")}`);
-          if (lastSelectSummary.unsupportedExamples.length > 0) parts.push(`Unsupported: ${lastSelectSummary.unsupportedExamples.join(", ")}`);
+          if (lastSelectSummary.tooLargeExamples.length > 0) parts.push(socketI18n.t("socketFull.serverEmojisTab_075485e818", { p0: (lastSelectSummary.tooLargeExamples.join(", ")) }));
+          if (lastSelectSummary.unsupportedExamples.length > 0) parts.push(socketI18n.t("socketFull.serverEmojisTab_d5402ff1c1", { p0: (lastSelectSummary.unsupportedExamples.join(", ")) }));
           return (
-            <span className="text-xs" color="yellow">
-              Skipped {skippedTotal} item(s) from your selection{parts.length > 0 ? ` (${parts.join(" · ")})` : ""}.
-            </span>
+            <span className="text-xs" color="yellow"><Trans i18n={socketI18n} i18nKey="socketFull.skippedEmojiSelection" values={{ count: skippedTotal, details: parts.length > 0 ? ` (${parts.join(" · ")})` : "" }} count={skippedTotal} /></span>
           );
         })()}
 
@@ -191,13 +185,13 @@ export function ServerEmojisTab({
                 >
                   <img
                     src={p.previewUrl}
-                    alt="preview"
+                    alt={socketI18n.t("socketFull.serverEmojisTab_76ad887224")}
                     className="emoji-upload-preview-img"
                   />
                   {(p.status === "uploading" || p.status === "processing") && (
                     <div className="emoji-upload-preview-overlay" aria-hidden="true">
                       <div className="emoji-upload-preview-label">
-                        {p.status === "processing" ? "Converting…" : `${p.progress}%`}
+                        {p.status === "processing" ? socketI18n.t("socketFull.serverEmojisTab_4067ea905e") : `${p.progress}%`}
                       </div>
                       <div className="emoji-upload-preview-bar">
                         <div className="emoji-upload-preview-bar-inner"
@@ -212,7 +206,7 @@ export function ServerEmojisTab({
                     size="small"
                     value={p.name}
                     onChange={(e: ChangeEvent<HTMLInputElement>) => updatePendingName(p.id, e.target.value)}
-                    placeholder="shortcode"
+                    placeholder={socketI18n.t("socketFull.serverEmojisTab_aaeb320dc5")}
                     disabled={uploading || p.status === "uploading"}
                   />
                   {p.nameError && (
@@ -232,12 +226,10 @@ export function ServerEmojisTab({
                   </span>
                 )}
                 {p.status === "error" && (
-                  <span className="text-xs text-gryt-danger" style={{ flexShrink: 0 }}>
-                    Failed
-                  </span>
+                  <span className="text-xs text-gryt-danger" style={{ flexShrink: 0 }}>{socketI18n.t("socketFull.serverEmojisTab_3add46c398")}</span>
                 )}
                 <IconButton tone="ghost" size="xsmall"
-                  title="Upload this emoji"
+                  title={socketI18n.t("socketFull.serverEmojisTab_7c7911cdb0")}
                   disabled={uploading || !!p.nameError || p.status === "uploading"}
                   onClick={() => handleUploadSingle(p.id)}
                   style={{ cursor: "pointer", flexShrink: 0 }}
@@ -245,7 +237,7 @@ export function ServerEmojisTab({
                   <PiUploadSimpleFill size={14} />
                 </IconButton>
                 <IconButton tone="danger" size="xsmall"
-                  title="Remove"
+                  title={socketI18n.t("ui.remove")}
                   disabled={uploading}
                   onClick={() => removePending(p.id)}
                   style={{ cursor: "pointer", flexShrink: 0 }}
@@ -262,14 +254,12 @@ export function ServerEmojisTab({
             <Button tone="neutral" size="xsmall"
               disabled={uploading}
               onClick={clearAllPending}
-            >
-              Clear all
-            </Button>
+            >{socketI18n.t("socketFull.serverEmojisTab_4635d64ccf")}</Button>
             <Button size="xsmall"
               disabled={uploading || uploadableCount === 0}
               onClick={() => handleUploadAll(effectiveAccessToken)}
             >
-              {uploading ? "Uploading..." : `Upload all (${uploadableCount})`}
+              {uploading ? socketI18n.t("ui.uploading") : socketI18n.t("socketFull.serverEmojisTab_6768e97181", { p0: (uploadableCount) })}
             </Button>
           </div>
         )}
@@ -281,9 +271,7 @@ export function ServerEmojisTab({
             borderRadius: "var(--gryt-radius-sm)",
             background: "color-mix(in oklab, var(--gryt-warning-9) 5%, transparent)",
           }}>
-          <span className="text-sm font-medium">
-            Processing {queueJobs.length} emoji{queueJobs.length !== 1 ? "s" : ""}…
-          </span>
+          <span className="text-sm font-medium"><Trans i18n={socketI18n} i18nKey="socketFull.processingEmojiQueue" values={{ count: queueJobs.length }} count={queueJobs.length} /></span>
           {queueJobs.map((j) => (
             <div className="flex justify-between items-center gap-2" key={j.job_id}>
               <span className="text-sm" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>

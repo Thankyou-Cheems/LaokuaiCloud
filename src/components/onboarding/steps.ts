@@ -1,3 +1,4 @@
+import { i18n } from "@/i18n";
 /* Hallmark · component: coach-mark tour · genre: modern-minimal · theme: @gryt/ui
  * states: default · hover · focus · active · disabled · loading · error · success */
 
@@ -39,8 +40,8 @@ export const tourSteps: TourStep[] = [
   {
     id: "menu",
     target: "profile",
-    title: "Everything about you is here",
-    body: "Your profile, your settings, and signing in when you want to. Bottom left, always.",
+    get title() { return i18n.t("shellFull.steps_ts_770c23505e"); },
+    get body() { return i18n.t("shellFull.steps_ts_de756a1faf"); },
     side: "right",
     // Closes anything a re-run of the tour left open, so step one always starts
     // from the same place.
@@ -52,8 +53,8 @@ export const tourSteps: TourStep[] = [
   {
     id: "profile",
     target: "profile-editor",
-    title: "Pick a name and a face",
-    body: "A nickname, and a picture if you want one. Neither is permanent, and you can change them whenever.",
+    get title() { return i18n.t("shellFull.steps_ts_2d1508faa5"); },
+    get body() { return i18n.t("shellFull.steps_ts_9a58e5a232"); },
     side: "right",
     // The honest route: the avatar opens its menu, and Settings is in the menu.
     // Nothing here is simulated — these are the two presses a person makes.
@@ -62,8 +63,8 @@ export const tourSteps: TourStep[] = [
   {
     id: "account",
     target: "account-signin",
-    title: "An account, if you ever want one",
-    body: "You do not need one. It carries your servers and settings between machines, and that is the only thing it is for.",
+    get title() { return i18n.t("shellFull.steps_ts_85f13eeaee"); },
+    get body() { return i18n.t("shellFull.steps_ts_34d82ed6d2"); },
     side: "right",
     // Already inside Settings, so this is one press on the destination itself.
     via: ["settings-account"],
@@ -73,8 +74,8 @@ export const tourSteps: TourStep[] = [
   {
     id: "server",
     target: "add-server",
-    title: "Gryt is empty until you join a server",
-    body: "This is where you add one, whether it is a friend's or your own.",
+    get title() { return i18n.t("shellFull.steps_ts_c309e01814"); },
+    get body() { return i18n.t("shellFull.steps_ts_bee0d1750d"); },
     side: "right",
     // The panel closing needs a cause too, or it vanishes as abruptly as it
     // arrived. The cursor presses the same X the user would.
@@ -83,8 +84,8 @@ export const tourSteps: TourStep[] = [
   {
     id: "join",
     target: "join-address",
-    title: "Paste an invite to join",
-    body: "A friend's invite link goes straight in here, and a plain address works too. No account needed, and you can leave again whenever you like.",
+    get title() { return i18n.t("shellFull.steps_ts_516b22a5df"); },
+    get body() { return i18n.t("shellFull.steps_ts_a874622306"); },
     side: "top",
     // Two hops now that the dialog asks which errand you are on: open it, then
     // choose Join. The cursor makes the same choice a person would.

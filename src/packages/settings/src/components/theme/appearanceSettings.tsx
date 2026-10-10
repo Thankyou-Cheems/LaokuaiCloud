@@ -4,6 +4,7 @@ import { PencilSimple } from "@phosphor-icons/react";
 import { useMemo } from "react";
 
 import { useCustomThemes, useTheme, useThemeEditor } from "@/common";
+import { i18n, useTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 
 import { SettingGroup, SettingsContainer } from "../settingsComponents";
@@ -14,13 +15,14 @@ import { ThemeLibrary } from "./themeLibrary";
  * makes you apply it and look, so the theme list draws each one.
  */
 export function ThemeSettings() {
+  const { t } = useTranslation();
   const { appearancePreference, setAppearancePreference } = useTheme();
 
   const appearanceOptions = useMemo(() => [
-    { value: "system", label: "System" },
-    { value: "light", label: "Light" },
-    { value: "dark", label: "Dark" },
-  ], []);
+    { value: "system", label: t("settingsFull.mbc0792d8dc") },
+    { value: "light", label: t("settingsFull.ma36ef8aba2") },
+    { value: "dark", label: t("settingsFull.mae1ef01432") },
+  ], [t]);
 
   const { googleFontsEnabled, setGoogleFontsEnabled } = useSettings();
 
@@ -29,10 +31,10 @@ export function ThemeSettings() {
 
   return (
     <SettingsContainer>
-      <h2 className="text-lg">Theme</h2>
+      <h2 className="text-lg">{i18n.t("ui.theme")}</h2>
 
       <div className="flex flex-col gap-2">
-        <span className="font-medium text-sm">Mode</span>
+        <span className="font-medium text-sm">{i18n.t("settingsFull.ma7b93d2128")}</span>
         <RadioGroup
           value={appearancePreference}
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -52,8 +54,9 @@ export function ThemeSettings() {
           is the whole palette — every anchor, both appearances, the corner
           radius. */}
       <SettingGroup
-        title="Theme"
-        description="Pick one, or open the editor and change it while you use the app. A theme is a couple of dozen hex values, so a link is the whole thing — paste one somebody sent you, or send yours."
+        anchorId="theme"
+        title={i18n.t("ui.theme")}
+        description={i18n.t("settingsFull.m3358a44f27")}
       >
         <ThemeLibrary />
         {/* Opens on whatever is being worn, so the first thing the editor
@@ -66,14 +69,8 @@ export function ThemeSettings() {
             size="small"
             tone="neutral"
           >
-            <PencilSimple aria-hidden="true" size={15} />
-            Open editor
-          </Button>
-          <p className="m-0 pt-2 text-xs text-gryt-muted">
-            The editor floats over Gryt and follows every change as you make
-            it. Drag it out of the way to see what a colour does to the part
-            underneath.
-          </p>
+            <PencilSimple aria-hidden="true" size={15} />{i18n.t("settingsFull.ma3b05f435a")}</Button>
+          <p className="m-0 pt-2 text-xs text-gryt-muted">{i18n.t("settingsFull.m0bb478671b")}</p>
         </div>
       </SettingGroup>
 
@@ -81,16 +78,15 @@ export function ThemeSettings() {
           privacy in general — somebody arrives here having picked a font in
           the editor and been told it will not load. */}
       <SettingGroup
-        title="Typefaces from Google"
-        description="A theme can name any typeface. Turning this on lets Gryt fetch the ones that are not already on this machine from fonts.google.com, which means Google sees your address and that you are running Gryt. Off, a theme that names one of those falls back to a face you already have."
+        anchorId="typefaces-from-google"
+        title={i18n.t("settingsFull.mb4ffdc1212")}
+        description={i18n.t("settingsFull.me5556ad653")}
       >
         <label className="flex cursor-pointer items-center gap-3 text-sm">
           <Switch
             checked={googleFontsEnabled}
             onCheckedChange={setGoogleFontsEnabled}
-          />
-          Enable Google Fonts
-        </label>
+          />{i18n.t("settingsFull.m2f6b1d3add")}</label>
       </SettingGroup>
 
     </SettingsContainer>

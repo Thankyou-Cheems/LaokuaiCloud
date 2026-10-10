@@ -3,7 +3,7 @@ import type { ScreenShareFps, ScreenShareQuality } from "@gryt/voice";
 import { estimateBitrate, EXPERIMENTAL_FPS_OPTIONS, STANDARD_FPS_OPTIONS } from "@gryt/voice";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { useTranslation } from "@/i18n";
+import { i18n, LocalizedText, useTranslation } from "@/i18n";
 import type { ScalabilityMode, ScreenShareCodec } from "@/settings";
 
 import { type DesktopSource, isElectron } from "../../../../lib/electron";
@@ -52,14 +52,14 @@ const ALL_QUALITY_OPTIONS: { value: ScreenShareQuality; label: string; height: n
 ];
 
 const CODEC_OPTIONS: { value: ScreenShareCodec; label: string; mime: string }[] = [
-  { value: "auto", label: "Auto (H.264)", mime: "" },
+  { value: "auto", get label() { return i18n.t("shellFull.ScreenSharePickerModal_tsx_f7a8abf022"); }, mime: "" },
   { value: "h264", label: "H.264", mime: "video/H264" },
   { value: "vp9", label: "VP9", mime: "video/VP9" },
   { value: "av1", label: "AV1", mime: "video/AV1" },
 ];
 
 const BITRATE_OPTIONS: { value: number; label: string }[] = [
-  { value: 0, label: "Auto" },
+  { value: 0, get label() { return i18n.t("shellFull.ScreenSharePickerModal_tsx_c614ba7c45"); } },
   { value: 1_000_000, label: "1 Mbps" },
   { value: 2_000_000, label: "2 Mbps" },
   { value: 4_000_000, label: "4 Mbps" },
@@ -73,9 +73,9 @@ const BITRATE_OPTIONS: { value: number; label: string }[] = [
 ];
 
 const SVC_OPTIONS: { value: ScalabilityMode; label: string }[] = [
-  { value: "L1T1", label: "Off (L1T1)" },
-  { value: "L1T2", label: "2 layers (L1T2)" },
-  { value: "L1T3", label: "3 layers (L1T3)" },
+  { value: "L1T1", get label() { return i18n.t("shellFull.ScreenSharePickerModal_tsx_ff44420ee0"); } },
+  { value: "L1T2", get label() { return i18n.t("shellFull.ScreenSharePickerModal_tsx_cad292377c"); } },
+  { value: "L1T3", get label() { return i18n.t("shellFull.ScreenSharePickerModal_tsx_36fae6680d"); } },
 ];
 
 function getAvailableCodecs(): ScreenShareCodec[] {
@@ -118,7 +118,8 @@ export function ScreenSharePickerModal({
   mode = "start",
   onStart,
 }: ScreenSharePickerModalProps) {
-  const { t: tr } = useTranslation();
+  const { t: tr, i18n: languageSubscription } = useTranslation();
+  const language = languageSubscription.resolvedLanguage;
   const switching = mode === "switch";
   const [sources, setSources] = useState<DesktopSource[]>([]);
   const [loading, setLoading] = useState(false);
@@ -172,7 +173,7 @@ export function ScreenSharePickerModal({
   const selectedSource = sources.find((s) => s.id === selected);
   const qualityOptions = useMemo(() => {
     const nativeOpt: { value: ScreenShareQuality; label: string }[] = [
-      { value: "native", label: selectedSource?.height ? `Native (${selectedSource.width}\u00d7${selectedSource.height})` : "Native" },
+      { value: "native", label: selectedSource?.height ? i18n.t("shellFull.ScreenSharePickerModal_tsx_8399363604", { lng: language, value0: selectedSource.width, value1: selectedSource.height }) : i18n.t("shellFull.ScreenSharePickerModal_tsx_4fc6e7f740", { lng: language }) },
     ];
     const sourceHeight = selectedSource?.height;
     const filtered = sourceHeight
@@ -182,7 +183,7 @@ export function ScreenSharePickerModal({
     const selectedOption = ALL_QUALITY_OPTIONS.find(o => o.value === quality);
     if (selectedOption && !filtered.some(o => o.value === quality)) filtered.push(selectedOption);
     return [...nativeOpt, ...filtered];
-  }, [selectedSource, quality]);
+  }, [selectedSource, quality, language]);
 
   const fpsOptions = useMemo(() => {
     const options: { value: ScreenShareFps; label: string; disabled: boolean }[] = STANDARD_FPS_OPTIONS.map(
@@ -190,9 +191,9 @@ export function ScreenSharePickerModal({
         const needsNative = f > 60;
         const disabled = needsNative && !nativeScreenCaptureAvailable;
         let label = `${f} FPS`;
-        if (needsNative && nativeScreenCaptureAvailable) label += " (Native)";
-        else if (needsNative && !inElectron) label += " (Desktop app)";
-        else if (needsNative) label += " (Unavailable)";
+        if (needsNative && nativeScreenCaptureAvailable) label += i18n.t("shellFull.ScreenSharePickerModal_tsx_7f3d7ff065", { lng: language });
+        else if (needsNative && !inElectron) label += i18n.t("shellFull.ScreenSharePickerModal_tsx_776be75642", { lng: language });
+        else if (needsNative) label += i18n.t("shellFull.ScreenSharePickerModal_tsx_d5fec560f2", { lng: language });
         return { value: f, label, disabled };
       },
     );
@@ -201,14 +202,14 @@ export function ScreenSharePickerModal({
         const needsNative = f > 60;
         const disabled = needsNative && !nativeScreenCaptureAvailable;
         let label = `${f} FPS`;
-        if (needsNative && nativeScreenCaptureAvailable) label += " (Native)";
-        else if (needsNative && !inElectron) label += " (Desktop app)";
-        else if (needsNative) label += " (Unavailable)";
+        if (needsNative && nativeScreenCaptureAvailable) label += i18n.t("shellFull.ScreenSharePickerModal_tsx_7f3d7ff065", { lng: language });
+        else if (needsNative && !inElectron) label += i18n.t("shellFull.ScreenSharePickerModal_tsx_776be75642", { lng: language });
+        else if (needsNative) label += i18n.t("shellFull.ScreenSharePickerModal_tsx_d5fec560f2", { lng: language });
         options.push({ value: f, label, disabled });
       }
     }
     return options;
-  }, [experimentalScreenShare, nativeScreenCaptureAvailable, inElectron]);
+  }, [experimentalScreenShare, nativeScreenCaptureAvailable, inElectron, language]);
 
   const estimatedBps = useMemo(
     () => estimateBitrate(quality, fps),
@@ -231,7 +232,7 @@ export function ScreenSharePickerModal({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <PiScreencastFill size={16} />
-              <Dialog.Title>{switching ? "Share something else" : "Share your screen"}</Dialog.Title>
+              <Dialog.Title>{switching ? i18n.t("shellFull.ScreenSharePickerModal_tsx_cbf3b15d27") : i18n.t("shellFull.ScreenSharePickerModal_tsx_a72f69f37a")}</Dialog.Title>
             </div>
             <Dialog.Close>
               <IconButton tone="ghost" size="xsmall" onClick={() => onOpenChange(false)}>
@@ -244,15 +245,11 @@ export function ScreenSharePickerModal({
             <Button size="xsmall"
               onClick={() => setTab("screens")}
             >
-              <PiMonitorFill size={14} />
-              Screens
-            </Button>
+              <PiMonitorFill size={14} />{<LocalizedText translationKey="shellFull.ScreenSharePickerModal_tsx_ac0c7c727e" />}</Button>
             <Button size="xsmall"
               onClick={() => setTab("windows")}
             >
-              <PiSquaresFourFill size={14} />
-              Windows
-            </Button>
+              <PiSquaresFourFill size={14} />{<LocalizedText translationKey="shellFull.ScreenSharePickerModal_tsx_26d9c28d78" />}</Button>
           </div>}
 
           {screenAccess !== null && screenAccess !== "granted" && (
@@ -261,19 +258,14 @@ export function ScreenSharePickerModal({
                 background: "var(--gryt-warning-3)",
                 border: "1px solid var(--gryt-warning-6)",
               }}>
-              <span className="text-sm text-gryt-warning" style={{ flex: 1 }}>
-                macOS requires Screen Recording permission. Grant access for Gryt in{" "}
-                <strong>System Settings &rarr; Privacy &amp; Security &rarr; Screen Recording</strong>,
-                then restart the app.
-              </span>
+              <span className="text-sm text-gryt-warning" style={{ flex: 1 }}>{<LocalizedText translationKey="shellFull.ScreenSharePickerModal_tsx_4d91595ad9" />}{" "}
+                <strong>{<LocalizedText translationKey="shellFull.ScreenSharePickerModal_tsx_9d601e973d" />}</strong>{<LocalizedText translationKey="shellFull.ScreenSharePickerModal_tsx_4aaa0c4cee" />}</span>
               <Button tone="neutral" size="xsmall"
                 style={{ flexShrink: 0 }}
                 onClick={() => window.electronAPI?.openExternal(
                   "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture",
                 )}
-              >
-                Open Settings
-              </Button>
+              >{<LocalizedText translationKey="shellFull.ScreenSharePickerModal_tsx_134635e9a2" />}</Button>
             </div>
           )}
 
@@ -287,13 +279,11 @@ export function ScreenSharePickerModal({
             }}
           >
             {loading && sources.length === 0 && (
-              <span className="text-sm text-gryt-muted" style={{ gridColumn: "1 / -1", textAlign: "center", padding: 24 }}>
-                Loading sources...
-              </span>
+              <span className="text-sm text-gryt-muted" style={{ gridColumn: "1 / -1", textAlign: "center", padding: 24 }}>{<LocalizedText translationKey="shellFull.ScreenSharePickerModal_tsx_2ebe7123dc" />}</span>
             )}
             {!loading && filteredSources.length === 0 && (
               <span className="text-sm text-gryt-muted" style={{ gridColumn: "1 / -1", textAlign: "center", padding: 24 }}>
-                No {tab === "screens" ? "screens" : "windows"} found
+                {tab === "screens" ? i18n.t("shellFull.noScreens") : i18n.t("shellFull.noWindows")}
               </span>
             )}
             {filteredSources.map((src) => (
@@ -321,7 +311,7 @@ export function ScreenSharePickerModal({
                   {selected === src.id && (
                     <Chip tone="secondary"
                       style={{ position: "absolute", top: 4, right: 4 }}
-                     label="Selected" />
+                     label={i18n.t("shellFull.ScreenSharePickerModal_tsx_9a976fc228")} />
                   )}
                 </div>
                 <div className="flex items-center gap-1 px-1">
@@ -337,23 +327,19 @@ export function ScreenSharePickerModal({
           </div> : <p className="text-sm text-gryt-muted">{tr("ui.chooseScreenInBrowser")}</p>}
 
           <div className="flex items-center gap-4 flex-wrap">
-            <Tooltip title="Capture desktop/application audio alongside the screen">
+            <Tooltip title={i18n.t("shellFull.ScreenSharePickerModal_tsx_2c8f845bfc")}>
               <label className="text-sm" style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
-                <Checkbox checked={includeAudio} onCheckedChange={(v) => setIncludeAudio(v === true)} />
-                Include audio
-              </label>
+                <Checkbox checked={includeAudio} onCheckedChange={(v) => setIncludeAudio(v === true)} />{<LocalizedText translationKey="shellFull.ScreenSharePickerModal_tsx_10308c7566" />}</label>
             </Tooltip>
 
-            <Tooltip title="Optimizes for fast-paced content like games. Allocates 50% more bitrate for smoother motion.">
+            <Tooltip title={i18n.t("shellFull.ScreenSharePickerModal_tsx_c2349faa69")}>
               <label className="text-sm" style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
-                <Checkbox checked={gamingMode} onCheckedChange={(v) => onGamingModeChange(v === true)} />
-                Gaming mode
-              </label>
+                <Checkbox checked={gamingMode} onCheckedChange={(v) => onGamingModeChange(v === true)} />{<LocalizedText translationKey="shellFull.ScreenSharePickerModal_tsx_b85086dd9c" />}</label>
             </Tooltip>
 
             <div className="flex min-w-0 items-center gap-2 ml-auto">
-              <Tooltip title="Capture resolution. Lower values use less bandwidth.">
-                <span className="text-sm" style={{ cursor: "help", textDecoration: "underline", textDecorationStyle: "dotted", textUnderlineOffset: 3 }}>Quality</span>
+              <Tooltip title={i18n.t("shellFull.ScreenSharePickerModal_tsx_b7afdfa3cb")}>
+                <span className="text-sm" style={{ cursor: "help", textDecoration: "underline", textDecorationStyle: "dotted", textUnderlineOffset: 3 }}>{<LocalizedText translationKey="shellFull.ScreenSharePickerModal_tsx_a60f2c7360" />}</span>
               </Tooltip>
               <Select
                 className="min-w-0"
@@ -364,8 +350,8 @@ export function ScreenSharePickerModal({
             </div>
 
             <div className="flex min-w-0 items-center gap-2">
-              <Tooltip title="Frames per second. Values above 60 use native DXGI screen capture (Windows desktop app only) to bypass browser FPS limits.">
-                <span className="text-sm" style={{ cursor: "help", textDecoration: "underline", textDecorationStyle: "dotted", textUnderlineOffset: 3 }}>FPS</span>
+              <Tooltip title={i18n.t("shellFull.ScreenSharePickerModal_tsx_6cdaa55c4e")}>
+                <span className="text-sm" style={{ cursor: "help", textDecoration: "underline", textDecorationStyle: "dotted", textUnderlineOffset: 3 }}>{<LocalizedText translationKey="shellFull.ScreenSharePickerModal_tsx_fce204ae55" />}</span>
               </Tooltip>
               <Select
                 className="min-w-0"
@@ -381,7 +367,7 @@ export function ScreenSharePickerModal({
           </div>
 
           {includeAudio && (
-            <span className="text-xs text-gryt-muted">{audioScopeHint(currentPlatform(), selected)}</span>
+            <span className="text-xs text-gryt-muted">{audioScopeHint(currentPlatform(), selected, i18n)}</span>
           )}
 
           {/* Codec and SVC layers are fixed once the share's sender exists, so a switch can't change them. */}
@@ -390,9 +376,7 @@ export function ScreenSharePickerModal({
               onClick={() => setShowAdvanced(v => !v)}
               style={{ alignSelf: "flex-start", cursor: "pointer" }}
             >
-              {showAdvanced ? <PiCaretUpFill size={14} /> : <PiCaretDownFill size={14} />}
-              Advanced
-            </Button>
+              {showAdvanced ? <PiCaretUpFill size={14} /> : <PiCaretDownFill size={14} />}{<LocalizedText translationKey="shellFull.ScreenSharePickerModal_tsx_4d06472695" />}</Button>
 
             {showAdvanced && (
               <div className="flex flex-col gap-3 px-3 py-3" style={{
@@ -401,8 +385,8 @@ export function ScreenSharePickerModal({
                 }}>
                 <div className="flex items-center gap-4 flex-wrap">
                   <div className="flex items-center gap-2">
-                    <Tooltip title="H.264 has the widest hardware support. VP9/AV1 offer better compression but need newer GPUs (RTX 40+, Intel Arc, AMD RX 7000+).">
-                      <span className="text-sm" style={{ cursor: "help", textDecoration: "underline", textDecorationStyle: "dotted", textUnderlineOffset: 3 }}>Codec</span>
+                    <Tooltip title={i18n.t("shellFull.ScreenSharePickerModal_tsx_4bf87851fb")}>
+                      <span className="text-sm" style={{ cursor: "help", textDecoration: "underline", textDecorationStyle: "dotted", textUnderlineOffset: 3 }}>{<LocalizedText translationKey="shellFull.ScreenSharePickerModal_tsx_a336769a99" />}</span>
                     </Tooltip>
                     <Select
                       value={codec}
@@ -414,8 +398,8 @@ export function ScreenSharePickerModal({
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <Tooltip title="Fixed encoding bitrate. Auto estimates based on resolution and FPS. Higher values mean sharper video but require more upload bandwidth.">
-                      <span className="text-sm" style={{ cursor: "help", textDecoration: "underline", textDecorationStyle: "dotted", textUnderlineOffset: 3 }}>Bitrate</span>
+                    <Tooltip title={i18n.t("shellFull.ScreenSharePickerModal_tsx_fb92b3710f")}>
+                      <span className="text-sm" style={{ cursor: "help", textDecoration: "underline", textDecorationStyle: "dotted", textUnderlineOffset: 3 }}>{<LocalizedText translationKey="shellFull.ScreenSharePickerModal_tsx_d153e75080" />}</span>
                     </Tooltip>
                     <Select
                       value={String(maxBitrate)}
@@ -429,10 +413,10 @@ export function ScreenSharePickerModal({
 
                   <div className="flex items-center gap-2" style={svcDisabled ? { opacity: 0.5 } : undefined}>
                     <Tooltip title={svcDisabled
-                      ? "SVC is not supported with H.264. Switch to VP9 or AV1 to enable temporal scalability layers."
-                      : "Temporal scalability layers (VP9/AV1 only). Encodes multiple frame-rate tiers into a single stream."
+                      ? i18n.t("shellFull.ScreenSharePickerModal_tsx_fadba030f2")
+                      : i18n.t("shellFull.ScreenSharePickerModal_tsx_bc289d3d61")
                     }>
-                      <span className="text-sm" style={{ cursor: "help", textDecoration: "underline", textDecorationStyle: "dotted", textUnderlineOffset: 3 }}>SVC layers</span>
+                      <span className="text-sm" style={{ cursor: "help", textDecoration: "underline", textDecorationStyle: "dotted", textUnderlineOffset: 3 }}>{<LocalizedText translationKey="shellFull.ScreenSharePickerModal_tsx_139764b90d" />}</span>
                     </Tooltip>
                     <Select
                       value={scalabilityMode}
@@ -456,9 +440,9 @@ export function ScreenSharePickerModal({
                 borderRadius: "var(--gryt-radius-sm)",
                 background: "var(--gryt-success-3)",
               }}>
-              <Chip tone="success" label="Native capture" />
+              <Chip tone="success" label={i18n.t("shellFull.ScreenSharePickerModal_tsx_fa0682af73")} />
               <span className="text-xs text-gryt-success">
-                DXGI Desktop Duplication will be used for {fps} FPS capture
+                {i18n.t("shellFull.dxgiCapture", { fps })}
               </span>
             </div>
           )}
@@ -469,7 +453,7 @@ export function ScreenSharePickerModal({
                 background: "var(--gryt-neutral-3)",
               }}>
               <span className="text-sm font-medium">
-                {maxBitrate > 0 ? "Bitrate:" : "Estimated bitrate:"}
+                {maxBitrate > 0 ? i18n.t("shellFull.ScreenSharePickerModal_tsx_fa1da0b1bf") : i18n.t("shellFull.ScreenSharePickerModal_tsx_da41c3c391")}
               </span>
               <Chip tone="neutral"
                 color={bitrateColor(maxBitrate > 0 ? maxBitrate : estimatedBps!)}
@@ -477,9 +461,7 @@ export function ScreenSharePickerModal({
                 {formatBitrate(maxBitrate > 0 ? maxBitrate : estimatedBps!)}
               </Chip>
               {(maxBitrate > 0 ? maxBitrate : estimatedBps!) / 1_000_000 > 30 && (
-                <span className="text-xs text-gryt-danger">
-                  Very high &mdash; ensure your connection can handle this
-                </span>
+                <span className="text-xs text-gryt-danger">{<LocalizedText translationKey="shellFull.ScreenSharePickerModal_tsx_0c6f5894cd" />}</span>
               )}
             </div>
           )}
@@ -488,18 +470,14 @@ export function ScreenSharePickerModal({
                 borderRadius: "var(--gryt-radius-sm)",
                 background: "var(--gryt-neutral-3)",
               }}>
-              <span className="text-sm text-gryt-muted">
-                Bandwidth varies by source resolution (native mode)
-              </span>
+              <span className="text-sm text-gryt-muted">{<LocalizedText translationKey="shellFull.ScreenSharePickerModal_tsx_28b4743693" />}</span>
             </div>
           )}
 
           <div className="flex flex-wrap justify-end gap-2">
-            <Button tone="neutral" size="small" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
+            <Button tone="neutral" size="small" onClick={() => onOpenChange(false)}>{<LocalizedText translationKey="shellFull.ScreenSharePickerModal_tsx_77dfd2135f" />}</Button>
             <Button size="small" onClick={handleShare} disabled={inElectron && !selected}>
-              {switching ? "Switch" : "Share"}
+              {switching ? i18n.t("shellFull.ScreenSharePickerModal_tsx_3e44c92042") : i18n.t("shellFull.ScreenSharePickerModal_tsx_09ca55ca52")}
             </Button>
           </div>
         </div>

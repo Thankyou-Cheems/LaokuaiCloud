@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 
 import type { SavedTheme } from "@/common";
 import { presetThemeId, useCustomThemes, useTheme } from "@/common";
+import { i18n, useTranslation } from "@/i18n";
 
 import {
   PiCheckBold,
@@ -31,6 +32,7 @@ const PRESET_PREFIX = "preset:";
  * @gryt/ui. Only the collection holding the theme in use starts open.
  */
 export function ThemeLibrary() {
+  useTranslation();
   const { themes, activeId, setActiveTheme, deleteTheme } = useCustomThemes();
   const { resolvedAppearance } = useTheme();
   const [importing, setImporting] = useState(false);
@@ -102,8 +104,8 @@ export function ThemeLibrary() {
             <CollectionTrigger
               accents={themes.map((entry) => entry.theme.hue.accent)}
               count={themes.length}
-              name={YOURS}
-              note="Imported from a link."
+              name={i18n.t("settingsFull.m755844bc39")}
+              note={i18n.t("settingsFull.mb3e3edffc0")}
             />
             <Accordion.Panel>
               <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
@@ -113,7 +115,7 @@ export function ThemeLibrary() {
                       active={activeId === entry.id}
                       appearance={resolvedAppearance}
                       name={entry.name}
-                      note="Imported"
+                      note={i18n.t("settingsFull.m434eb26f48")}
                       theme={entry.theme}
                       onCopyLink={() => copyLink(entry)}
                       onDelete={() => deleteTheme(entry.id)}
@@ -129,17 +131,13 @@ export function ThemeLibrary() {
       </Accordion>
 
       <div className="flex flex-wrap items-center gap-3 pt-1">
-        <Button size="small" onClick={() => setImporting(true)}>
-          Import a theme
-        </Button>
+        <Button size="small" onClick={() => setImporting(true)}>{i18n.t("settingsFull.mbeb1a9c2f4")}</Button>
         <a
           className="gryt-link text-xs"
           href={GENERATOR}
           rel="noreferrer"
           target="_blank"
-        >
-          Make one
-        </a>
+        >{i18n.t("settingsFull.ma30f68113d")}</a>
       </div>
 
       <ImportThemeDialog open={importing} onOpenChange={setImporting} />
@@ -158,6 +156,7 @@ function CollectionTrigger({
   name: string;
   note: string;
 }) {
+  useTranslation();
   return (
     <Accordion.Trigger>
       <span className="flex min-w-0 flex-1 items-center gap-3">
@@ -196,8 +195,8 @@ function copyLink(entry: SavedTheme) {
     ?.writeText(url)
     // The link opens the generator with the theme loaded, so "copied" is only
     // half of what happened and the other half is the useful half.
-    .then(() => toast.success("Link copied — it opens in the generator"))
-    .catch(() => toast.error("Could not copy the link"));
+    .then(() => toast.success(i18n.t("settingsFull.m996ab16b8d")))
+    .catch(() => toast.error(i18n.t("settingsFull.m7a456d6f43")));
 }
 
 /**
@@ -205,6 +204,7 @@ function copyLink(entry: SavedTheme) {
  * almost invisibly; this is the same ratio at a size you can see.
  */
 function RadiusGlyph({ radius }: { radius: GrytTheme["radius"] }) {
+  useTranslation();
   return (
     <span
       className="flex shrink-0 items-center gap-1.5 text-gryt-muted"
@@ -243,6 +243,7 @@ function ThemeRow({
   onOpenInGenerator?: () => void;
   onDelete?: () => void;
 }) {
+  useTranslation();
   const [confirming, setConfirming] = useState(false);
 
   return (
@@ -279,13 +280,13 @@ function ThemeRow({
         <RadiusGlyph radius={theme.radius} />
 
         {active ? (
-          <PiCheckBold aria-label="In use" className="shrink-0 text-gryt-accent-11" />
+          <PiCheckBold aria-label={i18n.t("settingsFull.m20716e9262")} className="shrink-0 text-gryt-accent-11" />
         ) : null}
       </button>
 
       {onOpenInGenerator ? (
         <Button
-          aria-label={`Open ${name} in the theme generator`}
+          aria-label={i18n.t("settingsFull.ma70e43913d", { value0: name })}
           size="xsmall"
           tone="ghost"
           onClick={onOpenInGenerator}
@@ -296,7 +297,7 @@ function ThemeRow({
 
       {onCopyLink ? (
         <Button
-          aria-label={`Copy a link to ${name}`}
+          aria-label={i18n.t("settingsFull.mcb6486a17f", { value0: name })}
           size="xsmall"
           tone="ghost"
           onClick={onCopyLink}
@@ -308,7 +309,7 @@ function ThemeRow({
       {onDelete ? (
         <>
           <Button
-            aria-label={`Delete ${name}`}
+            aria-label={i18n.t("settingsFull.mea5388f12a", { value0: name })}
             size="xsmall"
             tone="ghost"
             onClick={() => setConfirming(true)}
@@ -318,10 +319,10 @@ function ThemeRow({
           <ConfirmDialog
             open={confirming}
             onOpenChange={setConfirming}
-            title={`Delete ${name}?`}
-            description="The theme is only on this machine. If you have the link it came from you can import it again; if you do not, this is the only copy."
-            confirmLabel="Delete"
-            cancelLabel="Keep it"
+            title={i18n.t("settingsFull.m9b216b8c0c", { value0: name })}
+            description={i18n.t("settingsFull.mb56d54bcd8")}
+            confirmLabel={i18n.t("ui.delete")}
+            cancelLabel={i18n.t("settingsFull.md9f3692497")}
             width="420px"
             onConfirm={onDelete}
           />

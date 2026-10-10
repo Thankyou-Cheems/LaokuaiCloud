@@ -12,6 +12,7 @@ import {
   setGrantedCapabilities,
 } from "@/addons";
 import { useAddons } from "@/addons";
+import { i18n, useTranslation } from "@/i18n";
 
 import { getElectronAPI, isElectron } from "../../../../lib/electron";
 import { PiFolderFill } from "../../../../lib/icons";
@@ -116,6 +117,7 @@ function AddonCard({
   onToggle: () => void;
   update?: AddonUpdate;
 }) {
+  useTranslation();
   const isTheme = addon.type === "theme";
   const bannerUrl = useAddonAssetUrl(addon.id, addon.banner);
 
@@ -145,18 +147,16 @@ function AddonCard({
               <Chip tone="neutral"
                 color={isTheme ? "purple" : "blue"}
               >
-                {isTheme ? "Theme" : "Plugin"}
+                {isTheme ? i18n.t("ui.theme") : i18n.t("settingsFull.m8dc208f8eb")}
               </Chip>
               <span className="text-xs text-gryt-muted">
                 v{addon.version}
               </span>
               {update && (
-                <Chip tone="neutral" color="green">
-                  v{update.latest} available
-                </Chip>
+                <Chip tone="neutral" color="green">{i18n.t("settingsFull.m689b784687", { version: update.latest })}</Chip>
               )}
               {!isTheme && addon.requiresReloadOnDisable && (
-                <Chip tone="warning" label="Reload on disable" />
+                <Chip tone="warning" label={i18n.t("settingsFull.m32b6cc8f2f")} />
               )}
             </div>
             <span className="font-bold text-base truncate">
@@ -182,9 +182,7 @@ function AddonCard({
         )}
 
         {addon.author && (
-          <span className="text-xs text-gryt-muted">
-            by {addon.author}
-          </span>
+          <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.m7e144e1015", { author: addon.author })}</span>
         )}
 
         <AddonCapabilities addon={addon} />
@@ -195,9 +193,7 @@ function AddonCard({
         {update && (
           <Button tone="neutral" size="small"
             onClick={() => getElectronAPI()?.openExternal(update.releaseUrl)}
-          >
-            View v{update.latest}
-          </Button>
+          >{i18n.t("settingsFull.mc7872a2d6b", { version: update.latest })}</Button>
         )}
       </div>
     </div>
@@ -212,12 +208,11 @@ const RISK_TONES = {
 
 /** How much an addon could do, going by the riskiest thing it asks for. */
 function RiskBadge({ risk }: { risk: ReturnType<typeof addonRisk> }) {
+  useTranslation();
   if (!risk) return null;
   const tone = RISK_TONES[risk];
   return (
-    <span className="self-start rounded-md px-2 py-0.5 text-xs font-bold" style={{ background: tone.bg, color: tone.fg }}>
-      Risk: {RISK_LABELS[risk]}
-    </span>
+    <span className="self-start rounded-md px-2 py-0.5 text-xs font-bold" style={{ background: tone.bg, color: tone.fg }}>{i18n.t("settingsFull.m89429d8a2f", { risk: i18n.t("settingsFull.riskDescription." + risk, { defaultValue: RISK_LABELS[risk] }) })}</span>
   );
 }
 
@@ -226,6 +221,7 @@ function RiskBadge({ risk }: { risk: ReturnType<typeof addonRisk> }) {
  * that asks for something; most do not (GRYT-928).
  */
 function AddonCapabilities({ addon }: { addon: AddonManifest }) {
+  useTranslation();
   const declared = declaredCapabilities(addon.capabilities);
   const [granted, setGranted] = useState(() => grantedCapabilities(addon.id));
 
@@ -242,12 +238,12 @@ function AddonCapabilities({ addon }: { addon: AddonManifest }) {
   return (
     <div className="flex flex-col gap-1" style={{ marginTop: 4 }}>
       <RiskBadge risk={addonRisk(declared)} />
-      <span className="text-xs font-bold text-gryt-muted">This addon asks to</span>
+      <span className="text-xs font-bold text-gryt-muted">{i18n.t("settingsFull.m55714af060")}</span>
       {declared.map((capability) => (
         <label key={capability} className="flex items-center justify-between gap-2 text-sm">
           <span>
-            {CAPABILITY_LABELS[capability]}{" "}
-            <span className="text-xs text-gryt-muted">({CAPABILITY_RISK[capability]})</span>
+            {i18n.t("settingsFull.capability." + capability, { defaultValue: CAPABILITY_LABELS[capability] })}{" "}
+            <span className="text-xs text-gryt-muted">({i18n.t("settingsFull.risk." + CAPABILITY_RISK[capability])})</span>
           </span>
           <Switch
             checked={granted.includes(capability)}
@@ -256,15 +252,13 @@ function AddonCapabilities({ addon }: { addon: AddonManifest }) {
           />
         </label>
       ))}
-      <span className="text-xs text-gryt-muted">
-        An addon runs as part of Gryt and could ignore this. Only turn on what you
-        would trust whoever wrote it with.
-      </span>
+      <span className="text-xs text-gryt-muted">{i18n.t("settingsFull.md7b2bf0ddd")}</span>
     </div>
   );
 }
 
 export function AddonsSettings() {
+  useTranslation();
   const { addons, enabledIds, toggleAddon, openAddonsFolder } = useAddons();
   const updates = useAddonUpdates();
   const inElectron = isElectron();
@@ -272,22 +266,18 @@ export function AddonsSettings() {
   return (
     <SettingsContainer>
       <div className="flex justify-between items-center">
-        <h2 className="text-lg">Addons</h2>
+        <h2 className="text-lg">{i18n.t("ui.addons")}</h2>
         {inElectron && (
           <Button tone="neutral" size="small"
             onClick={openAddonsFolder}
           >
-            <PiFolderFill size={16} />
-            Open Addons Folder
-          </Button>
+            <PiFolderFill size={16} />{i18n.t("settingsFull.m2db01c2f80")}</Button>
         )}
       </div>
 
       {addons.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-12" style={{ color: "var(--gryt-neutral-9)" }}>
-          <span className="text-sm text-gryt-muted">
-            No addons yet
-          </span>
+          <span className="text-sm text-gryt-muted">{i18n.t("settingsFull.m1309f0aa75")}</span>
           {/*
             Every other empty state in the app offers somewhere to go. This one
             described a file format and stopped, which reads as an error to
@@ -295,16 +285,14 @@ export function AddonsSettings() {
           */}
           <span className="text-xs text-gryt-muted text-center" style={{ maxWidth: 380 }}>
             {inElectron
-              ? "Addons are folders in your addons directory, each with an addon.json manifest."
-              : "Addons load from a mounted addons directory. The desktop app can open that folder for you."}
+              ? i18n.t("settingsFull.m2b361ab2cb")
+              : i18n.t("settingsFull.mfb0d730fd8")}
           </span>
           <a className="gryt-link"
             href="https://docs.gryt.chat/docs"
             target="_blank"
             rel="noreferrer"
-          >
-            Read the addon docs
-          </a>
+          >{i18n.t("settingsFull.m61c84c89ac")}</a>
         </div>
       ) : (
         <div style={{

@@ -2,6 +2,7 @@ import { Chip, Dialog, IconButton, Spinner, Tabs } from "@gryt/ui";
 import { type ReactNode,useEffect, useMemo, useState } from "react";
 
 import { getServerAccessToken } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 
 import { PiArrowsLeftRightFill, PiGearFill, PiHandWavingFill, PiLinkFill, PiListChecksFill, PiProhibitFill, PiRobotFill, PiShieldCheckFill, PiSmileyFill, PiUsersFill, PiWebhooksLogoFill, PiX } from "../../../../lib/icons";
 import { useRoomForSettingsRail } from "../hooks/useNarrowWindow";
@@ -45,6 +46,7 @@ type SetupRequiredDetail = {
 type SettingsOpenDetail = { host: string; tab?: string };
 
 export function ServerSettingsModal() {
+  useSocketTranslation();
   const { sockets, serverDetailsList, tokenRevision } = useSockets();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -153,7 +155,7 @@ export function ServerSettingsModal() {
   }[] = [
     {
       value: "overview",
-      label: "Overview",
+      label: socketI18n.t("socketFull.serverSettingsModal_321184dd88"),
       icon: PiGearFill,
       content: (
         <ServerOverviewTab
@@ -167,49 +169,49 @@ export function ServerSettingsModal() {
     },
     {
       value: "invites",
-      label: "Invites",
+      label: socketI18n.t("socketFull.serverSettingsModal_348622f09e"),
       icon: PiLinkFill,
       needs: ["create_invite", "manage_invites"],
       content: <ServerInvitesTab host={host} socket={socket} accessToken={accessToken} />,
     },
     {
       value: "requests",
-      label: "Requests",
+      label: socketI18n.t("socketFull.serverSettingsModal_7987524c57"),
       icon: PiHandWavingFill,
       needs: ["manage_join_requests"],
       content: <ServerJoinRequestsTab host={host} socket={socket} accessToken={accessToken} />,
     },
     {
       value: "roles",
-      label: "Members",
+      label: socketI18n.t("chat.membersTitle"),
       icon: PiUsersFill,
       needs: ["manage_roles"],
       content: <ServerRolesTab host={host} socket={socket} accessToken={accessToken} />,
     },
     {
       value: "role-editor",
-      label: "Role editor",
+      label: socketI18n.t("socketFull.serverSettingsModal_2ce5003e2a"),
       icon: PiShieldCheckFill,
       needs: ["manage_roles"],
       content: <ServerRoleEditorTab host={host} socket={socket} accessToken={accessToken} />,
     },
     {
       value: "permission-templates",
-      label: "Channel permissions",
+      label: socketI18n.t("socketFull.serverSettingsModal_1dd31b15e8"),
       icon: PiShieldCheckFill,
       needs: ["manage_roles"],
       content: <ServerPermissionTemplatesTab host={host} socket={socket} accessToken={accessToken} />,
     },
     {
       value: "emojis",
-      label: "Emojis",
+      label: socketI18n.t("socketFull.serverSettingsModal_5cd4f90b5d"),
       icon: PiSmileyFill,
       needs: ["manage_emojis"],
       content: <ServerEmojisTab host={host} socket={socket} accessToken={accessToken} />,
     },
     {
       value: "bans",
-      label: "Bans",
+      label: socketI18n.t("socketFull.serverSettingsModal_b2eb93d442"),
       icon: PiProhibitFill,
       needs: ["view_bans", "ban_members"],
       content: (
@@ -223,21 +225,21 @@ export function ServerSettingsModal() {
     },
     {
       value: "audit",
-      label: "Audit Log",
+      label: socketI18n.t("socketFull.serverSettingsModal_3e96ecb671"),
       icon: PiListChecksFill,
       needs: ["view_audit_log"],
       content: <ServerAuditTab host={host} socket={socket} accessToken={accessToken} />,
     },
     {
       value: "bots",
-      label: "Bots",
+      label: socketI18n.t("socketFull.serverSettingsModal_e1ef520a82"),
       icon: PiRobotFill,
       needs: ["manage_bots"],
       content: <ServerBotsTab host={host} socket={socket} accessToken={accessToken} />,
     },
     {
       value: "webhooks",
-      label: "Webhooks",
+      get label() { return socketI18n.t("socketFull.webhooksTitle"); },
       icon: PiWebhooksLogoFill,
       needs: ["manage_webhooks"],
       content: (
@@ -249,7 +251,7 @@ export function ServerSettingsModal() {
     },
     {
       value: "replace-user",
-      label: "Replace User",
+      label: socketI18n.t("socketFull.serverSettingsModal_7c19d19f6b"),
       icon: PiArrowsLeftRightFill,
       // Was owner-only by role name. It has its own permission now, which the
       // owner still holds alone unless somebody deliberately grants it.
@@ -284,8 +286,7 @@ export function ServerSettingsModal() {
     <>
       {serverInfo?.version && (
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gryt-muted" style={{ opacity: 0.5 }}>
-            Server v{serverInfo.version}
+          <span className="text-xs text-gryt-muted" style={{ opacity: 0.5 }}>{socketI18n.t("socketFull.serverSettingsModal_a951fc4fd2")}{serverInfo.version}
           </span>
           {versionLoading && <Spinner size={16} />}
           {versionStatus?.server.updateAvailable && (
@@ -293,7 +294,7 @@ export function ServerSettingsModal() {
               type="button"
               className="server-version-chip"
               data-server-release-notes
-              aria-label={`What's in server ${versionStatus.server.latest}`}
+              aria-label={socketI18n.t("socketFull.serverSettingsModal_1f5f8479ab", { p0: (versionStatus.server.latest) })}
               onClick={() => setNotesOpen(true)}
             >
               <Chip tone="warning">
@@ -320,8 +321,7 @@ export function ServerSettingsModal() {
           permanent "—" would read as something being broken. */}
       {versionStatus?.worker && (
         <div className="flex items-center gap-2">
-          <span className="text-xs text-gryt-muted" style={{ opacity: 0.5 }}>
-            Media worker{" "}
+          <span className="text-xs text-gryt-muted" style={{ opacity: 0.5 }}>{socketI18n.t("settingsFull.m81c85f251c")}{" "}
             {versionStatus.worker.current
               ? `v${versionStatus.worker.current}`
               : "—"}
@@ -373,9 +373,7 @@ export function ServerSettingsModal() {
         </Dialog.Close>
 
         <div className="flex flex-col gap-4 h-full">
-          <Dialog.Title>
-            Server settings
-          </Dialog.Title>
+          <Dialog.Title>{socketI18n.t("ui.serverSettings")}</Dialog.Title>
 
           {isOpen && (
             allowTabs ? (
@@ -399,7 +397,7 @@ export function ServerSettingsModal() {
                     </div>
                   )}
                   <div hidden={!railFits} style={{ minWidth: "200px", flexShrink: 0, overflowY: "auto" }}>
-                    <Tabs.List aria-label="Server settings" className="gap-1">
+                    <Tabs.List aria-label={socketI18n.t("ui.serverSettings")} className="gap-1">
                       {TAB_CONFIG.map(({ value, label, icon: Icon }) => (
                         <Tabs.Tab key={value} value={value}>
                           <Icon size={16} />
@@ -415,9 +413,7 @@ export function ServerSettingsModal() {
 
                   <div style={{ flex: 1, overflow: "auto", minWidth: 0, minHeight: 0 }}>
                     {!permissionKnown ? (
-                      <span className="text-sm text-gryt-muted" style={{ marginBottom: 12 }}>
-                        Loading permissions…
-                      </span>
+                      <span className="text-sm text-gryt-muted" style={{ marginBottom: 12 }}>{socketI18n.t("socketFull.serverSettingsModal_026ae8b25d")}</span>
                     ) : null}
                     {TAB_CONFIG.map(({ value, content }) => (
                       <Tabs.Panel key={value} value={value}>
@@ -429,9 +425,7 @@ export function ServerSettingsModal() {
               </Tabs>
             ) : (
               <div className="flex flex-col gap-3">
-                <span className="text-sm text-gryt-muted">
-                  Your role does not include any of the permissions these settings need.
-                </span>
+                <span className="text-sm text-gryt-muted">{socketI18n.t("socketFull.serverSettingsModal_7a34da6166")}</span>
               </div>
             )
           )}

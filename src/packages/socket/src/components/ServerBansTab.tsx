@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import type { Socket } from "socket.io-client";
 
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
+
 import { useSocketEvent } from "../hooks/useSocketEvent";
 import { describeActor } from "../lib/actorName";
 
@@ -18,7 +20,7 @@ type BanItem = {
 
 function fmt(v: string | Date): string {
   const d = v instanceof Date ? v : new Date(v);
-  return Number.isFinite(d.getTime()) ? d.toLocaleString() : String(v || "");
+  return Number.isFinite(d.getTime()) ? d.toLocaleString(socketI18n.resolvedLanguage) : String(v || "");
 }
 
 /**
@@ -36,12 +38,13 @@ export function ServerBansTab({
   accessToken: string | null;
   onUnban: (grytUserId: string) => void;
 }) {
+  useSocketTranslation();
   const [bans, setBans] = useState<BanItem[]>([]);
   const [loaded, setLoaded] = useState(false);
 
   const refresh = () => {
-    if (!socket || !socket.connected) return toast.error("Not connected to the server yet.");
-    if (!accessToken) return toast.error("Join the server first.");
+    if (!socket || !socket.connected) return toast.error(socketI18n.t("socketFull.serverBansTab_213e89eca7"));
+    if (!accessToken) return toast.error(socketI18n.t("socketFull.serverBansTab_097a88ed92"));
     socket.emit("server:bans:list", { accessToken });
   };
 
@@ -64,13 +67,13 @@ export function ServerBansTab({
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <span className="text-sm text-gryt-muted">
-          {loaded ? `${bans.length} ${bans.length === 1 ? "ban" : "bans"}` : "Loading…"}
+          {loaded ? socketI18n.t("socketHooksFull.banCount", { count: bans.length }) : socketI18n.t("settingsFull.m33ce417454")}
         </span>
-        <Button tone="neutral" size="xsmall" onClick={refresh}>Refresh</Button>
+        <Button tone="neutral" size="xsmall" onClick={refresh}>{socketI18n.t("settingsFull.m56e3badc4e")}</Button>
       </div>
 
       {loaded && bans.length === 0 && (
-        <span className="text-sm text-gryt-muted">Nobody is banned from this server.</span>
+        <span className="text-sm text-gryt-muted">{socketI18n.t("socketFull.serverBansTab_1478704468")}</span>
       )}
 
       {bans.map((ban) => (
@@ -82,25 +85,22 @@ export function ServerBansTab({
                   {ban.nickname || ban.gryt_user_id}
                 </span>
                 {ban.expires_at ? (
-                  <Chip tone="warning">
-                    until {fmt(ban.expires_at)}
+                  <Chip tone="warning">{socketI18n.t("socketFull.serverBansTab_7aa87e4db7")}{" "}{fmt(ban.expires_at)}
                   </Chip>
                 ) : (
-                  <Chip tone="danger" label="permanent" />
+                  <Chip tone="danger" label={socketI18n.t("socketFull.serverBansTab_2808e8eddc")} />
                 )}
               </div>
               {ban.reason && <span className="text-xs">{ban.reason}</span>}
               <span className="text-xs text-gryt-muted">
                 {fmt(ban.created_at)}
-                {` · by ${describeActor(ban.banned_by_server_user_id, ban.banned_by_nickname).label}`}
+                {socketI18n.t("socketFull.serverBansTab_91bc247009", { p0: (describeActor(ban.banned_by_server_user_id, ban.banned_by_nickname).label) })}
               </span>
             </div>
             <Button tone="neutral" size="xsmall"
               onClick={() => onUnban(ban.gryt_user_id)}
               style={{ flexShrink: 0 }}
-            >
-              Unban
-            </Button>
+            >{socketI18n.t("socketFull.serverBansTab_2b4209c017")}</Button>
           </div>
         </Surface>
       ))}

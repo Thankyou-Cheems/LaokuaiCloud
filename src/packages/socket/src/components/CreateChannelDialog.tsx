@@ -2,6 +2,7 @@ import { Button, Dialog, IconButton, Select, TextField } from "@gryt/ui";
 import { useEffect, useMemo, useState } from "react";
 
 import type { NotificationLevel } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 import type { SidebarItem } from "@/settings/src/types/server";
 
 import { PiX } from "../../../../lib/icons";
@@ -41,6 +42,7 @@ interface CreateChannelDialogProps {
 }
 
 export function CreateChannelDialog({ open, onOpenChange, initialType = "chat", placement, editor }: CreateChannelDialogProps) {
+  useSocketTranslation();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [kind, setKind] = useState<ChannelKind>(initialType);
@@ -94,36 +96,33 @@ export function CreateChannelDialog({ open, onOpenChange, initialType = "chat", 
         <Dialog.Popup>
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
-              <Dialog.Title style={{ margin: 0 }}>Create channel</Dialog.Title>
+              <Dialog.Title style={{ margin: 0 }}>{socketI18n.t("socketFull.createChannelDialog_774cade753")}</Dialog.Title>
               <Dialog.Close>
                 <IconButton size="xsmall"><PiX size={16} /></IconButton>
               </Dialog.Close>
             </div>
 
-            <span className="text-sm" style={{ color: "var(--gryt-neutral-11)", marginTop: -8 }}>
-              Set it up here &mdash; the channel is created only when you hit Create.
-            </span>
+            <span className="text-sm" style={{ color: "var(--gryt-neutral-11)", marginTop: -8 }}>{socketI18n.t("socketFull.createChannelDialog_7f60db2832")}</span>
 
             <div className="flex flex-col gap-2">
-              <span className="text-sm font-medium">Channel name</span>
+              <span className="text-sm font-medium">{socketI18n.t("socketFull.createChannelDialog_005961b03d")}</span>
               <TextField
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); create(); } }}
-                placeholder={kind === "voice" ? "voice-chat" : "support"}
+                placeholder={kind === "voice" ? socketI18n.t("socketFull.createChannelDialog_d7f00ee7fb") : socketI18n.t("socketFull.createChannelDialog_9002450111")}
                 autoFocus
               />
             </div>
 
             <div className="flex flex-col gap-2">
-              <span className="text-sm font-medium">Channel type</span>
+              <span className="text-sm font-medium">{socketI18n.t("socketFull.createChannelDialog_7e4fb732d2")}</span>
               <ChannelKindPicker value={kind} onChange={setKind} />
             </div>
 
             {kind === "forum" && (
               <div className="flex flex-col gap-2">
-                <span className="text-sm font-medium">
-                  Tags <span style={{ color: "var(--gryt-neutral-10)", fontWeight: 400 }}>(optional)</span>
+                <span className="text-sm font-medium">{socketI18n.t("socketFull.createChannelDialog_1855069ef6")}{" "}<span style={{ color: "var(--gryt-neutral-10)", fontWeight: 400 }}>{socketI18n.t("socketFull.createChannelDialog_855691da5b")}</span>
                 </span>
                 <ForumTagsField tags={tags} onChange={setTags} />
               </div>
@@ -131,7 +130,7 @@ export function CreateChannelDialog({ open, onOpenChange, initialType = "chat", 
 
             {folders.length > 0 && (
               <div className="flex flex-col gap-2">
-                <span className="text-sm font-medium">Folder</span>
+                <span className="text-sm font-medium">{socketI18n.t("ui.folder")}</span>
                 <Select
                   value={pickedFolder ? FOLDER_VALUE + pickedFolder : TOP_LEVEL}
                   onValueChange={(v) => {
@@ -139,9 +138,9 @@ export function CreateChannelDialog({ open, onOpenChange, initialType = "chat", 
                     setFolderId(v.startsWith(FOLDER_VALUE) ? v.slice(FOLDER_VALUE.length) : null);
                   }}
                   options={[
-                    { label: "No folder", value: TOP_LEVEL },
+                    { label: socketI18n.t("socketFull.createChannelDialog_271ae6ccc1"), value: TOP_LEVEL },
                     ...folders.map((f) => ({
-                      label: <EmojiText text={f.label || "Folder"} disableTooltip />,
+                      label: <EmojiText text={f.label || socketI18n.t("ui.folder")} disableTooltip />,
                       value: FOLDER_VALUE + f.id,
                     })),
                   ]}
@@ -150,7 +149,7 @@ export function CreateChannelDialog({ open, onOpenChange, initialType = "chat", 
             )}
 
             <div className="flex flex-col gap-2">
-              <span className="text-sm font-medium">Default notifications</span>
+              <span className="text-sm font-medium">{socketI18n.t("socketFull.createChannelDialog_bf1ac989af")}</span>
               <Select
                 value={effectiveLevel}
                 onValueChange={(v) => {
@@ -158,30 +157,23 @@ export function CreateChannelDialog({ open, onOpenChange, initialType = "chat", 
                 }}
                 options={NOTIFICATION_LEVEL_OPTIONS}
               />
-              <span className="text-xs" style={{ color: "var(--gryt-neutral-11)" }}>
-                What members get from this channel until they pick their own level for it.
-              </span>
+              <span className="text-xs" style={{ color: "var(--gryt-neutral-11)" }}>{socketI18n.t("socketFull.createChannelDialog_44e37891c9")}</span>
             </div>
 
             <div className="flex flex-col gap-2">
-              <span className="text-sm font-medium">
-                Description <span style={{ color: "var(--gryt-neutral-10)", fontWeight: 400 }}>(optional)</span>
+              <span className="text-sm font-medium">{socketI18n.t("socketFull.createChannelDialog_644c263467")}{" "}<span style={{ color: "var(--gryt-neutral-10)", fontWeight: 400 }}>{socketI18n.t("socketFull.createChannelDialog_855691da5b")}</span>
               </span>
               <TextField
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); create(); } }}
-                placeholder="What's this channel for?"
+                placeholder={socketI18n.t("socketFull.createChannelDialog_23a625980f")}
               />
             </div>
 
             <div className="flex flex-wrap justify-end gap-3" style={{ marginTop: 4 }}>
-              <Button tone="neutral" size="small" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button size="small" onClick={create} disabled={!canCreate}>
-                Create channel
-              </Button>
+              <Button tone="neutral" size="small" onClick={() => onOpenChange(false)}>{socketI18n.t("ui.cancel")}</Button>
+              <Button size="small" onClick={create} disabled={!canCreate}>{socketI18n.t("socketFull.createChannelDialog_774cade753")}</Button>
             </div>
           </div>
         </Dialog.Popup>

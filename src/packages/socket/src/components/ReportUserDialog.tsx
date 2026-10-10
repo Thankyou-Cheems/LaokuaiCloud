@@ -1,5 +1,8 @@
 import { Checkbox, TextField } from "@gryt/ui";
 import { useEffect, useState } from "react";
+import { Trans } from "react-i18next";
+
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 
 import { ConfirmDialog } from "./ConfirmDialog";
 
@@ -22,6 +25,7 @@ export function ReportUserDialog({
   /** Already blocked, in which case the offer is left out rather than shown ticked. */
   isBlocked: (serverUserId: string) => boolean;
 }) {
+  useSocketTranslation();
   const [reason, setReason] = useState("");
   const [alsoBlock, setAlsoBlock] = useState(true);
 
@@ -42,14 +46,11 @@ export function ReportUserDialog({
     <ConfirmDialog
       open={!!target}
       onOpenChange={(open) => { if (!open) onClose(); }}
-      title={`Report ${target?.nickname}?`}
+      title={socketI18n.t("socketFull.reportUserDialog_a1feb26ead", { p0: (target?.nickname) })}
       description={
-        <>
-          This goes to the moderators of this server, who can see that it came
-          from you. {target?.nickname} is told nothing.
-        </>
+        <><Trans i18n={socketI18n} i18nKey="socketFull.userReportDisclosure" values={{ name: target?.nickname ?? "" }} /></>
       }
-      confirmLabel="Report"
+      confirmLabel={socketI18n.t("socketFull.reportUserDialog_654eb38dad")}
       confirmTone="primary"
       confirmDisabled={!canSubmit}
       onConfirm={() => {
@@ -63,13 +64,13 @@ export function ReportUserDialog({
       }}
     >
       <div className="flex flex-col gap-1">
-        <span className="text-xs">What happened?</span>
+        <span className="text-xs">{socketI18n.t("socketFull.reportUserDialog_99f12f84be")}</span>
         <TextField
           multiline
           minRows={3}
           value={reason}
           onChange={(e) => setReason(e.target.value)}
-          placeholder="Following me between channels and repeating it after I asked them to stop"
+          placeholder={socketI18n.t("socketFull.reportUserDialog_d972becffa")}
           maxLength={REPORT_REASON_MAX}
         />
         <span className="text-xs text-gryt-muted">
@@ -82,9 +83,7 @@ export function ReportUserDialog({
           <Checkbox
             checked={alsoBlock}
             onCheckedChange={(v) => setAlsoBlock(v === true)}
-          />
-          Block them as well, so they cannot reach you while this is looked at
-        </label>
+          />{socketI18n.t("socketFull.reportUserDialog_9d63a1513b")}</label>
       )}
     </ConfirmDialog>
   );

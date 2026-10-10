@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 
 import { getServerAccessToken, getServerHttpBase } from "@/common";
+import { i18n as socketHooksI18n, useTranslation as useSocketHooksTranslation } from "@/i18n";
 
 import { sourceForUrl } from "../utils/emoteImportSources";
 import {
@@ -11,6 +12,7 @@ import {
   sanitizeName,
   validateName,
 } from "../utils/emoteImportUtils";
+import { socketDisplayText, socketHookToast } from "../utils/socketHookMessages";
 import { stageEmojiViaXhr } from "../utils/stageEmojiViaXhr";
 import { getFreshServerAccessToken, type TokenRefreshSocketLike } from "../utils/tokenManager";
 
@@ -27,10 +29,12 @@ export function useEmoteImport({
   socket,
   existingNames,
 }: UseEmoteImportParams) {
+  useSocketHooksTranslation();
   const [url, setUrl] = useState("");
   const [fetching, setFetching] = useState(false);
   const [importing, setImporting] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
+  const [usernameKey, setUsernameKey] = useState<string | null>(null);
   const [emotes, setEmotes] = useState<ImportEmoteWithMeta[]>([]);
   const [filterText, setFilterText] = useState("");
 
@@ -80,7 +84,7 @@ export function useEmoteImport({
     const source = sourceForUrl(trimmed);
     if (!source) {
       toast.error(
-        "Link not recognised. Paste a BetterTTV user or emote, or an emoji.gg user, pack or emoji.",
+        socketHookToast(() => socketHooksI18n.t("socketHooksFull.useEmoteImport_a1918769c1")),
       );
       return;
     }
@@ -89,7 +93,7 @@ export function useEmoteImport({
     try {
       const listing = await source.fetchListing(trimmed, base);
       if (listing.emotes.length === 0) {
-        toast.error(`No emotes found on that ${source.label} link.`);
+        toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useEmoteImport_fed748a6bc", { p0: source.label })));
         return;
       }
 
@@ -117,14 +121,15 @@ export function useEmoteImport({
 
       setEmotes(revalidateAll(deduped));
       setUsername(listing.title);
+      setUsernameKey(listing.titleKey ?? null);
       /* Emptied once the fetch has produced something, so the box is ready for
          the next link. Not on a failure: a bad link is worth correcting. */
       setUrl("");
-      toast.success(`Found ${listing.emotes.length} emote(s)`);
-      if (listing.note) toast(listing.note);
+      toast.success(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useEmoteImport_1cc4cb31e3", { p0: listing.emotes.length, count: listing.emotes.length })));
+      if (listing.note) toast(socketHookToast(() => listing.note));
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : `Failed to fetch from ${source.label}.`,
+        socketHookToast(() => err instanceof Error ? err.message : socketHooksI18n.t("socketHooksFull.useEmoteImport_e722279920", { p0: source.label })),
       );
     } finally {
       setFetching(false);
@@ -170,7 +175,7 @@ export function useEmoteImport({
     const toImportRaw = selectedEmotes.filter((e) => !e.nameError);
     if (toImportRaw.length === 0) return;
     if (!effectiveAccessToken) {
-      toast.error("Not authenticated. Join the server first.");
+      toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useEmoteImport_853cdb4018")));
       return;
     }
 
@@ -183,7 +188,7 @@ export function useEmoteImport({
     const toImport = Array.from(byName.values());
     if (toImport.length !== toImportRaw.length) {
       toast(
-        `${toImportRaw.length - toImport.length} duplicate name(s) — importing ${toImport.length}, animated where there was a choice.`,
+        socketHookToast(() => socketHooksI18n.t("socketHooksFull.useEmoteImport_8a0c81bdec", { p0: toImportRaw.length - toImport.length, p1: toImport.length, count: toImportRaw.length - toImport.length })),
       );
     }
 
@@ -274,10 +279,10 @@ export function useEmoteImport({
 
           if (result.ok) {
             successCount++;
-            toast.success(`:${emote.name}: queued for processing.`);
+            toast.success(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useEmoteImport_57dc7dcbd8", { p0: emote.name })));
             setEmotes((prev) => prev.filter((e) => e.id !== emote.id));
           } else {
-          toast.error(`:${emote.name}: — ${result.message}`);
+          toast.error(socketHookToast(() => `:${emote.name}: — ${result.message}`));
             setEmotes((prev) => prev.map((e) => (
               e.id === emote.id
                 ? { ...e, status: "error", progress: 0, lastError: result.message }
@@ -286,7 +291,7 @@ export function useEmoteImport({
           }
         } catch (err) {
           const msg = err instanceof Error ? err.message : "Import failed.";
-          toast.error(`:${emote.name}: — ${msg}`);
+          toast.error(socketHookToast(() => `:${emote.name}: — ${msg}`));
           setEmotes((prev) => prev.map((e) => (
             e.id === emote.id
               ? { ...e, status: "error", progress: 0, lastError: msg }
@@ -310,11 +315,11 @@ export function useEmoteImport({
       await Promise.all(Array.from({ length: concurrencyLimit }, worker));
 
       if (successCount > 0) {
-        toast.success(`Imported ${successCount} emoji(s)!`);
+        toast.success(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useEmoteImport_bf9701665d", { p0: successCount, count: successCount })));
       }
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Import failed.",
+        socketHookToast(() => err instanceof Error ? err.message : "Import failed."),
       );
     } finally {
       setImporting(false);
@@ -324,6 +329,7 @@ export function useEmoteImport({
   const handleClear = useCallback(() => {
     setEmotes([]);
     setUsername(null);
+    setUsernameKey(null);
     setUrl("");
     setFilterText("");
   }, []);
@@ -333,13 +339,16 @@ export function useEmoteImport({
     setUrl,
     fetching,
     importing,
-    username,
-    emotes,
+    username: usernameKey ? socketHooksI18n.t(usernameKey) : username,
+    emotes: emotes.map((item) => ({ ...item, nameError: socketDisplayText(item.nameError), nameWarning: socketDisplayText(item.nameWarning), lastError: socketDisplayText(item.lastError) })),
+
     filterText,
     setFilterText,
-    selectedEmotes,
+    selectedEmotes: selectedEmotes.map((item) => ({ ...item, nameError: socketDisplayText(item.nameError), nameWarning: socketDisplayText(item.nameWarning), lastError: socketDisplayText(item.lastError) })),
+
     validSelectedCount,
-    filteredEmotes,
+    filteredEmotes: filteredEmotes.map((item) => ({ ...item, nameError: socketDisplayText(item.nameError), nameWarning: socketDisplayText(item.nameWarning), lastError: socketDisplayText(item.lastError) })),
+
     handleFetch,
     toggleSelect,
     toggleAll,

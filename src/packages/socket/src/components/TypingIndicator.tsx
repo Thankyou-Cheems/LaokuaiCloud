@@ -2,6 +2,7 @@ import { Avatar } from "@gryt/ui";
 import { AnimatePresence, motion } from "motion/react";
 
 import { getUploadsFileUrl, resolveAvatarSrc } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 
 import type { TypingUser } from "../hooks/useTypingIndicator";
 
@@ -11,12 +12,13 @@ interface TypingIndicatorProps {
 }
 
 function buildLabel(users: TypingUser[]): string {
-  if (users.length === 1) return `${users[0].nickname} is typing...`;
-  if (users.length === 2) return `${users[0].nickname} and ${users[1].nickname} are typing...`;
-  return "Several people are typing...";
+  if (users.length === 1) return socketI18n.t("socketFull.typingIndicator_d4b7558c35", { p0: (users[0].nickname) });
+  if (users.length === 2) return socketI18n.t("socketFull.typingIndicator_beb295fcf4", { p0: (users[0].nickname), p1: (users[1].nickname) });
+  return socketI18n.t("socketFull.typingIndicator_28890f4aab");
 }
 
 export function TypingIndicator({ typingUsers, serverHost }: TypingIndicatorProps) {
+  useSocketTranslation();
   const first = typingUsers[0] as TypingUser | undefined;
 
   return (

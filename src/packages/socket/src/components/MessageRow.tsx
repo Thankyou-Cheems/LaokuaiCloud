@@ -2,6 +2,8 @@ import { Avatar, Popover, Tooltip } from "@gryt/ui";
 import { AnimatePresence, motion } from "motion/react";
 import { forwardRef, memo, useCallback, useRef, useState } from "react";
 
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
+
 import { PiChatsFill, PiLockOpen, PiPushPinFill, PiSignInBold, PiSignOutBold } from "../../../../lib/icons";
 import { useServerPermissions } from "../hooks/usePermissions";
 import type { ThreadSummary } from "../hooks/useThreads";
@@ -140,6 +142,7 @@ export const MessageRow = memo(forwardRef<HTMLDivElement, MessageRowProps>(({
   pinned,
   onTogglePin,
 }, forwardedRef) => {
+  const socketLanguage = useSocketTranslation().i18n.resolvedLanguage;
   const [isHovered, setIsHovered] = useState(false);
   const [isCtxMenuOpen, setIsCtxMenuOpen] = useState(false);
   const [isReactionPickerOpen, setIsReactionPickerOpen] = useState(false);
@@ -294,7 +297,7 @@ export const MessageRow = memo(forwardRef<HTMLDivElement, MessageRowProps>(({
             {meta.sender ? (
               <Popover.Root open={cardOpen} onOpenChange={(open) => setCardOpen(open)}>
                 <Popover.Trigger
-                  render={<button type="button" aria-label="Open card" className="mt-0.5 shrink-0 cursor-pointer rounded-full border-0 bg-transparent p-0" />}
+                  render={<button type="button" aria-label={socketI18n.t("socketFull.messageRow_c18f24b092")} className="mt-0.5 shrink-0 cursor-pointer rounded-full border-0 bg-transparent p-0" />}
                 >
                   <Avatar
                     size="large"
@@ -356,16 +359,12 @@ export const MessageRow = memo(forwardRef<HTMLDivElement, MessageRowProps>(({
                     letterSpacing: "0.02em",
                     userSelect: "none",
                     flexShrink: 0,
-                  }}>
-                    BOT
-                  </span>
+                  }}>{socketI18n.t("socketFull.messageRow_f590a25fe8")}</span>
                 )}
                 <MessageTimestamp date={toDate(m.created_at)} />
                 {meta.isFirstEdited && (
-                  <Tooltip title={`Edited ${new Date(m.edited_at!).toLocaleString()}`}>
-                    <span style={{ fontSize: 10, cursor: "default", whiteSpace: "nowrap", userSelect: "none", color: "var(--gryt-neutral-8)" }}>
-                      (edited)
-                    </span>
+                  <Tooltip title={socketI18n.t("socketFull.messageRow_7e57372756", { p0: (new Date(m.edited_at!).toLocaleString(socketLanguage)) })}>
+                    <span style={{ fontSize: 10, cursor: "default", whiteSpace: "nowrap", userSelect: "none", color: "var(--gryt-neutral-8)" }}>{socketI18n.t("socketFull.messageRow_290deb1b3b")}</span>
                   </Tooltip>
                 )}
               </div>
@@ -553,6 +552,7 @@ function MessageContent({
   threadUnread?: number;
   threadMentions?: number;
 }) {
+  const socketLanguage = useSocketTranslation().i18n.resolvedLanguage;
   const hasReactions = !!(m.reactions && m.reactions.length > 0);
   const hasThreadNews = (threadUnread ?? 0) > 0 || (threadMentions ?? 0) > 0;
   const sealedNote = sealedPlaceholder(m);
@@ -618,7 +618,7 @@ function MessageContent({
             whiteSpace: "nowrap",
           }}
         >
-          <span className="text-xs">{replyPreviewText ?? "Original message"}</span>
+          <span className="text-xs">{replyPreviewText ?? socketI18n.t("socketFull.messageRow_13384da832")}</span>
         </div>
       )}
       <motion.div
@@ -631,7 +631,7 @@ function MessageContent({
             that says "show full message". */}
         {unencrypted && (
           <span
-            title="Sent without encryption. Whoever runs this server can read it in the clear."
+            title={socketI18n.t("socketFull.messageRow_1fa9e0c6da")}
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -645,9 +645,7 @@ function MessageContent({
               letterSpacing: "0.03em",
             }}
           >
-            <PiLockOpen aria-hidden="true" size={11} />
-            Not encrypted
-          </span>
+            <PiLockOpen aria-hidden="true" size={11} />{socketI18n.t("socketFull.messageRow_c580c54dcd")}</span>
         )}
         {sealedNote ? (
           /* An envelope this client has not opened has no words to draw. Plain
@@ -674,15 +672,11 @@ function MessageContent({
         )}
         {messageActions.pinned && (
           <span className="flex items-center gap-1" style={{ fontSize: 10, userSelect: "none", color: "var(--gryt-neutral-9)" }}>
-            <PiPushPinFill size={10} />
-            pinned
-          </span>
+            <PiPushPinFill size={10} />{socketI18n.t("socketFull.messageRow_1912cffc9f")}</span>
         )}
         {m.edited_at && !isFirstInGroup && (
-          <Tooltip title={`Edited ${new Date(m.edited_at).toLocaleString()}`}>
-            <span style={{ fontSize: 10, cursor: "default", whiteSpace: "nowrap", userSelect: "none", color: "var(--gryt-neutral-8)" }}>
-              (edited)
-            </span>
+          <Tooltip title={socketI18n.t("socketFull.messageRow_7e57372756", { p0: (new Date(m.edited_at).toLocaleString(socketLanguage)) })}>
+            <span style={{ fontSize: 10, cursor: "default", whiteSpace: "nowrap", userSelect: "none", color: "var(--gryt-neutral-8)" }}>{socketI18n.t("socketFull.messageRow_290deb1b3b")}</span>
           </Tooltip>
         )}
         {serverHost && !m.pending && showsPreviews && drawsText && (
@@ -718,13 +712,11 @@ function MessageContent({
         )}
         {m.failed && (
           <span className="text-xs" style={{ color: "var(--gryt-danger-9)", marginTop: "2px" }}>
-            {m.failure ?? "Failed to send"}
+            {m.failure ?? socketI18n.t("socketFull.messageRow_29abc1d62b")}
           </span>
         )}
         {m.pending && m.waiting && (
-          <span className="text-xs" style={{ color: "var(--gryt-neutral-9)", marginTop: "2px" }}>
-            Waiting for the server
-          </span>
+          <span className="text-xs" style={{ color: "var(--gryt-neutral-9)", marginTop: "2px" }}>{socketI18n.t("socketFull.messageRow_310c9f3212")}</span>
         )}
       </motion.div>
       {messageActions.onOpenThread && (
@@ -744,7 +736,7 @@ function MessageContent({
           onMouseLeave={(e) => { e.currentTarget.style.background = "none"; }}
         >
           <PiChatsFill size={14} />
-          {messageActions.replyCount ?? 0} {(messageActions.replyCount ?? 0) === 1 ? "reply" : "replies"}
+          {messageActions.replyCount ?? 0} {(messageActions.replyCount ?? 0) === 1 ? socketI18n.t("socketFull.messageRow_1af3b3bc0d") : socketI18n.t("socketFull.messageRow_5dd1d7fbb1")}
           {/* The same badge a forum topic row draws, for the same reason. A
               thread on a text channel had the counts and nowhere to put them:
               the reply count says how big the thread is, not whether any of it
@@ -782,6 +774,7 @@ function ReactionBadges({
   onReaction?: (src: string) => void;
   onOpenPicker: (anchorEl?: HTMLElement) => void;
 }) {
+  useSocketTranslation();
   const hasReactions = reactions && reactions.length > 0;
   if (!hasReactions) return null;
 
@@ -803,7 +796,7 @@ function ReactionBadges({
           const emojiId = reaction.src;
           const usersLabel = reaction.users
             .map((uid) => {
-              if (currentUserId && uid === currentUserId) return currentUserNickname || "You";
+              if (currentUserId && uid === currentUserId) return currentUserNickname || socketI18n.t("socketFull.messageRow_47b52531d6");
               const member = memberList && Object.values(memberList).find((mb) => mb.serverUserId === uid);
               return member?.nickname || uid;
             })
@@ -858,7 +851,7 @@ function ReactionBadges({
       {onReaction && (
       <button
         onClick={(e) => onOpenPicker(e.currentTarget)}
-        title="Add reaction"
+        title={socketI18n.t("socketFull.messageRow_8580a88ca1")}
         style={{
           display: "inline-flex",
           alignItems: "center",

@@ -7,6 +7,7 @@ import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
 
 import { getServerAccessToken, getServerHttpBase, useTheme } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 import { nameTagsFor } from "@/lib/nameTags";
 
 import { PiCheck, PiCopyFill } from "../../../../lib/icons";
@@ -49,6 +50,7 @@ const RemoteMarkdownImage = memo(({
   cacheKey: string;
   cached: { width: number; height: number } | undefined;
 }) => {
+  useSocketTranslation();
   const [size, setSize] = useState<{ width: number; height: number } | undefined>(cached);
 
   useEffect(() => {
@@ -199,6 +201,7 @@ function isEmojiOnly(text: string): boolean {
 }
 
 function CodeBlockPre({ children }: { children: React.ReactNode }) {
+  useSocketTranslation();
   const [copied, setCopied] = useState(false);
   const preRef = useRef<HTMLPreElement>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -229,7 +232,7 @@ function CodeBlockPre({ children }: { children: React.ReactNode }) {
       <button
         type="button"
         onClick={handleCopy}
-        aria-label={copied ? "Copied" : "Copy code"}
+        aria-label={copied ? socketI18n.t("settingsFull.m8e3df45a49") : socketI18n.t("socketFull.markdownRenderer_417422a2b9")}
         style={{
           position: "absolute",
           top: 6,
@@ -396,6 +399,7 @@ export const MarkdownRenderer = memo(({
   smileyConversion?: boolean;
   disabledSmileys?: ReadonlySet<string>;
 }) => {
+  useSocketTranslation();
   const { emojiSize } = useTheme();
   const serverAllows = useExternalEmojisAllowed(serverHost);
   const externalOk = allowExternalEmojis ?? serverAllows;

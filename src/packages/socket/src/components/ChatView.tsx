@@ -3,6 +3,7 @@ import { Socket } from "socket.io-client";
 
 import type { SealDecision } from "@/common";
 import { getSuppressEveryone, getUploadsFileUrl, resolveAvatarSrc, subscribeToPrefs, useTheme, useThreadMentions, useThreadUnread } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 import { useTranslation } from "@/i18n";
 import { nameTagsFor } from "@/lib/nameTags";
 import { useSettings } from "@/settings";
@@ -162,6 +163,7 @@ export const ChatView = memo(({
   /** Whether an open thread shares the pane with the conversation, or takes it. */
   threadBeside?: boolean;
 }) => {
+  const socketLanguage = useSocketTranslation().i18n.resolvedLanguage;
   const { t: tr } = useTranslation();
   const { chatMediaVolume, setChatMediaVolume, blurProfanity, smileyConversion, disabledSmileys } = useSettings();
   const editorRef = useRef<ChatEditorHandle>(null);
@@ -567,8 +569,8 @@ export const ChatView = memo(({
 
   // ── Message metadata ──────────────────────────────────────────
   const messageMetadata = useMemo(
-    () => buildMessageMetadata(chatMessages, newMessageMarkerId, currentUserId, getSenderName, getSenderAvatarUrl, memberList, roleColors),
-    [chatMessages, newMessageMarkerId, currentUserId, getSenderName, getSenderAvatarUrl, memberList, roleColors],
+    () => buildMessageMetadata(chatMessages, newMessageMarkerId, currentUserId, getSenderName, getSenderAvatarUrl, memberList, roleColors, socketLanguage),
+    [chatMessages, newMessageMarkerId, currentUserId, getSenderName, getSenderAvatarUrl, memberList, roleColors, socketLanguage],
   );
 
   const messageMap = useMemo(() => buildMessageMap(chatMessages), [chatMessages]);
@@ -596,6 +598,7 @@ export const ChatView = memo(({
       getSenderAvatarUrl,
       memberList,
       roleColors,
+      socketLanguage,
     );
     const byId = new Map<string, (typeof metas)[number]>();
     threadMessages.forEach((m, i) => {
@@ -603,7 +606,7 @@ export const ChatView = memo(({
       if (meta) byId.set(m.message_id, meta);
     });
     return byId;
-  }, [threadMessages, currentUserId, getSenderName, getSenderAvatarUrl, memberList, roleColors]);
+  }, [threadMessages, currentUserId, getSenderName, getSenderAvatarUrl, memberList, roleColors, socketLanguage]);
 
   const renderThreadMessage = useCallback(
     (m: ChatMessage) => {
@@ -647,32 +650,7 @@ export const ChatView = memo(({
         />
       );
     },
-    [
-      threadMetaById,
-      threadMessages,
-      messageMap,
-      mentionViewer.channelName,
-      currentUserId,
-      massViewer,
-      customEmojiList,
-      memberNicknames,
-      blurProfanity,
-      smileyConversion,
-      disabledSmileys,
-      serverHost,
-      currentUserNickname,
-      canDeleteAny,
-      chatMediaVolume,
-      memberList,
-      setChatMediaVolume,
-      handleReaction,
-      handleThreadReply,
-      startThreadEditing,
-      handleReport,
-      requestDelete,
-      scrollToMessage,
-      onLightboxOpen,
-    ],
+    [threadMetaById, threadMessages, messageMap, mentionViewer.channelName, currentUserId, massViewer, customEmojiList, memberNicknames, blurProfanity, smileyConversion, disabledSmileys, serverHost, currentUserNickname, canDeleteAny, chatMediaVolume, memberList, setChatMediaVolume, handleReaction, handleThreadReply, startThreadEditing, handleReport, requestDelete, scrollToMessage, onLightboxOpen],
   );
 
   /* A mute is the server's, not the channel's, so it covers the thread panel
@@ -680,7 +658,7 @@ export const ChatView = memo(({
   const textMute = useTextMute(serverHost);
   const muteLine = textMute
     ? textMute.until
-      ? `You’re muted on this server until ${muteLiftsAt(textMute.until)}.`
+      ? socketI18n.t("socketFull.chatView_0fd754c1dc", { p0: (muteLiftsAt(textMute.until)) })
       : tr("ui.youReMutedOnThisServer")
     : null;
 
@@ -953,10 +931,10 @@ export const ChatView = memo(({
                 {sealing.blockedBy
                   .map((blocked) => {
                     const who =
-                      memberNames?.[blocked.memberId] ?? "somebody in this conversation";
-                    if (blocked.reason === "changed") return `${who}'s key changed`;
-                    if (blocked.reason === "unusable") return `${who}'s key did not check out`;
-                    return `${who} has not published a key`;
+                      memberNames?.[blocked.memberId] ?? socketI18n.t("socketFull.chatView_64e05e660b");
+                    if (blocked.reason === "changed") return socketI18n.t("socketFull.chatView_f03b2940aa", { p0: (who) });
+                    if (blocked.reason === "unusable") return socketI18n.t("socketFull.chatView_21faf672a9", { p0: (who) });
+                    return socketI18n.t("socketFull.chatView_00aff76467", { p0: (who) });
                   })
                   .join(", ")}
                 .

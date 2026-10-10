@@ -1,10 +1,12 @@
 import { Button, IconButton } from "@gryt/ui";
+import { Trans } from "react-i18next";
 
 import {
   dismissServerNotice,
   type ServerNotice,
   useServerNotice,
 } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 
 import { PiWarningFill, PiX } from "../../../../lib/icons";
 
@@ -23,12 +25,12 @@ function copyFor(notice: ServerNotice) {
   switch (notice.kind) {
     case "outdated_client":
       return {
-        title: "This client can't update itself",
-        body: `Gryt ${notice.version} on Windows downloads every new release and installs none of them. Installing is the step that fails, so it can't repair itself.`,
+        title: socketI18n.t("socketFull.serverNoticePanel_85abed7d76"),
+        body: socketI18n.t("socketFull.serverNoticePanel_127e4c02dc", { p0: (notice.version) }),
         detail:
-          "Download the current installer, close Gryt including the tray icon, and run it. Updates work on their own again afterwards, and your settings and servers are untouched.",
-        action: { label: "Download the installer", href: INSTALLER_URL },
-        more: { label: "Full instructions", href: INSTRUCTIONS_URL },
+          socketI18n.t("socketFull.serverNoticePanel_f3bb62417d"),
+        action: { label: socketI18n.t("socketFull.serverNoticePanel_9fd4923de7"), href: INSTALLER_URL },
+        more: { label: socketI18n.t("socketFull.serverNoticePanel_4ad2a098fc"), href: INSTRUCTIONS_URL },
       };
   }
 }
@@ -44,6 +46,7 @@ export function ServerNoticePanel({
   host: string | undefined;
   serverName: string;
 }) {
+  useSocketTranslation();
   const notice = useServerNotice(host);
   if (!notice || !host) return null;
 
@@ -69,9 +72,7 @@ export function ServerNoticePanel({
       </span>
 
       <div className="flex flex-col" style={{ minWidth: 0, flex: 1 }}>
-        <span className="text-xs" style={{ color: "var(--gryt-neutral-11)" }}>
-          From <b style={{ color: "var(--gryt-text)" }}>{serverName}</b>, only to you
-        </span>
+        <span className="text-xs" style={{ color: "var(--gryt-neutral-11)" }}><Trans i18n={socketI18n} i18nKey="socketFull.serverNoticeSource" values={{ name: serverName }} components={{ server: <b style={{ color: "var(--gryt-text)" }} /> }} /></span>
         <span className="text-sm font-bold" style={{ marginTop: 2 }}>
           {copy.title}
         </span>
@@ -106,7 +107,7 @@ export function ServerNoticePanel({
           beginning of working around it. */}
       <IconButton
         size="xsmall"
-        aria-label="Dismiss"
+        aria-label={socketI18n.t("shellFull.serviceStatusBanner_tsx_70afe9eff3")}
         className="shrink-0"
         onClick={() => dismissServerNotice(host, notice.kind)}
       >

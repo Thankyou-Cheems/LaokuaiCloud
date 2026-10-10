@@ -1,8 +1,10 @@
 import { Button, Chip, type ChipProps, Dialog } from "@gryt/ui";
 import type { Icon } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
+import { Trans } from "react-i18next";
 
 import { LogoIcon } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 
 import {
   PiBellFill,
@@ -48,10 +50,10 @@ export interface WhatsNewRelease {
 const KIND_ORDER = ["security", "new", "changed", "fixed"];
 
 const LABELS: Record<string, string> = {
-  new: "New",
-  fixed: "Fixed",
-  changed: "Changed",
-  security: "Security",
+  get new() { return socketI18n.t("shellFull.discovery_tsx_6403f2b7eb"); },
+  get fixed() { return socketI18n.t("socketFull.whatsNewDialog_cb01508da2"); },
+  get changed() { return socketI18n.t("socketFull.whatsNewDialog_b6809a4954"); },
+  get security() { return socketI18n.t("ui.security"); },
 };
 
 /**
@@ -79,12 +81,12 @@ function ordered(changes: WhatsNewChange[]): WhatsNewChange[] {
 
 /** The site's AREAS, in the order the headings are drawn. A copy, like the kinds above. */
 const AREAS = new Map([
-  ["voice", "Voice & video"],
-  ["chat", "Chat"],
-  ["notifications", "Notifications"],
-  ["servers", "Servers & invites"],
-  ["settings", "Settings & app"],
-  ["phone", "Phone"],
+  ["voice", socketI18n.t("ui.voiceVideo")],
+  ["chat", socketI18n.t("ui.chat")],
+  ["notifications", socketI18n.t("ui.notifications")],
+  ["servers", socketI18n.t("socketFull.whatsNewDialog_6a8fb495f0")],
+  ["settings", socketI18n.t("socketFull.whatsNewDialog_f6552d1a92")],
+  ["phone", socketI18n.t("socketFull.whatsNewDialog_e364611bf5")],
   ["self-hosting", "Self-hosting"],
 ]);
 
@@ -129,7 +131,7 @@ function grouped(changes: WhatsNewChange[]): AreaGroup[] {
 
   return order.map((area) => ({
     area,
-    label: AREAS.get(area) ?? (area || "Other"),
+    label: AREAS.get(area) ?? (area || socketI18n.t("settingsFull.m6e6a6f2086")),
     icon: AREA_ICONS.get(area) ?? OTHER_ICON,
     changes: changes.filter((c) => areaOf(c) === area),
   }));
@@ -142,7 +144,7 @@ function grouped(changes: WhatsNewChange[]): AreaGroup[] {
 function readableDate(iso: string): string {
   const [year, month, day] = iso.split("-").map(Number);
   if (!year || !month || !day) return iso;
-  return new Date(year, month - 1, day).toLocaleDateString(undefined, {
+  return new Date(year, month - 1, day).toLocaleDateString(socketI18n.resolvedLanguage, {
     day: "numeric",
     month: "long",
   });
@@ -150,6 +152,7 @@ function readableDate(iso: string): string {
 
 /** A row per change, each with its kind's pill. */
 function ChangeRows({ changes }: { changes: WhatsNewChange[] }) {
+  useSocketTranslation();
   return (
     <ul className="whats-new-changes">
       {ordered(changes).map((change, i) => (
@@ -181,6 +184,7 @@ function AreaBlock({
   icon: Icon;
   label: string;
 }) {
+  useSocketTranslation();
   return (
     <div className={className ? `whats-new-group ${className}` : "whats-new-group"}>
       <Heading className="whats-new-area">
@@ -199,12 +203,11 @@ function blogHref(post: string): string {
 
 /** A link to the release's blog post, where it has one. Nothing otherwise. */
 function PostLink({ post }: { post?: string }) {
+  useSocketTranslation();
   if (!post) return null;
   return (
     <a className="gryt-link whats-new-post" href={blogHref(post)} target="_blank" rel="noreferrer">
-      {" "}
-      Read the post
-    </a>
+      {" "}{socketI18n.t("socketFull.whatsNewDialog_21f8b9b5c5")}</a>
   );
 }
 
@@ -223,6 +226,7 @@ function ReleaseBody({
   post?: string;
   heading?: "h3" | "h4";
 }) {
+  useSocketTranslation();
   /* Releases before 1.10 carry a line and no kinds, so there is nothing to
      label. Their one sentence is shown as it is written. */
   if (!changes?.length) {
@@ -250,7 +254,7 @@ function ReleaseBody({
           className="whats-new-security"
           heading={Heading}
           icon={PiShieldCheckFill}
-          label="Security"
+          label={socketI18n.t("ui.security")}
         />
       )}
       {areas.length === 1 ? (
@@ -283,6 +287,7 @@ function AheadBody({
   releases: WhatsNewRelease[];
   capped: boolean;
 }) {
+  useSocketTranslation();
   const count = releases.length;
 
   return (
@@ -292,13 +297,13 @@ function AheadBody({
           <LogoIcon size={26} />
         </span>
         <span>
-          <Dialog.Title className="whats-new-greet">This server runs {ahead.running}</Dialog.Title>
+          <Dialog.Title className="whats-new-greet">{socketI18n.t("socketFull.whatsNewDialog_7b8eb082f1")}{" "}{ahead.running}</Dialog.Title>
           <p className="whats-new-meta">
             {count === 0
-              ? `The newest is ${ahead.latest}`
+              ? socketI18n.t("socketFull.whatsNewDialog_5ea2081aa7", { p0: (ahead.latest) })
               : capped
-                ? `The newest ${count} releases, up to ${ahead.latest}`
-                : `${count} newer ${count === 1 ? "release" : "releases"}, up to ${ahead.latest}`}
+                ? socketI18n.t("socketFull.whatsNewDialog_b92d7db867", { p0: (count), p1: (ahead.latest) })
+                : socketI18n.t("socketFull.whatsNewDialog_326921aaf4", { p0: (count), p2: (ahead.latest), count: (count) })}
           </p>
         </span>
       </div>
@@ -307,13 +312,11 @@ function AheadBody({
         <p className="whats-new-plain">{ahead.empty}</p>
       ) : (
         <>
-          <p className="whats-new-lead">
-            None of this is on the server yet. Updating to {ahead.latest} adds all of it.
-          </p>
+          <p className="whats-new-lead"><Trans i18n={socketI18n} i18nKey="socketFull.serverUpdateIncludesAllChanges" values={{ version: ahead.latest }} /></p>
           <div className="whats-new-ahead" data-whats-new-ahead>
             <h3 className="whats-new-area">
               <PiCloudArrowDownFill className="whats-new-area-icon" size={15} />
-              <span className="whats-new-area-name">Not on this server yet</span>
+              <span className="whats-new-area-name">{socketI18n.t("socketFull.whatsNewDialog_faec972a2e")}</span>
             </h3>
             <ReleaseList releases={releases} />
           </div>
@@ -325,6 +328,7 @@ function AheadBody({
 
 /** The releases one after another, each under its version and date. */
 function ReleaseList({ releases }: { releases: WhatsNewRelease[] }) {
+  useSocketTranslation();
   return (
     <div className="whats-new-releases">
       {releases.map((release) => (
@@ -363,6 +367,7 @@ export function WhatsNewDialog({
       notes leave this at the site's default tab; a server's point at its own. */
   changelogHref?: string;
 }) {
+  useSocketTranslation();
   const [newest] = releases;
   /* A server's are always a list with versions, and only app releases have a page. */
   const several = releases.length > 1 || !!ahead;
@@ -404,17 +409,17 @@ export function WhatsNewDialog({
                   <span>
                     <Dialog.Title className="whats-new-greet">
                       {several && since ? (
-                        <>What&rsquo;s new since {since}</>
+                        <>{socketI18n.t("socketFull.whatsNewDialog_e14c05b8c9")}{" "}{since}</>
                       ) : (
-                        <>Here&rsquo;s what&rsquo;s new in Gryt Chat</>
+                        <>{socketI18n.t("socketFull.whatsNewDialog_584bf5a57c")}</>
                       )}
                     </Dialog.Title>
                     <p className="whats-new-meta">
                       {!several
                         ? `${newest.version} · ${readableDate(newest.date)}`
                         : capped
-                          ? `The ${releases.length} newest releases`
-                          : `${releases.length} releases`}
+                          ? socketI18n.t("socketFull.whatsNewDialog_e5c08c503c", { p0: (releases.length) })
+                          : socketI18n.t("socketFull.whatsNewDialog_b9037ccad9", { p0: (releases.length) })}
                     </p>
                   </span>
                 </div>
@@ -436,9 +441,9 @@ export function WhatsNewDialog({
               target="_blank"
               rel="noreferrer"
             >
-              {several ? "Full changelog" : "Read more"}
+              {several ? socketI18n.t("socketFull.whatsNewDialog_bc7b0897ec") : socketI18n.t("socketFull.whatsNewDialog_314a873571")}
             </a>
-            <Dialog.Close render={<Button size="small">Done</Button>} />
+            <Dialog.Close render={<Button size="small">{socketI18n.t("shellFull.approveDevice_tsx_e9b450d14b")}</Button>} />
           </div>
         </Dialog.Popup>
       </Dialog.Portal>
