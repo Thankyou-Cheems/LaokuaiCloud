@@ -1,14 +1,16 @@
 import { useSFU } from "@gryt/voice";
-import { useEffect } from "react";
+import { useLayoutEffect } from "react";
 
-import { applyReceiveAudioRoles } from "@/lib/receiveAudio";
 import { useSockets } from "@/socket";
 
-export function useReceiveAudioRoles(): void {
-  const { currentServerConnected, streamSources } = useSFU();
+import type { ReceiveCorrectionRegistry } from "../../../../lib/receiveCorrectionRegistry";
+
+export function useReceiveAudioRoles(registry: ReceiveCorrectionRegistry): void {
+  const { currentServerConnected, currentChannelConnected, connectionState, isConnected, streamSources } = useSFU();
   const { clients } = useSockets();
-  useEffect(() => {
+  useLayoutEffect(() => {
     const members = currentServerConnected ? Object.values(clients[currentServerConnected] || {}) : [];
-    applyReceiveAudioRoles(streamSources, members);
-  }, [clients, currentServerConnected, streamSources]);
+    registry.reconcile({ host: currentServerConnected, channel: currentChannelConnected,
+      connected: isConnected && connectionState === "connected", sources: streamSources, clients: members });
+  }, [registry, clients, currentServerConnected, currentChannelConnected, connectionState, isConnected, streamSources]);
 }

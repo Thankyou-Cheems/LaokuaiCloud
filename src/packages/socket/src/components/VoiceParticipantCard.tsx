@@ -575,7 +575,7 @@ export function VoiceParticipantCard({
   const statusBadges = (
     <>
       <VoiceModeIcon host={serverHost} member={serverUserId} isSelf={isSelf} />
-      {!isSelf && <RemoteReceiveCorrection />}
+      {!isSelf && <RemoteReceiveCorrection host={serverHost} member={client.serverUserId} streamId={client.streamID} />}
       {/* Mute and deafen are the top-right badge now, not an icon in the name
           row. Everything else still belongs beside the name. */}
       {client.isAFK && (
@@ -704,7 +704,7 @@ export function VoiceParticipantCard({
           </div>
         )}
 
-        {compact && <><VoiceModeIcon host={serverHost} member={serverUserId} isSelf={isSelf} />{!isSelf && <RemoteReceiveCorrection />}</>}
+        {compact && <><VoiceModeIcon host={serverHost} member={serverUserId} isSelf={isSelf} />{!isSelf && <RemoteReceiveCorrection host={serverHost} member={client.serverUserId} streamId={client.streamID} />}</>}
 
         {/* Mute state moved to the tile's top-right badge, so this chip is
             only still carrying it in the compact strip, which has no tile to

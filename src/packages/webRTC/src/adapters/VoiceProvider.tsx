@@ -6,9 +6,9 @@ import { useSettings } from "@/settings";
 import { useServerManagement, useSockets } from "@/socket";
 
 import { ReceiveLevelingProvider } from "../components/ReceiveLevelingAdapter";
+import { ReceiveCorrectionBridge } from "./ReceiveCorrectionBridge";
 import { createRoomCoordinator } from "./roomCoordinator";
 import { useOutputDevice } from "./useOutputDevice";
-import { useReceiveAudioRoles } from "./useReceiveAudioRoles";
 import { useSquadProtection } from "./useSquadProtection";
 import { useVoiceLifecycle } from "./useVoiceLifecycle";
 import { useVoiceModes } from "./useVoiceModes";
@@ -38,7 +38,6 @@ function VoiceLifecycle() {
   useOutputDevice();
   useSquadProtection();
   useVoiceModes();
-  useReceiveAudioRoles();
   return null;
 }
 
@@ -100,8 +99,10 @@ export function VoiceProvider({ children }: { children?: ReactNode }) {
           behaviours that were deliberately left out of the package: the connect
           sound, ending a call when its server is removed, and the server hanging
           up on us. */}
-      <VoiceLifecycle />
-      <ReceiveLevelingBridge>{children}</ReceiveLevelingBridge>
+      <ReceiveCorrectionBridge>
+        <VoiceLifecycle />
+        <ReceiveLevelingBridge>{children}</ReceiveLevelingBridge>
+      </ReceiveCorrectionBridge>
     </VoiceConfigProvider>
   );
 }

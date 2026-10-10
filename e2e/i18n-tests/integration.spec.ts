@@ -62,6 +62,28 @@ test("real correction stays unknown, fixture learned ring survives current gain 
   expect(await ring.locator('[data-correction-arc="boost"]').getAttribute("stroke-dashoffset")).toBe(arc);
 });
 
+test("receiver-local batch reaches real display, pause retains learning, missing and replacement clear it", async ({ page }) => {
+  const bound = page.getByTestId("bound-correction").getByRole("img");
+  await expect(bound).toHaveAttribute("aria-label", /尚未测量/);
+  await page.getByRole("button", { name: "Telemetry measured", exact: true }).click();
+  await expect(bound).toHaveAttribute("aria-label", /长期校正: \+7.4 dB; 当前应用: \+6.2 dB; 状态: 稳定/);
+  await expect(page.getByTestId("other-server-correction").getByRole("img")).toHaveAttribute("aria-label", /尚未测量/);
+  await page.getByRole("button", { name: "Telemetry pause", exact: true }).click();
+  await expect(bound).toHaveAttribute("aria-label", /长期校正: \+7.4 dB; 当前应用: 0.0 dB/);
+  await page.getByRole("button", { name: "Telemetry limited", exact: true }).click();
+  await expect(bound).toHaveAttribute("aria-label", /受估计噪声预算限制 \(noise_budget\)/);
+  await page.getByRole("button", { name: "English", exact: true }).click();
+  await expect(bound).toHaveAttribute("aria-label", /Limited by the estimated noise budget \(noise_budget\)/);
+  await page.getByRole("button", { name: "Telemetry replace track", exact: true }).click();
+  await expect(bound).toHaveAttribute("aria-label", /Not measured/);
+  await page.getByRole("button", { name: "Telemetry measured", exact: true }).click();
+  await expect(bound).toHaveAttribute("aria-label", /Long-term correction: \+7.4 dB/);
+  await page.getByRole("button", { name: "Telemetry missing", exact: true }).click();
+  await expect(bound).toHaveAttribute("aria-label", /Not measured/);
+  await page.getByRole("button", { name: "Telemetry unavailable", exact: true }).click();
+  await expect(bound).toHaveAttribute("aria-label", /Automatic gain unavailable above 48 kHz \(unsupported_sample_rate\)/);
+});
+
 for (const width of [300, 390]) test(`volume popup at ${width}px, independent controls, keyboard and reduced motion`, async ({ page }) => {
   await page.setViewportSize({ width, height: 900 });
   await page.emulateMedia({ reducedMotion: "reduce" });

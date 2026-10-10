@@ -5,7 +5,7 @@ config.appId = "local.laokuai.chat";
 config.productName = "唠蒯";
 config.extraMetadata = { name: "laokuai-chat", productName: config.productName,
   grytI18nTest: true, grytLaokuai: true };
-config.directories.output = "release-laokuai-integration-1";
+config.directories.output = "release-laokuai-integration-2";
 config.win.icon = "private-brand/icon.ico";
 config.win.executableName = "唠蒯";
 config.portable.artifactName = "唠蒯-${version}-zh-CN-win-x64-slim-portable.exe";
@@ -23,6 +23,7 @@ config.extraResources.push(
   { from: "node_modules/@gryt/voice/LICENSE", to: "legal/VOICE-AGPL-3.0.txt" },
   { from: "node_modules/@gryt/voice/third-party/Signalsmith-LICENSE.txt", to: "legal/Signalsmith-LICENSE.txt" },
   { from: "node_modules/@gryt/voice/third-party/Signalsmith-DSP-LICENSE.txt", to: "legal/Signalsmith-DSP-LICENSE.txt" },
+  { from: "node_modules/@gryt/voice/third-party/receive-rnn/licenses", to: "legal/receive-rnn" },
 );
 config.win.signtoolOptions.sign = async () => { console.log("Local LaoKuai build: unsigned artifact"); };
 const prepare = config.beforeBuild;

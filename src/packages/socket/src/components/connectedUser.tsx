@@ -50,6 +50,7 @@ export function ConnectedUser({
   onToggleRole,
   targetRoles,
   serverHost,
+  streamId,
 }: {
   isSpeaking: boolean;
   /** Dominant colour of the avatar, so the ring matches the voice tile's. */
@@ -64,6 +65,7 @@ export function ConnectedUser({
   nickname: string;
   avatarSrc?: string;
   serverUserId?: string;
+  streamId?: string;
   isSelf?: boolean;
   isConnectedToVoice?: boolean;
   isConnectingToVoice?: boolean;
@@ -142,7 +144,7 @@ export function ConnectedUser({
 
         <div className="flex flex-wrap gap-1 items-center max-w-full" style={{ flexShrink: 0 }}>
           <VoiceModeIcon host={serverHost} member={serverUserId} isSelf={isSelf} />
-      {!isSelf && <RemoteReceiveCorrection />}
+      {!isSelf && <RemoteReceiveCorrection host={serverHost} member={serverUserId} streamId={streamId} />}
           {isConnectingToVoice && (
             <Skeleton variant="circular" width="12px" height="12px" />
           )}

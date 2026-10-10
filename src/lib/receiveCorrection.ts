@@ -61,7 +61,7 @@ const UNMEASURED: ReceiveCorrectionSnapshot = Object.freeze({
   state: "unknown",
 });
 
-/** Frozen Voice has no per-route gain telemetry. See RECEIVE-CORRECTION.md. */
+/** Missing or unbound receiver telemetry must remain unknown. */
 export function readReceiveCorrection(): ReceiveCorrectionSnapshot {
   return UNMEASURED;
 }
@@ -79,10 +79,10 @@ export function formatCorrectionDb(value?: number | null, notMeasured = "Not mea
   return `${finite > 0 ? "+" : ""}${rounded} dB`;
 }
 
-/** The arc uses the frozen DSP's documented ±9 dB range, never clips the text. */
+/** Controller bounds are -12/+18 dB; visual saturation never clips the text. */
 export function correctionArcPercent(value?: number | null): number {
   const finite = finiteCorrectionDb(value);
-  return finite === null ? 0 : Math.min(100, Math.abs(finite) / 9 * 100);
+  return finite === null ? 0 : Math.min(100, Math.abs(finite) / (finite < 0 ? 12 : 18) * 100);
 }
 
 export function describeReceiveCorrection(

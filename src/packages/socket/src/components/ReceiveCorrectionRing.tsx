@@ -16,6 +16,7 @@ export interface ReceiveCorrectionRingProps {
   state?: ReceiveCorrectionState;
   labels?: Partial<ReceiveCorrectionLabels>;
   className?: string;
+  diagnostic?: string;
 }
 
 /** Read-only display. Rendering this ring does not enable or adjust the DSP. */
@@ -25,12 +26,13 @@ export function ReceiveCorrectionRing({
   state = "unknown",
   labels: labelOverrides,
   className = "",
+  diagnostic,
 }: ReceiveCorrectionRingProps) {
   const labels = { ...RECEIVE_CORRECTION_LABELS_EN, ...labelOverrides };
   const learned = finiteCorrectionDb(learnedAutoGainDb);
   const applied = finiteCorrectionDb(appliedAutoGainDb);
   const snapshot = { learnedAutoGainDb: learned, appliedAutoGainDb: applied, state };
-  const description = describeReceiveCorrection(snapshot, labels);
+  const description = [describeReceiveCorrection(snapshot, labels), diagnostic].filter(Boolean).join("; ");
   const direction = learned === null ? "unknown" : learned > 0 ? "boost" : learned < 0 ? "attenuation" : "neutral";
   const arc = correctionArcPercent(learned);
   const learnedText = formatCorrectionDb(learned, labels.notMeasured);
@@ -42,6 +44,7 @@ export function ReceiveCorrectionRing({
       <span className="block tabular-nums">{labels.learned}: {learnedText}</span>
       <span className="block tabular-nums">{labels.applied}: {appliedText}</span>
       <span className="block">{labels.state}: {labels[state]}</span>
+      {diagnostic && <span className="block whitespace-normal">{diagnostic}</span>}
       <span className="block text-gryt-muted">{direction === "unknown" ? labels.notMeasured : labels[direction]}</span>
       <span className="mt-1 block text-gryt-muted">{labels.localOnly}</span>
       <span className="block whitespace-normal text-gryt-muted">{labels.automaticOnly}</span>

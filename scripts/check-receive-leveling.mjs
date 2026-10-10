@@ -93,8 +93,8 @@ assert.match(settings, /receiveLevelingEnabled: true/);
 assert.match(settings, /setUserValue\("receiveLevelingEnabled", enabled\)/);
 assert.match(read("src/packages/webRTC/src/adapters/voiceConfig.ts"), /receiveLevelingEnabled: s.receiveLevelingEnabled/);
 const adapter = read("src/packages/webRTC/src/adapters/useReceiveAudioRoles.ts");
-assert.match(adapter, /applyReceiveAudioRoles\(streamSources, members\)/);
-assert.match(adapter, /\[clients, currentServerConnected, streamSources\]/);
+assert.match(adapter, /registry\.reconcile\(/);
+assert.match(adapter, /\[registry, clients, currentServerConnected, currentChannelConnected, connectionState, isConnected, streamSources\]/);
 for (const file of ["hooks/useServerState.ts", "components/VoiceView.tsx", "components/FocusedVideoView.tsx", "hooks/usePopoutStreams.ts"]) {
   const source = read(`src/packages/socket/src/${file}`);
   assert.ok(source.includes("setReceiveAudioGain("), file);

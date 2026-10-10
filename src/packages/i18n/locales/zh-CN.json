@@ -1,4 +1,14 @@
 {
+  "receiveCorrection": {
+    "noiseBudget": "受估计噪声预算限制",
+    "gainRange": "已达到自动增益范围上限",
+    "noiseMissing": "暂无可用噪声估计",
+    "analyzerUnavailable": "语音分析器暂不可用",
+    "unsupportedRate": "超过 48 kHz 时自动增益不可用",
+    "ambiguous": "无法将音频路线唯一对应到成员",
+    "trackChanged": "正在等待当前音轨的测量",
+    "disabled": "接收音量自动平衡已关闭"
+  },
   "language": {
     "title": "语言",
     "description": "选择界面语言。消息和服务器名称保持原样。",

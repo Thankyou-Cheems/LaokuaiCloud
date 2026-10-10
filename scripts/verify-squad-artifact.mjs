@@ -82,7 +82,16 @@ assert.equal(pe(helper).machine,0x8664);
 assert.equal(sha(fs.readFileSync(helper)),sha(fs.readFileSync(path.join(root,"build/squad/squad-scope.exe"))));
 for (const license of ["VOICE-AGPL-3.0.txt","Signalsmith-LICENSE.txt","Signalsmith-DSP-LICENSE.txt","SQUAD-MODE.md"]) assert.ok(fs.existsSync(path.join(resources,"legal",license)));
 const installed=JSON.parse(fs.readFileSync(path.join(root,"node_modules/@gryt/voice/package.json")));
-assert.equal(installed.version,"0.6.2-laokuai.squad.1");
+assert.equal(installed.version,"0.6.2-laokuai.longterm.1");
+const rnnLicenses = path.join(root,"node_modules/@gryt/voice/third-party/receive-rnn/licenses");
+const notices = walk(rnnLicenses);
+assert.equal(notices.length,11,"All RNN upstream/model notices must be retained");
+for (const notice of notices) {
+  const relative = path.relative(rnnLicenses,notice);
+  assert.equal(sha(fs.readFileSync(notice)),sha(fs.readFileSync(path.join(resources,"legal/receive-rnn",relative))),relative);
+}
+assert.ok(renderer.includes("receive-auto-levels"));
+assert.ok(renderer.includes("learnedAutoGainDb"));
 const report={metadata:meta,payloadFileCount:Object.keys(hashes).length,payloadSha256:hashes,appAsarSha256:sha(fs.readFileSync(archive)),nativePEMachine:"AMD64",signed:false,mediaOrElectronExecuted:false,checked:["portable payload equals unpacked tree","independent immutable metadata","AGPL/MIT/dependency notices","Chinese and English native resources","source bundle/native helper correspondence","N-API prebuild presence","no updater feed/helper/embedded server"]};
 fs.writeFileSync(path.resolve(root,"squad-static-verification.json"),JSON.stringify(report,null,2));
 console.log(`Verified ${report.payloadFileCount} portable payload files; metadata, licenses, AMD64 helpers and hashes match. No executable or native addon was run.`);

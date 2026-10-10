@@ -25,7 +25,7 @@ const render = props => renderToStaticMarkup(createElement(ReceiveCorrectionRing
 let checks = 0;
 const check = (name, run) => { run(); ++checks; console.log(`PASS ${name}`); };
 
-check("frozen adapter supplies no fabricated telemetry and is immutable", () => {
+check("missing route supplies no fabricated telemetry and is immutable", () => {
   assert.deepEqual(model.readReceiveCorrection(), { learnedAutoGainDb: null, appliedAutoGainDb: null, state: "unknown" });
   assert.ok(Object.isFrozen(model.readReceiveCorrection()));
 });
@@ -43,9 +43,11 @@ check("missing and non-finite measurements remain unknown without coercion", () 
 });
 check("visual scale saturates at the documented limits without changing reported gain", () => {
   assert.equal(model.correctionArcPercent(0), 0);
-  assert.equal(model.correctionArcPercent(4.5), 50);
-  assert.equal(model.correctionArcPercent(-9), 100);
-  assert.equal(model.correctionArcPercent(15), 100);
+  assert.equal(model.correctionArcPercent(9), 50);
+  assert.equal(model.correctionArcPercent(-6), 50);
+  assert.equal(model.correctionArcPercent(-12), 100);
+  assert.equal(model.correctionArcPercent(18), 100);
+  assert.equal(model.correctionArcPercent(25), 100);
   assert.match(render({ learnedAutoGainDb: 15, appliedAutoGainDb: 9, state: "limited" }), /\+15\.0 dB/);
 });
 check("real component defaults to accessible static unknown without zero claims", () => {

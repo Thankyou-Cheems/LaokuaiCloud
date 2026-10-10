@@ -96,5 +96,6 @@ const prefs = read("src/packages/settings/src/hooks/useAudioSettings.ts");
 assert.ok(prefs.includes("receiveLevelingEnabled: true"));
 assert.ok(prefs.includes('setUserValue("receiveLevelingEnabled", enabled)'));
 assert.ok(read("src/packages/webRTC/src/adapters/voiceConfig.ts").includes("receiveLevelingEnabled: s.receiveLevelingEnabled"));
-assert.ok(read("src/packages/webRTC/src/adapters/useReceiveAudioRoles.ts").includes('applyReceiveAudioRoles(streamSources, members)'));
+assert.ok(read("src/packages/webRTC/src/adapters/useReceiveAudioRoles.ts").includes('registry.reconcile('));
+assert.ok(read("src/packages/webRTC/src/adapters/ReceiveCorrectionBridge.tsx").includes('registry.acceptBatch(receiveAutoLevels)'));
 console.log("PASS: callback policy, audio role mapping, manual mute/unmute, own profile/origin/auth constraints");

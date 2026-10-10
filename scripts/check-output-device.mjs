@@ -135,8 +135,9 @@ runInNewContext(ts.transpileModule(engineSource, {
     if (name.endsWith("config/index.js")) return { useVoiceConfig: () => ({ audio: {} }) };
     if (name.endsWith("singletonHook.js")) return { singletonHook: (_initial, body) => body };
     if (name.endsWith("useAudioContext.js")) return { useSharedAudioContext: () => ({ audioContext: voiceContext }) };
-    // Receive graph is unrelated to output routing in this private package.
-    if (name.endsWith("receiveGraph.js")) return { getReceiveController: () => ({ setEnabled() {}, setMuted() {}, subscribe: () => () => {}, dispose() {} }) };
+    // Isolate the external receive graph while running the installed output hook.
+    if (name.endsWith("receiveGraph.js")) return { getReceiveController: () => ({ setEnabled() {}, setMuted() {},
+      subscribe: () => () => {}, subscribeAutoLevels: () => () => {}, dispose() {} }) };
     throw new Error(`Unexpected voice dependency: ${name}`);
   },
 });

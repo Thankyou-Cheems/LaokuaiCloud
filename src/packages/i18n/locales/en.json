@@ -1,4 +1,14 @@
 {
+  "receiveCorrection": {
+    "noiseBudget": "Limited by the estimated noise budget",
+    "gainRange": "Automatic gain limit reached",
+    "noiseMissing": "Noise estimate is not available",
+    "analyzerUnavailable": "Speech analyzer is not available",
+    "unsupportedRate": "Automatic gain unavailable above 48 kHz",
+    "ambiguous": "Audio route could not be matched to one participant",
+    "trackChanged": "Waiting for measurements from the current audio track",
+    "disabled": "Automatic receive leveling is disabled"
+  },
   "language": {
     "title": "Language",
     "description": "Choose the interface language. Messages and server names stay as written.",

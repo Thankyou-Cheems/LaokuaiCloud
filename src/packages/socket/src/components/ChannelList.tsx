@@ -442,6 +442,7 @@ export const ChannelList = ({
                       clients[id].voiceChannelId === channelId && (
                         <ConnectedUser
                           serverHost={serverHost}
+                          streamId={clients[id].streamID}
                           isSpeaking={clientsSpeaking[id] || false}
                           avatarColor={
                             clients[id].serverUserId
