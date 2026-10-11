@@ -108,6 +108,29 @@ if(m.validation.followupPackagingCompatibility){
   for(const file of receipt.files)assert(git(['rev-parse',`${receipt.sourceCommit}:${file.path}`])===file.gitBlob,'Follow-up packaging source changed');
   assert(receipt.buildFreezeUnchanged===true&&candidate.scopeExpanded===false&&candidate.productionDistributionGateUnchanged===true,'Packaging gate scope expanded');
 }
+if(m.validation.snapshotDiagnosticRepair){
+  const actual=m.validation.snapshotDiagnosticRepair;
+  assert(sha(actual.receipt)===actual.receiptSha256,'Snapshot repair receipt changed');
+  const receipt=JSON.parse(fs.readFileSync(path.join(root,actual.receipt),'utf8'));
+  for(const file of receipt.imports)assert(sha(file.path)===file.sha256&&git(['rev-parse',`HEAD:${file.path}`])===file.ownerGitBlob,'Snapshot repair frozen source changed');
+  assert(receipt.task6PureChecks===30&&receipt.snapshotTimeoutMs===40000&&receipt.runningWatchdogMs===30000&&receipt.residualObservationMs===40000,'Snapshot repair budget/test scope changed');
+  assert(receipt.consumedApprovalReused===false&&receipt.currentApprovalReceived===false&&receipt.task6OsSnapshotExecuted===false&&receipt.task6NativeExecuted===false&&receipt.nativeBeforeAfterPreservationAccepted===false,'Read-only repair promoted to native execution/acceptance');
+  assert(sha(receipt.administratorBaselineReceipt)===receipt.administratorBaselineReceiptSha256,'Administrator baseline receipt changed');
+  const baseline=JSON.parse(fs.readFileSync(path.join(root,receipt.administratorBaselineReceipt),'utf8'));
+  assert(baseline.baselinePassed===true&&baseline.readerElapsedMs===20657&&baseline.completePhaseCount===23&&baseline.nativeOrTunExecuted===false&&baseline.authorizesNativeTrial===false,'Administrator baseline promoted to native authorization');
+  assert(receipt.newScopeSha256===actual.scopeSha256&&actual.actualActivationAccepted===false,'Snapshot repair approval scope mismatch');
+}
+if(m.internalCandidate){
+  const candidate=m.internalCandidate;
+  assert(sha(candidate.receipt)===candidate.receiptSha256,'Internal candidate receipt changed');
+  const receipt=JSON.parse(fs.readFileSync(path.join(root,candidate.receipt),'utf8'));
+  assert(receipt.sourceFreeze==='83dd572fad7837c9716153b9cc2e58535db1b875'&&receipt.codeCommit==='6cb8a9cf1f730454e43e19a0cb60a106684ee3e2','Internal artifact source drifted');
+  git(['merge-base','--is-ancestor',receipt.sourceFreeze,'HEAD']);
+  assert(receipt.artifact.sha256===candidate.artifact.sha256&&receipt.artifact.bytes===128601307&&receipt.appAsar.sha256===candidate.appAsarSha256,'Internal artifact identity mismatch');
+  assert(receipt.task6ReadOnlyVerification.manifestFiles===188&&receipt.task6ReadOnlyVerification.allListedBytesAndHashesMatched===true,'Artifact immutable verification absent');
+  assert(receipt.followupSourceExcluded.nativeLicenseTextBundlePresentInThisArtifact===false&&receipt.followupSourceExcluded.runnerRepairPresentInThisArtifact===false,'New source falsely attributed to old artifact');
+  assert(receipt.applicationExecuted===false&&receipt.fullApplicationE2E===false&&receipt.publicDistributionApproved===false&&candidate.runtimeAccepted===false&&m.finalPackage===null&&m.ready===false,'Internal candidate promoted to release');
+}
 if(m.ready&&m.validation.noNpcapBuildCandidate){
   const candidate=m.validation.noNpcapBuildCandidate;
   assert(candidate.twoBinaryNormalAndDelayImportsVerified===true&&candidate.fourFileRuntimeManifestUpdated===true,'Final core/CLI no-Npcap imports and runtime schema not verified');

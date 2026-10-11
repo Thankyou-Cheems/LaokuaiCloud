@@ -1,0 +1,13 @@
+# Read-only snapshot repair review
+
+Final owner source 732ad82e6528ae1567abf31b6429dabc6ef362e0, based on 15e1c4b97022912ed6f4048cf657a1cb090ce1d2, includes the preceding 9cba659b025cb8aece5111e714d793f05ef84b2d diagnostic repair. Seven code/test/trial-document Git blobs are imported exactly. Ignore/LF rules are adapted to this integration repository, and this summary excludes raw host diagnostics. The original full reports remain in the owner's frozen delivery.
+
+The prior approved scope c737fd450558cd0176356dc0e1dea3a086bf34a9042ed8e60cd89a6c15b47f20 failed its first snapshot before preparation/core/TUN and consumed that single approval. The discarded callback error prevents exact cause attribution. Ordinary-token permission failures are separate observations. The provisional unactivated scope c44bdbae1f2839914485b8c062b739557af271f92e27120a64bbef498be320ee is also superseded.
+
+A separately authorized normal UAC read-only probe completed all23 phases in20.657 seconds with the fixed baseline passing. Receipt release/acceptance/admin-readonly-baseline.json pins its owner handoff and diagnostic/baseline hashes. It establishes complete snapshot availability at one point in time; no native start/stop, before/after route/firewall protection, gameplay or production activation was tested. Task6 did not execute this probe.
+
+Final scope dd60b94603ffb3e17a85450810e2f3edfba3183705e0d515f662037916692dfc pins both read-only sources and schema3 diagnostics. Snapshot timeout and post-stop residual observation are each40 seconds; output limit remains2MiB, native launch/running watchdog30 seconds, stop bounds4/6 seconds. Two preflights may take80 seconds plus preparation. Running/residual outer deadlines cancel stalled reads, and missing/partial evidence fails closed. All original adapter/address/route/DNS/default/firewall/filter/category/driver/process checks remain.
+
+The code fails early without an administrator token, hashes existing driver bytes with .NET streaming SHA-256, and requires an independent bounded redacted phase/error journal. It makes no permission, policy, payload, profile, peer or public-server changes. Raw stderr, command text, host endpoints and snapshot stdout are not journaled.
+
+Final owner validation is19 trial+11 snapshot pure tests; Task6 repeats the final30 fake-clock/fake-child checks. The existing client ESLint configuration reports Node globals and import ordering in these owner scripts; source hashes are preserved rather than silently changing approval scope. The native/TUN trial still requires fresh original-human approval coordinated by parent. Task6 runs no reader/runner/UAC/PowerShell snapshot/native/driver/network. Frozen83 internal artifact excludes this repair.

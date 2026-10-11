@@ -6,6 +6,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { execFile } from 'node:child_process';
+import { readOwnedSnapshot } from './owned-tun-snapshot-reader.mjs';
 import { SCOPE, SCOPE_SHA256, TRIAL_SUSPENDED, sha256, validateApproval, verifyTrialPayload, verifyTrialDocuments, buildIsolatedConfig, runBoundedTrial } from './owned-tun-trial-policy.mjs';
 
 const scripts = path.dirname(fileURLToPath(import.meta.url));
@@ -39,23 +40,38 @@ async function execute() {
   // Nothing else (OS reads, copies, configs, sockets, child processes) precedes this gate.
   validateApproval(process.argv.slice(2));
   if (process.platform !== 'win32') throw new Error('windows-only');
+  for (const [file, expected] of [['owned-tun-trial-snapshot.ps1', SCOPE.snapshot.scriptSha256], ['owned-tun-snapshot-reader.mjs', SCOPE.snapshot.readerSha256]]) {
+    if (sha256(await fsp.readFile(path.join(scripts, file))) !== expected) throw new Error('approved-snapshot-source-mismatch');
+  }
   const { EasyTierWindowsProcesses } = loadOwnedAdapter();
   const processes = new EasyTierWindowsProcesses(15897);
   const reads = new Set();
-  let latestCore, directory, config, reportPath;
+  let latestCore, directory, config, reportPath, diagnosticDirectory;
+  let diagnosticReady;
+  let diagnosticSequence = 0;
   const cancelReads = () => { for (const control of reads) control.abort(); };
+  const saveDiagnostic = async diagnostic => {
+    // Exists even when the first preflight fails, before payload/config preparation.
+    diagnosticReady ??= (async () => {
+      const root = path.join(client, '.laokuai-tun-diagnostics');
+      try { const stat = await fsp.lstat(root); if (!stat.isDirectory() || stat.isSymbolicLink()) throw new Error('unsafe-diagnostic-directory'); }
+      catch (error) { if (error.code !== 'ENOENT') throw error; await fsp.mkdir(root); }
+      if (await fsp.realpath(root) !== path.join(await fsp.realpath(client), '.laokuai-tun-diagnostics')) throw new Error('unsafe-diagnostic-directory');
+      diagnosticDirectory = path.join(root, new Date().toISOString().replace(/[:.]/g, '-') + '-' + randomUUID());
+      await fsp.mkdir(diagnosticDirectory);
+      return diagnosticDirectory;
+    })();
+    const destination = await diagnosticReady;
+    await fsp.writeFile(path.join(destination, `snapshot-${++diagnosticSequence}.json`),
+      JSON.stringify({ ...diagnostic, scopeSha256: SCOPE_SHA256 }, null, 2), { flag: 'wx' });
+  };
   const snapshot = () => {
     const control = new AbortController(); reads.add(control);
     const pid = latestCore?.ownedResources()?.pid ?? 0;
     const powershell = path.join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
-    return new Promise((resolve, reject) => {
-      execFile(powershell, ['-NoProfile', '-NonInteractive', '-File', path.join(scripts, 'owned-tun-trial-snapshot.ps1'), '-OwnedPid', String(pid)],
-        { windowsHide: true, shell: false, timeout: 10000, maxBuffer: 2 * 1024 * 1024, signal: control.signal }, (error, stdout) => {
-          reads.delete(control);
-          if (error) { reject(new Error('read-only-snapshot-unavailable')); return; }
-          try { resolve(JSON.parse(stdout.replace(/^\uFEFF/, ''))); } catch { reject(new Error('invalid-read-only-snapshot')); }
-        });
-    });
+    return readOwnedSnapshot({ execFile, executable: powershell, script: path.join(scripts, 'owned-tun-trial-snapshot.ps1'),
+      ownedPid: pid, signal: control.signal, timeoutMs: SCOPE.snapshot.timeoutMs, maxBuffer: SCOPE.snapshot.maxBufferBytes,
+      onDiagnostic: saveDiagnostic }).finally(() => reads.delete(control));
   };
   const onCancel = stop => {
     const listener = () => { stop(); cancelReads(); };
@@ -107,13 +123,13 @@ async function execute() {
     });
     await fsp.writeFile(reportPath, JSON.stringify(result, null, 2), { flag: 'wx' });
     console.log(JSON.stringify({ outcome: result.outcome, failure: result.failure, ready: result.ready,
-      scopeSha256: SCOPE_SHA256, reportPath, reports: result.reports, realCommunityJoinVerified: false }));
+      scopeSha256: SCOPE_SHA256, reportPath, diagnosticDirectory, reports: result.reports, realCommunityJoinVerified: false }));
     process.exitCode = result.outcome === 'passed' ? 0 : 1;
   } catch (error) {
     processes.shutdownOwned();
     try { await processes.drainOwned(); } catch { /* Keep owned cleanup evidence, never remove OS resources. */ }
     const result = { outcome: 'failed', failure: /^[a-z0-9-]{1,96}$/.test(error.message ?? '') ? error.message : 'trial-preflight-or-execution-failed', scopeSha256: SCOPE_SHA256,
-      reports: processes.cleanupReports(), realCommunityJoinVerified: false, deletedOsResources: false };
+      reports: processes.cleanupReports(), diagnosticDirectory, realCommunityJoinVerified: false, deletedOsResources: false };
     if (reportPath) await fsp.writeFile(reportPath, JSON.stringify(result, null, 2), { flag: 'wx' }).catch(() => {});
     console.log(JSON.stringify(result)); process.exitCode = 1;
   } finally { cancelReads(); }

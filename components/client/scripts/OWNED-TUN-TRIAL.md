@@ -1,16 +1,17 @@
 # One current-user-approved no-peer TUN coexistence trial
 
-The final no-Npcap candidate is fixed and statically audited. The runner is ready for **one new human approval**, not already approved or executed. Default invocation and --check only print scope/hash; they do not load the adapter, read OS state, copy inputs, create a config, reserve a port, elevate or launch a binary. The old approval hash is superseded.
+The final no-Npcap payload is fixed and statically audited. Revision 15e1c4b's single approved attempt failed at its first read-only snapshot before preparation or native launch. That approval is consumed. This diagnostic repair requires **new human approval of its new scope** before any subsequent UAC/native action. Default invocation and --check only print scope/hash; they do not load the adapter, read OS state, copy inputs, create a config, reserve a port, elevate or launch a binary. See the [snapshot investigation](OWNED-TUN-SNAPSHOT-DIAGNOSIS.md).
 
 ```powershell
 node scripts/run-owned-tun-trial.mjs --check
 node scripts/check-owned-tun-trial.mjs
+node scripts/check-owned-tun-snapshot.mjs
 ```
 
 Only after current human approval of the complete scope below, run once under a user-approved administrator token from this independent client checkout:
 
 ```powershell
-node scripts/run-owned-tun-trial.mjs --execute --approved-scope-sha256 c737fd450558cd0176356dc0e1dea3a086bf34a9042ed8e60cd89a6c15b47f20
+node scripts/run-owned-tun-trial.mjs --execute --approved-scope-sha256 dd60b94603ffb3e17a85450810e2f3edfba3183705e0d515f662037916692dfc
 ```
 
 The runner never elevates itself. The agent must wait for current confirmation before this command or any UAC/native/driver action. Any failed/conflicting preflight prevents launch; do not silently change scope or install/enable a driver to proceed.
@@ -44,10 +45,10 @@ Owned management listens only on 127.0.0.1:15897 with whitelist 127.0.0.1/32. It
 
 ## Deadline and exact-owned cleanup
 
-The startup/running watchdog starts immediately before launch: at most 30 seconds including pending startup/read. Read-only preflight precedes that timer; each snapshot has a 10-second timeout. Failure, early exit, policy change or SIGINT/SIGTERM stops sooner. Stop writes LAOKUAI_OWNED_STOP_V1/EOF; after 4 seconds force termination may target ONLY the stored owned child, with unconfirmed exit reported after 6 seconds. Then a separate maximum 10-second read-only residual observation follows. No process-name scan/kill, old GUI stop, residual deletion or shared driver uninstall occurs.
+The startup/running watchdog starts immediately before launch: at most 30 seconds including pending startup/read. Read-only preflight precedes that timer; each complete snapshot has a 40-second timeout and unchanged 2 MiB output limit. There are two preflight snapshots, so their total bound is 80 seconds plus preparation; the 30-second bound applies to the launch/running stage. One normally elevated readonly full baseline completed in 20.657 seconds. This led to a separate residual readonly window of 40 seconds, replacing the previous 10 seconds without changing native lifetime or stop behavior. During running and residual observation the outer deadlines preempt/cancel pending snapshots. No partial snapshot can pass and future query duration remains variable. Failure, early exit, policy change or SIGINT/SIGTERM stops sooner. Stop writes LAOKUAI_OWNED_STOP_V1/EOF; after 4 seconds force termination may target ONLY the stored owned child, with unconfirmed exit reported after 6 seconds. Then a separate maximum 40-second read-only residual observation follows. No process-name scan/kill, old GUI stop, residual deletion or shared driver uninstall occurs.
 
 ACK alone cannot prove adapter disappearance. Success requires ready receipt-matched NIC, preservation of old network, zero added adapter/RPC residue and graceful owned exit. Forced/unconfirmed cleanup, unavailable evidence, old-network change or residue is failure. Retain result.json with exact owned PID/GUID/LUID/ifIndex; do not blindly delete. An unconfirmed live child remains owned for reporting.
 
-Output omits raw native stdout/stderr, physical endpoints and credentials; reports/test inputs stay in the ignored run directory. This checks only no-peer NIC coexistence/start/stop, not community routing, live gameplay, media path or uninterrupted packets; production remains gated.
+Output omits raw native stdout/stderr, physical endpoints and credentials; reports/test inputs stay in the ignored run directory. A separate ignored .laokuai-tun-diagnostics/<run>/snapshot-N.json journal is written even if first preflight fails, with phase/timing/exit/cancellation details, strictly filtered structured stderr, stderr byte count/hash and dropped-line count. Arbitrary error messages, target objects, command text and snapshot stdout are never journaled. A journal write failure prevents baseline acceptance. Both readonly source files are hash-pinned in approval scope with LF checkout rules. This checks only no-peer NIC coexistence/start/stop, not community routing, live gameplay, media path or uninterrupted packets; production remains gated.
 
-18 pure checks cover scope/substitution rejection, final evidence/payload/notices gates, no Npcap dependency, broadcast-disabled config, driver conflicts, receipt matching, deadline/hangs/cancel/failures and bounded residual checks. PowerShell was AST/command inspected only. Static reads verified actual four files and seven notice/license artifacts; no core, CLI, driver, UAC or OS snapshot ran.
+19 pure trial checks and 11 fake-child snapshot checks pass. Windows PowerShell 5.1 AST inspection found zero parse errors and zero mutation commands. A nonadmin readonly probe recorded explicit denial in 454 ms. One separately authorized normal UAC readonly probe at 2026-10-11T11:15:13.198Z completed all phases in 20.657 seconds, with baseline validation passed, 25 adapters, 24 categories and no dropped stderr lines. Core/CLI/TUN/driver APIs were not executed. This verifies snapshot availability at one point in time; full administrator before/after comparison during native operation and no-peer coexistence success remain unverified. The readonly approval does not authorize the next native/TUN trial.

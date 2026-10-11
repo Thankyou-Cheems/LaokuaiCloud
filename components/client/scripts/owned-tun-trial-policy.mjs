@@ -3,8 +3,10 @@ import { createHash } from 'node:crypto';
 const deepFreeze = value => { if (value && typeof value === 'object') { for (const child of Object.values(value)) deepFreeze(child); Object.freeze(value); } return value; };
 const delivery = 'C:\\Users\\cheb2\\Documents\\Codex\\2026-10-10\\task-2\\et-windows-build-no-npcap\\delivery';
 export const SCOPE = deepFreeze({
-  schema: 2, trial: 'single-no-peer-owned-tun-no-npcap', maximumRunMs: 30000,
-  stopForceAfterMs: 4000, stopFinalAfterMs: 6000, residualObservationMs: 10000,
+  schema: 3, trial: 'single-no-peer-owned-tun-no-npcap', maximumRunMs: 30000,
+  snapshot: { timeoutMs: 40000, maxBufferBytes: 2097152, diagnosticProtocol: 1,
+    scriptSha256: 'f73213399a3d07d6e317c480e59ccd87d1e948ffce86aa5e4a94c1a3d1909fdb', readerSha256: 'f2f7394a9cb1666d3a66ae2a8e0606c4ea7ba8f42f8d1ba481fd682e71848726' },
+  stopForceAfterMs: 4000, stopFinalAfterMs: 6000, residualObservationMs: 40000,
   alias: 'lk_trial_20261011_a', virtualAddress: '10.253.253.1', prefix: 30,
   portal: '127.0.0.1:15897', peerServers: [], etListeners: [], stunServers: [], upnp: false,
   payload: [

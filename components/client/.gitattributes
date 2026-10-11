@@ -10,3 +10,6 @@
 *.tgz binary
 # Preserve upstream license bytes for the recorded SHA-256 inventory.
 release/licenses/*.txt -text whitespace=-blank-at-eof,cr-at-eol
+
+# Approval scope pins the exact read-only PowerShell source bytes.
+scripts/owned-tun-trial-snapshot.ps1 text eol=lf

@@ -112,7 +112,8 @@ async function fixture(mode = 'normal') {
       snapshots++;
       if (snapshots <= 2) { const s = before(); if (mode === 'bad-baseline') s.complete = false; return s; }
       if (stopped) {
-        if (mode === 'residual-hang') { await advance(10000); return new Promise(() => {}); }
+        if (mode === 'residual-hang') { await advance(SCOPE.residualObservationMs); return new Promise(() => {}); }
+        if (mode === 'residual-slow-success') { await advance(20657); return before(); }
         if (mode === 'residual') return during();
         return before();
       }
@@ -140,8 +141,12 @@ await test('cancel, early exit, policy change and start failure stop without suc
 await test('cleanup errors/forced exits never claim success', async () => {
   for (const mode of ['forced', 'cleanup-error']) { const f = await fixture(mode); assert.equal(f.result.outcome, 'failed'); }
 });
-await test('10-second residual observation has its own hard deadline, including a stalled read', async () => {
-  const f = await fixture('residual-hang'); assert.equal(f.now, 40000); assert.equal(f.result.outcome, 'failed'); assert.equal(f.timers.size, 0);
+await test('40-second residual observation has its own hard deadline, including a stalled read', async () => {
+  const f = await fixture('residual-hang'); assert.equal(f.now, 70000); assert.equal(f.result.outcome, 'failed'); assert.equal(f.timers.size, 0);
+});
+await test('measured 20.657s post-stop read can finish without extending the running deadline', async () => {
+  const f = await fixture('residual-slow-success'); assert.equal(f.now, 50657); assert.equal(f.result.outcome,'passed');
+  assert.equal(f.shutdowns,1); assert.equal(f.timers.size,0); assert.ok(f.calls.indexOf('shutdown-owned') < f.calls.indexOf('drain-owned'));
 });
 await test('entry point is opt-in, snapshot contains no OS mutation commands', () => {
   const runner = fs.readFileSync(new URL('./run-owned-tun-trial.mjs', import.meta.url), 'utf8');

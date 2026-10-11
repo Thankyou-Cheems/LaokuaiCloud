@@ -117,3 +117,7 @@ release-laokuai-integration-3/
 release-laokuai-integration-4/
 
 release-laokuai-opus20-1/
+
+# Never commit owned trial outputs or read-only diagnostics.
+.laokuai-tun-trial/
+.laokuai-tun-diagnostics/
