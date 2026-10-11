@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "ownerCommit": "ef02265d051d6c2d3ba4270117888b6129ad40f5",
+  "proposalCommit": "ef02265d051d6c2d3ba4270117888b6129ad40f5",
+  "parentOwnerCommit": "17f3dd1fd73b2efa4dc1042f18437799c35b20e5",
+  "imports": [
+    {
+      "path": "components/client/scripts/check-owned-tun-expected-udp-plan.mjs",
+      "ownerGitBlob": "f6c695f368a4c34d7f36b36c280619dd8b78d4d2",
+      "sha256": "4a8155d124ca235950432b0735dc2adaf18d54b0940d80e54644590dcd742b0d"
+    },
+    {
+      "path": "components/client/scripts/owned-tun-expected-udp-plan.mjs",
+      "ownerGitBlob": "9222e6c9b56c229fc2b460d4a64bbe6300740e1b",
+      "sha256": "00c6edb42c82994e6950d983afeb6beac5ad358b65ae1493990a5bcba9b87b1d"
+    }
+  ],
+  "sourceOnly": true,
+  "activationAuthorized": false,
+  "nativeExecuted": false,
+  "osQueriesExecuted": false,
+  "previousTrialResultUnchanged": true,
+  "payloadSourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49"
+}
