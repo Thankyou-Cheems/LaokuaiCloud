@@ -121,3 +121,21 @@ trial approval and coordinates actual acceptance. Seven pinned license/notice
 documents are present, but25 cached license texts and distribution-specific
 corresponding/relinkable-source review remain pending. Do not mark the payload
 or runtime accepted based only on final hashes or design approval.
+
+Follow-up source26d84d8e records corrected c3a72472 real production Provider seam
+acceptance. All client/src/SDK/server/SFU content is unchanged; UI3023c752's six
+integrated blobs are present in immutable83dd572f. Complete application/UI/device
+E2E remains open. Do not rerun the completed narrow media trial without a change.
+The user-approved ET single attempt failed mandatory read-only preflight before
+core/TUN; approval is consumed and no complete route/firewall comparison exists.
+Only ET-owner read-only diagnosis/reviewed runner repair is pending,not a retry.
+Parent's sole heavy owner is building internal83dd572f with a separate test-only
+wrapper; keep its source and license/activation gates untouched. Task6 starts no
+build. Follow-up scripts accept only an exactly equivalent filter-only FileSet
+and fix the obsolete five-file wiring expectation,without adding capture DLLs.
+All25 license text omissions were reviewed:23 original text/notice cases were
+recovered; two MIT author notice questions and one CC0/source notice clarification
+remain distinct public-distribution gates. The506-package inventory,351 original
+text units and496 registry archive hashes are verified. New legal inputs belong
+to the follow-up,not the already running83dd artifact. Actual source-recipient
+delivery and final application legal inventory are unaccepted; no public release.

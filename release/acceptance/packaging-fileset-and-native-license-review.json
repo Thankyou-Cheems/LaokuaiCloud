@@ -1,0 +1,46 @@
+{
+  "schema": 1,
+  "sourceCommit": "26d84d8e9007b68734e4efe3773021be54d6c305",
+  "currentApplicationBuildFreeze": "83dd572fad7837c9716153b9cc2e58535db1b875",
+  "buildFreezeUnchanged": true,
+  "productionMediaSourceUnchanged": true,
+  "obsoleteWiringTest": "Historical EASYTIER_WINDOWS_FILES replaced by exact four-file EASYTIER_PRODUCT_FILES; no Packet resource restored",
+  "filesetScope": [
+    "dist/**/*",
+    "dist-electron/**/*"
+  ],
+  "normalizedFilesetAccepted": "One filter-only object with exactly the same two patterns; extra keys, redirects, mixed/multiple FileSets or changed filters rejected",
+  "purePackageScenarios": 18,
+  "privateWiringPureCheck": "passed",
+  "targetedLint": "passed-three-files-zero-warnings",
+  "applicationOrNativeExecutedByTask6": false,
+  "files": [
+    {
+      "path": "components/client/scripts/laokuai-package-audit.cjs",
+      "gitBlob": "2277ca062d444949d54faf002cbd3bd2ef05e055",
+      "sha256": "2f02d85f86c636ec926967e407bfe11a9d32e7a35afacefdac453c1f8e016f92"
+    },
+    {
+      "path": "components/client/scripts/check-laokuai-package-audit.mjs",
+      "gitBlob": "2522f5e896d3011b5cbda00ef2ee54383eee5527",
+      "sha256": "64fe8250f429b0625016c96430b83afb5608d5892dd6c720f7dc38dbdb58b214"
+    },
+    {
+      "path": "components/client/scripts/check-private-easytier-wiring.mjs",
+      "gitBlob": "29642257571b3e00d898b5b2a724b6e344eadf02",
+      "sha256": "29b211dcfc4ff2550aa19f4536444cb9e7956d7d1f4da323fd495d1e85b316b2"
+    }
+  ],
+  "licenseReview": {
+    "path": "components/client/release/licenses/native-transitive/native-license-review.json",
+    "sha256": "bd6d136614cf2d8141ea05038be1be8c9327768b9040aad0ef5397d13089ec29",
+    "packages": 506,
+    "registryArchiveChecks": 496,
+    "originalTextUnits": 351,
+    "originalMissingCasesReviewed": 25,
+    "textOrNoticeCasesRecovered": 23,
+    "authorNoticeProvenanceOpen": 2,
+    "metadataExpressionClarificationOpen": 1,
+    "publicDistributionApproved": false
+  }
+}

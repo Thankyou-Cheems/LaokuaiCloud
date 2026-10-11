@@ -81,6 +81,33 @@ if(m.validation.capacity.sfu48Sdk3Isolated){
   assert(receipt.sourcePin===candidate.sourcePin&&receipt.sfuTree===m.components.sfu.tree,'SFU48 real acceptance source mismatch');
   assert(receipt.sdkSourceCommit===candidate.sdkSourceCommit&&receipt.notAccepted.currentReceivePath1Provider===true,'SDK3 media acceptance incorrectly promoted to current Provider');
 }
+if(m.validation.providerActualInstanceBinding){
+  const actual=m.validation.providerActualInstanceBinding;
+  assert(sha(actual.receipt)===actual.receiptSha256,'Actual Provider receipt changed');
+  const receipt=JSON.parse(fs.readFileSync(path.join(root,actual.receipt),'utf8'));
+  assert(receipt.testedFreeze===actual.testedFreeze&&receipt.sdkSourceCommit===m.components.voice.sourceCommit&&receipt.sdkPackageSha256===packageInfo.sha256,'Actual Provider source/package mismatch');
+  assert(receipt.testedProductionProviderSeamAccepted===true&&receipt.currentFreezeMediaSourceByteIdentical===true&&receipt.completeAppE2E===false&&receipt.physicalDirectVerified===false,'Provider acceptance scope changed');
+  assert(git(['diff','--name-only',receipt.testedFreeze,m.repository.codeCommit,'--','components/client/src','components/voice','components/server','components/sfu'])==='','Tested media source drifted');
+}
+if(m.validation.nativeActualPreflight){
+  const actual=m.validation.nativeActualPreflight;
+  assert(sha(actual.receipt)===actual.receiptSha256,'Actual TUN preflight receipt changed');
+  const receipt=JSON.parse(fs.readFileSync(path.join(root,actual.receipt),'utf8'));
+  assert(receipt.currentHumanApprovalReceived===true&&receipt.approvalAppliesOnlyToConsumedSingleAttempt===true&&receipt.attempts===1&&receipt.retryPerformed===false,'TUN authorization/attempt scope drifted');
+  assert(receipt.coreStarted===false&&receipt.tunCreated===false&&receipt.activationAccepted===false&&receipt.wholeRouteAndFirewallComparisonVerified===false,'Failed preflight promoted to activation');
+}
+if(m.validation.nativeLicenseReview){
+  const legal=m.validation.nativeLicenseReview;
+  assert(sha(legal.review)===legal.reviewSha256&&sha(legal.textBundle)===legal.textBundleSha256&&sha(legal.distributionReview)===legal.distributionReviewSha256,'Native license review bytes changed');
+  require('./verify-native-licenses.cjs');
+}
+if(m.validation.followupPackagingCompatibility){
+  const candidate=m.validation.followupPackagingCompatibility;
+  assert(sha(candidate.receipt)===candidate.receiptSha256,'Follow-up packaging receipt changed');
+  const receipt=JSON.parse(fs.readFileSync(path.join(root,candidate.receipt),'utf8'));
+  for(const file of receipt.files)assert(git(['rev-parse',`${receipt.sourceCommit}:${file.path}`])===file.gitBlob,'Follow-up packaging source changed');
+  assert(receipt.buildFreezeUnchanged===true&&candidate.scopeExpanded===false&&candidate.productionDistributionGateUnchanged===true,'Packaging gate scope expanded');
+}
 if(m.ready&&m.validation.noNpcapBuildCandidate){
   const candidate=m.validation.noNpcapBuildCandidate;
   assert(candidate.twoBinaryNormalAndDelayImportsVerified===true&&candidate.fourFileRuntimeManifestUpdated===true,'Final core/CLI no-Npcap imports and runtime schema not verified');
