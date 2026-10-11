@@ -1,0 +1,107 @@
+{
+  "schema": 1,
+  "ownerCommit": "f273f5a73e565611fba63840635b465bf7f71d14",
+  "proposalCommit": "ef02265d051d6c2d3ba4270117888b6129ad40f5",
+  "parentOwnerCommit": "ef02265d051d6c2d3ba4270117888b6129ad40f5",
+  "imports": [
+    {
+      "path": "components/client/scripts/check-owned-tun-expected-udp-plan.mjs",
+      "ownerGitBlob": "a4871665c2c5f0f709db12c0e18026744e7f8351",
+      "sha256": "dde1858d2197f65ad2bd7a26fb0f177138c61fd451a41fc1e1e0be70ba5fe5c4"
+    },
+    {
+      "path": "components/client/scripts/check-owned-tun-sockets.mjs",
+      "ownerGitBlob": "76ee378812a0d83fd0dfcac202a13843b2093581",
+      "sha256": "db55bd06f1a239194edb8682fedb1983b4d50fc647a2090fbda5db5e1f76577c"
+    },
+    {
+      "path": "components/client/scripts/check-owned-tun-trial.mjs",
+      "ownerGitBlob": "8311690fd8c94b725ca9deb232a4e8616f21a592",
+      "sha256": "9670573bf65c917cab56a3e92a6b55893ef2beca856a0a7346fd86e5a7f6618d"
+    },
+    {
+      "path": "components/client/scripts/owned-tun-expected-udp-plan.mjs",
+      "ownerGitBlob": "bd0ef7a1010286d146725022014115e254e653d0",
+      "sha256": "da80245b0784dfe764c2f036c40b312407df8129c429631e9e5ddff286bfdc67"
+    },
+    {
+      "path": "components/client/scripts/owned-tun-light-policy.mjs",
+      "ownerGitBlob": "f712063807896623481431ccc5813e1650a0ab2c",
+      "sha256": "389198bce8c6534eacb67df96c6e882eda8b57791436531ed6063e17a0aab888"
+    },
+    {
+      "path": "components/client/scripts/owned-tun-observer-worker.mjs",
+      "ownerGitBlob": "93a7039b135fc58ff34c1af6bedcbfb11f2b8be9",
+      "sha256": "7a3e73ba1cbd553723c937d3b98e2d967523ad86f74a6c4a4072997642d65c44"
+    },
+    {
+      "path": "components/client/scripts/owned-tun-trial-config.mjs",
+      "ownerGitBlob": "968635ae216e3cb2f61f70b6db9b8a4c133e86da",
+      "sha256": "5671cf2ab1503b0d2289dfd7a5dbd293cf45bfda88b00a8d280f2eaacb356599"
+    },
+    {
+      "path": "components/client/scripts/owned-tun-trial-policy.mjs",
+      "ownerGitBlob": "2ca7136424137141b420cef34fcd5fb44a143a4e",
+      "sha256": "a437f9e685f16e725a522677e21e944cb00ac5c5c9b41dc428340c384967d75a"
+    }
+  ],
+  "sourceOnly": true,
+  "activationAuthorized": false,
+  "nativeExecuted": false,
+  "osQueriesExecuted": false,
+  "previousTrialResultUnchanged": true,
+  "payloadSourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
+  "proposalIntegrationCommit": "be562164919e8900732ef1c672426b408374a09e",
+  "scopeSha256": "a071fe9bdca3c58e3ceb9477f4a19b596b5c4ef14ee5ac62e88503b7be736010",
+  "scopeSchema": 6,
+  "sourcePins": 19,
+  "pureChecks": 110,
+  "tests": [
+    {
+      "file": "check-owned-tun-trial.mjs",
+      "exit": 0,
+      "summary": "20 pure trial checks passed; no candidate, driver, UAC, socket or OS snapshot executed"
+    },
+    {
+      "file": "check-owned-tun-snapshot.mjs",
+      "exit": 0,
+      "summary": "passed 14 pure snapshot checks; no OS/native activation"
+    },
+    {
+      "file": "check-owned-tun-semantics.mjs",
+      "exit": 0,
+      "summary": "10 pure semantic checks passed; no OS/native queries"
+    },
+    {
+      "file": "check-owned-tun-observer.mjs",
+      "exit": 0,
+      "summary": "5 pure observer checks passed; only fake processes and one pure JS thread"
+    },
+    {
+      "file": "check-owned-tun-expected-udp-plan.mjs",
+      "exit": 0,
+      "summary": "9 pure expected-UDP checks passed; full/light wired, no OS read, native/network process or activation"
+    },
+    {
+      "file": "check-community-easytier-production.mjs",
+      "exit": 0,
+      "checks": 23
+    },
+    {
+      "file": "check-owned-tun-sockets.mjs",
+      "exit": 0,
+      "checks": 29,
+      "fakeProjectorOnly": true
+    }
+  ],
+  "testHarnessWrongFileFailurePreserved": true,
+  "maximumOwnedUdpRows": 1,
+  "localAddress": "0.0.0.0",
+  "family": 4,
+  "configSha256": "6ae15afd1d86966050a29c6aec393cfaa95e50d397c5e54c41955e76ec98ecd7",
+  "udpEgress": "not-measured",
+  "socketPurpose": "not-attributed",
+  "stopRequestMs": 65000,
+  "exitConfirmationMs": 71000,
+  "phaseBudgetMs": 219000
+}

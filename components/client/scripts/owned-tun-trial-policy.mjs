@@ -2,24 +2,29 @@ import { runObservedTrial } from './owned-tun-observation-run.mjs';
 import { createHash } from 'node:crypto';
 import { configurationDifferences, validateFacts } from './owned-tun-snapshot-semantics.mjs';
 import { validateSocketEvidence } from './owned-tun-socket-policy.mjs';
+import { EXPECTED_UDP_PLAN,validateTrialSocketScope } from './owned-tun-expected-udp-plan.mjs';
+import { NO_PEER_CONFIGURATION,encodeNoPeerConfiguration } from './owned-tun-trial-config.mjs';
 
 const deepFreeze = value => { if (value && typeof value === 'object') { for (const child of Object.values(value)) deepFreeze(child); Object.freeze(value); } return value; };
 const delivery = 'C:\\Users\\cheb2\\Documents\\Codex\\2026-10-10\\task-2\\et-windows-build-no-npcap\\delivery';
 export const SCOPE = deepFreeze({
-  schema: 5, trial: 'single-no-peer-owned-tun-no-npcap', maximumRunMs: 65000,
+  schema: 6, trial: 'single-no-peer-owned-tun-no-npcap', maximumRunMs: 65000,
+  configuration:NO_PEER_CONFIGURATION,expectedOwnedUdpBinding:EXPECTED_UDP_PLAN,
   prepareTimeoutMs: 5000, readinessDeadlineMs: 10000, finalFreshLightBudgetMs: 10000,
   light: { timeoutMs:5000, pauseMs:1000, maximumInFlight:1, warmupDuringPreparedPreflight:true, maxOutputBytes:524288, socketEndpointLimit:256 },
   residualSettleMs:15000, residualCleanSamples:2, fullDuringCount:1,
   observationWorker: { independentSupervisor:true, closeTimeoutMs:6000 },
   observationSources: {
+    'owned-tun-expected-udp-plan.mjs': 'da80245b0784dfe764c2f036c40b312407df8129c429631e9e5ddff286bfdc67',
+    'owned-tun-trial-config.mjs': '5671cf2ab1503b0d2289dfd7a5dbd293cf45bfda88b00a8d280f2eaacb356599',
     'owned-tun-socket-evidence.ps1': 'aa36f29cd1451ebaa309ab4773ff56879a4ab4614ca960d482631655d45791de',
     'owned-tun-socket-policy.mjs': 'af7814cc3ecd96c91ae921a3d3007c65dcc3cc98f574080acfbd8af18bfe2d87',
     'run-owned-tun-trial.mjs': 'e18b6d7e6a093571e19743bc735621b63aa715fc761c96aefcf30f69c4cbceb9',
     'owned-tun-observation-run.mjs': '248591cc995b366d87d5efa7e8526d72d8c8aa1e5fcd984c3ba7752d576df032',
     'owned-tun-observer.mjs': '3f68032bdb28341be4813d5b14d8954a8a1e9739775d7444147ff4285c2abc07',
-    'owned-tun-observer-worker.mjs': '7247150c1b99148f5715b4585e91d5f6fbb2dbf34c0be51cc9499c2aa8459cb0',
+    'owned-tun-observer-worker.mjs': '7a3e73ba1cbd553723c937d3b98e2d967523ad86f74a6c4a4072997642d65c44',
     'owned-tun-light-snapshot.ps1': '17fb3b72e6998e8c08aa677d1e3848877b090254813e19386510b15dc788fe0c',
-    'owned-tun-light-policy.mjs': 'ea16ed572ac71301497379b4065e292e196dab1a27fc6d4766b1b3d9889e5015',
+    'owned-tun-light-policy.mjs': '389198bce8c6534eacb67df96c6e882eda8b57791436531ed6063e17a0aab888',
     'owned-tun-trial-snapshot.ps1': '966bf85b2f9b7c7485808d1e2b987ebc49e13a4b9838097887899221b72d0c92',
     'owned-tun-snapshot-reader.mjs': '0af9c31e564cd4a8fe795c2f64d72578a61df1a3fadea20b4be0cd01c01fc0cf',
     'owned-tun-snapshot-semantics.mjs': '9e841ab28da0024481dff48c633f57c3fcbd55a830af7a222f09ce940fb6e083',
@@ -128,8 +133,7 @@ export function verifyTrialDocuments(files) {
 
 /** No peers, credentials or community binding. Called only after the execution gate. */
 export function buildIsolatedConfig(instanceId) {
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(instanceId)) fail('invalid-instance-id');
-  return `instance_id = "${instanceId}"\ninstance_name = "owned-nic-trial"\nhostname = "owned-nic-trial"\nipv4 = "10.253.253.1/30"\ndhcp = false\nlisteners = []\npeer = []\nmapped_listeners = []\nexit_nodes = []\nroutes = []\nproxy_network = []\nport_forward = []\nstun_servers = []\ntcp_stun_servers = []\nstun_servers_v6 = []\nipv6_public_addr_provider = false\nipv6_public_addr_auto = false\n\n[flags]\ndev_name = "lk_trial_20261011_a"\nenable_ipv6 = false\ndisable_upnp = true\ndisable_p2p = true\ndisable_tcp_hole_punching = true\ndisable_udp_hole_punching = true\nenable_udp_broadcast_relay = false\naccept_dns = false\nenable_exit_node = false\nproxy_forward_by_system = false\nno_tun = false\nprivate_mode = true\ndisable_relay_data = true\nrelay_network_whitelist = ""\n`;
+  return encodeNoPeerConfiguration(instanceId);
 }
 
 export function validateBefore(s) {
@@ -144,14 +148,14 @@ export function validateBefore(s) {
 }
 
 export function validateDuring(before, now, owned) {
-  validateSocketEvidence(now,owned?.pid??0);
+  validateTrialSocketScope(now,owned?.pid??0,SCOPE);
   if (!now?.complete || !now.guiAlive || !now.driverRunning || now.driverVer !== before.driverVer || now.driverSysSha256 !== before.driverSysSha256 || now.driverCount !== before.driverCount) fail('old-network-or-driver-changed');
   validateFacts(now.semanticFacts);
   if(JSON.stringify(Object.keys(now.semanticFacts.interfaces).sort())!==JSON.stringify(now.adapters.map(n=>canonGuid(n.guid)).sort())) fail('interface-semantic-evidence-incomplete');
   const differences=configurationDifferences(before,now);
   if (differences.some(d=>!d.interfaceGuid)) fail('global-network-configuration-drift');
   if (differences.some(d=>d.interfaceGuid)) fail('existing-interface-configuration-drift');
-  if (now.guiFingerprint !== before.guiFingerprint || now.ownedForbiddenSocketCount !== 0 || now.nonLoopbackRpc) fail('foreign-network-socket-or-gui-identity-changed');
+  if (now.guiFingerprint !== before.guiFingerprint) fail('foreign-network-socket-or-gui-identity-changed');
   for (const profile of before.categories) if (!now.categories.some(p => p.id === profile.id && p.category === profile.category)) fail('existing-network-category-changed');
   for (const old of before.adapters) {
     const current = now.adapters.find(n => canonGuid(n.guid) === canonGuid(old.guid));

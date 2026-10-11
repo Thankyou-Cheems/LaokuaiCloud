@@ -6,10 +6,17 @@ import { readOwnedSnapshot } from './owned-tun-snapshot-reader.mjs';
 import { SCOPE,SCOPE_SHA256,validateBefore,validateDuring,validateAfter } from './owned-tun-trial-policy.mjs';
 import { configurationDifferences } from './owned-tun-snapshot-semantics.mjs';
 import { validateLight } from './owned-tun-light-policy.mjs';
+import { validateTrialSocketScope } from './owned-tun-expected-udp-plan.mjs';
 let baseline,fullSequence=0,lightSequence=0,lightChild,lightFlight,lightBuffer='',ownedIdentity;
 const controls=new Set();
 const save=async(name,value)=>fsp.writeFile(path.join(workerData.directory,name),JSON.stringify({...value,scopeSha256:SCOPE_SHA256},null,2),{flag:'wx'});
 const safe=error=>/^[a-z0-9-]{1,96}$/.test(error?.message??'')?error.message:'observer-unavailable';
+async function archiveSocketDecision(name,value,request){
+ let decision;
+ try{decision=validateTrialSocketScope(value,request.owned?.pid??0,SCOPE);}
+ catch(error){await save(name,{schema:1,stage:request.stage,failure:safe(error),accepted:false});throw error;}
+ await save(name,{schema:1,stage:request.stage,...decision,accepted:true,wholeTrialAccepted:false});
+}
 function bindObservedIdentity(value,request){
  if(!request.owned?.pid||value.socketEvidence?.identityBinding!=='matched-across-query')return;
  const identity=value.socketEvidence.identityBefore.fingerprint;
@@ -46,6 +53,7 @@ async function light(request){
    lightChild.stdin.write(JSON.stringify({id:String(sequence),pid:request.owned?.pid??0})+'\n');
   });
   await save(`light-${sequence}-safe.json`,{...value,stage:request.stage,wallElapsedMs:Math.round(performance.now()-started)});
+  await archiveSocketDecision(`light-${sequence}-socket-scope.json`,value,request);
   if(request.warmup){validateLight(baseline,value,null,{settling:true});return {ready:false,elapsedMs:Math.round(performance.now()-started)};}
   bindObservedIdentity(value,request);
   const ready=validateLight(baseline,value,request.owned,{settling:request.stage==='settling'});
@@ -58,6 +66,7 @@ async function full(request){
  try {
   const current=await readOwnedSnapshot({execFile,executable:workerData.powershell,script:path.join(workerData.scripts,'owned-tun-trial-snapshot.ps1'),ownedPid:request.owned?.pid??0,signal:control.signal,timeoutMs:SCOPE.snapshot.timeoutMs,maxBuffer:SCOPE.snapshot.maxBufferBytes,
    onDiagnostic:d=>save(`snapshot-${sequence}-diagnostic.json`,d),onSnapshot:s=>save(`snapshot-${sequence}-full-safe.json`,s)});
+  await archiveSocketDecision(`snapshot-${sequence}-socket-scope.json`,current,request);
   bindObservedIdentity(current,request);
   let ready=false;
   if(request.stage==='before'){validateBefore(current);baseline=current;}

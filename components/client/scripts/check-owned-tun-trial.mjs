@@ -30,6 +30,7 @@ await test('explicit scope approval required; no substitutions or extra flags', 
 });
 await test('config encoder has no credentials, external peers/listeners/STUN or network policy features', () => {
   const text = buildIsolatedConfig('00000000-0000-4000-8000-000000000001');
+  assert.equal(sha256(text),'6ae15afd1d86966050a29c6aec393cfaa95e50d397c5e54c41955e76ec98ecd7','existing synthetic config bytes must remain identical');
   for (const key of ['peer', 'listeners', 'mapped_listeners', 'stun_servers', 'tcp_stun_servers', 'stun_servers_v6', 'exit_nodes', 'routes', 'proxy_network', 'port_forward']) assert.ok(text.includes(`${key} = []\n`));
   for (const field of ['network_identity', 'network_secret', 'secure_mode', 'config_server', 'vpn_portal', 'http://', 'https://', 'tcp://', 'udp://']) assert.ok(!text.includes(field));
   assert.ok(text.includes('enable_udp_broadcast_relay = false\n'));
@@ -147,8 +148,10 @@ await test('post-stop reads use no former numeric PID; settling/full deadlines f
 });
 await test('frozen 65s scope pins all observation/adapter sources and rejects former scope',()=>{
  assert.equal(SCOPE.maximumRunMs,65000);assert.equal(SCOPE.light.timeoutMs,5000);assert.equal(SCOPE.fullDuringCount,1);assert.equal(SCOPE.residualSettleMs,15000);assert.equal(SCOPE.residualObservationMs,40000);assert.equal(SCOPE.observationWorker.independentSupervisor,true);
- assert.equal(Object.keys(SCOPE.observationSources).length,17);
- assert.equal(SCOPE.schema,5);assert.equal(SCOPE.light.socketEndpointLimit,256);assert.equal(SCOPE.light.maxOutputBytes,524288);
+ assert.equal(Object.keys(SCOPE.observationSources).length,19);
+ assert.equal(SCOPE.schema,6);assert.equal(SCOPE.light.socketEndpointLimit,256);assert.equal(SCOPE.light.maxOutputBytes,524288);
+ assert.equal(SCOPE.expectedOwnedUdpBinding.maximumOwnedUdpRows,1);assert.equal(SCOPE.expectedOwnedUdpBinding.connectedToRunner,true);
+ assert.throws(()=>validateApproval(['--execute','--approved-scope-sha256','425b0131d0bf016a9ee5d4000b3fec492b5c637dcfe5d30dff1300386bce022c']));
  assert.throws(()=>validateApproval(['--execute','--approved-scope-sha256','2392f12f7284d982a1a3b6e179c7becbe294449e519f7832a090aadbeb99bd5b']));
  for(const [file,hash] of Object.entries(SCOPE.observationSources))assert.equal(sha256(fs.readFileSync(new URL('./'+file,import.meta.url))),hash,file);
  assert.throws(()=>validateApproval(['--execute','--approved-scope-sha256','bd107b2ae27d9e2d45c817eedec4f99b99e3030f62e66188e2ffc65942ea2c72']));

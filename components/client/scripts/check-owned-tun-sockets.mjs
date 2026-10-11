@@ -15,7 +15,8 @@ for(const row of rows){
  const e=row.evidence,s={socketEvidence:e,nonLoopbackRpc:e.nonLoopbackRpc,ownedForbiddenSocketCount:e.ownedForbiddenSocketCount,portalOwnerPids:e.portalOwnerPids};
  if(e.complete)assert.equal(validateSocketEvidence(s,123),e);else assert.throws(()=>validateSocketEvidence(s,123));
  const light={...s,lightSchema:1,complete:e.complete,guiAlive:true,guiFingerprint:'old-gui',driverRunning:true,adapterGuids:[old.guid],adapters:[old],ownedIdentity:e.identityBefore.fingerprint};
- if(!e.complete||e.ownedForbiddenSocketCount||e.nonLoopbackRpc||e.portalOwnerPids.some(pid=>pid!==123))assert.throws(()=>validateLight(baseline,light,{pid:123,interfaces:[]}));
+ const expectedBind=e.endpoints.length===1&&e.endpoints[0].protocol==='UDP'&&e.endpoints[0].localAddress.family===4&&e.endpoints[0].localAddress.value==='0.0.0.0';
+ if(!e.complete||(e.ownedForbiddenSocketCount&&!expectedBind)||e.nonLoopbackRpc||e.portalOwnerPids.some(pid=>pid!==123))assert.throws(()=>validateLight(baseline,light,{pid:123,interfaces:[]}));
  else assert.equal(validateLight(baseline,light,{pid:123,interfaces:[]}),false);
  console.log(`ok ${++count} ${row.name}: preserved details and frozen classification`);
 }
