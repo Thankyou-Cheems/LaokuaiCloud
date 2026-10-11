@@ -280,3 +280,17 @@ if(m.validation.modernRecipientSource){
  assert(r.exactTargetPackageSetMatched&&r.lockedOfflineTargetPackages===504&&!r.compilerBuildOrNativeExecuted&&!r.actualRecipientReceived&&!r.relinkAccepted&&!r.publicDistributionApproved,'Recipient source restoration promoted to build/relink/release');
  assert(l.lockPackages===1129&&l.allPackageVersionsAndRegistryChecksumsUnchanged&&l.gitPackageTransportChanges.length===6&&l.thunkFeatures.length===0&&l.serviceManagerFeatures.length===0&&!l.nativeBuiltOrExecuted&&!l.publicApproved,'Relocated lock/feature proof changed');
 }
+if(m.validation.internalFullApp842Actual){
+ const e=m.validation.internalFullApp842Actual,r=JSON.parse(fs.readFileSync(path.join(root,e.receipt)));
+ assert(sha(e.receipt)===e.receiptSha256&&r.testedFreeze==='84292bfef11d3cf45987d6fa963b86e52ddbbf7a'&&r.artifact.bytes===129121178&&r.artifact.sha256==='3cff0c00f1a8441e98af909424081d4b74be08e9aba44d745eaa80d0f0062619','Actual full-app candidate identity changed');
+ assert(r.task6ReadOnlyVerification.files===298&&r.task6ReadOnlyVerification.allHashesMatched&&!r.task6ReadOnlyVerification.productExecuted&&!r.task6ReadOnlyVerification.osQueriesExecuted&&r.payloadExactFiles===141,'Actual candidate verification scope changed');
+ assert(r.actualBootstrap.run1.startsWith('observations-only')&&r.actualBootstrap.run2==='PASS-hidden-offline-bootstrap'&&r.actualBootstrap.run2Exit===0&&r.actualBootstrap.run2Samples===9&&r.actualBootstrap.run2SampledOwnedEndpoints===0&&!r.actualBootstrap.run2Foreground&&!r.actualBootstrap.nativeCoreCLIOrDriversExecuted&&!r.actualBootstrap.NSISWrapperExecuted,'Bootstrap or preserved run1 failure reclassified');
+ assert(!r.ready&&r.finalPackage===null&&!r.publicDistributionApproved&&!r.nativeActivationApproved&&m.internalFullAppCandidate.containsModernNative&&!m.internalFullAppCandidate.nativeRuntimeAccepted&&!m.internalFullAppCandidate.realCallAccepted,'Internal full app promoted to release or native acceptance');
+ assert(git(['diff','--name-only',r.testedFreeze,'HEAD','--','components'])==='','Measured full-app product source changed; requires a new candidate scope');
+}
+if(m.validation.recipientBuildPreparation){
+ const e=m.validation.recipientBuildPreparation,r=JSON.parse(fs.readFileSync(path.join(root,e.receipt)));
+ assert(sha(e.receipt)===e.receiptSha256&&r.checks.checks===9&&r.checks.lockMutationCasesRejected===4&&r.checks.powershellParserPassed&&!r.checks.compilerNativeOrProductExecuted,'Recipient preparation proof changed');
+ for(const x of r.tools)assert(sha(x.path)===x.sha256,'Recipient tool/plan changed');
+ assert(!r.modifiedProbeCompiled&&!r.actualRecipientTransferred&&!r.publicApproved&&!e.screenedCompilePassed&&!e.modifiedLibraryRelinkPassed,'Recipient command preparation promoted to executed relink');
+}

@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "id": "laokuai-cloud-receive-path-et-observation-frozen-20261011",
-  "stage": "modern-native-four-files-integrated-screened-source-restored-internal-pack-input-frozen-runtime-and-public-pending",
+  "stage": "modern-full-app-internal-candidate-built-hidden-bootstrap-passed-recipient-compile-and-release-delivery-pending",
   "ready": false,
   "repository": {
     "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud",
@@ -2040,6 +2040,26 @@
       "relinkAccepted": false,
       "publicExportApproved": false,
       "documentation": "release/source-materials/MODERN-RECIPIENT-SOURCE.md"
+    },
+    "internalFullApp842Actual": {
+      "receipt": "release/acceptance/internal-full-app842-built.json",
+      "receiptSha256": "c7ecdb2b27c627a6c5e6bc873df4c78a3e5b27839ee2474655c9776595d7f6bc",
+      "verifiedOwnerFiles": 298,
+      "exactPayloadFiles": 141,
+      "sourceUiParityFiles": 45,
+      "sourceMediaParityFiles": 1520,
+      "rendererParityFiles": 1407,
+      "actualAcceptanceScope": "build/static audit/hidden offline empty-profile bootstrap; no native or actual call"
+    },
+    "recipientBuildPreparation": {
+      "receipt": "release/source-materials/recipient-build-preparation.json",
+      "receiptSha256": "a8ca68fee9962069871e6ee7b430638df76b91cd0ac512b991bd538edd3eeb26",
+      "plan": "release/source-materials/RECIPIENT-REBUILD-AND-RELEASE-PLAN.md",
+      "exactMaterialRestorePassed": true,
+      "screenedCompilePassed": false,
+      "modifiedLibraryRelinkPassed": false,
+      "realRecipientTransfer": false,
+      "licensesAreSeparateFromInternalValidation": true
     }
   },
   "securityBoundary": {
@@ -2076,8 +2096,9 @@
     "Internal83 portable artifact SHA7d430b1c/source83dd572f/static188files verified. Follow-up26 legal/FileSet changes and944 runner repair are absent from that artifact; no attribution to current code",
     "5d exact internal artifact d6a1ee40 / ASAR ed3ea18c passed two actual hidden offline empty-profile runs.201 final owner file hashes verified. New legal c62 bytes are absent from this old artifact; no final public release",
     "Expected UDP source f273/schema6/a071 is wired with110 pure checks and19 source pins, allowing at most one stable-owned IPv4 wildcard bind for exact old dbaf/d4f payload. Fresh human activation approval is absent; egress and socket callsite are unmeasured. New binary must receive new payload scope.",
-    "Modern source089b6182 actual native pair and standard MSVC/SDK PE/PDB/link evidence are integrated. Exact four-file runtime input17bdccba is ready for a parent-assigned internal full-app builder; no rebuilt complete app exists yet. Old schema6/a071 pins dbaf and must not execute the new payload. Parent reports latest TUN reviewer rejection; no runtime/coexistence acceptance.",
-    "Screened1262-file native source draft excludes15 prebuilt assets, including6 Packet files. Fresh source-only offline restoration uses865 registry archives/7 Git source snapshots and preserves1129 lock record versions/checksums with6 local transport changes. Actual recipient transfer/relink/platform license and distribution review remain pending; no public export."
+    "Modern source089b6182 actual native pair is in completed full-app84292bf portable3cff0c00; internal build/static audit/run2 hidden bootstrap passed, run1 monitor anomaly preserved. Old schema6/a071/dbaf cannot execute this new payload; parent reports TUN review rejected. Actual native and real-call acceptance remain separate.",
+    "Screened1262-file native source draft excludes15 prebuilt assets, including6 Packet files. Fresh source-only offline restoration uses865 registry archives/7 Git source snapshots and preserves1129 lock record versions/checksums with6 local transport changes. Actual recipient transfer/relink/platform license and distribution review remain pending; no public export.",
+    "Recipient engineering proof is one fresh offline screened-kit core/CLI compile+link using a test-only LGPL library version marker. Dedicated1262-file helper/lock guards and exact scope are prepared. Actual recipient delivery/source-access, permitted release export/notices/platform redistribution and full-app/SDK corresponding source are separate concrete release actions; do not require extra UI/audio tests as licensing proof."
   ],
   "finalPackage": null,
   "frozenPreviousHybrid": {
@@ -2171,5 +2192,26 @@
     "containsCurrentEncodingSourceOverlay": false,
     "containsSocketDiagnostic17Source": false
   },
-  "readyForInternalPackPreparation": true
+  "readyForInternalPackPreparation": false,
+  "internalFullAppCandidate": {
+    "sourceFreeze": "84292bfef11d3cf45987d6fa963b86e52ddbbf7a",
+    "codeCommit": "b68a4e2a03295a2a00ff6a0429f5ae5eb2476897",
+    "receipt": "release/acceptance/internal-full-app842-built.json",
+    "receiptSha256": "c7ecdb2b27c627a6c5e6bc873df4c78a3e5b27839ee2474655c9776595d7f6bc",
+    "artifact": {
+      "file": "LaokuaiCloud-1.13.22-laokuai.opus20.1-INTERNAL-CANDIDATE-win-x64-portable.exe",
+      "bytes": 129121178,
+      "sha256": "3cff0c00f1a8441e98af909424081d4b74be08e9aba44d745eaa80d0f0062619"
+    },
+    "appAsarSha256": "af7d9910eb84b3171653689807ffd43d1b31892987e23a5c5755de385814da12",
+    "containsModernNative": true,
+    "status": "PASS-internal-full-build-static-audit-and-hidden-offline-bootstrap",
+    "internalOnly": true,
+    "actualHiddenOfflineBootstrap": true,
+    "run1CompletePass": false,
+    "run2CompletePass": true,
+    "nativeRuntimeAccepted": false,
+    "realCallAccepted": false,
+    "publicDistributionApproved": false
+  }
 }

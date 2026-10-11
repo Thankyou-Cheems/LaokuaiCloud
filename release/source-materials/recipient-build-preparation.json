@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "checks": {
+    "schema": 1,
+    "checks": 9,
+    "exact1262SourceAndRelocatedLockVerified": true,
+    "lockMutationCasesRejected": 4,
+    "powershellParserPassed": true,
+    "compilerNativeOrProductExecuted": false,
+    "oldSourceKitUnchanged": true,
+    "modifiedProbeNotExecuted": true,
+    "initialParserHarnessArgumentFailurePreserved": true
+  },
+  "tools": [
+    {
+      "path": "release/source-materials/verify-recipient-build-input.cjs",
+      "sha256": "798698a02207b37d6bd2f68bc6548962f84c7ec59ead54b35d620dc3f7b5ceb9"
+    },
+    {
+      "path": "release/source-materials/build-screened-recipient-native.ps1",
+      "sha256": "d735e365db413bb2600cd5ee92a9df1d5e8c6a582721c9870a490e8e72242503"
+    },
+    {
+      "path": "release/source-materials/RECIPIENT-REBUILD-AND-RELEASE-PLAN.md",
+      "sha256": "b1da10f117781b67acce46e95bb9ed61b58f1a2550ce3ffc9058e05ea5fa4473"
+    }
+  ],
+  "originalKitSha256": "bad7e5e4b3a666d63876eaa5910cf6e3aaafc927330521682adb5a80267c6205",
+  "oldKitUnmodified": true,
+  "nextHeavyScope": "One offline fresh core+CLI compile/link with one test-only LGPL library version marker edit; no executable/native/TUN/app launch",
+  "modifiedProbeCompiled": false,
+  "actualRecipientTransferred": false,
+  "publicApproved": false
+}

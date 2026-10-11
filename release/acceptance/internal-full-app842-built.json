@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "testedFreeze": "84292bfef11d3cf45987d6fa963b86e52ddbbf7a",
+  "codeCommit": "b68a4e2a03295a2a00ff6a0429f5ae5eb2476897",
+  "nativeSourceCommit": "089b6182c603c8ab60044b673effe0cf614cc28a",
+  "status": "PASS-internal-full-build-static-audit-and-hidden-offline-bootstrap",
+  "artifact": {
+    "file": "LaokuaiCloud-1.13.22-laokuai.opus20.1-INTERNAL-CANDIDATE-win-x64-portable.exe",
+    "bytes": 129121178,
+    "sha256": "3cff0c00f1a8441e98af909424081d4b74be08e9aba44d745eaa80d0f0062619"
+  },
+  "appAsarSha256": "af7d9910eb84b3171653689807ffd43d1b31892987e23a5c5755de385814da12",
+  "mainSha256": "42ff3e705cf6f4c91b83ee26399df1e262764ac2a883e81e224251df6b236b32",
+  "preloadSha256": "3ce5678b060890f2bcb877d0fd60850faeb48bd8b202ab07ed032f9a4970d5da",
+  "ownerManifestSha256": "3221d40785e95c13745fcd628971107e8cd1c4245242cac1b7ebbd74fc0076b7",
+  "ownerReportSha256": "7974390ba468f22350dcd9e079399427e7fe4b3de38ef2ab1192f60ba2f41c0d",
+  "ownerHandoffSha256": "c79285d668b370421a570680edf3bb60eba0959d35896208bdf7582bd16278a0",
+  "task6ReadOnlyVerification": {
+    "files": 298,
+    "bytes": 750096883,
+    "allHashesMatched": true,
+    "productExecuted": false,
+    "osQueriesExecuted": false
+  },
+  "payloadExactFiles": 141,
+  "rendererParityFiles": 1407,
+  "sourceUiParityFiles": 45,
+  "sourceMediaParityFiles": 1520,
+  "installedSdkPackedFiles": 212,
+  "ownerSourceFilesUnchanged": 3554,
+  "ownerFreshFrozenOfflineIgnoreScripts": true,
+  "actualBootstrap": {
+    "run1": "observations-only; unknown exit-row failure preserved",
+    "run2": "PASS-hidden-offline-bootstrap",
+    "run2Exit": 0,
+    "run2Samples": 9,
+    "run2SampledOwnedEndpoints": 0,
+    "run2Foreground": false,
+    "residuals": [],
+    "accountOrRealDevicesUsed": false,
+    "nativeCoreCLIOrDriversExecuted": false,
+    "NSISWrapperExecuted": false
+  },
+  "productionGatesStillFalse": true,
+  "screenedSourceMaterialsSha256": "bad7e5e4b3a666d63876eaa5910cf6e3aaafc927330521682adb5a80267c6205",
+  "privateIntegrationArchiveIsNotScreened": true,
+  "ready": false,
+  "finalPackage": null,
+  "publicDistributionApproved": false,
+  "nativeActivationApproved": false
+}
