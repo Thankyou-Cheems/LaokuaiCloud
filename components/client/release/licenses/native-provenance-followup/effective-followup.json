@@ -26,7 +26,8 @@
       "sourceReferencesFamilyMit": true,
       "retentionPolicy": "Keep original CC0 declaration, CC0 terms, source header and referenced original family MIT text together; do not invent a combined SPDX expression",
       "authorIntentClarificationObtained": false,
-      "status": "Original source/declaration correspondence established; preserve both notices, intent not externally clarified"
+      "status": "Provenance clarification completed from original source/Cargo; retain CC0 terms/header and referenced original MIT text together, without invented SPDX expression",
+      "sourceDeclarationAndNoticeCorrespondenceClarificationResolved": true
     },
     "encodingUtils": {
       "version": "0.1.0",
@@ -51,7 +52,12 @@
       "secondaryGrantFoundOutsideGenericLicense": false,
       "matchingFiles": [],
       "embeddedMicrosoftSdkTermsRetained": true,
-      "status": "Additional input outside Cargo BOM; original EPL and Microsoft notices retained. Exact linked units, distribution/source scope and license compatibility require review; no grant inferred from Exhibit A template"
+      "status": "Both matching PDBs establish actual VC-LTL library members with positive section contributions; original EPL/Microsoft notices retained. Distribution/source compatibility scope requires review, no secondary grant inferred from generic template",
+      "actualPdbLinkInputsEstablished": true,
+      "linkedLibraries": [
+        "libucrt.lib",
+        "libvcruntime.lib"
+      ]
     },
     "yyThunks": {
       "version": "1.1.7",
@@ -73,7 +79,8 @@
     "additionalOriginalTextRecovered": 1,
     "effectiveOriginalTextCasesRecovered": 24,
     "originalAuthorNoticeQuestionsRemaining": 1,
-    "cc0SourceIntentExternallyClarified": false
+    "cc0SourceIntentExternallyClarified": false,
+    "sourceDeclarationClarificationResolved": true
   },
   "noBuildNoNativeExecution": true,
   "publicDistributionApproved": false,
@@ -199,5 +206,9 @@
       "bytes": 1067,
       "sha256": "09a1c20e9b40e3bbfff81e0ddc1209265f55eba07cd072c5a1bc755a134579b3"
     }
-  ]
+  ],
+  "linkedInputReceipt": {
+    "path": "native-linked-crt-inputs.json",
+    "sha256": "df89453ade7f9833431071ef76f0c4998f368eadf2f54e282575527cdf1473b9"
+  }
 }

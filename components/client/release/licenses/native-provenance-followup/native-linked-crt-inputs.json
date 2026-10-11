@@ -1,0 +1,970 @@
+{
+  "schema": 1,
+  "reference": "https://llvm.org/docs/PDB/DbiStream.html",
+  "noBuildNoNativeExecution": true,
+  "matchingPdbPeCodeViewVerifiedEarlier": true,
+  "results": [
+    {
+      "name": "easytier_core.pdb",
+      "sha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "dbiAge": 1,
+      "dbiMachine": 34404,
+      "moduleBytes": 62296,
+      "modules": 198,
+      "matchingInputs": [
+        {
+          "index": 1,
+          "moduleName": "YY_Thunks_for_Win7.obj",
+          "objectName": "YY_Thunks_for_Win7.obj",
+          "isVcLtl": false,
+          "isYyThunks": true,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 313
+        },
+        {
+          "index": 114,
+          "moduleName": "ehhelpers.obj",
+          "objectName": "libvcruntime.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 222
+        },
+        {
+          "index": 115,
+          "moduleName": "std_type_info.obj",
+          "objectName": "libvcruntime.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 65535,
+          "firstSectionSize": -1
+        },
+        {
+          "index": 116,
+          "moduleName": "msvcrt.dll",
+          "objectName": "libvcruntime.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 65535,
+          "firstSectionSize": -1
+        },
+        {
+          "index": 117,
+          "moduleName": "round.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 101
+        },
+        {
+          "index": 118,
+          "moduleName": "cbrt.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 379
+        },
+        {
+          "index": 119,
+          "moduleName": "output.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 2010
+        },
+        {
+          "index": 120,
+          "moduleName": "_seh_filter_dll.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 65535,
+          "firstSectionSize": -1
+        },
+        {
+          "index": 121,
+          "moduleName": "exit.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 119
+        },
+        {
+          "index": 122,
+          "moduleName": "argv_parsing.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 64
+        },
+        {
+          "index": 123,
+          "moduleName": "environment_initialization.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 11
+        },
+        {
+          "index": 124,
+          "moduleName": "onexit.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 432
+        },
+        {
+          "index": 125,
+          "moduleName": "initialization.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 35
+        },
+        {
+          "index": 126,
+          "moduleName": "_seh_filter_exe.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 65535,
+          "firstSectionSize": -1
+        },
+        {
+          "index": 127,
+          "moduleName": "report_runtime_error.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 21
+        },
+        {
+          "index": 128,
+          "moduleName": "matherr.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 27
+        },
+        {
+          "index": 129,
+          "moduleName": "argv_data.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 8
+        },
+        {
+          "index": 130,
+          "moduleName": "setlocal_thunks.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 158
+        },
+        {
+          "index": 131,
+          "moduleName": "_set_new_mode.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 65535,
+          "firstSectionSize": -1
+        },
+        {
+          "index": 132,
+          "moduleName": "ncommode.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 8
+        },
+        {
+          "index": 133,
+          "moduleName": "terminate.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 65535,
+          "firstSectionSize": -1
+        },
+        {
+          "index": 134,
+          "moduleName": "_test.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 278
+        },
+        {
+          "index": 135,
+          "moduleName": "_scale.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 635
+        },
+        {
+          "index": 136,
+          "moduleName": "_unscale.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 154
+        },
+        {
+          "index": 137,
+          "moduleName": "invalid_parameter.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 48
+        },
+        {
+          "index": 138,
+          "moduleName": "cvt.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 885
+        },
+        {
+          "index": 139,
+          "moduleName": "localeconv.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 27
+        },
+        {
+          "index": 140,
+          "moduleName": "fputwc_thunks.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 65535,
+          "firstSectionSize": -1
+        },
+        {
+          "index": 141,
+          "moduleName": "_file.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 65535,
+          "firstSectionSize": -1
+        },
+        {
+          "index": 142,
+          "moduleName": "printf_count_output.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 24
+        },
+        {
+          "index": 143,
+          "moduleName": "sftbuf_thunks.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 65535,
+          "firstSectionSize": -1
+        },
+        {
+          "index": 144,
+          "moduleName": "recalloc.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 5
+        },
+        {
+          "index": 145,
+          "moduleName": "msvcrt_loadhelper.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 113
+        },
+        {
+          "index": 146,
+          "moduleName": "winapi_thunks.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 91
+        },
+        {
+          "index": 147,
+          "moduleName": "shared_initialization.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 132
+        },
+        {
+          "index": 148,
+          "moduleName": "fegetexceptflag.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 65535,
+          "firstSectionSize": -1
+        },
+        {
+          "index": 149,
+          "moduleName": "fesetexceptflag.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 65535,
+          "firstSectionSize": -1
+        },
+        {
+          "index": 150,
+          "moduleName": "_fenvutils.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 241
+        },
+        {
+          "index": 151,
+          "moduleName": "_norm.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 381
+        },
+        {
+          "index": 152,
+          "moduleName": "_values.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 65535,
+          "firstSectionSize": -1
+        },
+        {
+          "index": 153,
+          "moduleName": "_fptostr.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 254
+        },
+        {
+          "index": 154,
+          "moduleName": "cfout.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 6742
+        },
+        {
+          "index": 155,
+          "moduleName": "fwrite.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 65535,
+          "firstSectionSize": -1
+        },
+        {
+          "index": 156,
+          "moduleName": "_msize_base.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 65535,
+          "firstSectionSize": -1
+        },
+        {
+          "index": 157,
+          "moduleName": "_realloc_base.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 65535,
+          "firstSectionSize": -1
+        },
+        {
+          "index": 158,
+          "moduleName": "fetestexcept.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 65535,
+          "firstSectionSize": -1
+        },
+        {
+          "index": 159,
+          "moduleName": "fegetenv.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 32
+        },
+        {
+          "index": 160,
+          "moduleName": "fesetenv.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 76
+        },
+        {
+          "index": 161,
+          "moduleName": "feholdexcept.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 80
+        },
+        {
+          "index": 162,
+          "moduleName": "chandler_noexcept.obj",
+          "objectName": "libvcruntime.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 45
+        },
+        {
+          "index": 165,
+          "moduleName": "softmemtag.obj",
+          "objectName": "libvcruntime.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 65535,
+          "firstSectionSize": -1
+        },
+        {
+          "index": 195,
+          "moduleName": "Import:msvcrt.dll",
+          "objectName": "libvcruntime.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 6
+        },
+        {
+          "index": 196,
+          "moduleName": "Import:msvcrt.dll",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 6
+        }
+      ],
+      "libraryNames": [
+        "kernel32.lib",
+        "libcmt.lib",
+        "libucrt.lib",
+        "libvcruntime.lib",
+        "ntdll.lib",
+        "windows.0.48.5.lib"
+      ],
+      "claim": "Matched PDB DBI compilands show linker input identities; LTO/stripping still prevent proving all Rust crate exclusion. No full proprietary path or raw PDB copied."
+    },
+    {
+      "name": "easytier_cli.pdb",
+      "sha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "dbiAge": 1,
+      "dbiMachine": 34404,
+      "moduleBytes": 45196,
+      "modules": 149,
+      "matchingInputs": [
+        {
+          "index": 1,
+          "moduleName": "YY_Thunks_for_Win7.obj",
+          "objectName": "YY_Thunks_for_Win7.obj",
+          "isVcLtl": false,
+          "isYyThunks": true,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 313
+        },
+        {
+          "index": 85,
+          "moduleName": "ehhelpers.obj",
+          "objectName": "libvcruntime.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 222
+        },
+        {
+          "index": 86,
+          "moduleName": "std_type_info.obj",
+          "objectName": "libvcruntime.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 65535,
+          "firstSectionSize": -1
+        },
+        {
+          "index": 87,
+          "moduleName": "msvcrt.dll",
+          "objectName": "libvcruntime.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 65535,
+          "firstSectionSize": -1
+        },
+        {
+          "index": 88,
+          "moduleName": "round.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 101
+        },
+        {
+          "index": 89,
+          "moduleName": "_seh_filter_dll.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 65535,
+          "firstSectionSize": -1
+        },
+        {
+          "index": 90,
+          "moduleName": "exit.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 119
+        },
+        {
+          "index": 91,
+          "moduleName": "argv_parsing.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 64
+        },
+        {
+          "index": 92,
+          "moduleName": "environment_initialization.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 11
+        },
+        {
+          "index": 93,
+          "moduleName": "onexit.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 432
+        },
+        {
+          "index": 94,
+          "moduleName": "initialization.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 35
+        },
+        {
+          "index": 95,
+          "moduleName": "_seh_filter_exe.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 65535,
+          "firstSectionSize": -1
+        },
+        {
+          "index": 96,
+          "moduleName": "report_runtime_error.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 21
+        },
+        {
+          "index": 97,
+          "moduleName": "matherr.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 27
+        },
+        {
+          "index": 98,
+          "moduleName": "argv_data.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 8
+        },
+        {
+          "index": 99,
+          "moduleName": "setlocal_thunks.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 158
+        },
+        {
+          "index": 100,
+          "moduleName": "_set_new_mode.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 65535,
+          "firstSectionSize": -1
+        },
+        {
+          "index": 101,
+          "moduleName": "ncommode.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 8
+        },
+        {
+          "index": 102,
+          "moduleName": "terminate.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 65535,
+          "firstSectionSize": -1
+        },
+        {
+          "index": 103,
+          "moduleName": "_test.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 278
+        },
+        {
+          "index": 104,
+          "moduleName": "recalloc.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 5
+        },
+        {
+          "index": 105,
+          "moduleName": "msvcrt_loadhelper.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 113
+        },
+        {
+          "index": 106,
+          "moduleName": "sftbuf_thunks.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 65535,
+          "firstSectionSize": -1
+        },
+        {
+          "index": 107,
+          "moduleName": "winapi_thunks.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 91
+        },
+        {
+          "index": 108,
+          "moduleName": "shared_initialization.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 132
+        },
+        {
+          "index": 109,
+          "moduleName": "invalid_parameter.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 48
+        },
+        {
+          "index": 110,
+          "moduleName": "fegetexceptflag.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 65535,
+          "firstSectionSize": -1
+        },
+        {
+          "index": 111,
+          "moduleName": "fesetexceptflag.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 65535,
+          "firstSectionSize": -1
+        },
+        {
+          "index": 112,
+          "moduleName": "_fenvutils.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 65535,
+          "firstSectionSize": -1
+        },
+        {
+          "index": 113,
+          "moduleName": "_msize_base.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 65535,
+          "firstSectionSize": -1
+        },
+        {
+          "index": 114,
+          "moduleName": "_realloc_base.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 65535,
+          "firstSectionSize": -1
+        },
+        {
+          "index": 115,
+          "moduleName": "fetestexcept.obj",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 65535,
+          "firstSectionSize": -1
+        },
+        {
+          "index": 116,
+          "moduleName": "chandler_noexcept.obj",
+          "objectName": "libvcruntime.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 45
+        },
+        {
+          "index": 119,
+          "moduleName": "softmemtag.obj",
+          "objectName": "libvcruntime.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 65535,
+          "firstSectionSize": -1
+        },
+        {
+          "index": 146,
+          "moduleName": "Import:msvcrt.dll",
+          "objectName": "libvcruntime.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 6
+        },
+        {
+          "index": 147,
+          "moduleName": "Import:msvcrt.dll",
+          "objectName": "libucrt.lib",
+          "isVcLtl": true,
+          "isYyThunks": false,
+          "isEncoding": false,
+          "firstSection": 1,
+          "firstSectionSize": 6
+        }
+      ],
+      "libraryNames": [
+        "kernel32.lib",
+        "libcmt.lib",
+        "libucrt.lib",
+        "libvcruntime.lib",
+        "windows.0.48.5.lib"
+      ],
+      "claim": "Matched PDB DBI compilands show linker input identities; LTO/stripping still prevent proving all Rust crate exclusion. No full proprietary path or raw PDB copied."
+    }
+  ],
+  "summaries": [
+    {
+      "name": "easytier_core.pdb",
+      "sha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "dbiAge": 1,
+      "dbiMachine": 34404,
+      "moduleCount": 198,
+      "yyThunksModules": 1,
+      "vcLtlModules": 52,
+      "vcLtlPositiveFirstSectionContributions": 35,
+      "encodingModules": 0,
+      "vcLtlLibraries": [
+        "libvcruntime.lib",
+        "libucrt.lib"
+      ]
+    },
+    {
+      "name": "easytier_cli.pdb",
+      "sha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "dbiAge": 1,
+      "dbiMachine": 34404,
+      "moduleCount": 149,
+      "yyThunksModules": 1,
+      "vcLtlModules": 35,
+      "vcLtlPositiveFirstSectionContributions": 21,
+      "encodingModules": 0,
+      "vcLtlLibraries": [
+        "libvcruntime.lib",
+        "libucrt.lib"
+      ]
+    }
+  ],
+  "frozenCoreSha256": "d4f100ace0ae50b5270af10f579a2ccf7b2991731f05b82920eefba60055d49a",
+  "frozenCliSha256": "b84fa350b9c8036649df3cdc8ee728c364ea81075d82fd3783cdeede3b9ddccd",
+  "conclusion": "VC-LTL libucrt.lib/libvcruntime.lib and YY_Thunks_for_Win7.obj are evidenced by both matching PDBs; positive section contributions exist. Encoding Rust code exclusion remains unproven under LTO. No blanket licensing clearance."
+}
