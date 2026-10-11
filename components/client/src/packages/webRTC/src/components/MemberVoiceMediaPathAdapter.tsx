@@ -1,21 +1,12 @@
 /* eslint-disable react-refresh/only-export-components -- passive provider and its hook share one contract */
 import { createContext, useContext } from "react";
 
-import { type MemberVoiceMediaEvidence, type MemberVoiceMediaScope,readMemberVoiceMediaPath } from "../../../../lib/memberVoiceMediaPath";
+import { type MemberVoiceMediaPathSnapshot, readMemberVoiceMediaPath } from "../../../../lib/memberVoiceMediaPath";
 
-export interface MemberVoiceMediaPathEntry {
-  /** Independent current authenticated roster scope; never copied from evidence. */
-  scope: MemberVoiceMediaScope;
-  evidence?: MemberVoiceMediaEvidence;
-}
-export interface MemberVoiceMediaPathSnapshot {
-  /** Adapter must advance this clock and invalidate entries on room/account/session changes. */
-  nowMs: number;
-  entries: readonly MemberVoiceMediaPathEntry[];
-}
+export type { MemberVoiceMediaPathEntry, MemberVoiceMediaPathSnapshot } from "../../../../lib/memberVoiceMediaPath";
 const Context = createContext<MemberVoiceMediaPathSnapshot | undefined>(undefined);
-/** Injection boundary only. No SDK/ET subscriptions or parallel path store.
- * Deliberately unwired until SDK selected-media authority and full-path correlation are verified. */
+/** One mounted passive store. Observations remain absent until the SDK read-only
+ * adapter supplies fresh selected-media authority; mounting never creates media. */
 export const MemberVoiceMediaPathProvider = Context.Provider;
 export function useMemberVoiceMediaPath(host?: string, member?: string, publicationId?: string) {
   const snapshot = useContext(Context);

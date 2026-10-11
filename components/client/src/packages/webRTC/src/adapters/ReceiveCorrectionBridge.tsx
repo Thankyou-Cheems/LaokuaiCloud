@@ -10,6 +10,7 @@ import { ReceivePriorSession } from "../../../../lib/receivePriorSession";
 import { ReceiveCorrectionProvider } from "../components/ReceiveCorrectionAdapter";
 import { ReceivePriorProvider } from "../components/ReceivePriorAdapter";
 import { HybridVoiceBridge, type HybridVoicePolicy } from "./HybridVoiceBridge";
+import { MemberVoiceMediaBridge } from "./MemberVoiceMediaBridge";
 import { useReceiveAudioRoles } from "./useReceiveAudioRoles";
 
 /** SDK batches are authoritative; no client RMS estimator or sampling timer. */
@@ -45,6 +46,6 @@ export function ReceiveCorrectionBridge({ children, config, hybrid }: { children
   return <ReceivePriorProvider value={{available:cache.available,count:cache.count(),
     clearMember:(serverHost,member)=>{const scope=scopeFor(serverHost,member);if(scope){session.clear(scope,audioContext?.currentTime);refresh(value=>value+1);}},
     clearAll:()=>{session.clear(undefined,audioContext?.currentTime);refresh(value=>value+1);}}}>
-    <ReceiveCorrectionProvider value={readings}><HybridVoiceBridge policy={hybrid} config={config} registry={registry}/>{children}</ReceiveCorrectionProvider>
+    <ReceiveCorrectionProvider value={readings}><MemberVoiceMediaBridge><HybridVoiceBridge policy={hybrid} config={config} registry={registry}/>{children}</MemberVoiceMediaBridge></ReceiveCorrectionProvider>
   </ReceivePriorProvider>;
 }
