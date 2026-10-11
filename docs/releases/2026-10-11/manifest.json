@@ -202,6 +202,22 @@
     "hybridRuntime": "pending",
     "prohibitedRuntimeActionsPerformed": false
   },
+  "plannedNetworkMembership": {
+    "status": "design-requirements-recorded",
+    "implemented": false,
+    "pureSimulationEvidence": "none-confirmed-for-these-requirements",
+    "realIntegrationEvidence": "not-verified",
+    "requirements": [
+      "Joining server/community joins its EasyTier network",
+      "Voice rooms control audio subscriptions only",
+      "Switching rooms or leaving voice must not reconnect or leave EasyTier",
+      "Do not add multiple server process sets",
+      "Right member list shows EasyTier membership and local-to-member direct/relay/unknown",
+      "Voice media path is displayed separately from EasyTier transport path",
+      "A peer unbound to auth user must not be shown as trusted"
+    ],
+    "ownership": "Native owner is verifying official EasyTier concepts; SDK owner is aware of layering; this task records the plan only."
+  },
   "finalArtifact": {
     "built": false,
     "sha256": null,
@@ -213,6 +229,7 @@
     "Exact SDK source/package build receipt",
     "Server/SFU final delivered commits and approved fork destinations",
     "EasyTier application source/package pin",
+    "EasyTier community membership/member UI implementation and distinct simulation/real evidence",
     "Final native helper receipt and binary build/verification",
     "Hybrid runtime and capacity acceptance",
     "Parent approval of remote target and public disclosure scope"

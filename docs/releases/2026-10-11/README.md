@@ -66,6 +66,17 @@ integration task did not operate them.
 
 ## Continue from this candidate
 
+The additional EasyTier/member UI requirements are recorded as design only. Joining
+a server/community should join that community's EasyTier network. Voice rooms
+control audio subscriptions; changing rooms or leaving voice must not reconnect or
+leave EasyTier, and must not create multiple sets of server processes. The right
+member list should show EasyTier membership and local-to-member `direct`, `relay`
+or `unknown`. Voice media path must be shown separately. A peer without an auth-user
+binding must not be presented as trusted. Native-owner verification of official
+concepts and SDK-owner coordination are pending. The manifest separately records
+design, unconfirmed pure-simulation evidence and unverified real integration.
+No network or permission settings were added by this task.
+
 Run `node docs/releases/2026-10-11/verify-release.cjs` to validate local pins and
 unchanged build inputs. `--require-ready` deliberately rejects this pending release.
 The local handoff has the exact checkout, code and coordination commits plus an
