@@ -1,0 +1,20 @@
+# ET-OWNERSHIP-001 corrective patch
+
+Base: `1a44fb98e2429b050d69f36a1fee47eadf26caf5`. Fixed main upstream: `8b7f1f0196edb5b580829ed5f135050fb5853478`, version `2.7.0-laokuai`. This supersedes the earlier preflight-only ownership claim; the prior GUID check happened after rust-tun had already opened an alias and started a session. No actual adapter interference was tested or observed.
+
+The patch vendors the exact rust-tun source at `12378839e7985283df0e4fb536b7137230356db5` through a root Cargo path override. `UPSTREAM-PROVENANCE.json` records original raw Git blobs/hashes; the original source license headers and a standalone WTFPL notice remain. Unchanged platform implementations and declared examples are included so the crate builds normally; no DLL, driver, compiled target or Cargo cache is vendored.
+
+`VirtualNic` now selects `PlatformConfig::create_only()`. That branch requires an explicit GUID before DLL loading and calls only `Adapter::create`, without an open callback or any fallback to `Adapter::open`. Creation failure returns immediately. A successful create resolves the returned adapter's LUID through the OS to its actual GUID before address configuration or session start. This also avoids trusting wintun 0.5.1's `get_guid()` alone: on create it stores the requested GUID, while its cached LUID is resolved from the alias. An alias collision/race producing the wrong LUID therefore fails before a session. No previously saved adapter can be reused on the owned path; uncertain remnants require review.
+
+Preflight alias comparison uses Windows `CompareStringOrdinal(..., true)` over UTF-16, including case variants. Preflight remains a best-effort early rejection, not the ownership guarantee. Create-only plus pre-session actual identity validation provides the source contract; native Windows/driver acceptance remains pending.
+
+No profile deletion, route cleanup, firewall change, new identity scheme, SDK media behavior or member-help feature is added. Existing externally-managed host policy and owned-stop behavior remain unchanged.
+
+## Exact build input
+
+- Root `Cargo.toml`: `[workspace.package] rust-version = "1.95"`, `edition = "2024"`. `easytier/Cargo.toml` inherits both. `rust-toolchain.toml` selects channel `1.95`. Thus **1.94 does not meet the declared core minimum**; do not lower MSRV or change dependencies to hide it. The vendored leaf crate's own minimum is 1.75/edition 2021, which does not lower the main workspace minimum.
+- Cargo.lock remains format **4**, and all package versions/ordinary dependencies stay pinned. Only tun-easytier 1.1.1 changes from a git-source entry to a local path override; no lock regeneration or upgrade was performed. Root workspace excludes the vendor crate from workspace membership. The new lock hash is supplied in the structured handoff, alongside the previous lock hash `3f605207a2e29b1ebf24d3e032ab65f00ae3c93d489fa983164c4d3e995dfe70`.
+- Installed `1.95.0-x86_64-pc-windows-msvc` rustc successfully compiled the five-test std-only ownership helper. `cargo metadata --locked --offline --no-deps` confirms easytier rust_version 1.95/edition 2024. This does not prove the entire dependency graph compiles.
+- Full offline metadata resolution stopped at missing **ab_glyph 0.2.32**; it did not make a network request. No full Cargo/Rust product build was attempted. Capacity owner must retain exact lock/default features, provide the VS/MSVC/SDK and pinned PROTOC environment, and report any missing cache entries. `cargo +1.95.0 build --locked --offline --release -p easytier --bin easytier-core --target x86_64-pc-windows-msvc -j 1` is the pending build, not a command run in this task.
+
+Completed: five compiled pure Rust helper tests; ten static source contracts; targeted formatting/syntax checks. Source/patch/lock hashes and downstream artifact-manifest pins must be refreshed by Gitowner before review/build. Real TUN/coexistence and core execution remain closed. Members helping members development remains paused.

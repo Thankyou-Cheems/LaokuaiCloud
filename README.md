@@ -12,8 +12,8 @@ the release manifest. EasyTier is pinned to official v2.7.0 prerelease; the
 Windows server/community adapter is integrated with configuration and permission
 gates. Automatic authorized community provisioning and real network acceptance
 remain pending. The fixed-base Windows compatibility source is imported as a
-review checkpoint; existing-adapter ownership has a blocking finding recorded in
-`components/easytier/REVIEW.md`. Official
+review checkpoint; its create-only correction passes static source review recorded
+in `components/easytier/REVIEW.md`, while native build/acceptance remain pending. Official
 Windows files are reference only; private final packaging requires reviewed
 patch/build hashes from `components/easytier/provenance.json`.
 

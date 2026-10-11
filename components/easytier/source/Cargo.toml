@@ -15,7 +15,7 @@ members = [
     "easytier-contrib/easytier-ohrs/crates/*",
 ]
 default-members = ["easytier", "easytier-web"]
-exclude = []
+exclude = ["vendor/rust-tun"]
 
 [workspace.package]
 edition = "2024"
@@ -111,3 +111,7 @@ strip = true
 inherits = "release"
 opt-level = "z"
 strip = "symbols"
+
+# Pinned upstream source, with a reviewed Windows create-only entry path.
+[patch."https://github.com/EasyTier/rust-tun"]
+tun-easytier = { path = "vendor/rust-tun" }

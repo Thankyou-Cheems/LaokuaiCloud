@@ -17,7 +17,7 @@ export const EASYTIER_WINDOWS_FILES = Object.freeze({
 });
 export const easyTierSha256 = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
 
-export const EASYTIER_LAOKUAI_SOURCE_PATCH_SHA256 = "3c4270f5bccf3f9223d09764472d56ef7f939a105bf16c1831a61485f032c274";
+export const EASYTIER_LAOKUAI_SOURCE_PATCH_SHA256 = "eb30fab089422c82256a8c8db9cb7a15d3c41b8b972a05729f63ebfbac7e8cad";
 
 export function verifiedEasyTierProductManifest(value: unknown): { coreSha256: string } {
   const manifest = value as Record<string, unknown>;

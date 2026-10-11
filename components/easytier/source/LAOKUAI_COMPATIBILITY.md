@@ -1,5 +1,7 @@
 # 2.7.0-laokuai compatibility patch, review stage
 
+The ownership preflight described below was subsequently found insufficient in ET-OWNERSHIP-001. The corrective create-only dependency path, pre-session actual identity check and exact build requirements are recorded in [OWNED_CREATE_REVIEW.md](OWNED_CREATE_REVIEW.md). The historical five-file patch digest below remains the frozen earlier checkpoint; the current cumulative patch/source/lock digests are supplied separately in the owned-create handoff. Native acceptance is still pending.
+
 Upstream source is EasyTier commit `8b7f1f0196edb5b580829ed5f135050fb5853478` (v2.7.0). This independent repository starts with an archive snapshot, not reconstructed upstream history. Archive SHA256: `bfed31138cd535cb540233c9506f29919d495e4cbb9cff78a19d7a5974f14a40`. The original source tree and licenses are preserved. The downstream core identifies itself as `2.7.0-laokuai`; its eventual executable must receive its own measured hash.
 
 The five Rust-file code patch is `laokuai-2.7.0-core-code.patch`, SHA256 `3c4270f5bccf3f9223d09764472d56ef7f939a105bf16c1831a61485f032c274`. The accompanying Node source-contract check and this document are additional review files. No Rust build or native activation was performed.

@@ -1,0 +1,213 @@
+{
+  "schemaVersion": 1,
+  "repository": "https://github.com/EasyTier/rust-tun",
+  "commit": "12378839e7985283df0e4fb536b7137230356db5",
+  "license": "WTFPL-2.0; original source headers retained",
+  "files": [
+    {
+      "file": "Cargo.toml",
+      "gitBlob": "3237c5931b8b48ba9de85b17689b5bb49baec5a6",
+      "sha256": "cbef09db54d85e671064dbdc97140f021bbd81522dfdbb62d0139a10df4254ea"
+    },
+    {
+      "file": "README.md",
+      "gitBlob": "5ca4113f38d06d0996441ce6075387249c780b38",
+      "sha256": "8d151dd7ec366a536ea46af7e6680df37fbeb3e60253532a7ba3733ef2f4a28f"
+    },
+    {
+      "file": "src/address.rs",
+      "gitBlob": "698c83994982c930459c754717811b39879570d4",
+      "sha256": "edc8681bb0fca17a6824a5b35c1a4ef64231d759acdfed0475d9798edf7f17f3"
+    },
+    {
+      "file": "src/async/codec.rs",
+      "gitBlob": "332103bab74cdc36a99e912540a641a2fbe42cda",
+      "sha256": "dc669a8ebd0514803d2cf56e9ca9d23adddc6b8f311ec4e5ee4918e915f71031"
+    },
+    {
+      "file": "src/async/mod.rs",
+      "gitBlob": "e3b542a74eb91a7e0e1c574c3d6c59b3427d11f0",
+      "sha256": "444320fffebe06ef673ba36ad12e3ae8f90962600712eb9e889b2b4faea17932"
+    },
+    {
+      "file": "src/async/unix_device.rs",
+      "gitBlob": "a308acea04143d7e84c462fd01c20892a86b25ca",
+      "sha256": "540506e5031328560eb1e47aaf30d2c1ab99f9ed6bf34ba68793e88a0217a67c"
+    },
+    {
+      "file": "src/async/win_device.rs",
+      "gitBlob": "44df4822e2e3379c246bfbb62a4e568fe915b33e",
+      "sha256": "e2bb7492155cbcd3521bca06b01009d7f4d1795325a0c91fada017711e3b2b85"
+    },
+    {
+      "file": "src/configuration.rs",
+      "gitBlob": "128ae01a1912c664e890fa6026acb2eb0c5ae515",
+      "sha256": "19d03bd75ecd28d3a712a7d8f960c53111f18d40b35f5c6b6613ddaf877d14b3"
+    },
+    {
+      "file": "src/device.rs",
+      "gitBlob": "77acc2dab8301ac2752966816a19045cb857418d",
+      "sha256": "4c953de7de6f5ee256d03e25b00d15ea8765f0498eb045a9b6ea1b12ff322f66"
+    },
+    {
+      "file": "src/error.rs",
+      "gitBlob": "998052c15cbc57c9616d44091c06c720004fa69b",
+      "sha256": "4b7da0fabfb71cf1fd5580dca2390ac3555d526a7da447061a9d3afb8ce7e31e"
+    },
+    {
+      "file": "src/lib.rs",
+      "gitBlob": "82b802b5327277ccc89dd00d1c688edcf5d51fc6",
+      "sha256": "c3c2223a667b9d7c06bec63cb803eb019da320a8fae3c817ee7f711355daa3e3"
+    },
+    {
+      "file": "src/platform/android/device.rs",
+      "gitBlob": "0428fc5389044989e64343a081e5990c83da9cc4",
+      "sha256": "c358e94fd8fa489ad1a96bd8890c8de79b68704f52a86c085d331cc9a4f797cd"
+    },
+    {
+      "file": "src/platform/android/mod.rs",
+      "gitBlob": "a0aaf4eca954209ad652dd94730dcc1871567aa2",
+      "sha256": "48f96ef91ff31a352ff04bafde477ae8c3abb54aab8a32d107bc32124d00ddae"
+    },
+    {
+      "file": "src/platform/freebsd/device.rs",
+      "gitBlob": "cc81e7ba8964dddaab06b0afc114d6c6f631d7d4",
+      "sha256": "a7dc73aa7ec2bde8da20655ab67f2297e14adcd5ef6179974d77ffba56755a7f"
+    },
+    {
+      "file": "src/platform/freebsd/mod.rs",
+      "gitBlob": "a0f77ebda4d9de4c5b13bb467dd06807bd655df3",
+      "sha256": "17bae9ac1105812864e87bbbd95d7763d172cf0216e4a87c0af5ddf3efb90e35"
+    },
+    {
+      "file": "src/platform/freebsd/sys.rs",
+      "gitBlob": "00f319c9a95961df719f135bb454a142442876a4",
+      "sha256": "b0bf51ed647108183ab52eee034abf73fc559b514266f0eb09517bd034ae441c"
+    },
+    {
+      "file": "src/platform/ios/device.rs",
+      "gitBlob": "446f051e2b7e5842fe28f320725558870b06a715",
+      "sha256": "ff2d3317ea7d502eb59876623219fc4a714a24f66b1178e934cc5d4b18443d6a"
+    },
+    {
+      "file": "src/platform/ios/mod.rs",
+      "gitBlob": "744c292285b8fb764b0d4e1e9dd6a64b6ddfc5b7",
+      "sha256": "32b76fd3786ccce65beb26ffa2f7f6d98f57528fe3592a3bda7b30dd4a37edd3"
+    },
+    {
+      "file": "src/platform/linux/device.rs",
+      "gitBlob": "194dd92e2e29374534e1fac8bea0fa956801dc4f",
+      "sha256": "5a89be71c38e10e3a4a52aaa8b6de06ac14db9710c0e49b2eb83bca65424b651"
+    },
+    {
+      "file": "src/platform/linux/mod.rs",
+      "gitBlob": "97a78fd2ace4dfaa482a7a92608b4611e513f452",
+      "sha256": "ae8c94201a3c5a32db92ff2fe16f19fb334d818eb41475b7ba67a0afc0931461"
+    },
+    {
+      "file": "src/platform/linux/sys.rs",
+      "gitBlob": "9f60de72c2403f60ace28505b9bbe223d3067c63",
+      "sha256": "991fb45505ef4dd5243afe99d6167bcb6dac9a0386e0572f01ea63f15867ef8f"
+    },
+    {
+      "file": "src/platform/macos/device.rs",
+      "gitBlob": "df869996a313e3453191828485ccebcc96df8dbe",
+      "sha256": "3710517eaf924a87ebb5998301b34b4383bc7b8ae0d231f4e1d963ba9610feec"
+    },
+    {
+      "file": "src/platform/macos/mod.rs",
+      "gitBlob": "29b8c5fee964abaa2b0a30095f55ef7244df8920",
+      "sha256": "1d9dd831d08c90ac5218a9a1452f89c384a3dc8cc760e251b5ecc236686da26b"
+    },
+    {
+      "file": "src/platform/macos/sys.rs",
+      "gitBlob": "350bd5fc84a8e9ccb053fbebdb646d178dcaffae",
+      "sha256": "3edafc44c2574940f12d278c14efe470c4e253bb1b472752e6dbc7314ddb8545"
+    },
+    {
+      "file": "src/platform/mod.rs",
+      "gitBlob": "734574381c6040be23713b3bb8836be0db33093b",
+      "sha256": "6f7fb7a789e4d083c5cb669cb5ab9d4f2f668a6c7aeb0edb028e5fa13743ba13"
+    },
+    {
+      "file": "src/platform/ohos/device.rs",
+      "gitBlob": "f9d783fa83346363a92c2fdc354b02d247b7db92",
+      "sha256": "e8721327bd43e0d33505d759a0479032f765648544cf1b05f4c8ebeb7f1506f1"
+    },
+    {
+      "file": "src/platform/ohos/mod.rs",
+      "gitBlob": "1f7654c7d7ab0243a26023853732d9bf0bc28933",
+      "sha256": "a6b6d53e0e450f06a3c69788d9099e83905854f4b2b60cd389c8527caa922370"
+    },
+    {
+      "file": "src/platform/posix/fd.rs",
+      "gitBlob": "447a16f854c42dd8f90a7fb63ed08d158a35099a",
+      "sha256": "e9ee751d3b0e335e4731eeadce8f35ff23e0160ed3fd3cc47a7f7e3f2902e94d"
+    },
+    {
+      "file": "src/platform/posix/mod.rs",
+      "gitBlob": "e56365049ce8a48f707859e2baa1fd9bfd4ae087",
+      "sha256": "7103314b84eaa210a9f8d1db55775ec8cbfc2badaaa5bd6b950b9f4349ca241d"
+    },
+    {
+      "file": "src/platform/posix/sockaddr.rs",
+      "gitBlob": "625dc327b2fcf9c4b8181251e4ea34773cd050a0",
+      "sha256": "ed750fc98c48d1f61f2ccc41a515ace300cce563588488044b72fc92c03c35d2"
+    },
+    {
+      "file": "src/platform/posix/split.rs",
+      "gitBlob": "5c2a5a6ac41c7be2edb0e9c9c61607b3f5ea62f7",
+      "sha256": "2659d723282aa8d609b44787d84924960b193f08bf6a875ea986fb6f558fd4f6"
+    },
+    {
+      "file": "src/platform/windows/device.rs",
+      "gitBlob": "e2dd36d27dda281db2893f3a6f70cf6b96a9d575",
+      "sha256": "0865e0064c8fe1abc81e0805e5904aa96939b9ba6ecb875a35fdc08d782f66e2"
+    },
+    {
+      "file": "src/platform/windows/mod.rs",
+      "gitBlob": "7732b246346a8e4f08623e1a826a903bf4a3eb9f",
+      "sha256": "1e1ac6ab7a89444be8854ba2fbd230b200801b9cfa64ec31b0108f7e99f535ba"
+    },
+    {
+      "file": "src/platform/windows/verify_dll_file.rs",
+      "gitBlob": "bf83d6662db884417ae7dfb078bad0ca67cc28e1",
+      "sha256": "27c497b65eecc48979ea92689cf6edd0d29cc95ba9e4c0e49a9e99893a5ea706"
+    },
+    {
+      "file": "examples/dev-config.rs",
+      "gitBlob": "60fcdf853e01ed26d62d74c3bc3d8802e021d2ce",
+      "sha256": "c936302a2181c82dd5ccef754c7c0334e547234f7446e5fd9b42c7b4fd629f1b"
+    },
+    {
+      "file": "examples/ping-tun.rs",
+      "gitBlob": "2641bb66012302f21798cf167f04f944d0a2f800",
+      "sha256": "a8e3c040ec9746edddc88a02dd76765bde5e6972452a3ad1d47bcb1d04298654"
+    },
+    {
+      "file": "examples/read-async-codec.rs",
+      "gitBlob": "96ce862841cb7955838b99fb39dbc5d4c3ac48ac",
+      "sha256": "befd2c8c3fa73555d4622153bb84ac11cf992c57b07f84ef85a0f27d318ee8fc"
+    },
+    {
+      "file": "examples/read-async.rs",
+      "gitBlob": "fdcc22680b3fd6abbefdd58837cf129740cd5bf1",
+      "sha256": "0da32179850c893825c7e3e63796d6c7de0acca93dc9c82f44b4fc613de740da"
+    },
+    {
+      "file": "examples/read.rs",
+      "gitBlob": "36a47a7dbaf17ec8459be8f0b08ad2b8b4fae8e2",
+      "sha256": "7ba44a79085c78b09358db645433de79df32ff148a41de4609772b949e79115a"
+    },
+    {
+      "file": "examples/split.rs",
+      "gitBlob": "21a118a2dcbb3aa09583eadacf32c95fc24d969f",
+      "sha256": "c07535fc004d425d7fcf1996e2e9aff37cace7b1fe94c088026bfbd18530fbf8"
+    },
+    {
+      "file": "examples/write.rs",
+      "gitBlob": "4dbd4e78ed7c2d99a96801557ea90ae9f4f0d47b",
+      "sha256": "46c58a4a708cf6fc82ffcd5f77cffe9eac7d9f155ddfed573b61b56ac64c9c41"
+    }
+  ]
+}

@@ -536,6 +536,7 @@ impl VirtualNic {
             crate::arch::windows::laokuai_require_new_interface(&name, owned_guid)?;
             config.platform_config(|config| {
                 config.device_guid(owned_guid.as_u128());
+                config.create_only();
                 config.skip_config(true);
                 config.ring_cap(Some(std::cmp::min(
                     config.min_ring_cap() * 32,

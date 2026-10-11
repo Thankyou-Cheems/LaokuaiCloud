@@ -14,23 +14,23 @@
     "compileAndPackage": "Capacity owner only, parent-scheduled isolated build; task-6 does not compile native core"
   },
   "patchSet": {
-    "status": "delivered-reviewed-changes-required",
+    "status": "delivered-source-review-accepted-build-pending",
     "baseCommit": "8b7f1f0196edb5b580829ed5f135050fb5853478",
-    "sourceCommit": "1a44fb98e2429b050d69f36a1fee47eadf26caf5",
-    "sourceTree": "c589da1a2049a6bc6e78996fcf0909e40f307bcb",
-    "cumulativeSha256": "b7258770f7f6b6bc5e0ec660d3439964a132c9cae98e9f51ffdf84b51b589079",
+    "sourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
+    "sourceTree": "e58f64a219c204cdaf364fc95466cf03acfb7c21",
+    "cumulativeSha256": "eb30fab089422c82256a8c8db9cb7a15d3c41b8b972a05729f63ebfbac7e8cad",
     "patches": [
       {
-        "path": "patches/laokuai-2.7.0-core-code.patch",
-        "sha256": "3c4270f5bccf3f9223d09764472d56ef7f939a105bf16c1831a61485f032c274",
-        "bytes": 19145,
-        "role": "five Rust production files"
+        "path": "patches/laokuai-owned-create-cumulative-code.patch",
+        "sha256": "eb30fab089422c82256a8c8db9cb7a15d3c41b8b972a05729f63ebfbac7e8cad",
+        "bytes": 221080,
+        "role": "Cumulative production code including pinned vendored TUN dependency"
       },
       {
-        "path": "patches/laokuai-2.7.0-source-review.patch",
-        "sha256": "b7258770f7f6b6bc5e0ec660d3439964a132c9cae98e9f51ffdf84b51b589079",
-        "bytes": 30410,
-        "role": "seven-file cumulative code/documentation/static-test review patch"
+        "path": "patches/laokuai-owned-create-source.patch",
+        "sha256": "168476f10affa8163d05f0e73d9f93750bc8db70c5c04e8c1a43cf58f7aaf4f3",
+        "bytes": 211306,
+        "role": "Corrective source delta from immutable 1a44 snapshot"
       }
     ],
     "requirements": [
@@ -40,19 +40,22 @@
       "Keep fixed v2.7.0 upstream base; no Tencent Linux node changes"
     ],
     "review": {
-      "status": "changes-required",
-      "reviewedCommit": "1a44fb98e2429b050d69f36a1fee47eadf26caf5",
-      "reviewedTree": "c589da1a2049a6bc6e78996fcf0909e40f307bcb",
-      "blockingFindingIds": [
+      "status": "accepted",
+      "reviewedCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
+      "reviewedTree": "e58f64a219c204cdaf364fc95466cf03acfb7c21",
+      "blockingFindingIds": [],
+      "resolvedSourceFindingIds": [
         "ET-OWNERSHIP-001"
       ],
       "reportPath": "REVIEW.md",
+      "acceptanceScope": "Static create-only/pre-session identity source contract; actual Windows build/driver/coexistence not accepted",
       "nativeExecution": false
     },
     "snapshotBaseCommit": "f12351ef0410c55790bf97dd139688335866210c",
     "originalHistory": false,
     "upstreamArchiveSha256": "bfed31138cd535cb540233c9506f29919d495e4cbb9cff78a19d7a5974f14a40",
-    "codePatchSha256": "3c4270f5bccf3f9223d09764472d56ef7f939a105bf16c1831a61485f032c274"
+    "codePatchSha256": "eb30fab089422c82256a8c8db9cb7a15d3c41b8b972a05729f63ebfbac7e8cad",
+    "previousSourceCommit": "1a44fb98e2429b050d69f36a1fee47eadf26caf5"
   },
   "officialWindowsReference": {
     "role": "reference-only; not private patched payload",
@@ -67,10 +70,10 @@
     }
   },
   "privateBuild": {
-    "status": "blocked-review-fix-and-parent-scheduled-build",
-    "sourceCommit": "1a44fb98e2429b050d69f36a1fee47eadf26caf5",
-    "sourceTree": "c589da1a2049a6bc6e78996fcf0909e40f307bcb",
-    "patchSetSha256": "b7258770f7f6b6bc5e0ec660d3439964a132c9cae98e9f51ffdf84b51b589079",
+    "status": "pending-parent-authorized-capacity-owner-build",
+    "sourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
+    "sourceTree": "e58f64a219c204cdaf364fc95466cf03acfb7c21",
+    "patchSetSha256": "eb30fab089422c82256a8c8db9cb7a15d3c41b8b972a05729f63ebfbac7e8cad",
     "toolchain": {
       "requiredRust": "1.95",
       "target": "x86_64-pc-windows-msvc",
@@ -87,7 +90,7 @@
   },
   "payload": {
     "kind": "pending-private-patched-windows",
-    "status": "blocked-review-changes-required",
+    "status": "blocked-private-build-and-native-acceptance",
     "approved": false
   },
   "acceptance": {
@@ -99,14 +102,57 @@
   },
   "sourceImport": {
     "path": "source",
-    "archivedFiles": 1233,
-    "importedFiles": 1232,
+    "archivedFiles": 1278,
+    "importedFiles": 1277,
     "allImportedGitBlobsExact": true,
     "excluded": [
       "easytier-contrib/easytier-uptime/.env"
     ],
     "licenseSha256": "e3a994d82e644b03a792a930f574002658412f62407f5fee083f2555c5f23118",
-    "cargoLockSha256": "3f605207a2e29b1ebf24d3e032ab65f00ae3c93d489fa983164c4d3e995dfe70",
-    "bundleSha256": "825130c4064acca5cf15f01f9774d4aa8ad678516c3c3491d1457175c9129e58"
-  }
+    "cargoLockSha256": "e3ee41507e7a8ef94470b70f4639140e67aadae646ada82dfd23b0beeb0e7fb2",
+    "bundleSha256": "71c09f9ba90cb87dcc3eb3d828477c21d5761a74c0fd049f965fa90b54d8425e",
+    "vendoredTun": {
+      "path": "source/vendor/rust-tun",
+      "repository": "https://github.com/EasyTier/rust-tun",
+      "upstreamCommit": "12378839e7985283df0e4fb536b7137230356db5",
+      "license": "WTFPL-2.0; original headers and notice retained",
+      "upstreamProvenancePath": "source/vendor/rust-tun/UPSTREAM-PROVENANCE.json",
+      "version": "1.1.1",
+      "sourceOverrideOnly": true
+    }
+  },
+  "previousCheckpoints": [
+    {
+      "sourceCommit": "1a44fb98e2429b050d69f36a1fee47eadf26caf5",
+      "sourceTree": "c589da1a2049a6bc6e78996fcf0909e40f307bcb",
+      "cumulativeSha256": "b7258770f7f6b6bc5e0ec660d3439964a132c9cae98e9f51ffdf84b51b589079",
+      "codePatchSha256": "3c4270f5bccf3f9223d09764472d56ef7f939a105bf16c1831a61485f032c274",
+      "review": {
+        "status": "changes-required",
+        "reviewedCommit": "1a44fb98e2429b050d69f36a1fee47eadf26caf5",
+        "reviewedTree": "c589da1a2049a6bc6e78996fcf0909e40f307bcb",
+        "blockingFindingIds": [
+          "ET-OWNERSHIP-001"
+        ],
+        "reportPath": "REVIEW.md",
+        "nativeExecution": false
+      },
+      "patches": [
+        {
+          "path": "patches/laokuai-2.7.0-core-code.patch",
+          "sha256": "3c4270f5bccf3f9223d09764472d56ef7f939a105bf16c1831a61485f032c274",
+          "bytes": 19145,
+          "role": "five Rust production files"
+        },
+        {
+          "path": "patches/laokuai-2.7.0-source-review.patch",
+          "sha256": "b7258770f7f6b6bc5e0ec660d3439964a132c9cae98e9f51ffdf84b51b589079",
+          "bytes": 30410,
+          "role": "seven-file cumulative code/documentation/static-test review patch"
+        }
+      ],
+      "preserved": true
+    }
+  ],
+  "buildTemplatePath": "laokuai-owned-create-build.template.json"
 }

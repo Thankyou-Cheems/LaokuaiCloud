@@ -12,6 +12,7 @@ are authorized by this provenance work. Preserve existing source/archive hashes.
 
 Until patch review and exact private build/resource verification complete, the
 package payload remains blocked and release readiness remains false.
-The immutable 1a44fb98 source is currently changes-required: see REVIEW.md for
-ET-OWNERSHIP-001. Keep its bytes frozen; ask the native owner for a new delivery.
+The immutable dbaf0453 corrective source is accepted for isolated compilation:
+see REVIEW.md for source resolution of ET-OWNERSHIP-001. Prior 1a44 files/patches
+remain frozen. Keep build, actual native acceptance and payload approval separate.
 Do not implement the same fix here or approve merely because static tests pass.

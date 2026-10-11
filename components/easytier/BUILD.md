@@ -1,13 +1,13 @@
 # Parent-scheduled isolated native build inputs
 
 This records build inputs; task-6 did not invoke cargo/rustc or execute the core.
-Native acceptance and payload approval remain blocked by ET-OWNERSHIP-001. The
-parent may schedule an isolated syntax/artifact build, or request the native-owner
-fix first. Only the parent-designated capacity owner takes the heavy slot.
+ET-OWNERSHIP-001 is resolved in the reviewed create-only source contract. Native
+acceptance and payload approval remain pending actual build/Windows evidence. The
+parent authorized the capacity owner to begin an isolated artifact build now. Only the parent-designated capacity owner takes the heavy slot.
 
-Current frozen native input: `1a44fb98e2429b050d69f36a1fee47eadf26caf5`, tree `c589da1a2049a6bc6e78996fcf0909e40f307bcb`, branch
+Current frozen native input: `dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49`, tree `e58f64a219c204cdaf364fc95466cf03acfb7c21`, branch
 `codex/laokuai-et-compat`. Full-source bundle SHA256:
-`825130c4064acca5cf15f01f9774d4aa8ad678516c3c3491d1457175c9129e58`.
+`71c09f9ba90cb87dcc3eb3d828477c21d5761a74c0fd049f965fa90b54d8425e`.
 Use a fresh owned clone of that bundle with `core.autocrlf=false`; freeze HEAD
 and verify raw Git blobs. The root import is `components/easytier/source`, with
 the contributor runtime .env excluded; the delivered standalone source bundle is
@@ -21,11 +21,12 @@ MSVC/Windows SDK environment (cl/link are absent from this task's ordinary PATH)
 Keep source .cargo/config.toml `-C target-feature=+crt-static` and default features.
 
 Cargo.lock SHA256:
-`3f605207a2e29b1ebf24d3e032ab65f00ae3c93d489fa983164c4d3e995dfe70`.
+`e3ee41507e7a8ef94470b70f4639140e67aadae646ada82dfd23b0beeb0e7fb2`.
 Pinned rust-tun revision is `12378839e7985283df0e4fb536b7137230356db5`.
 Native C/C++ dependencies include ring/zstd/kcp/thunk. Full cached dependency
-availability is unverified. Do not relax the lock or alter feature policy to hide
-an offline dependency failure; report the missing input for parent coordination.
+availability is unverified. Owner full offline metadata found missing ab_glyph 0.2.32. The parent now authorizes
+normal official-registry fetches of the exact locked dependencies. Do not change
+the lock, versions or feature policy to bypass missing inputs.
 
 Provide an explicit existing `PROTOC` binary and record its hash/version. The
 easytier-proto build script otherwise falls back to downloading protobuf
@@ -37,10 +38,11 @@ native tools and cached inputs must be checked by the build owner.
 In the fresh native clone, set CARGO_TARGET_DIR to that owner's isolated output
 directory, set PROTOC explicitly, then the proposed core-only command is:
 
-`cargo +1.95.0 build --locked --offline --release -p easytier --bin easytier-core --target x86_64-pc-windows-msvc -j 1`
+`cargo +1.95.0 build --locked --release -p easytier --bin easytier-core --target x86_64-pc-windows-msvc -j 1`
 
 Record exact HEAD/tree, Cargo.lock, toolchain/target/features/flags, dependency inputs,
 exit status and executable SHA256 in a build receipt. Do not launch the executable,
-core --version, CLI, helper, driver, TUN or product. Compilation alone cannot clear
-the ownership finding, prove cleanup or approve activation. A new reviewed owner
-fix requires a new source/patch pin and fresh build; never reuse old artifact hashes.
+core --version, CLI, helper, driver, TUN or product. Compilation alone cannot prove actual coexistence/cleanup or approve activation.
+Record fresh executable/build hashes for dbaf0453; never reuse older artifacts.
+The root source bundles are immutable; use laokuai-owned-create-full-source.bundle
+from the owned-create owner delivery, never compile a moving feature tree.

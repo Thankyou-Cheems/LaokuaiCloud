@@ -31,8 +31,8 @@ explicitly releases the heavy-run slot. No Docker, listeners, browser or native
 runtime execution by task-6. Bilingual Conventional Commits use the existing
 valid author identity.
 
-The compatibility source is a review checkpoint; ET-OWNERSHIP-001 blocks payload
-approval/activation until the native owner delivers a create-only fix. Task-6
+The dbaf0453 create-only source review closes ET-OWNERSHIP-001 at source level.
+Native build, coexistence/cleanup and payload acceptance remain pending. Task-6
 must not duplicate that native patch. Only the parent-designated capacity owner
 performs the isolated Rust build. All current UI changes require user prototype
 preview approval before final packaging. Keep existing desktop packages unchanged.

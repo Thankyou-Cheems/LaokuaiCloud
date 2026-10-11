@@ -562,7 +562,12 @@ pub fn laokuai_require_new_interface(name: &str, guid: uuid::Uuid) -> anyhow::Re
         anyhow::bail!("owned interface GUID already exists");
     }
     let interfaces = network_interface::NetworkInterface::show()?;
-    if interfaces.iter().any(|interface| interface.name == name) {
+    let requested_alias: Vec<u16> = name.encode_utf16().collect();
+    if interfaces.iter().any(|interface| {
+        use windows::Win32::Globalization::{CSTR_EQUAL, CompareStringOrdinal};
+        let existing_alias: Vec<u16> = interface.name.encode_utf16().collect();
+        unsafe { CompareStringOrdinal(&existing_alias, &requested_alias, true) == CSTR_EQUAL }
+    }) {
         anyhow::bail!("refusing to open an existing interface alias");
     }
     Ok(())
