@@ -13,15 +13,19 @@ export function HotkeyCapture({
   description,
   value,
   onChange,
+  startListening = false,
+  clearLabel,
 }: {
   anchorId: string;
   label: string;
   description: string;
   value: string;
   onChange: (key: string) => void;
+  startListening?: boolean;
+  clearLabel?: string;
 }) {
   const { t: tr } = useTranslation();
-  const [listening, setListening] = useState(false);
+  const [listening, setListening] = useState(startListening);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -86,7 +90,7 @@ export function HotkeyCapture({
             <Button tone="danger" size="xsmall"
               onClick={() => onChange("")}
             >
-              {tr("ui.clear")}
+              {clearLabel ?? tr("ui.clear")}
             </Button>
           )}
         </div>

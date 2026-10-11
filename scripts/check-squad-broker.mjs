@@ -43,5 +43,39 @@ broker.configure({ ...mode.SQUAD_DEFAULTS, enabled: false }, ["KeyB"], false);
 assert.equal(broker.read().status, "off"); assert.equal(broker.read().suppressed, false);
 assert.equal(tick, null);
 assert.ok(outputs.length >= 9);
-fs.writeFileSync(new URL("../squad-broker-evidence.json", import.meta.url), JSON.stringify({ fakeTransport: true, realSpawnForbidden: true, nativeInputObserved: false, assertions: 18 }, null, 2));
-console.log("Squad broker: fake transport short press, reconciliation, suspend/resume, conflict and teardown passed");
+// A filtering helper proves that retired keys are still actually requested.
+let watched = [], filteringChild;
+const retiredBroker = new brokerModule.SquadInputBroker("fixture-helper", state => outputs.push(state), (_helper, args) => {
+  watched = args.map(Number); filteringChild = new EventEmitter(); filteringChild.stdout = new EventEmitter();
+  filteringChild.stdin = { write() {
+    filteringChild.stdout.emit("data", Buffer.from(JSON.stringify({ ...scope, down: scope.down.filter(key=>watched.includes(key)) })+"\n"));
+  }, end() {} }; filteringChild.kill=()=>{}; return filteringChild;
+});
+scope = {valid:true,path:game,down:[66]}; retiredBroker.configure(mode.SQUAD_DEFAULTS,[],true);
+retiredBroker.configure({...mode.SQUAD_DEFAULTS,keys:[]},[],true);
+assert.ok(watched.includes(66)); assert.equal(retiredBroker.read().suppressed,true);
+scope.down=[]; time+=10; tick(); assert.equal(retiredBroker.read().status,"hangover");
+time+=200; tick(); assert.equal(retiredBroker.read().status,"unconfigured"); assert.equal(tick,null);
+let launchesBefore=launchCount;
+retiredBroker.configure({...mode.SQUAD_DEFAULTS,keys:[]},[],false);
+assert.equal(retiredBroker.read().status,"unconfigured"); assert.equal(launchCount,launchesBefore);
+// Async metadata: configuration changes cannot reopen while an edge awaits reconciliation.
+let delayedChild, delayedWatch=[];
+const delayedBroker = new brokerModule.SquadInputBroker("fixture-helper", state=>outputs.push(state), (_helper,args)=>{
+  delayedWatch=args.map(Number); delayedChild=new EventEmitter(); delayedChild.stdout=new EventEmitter();
+  delayedChild.stdin={write(){},end(){}}; delayedChild.kill=()=>{};return delayedChild;
+});
+delayedBroker.configure(mode.SQUAD_DEFAULTS,[],true);
+delayedChild.stdout.emit("data",Buffer.from(JSON.stringify({valid:true,path:game,down:[]})+"\n"));
+delayedBroker.edge(66,true); delayedBroker.configure({...mode.SQUAD_DEFAULTS,enabled:false},[],true);
+assert.equal(delayedBroker.read().suppressed,true); assert.ok(delayedWatch.includes(66));
+delayedChild.stdout.emit("data",Buffer.from(JSON.stringify({valid:true,path:game,down:[66]})+"\n"));
+assert.equal(delayedBroker.read().suppressed,true);
+delayedBroker.unavailable("device-disconnected"); assert.equal(delayedBroker.read().suppressed,true);
+delayedBroker.configure({...mode.SQUAD_DEFAULTS,enabled:false},[],true);
+delayedChild.stdout.emit("data",Buffer.from(JSON.stringify({valid:true,path:game,down:[]})+"\n"));
+assert.equal(delayedBroker.read().status,"hangover");time+=200;
+delayedChild.stdout.emit("data",Buffer.from(JSON.stringify({valid:true,path:game,down:[]})+"\n"));
+assert.equal(delayedBroker.read().status,"off");assert.equal(tick,null);
+fs.writeFileSync(new URL("../squad-broker-evidence.json", import.meta.url), JSON.stringify({ fakeTransport: true, realSpawnForbidden: true, nativeInputObserved: false, retiredBindingAndDelayedMetadataScenarios: true }, null, 2));
+console.log("Squad broker: fake transport short press, retired-key watch set, delayed metadata, empty lists, suspend/resume, conflict and teardown passed");

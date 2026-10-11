@@ -2543,7 +2543,7 @@ function configureSquadBroker() {
     state => mainWindow?.webContents.send("squad-state", state),
   );
   let capture = uiohookRunning;
-  if (squadConfig.enabled && process.platform === "win32") {
+  if (squadConfig.enabled && squadConfig.keys.length && process.platform === "win32") {
     try { capture = ensureUiohook(); } catch (error) {
       capture = false;
       startupLog(`Squad input start failed: ${error instanceof Error ? error.message : String(error)}`);

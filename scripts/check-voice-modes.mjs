@@ -26,6 +26,12 @@ const derive = changes => client.deriveVoiceMode({ inputMode: "voice_activity", 
   serverMuted: false, squadEnabled: true, squadStatus: "suppressed", gateStatus: "ready", requestedSuppression: true, ...changes });
 check("requested suppression never claims actual closed before ACK", () => assert.equal(derive({}).transmit, "pending"));
 check("boundary ACK changes actual transmit", () => assert.equal(derive({ gateStatus: "suppressed" }).transmit, "squad-suppressed"));
+check("empty key list stays standby, while disabling during a hold still shows the actual boundary", () => {
+  assert.equal(derive({ squadStatus: "unconfigured", requestedSuppression: false }).squad, "standby");
+  assert.equal(derive({ squadEnabled: false, gateStatus: "suppressed" }).squad, "suppressed");
+  assert.equal(derive({ squadEnabled: false, gateStatus: "recovering", requestedSuppression: false }).squad, "resuming");
+  assert.equal(derive({ squadEnabled: false, requestedSuppression: false }).squad, "off");
+});
 check("suppression-ack wait distinct from release recovery", () => {
   assert.equal(derive({ gateStatus: "recovering" }).transmit, "pending");
   assert.equal(derive({ gateStatus: "recovering", requestedSuppression: false }).transmit, "resuming");

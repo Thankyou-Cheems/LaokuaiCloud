@@ -26,16 +26,20 @@ export class SquadInputBroker {
   exclude(value: boolean): void { this.excluded = value; }
   configure(config: SquadConfig, otherKeys: string[], captureAvailable: boolean): SquadSnapshot {
     const changed = JSON.stringify(config) !== JSON.stringify(this.config);
+    this.controller.preservePendingHolds([...this.edgeDown]);
     this.config = config;
     this.controller.configure(config);
     this.fault = validateSquadConfig(config, otherKeys) ?? (!captureAvailable ? "input-unavailable" : undefined);
-    if (!config.enabled) {
+    if ((!config.enabled || !config.keys.length) && !this.controller.needsRelease()) {
       this.stop();
       this.publish({ valid: true, path: "", down: [] });
       return this.read();
     }
     if (process.platform !== "win32" || !existsSync(this.helper)) this.fault = "helper-unavailable";
     if (changed) this.stop();
+    if (changed && this.controller.needsRelease()) {
+      this.publish({ valid: false, path: "", down: [], reason: "awaiting-input-reconciliation" });
+    }
     if (this.fault) {
       this.stop();
       this.publish({ valid: false, path: "", down: [], reason: this.fault });
@@ -57,7 +61,9 @@ export class SquadInputBroker {
     if (serialized !== this.last) { this.last = serialized; this.emit(snapshot); }
   }
   private start(): void {
-    this.child = this.launch(this.helper, squadObservedKeys(this.config).map(String));
+    // Retired bindings remain observable until a trusted physical release.
+    // Removing a held row must not turn an omitted key into a false keyup.
+    this.child = this.launch(this.helper, this.controller.observedKeys().map(String));
     const child = this.child;
     this.buffer = "";
     child.stdout.on("data", (chunk: Buffer) => {
@@ -76,6 +82,7 @@ export class SquadInputBroker {
           if (scope.valid) scope.down = [...new Set([...scope.down, ...this.edgeDown])];
           this.edgeDown.clear();
           this.publish(scope);
+          if ((!this.config.enabled || !this.config.keys.length) && !this.controller.needsRelease()) this.stop();
         } catch { this.fail("helper-protocol"); }
       }
     });

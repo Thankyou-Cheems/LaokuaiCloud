@@ -564,7 +564,7 @@
     "targetDescription": "留空自动识别 Squad。完整路径比单独文件名更严格。只在本机校验，不上传进程信息。",
     "automatic": "自动：Squad 游戏程序",
     "validate": "校验并应用",
-    "keyTitle": "游戏语音键 {{count}}",
+    "keyTitle": "闭麦触发键 {{count}}",
     "keyDescription": "可同时按住多个键，额外修饰键也匹配（Shift+B 仍匹配 B）。与通话快捷键重叠时拒绝保存。",
     "resetKeys": "恢复 B / G / V",
     "boundary": "最后一个键松开后至少等待 200 毫秒，再等待新一代麦克风音频恢复。手动静音、服务器静音和按键说话仍优先生效。已发送的音频无法撤回。",
@@ -582,12 +582,17 @@
     "errors": {
       "invalid-process": "请输入 .exe 文件名或 Windows 完整路径，不含参数和通配符。",
       "process-not-found": "找不到该程序文件。",
-      "invalid-key": "请选择 1–6 个字母、数字、F1–F12、空格、Tab、Enter、Esc 或鼠标中键/侧键。",
-      "duplicate-key": "每个游戏绑定必须使用不同的主键。",
+      "invalid-key": "请选择字母、数字、F1–F12、空格、Tab、Enter、Esc 或鼠标中键/侧键；列表数量没有固定上限。",
+      "duplicate-key": "列表中已存在相同的按键组合。",
       "hotkey-conflict": "此键与按键说话、静音、闭麦或断开重叠，请先修改冲突的快捷键。",
       "validation-failed": "本机校验失败，请重试。"
     },
-    "pending": "等待音频停发确认"
+    "pending": "等待音频停发确认",
+    "addKey": "添加闭麦触发键",
+    "removeKey": "删除",
+    "newKey": "新的闭麦触发键",
+    "emptyKeys": "尚未配置触发键。可添加按键或恢复 B / G / V；之前按住的键仍需松开后才恢复麦克风。",
+    "unconfigured": "Squad：尚未配置触发键"
   },
   "voiceMode": {
     "unknown": "语音模式未知：旧客户端或服务器不支持",

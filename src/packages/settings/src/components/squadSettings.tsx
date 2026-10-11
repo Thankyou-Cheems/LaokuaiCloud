@@ -6,7 +6,7 @@ import { useTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 
 import { getElectronAPI } from "../../../../lib/electron";
-import { SQUAD_DEFAULTS, type SquadConfig, type SquadSnapshot, validateSquadConfig } from "../../../../lib/squadMode";
+import { normalizeSquadKey, SQUAD_DEFAULTS, type SquadConfig, type SquadSnapshot, validateSquadConfig } from "../../../../lib/squadMode";
 import { useSquadSnapshot } from "../../../../lib/squadRuntime";
 import { HotkeyCapture } from "./hotkeySettings";
 import { SettingGroup, ToggleSetting } from "./settingsComponents";
@@ -31,11 +31,13 @@ export function SquadControl({ config, onChange, otherKeys, state, transmission,
   const [target, setTarget] = useState(config.processTarget);
   const [error, setError] = useState("");
   const [validating, setValidating] = useState(false);
+  const [adding, setAdding] = useState(false);
   useEffect(() => { setTarget(config.processTarget); }, [config.processTarget]);
   function update(next: SquadConfig) {
+    next = { ...next, keys: next.keys.map(key => normalizeSquadKey(key) ?? key) };
     const problem = validateSquadConfig(next, otherKeys);
-    if (problem && next.enabled) { setError(problem); return; }
-    setError(""); onChange(next);
+    if (problem) { setError(problem); return false; }
+    setError(""); onChange(next); return true;
   }
   async function validateTarget() {
     const next = { ...config, processTarget: target.trim() };
@@ -61,10 +63,16 @@ export function SquadControl({ config, onChange, otherKeys, state, transmission,
         className="w-full rounded border border-gryt-border bg-gryt-surface p-2 text-sm" placeholder={t("squad.automatic")} />
       <Button size="xsmall" disabled={validating} onClick={validateTarget}>{t("squad.validate")}</Button>
     </SettingGroup>
-    <div id="squad-keys" data-setting="squad-keys" className="flex flex-col gap-5">{config.keys.map((key, index) => <HotkeyCapture key={index} anchorId={`squad-key-${index + 1}`}
+    {!config.keys.length && <p role="status">{t("squad.emptyKeys")}</p>}
+    <div id="squad-keys" data-setting="squad-keys" className="flex flex-col gap-5">{config.keys.map((key, index) => <HotkeyCapture key={key} anchorId={`squad-key-${index + 1}`}
       label={t("squad.keyTitle", { count: index + 1 })} description={t("squad.keyDescription")}
+      clearLabel={t("squad.removeKey")}
       value={key} onChange={value => update({ ...config, keys: value
         ? config.keys.map((old, i) => i === index ? value : old) : config.keys.filter((_, i) => i !== index) })} />)}</div>
+    {adding && <HotkeyCapture key="new-binding" anchorId="squad-key-new" startListening
+      label={t("squad.newKey")} description={t("squad.keyDescription")} value=""
+      onChange={value => { if (value && update({ ...config, keys: [...config.keys, value] })) setAdding(false); }} />}
+    <Button size="xsmall" onClick={() => { setError(""); setAdding(!adding); }}>{t(adding ? "ui.cancel" : "squad.addKey")}</Button>
     <Button size="xsmall" onClick={() => update({ ...config, keys: [...SQUAD_DEFAULTS.keys] })}>{t("squad.resetKeys")}</Button>
     <p className="text-xs text-gryt-muted break-words">{t("squad.boundary")}</p>
     {error && <p role="alert" data-testid="squad-error">{t(`squad.errors.${error}`)}</p>}
@@ -87,6 +95,6 @@ export function SquadLiveStatus() {
   const { squadConfig } = useSettings();
   const state = useSquadSnapshot();
   const { transmissionState } = useMicrophone(false);
-  if (!squadConfig.enabled) return null;
+  if (!squadConfig.enabled && !state.gateEnabled && ["ready", "disabled"].includes(transmissionState.status)) return null;
   return <SquadStatusText state={state} transmission={transmissionState} />;
 }

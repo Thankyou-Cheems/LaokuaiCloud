@@ -20,9 +20,9 @@ export function deriveVoiceMode(input: {
   squadEnabled: boolean; squadStatus: string; gateStatus: string; requestedSuppression: boolean;
 }): Omit<VoiceModeState, "seq"> {
   const awaitingSuppression = input.requestedSuppression && input.gateStatus !== "suppressed";
-  const squad: VoiceModeState["squad"] = !input.squadEnabled ? "off" : awaitingSuppression ? "armed" : input.gateStatus === "recovering" ? "resuming"
-    : input.gateStatus === "suppressed" ? "suppressed" : input.squadStatus === "unavailable" ? "unavailable"
-      : input.squadStatus === "standby" ? "standby" : "armed";
+  const squad: VoiceModeState["squad"] = awaitingSuppression ? "armed" : input.gateStatus === "recovering" ? "resuming"
+    : input.gateStatus === "suppressed" ? "suppressed" : !input.squadEnabled ? "off" : input.squadStatus === "unavailable" ? "unavailable"
+      : ["standby", "unconfigured"].includes(input.squadStatus) ? "standby" : "armed";
   const transmit: VoiceModeState["transmit"] = input.serverMuted ? "server-muted" : input.manualMuted ? "manual-muted"
     : input.gateStatus === "failed" ? "error" : input.gateStatus === "suspended" ? "suspended"
       : input.gateStatus === "suppressed" ? "squad-suppressed" : awaitingSuppression ? "pending" : input.gateStatus === "recovering" ? "resuming"

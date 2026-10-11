@@ -564,7 +564,7 @@
     "targetDescription": "Leave empty for automatic Squad detection. A full path is stricter than a filename. Apply and validate locally; no process data is uploaded.",
     "automatic": "Automatic: Squad game executable",
     "validate": "Validate and apply",
-    "keyTitle": "Game voice key {{count}}",
+    "keyTitle": "Suppression key {{count}}",
     "keyDescription": "Hold one or more keys. Extra modifiers are accepted (Shift+B still matches B). Conflicts with call shortcuts are rejected.",
     "resetKeys": "Restore B / G / V",
     "boundary": "After the last release: at least 200 ms hangover, then fresh audio recovery. Manual/server mute and push-to-talk still apply. Already sent audio cannot be recalled.",
@@ -582,12 +582,17 @@
     "errors": {
       "invalid-process": "Use an .exe filename or absolute Windows .exe path without arguments or wildcards.",
       "process-not-found": "That executable file does not exist.",
-      "invalid-key": "Choose 1–6 supported letter, digit, F1–F12, Space, Tab, Enter, Escape or middle/side mouse buttons.",
-      "duplicate-key": "Each game binding must use a different base key.",
+      "invalid-key": "Choose a supported letter, digit, F1–F12, Space, Tab, Enter, Escape or middle/side mouse button. No fixed list-length limit.",
+      "duplicate-key": "This same key combination is already in the list.",
       "hotkey-conflict": "This key overlaps push-to-talk, mute, deafen or disconnect. Change the conflicting shortcut first.",
       "validation-failed": "Local validation failed; try again."
     },
-    "pending": "Squad: waiting for audio suppression acknowledgement"
+    "pending": "Squad: waiting for audio suppression acknowledgement",
+    "addKey": "Add suppression key",
+    "removeKey": "Remove",
+    "newKey": "New suppression key",
+    "emptyKeys": "No keys configured. Add a key or restore B / G / V. Previously held keys must still be released before microphone recovery.",
+    "unconfigured": "Squad: no keys configured"
   },
   "voiceMode": {
     "unknown": "Voice mode unknown — old client or unsupported server",

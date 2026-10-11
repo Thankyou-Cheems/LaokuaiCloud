@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useSettings } from "@/settings";
 
 import { getElectronAPI } from "../../../../lib/electron";
+import { squadGateRequired } from "../../../../lib/squadMode";
 import { publishSquadGate, publishSquadSnapshot, useSquadGateEnabled, useSquadSnapshot } from "../../../../lib/squadRuntime";
 
 /** Native events only alter the temporary reason, never user/server/PTT mute. */
@@ -59,7 +60,6 @@ export function useSquadProtection() {
 
   // Keep the graph installed until fresh recovery settles after a scope change.
   useEffect(() => {
-    const pending = transmissionState.status !== "ready" && transmissionState.status !== "disabled";
-    publishSquadGate(s.squadConfig.enabled && (state.gateEnabled || (installed && pending)));
-  }, [state.gateEnabled, installed, s.squadConfig.enabled, transmissionState.status]);
+    publishSquadGate(squadGateRequired(state, installed, transmissionState.status));
+  }, [state, installed, transmissionState.status]);
 }

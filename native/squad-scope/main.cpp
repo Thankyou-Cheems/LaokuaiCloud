@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <iomanip>
+#include <algorithm>
 
 // Metadata and configured-key snapshots only. No hook, input injection or elevation.
 static std::string json(const std::wstring& value) {
@@ -30,9 +31,9 @@ int main(int argc, char** argv) {
   // Test mode never invokes Windows observation APIs.
   const bool fixture = argc == 2 && std::string(argv[1]) == "--fixture";
   std::vector<int> keys;
-  if (!fixture) for (int i = 1; i < argc && i <= 12; ++i) {
+  if (!fixture) for (int i = 1; i < argc; ++i) {
     const int key = atoi(argv[i]);
-    if (key > 0 && key <= 255) keys.push_back(key);
+    if (key > 0 && key <= 255 && std::find(keys.begin(), keys.end(), key) == keys.end()) keys.push_back(key);
   }
   std::string command;
   while (std::getline(std::cin, command)) {
