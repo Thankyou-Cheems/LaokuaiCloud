@@ -36,6 +36,14 @@ function validMeasurement(snapshot: ReceiveAutoLevelSnapshot): boolean {
 
 /** Associates receiver-local SDK measurements with physical audio routes. */
 export class ReceiveCorrectionRegistry {
+  private selectedTracks = new WeakMap<ReceiveStreamControl, AudioTrack | null>();
+  private lastInput?: Parameters<ReceiveCorrectionRegistry["reconcile"]>[0];
+  /** Route selection supplies the actual track; null immediately invalidates old telemetry and async prior writes. */
+  selectTrack(control: ReceiveStreamControl, track: AudioTrack | null): void {
+    if (this.selectedTracks.has(control) && this.selectedTracks.get(control) === track) return;
+    this.selectedTracks.set(control, track);
+    if (this.lastInput) this.reconcile(this.lastInput);
+  }
   constructor(private readonly observer:ReceiveBindingObserver={}) {}
   private readonly id = ++registryId;
   private routeId = 0;
@@ -64,6 +72,7 @@ export class ReceiveCorrectionRegistry {
       this.clear();
       this.connectionKey = connectionKey;
     }
+    this.lastInput = input;
     const grouped = new Map<ReceiveStreamControl, { aliases: string[]; source: RouteSource }>();
     if (input.connected && input.host) {
       for (const [alias, source] of Object.entries(input.sources)) {
@@ -84,7 +93,8 @@ export class ReceiveCorrectionRegistry {
         this.roles.set(control, role);
       }
       const media = group.source.stream.mediaStream ?? group.source.stream.mediaElement?.srcObject as { getAudioTracks?: () => AudioTrack[] } | undefined;
-      const tracks = media?.getAudioTracks?.() ?? [];
+      const selected = this.selectedTracks.get(control);
+      const tracks = this.selectedTracks.has(control) ? selected ? [selected] : [] : media?.getAudioTracks?.() ?? [];
       const members = new Set(owners.map(client => client.serverUserId).filter((id): id is string => !!id));
       if (role !== "microphone" || owners.some(client => !client.serverUserId) || members.size !== 1 || tracks.length !== 1 || tracks[0].readyState === "ended" || !tracks[0].id) continue;
       const member = [...members][0];
@@ -175,6 +185,7 @@ export class ReceiveCorrectionRegistry {
       binding.track.removeEventListener?.("ended", binding.onEnded);
     }
     this.bindings.clear();
+    this.selectedTracks = new WeakMap(); this.lastInput = undefined;
     this.publish(new Map());
   }
 

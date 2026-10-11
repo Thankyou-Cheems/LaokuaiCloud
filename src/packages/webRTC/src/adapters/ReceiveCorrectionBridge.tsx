@@ -1,4 +1,4 @@
-import { exportReceiveLevelPrior, type ReceiveAutoLevelSnapshot, useSFU, useSpeakers } from "@gryt/voice";
+import { exportReceiveLevelPrior, type ReceiveAutoLevelSnapshot, useSFU, useSpeakers, type VoiceConfig } from "@gryt/voice";
 import { type ReactNode, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { useUserId } from "@/common";
@@ -9,10 +9,11 @@ import { ReceivePriorCache, type ReceivePriorScope } from "../../../../lib/recei
 import { ReceivePriorSession } from "../../../../lib/receivePriorSession";
 import { ReceiveCorrectionProvider } from "../components/ReceiveCorrectionAdapter";
 import { ReceivePriorProvider } from "../components/ReceivePriorAdapter";
+import { HybridVoiceBridge, type HybridVoicePolicy } from "./HybridVoiceBridge";
 import { useReceiveAudioRoles } from "./useReceiveAudioRoles";
 
 /** SDK batches are authoritative; no client RMS estimator or sampling timer. */
-export function ReceiveCorrectionBridge({ children }: { children?: ReactNode }) {
+export function ReceiveCorrectionBridge({ children, config, hybrid }: { children?: ReactNode; config: VoiceConfig; hybrid?: HybridVoicePolicy }) {
   const account=useUserId();const {serverDetailsList}=useSockets();const {currentServerConnected:host}=useSFU();
   const context=useRef({account,serverDetailsList});context.current={account,serverDetailsList};
   const [cache]=useState(()=>{try{return new ReceivePriorCache(localStorage);}catch{return new ReceivePriorCache(undefined);}});
@@ -44,6 +45,6 @@ export function ReceiveCorrectionBridge({ children }: { children?: ReactNode }) 
   return <ReceivePriorProvider value={{available:cache.available,count:cache.count(),
     clearMember:(serverHost,member)=>{const scope=scopeFor(serverHost,member);if(scope){session.clear(scope,audioContext?.currentTime);refresh(value=>value+1);}},
     clearAll:()=>{session.clear(undefined,audioContext?.currentTime);refresh(value=>value+1);}}}>
-    <ReceiveCorrectionProvider value={readings}>{children}</ReceiveCorrectionProvider>
+    <ReceiveCorrectionProvider value={readings}><HybridVoiceBridge policy={hybrid} config={config} registry={registry}/>{children}</ReceiveCorrectionProvider>
   </ReceivePriorProvider>;
 }

@@ -13,6 +13,7 @@ import {emitAuthenticated} from "../../../socket/src/utils/tokenManager";
 import {EffectiveVoicePolicyProvider} from "../components/EffectiveVoicePolicy";
 import { ReceiveLevelingProvider } from "../components/ReceiveLevelingAdapter";
 import { TransmitSpeechProvider } from "../components/TransmitSpeechAdapter";
+import type { HybridVoicePolicy } from "./HybridVoiceBridge";
 import { ReceiveCorrectionBridge } from "./ReceiveCorrectionBridge";
 import { createRoomCoordinator } from "./roomCoordinator";
 import { useOutputDevice } from "./useOutputDevice";
@@ -94,7 +95,7 @@ function useDeviceCallbacks(): VoiceConfigCallbacks {
   );
 }
 
-export function VoiceProvider({ children }: { children?: ReactNode }) {
+export function VoiceProvider({ children, hybrid }: { children?: ReactNode; hybrid?: HybridVoicePolicy }) {
   const account=useUserId();
   const { currentlyViewingServer } = useServerManagement();
   const { sockets, serverDetailsList } = useSockets();
@@ -178,7 +179,7 @@ export function VoiceProvider({ children }: { children?: ReactNode }) {
           behaviours that were deliberately left out of the package: the connect
           sound, ending a call when its server is removed, and the server hanging
           up on us. */}
-      <ReceiveCorrectionBridge>
+      <ReceiveCorrectionBridge config={config} hybrid={hybrid}>
         <VoiceLifecycle />
         <EffectiveVoicePolicyProvider value={{inputMode:config.audio.inputMode,requiredPushToTalk:requiredPushToTalk===true,
           serverMuted:config.audio.serverMuted,serverDeafened:config.audio.serverDeafened,canSpeak:config.audio.transmitEligible===true}}>
@@ -186,5 +187,5 @@ export function VoiceProvider({ children }: { children?: ReactNode }) {
         </EffectiveVoicePolicyProvider>
       </ReceiveCorrectionBridge>
     </VoiceConfigProvider>
-  ),[config,callbacks,target,authorities,evidence,requiredPushToTalk,children]);
+  ),[config,callbacks,target,authorities,evidence,requiredPushToTalk,children,hybrid]);
 }
