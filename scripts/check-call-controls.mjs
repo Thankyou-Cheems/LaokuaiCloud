@@ -7,6 +7,8 @@
 
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { runInNewContext } from "node:vm";
+import ts from "typescript";
 
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 
@@ -61,23 +63,41 @@ for (const [name, source] of [
 
 /* ── The button is gated on actually being in a call ────────────────── */
 
-assert.match(
-  sheetButton,
-  /\{connected && \(/,
-  "VoiceSheetButton must only draw itself while connected, or every narrow window grows a dead call button",
-);
-
-// The sheet is what holds the controls. Losing either half leaves a button that
-// opens nothing, which reads exactly like the bug this fences off.
-assert.match(sheetButton, /<MobileSheet\b/, "VoiceSheetButton must render the sheet");
-assert.match(sheetButton, /<VoiceView\b/, "VoiceSheetButton must render VoiceView inside the sheet");
-
-// It is reachable by name. The first measurement missed the phone layout's button
-// because it carried no label, and reported a working layout as broken.
-assert.match(
-  sheetButton,
-  /aria-label="[^"]+"/,
-  "the call button needs a label — an icon-only button with no name is invisible to a screen reader",
-);
+// Evaluate the actual participant popover without DOM, capture or Electron.
+// Check disconnected hiding and connected reachability in both locales.
+for (const language of ["en", "zh-CN"]) {
+  const dictionary = JSON.parse(read(`../src/packages/i18n/locales/${language}.json`));
+  const translate = key => key.split(".").reduce((value, part) => value?.[part], dictionary);
+  const module = { exports: {} };
+  const element = (type, props) => ({ type, props: props ?? {} });
+  const code = ts.transpileModule(sheetButton, { compilerOptions: {
+    module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX,
+  } }).outputText;
+  runInNewContext(code, { module, exports: module.exports, require(name) {
+    if (name === "react/jsx-runtime") return { jsx: element, jsxs: element };
+    if (name === "@gryt/ui") return { IconButton: "IconButton", Popover: Object.fromEntries(
+      ["Root", "Trigger", "Portal", "Positioner", "Popup", "Title"].map(key => [key, `Popover.${key}`])) };
+    if (name === "@/i18n") return { useTranslation: () => ({ t: translate }) };
+    if (name.endsWith("lib/icons")) return { PiUsersFill: "PiUsersFill" };
+    if (name === "./VoiceView") return { VoiceView: "VoiceView" };
+    throw Error(`Unexpected component dependency: ${name}`);
+  } });
+  const render = module.exports.VoiceSheetButton;
+  assert.equal(render({ connected: false }), null);
+  const nodes = [];
+  function visit(value) {
+    if (!value || typeof value !== "object") return;
+    if (value.type) nodes.push(value);
+    for (const child of Object.values(value)) {
+      if (Array.isArray(child)) child.forEach(visit);
+      else visit(child);
+    }
+  }
+  visit(render({ connected: true, serverHost: "synthetic.invalid" }));
+  const label = translate("pureVoice.participants");
+  assert.ok(typeof label === "string" && label.length > 0);
+  assert.ok(nodes.some(node => node.type === "IconButton" && node.props["aria-label"] === label));
+  assert.ok(nodes.some(node => node.type === "VoiceView" && node.props.showVoiceView === true));
+}
 
 console.log("check-call-controls: ok");
