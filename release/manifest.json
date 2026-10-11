@@ -883,9 +883,9 @@
     "portableBinaryBuilt": false,
     "staticRuntimeAssetPreparation": "five official reference files independently rehashed; not accepted as patched payload",
     "portableBuild": {
-      "status": "blocked-final-two-binary-no-npcap-imports-runtime-schema-licenses-design-and-media-acceptance",
+      "status": "blocked-ui-density-final-native-inputs-runtime-license-and-media-acceptance",
       "authorization": "One candidate build/portable package only; do not launch product, helpers, core, CLI or drivers",
-      "waitFor": "Current user UI approval for final package; notices/private payload completion; frozen new 48/64/bootstrap media/quality tests; native activation safety confirmation applies only to runtime steps",
+      "waitFor": "UI-owner compact-row/default-width patch; fresh frozen media acceptance and BOTH no-Npcap native PE/runtime/license gates",
       "requires": [
         "Fresh exact-source renderer/main outputs and native-helper build receipts",
         "EasyTier and bundled driver license/notice texts in final package",
@@ -1194,6 +1194,24 @@
       "coreSha256": null,
       "cliSha256": null,
       "activationApproved": false
+    },
+    "uiThirdVersionReview": {
+      "overallApproved": true,
+      "approvalSource": "Parent relays latest explicit user approval of third-version overall design",
+      "remainingScope": "immutable UI-owner density patch integration",
+      "leftMemberStatus": "single compact row; prior below-nickname text proposal superseded",
+      "sidebarWidth": "increase default above existing280; keep stored custom width and storage key",
+      "preserve": [
+        "status icon semantics",
+        "tooltips",
+        "connection details",
+        "bottom audio hover/click controls",
+        "other existing interactions"
+      ],
+      "uiOwnerPatchDelivered": false,
+      "task6UiSourceModified": false,
+      "mediaTestFreezeStillValid": "3bed980d6b29d6704b2be40a4e9087f45dce89a5",
+      "finalPackageAllowed": false
     }
   },
   "securityBoundary": {
@@ -1216,7 +1234,7 @@
   },
   "pending": [
     "Approved private manifest/resources/driver notices; final static payload/ASAR/PE/package hash verification",
-    "UI third-version omission/implementation matrix and user final design approval; preserve bottom hover/click audio controls and distinguish manual mute, PTT idle and Squad suppression",
+    "Third-version overall design approved; UI-owner compact single-row/default-width density patch still pending; preserve bottom hover/click audio controls and distinguish manual mute, PTT idle and Squad suppression",
     "Automatic authorized community configuration without asking users for node/secret/subnet values",
     "Explicit driver/local-management authorization and normal Windows administrator token; no UAC bypass",
     "Real Windows core/CLI/driver start/exit/game/voice, existing-private-ET coexistence and OS route cleanup acceptance",
@@ -1231,7 +1249,7 @@
     "BOTH final core/CLI with exact 17-feature no-Npcap profile; normal/delay PE imports exclude Packet.dll/wpcap.dll; four-input runtime schema and final hashes updated together",
     "Authenticated member-to-ET-peer binding, selected forwarding/full physical path and timestamped ET RTT are absent; keep unknown",
     "Active transitive licenses and corresponding/relinkable native source delivery remain pending",
-    "Mounted single Provider and connection details: actual frozen-source sampler/media/data/DOM/accessibility and user design acceptance pending"
+    "Mounted single Provider and connection details: actual frozen-source sampler/media/data/DOM/accessibility acceptance pending; third-version overall design approved, density patch pending"
   ],
   "finalPackage": null,
   "frozenPreviousHybrid": {

@@ -34,8 +34,11 @@ valid author identity.
 The dbaf0453 create-only source review closes ET-OWNERSHIP-001 at source level.
 Native build, coexistence/cleanup and payload acceptance remain pending. Task-6
 must not duplicate that native patch. Only the parent-designated capacity owner
-performs the isolated Rust build. All current UI changes require user prototype
-preview approval before final packaging. Keep existing desktop packages unchanged.
+performs the isolated Rust build. The user approved the third-version overall design. The latest narrow scope is
+left member/status single-row density and a wider sidebar default, preserving
+stored custom widths, status icons/tooltips/details and existing bottom controls.
+Wait for the UI owner immutable density patch; do not broaden layout. Keep existing
+desktop packages unchanged.
 SDK integration.3 two/four-peer factory loopback media/controller retest passed
 at24k. Private product bootstrap is now source-wired with standard SFU48/P2P64
 requests, custom preferences and server caps preserved. Fresh complete-app/new
@@ -47,7 +50,8 @@ advertises48k only for the reserved microphone, preserves lower SDP caps and20ms
 and requires a fresh capacity-owner real negotiation/media retest. Do not alter
 P2P/DSP/cap code that already passed or relabel old24k as a48k acceptance.
 
-UI v3 is integrated at31cec3c6. Complete user design approval is pending.
+UI v3 is integrated at31cec3c6 and its overall design is user-approved.
+The UI owner density/default-width delta is still pending integration.
 Preserve VoiceAudioControls/HoverAudioControl
 hover/click menus and manual mute/PTT idle/Squad suppression presence semantics.
 MemberVoiceMediaPathProvider is mounted once with independent authenticated
