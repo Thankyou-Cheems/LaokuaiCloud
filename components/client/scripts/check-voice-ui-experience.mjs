@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
+
 import ts from "typescript";
 
 const read = path => fs.readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
