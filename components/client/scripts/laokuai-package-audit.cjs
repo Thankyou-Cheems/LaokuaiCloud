@@ -6,6 +6,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { createHash } = require("node:crypto");
 const { gunzipSync } = require("node:zlib");
+const { inspectPeImports } = require("./inspect-pe-imports.cjs");
 const sha = bytes => createHash("sha256").update(bytes).digest("hex");
 const slash = value => value.replaceAll("\\", "/");
 const walk = dir => fs.readdirSync(dir, { withFileTypes: true }).sort((a,b) => a.name.localeCompare(b.name))
@@ -235,6 +236,11 @@ function verifyPayload(payload,manifest) {
   assert.ok(!fs.existsSync(path.join(resources,"app-update.yml")));
   assert.ok(!fs.existsSync(path.join(resources,"helper")));
   assert.ok(!walk(resources).some(file => path.basename(file).startsWith("embedded-")));
+  assert.ok(!walk(resources).some(file => /^(packet|wpcap)\.dll$/i.test(path.basename(file))),"No-Npcap package contains a capture DLL");
+  for(const name of ["easytier-core.exe","easytier-cli.exe"]) {
+    const file = path.join(resources,"community-lan/product/2.7.0-laokuai",name);
+    assert.equal(inspectPeImports(fs.readFileSync(file)).noCaptureDllNormalOrDelayImports,true,"Final core/CLI import a capture DLL");
+  }
   const hook = "node_modules/uiohook-napi/prebuilds/win32-x64/node.napi.node";
   assert.equal(inspectPe(archive.read(hook)).machine,0x8664);
   for (const file of ["native/audio-capture.exe","native/screen-capture.exe","squad/squad-scope.exe"]) {

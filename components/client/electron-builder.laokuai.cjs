@@ -24,6 +24,9 @@ config.extraResources.push(
   { from: "SQUAD-KEY-LIST.md", to: "legal/SQUAD-KEY-LIST.md" },
   { from: "SQUAD-MODE.md", to: "legal/SQUAD-MODE.md" },{ from: "LAOKUAI-SELF-USE.md", to: "legal/LAOKUAI-SELF-USE.md" });
 config.extraResources.push(
+  { from: "release/licenses", to: "legal/easytier" },
+  { from: "release/easytier-native-input-inventory.json", to: "legal/EASYTIER-NATIVE-INPUTS.json" },
+  { from: "release/EASYTIER-NOTICES.md", to: "legal/EASYTIER-NOTICES.md" },
   { from: "node_modules/@gryt/voice/LICENSE", to: "legal/VOICE-AGPL-3.0.txt" },
   { from: "node_modules/@gryt/voice/third-party/Signalsmith-LICENSE.txt", to: "legal/Signalsmith-LICENSE.txt" },
   { from: "node_modules/@gryt/voice/third-party/Signalsmith-DSP-LICENSE.txt", to: "legal/Signalsmith-DSP-LICENSE.txt" },

@@ -8,12 +8,77 @@
   "toolchain": "1.95.0",
   "target": "x86_64-pc-windows-msvc",
   "package": "easytier",
-  "binaries": ["easytier-core", "easytier-cli"],
+  "binaries": [
+    "easytier-core",
+    "easytier-cli"
+  ],
   "noDefaultFeatures": true,
-  "features": ["cli", "wireguard", "websocket", "smoltcp", "tun", "socks5", "kcp", "quic", "magic-dns", "zstd", "upnp", "icmp-proxy", "management", "endpoint-discovery", "extended-services", "linux-netlink", "tcp-hole-punch"],
-  "removedDefaultFeatures": ["faketcp"],
-  "knownDifferences": ["FakeTCP transport unavailable; ordinary TCP/UDP and TCP hole punching retained", "pnet interface-enumeration fallback unavailable; normal network-interface backend retained", "Windows UDP broadcast relay and WinDivert backend remain; this is not a Wintun-only broadcast package"],
-  "metadataCheck": {"lockedOfflineCargoTreePassed": true, "activePnetPackages": 0, "compiled": false},
-  "requiredPostBuildChecks": ["PE normal and delay imports of both binaries exclude Packet.dll/wpcap.dll/Npcap", "Wintun TUN, ordinary TCP/UDP P2P and broadcast code remain", "New core AND CLI hashes; do not reuse the Npcap-dependent official CLI", "Corresponding source/license notices and product manifest updated together"],
-  "activationApproved": false
+  "features": [
+    "cli",
+    "wireguard",
+    "websocket",
+    "smoltcp",
+    "tun",
+    "socks5",
+    "kcp",
+    "quic",
+    "magic-dns",
+    "zstd",
+    "upnp",
+    "icmp-proxy",
+    "management",
+    "endpoint-discovery",
+    "extended-services",
+    "linux-netlink",
+    "tcp-hole-punch"
+  ],
+  "removedDefaultFeatures": [
+    "faketcp"
+  ],
+  "knownDifferences": [
+    "FakeTCP transport unavailable; ordinary TCP/UDP and TCP hole punching retained",
+    "pnet interface-enumeration fallback unavailable; normal network-interface backend retained",
+    "Windows UDP broadcast relay and WinDivert backend remain; this is not a Wintun-only broadcast package"
+  ],
+  "metadataCheck": {
+    "lockedOfflineCargoTreePassed": true,
+    "activePnetPackages": 0,
+    "compiled": true
+  },
+  "requiredPostBuildChecks": [
+    "production manifest and both final hashes/four-file inventory updated together",
+    "corresponding source/relinkable materials and distribution-specific license review",
+    "current user approval before TUN/driver/native acceptance",
+    "real TCP/UDP/QUIC and broadcast behavior acceptance remains unperformed"
+  ],
+  "activationApproved": false,
+  "actualBinaryEvidence": {
+    "files": [
+      {
+        "name": "easytier-core.exe",
+        "bytes": 20107264,
+        "sha256": "d4f100ace0ae50b5270af10f579a2ccf7b2991731f05b82920eefba60055d49a"
+      },
+      {
+        "name": "easytier-cli.exe",
+        "bytes": 6050816,
+        "sha256": "b84fa350b9c8036649df3cdc8ee728c364ea81075d82fd3783cdeede3b9ddccd"
+      },
+      {
+        "name": "wintun.dll",
+        "bytes": 427552,
+        "sha256": "e5da8447dc2c320edc0fc52fa01885c103de8c118481f683643cacc3220dafce"
+      },
+      {
+        "name": "WinDivert64.sys",
+        "bytes": 94144,
+        "sha256": "8da085332782708d8767bcace5327a6ec7283c17cfb85e40b03cd2323a90ddc2"
+      }
+    ],
+    "normalAndDelayImportsBothPassed": true,
+    "identifierScansBothPassed": true,
+    "buildReceiptSha256": "2dbb3bb8f67c600fbf48b34e25a8fb3e56a57d58b3bfaa2432eca5ac706c51cf",
+    "importAuditSha256": "7eb78be98d262f56dce1e398ed46924d4362ed2d4b23217f9efa22a78b1174a4",
+    "coreOrCliExecuted": false
+  }
 }

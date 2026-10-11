@@ -70,7 +70,7 @@
     }
   },
   "privateBuild": {
-    "status": "compiled-core/static-input-hash-verified-notices-and-activation-pending",
+    "status": "both-executables-compiled-static-verified-licenses-and-activation-pending",
     "sourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
     "sourceTree": "e58f64a219c204cdaf364fc95466cf03acfb7c21",
     "patchSetSha256": "eb30fab089422c82256a8c8db9cb7a15d3c41b8b972a05729f63ebfbac7e8cad",
@@ -80,48 +80,49 @@
       "target": "x86_64-pc-windows-msvc",
       "built": true
     },
-    "buildReceiptSha256": "d219044e8f3e84a1e7a7b582d40d9bbbef8a999c41f21c0a0a3a3e7e65e5fb23",
+    "buildReceiptSha256": "8c2b0084b74410cda72527ba4adbdb29b3cbb31c06e73f0662a825aeb662205a",
     "buildReceiptPath": "build/community-lan/product/2.7.0-laokuai/build-receipt.json",
-    "packageSha256": "4c57e56ec2973d18216afe1e896e95f33b1441c8f8f18cc1eea14a3534de68b6",
-    "packagePath": "build/community-lan/product/laokuai-owned-create-runtime-input.zip",
+    "packageSha256": "414f36e1cc6eff5f880b943a5116a71fe243f2bd9744501630128ebdce9ec467",
+    "packagePath": "build/community-lan/product/laokuai-no-npcap-runtime-input.zip",
     "windowsRuntimeFiles": {
       "easytier-core.exe": {
-        "bytes": 20388864,
-        "sha256": "28248cf281690d95afa6550769452dc803338ee016d1f52e1150d12cda661eae",
-        "origin": "Reviewed downstream source build"
+        "bytes": 20107264,
+        "sha256": "d4f100ace0ae50b5270af10f579a2ccf7b2991731f05b82920eefba60055d49a",
+        "origin": "Exact reviewed no-Npcap source/profile build"
       },
       "easytier-cli.exe": {
-        "bytes": 6255104,
-        "sha256": "3afdf2e4306c3f8d65408ddd230c7e4118ffdb5d550921022aed9966693c82ba",
-        "origin": "Pinned official companion file, unchanged"
-      },
-      "Packet.dll": {
-        "bytes": 220032,
-        "sha256": "c7c03a87eac7243ccbe331554624b18803010b740e311fc8cfddb573096eacac",
-        "origin": "Pinned official companion file, unchanged"
+        "bytes": 6050816,
+        "sha256": "b84fa350b9c8036649df3cdc8ee728c364ea81075d82fd3783cdeede3b9ddccd",
+        "origin": "Exact reviewed no-Npcap source/profile build"
       },
       "WinDivert64.sys": {
         "bytes": 94144,
         "sha256": "8da085332782708d8767bcace5327a6ec7283c17cfb85e40b03cd2323a90ddc2",
-        "origin": "Pinned official companion file, unchanged"
+        "origin": "Unchanged pinned signed driver companion"
       },
       "wintun.dll": {
         "bytes": 427552,
         "sha256": "e5da8447dc2c320edc0fc52fa01885c103de8c118481f683643cacc3220dafce",
-        "origin": "Pinned official companion file, unchanged"
+        "origin": "Unchanged pinned signed driver companion"
       }
     },
-    "licensesAndNoticesVerified": false,
-    "runtimeManifestSha256": "b76a2e932eb7fd81d7533cdbe54952d4ee8d715c766869f6d9f54c96cffb22fa",
+    "runtimeManifestSha256": "bc18d7e68a3996e686b9b123c09aebc62df0ffc57d12c77d7d77ce54badc1509",
     "runtimeManifestPath": "build/community-lan/product/2.7.0-laokuai/laokuai-build.json",
+    "runtimeManifestSchemaVersion": 2,
+    "normalAndDelayImportsVerified": true,
+    "featureProfileSha256": "8904d6aff6c819a6d3bc03700467c7878199a68c57c9771905b7c90ec8c805d7",
+    "originalBuildInputProfileSha256": "63485768b86b55e00b34f20353ef8a6b5395e768ef2cfee8266f56a0cc62aa84",
     "coreCompilationPassed": true,
+    "cliCompilationPassed": true,
     "coreExecuted": false,
-    "trackedReceiptPath": "receipts/owned-create-build.json",
-    "trackedRuntimeInputPath": "receipts/owned-create-runtime-input.json"
+    "cliExecuted": false,
+    "licensesAndNoticesVerified": false,
+    "trackedReceiptPath": "receipts/no-npcap-build.json",
+    "trackedRuntimeInputPath": "receipts/no-npcap-runtime-input.json"
   },
   "payload": {
     "kind": "pending-private-patched-windows",
-    "status": "compiled-input-prepared-native-acceptance-and-notices-pending",
+    "status": "four-file-no-Npcap-static-input-prepared-notices-review-and-activation-pending",
     "approved": false
   },
   "acceptance": {
@@ -185,5 +186,57 @@
       "preserved": true
     }
   ],
-  "buildTemplatePath": "laokuai-owned-create-build.template.json"
+  "buildTemplatePath": "laokuai-owned-create-build.template.json",
+  "historicalBuilds": [
+    {
+      "status": "historical-Npcap-input-preserved-not-final",
+      "sourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
+      "sourceTree": "e58f64a219c204cdaf364fc95466cf03acfb7c21",
+      "patchSetSha256": "eb30fab089422c82256a8c8db9cb7a15d3c41b8b972a05729f63ebfbac7e8cad",
+      "toolchain": {
+        "requiredRust": "1.95",
+        "actualRust": "1.95.0",
+        "target": "x86_64-pc-windows-msvc",
+        "built": true
+      },
+      "buildReceiptSha256": "d219044e8f3e84a1e7a7b582d40d9bbbef8a999c41f21c0a0a3a3e7e65e5fb23",
+      "buildReceiptPath": "build/community-lan/product/history/owned-create-packet-core-28248cf2/build-receipt.json",
+      "packageSha256": "4c57e56ec2973d18216afe1e896e95f33b1441c8f8f18cc1eea14a3534de68b6",
+      "packagePath": "build/community-lan/product/laokuai-owned-create-runtime-input.zip",
+      "windowsRuntimeFiles": {
+        "easytier-core.exe": {
+          "bytes": 20388864,
+          "sha256": "28248cf281690d95afa6550769452dc803338ee016d1f52e1150d12cda661eae",
+          "origin": "Reviewed downstream source build"
+        },
+        "easytier-cli.exe": {
+          "bytes": 6255104,
+          "sha256": "3afdf2e4306c3f8d65408ddd230c7e4118ffdb5d550921022aed9966693c82ba",
+          "origin": "Pinned official companion file, unchanged"
+        },
+        "Packet.dll": {
+          "bytes": 220032,
+          "sha256": "c7c03a87eac7243ccbe331554624b18803010b740e311fc8cfddb573096eacac",
+          "origin": "Pinned official companion file, unchanged"
+        },
+        "WinDivert64.sys": {
+          "bytes": 94144,
+          "sha256": "8da085332782708d8767bcace5327a6ec7283c17cfb85e40b03cd2323a90ddc2",
+          "origin": "Pinned official companion file, unchanged"
+        },
+        "wintun.dll": {
+          "bytes": 427552,
+          "sha256": "e5da8447dc2c320edc0fc52fa01885c103de8c118481f683643cacc3220dafce",
+          "origin": "Pinned official companion file, unchanged"
+        }
+      },
+      "licensesAndNoticesVerified": false,
+      "runtimeManifestSha256": "b76a2e932eb7fd81d7533cdbe54952d4ee8d715c766869f6d9f54c96cffb22fa",
+      "runtimeManifestPath": "build/community-lan/product/history/owned-create-packet-core-28248cf2/laokuai-build.json",
+      "coreCompilationPassed": true,
+      "coreExecuted": false,
+      "trackedReceiptPath": "receipts/owned-create-build.json",
+      "trackedRuntimeInputPath": "receipts/owned-create-runtime-input.json"
+    }
+  ]
 }

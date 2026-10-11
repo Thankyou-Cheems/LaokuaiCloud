@@ -79,7 +79,7 @@ if(m.ready&&m.validation.noNpcapBuildCandidate){
 if(m.easytier.nativePortsImplemented){
   const entries=require('../components/client/scripts/community-easytier-resources.cjs');
   const names=entries.map(e=>e.to.split('/').at(-1)).sort();
-  const resources=m.easytier.officialWindowsReferenceFiles||m.easytier.windowsRuntimeFiles;
+  const resources=m.validation.noNpcapBuildCandidate?.fourFileRuntimeManifestUpdated ? m.easytier.privateWindowsRuntimeFiles : m.easytier.officialWindowsReferenceFiles||m.easytier.windowsRuntimeFiles;
   assert(JSON.stringify(names)===JSON.stringify([...Object.keys(resources),'laokuai-build.json'].sort()),'ET resource file set mismatch');
   assert(m.easytier.bundleResourceDirectory==='community-lan/product/2.7.0-laokuai','ET product resource directory mismatch');
   for(const e of entries)assert(e.from==='build/'+e.to&&e.to.startsWith(m.easytier.bundleResourceDirectory+'/'),'ET exact resource path mismatch');

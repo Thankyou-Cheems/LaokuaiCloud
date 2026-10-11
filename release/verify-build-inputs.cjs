@@ -22,18 +22,23 @@ assert.equal(build.coreExecuted, false);
 const receiptBytes = owned(build.buildReceiptPath), receipt = JSON.parse(receiptBytes);
 assert.equal(digest(receiptBytes), build.buildReceiptSha256);
 assert.equal(receipt.sourceCommit, build.sourceCommit); assert.equal(receipt.sourceTree, build.sourceTree);
-assert.equal(receipt.exitCode, 0); assert.equal(receipt.coreExecuted, false);
+assert.equal(receipt.bothExecutablesCompiled, true); assert.equal(receipt.coreExecuted, false); assert.equal(receipt.cliExecuted, false);
 assert.equal(receipt.cargoLockSha256, provenance.sourceImport.cargoLockSha256);
+assert.equal(digest(fs.readFileSync(path.join(client,'scripts/easytier-windows-feature-profile.json'))),build.featureProfileSha256);
+assert.equal(receipt.normalAndDelayImportsVerified,true);
 const manifestBytes = owned(build.runtimeManifestPath), manifest = JSON.parse(manifestBytes);
 assert.equal(digest(manifestBytes), build.runtimeManifestSha256);
-assert.equal(manifest.coreSha256, '28248cf281690d95afa6550769452dc803338ee016d1f52e1150d12cda661eae');
+assert.equal(manifest.schemaVersion,2);
+assert.equal(manifest.coreSha256, 'd4f100ace0ae50b5270af10f579a2ccf7b2991731f05b82920eefba60055d49a');
+assert.equal(manifest.cliSha256, 'b84fa350b9c8036649df3cdc8ee728c364ea81075d82fd3783cdeede3b9ddccd');
+assert.equal(manifest.buildProfileSha256,build.featureProfileSha256);
 assert.equal(manifest.sourcePatchSha256, provenance.patchSet.codePatchSha256);
 assert.equal(manifest.hostPolicy, 'externally-managed'); assert.equal(manifest.ownedStopProtocol, 1);
 const {unzipSync} = require('../components/client/node_modules/fflate');
 const packageBytes = owned(build.packagePath);
 assert.equal(digest(packageBytes), build.packageSha256);
 const archived = unzipSync(packageBytes);
-assert.equal(Object.keys(archived).length, 7);
+assert.deepEqual(Object.keys(archived).sort(),['easytier-core.exe','easytier-cli.exe','WinDivert64.sys','wintun.dll','build-receipt.json','laokuai-build.json'].sort());
 assert.equal(digest(archived['build-receipt.json']), build.buildReceiptSha256);
 assert.equal(digest(archived['laokuai-build.json']), build.runtimeManifestSha256);
 const directory = path.posix.dirname(build.runtimeManifestPath);
@@ -41,10 +46,15 @@ for(const [name, expected] of Object.entries(build.windowsRuntimeFiles)) {
   const bytes = owned(directory+'/'+name);
   assert.equal(bytes.length, expected.bytes); assert.equal(digest(bytes), expected.sha256);
   assert.equal(digest(archived[name]), expected.sha256);
-  if(name !== 'easytier-core.exe') assert.equal(expected.sha256, provenance.officialWindowsReference.files[name]);
+  assert.equal(manifest.files[name].sha256,expected.sha256);assert.equal(manifest.files[name].bytes,expected.bytes);
+  if(!name.endsWith('.exe')) assert.equal(expected.sha256, provenance.officialWindowsReference.files[name]);
 }
-const core = owned(directory+'/easytier-core.exe'), pe = core.readUInt32LE(0x3c);
-assert.equal(core.toString('ascii',0,2),'MZ'); assert.equal(core.toString('ascii',pe,pe+4),'PE\0\0');
-assert.equal(core.readUInt16LE(pe+4),0x8664); assert.equal(core.readUInt16LE(pe+24),0x20b);
+const {inspectPeImports}=require('../components/client/scripts/inspect-pe-imports.cjs');
+for(const name of ['easytier-core.exe','easytier-cli.exe']){
+ const bytes=owned(directory+'/'+name),report=inspectPeImports(bytes);
+ assert.equal(report.noCaptureDllNormalOrDelayImports,true);
+ for(const id of ['Packet.dll','wpcap.dll','Npcap','pnet_datalink','pnet_sys','pnet_base','pnet_packet'])assert.ok(!bytes.includes(Buffer.from(id))&&!bytes.includes(Buffer.from(id,'utf16le')),'Forbidden native binary identifier');
+}
 assert.notEqual(manifest.coreSha256, provenance.officialWindowsReference.files['easytier-core.exe']);
-console.log(JSON.stringify({staticInputVerified:true,coreSha256:manifest.coreSha256,packageSha256:build.packageSha256,executed:false,activationAccepted:provenance.acceptance.actualNetworkVerified,noticesVerified:build.licensesAndNoticesVerified,payloadApproved:provenance.payload.approved}));
+assert.notEqual(manifest.cliSha256, provenance.officialWindowsReference.files['easytier-cli.exe']);
+console.log(JSON.stringify({staticInputVerified:true,coreSha256:manifest.coreSha256,cliSha256:manifest.cliSha256,packageSha256:build.packageSha256,runtimeFiles:4,normalAndDelayImportsVerified:true,executed:false,activationAccepted:provenance.acceptance.actualNetworkVerified,noticesVerified:build.licensesAndNoticesVerified,payloadApproved:provenance.payload.approved}));

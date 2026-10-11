@@ -18,18 +18,39 @@ export const EASYTIER_WINDOWS_FILES = Object.freeze({
 export const easyTierSha256 = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
 
 export const EASYTIER_LAOKUAI_SOURCE_PATCH_SHA256 = "eb30fab089422c82256a8c8db9cb7a15d3c41b8b972a05729f63ebfbac7e8cad";
+export const EASYTIER_LAOKUAI_PROFILE_SHA256 = "8904d6aff6c819a6d3bc03700467c7878199a68c57c9771905b7c90ec8c805d7";
+/** Exact private no-Npcap build; official core/CLI remain reference only. */
+export const EASYTIER_PRODUCT_FILES = Object.freeze({
+  "easytier-core.exe": { sha256: "d4f100ace0ae50b5270af10f579a2ccf7b2991731f05b82920eefba60055d49a", bytes: 20107264 },
+  "easytier-cli.exe": { sha256: "b84fa350b9c8036649df3cdc8ee728c364ea81075d82fd3783cdeede3b9ddccd", bytes: 6050816 },
+  "WinDivert64.sys": { sha256: EASYTIER_WINDOWS_FILES["WinDivert64.sys"], bytes: 94144 },
+  "wintun.dll": { sha256: EASYTIER_WINDOWS_FILES["wintun.dll"], bytes: 427552 },
+});
 
-export function verifiedEasyTierProductManifest(value: unknown): { coreSha256: string } {
+export function verifiedEasyTierProductManifest(value: unknown): { coreSha256: string; cliSha256: string; cacheIdentity: string } {
   const manifest = value as Record<string, unknown>;
-  if (!manifest || manifest.schemaVersion !== 1 || manifest.version !== "2.7.0-laokuai"
+  if (!manifest || manifest.schemaVersion !== 2 || manifest.version !== "2.7.0-laokuai"
     || manifest.upstreamCommit !== "8b7f1f0196edb5b580829ed5f135050fb5853478"
     || manifest.ownedStopProtocol !== 1 || manifest.hostPolicy !== "externally-managed"
     || manifest.sourcePatchSha256 !== EASYTIER_LAOKUAI_SOURCE_PATCH_SHA256
-    || typeof manifest.coreSha256 !== "string" || !/^[0-9a-f]{64}$/.test(manifest.coreSha256)
-    || manifest.coreSha256 === EASYTIER_WINDOWS_FILES["easytier-core.exe"]) {
+    || manifest.sourceCommit !== "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49"
+    || manifest.sourceTree !== "e58f64a219c204cdaf364fc95466cf03acfb7c21"
+    || manifest.cargoLockSha256 !== "e3ee41507e7a8ef94470b70f4639140e67aadae646ada82dfd23b0beeb0e7fb2"
+    || manifest.buildProfile !== "windows-default-minus-faketcp-v1" || manifest.buildProfileSha256 !== EASYTIER_LAOKUAI_PROFILE_SHA256
+    || manifest.noDefaultFeatures !== true || manifest.target !== "x86_64-pc-windows-msvc" || manifest.toolchain !== "1.95.0"
+    || manifest.normalAndDelayImportsVerified !== true
+    || manifest.coreSha256 !== EASYTIER_PRODUCT_FILES["easytier-core.exe"].sha256
+    || manifest.cliSha256 !== EASYTIER_PRODUCT_FILES["easytier-cli.exe"].sha256) {
     throw new EasyTierOperationError("runtime-required");
   }
-  return { coreSha256: manifest.coreSha256 };
+  const files = manifest.files as Record<string, { sha256?: unknown; bytes?: unknown }> | undefined;
+  if (!files || JSON.stringify(Object.keys(files).sort()) !== JSON.stringify(Object.keys(EASYTIER_PRODUCT_FILES).sort()) ||
+    Object.entries(EASYTIER_PRODUCT_FILES).some(([name, expected]) => files[name]?.sha256 !== expected.sha256 || files[name]?.bytes !== expected.bytes)) {
+    throw new EasyTierOperationError("runtime-required");
+  }
+  // Both executables/profile enter cache identity; never reuse the old official CLI.
+  const cacheIdentity = easyTierSha256(Buffer.from(JSON.stringify([manifest.sourceCommit, manifest.buildProfileSha256, EASYTIER_PRODUCT_FILES])));
+  return { coreSha256: manifest.coreSha256, cliSha256: manifest.cliSha256, cacheIdentity };
 }
 
 export function verifiedEasyTierArchive(bytes: Uint8Array): Record<string, Uint8Array> {
@@ -62,8 +83,8 @@ export class EasyTierWindowsAssets {
       const manifestFile = join(this.bundledDirectory(), "laokuai-build.json");
       if ((await stat(manifestFile)).size > 4096) throw new Error("manifest-size");
       const manifest = verifiedEasyTierProductManifest(JSON.parse(await readFile(manifestFile, "utf8")));
-      const directory = join(this.root(), "runtime", "2.7.0-laokuai", manifest.coreSha256);
-      const hashes = { ...EASYTIER_WINDOWS_FILES, "easytier-core.exe": manifest.coreSha256 };
+      const directory = join(this.root(), "runtime", "2.7.0-laokuai", manifest.cacheIdentity);
+      const hashes = Object.fromEntries(Object.entries(EASYTIER_PRODUCT_FILES).map(([name, value]) => [name, value.sha256]));
       const contents: Record<string, Uint8Array> = {};
       for (const [name, hash] of Object.entries(hashes)) {
         const file = join(this.bundledDirectory(), name);

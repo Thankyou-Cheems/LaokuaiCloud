@@ -1,9 +1,11 @@
+/* eslint-env node */
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import { EventEmitter } from "node:events";
 import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
+
 import { unzipSync } from "fflate";
 import ts from "typescript";
 
@@ -282,10 +284,15 @@ await test("unconfirmed forced exit retains the owned core until cleanup can be 
   }, { failKill: true });
 });
 await test("downstream identity requires reviewed host policy and owned-stop contract; official core hash is forbidden", async () => {
-  const manifest = { schemaVersion: 1, version: "2.7.0-laokuai", upstreamCommit: "8b7f1f0196edb5b580829ed5f135050fb5853478",
-    hostPolicy: "externally-managed", ownedStopProtocol: 1, sourcePatchSha256: assets.EASYTIER_LAOKUAI_SOURCE_PATCH_SHA256, coreSha256: "b".repeat(64) };
+  const manifest = { schemaVersion: 2, version: "2.7.0-laokuai", upstreamCommit: "8b7f1f0196edb5b580829ed5f135050fb5853478",
+    hostPolicy: "externally-managed", ownedStopProtocol: 1, sourcePatchSha256: assets.EASYTIER_LAOKUAI_SOURCE_PATCH_SHA256,
+    sourceCommit:"dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",sourceTree:"e58f64a219c204cdaf364fc95466cf03acfb7c21",
+    cargoLockSha256:"e3ee41507e7a8ef94470b70f4639140e67aadae646ada82dfd23b0beeb0e7fb2",buildProfile:"windows-default-minus-faketcp-v1",
+    buildProfileSha256:assets.EASYTIER_LAOKUAI_PROFILE_SHA256,noDefaultFeatures:true,target:"x86_64-pc-windows-msvc",toolchain:"1.95.0",normalAndDelayImportsVerified:true,
+    coreSha256:assets.EASYTIER_PRODUCT_FILES["easytier-core.exe"].sha256,cliSha256:assets.EASYTIER_PRODUCT_FILES["easytier-cli.exe"].sha256,files:assets.EASYTIER_PRODUCT_FILES };
   assert.equal(assets.verifiedEasyTierProductManifest(manifest).coreSha256, manifest.coreSha256);
   for (const changes of [{ version: "2.7.0" }, { coreSha256: assets.EASYTIER_WINDOWS_FILES["easytier-core.exe"] },
+    { cliSha256:assets.EASYTIER_WINDOWS_FILES["easytier-cli.exe"] },{schemaVersion:1},
     { ownedStopProtocol: 0 }, { hostPolicy: "legacy" }, { sourcePatchSha256: null }, { sourcePatchSha256: "c".repeat(64) }]) {
     assert.throws(() => assets.verifiedEasyTierProductManifest({ ...manifest, ...changes }), e => e.reason === "runtime-required");
   }

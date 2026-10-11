@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 2,
+  "stage": "both-executables-compiled-static-audited-no-runtime-execution",
+  "sourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
+  "sourceTree": "e58f64a219c204cdaf364fc95466cf03acfb7c21",
+  "sourcePatchSha256": "eb30fab089422c82256a8c8db9cb7a15d3c41b8b972a05729f63ebfbac7e8cad",
+  "cargoLockSha256": "e3ee41507e7a8ef94470b70f4639140e67aadae646ada82dfd23b0beeb0e7fb2",
+  "featureProfile": "windows-default-minus-faketcp-v1",
+  "featureProfileSha256": "8904d6aff6c819a6d3bc03700467c7878199a68c57c9771905b7c90ec8c805d7",
+  "originalBuildInputProfileSha256": "63485768b86b55e00b34f20353ef8a6b5395e768ef2cfee8266f56a0cc62aa84",
+  "features": [
+    "cli",
+    "wireguard",
+    "websocket",
+    "smoltcp",
+    "tun",
+    "socks5",
+    "kcp",
+    "quic",
+    "magic-dns",
+    "zstd",
+    "upnp",
+    "icmp-proxy",
+    "management",
+    "endpoint-discovery",
+    "extended-services",
+    "linux-netlink",
+    "tcp-hole-punch"
+  ],
+  "noDefaultFeatures": true,
+  "toolchain": "1.95.0",
+  "target": "x86_64-pc-windows-msvc",
+  "rustflags": "-C target-feature=+crt-static",
+  "ownerBuildReceiptSha256": "2dbb3bb8f67c600fbf48b34e25a8fb3e56a57d58b3bfaa2432eca5ac706c51cf",
+  "ownerImportAuditSha256": "7eb78be98d262f56dce1e398ed46924d4362ed2d4b23217f9efa22a78b1174a4",
+  "bothExecutablesCompiled": true,
+  "normalAndDelayImportsVerified": true,
+  "independentImports": [
+    {
+      "name": "easytier-core.exe",
+      "machine": "AMD64",
+      "sha256": "d4f100ace0ae50b5270af10f579a2ccf7b2991731f05b82920eefba60055d49a",
+      "bytes": 20107264,
+      "normalImports": [
+        "kernel32.dll",
+        "advapi32.dll",
+        "ws2_32.dll",
+        "iphlpapi.dll",
+        "ntdll.dll",
+        "oleaut32.dll",
+        "rpcrt4.dll",
+        "crypt32.dll",
+        "bcrypt.dll",
+        "KERNEL32.dll",
+        "wintrust.dll",
+        "msvcrt.dll"
+      ],
+      "delayImports": [],
+      "captureDllImports": [],
+      "noCaptureDllNormalOrDelayImports": true,
+      "executed": false
+    },
+    {
+      "name": "easytier-cli.exe",
+      "machine": "AMD64",
+      "sha256": "b84fa350b9c8036649df3cdc8ee728c364ea81075d82fd3783cdeede3b9ddccd",
+      "bytes": 6050816,
+      "normalImports": [
+        "kernel32.dll",
+        "advapi32.dll",
+        "ws2_32.dll",
+        "ntdll.dll",
+        "iphlpapi.dll",
+        "oleaut32.dll",
+        "combase.dll",
+        "bcrypt.dll",
+        "shell32.dll",
+        "KERNEL32.dll",
+        "msvcrt.dll"
+      ],
+      "delayImports": [],
+      "captureDllImports": [],
+      "noCaptureDllNormalOrDelayImports": true,
+      "executed": false
+    }
+  ],
+  "files": {
+    "easytier-core.exe": {
+      "bytes": 20107264,
+      "sha256": "d4f100ace0ae50b5270af10f579a2ccf7b2991731f05b82920eefba60055d49a",
+      "origin": "Exact reviewed no-Npcap source/profile build"
+    },
+    "easytier-cli.exe": {
+      "bytes": 6050816,
+      "sha256": "b84fa350b9c8036649df3cdc8ee728c364ea81075d82fd3783cdeede3b9ddccd",
+      "origin": "Exact reviewed no-Npcap source/profile build"
+    },
+    "WinDivert64.sys": {
+      "bytes": 94144,
+      "sha256": "8da085332782708d8767bcace5327a6ec7283c17cfb85e40b03cd2323a90ddc2",
+      "origin": "Unchanged pinned signed driver companion"
+    },
+    "wintun.dll": {
+      "bytes": 427552,
+      "sha256": "e5da8447dc2c320edc0fc52fa01885c103de8c118481f683643cacc3220dafce",
+      "origin": "Unchanged pinned signed driver companion"
+    }
+  },
+  "sourceArchiveSha256": "af925b426f2a57b9708794c9d0f27971e1444cc0df064245c3163ce75615b492",
+  "fullSourceBundleSha256": "71c09f9ba90cb87dcc3eb3d828477c21d5761a74c0fd049f965fa90b54d8425e",
+  "activePnetPackages": 0,
+  "activeDependencyPackages": 506,
+  "missingCachedTopLevelLicenseTexts": 25,
+  "coreExecuted": false,
+  "cliExecuted": false,
+  "activationApproved": false,
+  "licensesAndNoticesVerified": false
+}

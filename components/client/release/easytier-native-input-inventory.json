@@ -1,34 +1,122 @@
 {
-  "schemaVersion": 1,
-  "stage": "historical-five-inputs-not-final-product",
+  "schemaVersion": 2,
+  "stage": "final-four-input-candidate-static-audited; activation-and-distribution-pending",
   "nativeSourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
   "officialArchiveSha256": "790fd9be347b00753570ac2b65f874a591ede9427603fe34e74a86b2b084847f",
   "historicalInputs": [
-    {"name":"easytier-core.exe","buildInputName":"laokuai-core.exe","sha256":"28248cf281690d95afa6550769452dc803338ee016d1f52e1150d12cda661eae","bytes":20388864,"provenance":"custom dbaf source build, default features, Rust 1.95.0, crt-static","license":"LGPL-3.0 plus linked dependency obligations","status":"Npcap-dependent old candidate; not final"},
-    {"name":"easytier-cli.exe","sha256":"3afdf2e4306c3f8d65408ddd230c7e4118ffdb5d550921022aed9966693c82ba","provenance":"official fixed v2.7.0 Windows archive","license":"LGPL-3.0 plus linked dependency obligations","status":"Npcap-dependent old CLI; must rebuild"},
-    {"name":"Packet.dll","sha256":"c7c03a87eac7243ccbe331554624b18803010b740e311fc8cfddb573096eacac","provenance":"official EasyTier archive; static metadata Npcap 1.79 Insecure.Com LLC","license":"Npcap terms; no OEM redistribution entitlement or version-specific license supplied","status":"redistribution unconfirmed; omit from no-Npcap product"},
-    {"name":"WinDivert64.sys","sha256":"8da085332782708d8767bcace5327a6ec7283c17cfb85e40b03cd2323a90ddc2","provenance":"official EasyTier archive, exact hash matches WinDivert-2.2.2-A.zip SYS entries","license":"LGPL-3.0 or GPL-2.0","licenseFile":"licenses/WinDivert-v2.2.2-LICENSE.txt","status":"retained for existing Windows broadcast backend; activation permission separate"},
-    {"name":"wintun.dll","sha256":"e5da8447dc2c320edc0fc52fa01885c103de8c118481f683643cacc3220dafce","provenance":"official EasyTier archive, exact hash matches official Wintun 0.14.1 amd64 ZIP entry","license":"Wintun 0.14.1 Prebuilt Binaries License","licenseFile":"licenses/Wintun-0.14.1-LICENSE.txt","status":"unchanged signed binary; activation permission separate"}
+    {
+      "name": "easytier-core.exe",
+      "buildInputName": "laokuai-core.exe",
+      "sha256": "28248cf281690d95afa6550769452dc803338ee016d1f52e1150d12cda661eae",
+      "bytes": 20388864,
+      "provenance": "custom dbaf source build, default features, Rust 1.95.0, crt-static",
+      "license": "LGPL-3.0 plus linked dependency obligations",
+      "status": "Npcap-dependent old candidate; not final"
+    },
+    {
+      "name": "easytier-cli.exe",
+      "sha256": "3afdf2e4306c3f8d65408ddd230c7e4118ffdb5d550921022aed9966693c82ba",
+      "provenance": "official fixed v2.7.0 Windows archive",
+      "license": "LGPL-3.0 plus linked dependency obligations",
+      "status": "Npcap-dependent old CLI; must rebuild"
+    },
+    {
+      "name": "Packet.dll",
+      "sha256": "c7c03a87eac7243ccbe331554624b18803010b740e311fc8cfddb573096eacac",
+      "provenance": "official EasyTier archive; static metadata Npcap 1.79 Insecure.Com LLC",
+      "license": "Npcap terms; no OEM redistribution entitlement or version-specific license supplied",
+      "status": "redistribution unconfirmed; omit from no-Npcap product"
+    },
+    {
+      "name": "WinDivert64.sys",
+      "sha256": "8da085332782708d8767bcace5327a6ec7283c17cfb85e40b03cd2323a90ddc2",
+      "provenance": "official EasyTier archive, exact hash matches WinDivert-2.2.2-A.zip SYS entries",
+      "license": "LGPL-3.0 or GPL-2.0",
+      "licenseFile": "licenses/WinDivert-v2.2.2-LICENSE.txt",
+      "status": "retained for existing Windows broadcast backend; activation permission separate"
+    },
+    {
+      "name": "wintun.dll",
+      "sha256": "e5da8447dc2c320edc0fc52fa01885c103de8c118481f683643cacc3220dafce",
+      "provenance": "official EasyTier archive, exact hash matches official Wintun 0.14.1 amd64 ZIP entry",
+      "license": "Wintun 0.14.1 Prebuilt Binaries License",
+      "licenseFile": "licenses/Wintun-0.14.1-LICENSE.txt",
+      "status": "unchanged signed binary; activation permission separate"
+    }
   ],
-  "plannedProduct": {
-    "featureProfile":"windows-default-minus-faketcp-v1",
-    "compiled":false,
-    "inputs":[
-      {"name":"easytier-core.exe","sha256":null,"status":"capacity-owner final build/import audit pending"},
-      {"name":"easytier-cli.exe","sha256":null,"status":"capacity-owner final build/import audit pending"},
-      {"name":"WinDivert64.sys","sha256":"8da085332782708d8767bcace5327a6ec7283c17cfb85e40b03cd2323a90ddc2"},
-      {"name":"wintun.dll","sha256":"e5da8447dc2c320edc0fc52fa01885c103de8c118481f683643cacc3220dafce"}
+  "licenseTexts": [
+    {
+      "file": "licenses/EasyTier-LGPL-3.0.txt",
+      "sha256": "e3a994d82e644b03a792a930f574002658412f62407f5fee083f2555c5f23118",
+      "origin": "frozen EasyTier root LICENSE"
+    },
+    {
+      "file": "licenses/GPL-3.0.txt",
+      "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986",
+      "origin": "https://www.gnu.org/licenses/gpl-3.0.txt"
+    },
+    {
+      "file": "licenses/rust-tun-WTFPL-2.0.txt",
+      "sha256": "920b5b5d868a0c56b1ce5696b48a916f6e83caa6fc4ca116a30ee95cce74a2a8",
+      "origin": "frozen vendor/rust-tun LICENSE and Cargo license=WTFPL"
+    },
+    {
+      "file": "licenses/WinDivert-v2.2.2-LICENSE.txt",
+      "sha256": "14a0cb5214d536e4fdae6aa3f5696f981eeda106cd026e9794bba489ee79d628",
+      "origin": "official v2.2.2 GitHub source LICENSE, matches official 2.2.2 A ZIP LICENSE"
+    },
+    {
+      "file": "licenses/Wintun-0.14.1-LICENSE.txt",
+      "sha256": "183adac21e7d96c508c8fd34d394b7b6708bc81564ad1bad61ab66143a008cd2",
+      "origin": "official Wintun 0.14.1 ZIP SHA 07c256185d6ee3652e09fa55c0b673e2624b565e02c4b9091c79ca7d2f24ef51"
+    }
+  ],
+  "releaseBlockers": [
+    "production manifest/four-file inventory integration",
+    "actual notices and corresponding/relinkable source package delivery",
+    "distribution-specific license review; 25 top-level cached license texts missing in active dependency inventory",
+    "current-user activation approval and live acceptance"
+  ],
+  "finalProductCandidate": {
+    "featureProfile": "windows-default-minus-faketcp-v1",
+    "compiled": true,
+    "inputs": [
+      {
+        "name": "easytier-core.exe",
+        "bytes": 20107264,
+        "sha256": "d4f100ace0ae50b5270af10f579a2ccf7b2991731f05b82920eefba60055d49a"
+      },
+      {
+        "name": "easytier-cli.exe",
+        "bytes": 6050816,
+        "sha256": "b84fa350b9c8036649df3cdc8ee728c364ea81075d82fd3783cdeede3b9ddccd"
+      },
+      {
+        "name": "wintun.dll",
+        "bytes": 427552,
+        "sha256": "e5da8447dc2c320edc0fc52fa01885c103de8c118481f683643cacc3220dafce"
+      },
+      {
+        "name": "WinDivert64.sys",
+        "bytes": 94144,
+        "sha256": "8da085332782708d8767bcace5327a6ec7283c17cfb85e40b03cd2323a90ddc2"
+      }
     ],
-    "omitted":["Packet.dll"],
-    "runtimeManifestUpdated":false,
-    "activationApproved":false
-  },
-  "licenseTexts":[
-    {"file":"licenses/EasyTier-LGPL-3.0.txt","sha256":"e3a994d82e644b03a792a930f574002658412f62407f5fee083f2555c5f23118","origin":"frozen EasyTier root LICENSE"},
-    {"file":"licenses/GPL-3.0.txt","sha256":"3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986","origin":"https://www.gnu.org/licenses/gpl-3.0.txt"},
-    {"file":"licenses/rust-tun-WTFPL-2.0.txt","sha256":"920b5b5d868a0c56b1ce5696b48a916f6e83caa6fc4ca116a30ee95cce74a2a8","origin":"frozen vendor/rust-tun LICENSE and Cargo license=WTFPL"},
-    {"file":"licenses/WinDivert-v2.2.2-LICENSE.txt","sha256":"14a0cb5214d536e4fdae6aa3f5696f981eeda106cd026e9794bba489ee79d628","origin":"official v2.2.2 GitHub source LICENSE, matches official 2.2.2 A ZIP LICENSE"},
-    {"file":"licenses/Wintun-0.14.1-LICENSE.txt","sha256":"183adac21e7d96c508c8fd34d394b7b6708bc81564ad1bad61ab66143a008cd2","origin":"official Wintun 0.14.1 ZIP SHA 07c256185d6ee3652e09fa55c0b673e2624b565e02c4b9091c79ca7d2f24ef51"}
-  ],
-  "releaseBlockers":["new core AND CLI final hashes and normal/delay import audit","product manifest/four-file inventory update","actual notices and corresponding/relinkable source package delivery","active transitive dependency license inventory","final activation gate and live acceptance"]
+    "omitted": [
+      "Packet.dll",
+      "wpcap.dll"
+    ],
+    "normalAndDelayImportAuditBothPassed": true,
+    "actualBinaryIdentifierScanBothPassed": true,
+    "buildReceiptPath": "C:\\Users\\cheb2\\Documents\\Codex\\2026-10-10\\task-2\\et-windows-build-no-npcap\\delivery\\BUILD-DELIVERY.json",
+    "buildReceiptSha256": "2dbb3bb8f67c600fbf48b34e25a8fb3e56a57d58b3bfaa2432eca5ac706c51cf",
+    "importAuditPath": "C:\\Users\\cheb2\\Documents\\Codex\\2026-10-10\\task-2\\et-windows-build-no-npcap\\delivery\\PE-IMPORT-AUDIT.json",
+    "importAuditSha256": "7eb78be98d262f56dce1e398ed46924d4362ed2d4b23217f9efa22a78b1174a4",
+    "buildSourceArchiveSha256": "af925b426f2a57b9708794c9d0f27971e1444cc0df064245c3163ce75615b492",
+    "fullSourceBundleSha256": "71c09f9ba90cb87dcc3eb3d828477c21d5761a74c0fd049f965fa90b54d8425e",
+    "activeDependencyPackages": 506,
+    "missingCachedTopLevelLicenseTexts": 25,
+    "runtimeManifestUpdated": false,
+    "activationApproved": false
+  }
 }
