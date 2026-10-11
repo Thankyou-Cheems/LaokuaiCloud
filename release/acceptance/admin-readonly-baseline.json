@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "status": "complete-administrator-readonly-baseline-passed; no native operation",
+  "ownerHandoffSha256": "0461025fa38b311142332673c1168744ca93976928d9d8905cb9098556648c03",
+  "ownerSourceCommit": "9cba659b025cb8aece5111e714d793f05ef84b2d",
+  "probedScopeSha256": "c44bdbae1f2839914485b8c062b739557af271f92e27120a64bbef498be320ee",
+  "normalUacLaunches": 1,
+  "readerElapsedMs": 20657,
+  "completePhaseCount": 23,
+  "allStagesComplete": true,
+  "baselinePassed": true,
+  "fullBaselineAvailable": true,
+  "droppedStderrLines": 0,
+  "diagnosticSha256": "be4c4b4810fdecf04bf6efff11b31604c1079b3f0172e086c6c5f45c0dfa2358",
+  "redactedBaselineSha256": "024cf0b7dad702caf7f37bf3efa112aacc02ff015cb191485c2ffb2e7496fa03",
+  "rawHostResultsImported": false,
+  "task6RanProbe": false,
+  "nativeOrTunExecuted": false,
+  "networkOrPermissionWrites": false,
+  "nativeBeforeAfterPreservationAccepted": false,
+  "authorizesNativeTrial": false
+}

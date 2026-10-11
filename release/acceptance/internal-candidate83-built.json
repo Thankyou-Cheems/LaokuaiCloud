@@ -1,0 +1,171 @@
+{
+  "schema": 1,
+  "status": "internal-candidate-built-static-package-and-isolated-wiring-passed",
+  "sourceFreeze": "83dd572fad7837c9716153b9cc2e58535db1b875",
+  "codeCommit": "6cb8a9cf1f730454e43e19a0cb60a106684ee3e2",
+  "sourceArchive": {
+    "path": "inputs/laokuai-cloud-83dd572f-source.zip",
+    "bytes": 53263369,
+    "sha256": "c02c9c0b0279a72dcf418129859fe9e407d8910fe2feb2240bc40cb3de68bbfe"
+  },
+  "artifact": {
+    "path": "artifacts/LaokuaiCloud-1.13.22-laokuai.opus20.1-INTERNAL-CANDIDATE-win-x64-portable.exe",
+    "bytes": 128601307,
+    "sha256": "7d430b1cdf64cd07f439264b4d73ba3771f5a105796c8041f15c2424c66cb0e9"
+  },
+  "appAsar": {
+    "path": "artifacts/win-unpacked/resources/app.asar",
+    "bytes": 46832495,
+    "sha256": "4ae4d6897a63942467b6aaf98295384aa59279ba6be903ccaadc4815044308b5"
+  },
+  "ownerEvidenceDirectory": "task-2/candidate83-build",
+  "evidence": {
+    "HANDOFF.json": {
+      "sha256": "58e0aa7880998063ec088bbde58567b0f6d0ea20f55d8055f1769f67ed755d4a",
+      "bytes": 3785
+    },
+    "REPORT.md": {
+      "sha256": "5a13c6624108959b412ce56c5f270a065e31e4cc9b9f140a6a3c6396f551b954",
+      "bytes": 5012
+    },
+    "SHA256-MANIFEST.json": {
+      "sha256": "a52dd5787ce53d844b2ebbb1d44a6ee262c48aacd0ab2516db0ac0695930649a",
+      "bytes": 33761
+    },
+    "evidence/FINAL-PACKAGE-AUDIT.json": {
+      "sha256": "62999083f87be8bcc8f13611e3a4701119a189e28f1c75defc88d2643249a3e7",
+      "bytes": 18675
+    },
+    "evidence/BUILT-WIRING.json": {
+      "sha256": "f4a5cb4c0dbc65ed5e6f0735340b734d12d8114c10889c1d060cf417f6d2f762",
+      "bytes": 870
+    },
+    "evidence/SOURCE-RETENTION.json": {
+      "sha256": "395f42eea005e2cf881d43364518e4a0d7dbbee8a5c5e8e2b5e576d427d86284",
+      "bytes": 274
+    },
+    "evidence/BUILD.json": {
+      "sha256": "0c65dda583ab7fb4174048e34516972f5f4302876af16d4ca61f5df80fccc839",
+      "bytes": 167
+    },
+    "evidence/SQUAD-BUILD-RECEIPT.json": {
+      "sha256": "185ad140dcfa91b4cda7bfcc5c65a2b7791837a49b717e728d688384d151942b",
+      "bytes": 453
+    }
+  },
+  "task6ReadOnlyVerification": {
+    "manifestFiles": 188,
+    "bytesHashed": 574802352,
+    "allListedBytesAndHashesMatched": true,
+    "payloadManifestRows": 105,
+    "finalUIIntegratedBlobsMatched": 6,
+    "executedOwnerOperations": false,
+    "copiedRawLogsOrProfiles": false,
+    "exactFourNativeFilesMatched": true,
+    "bothExecutableNormalAndDelayImportsIndependentlyVerified": true,
+    "packagedCaptureDllAbsent": true
+  },
+  "buildOwnerAcceptance": {
+    "sourceBlobsUnchanged": 3421,
+    "acceptedC3MediaFilesRetained": 1512,
+    "installedSDKFilesByteMatched": 212,
+    "freshOfflineFrozenIgnoreScriptsInstall": true,
+    "yarnVersion": "1.22.22",
+    "types": "passed",
+    "webBuild": "passed",
+    "desktopBuild": "passed",
+    "internalPortableBuild": "passed",
+    "portableExtractedFilesByteMatched": 105,
+    "staticPackageAudit": "passed",
+    "fourNoNpcapRuntimeInputs": true,
+    "bothNormalAndDelayImportsVerified": true,
+    "finalUIOwnerCommit": "3023c7520198fbc0ecbdefcab3a0b750839b85f9",
+    "singleLineMembersDefault320VM": true,
+    "compiledPreloadFakeIPC": "passed",
+    "squadHelper": "freshly-built-from-frozen-source",
+    "captureHelpers": "reused-existing-bytes-with-matching-corresponding-source; not freshly rebuilt",
+    "heavySlotReleased": true
+  },
+  "internalExceptions": {
+    "productionGateRejected": true,
+    "licenseStateRetainedFalse": true,
+    "filesetWrapper": "Strict same two filter patterns only; immutable83 source unchanged",
+    "internalCandidateNoticeIncluded": true,
+    "unsigned": true,
+    "publishDisabled": true
+  },
+  "followupSourceExcluded": {
+    "licenseAndPackagingCommit": "26d84d8e9007b68734e4efe3773021be54d6c305",
+    "nativeLicenseTextBundlePresentInThisArtifact": false,
+    "runnerRepairPresentInThisArtifact": false
+  },
+  "applicationExecuted": false,
+  "task6NativeExecuted": false,
+  "fullApplicationE2E": false,
+  "physicalDirectVerified": false,
+  "publicDistributionApproved": false,
+  "ready": false,
+  "remaining": [
+    "Whole main/preload/renderer/auth/account/socket bootstrap and actual UI/DOM/device/listening/game acceptance",
+    "20 complete SDK capacity and FEC recovery remain unaccepted",
+    "Separate scoped native/TUN coexistence/cleanup; consumed failed preflight is not acceptance",
+    "Two author-notice provenance questions, one metadata expression clarification and corresponding/relinkable source recipient obligations remain; follow-up legal inputs are absent from this artifact"
+  ],
+  "nativeFiles": [
+    {
+      "name": "easytier-core.exe",
+      "bytes": 20107264,
+      "sha256": "d4f100ace0ae50b5270af10f579a2ccf7b2991731f05b82920eefba60055d49a",
+      "executed": false,
+      "normalImports": [
+        "kernel32.dll",
+        "advapi32.dll",
+        "ws2_32.dll",
+        "iphlpapi.dll",
+        "ntdll.dll",
+        "oleaut32.dll",
+        "rpcrt4.dll",
+        "crypt32.dll",
+        "bcrypt.dll",
+        "KERNEL32.dll",
+        "wintrust.dll",
+        "msvcrt.dll"
+      ],
+      "delayImports": [],
+      "machine": "AMD64"
+    },
+    {
+      "name": "easytier-cli.exe",
+      "bytes": 6050816,
+      "sha256": "b84fa350b9c8036649df3cdc8ee728c364ea81075d82fd3783cdeede3b9ddccd",
+      "executed": false,
+      "normalImports": [
+        "kernel32.dll",
+        "advapi32.dll",
+        "ws2_32.dll",
+        "ntdll.dll",
+        "iphlpapi.dll",
+        "oleaut32.dll",
+        "combase.dll",
+        "bcrypt.dll",
+        "shell32.dll",
+        "KERNEL32.dll",
+        "msvcrt.dll"
+      ],
+      "delayImports": [],
+      "machine": "AMD64"
+    },
+    {
+      "name": "WinDivert64.sys",
+      "bytes": 94144,
+      "sha256": "8da085332782708d8767bcace5327a6ec7283c17cfb85e40b03cd2323a90ddc2",
+      "executed": false
+    },
+    {
+      "name": "wintun.dll",
+      "bytes": 427552,
+      "sha256": "e5da8447dc2c320edc0fc52fa01885c103de8c118481f683643cacc3220dafce",
+      "executed": false
+    }
+  ]
+}

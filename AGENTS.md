@@ -129,7 +129,7 @@ E2E remains open. Do not rerun the completed narrow media trial without a change
 The user-approved ET single attempt failed mandatory read-only preflight before
 core/TUN; approval is consumed and no complete route/firewall comparison exists.
 Only ET-owner read-only diagnosis/reviewed runner repair is pending,not a retry.
-Parent's sole heavy owner is building internal83dd572f with a separate test-only
+Parent's sole heavy owner completed internal83dd572f with a separate test-only
 wrapper; keep its source and license/activation gates untouched. Task6 starts no
 build. Follow-up scripts accept only an exactly equivalent filter-only FileSet
 and fix the obsolete five-file wiring expectation,without adding capture DLLs.
@@ -137,5 +137,9 @@ All25 license text omissions were reviewed:23 original text/notice cases were
 recovered; two MIT author notice questions and one CC0/source notice clarification
 remain distinct public-distribution gates. The506-package inventory,351 original
 text units and496 registry archive hashes are verified. New legal inputs belong
-to the follow-up,not the already running83dd artifact. Actual source-recipient
+to the follow-up,not the frozen83dd artifact. Actual source-recipient
 delivery and final application legal inventory are unaccepted; no public release.
+
+Current follow-up source 944c42880b00cf8da839bf061e8f5439f86b4304 includes ET-owner final732ad82e as seven exact Git blobs. New scope dd60b94603ffb3e17a85450810e2f3edfba3183705e0d515f662037916692dfc supersedes c44bdbae and consumed c737fd45. Complete administrator read-only baseline passed all23 phases in20.657s, recorded in acceptance/admin-readonly-baseline.json. This is not native before/after protection: no new TUN approval/activation is recorded. Snapshot/residual reads are40s, native running watchdog30s, owned stop4/6s. Final30 fake-child/clock checks passed. Default ESLint reports18 Node-global and2 import-order errors in owner scripts; explicit Node globals with import sorting excluded passed, and hash-pinned owner sources remain unchanged. No Task6 OS snapshot or native run.
+
+The internal83 artifact is frozen:128601307 bytes, SHA256 7d430b1cdf64cd07f439264b4d73ba3771f5a105796c8041f15c2424c66cb0e9, ASAR 4ae4d6897a63942467b6aaf98295384aa59279ba6be903ccaadc4815044308b5, exact source archive c02c9c0b0279a72dcf418129859fe9e407d8910fe2feb2240bc40cb3de68bbfe. Task6 read-only rehashed all188 listed files (574802352 bytes), matched105 payload inventory rows, verified UI3023c752's six integrated blobs, and independently parsed both packaged AMD64 normal/delay import tables with no capture DLL. See acceptance/internal-candidate83-built.json and build-owner task-2/candidate83-build/REPORT.md. Fresh offline/frozen/ignore-scripts install,212 SDK bytes, types, web/desktop/internal portable and built-preload fakeIPC passed within that immutable owner's report. Squad was freshly rebuilt; capture helper bytes were reused with matching source. No real Electron/main/renderer DOM/device/native executed. The unsigned internal candidate uses an explicit internal-only wrapper and retains production license/activation gates false. It does not contain26d84d8e's new legal/FileSet source or this runner repair. Whole-app isolation source delta is being prepared separately; old83 starts local HTTP/mDNS and may hooks/helpers, so it must not be treated as isolated UI startup acceptance. All historical source/evidence/archives stay unchanged. ready=false and finalPackage=null; internalCandidate is a separate measured artifact, no public release.
