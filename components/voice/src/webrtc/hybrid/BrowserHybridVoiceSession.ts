@@ -5,7 +5,7 @@ import { BrowserHybridPeer, borrowHybridPublication, type BrowserHybridPeerOptio
 import { HybridReceivePortAdapter } from "./HybridReceivePortAdapter";
 import { HybridRouteController } from "./HybridRouteController";
 import { SfuDecodedAudioMonitor } from "./SfuDecodedAudioMonitor";
-import { SocketHybridAuthority, type HybridSocketTransport } from "./SocketHybridAuthority";
+import { SocketHybridAuthority, type HybridAuthorizedSnapshot, type HybridSocketTransport } from "./SocketHybridAuthority";
 
 export interface BrowserHybridVoiceState {
   status: "disabled" | "unsupported" | "active" | "recovering" | "disposed";
@@ -30,7 +30,7 @@ export interface BrowserHybridVoiceOptions extends BrowserHybridPeerOptions {
   onState?(state: BrowserHybridVoiceState): void;
 }
 interface PortBinding { source: StreamSources[string]; participant: HybridParticipant; port: HybridReceivePortAdapter }
-interface Recovery { request: HybridForwardingRequest; port: HybridReceivePortAdapter; revision: number }
+interface Recovery { request: HybridForwardingRequest; port: HybridReceivePortAdapter; revision: number; restoredRevision?: number }
 const sameRoom = (a: HybridScope, b: HybridScope) => a.serverInstanceId === b.serverInstanceId && a.roomId === b.roomId &&
   a.roomGeneration === b.roomGeneration && a.localParticipantId === b.localParticipantId && a.localSessionId === b.localSessionId;
 
@@ -92,14 +92,29 @@ export class BrowserHybridVoiceSession {
     });
     binding = { source, participant: { ...participant }, port }; this.ports.set(source, binding); return port;
   }
-  private async recover(): Promise<void> {
+  private async recover(snapshot: HybridAuthorizedSnapshot): Promise<void> {
+    this.controller?.setProbeAdmission(false, "auth_recovery_cleanup");
     for (const [port, recovery] of this.recoveries) {
       if (!port.isCurrent()) { this.recoveries.delete(port); continue; }
-      if (port.getSelectionRevision() !== recovery.revision) { this.recoveries.delete(port); continue; }
-      const request = { ...recovery.request, routeGeneration: recovery.request.routeGeneration + 1,
-        operationId: `${recovery.request.routeGeneration + 1}:1` };
-      recovery.request = request;
-      await port.restoreSfu(() => this.authority.restoreForwarding(request));
+      if (port.getSelectionRevision() !== (recovery.restoredRevision ?? recovery.revision)) throw new Error("stale_receive_selection");
+      if (recovery.restoredRevision === undefined) {
+        const request = { ...recovery.request, routeGeneration: recovery.request.routeGeneration + 1,
+          operationId: `${recovery.request.routeGeneration + 1}:1` };
+        recovery.request = request;
+        await port.restoreSfu(() => this.authority.restoreForwarding(request),
+          () => this.current() && this.authority.isCurrent(snapshot.scope) && this.recoveries.get(port) === recovery);
+        recovery.restoredRevision = port.getSelectionRevision();
+        if (!this.controller?.confirmRetiredSfuRecovery(port, recovery.restoredRevision)) throw new Error("stale_receive_selection");
+      }
+      if (!this.current() || !port.isCurrent() || !this.authority.isCurrent(snapshot.scope)) throw new Error("hybrid_scope_stale");
+      // Reconcile the actual restored edge while probes remain closed until every old pair is retired.
+      this.controller?.reconcile(snapshot.scope, snapshot.participants.filter(participant => {
+        const source = this.options.getSource(participant), binding = source && this.ports.get(source);
+        const pending = binding && this.recoveries.get(binding.port);
+        return !pending || pending.restoredRevision !== undefined;
+      }));
+      await this.authority.retireRestoredPair(recovery.request);
+      if (!this.current() || !port.isCurrent() || port.getSelectionRevision() !== recovery.restoredRevision) throw new Error("stale_receive_selection");
       if (this.recoveries.get(port) === recovery) this.recoveries.delete(port);
     }
   }
@@ -116,7 +131,7 @@ export class BrowserHybridVoiceSession {
       for (const [source, binding] of this.ports) if (!binding.port.isCurrent()) {
         binding.port.dispose(); this.recoveries.delete(binding.port); this.ports.delete(source);
       }
-      if (this.recoveries.size) { this.publish("recovering", "fresh_sfu_restore_required"); await this.recover(); }
+      if (this.recoveries.size) { this.publish("recovering", "fresh_sfu_restore_required"); await this.recover(snapshot); }
       if (!this.current()) return;
       if (!this.controller && this.enabled) {
         this.controller = new HybridRouteController({ authority: this.authority,
@@ -140,6 +155,7 @@ export class BrowserHybridVoiceSession {
         this.ports.clear(); this.publish("disabled", null); return;
       }
       this.controller!.reconcile(snapshot.scope, snapshot.participants);
+      this.controller!.setProbeAdmission(true);
       this.publish(this.recoveries.size ? "recovering" : "active", this.recoveries.size ? "fresh_sfu_restore_required" : null);
     } catch (error) {
       if (!this.disposed) this.publish(this.recoveries.size ? "recovering" : "unsupported",

@@ -44,6 +44,8 @@ export class HybridReceivePortAdapter implements HybridReceivePort {
   private selectedCandidate?: HybridMediaCandidate;
   isCurrent(): boolean { return !this.disposed && this.options.isCurrent() && this.options.source.receiveCleanup?.isCurrent?.() === true; }
   getSelectionRevision(): number { return this.input.getSelectionRevision(); }
+  getSelection() { return { kind: this.selected, trackId: this.selected === "sfu" ? this.sfuTrack.id :
+    this.selected === "p2p" ? this.selectedCandidate?.track.id ?? null : null, revision: this.getSelectionRevision() }; }
   getSfuMediaSequence(): number { return this.evidence.getSequence(); }
   waitForSfuMedia(after: number): Promise<HybridMediaCandidate> { return this.evidence.waitForFresh(after); }
   select(kind: "sfu" | "p2p" | "none", candidate: HybridMediaCandidate | undefined, revision: number): void {
@@ -52,13 +54,13 @@ export class HybridReceivePortAdapter implements HybridReceivePort {
     this.selected = kind;
   }
   /** Caller must resolve only after an exact current authenticated SFU restore ACK. No expiry/timer substitute. */
-  async restoreSfu(restoreForwarding: () => Promise<void>): Promise<void> {
+  async restoreSfu(restoreForwarding: () => Promise<void>, isAuthorized: () => boolean = () => true): Promise<void> {
     const revision = this.getSelectionRevision(), sequence = this.getSfuMediaSequence();
     if (!this.isCurrent()) throw new Error("sfu_binding_retired");
     await restoreForwarding();
-    if (!this.isCurrent() || revision !== this.getSelectionRevision()) throw new Error("stale_receive_selection");
+    if (!isAuthorized() || !this.isCurrent() || revision !== this.getSelectionRevision()) throw new Error("stale_receive_selection");
     const media = await this.waitForSfuMedia(sequence);
-    if (!this.isCurrent() || revision !== this.getSelectionRevision()) throw new Error("stale_receive_selection");
+    if (!isAuthorized() || !this.isCurrent() || revision !== this.getSelectionRevision()) throw new Error("stale_receive_selection");
     this.select("sfu", media, revision + 1);
   }
   dispose(): void {

@@ -155,6 +155,15 @@ export class HybridRouteController {
     this.emit(); this.pump();
   }
 
+  /** Transfer a completed ACK + fresh-media restoration back from the host recovery owner. */
+  confirmRetiredSfuRecovery(port: HybridReceivePort, revision: number): boolean {
+    const selection = port.getSelection?.();
+    if (this.disposed || !port.isCurrent() || !selection || selection.kind !== "sfu" || !selection.trackId ||
+      selection.revision !== revision || !Number.isSafeInteger(revision) || revision < 0 ||
+      [...this.routes.values()].some(route => route.port === port)) return false;
+    this.restorePorts.delete(port); return true;
+  }
+
   private emit(): void {
     const state = this.getState();
     for (const listener of this.listeners) { try { listener(state); } catch { /* Isolate observers. */ } }
@@ -197,13 +206,14 @@ export class HybridRouteController {
       const generation = ++this.generations;
       const withinLimit = this.routes.size < this.options.maxPeerConnections;
       const restoring = this.restorePorts.has(port);
+      const selection = port.getSelection?.();
       const route: Route = {
         participant, scope: { ...scope }, publication: { ...publication! }, port, generation,
         signalIn: 0, signalOut: 0, outbound: Promise.resolve(), inbound: Promise.resolve(),
         pauseAttempted: restoring, pauseUntil: 0, cancellations: new Set(), pendingIn: 0, pendingOut: 0,
         state: { participantId: participant.participantId, sessionId: participant.sessionId,
-          publicationId: participant.publicationId, routeGeneration: generation, selectionRevision: 0,
-          status: restoring ? "sfu" : withinLimit ? "queued" : "sfu", selected: restoring ? "none" : "sfu", selectedTrackId: null,
+          publicationId: participant.publicationId, routeGeneration: generation, selectionRevision: selection?.revision ?? 0,
+          status: restoring ? "sfu" : withinLimit ? "queued" : "sfu", selected: selection?.kind ?? (restoring ? "none" : "sfu"), selectedTrackId: selection?.trackId ?? null,
           reason: withinLimit ? null : "peer_limit", forwardingPaused: false },
       };
       this.routes.set(key, route);

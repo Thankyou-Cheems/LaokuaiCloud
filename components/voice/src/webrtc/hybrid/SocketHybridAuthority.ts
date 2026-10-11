@@ -13,6 +13,8 @@ const object = (value: unknown): value is Record<string, any> => !!value && type
 const sameScope = (a: HybridScope, b: HybridScope) => a.serverInstanceId === b.serverInstanceId && a.roomId === b.roomId &&
   a.roomGeneration === b.roomGeneration && a.localParticipantId === b.localParticipantId && a.localSessionId === b.localSessionId &&
   a.canPublish === b.canPublish && a.canReceive === b.canReceive;
+const sameBinding = (a: HybridScope, b: HybridScope) => a.serverInstanceId === b.serverInstanceId && a.roomId === b.roomId &&
+  a.roomGeneration === b.roomGeneration && a.localParticipantId === b.localParticipantId && a.localSessionId === b.localSessionId;
 function validScope(value: unknown): value is HybridScope {
   return object(value) && [value.serverInstanceId, value.roomId, value.roomGeneration, value.localParticipantId, value.localSessionId].every(text) &&
     typeof value.canPublish === "boolean" && typeof value.canReceive === "boolean";
@@ -34,6 +36,10 @@ export class SocketHybridAuthority implements HybridAuthority {
   private pairInvalidations = new Set<(connectionId: string) => void>();
   private leases = new Set<string>();
   private retiredPairs = new Set<string>();
+  private restoredPairs = new Map<string, HybridScope>();
+  private releasedPairs = new Map<string, HybridScope>();
+  private pendingReleases = new Map<string, HybridPairLease>();
+  private releaseFlights = new Map<string, { generation: number; promise: Promise<void> }>();
   private pending = new Map<string, HybridSignal[]>();
   private timers = new Set<ReturnType<typeof setTimeout>>();
   constructor(private readonly socket: HybridSocketTransport, private readonly getAccessToken: () => string | undefined) {
@@ -47,6 +53,7 @@ export class SocketHybridAuthority implements HybridAuthority {
   private invalidate = (): void => {
     ++this.generation; ++this.refreshing; this.snapshot = undefined; this.capabilities = null;
     this.pending.clear(); this.leases.clear(); this.retiredPairs.clear();
+    this.releaseFlights.clear();
     for (const timer of this.timers) clearTimeout(timer); this.timers.clear();
     for (const listener of this.invalidations) { try { listener(); } catch {} }
   };
@@ -72,6 +79,10 @@ export class SocketHybridAuthority implements HybridAuthority {
       if (this.snapshot && !sameScope(this.snapshot.scope, response.scope)) this.invalidate();
       this.capabilities = { protocolVersion: 1, authenticatedRoomSignals: true, pairForwardingLeases: true };
       this.snapshot = { scope: structuredClone(response.scope), participants: structuredClone(response.participants) };
+      for (const [id, scope] of this.restoredPairs) if (!sameBinding(scope, response.scope)) this.restoredPairs.delete(id);
+      for (const [id, scope] of this.releasedPairs) if (!sameBinding(scope, response.scope)) this.releasedPairs.delete(id);
+      await this.flushReleases(this.snapshot.scope);
+      if (!this.isCurrent(response.scope)) throw new Error("hybrid_scope_stale");
       return structuredClone(this.snapshot);
     } catch (error) { if (revision === this.refreshing) this.invalidate(); throw error; }
   }
@@ -110,15 +121,76 @@ export class SocketHybridAuthority implements HybridAuthority {
     if (!scope.canReceive || scope.serverInstanceId !== prior.serverInstanceId || scope.roomId !== prior.roomId ||
       scope.roomGeneration !== prior.roomGeneration || scope.localParticipantId !== prior.localParticipantId ||
       scope.localSessionId !== prior.localSessionId) throw new Error("hybrid_scope_stale");
-    const current = { ...request, scope }, ack = await this.setForwarding(current);
+    let current = { ...request, scope }, ack: HybridForwardingAck;
+    try { ack = await this.setForwarding(current); }
+    catch (error) {
+      // An expired old pair may use guarded unbound restoration; a different active pair still conflicts.
+      if (!request.pairConnectionId || !(error instanceof Error) || error.message !== "hybrid_pair_stale") throw error;
+      current = { ...current, pairConnectionId: null }; ack = await this.setForwarding(current);
+    }
     if (!ack || ack.applied !== true || ack.leaseRemainingMs !== 0 ||
       Object.entries(current).some(([key, value]) => JSON.stringify(ack[key as keyof HybridForwardingAck]) !== JSON.stringify(value))) {
       throw new Error("hybrid_sfu_ack_failed");
     }
+    if (request.pairConnectionId) {
+      if (!this.restoredPairs.has(request.pairConnectionId) && this.restoredPairs.size >= 19) throw new Error("hybrid_restore_capacity");
+      this.restoredPairs.set(request.pairConnectionId, { ...scope });
+    }
+  }
+  /** Idempotent retirement of a restored old pair; never relax another pair's forwarding ownership. */
+  async retireRestoredPair(request: HybridForwardingRequest): Promise<void> {
+    const connectionId = request.pairConnectionId;
+    if (connectionId === null) return;
+    const scope = this.snapshot?.scope, restored = this.restoredPairs.get(connectionId), released = this.releasedPairs.get(connectionId);
+    if (!scope || !this.isCurrent(scope) || !sameBinding(scope, request.scope) || !scope.canReceive) throw new Error("hybrid_scope_stale");
+    if (released && sameBinding(released, scope)) { this.restoredPairs.delete(connectionId); return; }
+    if (!restored || !sameBinding(restored, scope)) throw new Error("hybrid_restore_required");
+    await this.releaseOnce(connectionId, { connectionId, scope, remoteSessionId: request.sourceSessionId }, scope);
+    if (!this.isCurrent(scope)) throw new Error("hybrid_scope_stale");
+    if (this.retiredPairs.size >= 512) { this.invalidate(); throw new Error("hybrid_scope_stale"); }
+    this.leases.delete(connectionId); this.pending.delete(connectionId); this.retiredPairs.add(connectionId);
+    this.restoredPairs.delete(connectionId); this.rememberRelease(connectionId, scope);
   }
   async releasePair(lease: HybridPairLease): Promise<void> {
     this.leases.delete(lease.connectionId); this.pending.delete(lease.connectionId);
-    if (this.isCurrent(lease.scope)) await this.request("voice:hybrid:release", { lease });
+    if (this.disposed) return;
+    const released = this.releasedPairs.get(lease.connectionId);
+    if (released && sameBinding(released, lease.scope)) return;
+    if (!this.pendingReleases.has(lease.connectionId) && this.pendingReleases.size >= 19) throw new Error("hybrid_release_capacity");
+    if (!this.pendingReleases.has(lease.connectionId)) this.pendingReleases.set(lease.connectionId, structuredClone(lease));
+    const scope = this.snapshot?.scope;
+    if (scope && sameBinding(scope, lease.scope) && this.isCurrent(scope)) await this.flushReleases(scope);
+  }
+  private rememberRelease(connectionId: string, scope: HybridScope): void {
+    if (!this.releasedPairs.has(connectionId) && this.releasedPairs.size >= 19) this.releasedPairs.delete(this.releasedPairs.keys().next().value!);
+    this.releasedPairs.set(connectionId, { ...scope });
+  }
+  private async flushReleases(scope: HybridScope): Promise<void> {
+    for (const [connectionId, lease] of this.pendingReleases) {
+      if (!sameBinding(scope, lease.scope)) { this.pendingReleases.delete(connectionId); continue; }
+      if (!this.isCurrent(scope)) throw new Error("hybrid_scope_stale");
+      await this.releaseOnce(connectionId, lease, scope);
+      if (!this.isCurrent(scope)) throw new Error("hybrid_scope_stale");
+      if (this.pendingReleases.get(connectionId) === lease) this.pendingReleases.delete(connectionId);
+      if (!this.retiredPairs.has(connectionId) && this.retiredPairs.size >= 512) { this.invalidate(); throw new Error("hybrid_scope_stale"); }
+      this.retiredPairs.add(connectionId);
+      this.rememberRelease(connectionId, scope);
+    }
+  }
+  private releaseOnce(connectionId: string,
+    lease: Pick<HybridPairLease, "connectionId" | "scope" | "remoteSessionId">, scope: HybridScope): Promise<void> {
+    const prior = this.releaseFlights.get(connectionId);
+    if (prior?.generation === this.generation) return prior.promise;
+    const flight = { generation: this.generation, promise: Promise.resolve() };
+    flight.promise = (async () => {
+      try {
+        const response = await this.request("voice:hybrid:release", { lease: { ...lease, scope } });
+        if (response.status !== "released") throw new Error("hybrid_release_failed");
+      } catch (error) {
+        if (!(error instanceof Error) || error.message !== "hybrid_pair_stale" || !this.isCurrent(scope)) throw error;
+      }
+    })().finally(() => { if (this.releaseFlights.get(connectionId) === flight) this.releaseFlights.delete(connectionId); });
+    this.releaseFlights.set(connectionId, flight); return flight.promise;
   }
   private incoming = (value: unknown): void => {
     if (!object(value) || !text(value.connectionId) || !this.snapshot || !this.isCurrent(this.snapshot.scope)) return;
@@ -148,6 +220,7 @@ export class SocketHybridAuthority implements HybridAuthority {
     if (this.disposed) return; this.disposed = true; this.invalidate();
     this.socket.off("voice:hybrid:signal", this.incoming); this.socket.off("voice:hybrid:pair-invalidated", this.pairInvalidated);
     for (const event of ["disconnect", "token:revoked", "voice:room:leave", "voice:move:committed"]) this.socket.off(event, this.invalidate);
-    this.signals.clear(); this.invalidations.clear(); this.pairInvalidations.clear();
+    this.signals.clear(); this.invalidations.clear(); this.pairInvalidations.clear(); this.pendingReleases.clear();
+    this.restoredPairs.clear(); this.releasedPairs.clear(); this.releaseFlights.clear();
   }
 }

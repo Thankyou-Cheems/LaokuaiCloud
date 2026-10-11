@@ -84,6 +84,8 @@ export interface HybridMediaCandidate {
 export interface HybridReceivePort {
   isCurrent(): boolean;
   getSelectionRevision?(): number;
+  /** Snapshot of the one edge actually selected by its owner, not decoded/ICE guesses. */
+  getSelection?(): { kind: "sfu" | "p2p" | "none"; trackId: string | null; revision: number };
   /** Must disconnect the old input before connecting one new input, preserving the DSP/manual nodes. */
   select(kind: "sfu" | "p2p" | "none", candidate: HybridMediaCandidate | undefined, selectionRevision: number): void;
   waitForSfuMedia(afterSequence: number): Promise<HybridMediaCandidate>;
