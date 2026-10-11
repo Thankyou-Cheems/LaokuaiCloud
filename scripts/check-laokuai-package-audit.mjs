@@ -56,6 +56,20 @@ try {
   check("official updater feed is rejected",()=>{write("payload/resources/app-update.yml","provider: github");assert.throws(()=>verifyPayload(payload,manifest));fs.unlinkSync(path.join(payload,"resources/app-update.yml"));});
   check("source-only inventory cannot approve archive",()=>assert.throws(()=>verifyPayload(payload,{...manifest,sourceOnly:true}),/source-only/));
   check("malformed ASAR header is rejected",()=>{write("bad.asar",Buffer.alloc(32));assert.throws(()=>readAsar(path.join(temp,"bad.asar")),/pickle header/);});
-  check("locked real vendor tar is read without loading SDK",()=>{const pkg=JSON.parse(fs.readFileSync(new URL("../package.json",import.meta.url)));const archive=readTarGz(path.resolve(import.meta.dirname,"..",pkg.devDependencies["@gryt/voice"].slice(5)));assert.ok(JSON.parse(archive.get("package/package.json")).version.includes("alias"));});
+  check("locked real vendor tar is read without loading SDK",()=>{
+    const pkg=JSON.parse(fs.readFileSync(new URL("../package.json",import.meta.url)));
+    const dependency=pkg.devDependencies["@gryt/voice"];
+    assert.ok(dependency.startsWith("file:vendor/"));
+    const archive=readTarGz(path.resolve(import.meta.dirname,"..",dependency.slice(5)));
+    const sdk=JSON.parse(archive.get("package/package.json"));
+    assert.equal(sdk.name,"@gryt/voice");
+    assert.equal(path.basename(dependency),`gryt-voice-${sdk.version}.tgz`);
+    const lock=fs.readFileSync(new URL("../yarn.lock",import.meta.url),"utf8");
+    const header=`"@gryt/voice@${dependency}":`;
+    const start=lock.indexOf(header);assert.ok(start>=0);
+    const entry=lock.slice(start,lock.indexOf("\n\n",start));
+    assert.ok(entry.includes(`version "${sdk.version}"`));
+    assert.ok(entry.includes(`resolved "${dependency}#`));
+  });
   console.log(`${cases} pure file scenarios passed; synthetic PE bytes were never executed`);
 } finally { assert.ok(temp.startsWith(fixtureRoot+path.sep));fs.rmSync(temp,{recursive:true,force:true}); }
