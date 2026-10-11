@@ -9,7 +9,9 @@ Components retain their own source origins, licenses and frozen source commits.
 The client is imported with its Git history; the SDK, server and SFU are frozen
 source imports with exact upstream/delivery commit and file hashes recorded in
 the release manifest. EasyTier is pinned to official v2.7.0 prerelease; the
-server/community adapter and real network acceptance remain pending.
+Windows server/community adapter is integrated with configuration and permission
+gates. Automatic authorized community provisioning and real network acceptance
+remain pending.
 
 The old local EasyTier network-upgrade project has core/game Git trees whose
 remotes point to official public upstreams. No corresponding user private

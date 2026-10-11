@@ -1,6 +1,6 @@
 {
   "schema": 2,
-  "id": "laokuai-cloud-source-candidate-20261011",
+  "id": "laokuai-cloud-et-production-source-20261011",
   "stage": "private-source-checkpoint",
   "ready": false,
   "repository": {
@@ -9,15 +9,15 @@
     "visibility": "private",
     "branch": "release/integration-20261011",
     "soleGitWriter": "task-6",
-    "codeCommit": "073fdf13af445c818a1a5942d89d99945c782a20",
-    "codeTree": "ddaf1f09a806a79821013f43f738ff3ee2c5faab",
+    "codeCommit": "dfd2adef8575bd8d2b7e3567afbbc837b866579a",
+    "codeTree": "77d708402a02a37c45c064232c731d74eda07010",
     "newRepositoryReason": "Authenticated private-repo metadata and explicitly scoped old local core/game remotes revealed no matching existing private integration repository",
     "historyPolicy": "Original client history preserved; no force push/reset/rewrite; other components imported as licensed source snapshots"
   },
   "components": {
     "client": {
       "path": "components/client",
-      "tree": "10901f8d96822c575ce351e288adcd04ed9e45b4",
+      "tree": "53163791dd8258ce4fa3a5b560497317af8cc9d1",
       "upstream": "Gryt-chat/client",
       "publicFork": "Thankyou-Cheems/gryt-client-i18n",
       "historyImportedFrom": "06ac43f51dbda3b9444c73270a126e10489110e9",
@@ -116,6 +116,20 @@
       "deliveredCommit": "4eeef57184fddf69113e51d37f656a32174b47c6",
       "integratedCommit": "a43df31af818489313686c7391ea611c60705046",
       "patchConflicts": []
+    },
+    {
+      "kind": "community-et-production",
+      "deliveredCommit": "ca4c132687dd2eb9b031e3608e3c5adc790186a7",
+      "patchSha256": "5cb9e02629258700d7371889c39ec158fafd7556506abdb979851af8bb8789ad",
+      "integratedCommit": "dfd2adef8575bd8d2b7e3567afbbc837b866579a",
+      "patchConflicts": [],
+      "integrationCorrections": [
+        "Keep grytI18nTest profile/update isolation while injecting real Laokuai runtime",
+        "Restore exact five-file Windows resources after test variant replaces win",
+        "Audit both global and Windows resources",
+        "Subscribe member sidebar by authenticated server ID and advance idle evidence clock",
+        "Import sort and Node lint context; isolated i18n remains null"
+      ]
     }
   ],
   "easytier": {
@@ -152,29 +166,60 @@
         "updatedAt": "2026-10-06T13:16:13Z"
       }
     ],
-    "verification": "Official GitHub metadata observed; local asset bytes not downloaded or rehashed by task-6.",
+    "verification": "Owner verified official archive size/SHA256; task-6 independently rehashed all five extracted runtime files without execution",
     "networkVerified": false,
     "productionUpgrade": false,
-    "implementationStatus": "implementation-incomplete",
-    "integratedLayer": "Lease state machine, gated injected Windows runtime ports, trusted IPC and member evidence projection",
-    "nativePortsImplemented": false,
-    "mainRuntime": null,
-    "rendererCommunityLeaseWiring": false,
-    "memberSubscriptionWiring": false,
-    "localAssetBytesVerified": false,
-    "userFacingNeedsPermissionImplemented": false,
+    "implementationStatus": "implemented-not-runtime-verified",
+    "integratedLayer": "Owned Windows core/official CLI, trusted IPC, renderer community lifetime/status and member subscription; config/permission gates remain",
+    "nativePortsImplemented": true,
+    "mainRuntime": "WindowsEasyTierCliRuntime via createWindowsEasyTierProduction; private Laokuai metadata injects production runtime",
+    "rendererCommunityLeaseWiring": true,
+    "memberSubscriptionWiring": true,
+    "localAssetBytesVerified": true,
+    "userFacingNeedsPermissionImplemented": true,
     "actualNetworkVerified": false,
     "defaultActivation": false,
     "scope": "v2.7.0 sidecar with simple built-in settings; no official console or Web DB migration; user must not enter ET nodes/secrets/subnets",
     "lifecycle": "server/community owned, independent of voice room switch/exit",
     "fallback": "Ordinary SFU remains independent of LAN failure",
-    "nativeNextDeliveryOwner": "ET feature owner; no duplicate implementation by task-6"
+    "authenticatedMemberBindingsImplemented": false,
+    "archiveBytesRehashedByTask6": false,
+    "windowsRuntimeFiles": {
+      "easytier-core.exe": {
+        "sha256": "6490c6f5b5b809065517bb3324ca34c0f1f367f81b7fda04a6352391508b8ff8",
+        "bytes": 20521984
+      },
+      "easytier-cli.exe": {
+        "sha256": "3afdf2e4306c3f8d65408ddd230c7e4118ffdb5d550921022aed9966693c82ba",
+        "bytes": 6255104
+      },
+      "Packet.dll": {
+        "sha256": "c7c03a87eac7243ccbe331554624b18803010b740e311fc8cfddb573096eacac",
+        "bytes": 220032
+      },
+      "WinDivert64.sys": {
+        "sha256": "8da085332782708d8767bcace5327a6ec7283c17cfb85e40b03cd2323a90ddc2",
+        "bytes": 94144
+      },
+      "wintun.dll": {
+        "sha256": "e5da8447dc2c320edc0fc52fa01885c103de8c118481f683643cacc3220dafce",
+        "bytes": 427552
+      }
+    },
+    "rendererPreferenceDefaultOn": true,
+    "activationReceiptRequired": true,
+    "automaticCommunityProvisioningImplemented": false,
+    "productionConcurrentCommunityLimit": 1,
+    "dynamicMultiCommunityProductionImplemented": false,
+    "managementConsolePackaged": false,
+    "localManagementUserAuthentication": false,
+    "firstRunReady": false
   },
   "validation": {
-    "commit": "073fdf13af445c818a1a5942d89d99945c782a20",
+    "commit": "dfd2adef8575bd8d2b7e3567afbbc837b866579a",
     "clientFullTypes": "passed: tsc -b --noEmit (app and desktop projects)",
     "targetedHybridAndMemberLint": "passed",
-    "targetedEtLint": "passed",
+    "targetedEtLint": "passed: all 25 changed TS/TSX/MJS/CJS files; zero warnings",
     "clientPure": {
       "status": "passed",
       "checks": [
@@ -267,6 +312,14 @@
           "exit": 0
         },
         {
+          "name": "check-community-easytier-production",
+          "exit": 0
+        },
+        {
+          "name": "check-private-easytier-wiring",
+          "exit": 0
+        },
+        {
           "name": "check-hybrid-receive-bindings-typescript-vm",
           "exit": 0
         },
@@ -278,9 +331,11 @@
       "registryAssertions": 13,
       "memberLanScenarios": 12,
       "communityEtScenarios": 36,
-      "startupTrayScenarios": 18
+      "startupTrayScenarios": 18,
+      "communityEtProductionScenarios": 17,
+      "privateEtIntegration": "Actual package metadata gate, five exact resources, actual snapshot hook generation/scope/idle TTL and disposal checks passed"
     },
-    "sourcePackageInventory": "passed; static source resources only",
+    "sourcePackageInventory": "passed; includes exact Windows sidecar resource entries; source-only does not approve executable",
     "sdkSourceAndPackage": "299 source ZIP files and 205 installed packed bytes verified; owner compile/pure evidence retained",
     "server": "Owner type/JWT/temporary SQLite tests passed; fake SFU ACK/media; no real server acceptance here",
     "capacity": {
@@ -297,8 +352,15 @@
         "sfuUncommittedCoordinatorRepairIncluded": true,
         "sfuCoordinatorRepairSha256": "a20ffcb94edb92e8ed4853887e13d20c50a3cf5d6e1571cdc9b4c190198884fe",
         "runtimeImage": "sha256:ec2b9fafca9b940faf765b3d05083e7bb4c262b7adf53365a6d381e388e96625",
-        "layouts": ["4x5", "2x10"],
-        "activeSourcesPerRoom": [0, 1, 2],
+        "layouts": [
+          "4x5",
+          "2x10"
+        ],
+        "activeSourcesPerRoom": [
+          0,
+          1,
+          2
+        ],
         "authenticatedMediaConnections": 20,
         "pionReplayActors": 18,
         "realChromiumSdkObservers": 2,
@@ -314,7 +376,15 @@
         },
         "hybridInstalled": false,
         "appliesToCurrentSdkServerSfu": false,
-        "notVerified": ["20 full clients/encoders/DSP", "production cloud capacity", "WAN20/TURN20", "FEC recovery", "physical devices/listening", "Hybrid direct/offload/fallback", "EasyTier"]
+        "notVerified": [
+          "20 full clients/encoders/DSP",
+          "production cloud capacity",
+          "WAN20/TURN20",
+          "FEC recovery",
+          "physical devices/listening",
+          "Hybrid direct/offload/fallback",
+          "EasyTier"
+        ]
       },
       "currentHybridTwoPeer": {
         "status": "requested-by-parent; no result received",
@@ -333,10 +403,22 @@
     "physicalDirectVerified": false,
     "actualPeerConnections": 0,
     "networkFixtures": 0,
-    "portableBinaryBuilt": false
+    "portableBinaryBuilt": false,
+    "staticRuntimeAssetPreparation": "five exact official executable/driver file SHA256 values verified; no native execution",
+    "portableBuild": {
+      "status": "queued",
+      "authorization": "One candidate build/portable package only; do not launch product, helpers, core, CLI or drivers",
+      "waitFor": "Explicit capacity-owner completion/release before CPU/memory-heavy build",
+      "requires": [
+        "Fresh exact-source renderer/main outputs and native-helper build receipts",
+        "EasyTier and bundled driver license/notice texts in final package",
+        "Static payload/ASAR/PE/resource verification and final binary SHA256"
+      ],
+      "runtimeAcceptance": false
+    }
   },
   "securityBoundary": {
-    "currentTrackedTextScanned": 1964,
+    "currentTrackedTextScanned": 1980,
     "credentialPatternHits": 0,
     "currentMachinePathHits": 0,
     "sourceRawPrivateLogsImported": false,
@@ -354,11 +436,21 @@
     "preserved": true
   },
   "pending": [
-    "ET owner concrete native sidecar/CLI-protobuf transport and main/renderer community lease/subscription delta",
-    "Automatic minimal community configuration without user-entered node/secret/subnet; missing authorization must be accurately reported",
-    "Exact v2.7.0 Windows bytes/executable, normal first-use UAC/driver/needs-permission behavior; no bypass",
-    "Real contained Hybrid media, forwarding pause/recovery, capacity/CPU/FEC/listening and physical direct acceptance",
-    "Final portable package with precise repository commit and binary/package SHA256 mapping"
+    "Automatic authorized community configuration without asking users for node/secret/subnet values",
+    "Explicit driver/local-management authorization and normal Windows administrator token; no UAC bypass",
+    "Real Windows core/CLI/driver start/exit/game/voice and owned-process cleanup acceptance",
+    "Authenticated user-peer bindings, timestamped forwarding/RTT evidence; member paths remain unknown",
+    "More than one production community requires concrete dynamic RPC transport; official CLI path supports one",
+    "Contained real Hybrid media/offload/fallback plus current-version capacity/CPU/FEC/listening/physical-direct acceptance",
+    "One authorized candidate build queued until capacity testing releases heavy-run resources; fresh source/build/helper receipts and driver notices required",
+    "Final portable exact Git commit/package/binary SHA256 mapping and static payload verification"
   ],
-  "finalPackage": null
+  "finalPackage": null,
+  "frozenPreviousHybrid": {
+    "commit": "a7ffde095467dcf89d278b95e26197396f850169",
+    "sourceZipSha256": "99ebe1ff0af756025b524aba16a24ee865bf136cc012e52b922c3fb1ec72eabc",
+    "bundleSha256": "b39846eb7ce57d029dce391d249023b06a025001063d5993251fda769e847fc2",
+    "preserved": true,
+    "testOwnerUsesImmutableSnapshot": true
+  }
 }

@@ -20,6 +20,9 @@ Joining a server/community owns ET lifetime independently of voice rooms. LAN
 membership does not authorize cross-room media; LAN direct does not prove voice
 or screen physical-direct transport. Actual network acceptance is pending.
 
-Lightweight static/type/pure checks are allowed. No Docker, listeners, browser,
-native helpers or large application builds in this stage. Bilingual Conventional
-Commits use the existing valid author identity.
+Lightweight static/type/pure checks are allowed. The user subsequently authorized
+one candidate application build/portable package without launching any product,
+helper, ET core/CLI or driver. Queue that heavy build until the capacity owner
+explicitly releases the heavy-run slot. No Docker, listeners, browser or native
+runtime execution by task-6. Bilingual Conventional Commits use the existing
+valid author identity.

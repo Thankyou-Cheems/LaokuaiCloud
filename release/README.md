@@ -14,26 +14,43 @@ and provenance. Two legacy selfhosted distribution/config files were excluded;
 the server's 460 imported files match the verified source archive. SDK runtime
 source is unchanged; one optional probe script now resolves its tool portably.
 
-The ET layer is **implementation-incomplete**. The current main manager receives
-`null`; native launch/CLI-protobuf transport, automatic authorized community
-configuration, renderer lease events and UI subscriptions are missing. Its pure
-runtime tests use injected ports. This is not an adapter whose only missing step
-is permission or a toggle. The ET owner is delivering a separate concrete delta.
+The ET layer is **implemented-not-runtime-verified**. The concrete Windows
+core/official CLI adapter, trusted IPC, renderer community leases/status and member
+subscription are integrated. The real Laokuai metadata now selects production
+ports while its profile/update isolation remains intact; the isolated i18n test
+still selects null. Both packaging variants use five exact pinned resource paths,
+and the final payload audit includes Windows-specific resources.
+
 Target is official **v2.7.0 prerelease**, pinned to exact tag commit and Windows
-asset digest. Local archive bytes/executable have not yet been independently
-accepted. No official Web console or DB migration is in scope.
+asset digest. The owner hashed the official archive; task-6 independently hashed
+and prepared all five extracted files without running them. No official Web
+console or DB migration is included. The CLI adapter supports one community;
+a second community reports unavailable without restarting the first. Dynamic
+multi-community RPC transport remains pending.
 
 The user-facing goal is simple automatic joining without manually entering
 nodes, secrets or subnets. Normal first-use UAC/driver prompts must be respected
-and reported as needs-permission. A failed LAN connection must leave ordinary
-SFU voice available. Current code does not yet deliver that complete experience.
+and reported as needs-permission. The current adapter requires already authorized,
+hash-verified product-owned configuration and an activation receipt. Automatic
+community provisioning is still missing; users must not be asked for secrets or
+node/subnet values. Stock loopback RPC lacks local-user authentication and requires
+explicit exposure authorization. A failed LAN connection leaves ordinary SFU
+voice independent. This is not yet the complete first-use experience.
 
-Full client app/desktop noEmit types, targeted Hybrid/member/ET lint, 24 pure and
-strict-type checks, and static source resource inventory passed. The ET suite
-contains 36 mocked lifecycle scenarios; the member suite has 12 scenarios and
-selected-track registry has 13 assertions. Real P2P, forwarding pause/fallback,
+Full client app/desktop noEmit types, all 25 changed source files' lint with no
+warnings, 26 pure/strict-type checks, and static source resource inventory passed.
+The ET suites contain 36 mocked lifecycle and 17 production adapter scenarios;
+private integration checks exercise actual package metadata, exact resources,
+snapshot generations/community scope and clock advancement during idle telemetry.
+The member suite has 12 scenarios and selected-track registry has 13 assertions.
+Missing authenticated bindings still produce unknown member path/RTT; no presence
+or network-secret inference is made. Real P2P, forwarding pause/fallback,
 capacity, CPU, FEC, listening and physical-direct routes remain unverified.
-No executable build, native helper, browser, Docker or network fixture was run.
+No executable build, native helper, browser, Docker or network fixture was run by
+task-6. One candidate build/portable package is authorized, but queued until the
+capacity owner explicitly releases heavy CPU/memory work. Fresh exact-source
+renderer/main and helper receipts, bundled driver notices, static payload audit
+and final binary SHA256 must be completed before recording a portable candidate.
 
 The source candidate is reproducible and testable, but `ready: false` and
 `finalPackage: null` remain binding. Do not call it a usable ET portable release.
