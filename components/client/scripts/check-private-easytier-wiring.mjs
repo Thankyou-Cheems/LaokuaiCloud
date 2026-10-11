@@ -25,10 +25,10 @@ const pins = ts.transpileModule(fs.readFileSync(new URL("../electron/easyTierWin
 }).outputText;
 vm.runInNewContext(pins, { exports, Object, require: () => ({}) });
 const expectedNames = Object.keys(exports.EASYTIER_WINDOWS_FILES).sort();
-assert.deepEqual(config.win.extraResources.map(entry => entry.to.split("/").at(-1)).sort(), expectedNames);
+assert.deepEqual(config.win.extraResources.map(entry => entry.to.split("/").at(-1)).sort(), [...expectedNames, "laokuai-build.json"].sort());
 for (const entry of config.win.extraResources) {
   assert.equal(entry.from, "build/" + entry.to);
-  assert.ok(entry.to.startsWith("community-lan/runtime/790fd9be347b00753570ac2b65f874a591ede9427603fe34e74a86b2b084847f/"));
+  assert.ok(entry.to.startsWith("community-lan/product/2.7.0-laokuai/"));
   assert.equal(entry.filter, undefined, "Copy exact pinned paths, with no glob expansion");
 }
 assert.equal(config.win.requestedExecutionLevel, "asInvoker");

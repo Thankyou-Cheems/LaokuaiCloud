@@ -1,3 +1,4 @@
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { readEasyTierExistingConfiguration } from "./easyTierExistingConfiguration";
@@ -13,7 +14,7 @@ export function createWindowsEasyTierProduction(root: () => string, bundledDirec
     platform: process.platform === "win32" && process.arch !== "x64" ? "unsupported-windows-arch" : process.platform,
     configuration: serverId => readEasyTierExistingConfiguration(root(), serverId),
     permission: hasEasyTierWindowsPermission,
-    verifiedAssets: () => assets.prepareBundled(),
+    verifiedAssets: () => assets.prepareProductBundled(),
     start: (directory, config, signal) => processes.start(directory, config, signal),
     shutdownOwned: () => processes.shutdownOwned(),
     pause: signal => new Promise((resolve, reject) => {
@@ -23,9 +24,21 @@ export function createWindowsEasyTierProduction(root: () => string, bundledDirec
       if (signal.aborted) abort();
     }),
   });
-  return { runtime, prepareRuntime: async () => {
+  const drainOwned = async () => {
+    try { await processes.drainOwned(); }
+    finally {
+      const reports = processes.cleanupReports();
+      if (reports.length) {
+        // Diagnostic receipt only. Never authorize deletion/kill from a saved PID or alias.
+        await mkdir(root(), { recursive: true });
+        await writeFile(join(root(), "owned-cleanup.json"), JSON.stringify({ schemaVersion: 1,
+          diagnosticOnly: true, reports }), { mode: 0o600 });
+      }
+    }
+  };
+  return { runtime, drainOwned, cleanupReports: () => processes.cleanupReports(), prepareRuntime: async () => {
     if (process.platform !== "win32" || process.arch !== "x64") return { ready: false };
-    try { await assets.prepare(); return { ready: true }; } catch { return { ready: false }; }
+    try { await assets.prepareProductBundled(); return { ready: true }; } catch { return { ready: false }; }
   } };
 }
 

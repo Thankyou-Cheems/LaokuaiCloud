@@ -126,6 +126,7 @@ await test("real CLI node output is sanitized before entering lifecycle status",
   const args = plain(processes.easyTierCoreArguments(config, "127.0.0.1:34567"));
   assert.deepEqual(args.slice(0, 5), ["--disable-env-parsing", "--rpc-portal", "127.0.0.1:34567", "--rpc-portal-whitelist", "127.0.0.1/32"]);
   assert.ok(!args.includes("--network-secret")); assert.ok(!args.includes("--config-server"));
+  assert.ok(args.includes("--laokuai-owned-stdin"));
   assert.deepEqual(plain(processes.easyTierCliArguments(config.instanceId, "127.0.0.1:34567")).slice(-4), ["--output", "json", "node", "info"]);
 });
 await test("membership synchronization ignores room changes and does not close LAN on renderer remount", async () => {
@@ -167,6 +168,12 @@ await test("owned process implementation uses fake child handles and exact CLI s
   const children = [], invocations = [];
   class FakeChild extends EventEmitter {
     pid = 123; exitCode = null; signalCode = null; kills = 0;
+    stdout = new EventEmitter();
+    stdin = Object.assign(new EventEmitter(), { end: command => {
+      assert.equal(command, "LAOKUAI_OWNED_STOP_V1\n");
+      this.stdout.emit("data", Buffer.from("LAOKUAI_OWNED_STOPPED_V1\n"));
+      this.exitCode = 0; this.emit("exit", 0);
+    } });
     kill() { this.kills++; this.exitCode = 0; this.emit("exit", 0); return true; }
   }
   const foreign = new FakeChild(); // represents the user's process, never given to this implementation
@@ -188,8 +195,9 @@ await test("owned process implementation uses fake child handles and exact CLI s
     const core = await owner.start("synthetic-no-files", config, new AbortController().signal);
     assert.deepEqual(plain(await core.readNode(new AbortController().signal)), { peerId: 8, virtualIp: "10.9.8.7" });
     assert.equal(invocations[0].options.shell, false); assert.equal(invocations[0].options.windowsHide, true);
-    assert.equal(invocations[0].options.stdio, "ignore"); assert.ok(invocations[1].args.includes(config.instanceId));
-    owner.shutdownOwned(); assert.equal(children[0].kills, 1); assert.equal(children[1].kills, 0); assert.equal(foreign.kills, 0);
+    assert.deepEqual(plain(invocations[0].options.stdio), ["pipe", "pipe", "ignore"]); assert.ok(invocations[1].args.includes(config.instanceId));
+    owner.shutdownOwned(); await owner.drainOwned(); assert.equal(children[0].kills, 0); assert.equal(children[1].kills, 0); assert.equal(foreign.kills, 0);
+    assert.equal(owner.cleanupReports()[0].outcome, "graceful");
     await core.close(); assert.equal(timers.size, 0);
   } finally { Object.assign(cp, savedCp); Object.assign(net, savedNet); }
 });
@@ -204,6 +212,71 @@ await test("renderer full membership snapshot drains departing session before re
   assert.deepEqual(events, ["start:server-a", "close:server-a", "start:server-b"]);
   await manager.syncMemberships([]); assert.equal(manager.getState("server-b").phase, "disabled");
   assert.equal(timers.size, 0);
+});
+async function ownedStopFixture(run, { naturalExit = false, failKill = false } = {}) {
+  const cp = deps["node:child_process"], net = deps["node:net"], savedCp = { ...cp }, savedNet = { ...net };
+  class Child extends EventEmitter {
+    pid = 456; exitCode = null; signalCode = null; kills = 0; stops = 0;
+    stdout = new EventEmitter();
+    stdin = Object.assign(new EventEmitter(), { end: command => {
+      assert.equal(command, "LAOKUAI_OWNED_STOP_V1\n"); this.stops++;
+      if (naturalExit) { this.exitCode = 0; this.emit("exit", 0); }
+    } });
+    kill() { this.kills++; if (!failKill) { this.exitCode = 1; this.emit("exit", 1); } return !failKill; }
+  }
+  const child = new Child();
+  cp.spawn = () => { Promise.resolve().then(() => child.emit("spawn")); return child; };
+  net.createServer = () => {
+    const server = { once: () => server, listen: (_options, callback) => callback(), address: () => ({ port: 34567 }), close: callback => callback() }; return server;
+  };
+  const fireNext = () => { const [id, fire] = timers.entries().next().value; timers.delete(id); fire(); };
+  try { const owner = new processes.EasyTierWindowsProcesses(); const core = await owner.start("synthetic-no-files", config, new AbortController().signal); await run({ child, owner, core, fireNext }); }
+  finally { Object.assign(cp, savedCp); Object.assign(net, savedNet); }
+}
+await test("stop requests share one promise; timeout only kills its owned child and reports actual NIC identifiers", async () => {
+  await ownedStopFixture(async ({ child, owner, core, fireNext }) => {
+    const guid = "00000000-0000-4000-8000-000000000001";
+    child.stdout.emit("data", Buffer.from(`discard native endpoints and configuration\nLAOKUAI_OWNED_NIC_V1 ${guid} 123 30\n`));
+    const first = core.close(), second = core.close(); assert.equal(first, second); assert.equal(child.kills, 0);
+    assert.equal(child.stops, 1); fireNext(); await first;
+    assert.equal(child.kills, 1); assert.equal(timers.size, 0);
+    assert.deepEqual(plain(owner.cleanupReports()), [{ outcome: "forced", ownedPid: 456,
+      interfaces: [{ guid, luid: "123", ifIndex: 30 }], residualCheckRequired: true }]);
+    const reports = owner.cleanupReports(); reports[0].interfaces[0].guid = "changed";
+    assert.equal(owner.cleanupReports()[0].interfaces[0].guid, guid);
+  });
+});
+await test("missing stop receipt never claims graceful OS cleanup; long native lines cannot forge a tail receipt", async () => {
+  await ownedStopFixture(async ({ child, owner, core }) => {
+    child.stdout.emit("data", Buffer.from("x".repeat(400)));
+    child.stdout.emit("data", Buffer.from("LAOKUAI_OWNED_STOPPED_V1\n"));
+    await core.close(); assert.equal(child.kills, 0); assert.equal(timers.size, 0);
+    assert.equal(owner.cleanupReports()[0].outcome, "unconfirmed"); assert.equal(owner.cleanupReports()[0].residualCheckRequired, true);
+  }, { naturalExit: true });
+});
+await test("unconfirmed forced exit retains the owned core until cleanup can be retried", async () => {
+  await ownedStopFixture(async ({ child, owner, core, fireNext }) => {
+    const close = core.close(); fireNext(); fireNext(); await assert.rejects(close, e => e.reason === "cleanup-failed");
+    assert.equal(core.isAlive(), true); assert.equal(owner.cleanupReports()[0].outcome, "unconfirmed");
+    const retry = core.close(); child.stdout.emit("data", Buffer.from("LAOKUAI_OWNED_STOPPED_V1\n"));
+    child.exitCode = 0; child.emit("exit", 0); await retry; assert.equal(timers.size, 0);
+    assert.equal(owner.cleanupReports().at(-1).outcome, "forced"); // prior force cannot be erased by a late receipt
+  }, { failKill: true });
+});
+await test("downstream identity requires reviewed host policy and owned-stop contract; official core hash is forbidden", async () => {
+  const manifest = { schemaVersion: 1, version: "2.7.0-laokuai", upstreamCommit: "8b7f1f0196edb5b580829ed5f135050fb5853478",
+    hostPolicy: "externally-managed", ownedStopProtocol: 1, sourcePatchSha256: assets.EASYTIER_LAOKUAI_SOURCE_PATCH_SHA256, coreSha256: "b".repeat(64) };
+  assert.equal(assets.verifiedEasyTierProductManifest(manifest).coreSha256, manifest.coreSha256);
+  for (const changes of [{ version: "2.7.0" }, { coreSha256: assets.EASYTIER_WINDOWS_FILES["easytier-core.exe"] },
+    { ownedStopProtocol: 0 }, { hostPolicy: "legacy" }, { sourcePatchSha256: null }, { sourcePatchSha256: "c".repeat(64) }]) {
+    assert.throws(() => assets.verifiedEasyTierProductManifest({ ...manifest, ...changes }), e => e.reason === "runtime-required");
+  }
+});
+await test("missing release-owned downstream manifest cannot download, write cache, start or load a driver", async () => {
+  const io = deps["node:fs/promises"], previousStat = io.stat;
+  io.stat = async () => { throw new Error("manifest-not-built"); };
+  try { await assert.rejects(new assets.EasyTierWindowsAssets(() => "synthetic-no-profile", () => "synthetic-no-package").prepareProductBundled(), e => e.reason === "runtime-required"); }
+  finally { io.stat = previousStat; }
 });
 await test("unverified or corrupt archive is rejected before extraction", async () => {
   assert.throws(() => assets.verifiedEasyTierArchive(new Uint8Array(10)), e => e.reason === "unsupported-target");

@@ -10,8 +10,10 @@ The client is imported with its Git history; the SDK, server and SFU are frozen
 source imports with exact upstream/delivery commit and file hashes recorded in
 the release manifest. EasyTier is pinned to official v2.7.0 prerelease; the
 Windows server/community adapter is integrated with configuration and permission
-gates. The minimal fixed-base Windows compatibility patch, automatic authorized
-community provisioning and real network acceptance remain pending. Official
+gates. Automatic authorized community provisioning and real network acceptance
+remain pending. The fixed-base Windows compatibility source is imported as a
+review checkpoint; existing-adapter ownership has a blocking finding recorded in
+`components/easytier/REVIEW.md`. Official
 Windows files are reference only; private final packaging requires reviewed
 patch/build hashes from `components/easytier/provenance.json`.
 

@@ -27,7 +27,7 @@ export function easyTierCommunityAction(state: EasyTierCommunityState | undefine
     "configuration-required": "这个社区尚未提供已授权的联机配置，请联系社区管理员开通。语音聊天可继续使用。",
     "activation-required": "社区联机等待管理员开通。语音聊天可继续使用。",
     "needs-permission": "当前联机组件需要 Windows 驱动授权及管理员权限。请由管理员完成确认后以管理员权限启动应用。应用不会自行提权；语音聊天可继续使用。",
-    "runtime-required": "请先下载联机组件。此步骤只准备文件，不安装驱动或连接网络。",
+    "runtime-required": "本版本缺少可用的联机组件。请安装包含联机组件的应用版本；准备文件不会安装驱动或连接网络，语音聊天可继续使用。",
     "multi-community-unavailable": "当前版本同时支持一个社区联机。退出原社区联机后可重试，正在运行的游戏网络会保持连接。",
     "unsupported-target": "当前联机组件无法使用，请准备受支持的组件。语音聊天可继续使用。",
     "cleanup-failed": "联机连接尚未确认退出，请重试或关闭应用后再打开。语音聊天可继续使用。",

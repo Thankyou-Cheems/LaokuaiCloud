@@ -12,3 +12,6 @@ are authorized by this provenance work. Preserve existing source/archive hashes.
 
 Until patch review and exact private build/resource verification complete, the
 package payload remains blocked and release readiness remains false.
+The immutable 1a44fb98 source is currently changes-required: see REVIEW.md for
+ET-OWNERSHIP-001. Keep its bytes frozen; ask the native owner for a new delivery.
+Do not implement the same fix here or approve merely because static tests pass.

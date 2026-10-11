@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "version": "2.7.0-laokuai",
+  "upstreamCommit": "8b7f1f0196edb5b580829ed5f135050fb5853478",
+  "sourcePatchSha256": "3c4270f5bccf3f9223d09764472d56ef7f939a105bf16c1831a61485f032c274",
+  "hostPolicy": "externally-managed",
+  "ownedStopProtocol": 1,
+  "coreSha256": null,
+  "buildAcceptance": "pending-rust-build-and-review"
+}

@@ -1,24 +1,32 @@
 # Fixed EasyTier Windows compatibility component
 
-`provenance.json` is the component's immutable-base / pending-delivery contract.
-The upstream base is v2.7.0 prerelease commit
-`8b7f1f0196edb5b580829ed5f135050fb5853478`. This is a minimal downstream Windows
-compatibility patch, not a downgrade or a change to Tencent Linux public nodes.
+The immutable upstream base is v2.7.0 prerelease
+`8b7f1f0196edb5b580829ed5f135050fb5853478`. The ET owner delivered native
+snapshot `1a44fb98e2429b050d69f36a1fee47eadf26caf5` / tree `c589da1a2049a6bc6e78996fcf0909e40f307bcb`.
+This snapshot has an independent two-commit source history, not upstream history.
+Task-6 imported 1,232 exact Git blobs under `source`, excluding the contributor
+runtime `easytier-contrib/easytier-uptime/.env`. Licenses remain in source.
+Delivered patches are byte-for-byte preserved under `patches`.
 
-The ET owner must deliver the fixed-base source commit, cumulative patch and each
-patch SHA256. Task-6 reviews the delivery before the single private compile/pack.
-The intended changes disable global NetworkList cleanup by default, make automatic
-firewall/category policy explicitly controllable, and gracefully stop the owned
-instance without deleting persistent configuration. Their implementation and real
-Windows acceptance are pending; no equivalent patch is implemented in this tree.
+Review status is **changes-required**: see [REVIEW.md](REVIEW.md). The TUN dependency
+can open an existing adapter before the new GUID is checked. No native executable
+was built or run by task-6; no Windows adapter, firewall or profile was changed.
+The native owner must deliver the ownership fix independently; do not duplicate it
+in the integration tree. [BUILD.md](BUILD.md) records exact isolated build inputs.
 
-Private source/tree, patchset, build receipt, runtime file and package SHA256 slots
-stay empty until actual delivery/review/build evidence exists. The official Windows
-archive and five extracted file hashes are retained as reference only. Final
-private packaging rejects them as the patched payload. No binaries, configurations,
-credentials, profiles or raw host diagnostics are imported here.
+The client now requests bounded graceful stop through its own newly spawned child
+stdin, waits for closure and preserves diagnostic uncertainty. Only the captured
+owned handle may be force-stopped after timeout. Main-only GUID/LUID/index receipts
+are diagnostic evidence, never authority for deleting adapters or configurations.
+Real native stop, OS route cleanup and coexistence acceptance remain pending.
 
-The root release manifest remains the release authority. Parent preflight reported
-an existing private ET adapter and upstream TUN firewall/profile side effects.
-An administrator token is not compatibility acceptance. The current forceful
-owned-process exit also does not prove that OS routes were cleaned up.
+Downstream resources use `community-lan/product/2.7.0-laokuai`: five runtime files
+plus a release-owned `laokuai-build.json`. The template's null core hash is
+deliberately invalid. Official Windows binaries stay reference-only. Private build,
+resource, receipt and package hashes remain empty until actual approved evidence.
+The loader has no official-core fallback and beforePack rejects this pending payload.
+
+`provenance.json` locks native source, patches and review state. The root
+`release/manifest.json` remains the release authority. Joining a community owns
+ET lifetime independently of voice; LAN membership does not authorize cross-room
+audio or prove physical-direct voice/screen transport. No Tencent Linux node change.

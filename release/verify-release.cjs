@@ -23,14 +23,22 @@ if(m.easytier.nativePortsImplemented){
   const entries=require('../components/client/scripts/community-easytier-resources.cjs');
   const names=entries.map(e=>e.to.split('/').at(-1)).sort();
   const resources=m.easytier.officialWindowsReferenceFiles||m.easytier.windowsRuntimeFiles;
-  assert(JSON.stringify(names)===JSON.stringify(Object.keys(resources).sort()),'ET resource file set mismatch');
-  for(const e of entries)assert(e.from==='build/'+e.to&&e.to.startsWith('community-lan/runtime/790fd9be347b00753570ac2b65f874a591ede9427603fe34e74a86b2b084847f/'),'ET exact resource path mismatch');
+  assert(JSON.stringify(names)===JSON.stringify([...Object.keys(resources),'laokuai-build.json'].sort()),'ET resource file set mismatch');
+  assert(m.easytier.bundleResourceDirectory==='community-lan/product/2.7.0-laokuai','ET product resource directory mismatch');
+  for(const e of entries)assert(e.from==='build/'+e.to&&e.to.startsWith(m.easytier.bundleResourceDirectory+'/'),'ET exact resource path mismatch');
   git(['merge-base','--is-ancestor',m.frozenPreviousHybrid.commit,'HEAD']);
 }
 if(m.easytier.provenancePath){
   assert(sha(m.easytier.provenancePath)===m.easytier.provenanceSha256,'ET patch/build provenance changed');
   const provenance=JSON.parse(fs.readFileSync(path.join(root,m.easytier.provenancePath),'utf8'));
   assert(provenance.upstream.commit===m.easytier.tagCommit&&provenance.patchSet.baseCommit===m.easytier.tagCommit,'ET downstream base drift');
+  for(const patch of provenance.patchSet.patches)assert(sha('components/easytier/'+patch.path)===patch.sha256,'ET delivered patch changed');
+  if(provenance.sourceImport){
+    assert(sha('components/easytier/source/LICENSE')===provenance.sourceImport.licenseSha256,'ET native license mismatch');
+    assert(sha('components/easytier/source/Cargo.lock')===provenance.sourceImport.cargoLockSha256,'ET Cargo lock mismatch');
+    assert(git(['ls-files','--','components/easytier/source']).split('\n').length===provenance.sourceImport.importedFiles,'ET source inventory mismatch');
+    assert(!fs.existsSync(path.join(root,'components/easytier/source/easytier-contrib/easytier-uptime/.env')),'ET contributor runtime environment imported');
+  }
   if(m.ready)require('../components/client/scripts/check-easytier-patched-payload.cjs').assertPrivatePayloadContract(provenance);
 }
 console.log(JSON.stringify({id:m.id,codeCommit:m.repository.codeCommit,sourceConsistent:true,components:Object.keys(m.components),sdkVersion:packed.version,ready:m.ready,easytier:m.easytier.implementationStatus,actualNetworkVerified:m.easytier.actualNetworkVerified}));

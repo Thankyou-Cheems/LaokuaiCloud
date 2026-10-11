@@ -1,0 +1,581 @@
+diff --git a/LAOKUAI_COMPATIBILITY.md b/LAOKUAI_COMPATIBILITY.md
+new file mode 100644
+index 0000000..25c6606
+--- /dev/null
++++ b/LAOKUAI_COMPATIBILITY.md
+@@ -0,0 +1,29 @@
++# 2.7.0-laokuai compatibility patch, review stage
++
++Upstream source is EasyTier commit `8b7f1f0196edb5b580829ed5f135050fb5853478` (v2.7.0). This independent repository starts with an archive snapshot, not reconstructed upstream history. Archive SHA256: `bfed31138cd535cb540233c9506f29919d495e4cbb9cff78a19d7a5974f14a40`. The original source tree and licenses are preserved. The downstream core identifies itself as `2.7.0-laokuai`; its eventual executable must receive its own measured hash.
++
++The five Rust-file code patch is `laokuai-2.7.0-core-code.patch`, SHA256 `3c4270f5bccf3f9223d09764472d56ef7f939a105bf16c1831a61485f032c274`. The accompanying Node source-contract check and this document are additional review files. No Rust build or native activation was performed.
++
++## Changes
++
++- `RegistryManager::reg_delete_obsoleted_items` and the profile-category helper are inert. No Profiles/Signatures are selected or deleted by name. `VirtualNic::create_tun` no longer calls global cleanup.
++- `LAOKUAI_HOST_POLICY_EXTERNALLY_MANAGED = true` is the downstream product policy. All public firewall mutation entrypoints return before COM creation. TUN creation and Drop do not add/remove interface rules. DHCP/NetBIOS registry helpers are also skipped in this product mode. This patch has no runtime switch enabling the old broad rules; a later activation installer must be separately designed and approved for minimal scope. Windows firewall state and notifications are untouched.
++- A fresh, requested device GUID must be absent before creation. Existing interface aliases are rejected before rust-tun can reopen an adapter. The newly requested GUID is resolved through `ConvertInterfaceGuidToLuid` and `ConvertInterfaceLuidToIndex`. Identity verification failure prevents IP/route setup. An actual GUID/LUID/ifIndex receipt is written to the owned stdout pipe; it never authorizes alias-based cleanup. The pinned rust-tun revision `12378839e7985283df0e4fb536b7137230356db5` accepts `device_guid(u128)`; pinned wintun 0.5.1 maps it through `GUID::from_u128`.
++- `--laokuai-owned-stdin` requires one existing config file and rejects daemon, config-dir, config-server, default-network and config-on-stdin modes before network startup. CLI presentation-event logging is disabled on this pipe. The parent writes `LAOKUAI_OWNED_STOP_V1\n` (22 bytes), then closes stdin. EOF/malformed input also requests stop. A dedicated OS thread avoids Tokio stdin's blocking worker keeping runtime shutdown alive.
++- On the private stop request, Ctrl-C or termination, the owned path awaits `CoreInstance::stop()` for process-owned instances. It drops management/web/manager handles, then emits `LAOKUAI_OWNED_STOPPED_V1`. It never invokes `DeleteNetworkInstance`, retain/delete hooks or config-file deletion. The stop acknowledgement proves instance stop, not OS-level adapter disappearance.
++
++## Source evidence
++
++The exact upstream implementation is available in [virtual_nic.rs](https://github.com/EasyTier/EasyTier/blob/8b7f1f0196edb5b580829ed5f135050fb5853478/easytier/src/instance/virtual_nic.rs), [Windows registry helpers](https://github.com/EasyTier/EasyTier/blob/8b7f1f0196edb5b580829ed5f135050fb5853478/easytier/src/common/ifcfg/windows.rs), [Windows firewall helpers](https://github.com/EasyTier/EasyTier/blob/8b7f1f0196edb5b580829ed5f135050fb5853478/easytier/src/arch/windows.rs), [serialized instance stop](https://github.com/EasyTier/EasyTier/blob/8b7f1f0196edb5b580829ed5f135050fb5853478/easytier-core/src/instance/lifecycle.rs) and [management deletion](https://github.com/EasyTier/EasyTier/blob/8b7f1f0196edb5b580829ed5f135050fb5853478/easytier-core/src/management/full/process_rpc.rs). The safe pipe calls the lifecycle method, not the deletion RPC.
++
++The underlying manager still supports several instances and dynamic management. This compatibility patch adds no custom RPC/FFI transport. The shipped Electron startup path remains limited to one community; it must not claim dynamic multi-community acceptance. The older broadcast workaround is not reapplied: 2.7's existing Windows broadcast fix remains unchanged.
++
++## Validation and activation gates
++
++Completed: `node script/test-laokuai-source-contract.mjs` (8 static contracts), installed Rust 1.95.0 `rustfmt --edition 2024 --config skip_children=true --check` for five changed Rust files, and `git diff --check`. These are static contracts/syntax checks, not a compiled Windows build.
++
++Capacity owner should schedule a locked Windows Rust build/check and inspect the resulting executable version/hash. Gitowner records the corresponding source/patch/license component and replaces `coreSha256: null` in the provided release-owned build manifest only with the measured downstream artifact hash. The official core hash is explicitly rejected by Electron; missing/invalid manifests keep activation closed. Official CLI/DLL/driver files retain their independently pinned hashes.
++
++After that review, a separately confirmed coexistence test may compare the user's existing private GUI PID/network/interfaces/profiles/rules before and after candidate start, community disconnect and normal application quit. Verify instance stop acknowledgement, ordinary process exit and actual owned GUID/LUID/ifIndex disappearance. Test 4-second stop timeout/6-second unconfirmed-exit reporting in an isolated case. No broad name/PID scans may authorize deletion. Forced Windows logout may terminate the host before its asynchronous drain completes; EOF is requested, but OS cleanup is not guaranteed.
++
++Real config conversion, TUN/driver use, firewall installation and LAN/voice/game interoperability remain explicit activation gates. No real profile, service, core, driver, helper, network fixture, Docker or host policy was used for this patch.
+diff --git a/easytier/src/arch/windows.rs b/easytier/src/arch/windows.rs
+index d8e113f..59dfee9 100644
+--- a/easytier/src/arch/windows.rs
++++ b/easytier/src/arch/windows.rs
+@@ -168,7 +168,14 @@ impl Drop for ComInitializer {
+     }
+ }
+ 
++/// Downstream product mode: core never installs or removes host security policy.
++/// A separately reviewed activation step must own precisely scoped rules.
++pub const LAOKUAI_HOST_POLICY_EXTERNALLY_MANAGED: bool = true;
++
+ pub fn do_add_self_to_firewall_allowlist(inbound: bool) -> anyhow::Result<()> {
++    if LAOKUAI_HOST_POLICY_EXTERNALLY_MANAGED {
++        return Ok(());
++    }
+     let _com = ComInitializer::new()?;
+     // Create firewall policy instance
+     let policy: INetFwPolicy2 = unsafe {
+@@ -235,6 +242,9 @@ pub fn add_self_to_firewall_allowlist() -> anyhow::Result<()> {
+ 
+ /// Add firewall rules for specified network interface to allow all traffic
+ pub fn add_interface_to_firewall_allowlist(interface_name: &str) -> anyhow::Result<()> {
++    if LAOKUAI_HOST_POLICY_EXTERNALLY_MANAGED {
++        return Ok(());
++    }
+     let _com = ComInitializer::new()?;
+ 
+     // Create firewall policy instance
+@@ -371,6 +381,9 @@ fn add_protocol_firewall_rules(
+ 
+ /// Remove firewall rules for specified interface
+ pub fn remove_interface_firewall_rules(interface_name: &str) -> anyhow::Result<()> {
++    if LAOKUAI_HOST_POLICY_EXTERNALLY_MANAGED {
++        return Ok(());
++    }
+     let _com = ComInitializer::new()?;
+ 
+     let policy: INetFwPolicy2 = unsafe {
+@@ -533,3 +546,58 @@ mod tests {
+         );
+     }
+ }
++
++/// Reject alias/GUID reuse before rust-tun can open an existing user's adapter.
++pub fn laokuai_require_new_interface(name: &str, guid: uuid::Uuid) -> anyhow::Result<()> {
++    use winapi::shared::{guiddef::GUID, ifdef::NET_LUID, netioapi::ConvertInterfaceGuidToLuid};
++    let (data1, data2, data3, data4) = guid.as_fields();
++    let guid = GUID {
++        Data1: data1,
++        Data2: data2,
++        Data3: data3,
++        Data4: *data4,
++    };
++    let mut luid = NET_LUID::default();
++    if unsafe { ConvertInterfaceGuidToLuid(&guid, &mut luid) } == 0 {
++        anyhow::bail!("owned interface GUID already exists");
++    }
++    let interfaces = network_interface::NetworkInterface::show()?;
++    if interfaces.iter().any(|interface| interface.name == name) {
++        anyhow::bail!("refusing to open an existing interface alias");
++    }
++    Ok(())
++}
++
++/// Report identity from the newly requested GUID; alias never proves ownership.
++/// This receipt stays in Electron main, and contains no IP addresses or config.
++pub fn laokuai_report_owned_interface(guid: uuid::Uuid) -> anyhow::Result<()> {
++    use winapi::shared::{
++        guiddef::GUID,
++        ifdef::NET_LUID,
++        netioapi::{ConvertInterfaceGuidToLuid, ConvertInterfaceLuidToIndex},
++    };
++    let (data1, data2, data3, data4) = guid.as_fields();
++    let native_guid = GUID {
++        Data1: data1,
++        Data2: data2,
++        Data3: data3,
++        Data4: *data4,
++    };
++    let mut luid = NET_LUID::default();
++    let mut index = 0u32;
++    if unsafe { ConvertInterfaceGuidToLuid(&native_guid, &mut luid) } != 0
++        || unsafe { ConvertInterfaceLuidToIndex(&luid, &mut index) } != 0
++        || index == 0
++    {
++        anyhow::bail!("unable to verify the newly created interface identity");
++    }
++    use std::io::Write as _;
++    let mut output = std::io::stdout().lock();
++    writeln!(
++        output,
++        "LAOKUAI_OWNED_NIC_V1 {} {} {}",
++        guid, luid.Value, index
++    )?;
++    output.flush()?;
++    Ok(())
++}
+diff --git a/easytier/src/common/constants.rs b/easytier/src/common/constants.rs
+index 5262bb7..96d2deb 100644
+--- a/easytier/src/common/constants.rs
++++ b/easytier/src/common/constants.rs
+@@ -11,7 +11,10 @@ pub const HMAC_SECRET_DIGEST: bool = false;
+ 
+ pub const WIN_SERVICE_WORK_DIR_REG_KEY: &str = "SOFTWARE\\EasyTier\\Service\\WorkDir";
+ 
+-pub const EASYTIER_VERSION: &str = git_version::git_version!(
++pub const EASYTIER_VERSION: &str = "2.7.0-laokuai";
++
++// Keep upstream version construction for provenance only.
++pub const EASYTIER_UPSTREAM_BUILD_VERSION: &str = git_version::git_version!(
+     args = ["--abbrev=8", "--always", "--dirty=~"],
+     prefix = concat!(env!("CARGO_PKG_VERSION"), "-"),
+     suffix = "",
+diff --git a/easytier/src/common/ifcfg/windows.rs b/easytier/src/common/ifcfg/windows.rs
+index 15e4b23..f49ff9a 100644
+--- a/easytier/src/common/ifcfg/windows.rs
++++ b/easytier/src/common/ifcfg/windows.rs
+@@ -326,107 +326,16 @@ impl RegistryManager {
+         r"SYSTEM\CurrentControlSet\Services\NetBT\Parameters\Interfaces\Tcpip_";
+ 
+     pub fn reg_delete_obsoleted_items(dev_name: &str) -> io::Result<()> {
+-        use winreg::{RegKey, enums::HKEY_LOCAL_MACHINE, enums::KEY_ALL_ACCESS};
+-        let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+-        let profiles_key = hklm.open_subkey_with_flags(
+-            "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\NetworkList\\Profiles",
+-            KEY_ALL_ACCESS,
+-        )?;
+-        let unmanaged_key = hklm.open_subkey_with_flags(
+-            "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\NetworkList\\Signatures\\Unmanaged",
+-            KEY_ALL_ACCESS,
+-        )?;
+-        // collect subkeys to delete
+-        let mut keys_to_delete = Vec::new();
+-        let mut keys_to_delete_unmanaged = Vec::new();
+-        for subkey_name in profiles_key.enum_keys().filter_map(Result::ok) {
+-            let subkey = profiles_key.open_subkey(&subkey_name)?;
+-            // check if ProfileName contains "et"
+-            match subkey.get_value::<String, _>("ProfileName") {
+-                Ok(profile_name) => {
+-                    if profile_name.contains("et_")
+-                        || (!dev_name.is_empty() && dev_name == profile_name)
+-                    {
+-                        keys_to_delete.push(subkey_name);
+-                    }
+-                }
+-                Err(e) => {
+-                    tracing::error!(
+-                        "Failed to read ProfileName for subkey {}: {}",
+-                        subkey_name,
+-                        e
+-                    );
+-                }
+-            }
+-        }
+-        for subkey_name in unmanaged_key.enum_keys().filter_map(Result::ok) {
+-            let subkey = unmanaged_key.open_subkey(&subkey_name)?;
+-            // check if ProfileName contains "et"
+-            match subkey.get_value::<String, _>("Description") {
+-                Ok(profile_name) => {
+-                    if profile_name.contains("et_")
+-                        || (!dev_name.is_empty() && dev_name == profile_name)
+-                    {
+-                        keys_to_delete_unmanaged.push(subkey_name);
+-                    }
+-                }
+-                Err(e) => {
+-                    tracing::error!(
+-                        "Failed to read ProfileName for subkey {}: {}",
+-                        subkey_name,
+-                        e
+-                    );
+-                }
+-            }
+-        }
+-        // delete collected subkeys
+-        if !keys_to_delete.is_empty() {
+-            for subkey_name in keys_to_delete {
+-                match profiles_key.delete_subkey_all(&subkey_name) {
+-                    Ok(_) => tracing::trace!("Successfully deleted subkey: {}", subkey_name),
+-                    Err(e) => tracing::error!("Failed to delete subkey {}: {}", subkey_name, e),
+-                }
+-            }
+-        }
+-        if !keys_to_delete_unmanaged.is_empty() {
+-            for subkey_name in keys_to_delete_unmanaged {
+-                match unmanaged_key.delete_subkey_all(&subkey_name) {
+-                    Ok(_) => tracing::trace!("Successfully deleted subkey: {}", subkey_name),
+-                    Err(e) => tracing::error!("Failed to delete subkey {}: {}", subkey_name, e),
+-                }
+-            }
+-        }
++        // Laokuai: NetworkList entries are global and names do not prove ownership.
++        // Never delete Profiles or Signatures, including other active EasyTier networks.
++        let _ = dev_name;
+         Ok(())
+     }
+ 
+     pub fn reg_change_catrgory_in_profile(dev_name: &str) -> io::Result<()> {
+-        use winreg::{RegKey, enums::HKEY_LOCAL_MACHINE, enums::KEY_ALL_ACCESS};
+-        let hklm = RegKey::predef(HKEY_LOCAL_MACHINE);
+-        let profiles_key = hklm.open_subkey_with_flags(
+-            "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\NetworkList\\Profiles",
+-            KEY_ALL_ACCESS,
+-        )?;
+-
+-        for subkey_name in profiles_key.enum_keys().filter_map(Result::ok) {
+-            let subkey = profiles_key.open_subkey_with_flags(&subkey_name, KEY_ALL_ACCESS)?;
+-            match subkey.get_value::<String, _>("ProfileName") {
+-                Ok(profile_name) => {
+-                    if !dev_name.is_empty() && dev_name == profile_name {
+-                        match subkey.set_value("Category", &1u32) {
+-                            Ok(_) => tracing::trace!("Successfully set Category in registry"),
+-                            Err(e) => tracing::error!("Failed to set Category in registry: {}", e),
+-                        }
+-                    }
+-                }
+-                Err(e) => {
+-                    tracing::error!(
+-                        "Failed to read ProfileName for subkey {}: {}",
+-                        subkey_name,
+-                        e
+-                    );
+-                }
+-            }
+-        }
++        // Host security policy is installed separately after explicit activation.
++        // Core does not reclassify networks by their display name.
++        let _ = dev_name;
+         Ok(())
+     }
+ 
+diff --git a/easytier/src/core.rs b/easytier/src/core.rs
+index 2dcf3ca..1d66de6 100644
+--- a/easytier/src/core.rs
++++ b/easytier/src/core.rs
+@@ -10,7 +10,7 @@ use crate::{
+         constants::EASYTIER_VERSION,
+         log,
+     },
+-    instance::factory::native_cli_instance_manager,
++    instance::factory::{native_cli_instance_manager, native_instance_manager},
+     proto::common::{CompressionAlgoPb, SecureModeConfig},
+     rpc_service::ApiRpcServer,
+     utils::panic::setup_panic_handler,
+@@ -137,6 +137,10 @@ struct Cli {
+ 
+     #[clap(long, help = t!("core_clap.disable_env_parsing").to_string())]
+     disable_env_parsing: bool,
++
++    /// Stop process-owned instances via a private parent stdin pipe; preserve config.
++    #[arg(long)]
++    laokuai_owned_stdin: bool,
+ }
+ 
+ #[derive(Parser, Debug, Default, PartialEq, Eq)]
+@@ -1517,11 +1521,50 @@ fn win_service_main(arg: Vec<std::ffi::OsString>) {
+     win_service_event_loop(stop_notify_recv, cli, status_handle);
+ }
+ 
++// A dedicated OS thread avoids Tokio stdin's uncancellable blocking worker at exit.
++// Only the parent owning this anonymous pipe can request stop; there is no RPC mutation.
++fn laokuai_owned_stop_pipe() -> tokio::sync::oneshot::Receiver<()> {
++    let (send, receive) = tokio::sync::oneshot::channel();
++    std::thread::spawn(move || {
++        use std::io::Read as _;
++        let mut command = [0u8; 22];
++        // EOF or malformed input also stops: fail closed if the owner disappears.
++        let _ = std::io::stdin().lock().read_exact(&mut command);
++        let _ = send.send(());
++    });
++    receive
++}
++
+ async fn run_main(cli: Cli) -> anyhow::Result<()> {
++    // Reject shared/config-server/default-network modes before any network side effects.
++    if cli.laokuai_owned_stdin
++        && (cli.daemon
++            || cli.config_server.is_some()
++            || cli.config_dir.is_some()
++            || cli
++                .config_file
++                .as_ref()
++                .is_none_or(|files| files.len() != 1 || files[0] == PathBuf::from("-"))
++            || cli.network_options.network_name.is_some())
++    {
++        anyhow::bail!("owned-stdin mode requires exactly one existing configuration file");
++    }
++    let owned_stdin = cli.laokuai_owned_stdin;
++    let mut owned_stop = if owned_stdin {
++        Some(laokuai_owned_stop_pipe())
++    } else {
++        None
++    };
+     defer!(dump_profile(0););
+     log::init(&cli.logging_options, true)?;
+ 
+-    let manager = Arc::new(native_cli_instance_manager().with_config_path(cli.config_dir.clone()));
++    // The private receipt pipe must never carry peer-controlled CLI presentation events.
++    let manager = if owned_stdin {
++        native_instance_manager()
++    } else {
++        native_cli_instance_manager()
++    };
++    let manager = Arc::new(manager.with_config_path(cli.config_dir.clone()));
+ 
+     let _rpc_server = ApiRpcServer::new(
+         cli.rpc_portal_options.rpc_portal,
+@@ -1666,6 +1709,10 @@ async fn run_main(cli: Cli) -> anyhow::Result<()> {
+     let sigterm = std::future::pending::<()>();
+ 
+     tokio::select! {
++        _ = async { match owned_stop.as_mut() {
++            Some(stop) => { let _ = stop.await; }
++            None => std::future::pending::<()>().await,
++        } }, if owned_stdin => {}
+         _ = manager.wait() => {
+             let infos = manager.collect_network_infos().await?;
+             if infos
+@@ -1682,6 +1729,21 @@ async fn run_main(cli: Cli) -> anyhow::Result<()> {
+             log::warn!("terminate signal received, exiting...");
+         }
+     }
++    if owned_stdin {
++        // CoreInstance::stop serializes startup/stop and stops host tasks first.
++        // Do not call DeleteNetworkInstance or config_control.delete().
++        for instance in manager.instances() {
++            instance.stop().await;
++        }
++        drop(_rpc_server);
++        drop(_web_client);
++        drop(_daemon_guard);
++        drop(manager);
++        use std::io::Write as _;
++        let mut output = std::io::stdout().lock();
++        writeln!(output, "LAOKUAI_OWNED_STOPPED_V1")?;
++        output.flush()?;
++    }
+     Ok(())
+ }
+ 
+diff --git a/easytier/src/instance/virtual_nic.rs b/easytier/src/instance/virtual_nic.rs
+index 43c97aa..56732e1 100644
+--- a/easytier/src/instance/virtual_nic.rs
++++ b/easytier/src/instance/virtual_nic.rs
+@@ -247,23 +247,7 @@ pub struct VirtualNic {
+     ifcfg: Box<dyn IfConfiguerTrait + Send + Sync + 'static>,
+ }
+ 
+-impl Drop for VirtualNic {
+-    fn drop(&mut self) {
+-        #[cfg(target_os = "windows")]
+-        {
+-            if let Some(ref ifname) = self.ifname {
+-                // Try to clean up firewall rules, but don't panic in destructor
+-                if let Err(error) = crate::arch::windows::remove_interface_firewall_rules(ifname) {
+-                    tracing::warn!(
+-                        %error,
+-                        "failed to remove firewall rules for interface {}",
+-                        ifname
+-                    );
+-                }
+-            }
+-        }
+-    }
+-}
++// Laokuai creates no firewall rules: Drop must never remove rules by alias.
+ 
+ impl VirtualNic {
+     pub fn new(global_ctx: ArcGlobalCtx) -> Self {
+@@ -490,6 +474,8 @@ impl VirtualNic {
+     async fn create_tun(&self) -> Result<tun::platform::Device, Error> {
+         let mut config = Configuration::default();
+         config.layer(Layer::L3);
++        #[cfg(target_os = "windows")]
++        let owned_guid = uuid::Uuid::new_v4();
+ 
+         // FreeBSD specific: Check and restore TUN interfaces before creating new one
+         #[cfg(target_os = "freebsd")]
+@@ -523,20 +509,7 @@ impl VirtualNic {
+         {
+             let dev_name = self.global_ctx.get_flags().dev_name;
+ 
+-            match crate::arch::windows::add_self_to_firewall_allowlist() {
+-                Ok(_) => tracing::info!("add_self_to_firewall_allowlist successful!"),
+-                Err(error) => {
+-                    tracing::warn!(%error, "Failed to add Easytier to firewall allowlist, Subnet proxy and KCP proxy may not work properly.");
+-                    tracing::warn!(
+-                        "You can add firewall rules manually, or use --use-smoltcp to run with user-space TCP/IP stack."
+-                    );
+-                }
+-            }
+-
+-            match RegistryManager::reg_delete_obsoleted_items(&dev_name) {
+-                Ok(_) => tracing::trace!("delete successful!"),
+-                Err(e) => tracing::error!("An error occurred: {}", e),
+-            }
++            // Global NetworkList cleanup and automatic firewall rules are disabled.
+ 
+             if !dev_name.is_empty() {
+                 config.tun_name(&dev_name);
+@@ -559,7 +532,10 @@ impl VirtualNic {
+                 self.global_ctx.set_flags(flags);
+             }
+ 
++            let name = self.global_ctx.get_flags().dev_name;
++            crate::arch::windows::laokuai_require_new_interface(&name, owned_guid)?;
+             config.platform_config(|config| {
++                config.device_guid(owned_guid.as_u128());
+                 config.skip_config(true);
+                 config.ring_cap(Some(std::cmp::min(
+                     config.min_ring_cap() * 32,
+@@ -571,7 +547,10 @@ impl VirtualNic {
+         config.up();
+ 
+         let _g = self.global_ctx.net_ns.guard();
+-        Ok(tun::create(&config)?)
++        let dev = tun::create(&config)?;
++        #[cfg(target_os = "windows")]
++        crate::arch::windows::laokuai_report_owned_interface(owned_guid)?;
++        Ok(dev)
+     }
+ 
+     #[cfg(mobile)]
+@@ -639,7 +618,9 @@ impl VirtualNic {
+ 
+         #[cfg(target_os = "windows")]
+         {
+-            if let Ok(guid) = RegistryManager::find_interface_guid(&ifname) {
++            if !crate::arch::windows::LAOKUAI_HOST_POLICY_EXTERNALLY_MANAGED
++                && let Ok(guid) = RegistryManager::find_interface_guid(&ifname)
++            {
+                 if let Err(e) = RegistryManager::disable_dynamic_updates(&guid) {
+                     tracing::error!(
+                         "Failed to disable dhcp for interface {} {}: {}",
+@@ -687,28 +668,7 @@ impl VirtualNic {
+ 
+         self.ifname = Some(ifname.to_owned());
+ 
+-        #[cfg(target_os = "windows")]
+-        {
+-            // Add firewall rules for virtual NIC interface to allow all traffic
+-            match crate::arch::windows::add_interface_to_firewall_allowlist(&ifname) {
+-                Ok(_) => {
+-                    tracing::info!(
+-                        "Successfully configured Windows Firewall for interface: {}",
+-                        ifname
+-                    );
+-                    tracing::info!(
+-                        "All protocols (TCP/UDP/ICMP) are now allowed on interface: {}",
+-                        ifname
+-                    );
+-                }
+-                Err(error) => {
+-                    tracing::warn!(%error, "Failed to configure Windows Firewall for interface {}\
+-                    \n\tThis may cause connectivity issues with ping and other network functions.\
+-                    \n\tPlease run as Administrator or manually configure Windows Firewall.\
+-                    \n\tAlternatively, you can disable Windows Firewall for testing purposes.", ifname);
+-                }
+-            }
+-        }
++        // Host security policy belongs to the explicit activation step.
+ 
+         Ok(Box::new(ft))
+     }
+diff --git a/script/test-laokuai-source-contract.mjs b/script/test-laokuai-source-contract.mjs
+new file mode 100644
+index 0000000..c60f54a
+--- /dev/null
++++ b/script/test-laokuai-source-contract.mjs
+@@ -0,0 +1,75 @@
++import assert from 'node:assert/strict';
++import fs from 'node:fs';
++import path from 'node:path';
++import { fileURLToPath } from 'node:url';
++
++// Static source contracts only. No core, Cargo, child process, network or OS API.
++const root = fileURLToPath(new URL('../', import.meta.url));
++const read = p => fs.readFileSync(path.join(root, p), 'utf8');
++const nic = read('easytier/src/instance/virtual_nic.rs');
++const arch = read('easytier/src/arch/windows.rs');
++const registry = read('easytier/src/common/ifcfg/windows.rs');
++const core = read('easytier/src/core.rs');
++const lifecycle = read('easytier-core/src/instance/lifecycle.rs');
++const nativeFactory = read('easytier/src/instance/factory.rs');
++let count = 0;
++function check(name, action) { action(); console.log(`ok ${++count} ${name}`); }
++function section(source, start, end) {
++  assert.ok(source.includes(start)); const a = source.indexOf(start);
++  const b = source.indexOf(end, a + start.length); assert.ok(b > a); return source.slice(a,b);
++}
++check('global NetworkList profile and signature mutation has no downstream implementation', () => {
++  const helpers = section(registry, 'pub fn reg_delete_obsoleted_items(', '// 根据接口名称查找 GUID');
++  assert.ok(!/RegKey::|KEY_ALL_ACCESS|delete_subkey|set_value/.test(helpers));
++  assert.ok(!nic.includes('reg_delete_obsoleted_items'));
++});
++check('downstream host policy is externally managed by default, before every legacy firewall mutation', () => {
++  assert.ok(arch.includes('pub const LAOKUAI_HOST_POLICY_EXTERNALLY_MANAGED: bool = true;'));
++  for (const name of ['do_add_self_to_firewall_allowlist', 'add_interface_to_firewall_allowlist', 'remove_interface_firewall_rules']) {
++    const prefix = arch.slice(arch.indexOf(`pub fn ${name}(`));
++    assert.ok(prefix.indexOf('return Ok(());') < prefix.indexOf('ComInitializer::new()'));
++  }
++  assert.ok(!nic.includes('remove_interface_firewall_rules'));
++  assert.ok(!nic.includes('add_interface_to_firewall_allowlist'));
++  assert.ok(!nic.includes('add_self_to_firewall_allowlist'));
++  assert.ok(!nic.includes('disable Windows Firewall'));
++});
++check('new TUN GUID is requested and resolved to actual LUID and ifIndex, without alias cleanup', () => {
++  assert.ok(nic.includes('config.device_guid(owned_guid.as_u128())'));
++  assert.ok(nic.indexOf('laokuai_require_new_interface(') < nic.indexOf('let dev = tun::create(&config)?'));
++  assert.ok(nic.includes('laokuai_report_owned_interface(owned_guid)?'));
++  assert.ok(arch.includes('ConvertInterfaceGuidToLuid(&native_guid, &mut luid)'));
++  assert.ok(arch.includes('ConvertInterfaceLuidToIndex(&luid, &mut index)'));
++  assert.ok(arch.includes('luid.Value'));
++});
++check('owned pipe excludes daemon, default, directory, config-server and shared stdin configuration', () => {
++  const guard = section(core, 'async fn run_main(', 'let owned_stdin = cli.laokuai_owned_stdin');
++  for (const predicate of ['cli.daemon', 'cli.config_server.is_some()', 'cli.config_dir.is_some()', 'files.len() != 1', 'PathBuf::from("-")', 'cli.network_options.network_name.is_some()']) assert.ok(guard.includes(predicate));
++});
++check('owned stop is serialized lifecycle stop, preserves config and precedes acknowledgement', () => {
++  const stop = section(core, 'if owned_stdin {\n        // CoreInstance::stop', '\nfn memory_monitor');
++  assert.ok(stop.includes('for instance in manager.instances()'));
++  assert.ok(stop.includes('instance.stop().await;'));
++  assert.ok(stop.indexOf('instance.stop().await;') < stop.indexOf('LAOKUAI_OWNED_STOPPED_V1'));
++  assert.ok(!/manager\.(delete|retain)|config_control\([^)]*\)\.delete/.test(stop));
++  assert.ok(lifecycle.includes('pub async fn stop(self: &Arc<Self>)'));
++  assert.ok(lifecycle.includes('self.operation.lock().await'));
++  assert.ok(stop.indexOf('drop(_rpc_server)') < stop.indexOf('LAOKUAI_OWNED_STOPPED_V1'));
++});
++check('private pipe reader terminates on EOF, bounds input and avoids Tokio blocking stdin lifetime', () => {
++  const pipe = section(core, 'fn laokuai_owned_stop_pipe()', 'async fn run_main(');
++  assert.ok(pipe.includes('std::thread::spawn'));
++  assert.ok(pipe.includes('read_exact(&mut command)'));
++  assert.ok(pipe.includes('let _ = send.send(());'));
++  assert.equal(Buffer.byteLength('LAOKUAI_OWNED_STOP_V1\n'), 22);
++  assert.ok(pipe.includes('[0u8; 22]'));
++});
++check('owned receipt pipe disables peer-controlled CLI event presentation', () => {
++  assert.ok(core.includes('let manager = if owned_stdin {\n        native_instance_manager()'));
++  const defaultFactory = section(nativeFactory, 'fn native_instance_manager_with_optional_runtime(', '/// Native construction Adapter');
++  assert.ok(!defaultFactory.includes('with_cli_event_logging'));
++});
++check('downstream version does not impersonate official release', () => {
++  assert.ok(read('easytier/src/common/constants.rs').includes('EASYTIER_VERSION: &str = "2.7.0-laokuai"'));
++});
++console.log(`${count} static source contracts passed; compilation and Windows/TUN acceptance remain pending`);

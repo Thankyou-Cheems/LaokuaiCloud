@@ -19,12 +19,13 @@ function assertPrivatePayloadContract(provenance) {
   assert.equal(build.sourceTree, patch.sourceTree, fail);
   assert.ok(/^[a-f0-9]{64}$/.test(patch.cumulativeSha256 ?? ""), fail);
   assert.equal(build.patchSetSha256, patch.cumulativeSha256, fail);
+  assert.ok(/^[a-f0-9]{64}$/.test(patch.codePatchSha256 ?? ""), fail);
   assert.ok(build.licensesAndNoticesVerified, fail);
   const files = build.windowsRuntimeFiles;
   assert.deepEqual(Object.keys(files).sort(), Object.keys(provenance.officialWindowsReference.files).sort(), fail);
   for (const value of Object.values(files)) assert.ok(/^[a-f0-9]{64}$/.test(value.sha256 ?? "") && Number.isSafeInteger(value.bytes) && value.bytes > 0, fail);
   assert.notEqual(files["easytier-core.exe"].sha256, provenance.officialWindowsReference.files["easytier-core.exe"], fail);
-  for (const key of ["buildReceipt", "package"]) assert.ok(/^[a-f0-9]{64}$/.test(build[key + "Sha256"] ?? "") && typeof build[key + "Path"] === "string", fail);
+  for (const key of ["buildReceipt", "package", "runtimeManifest"]) assert.ok(/^[a-f0-9]{64}$/.test(build[key + "Sha256"] ?? "") && typeof build[key + "Path"] === "string", fail);
 }
 
 function assertPatchedEasyTierPayload(root, config) {
@@ -37,10 +38,22 @@ function assertPatchedEasyTierPayload(root, config) {
     assert.ok(absolute.startsWith(path.resolve(root) + path.sep), "ET payload evidence must stay within this client tree");
     return fs.readFileSync(absolute);
   };
-  for (const key of ["buildReceipt", "package"]) assert.equal(digest(readOwned(provenance.privateBuild[key + "Path"])), provenance.privateBuild[key + "Sha256"]);
+  for (const key of ["buildReceipt", "package", "runtimeManifest"]) assert.equal(digest(readOwned(provenance.privateBuild[key + "Path"])), provenance.privateBuild[key + "Sha256"]);
   const resources = config.win.extraResources;
-  assert.equal(resources.length, Object.keys(provenance.privateBuild.windowsRuntimeFiles).length);
-  for (const entry of resources) {
+  const runtimeResources = resources.filter(entry => entry.to.split("/").at(-1) !== "laokuai-build.json");
+  const manifests = resources.filter(entry => entry.to.split("/").at(-1) === "laokuai-build.json");
+  assert.equal(manifests.length, 1);
+  assert.equal(manifests[0].from, provenance.privateBuild.runtimeManifestPath);
+  const manifest = JSON.parse(readOwned(manifests[0].from));
+  assert.equal(manifest.schemaVersion, 1);
+  assert.equal(manifest.version, "2.7.0-laokuai");
+  assert.equal(manifest.upstreamCommit, provenance.upstream.commit);
+  assert.equal(manifest.sourcePatchSha256, provenance.patchSet.codePatchSha256);
+  assert.equal(manifest.hostPolicy, "externally-managed");
+  assert.equal(manifest.ownedStopProtocol, 1);
+  assert.equal(manifest.coreSha256, provenance.privateBuild.windowsRuntimeFiles["easytier-core.exe"].sha256);
+  assert.equal(runtimeResources.length, Object.keys(provenance.privateBuild.windowsRuntimeFiles).length);
+  for (const entry of runtimeResources) {
     assert.ok(!entry.filter, "ET patched resources must use exact file paths");
     const name = entry.to.split("/").at(-1), expected = provenance.privateBuild.windowsRuntimeFiles[name];
     assert.ok(expected, "Unexpected ET runtime file");

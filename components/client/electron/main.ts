@@ -66,7 +66,6 @@ import curatedGames from "./curated-games.json";
 import { createRpcHost, findHolder, type Holder, ipcDir, ipcPath, type RpcHostState } from "./discordIpc";
 import { registerEasyTierCommunityIpc } from "./easyTierCommunityIpc";
 import { EasyTierCommunityManager } from "./easyTierCommunityManager";
-import { EASYTIER_WINDOWS_TARGET } from "./easyTierTarget";
 import { createWindowsEasyTierProduction, easyTierProductRoot } from "./easyTierWindowsProduction";
 import {
   autoStartIfNeeded,
@@ -242,12 +241,26 @@ let mainWindow: BrowserWindow | null = null;
 // Community/server integration owns leases; voice room events never touch this manager.
 const easyTierProduction = createWindowsEasyTierProduction(
   () => easyTierProductRoot(app.getPath("userData")),
-  () => join(app.isPackaged ? process.resourcesPath : join(__dirname, "../build"), "community-lan", "runtime", EASYTIER_WINDOWS_TARGET.archiveSha256),
+  () => join(app.isPackaged ? process.resourcesPath : join(__dirname, "../build"), "community-lan", "product", "2.7.0-laokuai"),
 );
 const easyTierCommunities = new EasyTierCommunityManager(IS_I18N_TEST && !IS_LAOKUAI ? null : easyTierProduction.runtime, state => {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("et-community-state", state);
 });
 let easyTierPoll: ReturnType<typeof setInterval> | null = null;
+let easyTierQuitDrained = false;
+let easyTierQuitDraining = false;
+// Registered before updater hooks: ordinary quits wait for owned instance stop.
+app.on("before-quit", event => {
+  if ((IS_I18N_TEST && !IS_LAOKUAI) || easyTierQuitDrained) return;
+  event.preventDefault();
+  if (easyTierQuitDraining) return;
+  easyTierQuitDraining = true;
+  easyTierCommunities.shutdownOwned();
+  void easyTierProduction.drainOwned().catch(() => {
+    // No native output, endpoints, credentials or resource identifiers in logs.
+    console.warn("[Main] Community LAN stop remains unconfirmed; residual review required");
+  }).finally(() => { easyTierQuitDrained = true; app.quit(); });
+});
 let tray: Tray | null = null;
 let isQuitting = false;
 let closeToTray = true;
@@ -1841,16 +1854,20 @@ let quitHasItsOwnPlan = false;
     on quit never started (GRYT-1496). The installer waits for the process to go. */
 function installOnQuit(): void {
   if (IS_I18N_TEST) return;
-  if (quitHasItsOwnPlan || !(autoUpdater instanceof WindowsUpdater) || !updates.ready()) return;
+  if (!easyTierQuitDrained || quitHasItsOwnPlan || !(autoUpdater instanceof WindowsUpdater) || !updates.ready()) return;
   startupLog(`Update: installing ${updates.ready()} on quit`);
   autoUpdater.install(true, false);
 }
 
 /** The flag first: `quitAndInstall` skips `before-quit`, so an open window
     cancels the quit and hides, and Squirrel cannot swap the bundle. */
-function installDownloadedUpdate(): void {
+async function installDownloadedUpdate(): Promise<void> {
   if (IS_I18N_TEST) return;
   easyTierCommunities.shutdownOwned();
+  await easyTierProduction.drainOwned().catch(() => {
+    console.warn("[Main] Community LAN stop remains unconfirmed; residual review required");
+  });
+  easyTierQuitDrained = true;
   isQuitting = true;
   quitHasItsOwnPlan = true;
   /* Not silent on Windows, so the installer's own window is on screen until Gryt's is

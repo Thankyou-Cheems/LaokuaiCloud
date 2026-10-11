@@ -25,6 +25,7 @@ for (const p of ["electron/main.ts", "electron/preload.ts", "src/App.tsx", "src/
 const main = fs.readFileSync(path.join(root, "electron/main.ts"), "utf8");
 assert.ok(main.includes("IS_I18N_TEST && !IS_LAOKUAI ? null : easyTierProduction.runtime"), "Production adapter is injected; test package remains isolated");
 assert.ok(main.includes("event.senderFrame === mainWindow.webContents.mainFrame"), "Only main renderer is trusted");
+assert.ok(main.includes("(IS_I18N_TEST && !IS_LAOKUAI) || easyTierQuitDrained"), "Private app quits drain the owned core despite shared i18n isolation");
 assert.ok(main.includes("easyTierCommunities.shutdownOwned()"));
 // Check the new renderer component against the actual public server shape,
 // without resolving/building the entire application or starting a browser.

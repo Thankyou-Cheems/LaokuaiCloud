@@ -30,3 +30,11 @@ helper, ET core/CLI or driver. Queue that heavy build until the capacity owner
 explicitly releases the heavy-run slot. No Docker, listeners, browser or native
 runtime execution by task-6. Bilingual Conventional Commits use the existing
 valid author identity.
+
+The compatibility source is a review checkpoint; ET-OWNERSHIP-001 blocks payload
+approval/activation until the native owner delivers a create-only fix. Task-6
+must not duplicate that native patch. Only the parent-designated capacity owner
+performs the isolated Rust build. All current UI changes require user prototype
+preview approval before final packaging. Keep existing desktop packages unchanged.
+Await the SDK owner's controller-state repair and frozen-snapshot retest before
+final release freeze. A WebRTC peer over ET relay is not proven physical direct.

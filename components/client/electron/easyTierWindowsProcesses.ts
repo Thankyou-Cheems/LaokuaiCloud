@@ -12,6 +12,13 @@ export interface EasyTierCliCore {
   close(): Promise<void>;
   terminateOwned(): void;
 }
+export interface EasyTierOwnedCleanupReport {
+  outcome: "graceful" | "forced" | "unconfirmed";
+  ownedPid: number | null;
+  // Main-only resource identifiers. Never infer ownership from an adapter alias.
+  interfaces: Array<{ guid: string; luid: string; ifIndex: number }>;
+  residualCheckRequired: boolean;
+}
 /** This is read-only token inspection. No elevation verb, service install or UAC bypass. */
 export async function hasEasyTierWindowsPermission(): Promise<boolean> {
   if (process.platform !== "win32") return false;
@@ -24,7 +31,7 @@ export async function hasEasyTierWindowsPermission(): Promise<boolean> {
 export function easyTierCoreArguments(config: EasyTierExistingConfiguration, portal: string): string[] {
   if (!/^127\.0\.0\.1:\d{1,5}$/.test(portal)) throw new Error("invalid-owned-portal");
   return ["--disable-env-parsing", "--rpc-portal", portal, "--rpc-portal-whitelist", "127.0.0.1/32",
-    "--console-log-level", "off", "--file-log-level", "off", "--config-file", config.configFile];
+    "--console-log-level", "off", "--file-log-level", "off", "--laokuai-owned-stdin", "--config-file", config.configFile];
 }
 export function easyTierCliArguments(instanceId: string, portal: string): string[] {
   return ["--rpc-portal", portal, "--instance-id", instanceId, "--output", "json", "node", "info"];
@@ -51,12 +58,28 @@ async function unusedLoopbackPortal(): Promise<string> {
 /** Owns exactly the children it creates. Never finds, attaches, kills by name, or discovers PIDs. */
 export class EasyTierWindowsProcesses {
   private children = new Set<ChildProcess>();
+  private cores = new Map<ChildProcess, () => Promise<void>>();
   private stopped = false;
+  private draining: Promise<void> | null = null;
+  private reports: EasyTierOwnedCleanupReport[] = [];
+  cleanupReports(): EasyTierOwnedCleanupReport[] {
+    return this.reports.map(report => ({ ...report, interfaces: report.interfaces.map(value => ({ ...value })) }));
+  }
   shutdownOwned(): void {
     this.stopped = true;
+    // Begin stop immediately, even during session end. EOF also asks patched core to stop.
+    void this.drainOwned().catch(() => { /* Report is retained; never inspect other processes. */ });
     for (const child of this.children) if (child.exitCode === null && child.signalCode === null) {
-      try { child.kill(); } catch { /* Keep its handle; no discovery/kill-by-name fallback. */ }
+      if (this.cores.has(child)) continue;
+      try { child.kill(); } catch { /* Only bounded, read-only CLI children reach here. */ }
     }
+  }
+  drainOwned(): Promise<void> {
+    this.stopped = true;
+    if (!this.draining) this.draining = Promise.allSettled([...this.cores.values()].map(close => close())).then(results => {
+      if (results.some(result => result.status === "rejected")) throw new EasyTierOperationError("cleanup-failed");
+    });
+    return this.draining;
   }
   async start(directory: string, config: EasyTierExistingConfiguration, signal: AbortSignal): Promise<EasyTierCliCore> {
     if (this.stopped || signal.aborted) throw new EasyTierOperationError("connect-failed");
@@ -64,24 +87,71 @@ export class EasyTierWindowsProcesses {
     if (this.stopped || signal.aborted) throw new EasyTierOperationError("connect-failed");
     const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^(ET_|RUST_LOG$|RUST_BACKTRACE$)/i.test(key)));
     const child = spawn(join(directory, "easytier-core.exe"), easyTierCoreArguments(config, portal), {
-      windowsHide: true, shell: false, detached: false, cwd: directory, env, stdio: "ignore",
+      windowsHide: true, shell: false, detached: false, cwd: directory, env, stdio: ["pipe", "pipe", "ignore"],
     });
     this.children.add(child);
     let alive = true;
+    let acknowledged = false;
+    let closing: Promise<void> | null = null;
+    let pendingLine = "";
+    let discardLine = false;
+    let forced = false;
+    const interfaces: EasyTierOwnedCleanupReport["interfaces"] = [];
+    child.stdout?.on("data", (bytes: Buffer) => {
+      // Discard all unrelated native output; never log secrets, endpoints or errors.
+      // Bound unterminated lines, and do not interpret the tail of a discarded line.
+      for (const piece of bytes.toString("utf8").split(/(?<=\n)/)) {
+        if (!discardLine) pendingLine += piece;
+        if (pendingLine.length > 256) { pendingLine = ""; discardLine = true; }
+        if (!piece.endsWith("\n")) continue;
+        if (!discardLine) {
+          const line = pendingLine.trim();
+          if (line === "LAOKUAI_OWNED_STOPPED_V1") acknowledged = true;
+          const nic = /^LAOKUAI_OWNED_NIC_V1 ([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}) ([0-9]{1,20}) ([0-9]{1,10})$/.exec(line);
+          if (nic && Number(nic[3]) > 0 && Number(nic[3]) <= 0xffffffff && interfaces.length < 16
+            && !interfaces.some(value => value.guid === nic[1])) {
+            interfaces.push({ guid: nic[1], luid: nic[2], ifIndex: Number(nic[3]) });
+          }
+        }
+        pendingLine = ""; discardLine = false;
+      }
+    });
+    child.stdin?.on("error", () => { /* Broken pipe: wait for owned exit, then report it. */ });
     const exited = new Promise<void>(resolve => {
-      const finish = () => { alive = false; this.children.delete(child); resolve(); };
+      const finish = () => { alive = false; this.children.delete(child); this.cores.delete(child); resolve(); };
       child.once("exit", finish);
       child.on("error", () => { if (!child.pid) finish(); });
     });
-    const terminateOwned = () => { if (alive) { try { child.kill(); } catch { /* close() requires an exit before releasing ownership. */ } } };
-    const close = async () => {
-      if (!alive) return;
-      terminateOwned();
-      await new Promise<void>((resolve, reject) => {
-        const timer = setTimeout(() => reject(new EasyTierOperationError("cleanup-failed")), 3000);
-        void exited.then(() => { clearTimeout(timer); resolve(); });
+    const close = (): Promise<void> => {
+      if (closing) return closing;
+      closing = (async () => {
+        if (alive) {
+          try { child.stdin?.end("LAOKUAI_OWNED_STOP_V1\n"); } catch { /* Timeout fallback below. */ }
+          await new Promise<void>((resolve, reject) => {
+            const forceTimer = setTimeout(() => {
+              if (alive) { forced = true; try { child.kill(); } catch { /* Keep exact owned handle. */ } }
+            }, 4000);
+            const finalTimer = setTimeout(() => reject(new EasyTierOperationError("cleanup-failed")), 6000);
+            void exited.then(() => { clearTimeout(forceTimer); clearTimeout(finalTimer); resolve(); });
+          });
+        }
+        const graceful = acknowledged && child.exitCode === 0 && !forced;
+        this.reports.push({ outcome: forced ? "forced" : graceful ? "graceful" : "unconfirmed",
+          ownedPid: child.pid ?? null, interfaces: interfaces.map(value => ({ ...value })),
+          // A stop acknowledgement proves instance stop, not Windows adapter disappearance.
+          residualCheckRequired: !graceful || interfaces.length > 0 });
+        if (this.reports.length > 64) this.reports.shift();
+      })().catch(() => {
+        this.reports.push({ outcome: "unconfirmed", ownedPid: child.pid ?? null,
+          interfaces: interfaces.map(value => ({ ...value })), residualCheckRequired: true });
+        if (this.reports.length > 64) this.reports.shift();
+        closing = null; throw new EasyTierOperationError("cleanup-failed");
       });
+      return closing;
     };
+    this.cores.set(child, close);
+    // Existing port name preserved, but shutdown first requests stop rather than killing.
+    const terminateOwned = () => { void close().catch(() => {}); };
     const abort = () => terminateOwned();
     signal.addEventListener("abort", abort, { once: true });
     try {

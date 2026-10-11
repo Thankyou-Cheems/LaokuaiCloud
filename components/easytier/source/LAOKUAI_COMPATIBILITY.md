@@ -1,0 +1,29 @@
+# 2.7.0-laokuai compatibility patch, review stage
+
+Upstream source is EasyTier commit `8b7f1f0196edb5b580829ed5f135050fb5853478` (v2.7.0). This independent repository starts with an archive snapshot, not reconstructed upstream history. Archive SHA256: `bfed31138cd535cb540233c9506f29919d495e4cbb9cff78a19d7a5974f14a40`. The original source tree and licenses are preserved. The downstream core identifies itself as `2.7.0-laokuai`; its eventual executable must receive its own measured hash.
+
+The five Rust-file code patch is `laokuai-2.7.0-core-code.patch`, SHA256 `3c4270f5bccf3f9223d09764472d56ef7f939a105bf16c1831a61485f032c274`. The accompanying Node source-contract check and this document are additional review files. No Rust build or native activation was performed.
+
+## Changes
+
+- `RegistryManager::reg_delete_obsoleted_items` and the profile-category helper are inert. No Profiles/Signatures are selected or deleted by name. `VirtualNic::create_tun` no longer calls global cleanup.
+- `LAOKUAI_HOST_POLICY_EXTERNALLY_MANAGED = true` is the downstream product policy. All public firewall mutation entrypoints return before COM creation. TUN creation and Drop do not add/remove interface rules. DHCP/NetBIOS registry helpers are also skipped in this product mode. This patch has no runtime switch enabling the old broad rules; a later activation installer must be separately designed and approved for minimal scope. Windows firewall state and notifications are untouched.
+- A fresh, requested device GUID must be absent before creation. Existing interface aliases are rejected before rust-tun can reopen an adapter. The newly requested GUID is resolved through `ConvertInterfaceGuidToLuid` and `ConvertInterfaceLuidToIndex`. Identity verification failure prevents IP/route setup. An actual GUID/LUID/ifIndex receipt is written to the owned stdout pipe; it never authorizes alias-based cleanup. The pinned rust-tun revision `12378839e7985283df0e4fb536b7137230356db5` accepts `device_guid(u128)`; pinned wintun 0.5.1 maps it through `GUID::from_u128`.
+- `--laokuai-owned-stdin` requires one existing config file and rejects daemon, config-dir, config-server, default-network and config-on-stdin modes before network startup. CLI presentation-event logging is disabled on this pipe. The parent writes `LAOKUAI_OWNED_STOP_V1\n` (22 bytes), then closes stdin. EOF/malformed input also requests stop. A dedicated OS thread avoids Tokio stdin's blocking worker keeping runtime shutdown alive.
+- On the private stop request, Ctrl-C or termination, the owned path awaits `CoreInstance::stop()` for process-owned instances. It drops management/web/manager handles, then emits `LAOKUAI_OWNED_STOPPED_V1`. It never invokes `DeleteNetworkInstance`, retain/delete hooks or config-file deletion. The stop acknowledgement proves instance stop, not OS-level adapter disappearance.
+
+## Source evidence
+
+The exact upstream implementation is available in [virtual_nic.rs](https://github.com/EasyTier/EasyTier/blob/8b7f1f0196edb5b580829ed5f135050fb5853478/easytier/src/instance/virtual_nic.rs), [Windows registry helpers](https://github.com/EasyTier/EasyTier/blob/8b7f1f0196edb5b580829ed5f135050fb5853478/easytier/src/common/ifcfg/windows.rs), [Windows firewall helpers](https://github.com/EasyTier/EasyTier/blob/8b7f1f0196edb5b580829ed5f135050fb5853478/easytier/src/arch/windows.rs), [serialized instance stop](https://github.com/EasyTier/EasyTier/blob/8b7f1f0196edb5b580829ed5f135050fb5853478/easytier-core/src/instance/lifecycle.rs) and [management deletion](https://github.com/EasyTier/EasyTier/blob/8b7f1f0196edb5b580829ed5f135050fb5853478/easytier-core/src/management/full/process_rpc.rs). The safe pipe calls the lifecycle method, not the deletion RPC.
+
+The underlying manager still supports several instances and dynamic management. This compatibility patch adds no custom RPC/FFI transport. The shipped Electron startup path remains limited to one community; it must not claim dynamic multi-community acceptance. The older broadcast workaround is not reapplied: 2.7's existing Windows broadcast fix remains unchanged.
+
+## Validation and activation gates
+
+Completed: `node script/test-laokuai-source-contract.mjs` (8 static contracts), installed Rust 1.95.0 `rustfmt --edition 2024 --config skip_children=true --check` for five changed Rust files, and `git diff --check`. These are static contracts/syntax checks, not a compiled Windows build.
+
+Capacity owner should schedule a locked Windows Rust build/check and inspect the resulting executable version/hash. Gitowner records the corresponding source/patch/license component and replaces `coreSha256: null` in the provided release-owned build manifest only with the measured downstream artifact hash. The official core hash is explicitly rejected by Electron; missing/invalid manifests keep activation closed. Official CLI/DLL/driver files retain their independently pinned hashes.
+
+After that review, a separately confirmed coexistence test may compare the user's existing private GUI PID/network/interfaces/profiles/rules before and after candidate start, community disconnect and normal application quit. Verify instance stop acknowledgement, ordinary process exit and actual owned GUID/LUID/ifIndex disappearance. Test 4-second stop timeout/6-second unconfirmed-exit reporting in an isolated case. No broad name/PID scans may authorize deletion. Forced Windows logout may terminate the host before its asynchronous drain completes; EOF is requested, but OS cleanup is not guaranteed.
+
+Real config conversion, TUN/driver use, firewall installation and LAN/voice/game interoperability remain explicit activation gates. No real profile, service, core, driver, helper, network fixture, Docker or host policy was used for this patch.

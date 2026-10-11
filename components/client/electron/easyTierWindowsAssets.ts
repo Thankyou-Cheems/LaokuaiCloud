@@ -17,6 +17,21 @@ export const EASYTIER_WINDOWS_FILES = Object.freeze({
 });
 export const easyTierSha256 = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
 
+export const EASYTIER_LAOKUAI_SOURCE_PATCH_SHA256 = "3c4270f5bccf3f9223d09764472d56ef7f939a105bf16c1831a61485f032c274";
+
+export function verifiedEasyTierProductManifest(value: unknown): { coreSha256: string } {
+  const manifest = value as Record<string, unknown>;
+  if (!manifest || manifest.schemaVersion !== 1 || manifest.version !== "2.7.0-laokuai"
+    || manifest.upstreamCommit !== "8b7f1f0196edb5b580829ed5f135050fb5853478"
+    || manifest.ownedStopProtocol !== 1 || manifest.hostPolicy !== "externally-managed"
+    || manifest.sourcePatchSha256 !== EASYTIER_LAOKUAI_SOURCE_PATCH_SHA256
+    || typeof manifest.coreSha256 !== "string" || !/^[0-9a-f]{64}$/.test(manifest.coreSha256)
+    || manifest.coreSha256 === EASYTIER_WINDOWS_FILES["easytier-core.exe"]) {
+    throw new EasyTierOperationError("runtime-required");
+  }
+  return { coreSha256: manifest.coreSha256 };
+}
+
 export function verifiedEasyTierArchive(bytes: Uint8Array): Record<string, Uint8Array> {
   if (bytes.byteLength !== target.assetBytes || easyTierSha256(bytes) !== target.archiveSha256) throw new EasyTierOperationError("unsupported-target");
   // Extract only fixed filenames, never the official management console or ZIP paths.
@@ -34,8 +49,46 @@ export function verifiedEasyTierArchive(bytes: Uint8Array): Record<string, Uint8
 /** Static asset preparation. No process launch, driver load, service or profile access. */
 export class EasyTierWindowsAssets {
   private preparing: Promise<string> | null = null;
+  private productPreparing: Promise<string> | null = null;
   constructor(private root: () => string, private bundledDirectory: () => string) {}
   directory(): string { return join(this.root(), "runtime", target.archiveSha256); }
+  /** Release-owned manifest + downstream binary only; official downloads cannot activate TUN. */
+  prepareProductBundled(): Promise<string> {
+    if (!this.productPreparing) this.productPreparing = this.installProduct().finally(() => { this.productPreparing = null; });
+    return this.productPreparing;
+  }
+  private async installProduct(): Promise<string> {
+    try {
+      const manifestFile = join(this.bundledDirectory(), "laokuai-build.json");
+      if ((await stat(manifestFile)).size > 4096) throw new Error("manifest-size");
+      const manifest = verifiedEasyTierProductManifest(JSON.parse(await readFile(manifestFile, "utf8")));
+      const directory = join(this.root(), "runtime", "2.7.0-laokuai", manifest.coreSha256);
+      const hashes = { ...EASYTIER_WINDOWS_FILES, "easytier-core.exe": manifest.coreSha256 };
+      const contents: Record<string, Uint8Array> = {};
+      for (const [name, hash] of Object.entries(hashes)) {
+        const file = join(this.bundledDirectory(), name);
+        if ((await stat(file)).size > 32 * 1024 * 1024) throw new Error("asset-size");
+        const bytes = await readFile(file);
+        if (easyTierSha256(bytes) !== hash) throw new Error("asset-hash");
+        contents[name] = bytes;
+      }
+      await mkdir(directory, { recursive: true });
+      for (const [name, bytes] of Object.entries(contents)) {
+        const file = join(directory, name);
+        // Never accept a cache-local manifest or silently replace it with official core.
+        try {
+          if ((await stat(file)).size <= 32 * 1024 * 1024
+            && easyTierSha256(await readFile(file)) === hashes[name as keyof typeof hashes]) continue;
+        } catch { /* Controlled cache only. */ }
+        const temporary = `${file}.partial`;
+        await writeFile(temporary, bytes, { mode: 0o600 }); await rename(temporary, file);
+      }
+      for (const [name, hash] of Object.entries(hashes)) {
+        if (easyTierSha256(await readFile(join(directory, name))) !== hash) throw new Error("cache-hash");
+      }
+      return directory;
+    } catch { throw new EasyTierOperationError("runtime-required"); }
+  }
   async verifyInstalled(): Promise<string> {
     const directory = this.directory();
     try {
