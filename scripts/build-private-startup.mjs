@@ -1,6 +1,7 @@
 /* eslint-env node */
 import { spawnSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 const results=[];
 function run(label,args,env={}) {
@@ -25,5 +26,5 @@ if (!process.argv.includes("--resume-build")) {
 run("web-build",["node_modules/vite/bin/vite.js","build"]);
 run("desktop-build",["node_modules/vite/bin/vite.js","build"],{ELECTRON:"1"});
 run("portable-build",["node_modules/electron-builder/cli.js","--config=electron-builder.laokuai.cjs","--win","portable","--x64","--publish","never"],{
-  ELECTRON_BUILDER_CACHE:"C:/Users/cheb2/Documents/Codex/2026-10-10/task-2/tools/electron-builder-cache",UV_THREADPOOL_SIZE:"2",
+  ELECTRON_BUILDER_CACHE:process.env.ELECTRON_BUILDER_CACHE ?? resolve(".cache/electron-builder"),UV_THREADPOOL_SIZE:"2",
   CHILD_CONCURRENCY:"1",GOMAXPROCS:"2",RAYON_NUM_THREADS:"2",ELECTRON_BUILDER_COMPRESSION_LEVEL:"1",CSC_IDENTITY_AUTO_DISCOVERY:"false"});
