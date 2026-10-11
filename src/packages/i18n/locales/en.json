@@ -3659,5 +3659,48 @@
     "readback": "Sender readback: {{value}} kbps",
     "configurationBoundary": "Configuration confirmation does not prove RTP savings or FEC recovery.",
     "bitrateTitle": "Maximum bitrate (kbps)"
+  },
+  "memberLan": {
+    "enrollmentTitle": "Community LAN",
+    "pathTitle": "Local-to-member LAN path",
+    "pathExpired": "Path expired",
+    "rttTitle": "Measured peer RTT",
+    "sourceTitle": "Evidence source",
+    "ageTitle": "Membership evidence age",
+    "unknown": "Unknown",
+    "stale": "Expired",
+    "boundary": "Community LAN membership is independent of voice rooms. Only authenticated user-to-peer bindings and fresh measurements are shown.",
+    "voiceBoundary": "Voice media path: unknown in this display. LAN direct connectivity does not prove direct voice media; SFU RTT is not peer RTT.",
+    "enrollment": {
+      "off": "LAN off",
+      "not-joined": "Not joined",
+      "joining": "Joining LAN",
+      "joined": "LAN joined",
+      "error": "LAN error",
+      "unavailable": "LAN not integrated",
+      "unknown": "LAN unknown",
+      "stale": "LAN evidence expired"
+    },
+    "path": {
+      "direct": "Direct",
+      "member-relay": "Member relay",
+      "server-relay": "Server relay",
+      "unknown": "Path unknown"
+    },
+    "source": {
+      "authenticated-community": "Authenticated community adapter",
+      "easytier-local": "Local EasyTier telemetry"
+    },
+    "reason": {
+      "not-integrated": "No EasyTier adapter is connected.",
+      "scope-mismatch": "The community scope does not match.",
+      "missing": "No matching evidence.",
+      "unverified": "User-to-peer binding is unverified.",
+      "ambiguous": "User-to-peer binding is ambiguous.",
+      "stale": "Evidence is older than 10 seconds.",
+      "invalid": "Evidence or its timestamp is invalid.",
+      "not-joined": "A peer path requires both peers to have joined this community.",
+      "self": "This is the local member; peer RTT does not apply."
+    }
   }
 }

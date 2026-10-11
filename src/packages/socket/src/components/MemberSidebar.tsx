@@ -5,6 +5,7 @@ import { getUploadsFileUrl, resolveAvatarSrc, useTheme } from "@/common";
 import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 
 import { PiPushPinFill, PiPushPinSlashFill } from "../../../../lib/icons";
+import type { LanCommunitySnapshot } from "../../../../lib/memberLanStatus";
 import type { RichActivity } from "../../../../lib/richActivity";
 import { nameTags } from "../../../lib/nameTags";
 import { useDirectory } from "../hooks/dmDirectory";
@@ -16,6 +17,7 @@ import { GameIcon } from "./GameIcon";
 import { MEMBER_CARD_POPUP } from "./memberCard/memberCardContext";
 import { groupMembersByRole, readableRoleColor } from "./memberGroups";
 import { MemberIdentityCard } from "./MemberIdentityCard";
+import { MemberLanStatus } from "./MemberLanStatus";
 import { statusConfig } from "./memberStatus";
 import { NameTag } from "./NameTag";
 import { PluginPanels } from "./PluginPanels";
@@ -113,6 +115,9 @@ export interface AdminActions {
 }
 
 interface MemberSidebarProps {
+  /** Optional presentation-only evidence. Omit until an authenticated adapter is wired. */
+  lanSnapshot?: LanCommunitySnapshot;
+  lanNowMs?: number;
   members: MemberInfo[];
   currentConnectionId?: string;
   currentServerUserId?: string;
@@ -149,6 +154,8 @@ const MemberItem = ({
   cardOpen,
   onCardOpenChange,
   dmUnreadFor,
+  lanSnapshot,
+  lanNowMs,
 }: {
   member: MemberInfo;
   /** Already pulled into a readable band — see `readableRoleColor`. */
@@ -168,6 +175,8 @@ const MemberItem = ({
   onCardOpenChange: (open: boolean) => void;
   /** Unread in the conversation with this person, or nothing if there is none. */
   dmUnreadFor?: (serverUserId: string) => number;
+  lanSnapshot?: LanCommunitySnapshot;
+  lanNowMs?: number;
 }) => {
   useSocketTranslation();
   const isSelf = member.serverUserId === currentServerUserId;
@@ -216,19 +225,20 @@ const MemberItem = ({
             className="member-row member-row-clickable"
             data-card-open={cardOpen || undefined}
           >
-        <div className="flex items-center gap-2 w-full">
+        <div className="flex min-w-0 items-center gap-2 w-full">
           <Avatar
             size="small"
             fallback={member.nickname[0]}
             src={resolveAvatarSrc(member.avatarFileId ? getUploadsFileUrl(serverHost, member.avatarFileId, { thumb: true }) : undefined, member.nickname, member.avatarWorn)}
             style={{
               backgroundColor: member.color,
+              flexShrink: 0,
               opacity: isOffline ? 0.4 : 1,
             }}
           />
 
           <div className="flex flex-col" style={{ flex: 1, minWidth: 0, gap: "1px" }}>
-            <div className="flex items-center gap-1">
+            <div className="flex min-w-0 items-center gap-1">
               {/* The role's colour, or the ordinary text colour when the role
                   has none. Offline keeps its role colour and is dimmed rather
                   than greyed, so a name in the Offline group still reads as
@@ -239,6 +249,7 @@ const MemberItem = ({
                   for the flat grey this replaced. Dimmer than the names above
                   it, and more legible than what shipped. */}
               <span className="text-sm" style={{
+                  minWidth: 0,
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
@@ -250,6 +261,9 @@ const MemberItem = ({
               <NameTag tag={nameTag} />
               {member.isBot && <BotTag size="small" />}
             </div>
+
+            <MemberLanStatus serverScope={serverHost} authenticatedUserId={member.serverUserId}
+              observerAuthenticatedUserId={currentServerUserId} snapshot={lanSnapshot} nowMs={lanNowMs} />
 
             {/* Only when it says something. Every row used to carry a status
                 line, which under a heading of people who are all here meant a
@@ -320,6 +334,8 @@ export const MemberSidebar = ({
   onReport,
   pinned,
   onTogglePinned,
+  lanSnapshot,
+  lanNowMs,
 }: MemberSidebarProps) => {
   useSocketTranslation();
   const { roles } = useServerPermissions(serverHost);
@@ -440,6 +456,8 @@ export const MemberSidebar = ({
                     currentUserRole={currentUserRole}
                     serverHost={serverHost}
                     dmUnreadFor={dmUnreadFor}
+                    lanSnapshot={lanSnapshot}
+                    lanNowMs={lanNowMs}
                     adminActions={adminActions}
                     onOpenDm={onOpenDm}
                     onToggleBlock={onToggleBlock}

@@ -3659,5 +3659,48 @@
     "readback": "发送器读回：{{value}} kbps",
     "configurationBoundary": "配置确认不能证明实际 RTP 节省或 FEC 丢包恢复。",
     "bitrateTitle": "码率上限（kbps）"
+  },
+  "memberLan": {
+    "enrollmentTitle": "社区联机",
+    "pathTitle": "本机到成员的联机路径",
+    "pathExpired": "路径过期",
+    "rttTitle": "实测成员 RTT",
+    "sourceTitle": "证据来源",
+    "ageTitle": "入网证据年龄",
+    "unknown": "未知",
+    "stale": "已过期",
+    "boundary": "社区联机入网与语音房间独立。仅展示已认证的用户与 peer 绑定及新鲜测量。",
+    "voiceBoundary": "语音媒体路径：此展示尚未接入，显示未知。联机直连不代表语音媒体直连；到 SFU 的 RTT 不等于成员 RTT。",
+    "enrollment": {
+      "off": "联机关闭",
+      "not-joined": "未加入",
+      "joining": "连接中",
+      "joined": "已入网",
+      "error": "联机错误",
+      "unavailable": "联机未接入",
+      "unknown": "联机未知",
+      "stale": "联机证据过期"
+    },
+    "path": {
+      "direct": "直连",
+      "member-relay": "成员中继",
+      "server-relay": "服务器中继",
+      "unknown": "路径未知"
+    },
+    "source": {
+      "authenticated-community": "已认证社区适配器",
+      "easytier-local": "本机 EasyTier 遥测"
+    },
+    "reason": {
+      "not-integrated": "尚未接入 EasyTier 适配器。",
+      "scope-mismatch": "社区范围不匹配。",
+      "missing": "没有匹配的证据。",
+      "unverified": "用户与 peer 的绑定未经验证。",
+      "ambiguous": "用户与 peer 的绑定存在歧义。",
+      "stale": "证据已超过 10 秒。",
+      "invalid": "证据或其时间戳无效。",
+      "not-joined": "实测成员路径需要双方已加入同一社区。",
+      "self": "这是本机成员，不适用成员 RTT。"
+    }
   }
 }

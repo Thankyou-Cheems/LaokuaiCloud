@@ -1,6 +1,7 @@
 import { motion } from "motion/react";
 import { RefObject } from "react";
 
+import type { LanCommunitySnapshot } from "../../../../lib/memberLanStatus";
 import type { AdminActions, MemberInfo } from "./MemberSidebar";
 import { MemberSidebar } from "./MemberSidebar";
 
@@ -10,6 +11,9 @@ type Role = string;
 const SIDEBAR_SPRING = { type: "spring" as const, stiffness: 380, damping: 34 };
 
 interface MemberSidebarPanelProps {
+  lanSnapshot?: LanCommunitySnapshot;
+  /** Normalized adapter clock, advanced even without new telemetry. */
+  lanNowMs?: number;
   sidebarOpen: boolean;
   sidebarWidthPx: number;
   hoverPx: number;
@@ -40,6 +44,7 @@ export const MemberSidebarPanel = ({
   currentUserRole,
   currentServerConnected, serverHost,
   adminActions, onOpenDm, onToggleBlock, isBlocked, onReport, pinned, onTogglePinned,
+  lanSnapshot, lanNowMs,
 }: MemberSidebarPanelProps) => (
   <div
     // Named the way the other panels are, so a layout check can measure it. The
@@ -110,6 +115,8 @@ export const MemberSidebarPanel = ({
           }}
         >
           <MemberSidebar
+            lanSnapshot={lanSnapshot}
+            lanNowMs={lanNowMs}
             members={members}
             currentConnectionId={currentConnectionId}
             currentServerUserId={currentServerUserId}
