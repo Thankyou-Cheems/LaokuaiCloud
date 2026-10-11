@@ -68,16 +68,21 @@ const control = new Function("app", "process", "Tray", "nativeImage", "Menu", "w
   let voiceState={inVoice:true,muted:false,deafened:false,serverName:'Fixture only'};
   const updates={ready:()=>false}, updatesComeFromTheAppStore=true;
   const startupLog=()=>{}, createMainWindow=()=>{}, installNewestUpdate=()=>{}, checkForUpdatesInBackground=()=>{};
+  let etShutdownCalls=0; const easyTierCommunities={shutdownOwned:()=>{etShutdownCalls++;}}, easyTierPoll=null;
   const stateIcon=name=>'/fixture/resources/'+name+'.png', trayIcon='/fixture/resources/trayTemplate.png';
   ${body}
   return { createTray, refreshTray, toggleMainWindow, currentTrayIconPath, trayTooltip, buildTrayContextMenu,
     set: values=>{ if('quitting' in values)isQuitting=values.quitting; if('closeToTray' in values)closeToTray=values.closeToTray;
       if('signedIn' in values)isUserSignedIn=values.signedIn; if('private' in values)IS_LAOKUAI=values.private;
       if('voice' in values)voiceState={...voiceState,...values.voice}; if(values.destroyTray)tray.destroyed=true; },
-    tray:()=>tray, voice:()=>({...voiceState}), quitting:()=>isQuitting };
+    tray:()=>tray, voice:()=>({...voiceState}), quitting:()=>isQuitting, etShutdownCalls:()=>etShutdownCalls };
 `)(app, { platform: "win32" }, FakeTray, { createFromPath: file => ({ file, isEmpty: () => missingImage }) },
   { buildFromTemplate: value => value }, window, native.nativeT, () => {});
 const close = () => { let prevented = false; windowEvents.close({ preventDefault: () => { prevented = true; } }); return prevented; };
+check("Windows session end invokes owned LAN shutdown", () => {
+  const before=control.etShutdownCalls(); windowEvents["session-end"]();
+  assert.equal(control.etShutdownCalls(),before+1); control.set({quitting:false});
+});
 check("private guest X keeps voice state and hides only", () => {
   control.createTray(); const before = control.voice(); assert.equal(close(), true);
   assert.equal(visible, false); assert.deepEqual(control.voice(), before); assert.equal(quitCalls, 0);
