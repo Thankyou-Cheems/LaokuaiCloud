@@ -96,6 +96,17 @@ function checkSquadReceipt(root) {
   return receipt;
 }
 
+function assertPackedFileScope(files) {
+  const expected = ["dist/**/*","dist-electron/**/*"];
+  let filters = files;
+  if (Array.isArray(files) && files.length === 1 && files[0] !== null && typeof files[0] === "object" && !Array.isArray(files[0])) {
+    assert.deepEqual(Object.keys(files[0]),["filter"],"Normalized package scope must not redirect source/destination or add fields");
+    filters = files[0].filter;
+  }
+  assert.deepEqual(filters,expected,"Package files must retain the exact two approved renderer/main patterns");
+  return [...expected];
+}
+
 function inventory(root,config,{ sourceOnly = false } = {}) {
   const extraResources = [...config.extraResources, ...(config.win.extraResources || [])];
   const read = file => fs.readFileSync(path.join(root,file));
@@ -107,7 +118,7 @@ function inventory(root,config,{ sourceOnly = false } = {}) {
   assert.equal(config.publish,null); assert.deepEqual(config.protocols,[]);
   assert.equal(config.extraMetadata.grytI18nTest,true); assert.equal(config.extraMetadata.grytLaokuai,true);
   for (const locale of ["en-US","en-GB","zh-CN"]) assert.ok(config.electronLanguages.includes(locale));
-  assert.deepEqual(config.files,["dist/**/*","dist-electron/**/*"]);
+  const packedFileScope = assertPackedFileScope(config.files);
   assert.ok(!config.extraResources.some(e => /build\/(helper|embedded-)/.test(e.from)));
   for (const file of ["squad/squad-scope.exe","legal/PRIVATE-PROFILE-REUSE.md","legal/SQUAD-KEY-LIST.md"]) {
     assert.ok(config.extraResources.some(e => e.to === file),`Missing package resource ${file}`);
@@ -138,7 +149,7 @@ function inventory(root,config,{ sourceOnly = false } = {}) {
   const manifest = { schema:1, version:pkg.version, productName:config.productName, appId:config.appId,
     sourcePackage:pkg.name, packagedName:config.extraMetadata.name, executable:config.win.executableName+".exe",
     voice:{ name:voice.name,version:voice.version,vendor:voicePath,...describe(read(voicePath)),files:voiceFiles },
-    config:{ files:config.files,locales:config.electronLanguages,extraResources },sources,
+    config:{ files:packedFileScope,locales:config.electronLanguages,extraResources },sources,
     sourceOnly, applicationExecuted:false, realProfileRead:false, p2pAccepted:false };
   manifest.installedVersions={};
   for(const name of ["electron","electron-builder","vite","typescript","@gryt/ui","@shiguredo/rnnoise-wasm","@mediapipe/tasks-vision","uiohook-napi"]) {
@@ -254,4 +265,4 @@ function verifyPayload(payload,manifest) {
     payloadFiles:Object.fromEntries(walk(payload).map(file => [slash(path.relative(payload,file)),describe(fs.readFileSync(file))])),
     applicationExecuted:false,realProfileRead:false,scope:"Exact final build files/resources and extracted portable archive; no runtime acceptance" };
 }
-module.exports = { sha,describe,readTarGz,readAsar,inventory,verifyPayload,verifyPortable,iconPayloads,writeSquadReceipt,checkSquadReceipt };
+module.exports = { sha,describe,readTarGz,readAsar,inventory,assertPackedFileScope,verifyPayload,verifyPortable,iconPayloads,writeSquadReceipt,checkSquadReceipt };

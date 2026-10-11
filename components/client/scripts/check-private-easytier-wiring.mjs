@@ -24,7 +24,7 @@ const pins = ts.transpileModule(fs.readFileSync(new URL("../electron/easyTierWin
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
 }).outputText;
 vm.runInNewContext(pins, { exports, Object, require: () => ({}) });
-const expectedNames = Object.keys(exports.EASYTIER_WINDOWS_FILES).sort();
+const expectedNames = Object.keys(exports.EASYTIER_PRODUCT_FILES).sort();
 assert.deepEqual(config.win.extraResources.map(entry => entry.to.split("/").at(-1)).sort(), [...expectedNames, "laokuai-build.json"].sort());
 for (const entry of config.win.extraResources) {
   assert.equal(entry.from, "build/" + entry.to);
@@ -57,4 +57,4 @@ clock = 12001; tick();
 assert.equal(observedState, clock, "Clock advances past TTL without new telemetry");
 hooks.cleanup(); assert.equal(cleaned, true);
 assert.equal(hooks.useEasyTierMemberSnapshot("server-b").snapshot, undefined, "No cross-community snapshot");
-console.log("Private metadata/runtime, exact five-file resources and permission/update isolation passed; no native execution");
+console.log("Private metadata/runtime, exact four-file product resources and permission/update isolation passed; no native execution");

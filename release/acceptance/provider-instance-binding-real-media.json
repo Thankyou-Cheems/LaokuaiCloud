@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "finding": "RECEIVE-PROVIDER-INSTANCE-001",
+  "testedFreeze": "c3a724721f95ed9701d1d38f564ec53cfda4b33e",
+  "testedCodeCommit": "69e35aace6f6eb0cf068634bebbc94ef1beac7f1",
+  "sourceArchiveSha256": "0543aefac8ead64074c10eb1b8225ddebfc3a8d748f6eecfe62bcb980b98d8c2",
+  "reportSha256": "3413477a6ef7d37da5d8f7532f3578510a532a4c5e433982291bb12e9660c1fb",
+  "proofSha256": "34efced2f5cca1d078fac4137ed8aace098028fdac15fb1949eeafb63179c9c7",
+  "testSourceArchiveSha256": "3dbc834af3dcc8c2655bcf6cb9987f7015b5c22d36d524255514f20b0a5ac548",
+  "sdkSourceCommit": "b8f16d0eac49c2fb09a92f6298d8cbb9eaed7bc1",
+  "sdkPackageSha256": "8abea479d053b6310e8c97746ae8b07f153a17d691dc20bdd5a241b6fe90caed",
+  "exactInstalledPackedFiles": 212,
+  "freshInstallInMediaTrial": false,
+  "actualSdkCount": 2,
+  "productionProviderMounted": true,
+  "productionSourceModified": false,
+  "status": "corrected-production-Provider-receive-path-PASS-with-E2E-boundaries",
+  "testedProductionProviderSeamAccepted": true,
+  "accepted": [
+    "Real authenticated stable ID and roster independently captured with actual account/socket/PC/epoch/room/member context",
+    "Actual selected P2P track/revision, received RTP and nonzero selected PCM with authenticated SFU pause ACK",
+    "Wrong stable ID/epoch and actual old replaced PC/epoch binding rejected; repair requires fresh window",
+    "Real leave/room retirement/auth socket disconnect; Hybrid disable restores current SFU Provider",
+    "Last unsubscribe stops owned sampler/listeners; passive unmount retains live media route",
+    "Missing receive RTT/loss remain null; no fabricated jitter/send counters"
+  ],
+  "finalUiOwnerCommit": "3023c7520198fbc0ecbdefcab3a0b750839b85f9",
+  "finalUiAllSixIntegratedBlobsPresentAtBuildFreeze": true,
+  "currentApplicationBuildFreeze": "83dd572fad7837c9716153b9cc2e58535db1b875",
+  "currentFreezeMediaSourceByteIdentical": true,
+  "old3bedFailurePreserved": true,
+  "notAccepted": [
+    "Full main/preload/renderer/account/socket bootstrap and actual visual UI/DOM",
+    "Recovered new authenticated socket view; same-ID new physical track/late actual callbacks beyond prior pure coverage",
+    "Real capture/output/two-way listening/game load",
+    "ET physical path, WAN/FEC recovery,20 complete SDK capacity",
+    "Native activation/coexistence/cleanup"
+  ],
+  "completeAppE2E": false,
+  "physicalDirectVerified": false,
+  "sentToRemote": null,
+  "cleanup": {
+    "ownedContainersRemoved": true,
+    "heavySlotReleased": true
+  },
+  "rawMachineDetailsImported": false
+}

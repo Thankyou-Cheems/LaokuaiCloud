@@ -1,10 +1,10 @@
 /* eslint-env node */
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import path from "node:path";
 import { createRequire } from "node:module";
+import path from "node:path";
 const require = createRequire(import.meta.url);
-const { describe,readAsar,verifyPayload,verifyPortable,iconPayloads,writeSquadReceipt,checkSquadReceipt,readTarGz } = require("./laokuai-package-audit.cjs");
+const { describe,readAsar,verifyPayload,verifyPortable,iconPayloads,writeSquadReceipt,checkSquadReceipt,readTarGz,assertPackedFileScope } = require("./laokuai-package-audit.cjs");
 const fixtureRoot = path.resolve(import.meta.dirname,"../build");
 fs.mkdirSync(fixtureRoot,{recursive:true});
 const temp = fs.mkdtempSync(path.join(fixtureRoot,"package-audit-synthetic-"));
@@ -13,6 +13,8 @@ const check = (name,fn) => { fn(); cases++; console.log(`PASS ${name}`); };
 const write = (file,bytes) => { const dest = path.join(temp,file); fs.mkdirSync(path.dirname(dest),{recursive:true});fs.writeFileSync(dest,bytes); };
 // Header-only synthetic PE: no machine code, cannot run.
 const pe = Buffer.alloc(512); pe.write("MZ");pe.writeUInt32LE(128,60);pe.write("PE\0\0",128);pe.writeUInt16LE(0x8664,132);pe.writeUInt16LE(0x20b,152);
+pe.writeUInt16LE(1,134);pe.writeUInt16LE(240,148);pe.writeUInt32LE(512,212);pe.writeUInt32LE(16,260);
+pe.writeUInt32LE(1,400);pe.writeUInt32LE(0x1000,404);pe.writeUInt32LE(512,412);
 const image = Buffer.from("synthetic ICO image payload"), iconPe=Buffer.alloc(2048);pe.copy(iconPe);
 iconPe.writeUInt16LE(1,134);iconPe.writeUInt16LE(240,148);iconPe.writeUInt32LE(0x1000,280);
 iconPe.writeUInt32LE(1024,400);iconPe.writeUInt32LE(0x1000,404);iconPe.writeUInt32LE(1024,408);iconPe.writeUInt32LE(512,412);
@@ -32,11 +34,30 @@ function asar(entries) {
   return Buffer.concat([first,...chunks]);
 }
 try {
+  check("raw and electron-builder normalized scopes preserve exact patterns",()=>{
+    const patterns=["dist/**/*","dist-electron/**/*"];
+    assert.deepEqual(assertPackedFileScope(patterns),patterns);
+    assert.deepEqual(assertPackedFileScope([{filter:patterns}]),patterns);
+  });
+  check("normalized scope cannot broaden or redirect",()=>{
+    assert.throws(()=>assertPackedFileScope([{filter:["dist/**/*","dist-electron/**/*","**/*"]}]));
+    assert.throws(()=>assertPackedFileScope([{from:"..",filter:["dist/**/*","dist-electron/**/*"]}]));
+    assert.throws(()=>assertPackedFileScope([{to:"other",filter:["dist/**/*","dist-electron/**/*"]}]));
+  });
+  check("mixed or multiple FileSets are rejected",()=>{
+    assert.throws(()=>assertPackedFileScope(["dist/**/*",{filter:["dist-electron/**/*"]}]));
+    assert.throws(()=>assertPackedFileScope([{filter:["dist/**/*"]},{filter:["dist-electron/**/*"]}]));
+  });
+  check("missing duplicate or reordered patterns are rejected",()=>{
+    assert.throws(()=>assertPackedFileScope([{filter:["dist/**/*"]}]));
+    assert.throws(()=>assertPackedFileScope([{filter:["dist/**/*","dist/**/*"]}]));
+    assert.throws(()=>assertPackedFileScope([{filter:["dist-electron/**/*","dist/**/*"]}]));
+  });
   write("native/squad-scope/main.cpp","synthetic dynamic key source");write("native/squad-scope/build.bat","synthetic compile command");write("build/squad/squad-scope.exe",pe);
   check("old helper without receipt is rejected",()=>assert.throws(()=>checkSquadReceipt(temp),/missing helper build receipt/));
   check("matching synthetic helper receipt is accepted",()=>{writeSquadReceipt(temp);checkSquadReceipt(temp);});
   check("changed helper source is rejected",()=>{write("native/squad-scope/main.cpp","changed");assert.throws(()=>checkSquadReceipt(temp),/source\/build changes/);write("native/squad-scope/main.cpp","synthetic dynamic key source");});
-  check("changed helper binary is rejected",()=>{const changed=Buffer.from(pe);changed[400]=1;write("build/squad/squad-scope.exe",changed);assert.throws(()=>checkSquadReceipt(temp),/Stale Squad/);});
+  check("changed helper binary is rejected",()=>{const changed=Buffer.from(pe);changed[400]^=1;write("build/squad/squad-scope.exe",changed);assert.throws(()=>checkSquadReceipt(temp),/Stale Squad/);});
   const manifest = {schema:1,sourceOnly:false,version:"synthetic-version",voice:{version:"synthetic-alias"},productName:"唠蒯云",packagedName:"laokuai-chat",executable:"唠蒯云.exe",
     appIconPayloads:[describe(image).sha256],packedFiles:{"dist/index.html":describe(Buffer.from("synthetic renderer")),"dist-electron/main.js":describe(Buffer.from("synthetic main"))},resources:{}};
   const entries = {"package.json":JSON.stringify({name:manifest.packagedName,version:manifest.version,productName:manifest.productName,grytI18nTest:true,grytLaokuai:true,license:"AGPL-3.0-or-later"}),
@@ -46,6 +67,10 @@ try {
   for (const file of ["native/audio-capture.exe","native/screen-capture.exe","squad/squad-scope.exe"]) {
     write(`payload/resources/${file}`,pe);manifest.resources[file]={...describe(pe),source:"synthetic"};
   }
+  for (const name of ["easytier-core.exe","easytier-cli.exe"]) {
+    const file=`community-lan/product/2.7.0-laokuai/${name}`;
+    write(`payload/resources/${file}`,pe);manifest.resources[file]={...describe(pe),source:"synthetic-non-executable-PE-header"};
+  }
   for (const locale of ["en-US","en-GB","zh-CN"]) write(`payload/locales/${locale}.pak`,"synthetic");
   const payload = path.join(temp,"payload");
   check("minimal synthetic archive metadata/resources pass",()=>assert.equal(verifyPayload(payload,manifest).status,"passed"));
@@ -54,6 +79,7 @@ try {
   check("changed renderer bytes are rejected",()=>{packed({...entries,"dist/index.html":"old renderer"});assert.throws(()=>verifyPayload(payload,manifest),/dist\/index.html/);packed(entries);});
   check("missing resource is rejected",()=>{fs.unlinkSync(path.join(payload,"resources/squad/squad-scope.exe"));assert.throws(()=>verifyPayload(payload,manifest),/ENOENT/);write("payload/resources/squad/squad-scope.exe",pe);});
   check("official updater feed is rejected",()=>{write("payload/resources/app-update.yml","provider: github");assert.throws(()=>verifyPayload(payload,manifest));fs.unlinkSync(path.join(payload,"resources/app-update.yml"));});
+  check("capture DLL cannot be added to final payload",()=>{write("payload/resources/Packet.dll",pe);assert.throws(()=>verifyPayload(payload,manifest),/capture DLL/);fs.unlinkSync(path.join(payload,"resources/Packet.dll"));});
   check("source-only inventory cannot approve archive",()=>assert.throws(()=>verifyPayload(payload,{...manifest,sourceOnly:true}),/source-only/));
   check("malformed ASAR header is rejected",()=>{write("bad.asar",Buffer.alloc(32));assert.throws(()=>readAsar(path.join(temp,"bad.asar")),/pickle header/);});
   check("locked real vendor tar is read without loading SDK",()=>{

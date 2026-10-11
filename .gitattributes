@@ -1,0 +1,2 @@
+# Preserve upstream license bytes and whitespace for hash-verifiable notices.
+components/client/release/licenses/native-transitive/EASYTIER-THIRD-PARTY-LICENSES.txt -text -whitespace
