@@ -40,6 +40,7 @@ config.beforeBuild = async (...args) => {
 };
 // npmRebuild=false skips beforeBuild; validate resources at every packaging run.
 config.beforePack = async (...args) => {
+  require("./scripts/check-easytier-patched-payload.cjs").assertPatchedEasyTierPayload(__dirname, config);
   await config.beforeBuild(...args);
   const fs = require("node:fs");
   const path = require("node:path");

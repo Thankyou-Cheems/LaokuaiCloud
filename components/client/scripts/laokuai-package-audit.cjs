@@ -123,7 +123,7 @@ function inventory(root,config,{ sourceOnly = false } = {}) {
   }
   const sources = {};
   for (const item of ["package.json","yarn.lock","electron-builder.yml","electron-builder.config.cjs","electron-builder.i18n-test.cjs","electron-builder.laokuai.cjs","vite.config.ts",
-    "electron","src","native/squad-scope","private-brand","public/laokuai-icon.png","scripts/laokuai-package-audit.cjs","scripts/community-easytier-resources.cjs","scripts/check-laokuai-package.mjs"]) {
+    "electron","src","native/squad-scope","private-brand","public/laokuai-icon.png","scripts/laokuai-package-audit.cjs","scripts/community-easytier-resources.cjs","scripts/check-easytier-patched-payload.cjs","scripts/check-laokuai-package.mjs"]) {
     for (const file of fs.statSync(path.join(root,item)).isDirectory() ? walk(path.join(root,item)) : [path.join(root,item)]) {
       sources[slash(path.relative(root,file))] = describe(fs.readFileSync(file));
     }

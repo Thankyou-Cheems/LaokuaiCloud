@@ -15,7 +15,11 @@ integration history to public forks. Do not import secrets, real profiles,
 user chats, local diagnostics or source delivery ZIPs. Do not rewrite old history,
 force push, delete old trees, change production, or publish software automatically.
 
-EasyTier must use approved v2.7.0 prerelease and exact official asset hashes.
+EasyTier must use approved v2.7.0 prerelease as the fixed upstream base. The ET
+owner delivers the minimal downstream Windows compatibility patch; task-6 reviews
+and integrates it once. Official Windows binaries are reference only, never the
+private patched payload. Track patchset and private build/resource hashes under
+components/easytier. Do not change Tencent Linux public nodes.
 Joining a server/community owns ET lifetime independently of voice rooms. LAN
 membership does not authorize cross-room media; LAN direct does not prove voice
 or screen physical-direct transport. Actual network acceptance is pending.
