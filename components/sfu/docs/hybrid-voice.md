@@ -14,4 +14,15 @@ Do not run the repository-wide network tests on Windows under the current stop. 
 
 The imported test-only transport guard refuses wildcard/nonliteral/nonloopback binds, limits network types and disables mDNS. The probe requires explicit authorization environment opt-in; setting that flag does not itself authorize a test. This hardening is source-only and not a proven no-firewall-prompt path. Earlier IPFilter(loopback) fixtures could still open multicast DNS sockets. Preserve this evidence boundary.
 
-The inherited microphone receive-offer policy remains fixed24000/20; this source does not pretend to implement the latest SFU48000 target. That requires a separate policy revision with real encoding/forwarding evidence, without exceeding actual administrator caps. Future screen media must never enter this SFU: only positively proven direct P2P is allowed, with no TURN/EasyTier relay. Voice fallback remains separate.
+The frozen a36adcab real48/64 test exposed the inherited fixed24000 receive offer as a blocking limit. Preserve that failed fixture and original offers; it is not new48/64 acceptance. The subsequent source policy advertises a48000 microphone receive ceiling and20ms, preserving any existing lower SDP ceiling (including an explicit24000) and rejecting malformed explicit limits. Only the first reserved receiving Opus microphone slot is modified; other media slots remain unchanged. The opt-in remains gated by AudioOnly. Peer64 is a separate client encoder intent and does not enter this SFU policy.
+
+The existing SFU policy takes a boolean, not an authenticated channel bitrate. Current join/capability claims carry no per-channel bitrate field. Do not pretend to enforce a missing value or turn the aggregate MaxIngestKbps hint into such authority. The frozen SDK applies min(custom/requested profile, actual client channel cap, remote microphone receive cap). Thus lower custom/channel values stay lower; custom values above48 remain limited by this SFU's advertised receive ceiling. No permissions or token protocol changed. Real new-offer negotiation/encoder/RTP/PCM/forwarding acceptance requires a fresh frozen capacity-owner run.
+
+Pure cap checks execute only the production stdlib helper and the frozen SDK with fake senders, with no Pion PC or network:
+
+```
+go test -p 1 -count=1 -v internal/webrtc/microphone_opus_parameters.go internal/webrtc/microphone_opus_parameters_test.go
+node scripts/check-microphone-caps.cjs
+```
+
+Future screen media must never enter this SFU: only positively proven direct P2P is allowed, with no TURN/EasyTier relay. Voice fallback remains separate.

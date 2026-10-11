@@ -56,7 +56,8 @@ type Config struct {
 	RequireClientToken bool
 	// AudioOnly rejects every video/share slot regardless of token or role.
 	AudioOnly bool
-	// MicrophoneOpus20 advertises 24k/mono/VBR/DTX/FEC and 20ms only in audio-only mode.
+	// MicrophoneOpus20 advertises a 48k receive ceiling/mono/VBR/DTX/FEC and
+	// 20ms only in audio-only mode; it preserves any lower existing SDP cap.
 	MicrophoneOpus20 bool
 	// Experimental authenticated per-receiver audio leases. Off by default.
 	HybridEnabled bool

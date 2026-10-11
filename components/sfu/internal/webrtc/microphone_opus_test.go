@@ -43,7 +43,7 @@ func TestOpus20RealOfferPreservesOtherSlots(t *testing.T) {
 	}
 	for i := range before.MediaDescriptions {
 		if i == 0 {
-			for _, expected := range []string{"maxaveragebitrate=24000", "stereo=0", "cbr=0", "usedtx=1", "useinbandfec=1", "a=ptime:20", "a=maxptime:20"} {
+			for _, expected := range []string{"maxaveragebitrate=48000", "stereo=0", "cbr=0", "usedtx=1", "useinbandfec=1", "a=ptime:20", "a=maxptime:20"} {
 				if !strings.Contains(enabled.SDP, expected) {
 					t.Fatal("missing", expected)
 				}

@@ -40,28 +40,24 @@ func PreferMicrophoneOpus20(offer webrtc.SessionDescription, enabled bool) (webr
 		if !receiving || opus == "" {
 			return offer, fmt.Errorf("microphone_opus20: reserved microphone slot cannot receive Opus")
 		}
-		preferences := map[string]string{"maxaveragebitrate": "24000", "stereo": "0", "cbr": "0", "usedtx": "1", "useinbandfec": "1"}
 		kept := make([]sdp.Attribute, 0, len(media.Attributes)+3)
-		extras := []string{}
+		existing := []string{}
 		for _, attr := range media.Attributes {
 			if attr.Key == "ptime" || attr.Key == "maxptime" {
 				continue
 			}
 			if attr.Key == "fmtp" && strings.HasPrefix(attr.Value, opus+" ") {
-				for _, parameter := range strings.Split(strings.TrimPrefix(attr.Value, opus+" "), ";") {
-					parameter = strings.TrimSpace(parameter)
-					key := strings.ToLower(strings.TrimSpace(strings.SplitN(parameter, "=", 2)[0]))
-					if _, controlled := preferences[key]; !controlled && key != "minptime" && parameter != "" {
-						extras = append(extras, parameter)
-					}
-				}
+				existing = append(existing, strings.Split(strings.TrimPrefix(attr.Value, opus+" "), ";")...)
 				continue
 			}
 			kept = append(kept, attr)
 		}
 		// Stable ordering makes repeated offers byte-stable; minptime is a codec
 		// decoding constraint, distinct from the requested 20ms packet duration.
-		parameters := append(extras, "minptime=10", "maxaveragebitrate=24000", "stereo=0", "cbr=0", "usedtx=1", "useinbandfec=1")
+		parameters, err := microphoneOpus20Parameters(existing)
+		if err != nil {
+			return offer, err
+		}
 		media.Attributes = append(kept, sdp.NewAttribute("fmtp", opus+" "+strings.Join(parameters, ";")), sdp.NewAttribute("ptime", "20"), sdp.NewAttribute("maxptime", "20"))
 		result, err := parsed.Marshal()
 		if err != nil {
