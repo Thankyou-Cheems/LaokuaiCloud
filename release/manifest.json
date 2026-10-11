@@ -213,7 +213,30 @@
     "dynamicMultiCommunityProductionImplemented": false,
     "managementConsolePackaged": false,
     "localManagementUserAuthentication": false,
-    "firstRunReady": false
+    "firstRunReady": false,
+    "releaseActivationBlockedPendingHostCompatibility": true,
+    "hostCompatibility": {
+      "status": "blocked-pending-ET-owner-source-compatibility-delivery-and-parent-review",
+      "evidence": "Parent activation preflight; not independently executed by task-6",
+      "existingPrivateEtPresentReported": true,
+      "upstreamTunSideEffectsReported": [
+        "Automatic firewall allow behavior",
+        "Removal of NetworkList profiles whose names contain et_"
+      ],
+      "normalPermissionTokenInsufficientForAcceptance": true,
+      "requiredOutcome": "Avoid interfering with existing private ET adapters/profiles; reviewed minimal compatibility path and actual activation acceptance",
+      "task6TunStarts": 0,
+      "task6FirewallChanges": 0,
+      "task6ExistingEtKills": 0,
+      "sourceFixOwner": "ET feature owner; no parallel fix in integration tree"
+    },
+    "shutdownAcceptance": {
+      "currentMechanism": "Close uses the captured owned ChildProcess.kill handle",
+      "gracefulShutdownVerified": false,
+      "osRoutesCleanupVerified": false,
+      "existingEtProcessProtected": true,
+      "acceptanceRequired": true
+    }
   },
   "validation": {
     "commit": "dfd2adef8575bd8d2b7e3567afbbc837b866579a",
@@ -414,7 +437,8 @@
         "EasyTier and bundled driver license/notice texts in final package",
         "Static payload/ASAR/PE/resource verification and final binary SHA256"
       ],
-      "runtimeAcceptance": false
+      "runtimeAcceptance": false,
+      "runtimeActivationBlocked": true
     }
   },
   "securityBoundary": {
@@ -436,6 +460,7 @@
     "preserved": true
   },
   "pending": [
+    "ET owner compatibility delta and parent review: official TUN firewall/profile side effects must not interfere with existing private ET; owned forceful exit does not verify OS route cleanup",
     "Automatic authorized community configuration without asking users for node/secret/subnet values",
     "Explicit driver/local-management authorization and normal Windows administrator token; no UAC bypass",
     "Real Windows core/CLI/driver start/exit/game/voice and owned-process cleanup acceptance",
@@ -452,5 +477,13 @@
     "bundleSha256": "b39846eb7ce57d029dce391d249023b06a025001063d5993251fda769e847fc2",
     "preserved": true,
     "testOwnerUsesImmutableSnapshot": true
+  },
+  "frozenPreviousEtProduction": {
+    "commit": "613bc374cb7b1c0f905b504d96c6abd54d8fd9c4",
+    "codeCommit": "dfd2adef8575bd8d2b7e3567afbbc837b866579a",
+    "sourceZipSha256": "1b7dae86a4ae318d3211cf3364e4562967b578b99a7dbae926cf542d98e446c1",
+    "bundleSha256": "618714f48abd38a14f409b5dc7da47987a924a2c064053ae3bef5dd1ad596f64",
+    "preserved": true,
+    "role": "Frozen source checkpoint; not approval to activate TUN"
   }
 }

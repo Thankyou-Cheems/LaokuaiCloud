@@ -55,6 +55,21 @@ and final binary SHA256 must be completed before recording a portable candidate.
 The source candidate is reproducible and testable, but `ready: false` and
 `finalPackage: null` remain binding. Do not call it a usable ET portable release.
 
+Parent activation preflight subsequently reported that the official 2.7 TUN path
+automatically permits firewall traffic and removes NetworkList profiles with
+names containing `et_`. An existing private ET adapter is present on the target
+host. This observation was not independently exercised by task-6. Activation is
+blocked until the ET owner delivers a source compatibility path and parent review
+confirms that existing private networks are protected. An administrator permission
+boolean is insufficient acceptance. Do not start TUN, modify firewall rules or
+terminate existing ET processes as part of this source/packaging checkpoint.
+
+Current owned-process close uses the captured `ChildProcess.kill` handle. That
+forceful exit does not establish graceful shutdown or clean OS routes. Neither is
+accepted. Static candidate packaging may continue when the heavy-run slot becomes
+available, without runtime activation. The `613bc374` source ZIP/bundle stay frozen
+unchanged; this later documentation commit records the newly discovered blocker.
+
 Verify a checkout with:
 
 ```text
