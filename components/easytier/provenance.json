@@ -106,14 +106,17 @@
     "runtimeManifestSchemaVersion": 2,
     "normalAndDelayImportsVerified": true,
     "featureProfileSha256": "e67bde65ff0afe846854e31b60562b15ba774df33eda6b0540c5d0a395faae02",
-    "originalBuildInputProfileSha256": "63485768b86b55e00b34f20353ef8a6b5395e768ef2cfee8266f56a0cc62aa84",
+    "originalBuildInputProfileSha256": null,
     "coreCompilationPassed": true,
     "cliCompilationPassed": true,
     "coreExecuted": false,
     "cliExecuted": false,
     "licensesAndNoticesVerified": false,
     "trackedReceiptPath": "receipts/modern-static-build.json",
-    "trackedRuntimeInputPath": "receipts/modern-static-runtime-input.json"
+    "trackedRuntimeInputPath": "receipts/modern-static-runtime-input.json",
+    "historicalProfileJsonAtBuildFreezeSha256": "8904d6aff6c819a6d3bc03700467c7878199a68c57c9771905b7c90ec8c805d7",
+    "finalProfileAttestationCreatedAfterBuild": true,
+    "actualBuildInputsEvidence": "Native source089b6182, unchanged Cargo.lock, exact17 features and +crt-static in hash-verified producer receipt; finalized profile e67 is an integration attestation"
   },
   "payload": {
     "kind": "pending-private-patched-windows",

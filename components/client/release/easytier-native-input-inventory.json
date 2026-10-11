@@ -115,7 +115,7 @@
     "buildReceiptPath": "components/easytier/receipts/modern-static-build.json",
     "buildReceiptSha256": "e66b9ae7350a8deca8bd9e2946eb3517fcb2bee02c352ac37c859893bae8dc7d",
     "importAuditPath": "release/acceptance/modern-native-four-inputs-integrated.json",
-    "importAuditSha256": "837ce491253c0c89589b3ee96a37105eed7757c71ea0d08324b79fe883172803",
+    "importAuditSha256": "ecd0dce17610e6cbd3525f4bee481d155cf83f2ff3a8d774e55006d08f527a76",
     "buildSourceArchiveSha256": "a767730de87a071433e372cfa8c2124490b9ba74ec129428b72278dee766b0b8",
     "fullSourceBundleSha256": null,
     "activeDependencyPackages": 504,
@@ -159,7 +159,8 @@
     "executed": false,
     "sourceMaterials": "../../../release/source-materials/MODERN-RECIPIENT-SOURCE.md",
     "targetBom": "licenses/native-transitive/modern-native-bom.json",
-    "importAuditOrigin": "98-file hash-verified external producer delivery; normalized independent imports in release/acceptance/modern-native-four-inputs-integrated.json"
+    "importAuditOrigin": "98-file hash-verified external producer delivery; normalized independent imports in release/acceptance/modern-native-four-inputs-integrated.json",
+    "ownerImportAuditSha256": "837ce491253c0c89589b3ee96a37105eed7757c71ea0d08324b79fe883172803"
   },
   "historicalDbafNoNpcapCandidate": {
     "featureProfile": "windows-default-minus-faketcp-v1",
@@ -194,7 +195,7 @@
     "actualBinaryIdentifierScanBothPassed": true,
     "buildReceiptPath": "C:\\Users\\cheb2\\Documents\\Codex\\2026-10-10\\task-2\\et-windows-build-no-npcap\\delivery\\BUILD-DELIVERY.json",
     "buildReceiptSha256": "2dbb3bb8f67c600fbf48b34e25a8fb3e56a57d58b3bfaa2432eca5ac706c51cf",
-    "importAuditPath": "C:\\Users\\cheb2\\Documents\\Codex\\2026-10-10\\task-2\\et-windows-build-no-npcap\\delivery\\PE-IMPORT-AUDIT.json",
+    "importAuditPath": "external-immutable-owner-delivery/et-windows-build-no-npcap/PE-IMPORT-AUDIT.json",
     "importAuditSha256": "7eb78be98d262f56dce1e398ed46924d4362ed2d4b23217f9efa22a78b1174a4",
     "buildSourceArchiveSha256": "af925b426f2a57b9708794c9d0f27971e1444cc0df064245c3163ce75615b492",
     "fullSourceBundleSha256": "71c09f9ba90cb87dcc3eb3d828477c21d5761a74c0fd049f965fa90b54d8425e",
