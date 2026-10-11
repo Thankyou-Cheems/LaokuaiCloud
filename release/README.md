@@ -68,9 +68,14 @@ existing path scenarios pass, as do app/desktop types, targeted lint, integratio
 and Hybrid bootstrap checks. SDK observations are still absent; the new code does
 not change the `a36adcab` media test input. See
 [Provider contract](path-provider-contract.md) for precise interface requirements.
-UI connection-details candidate `8157d7fc` is hash/forward-apply verified and awaits
-the owner's provider compatibility followup before being applied; see
-[candidate receipt](acceptance/ui-connection-details-candidate.json).
+UI owner `1f400bca` complete provider-aligned patch is integrated at `ef5da42d`.
+Only that combined patch was applied; the earlier `8157d7fc` candidate was never
+separately applied. Context menu/more/keyboard entry, receive/send/LAN detail and
+logical P2P with unknown underlay use the one provider. Full app types, targeted
+lint and eleven pure suites passed; two test scripts needed import-only ESLint
+compatibility corrections. Actual SDK/ET observations, DOM and user appearance
+acceptance remain pending. See
+[integrated receipt](acceptance/ui-connection-details-integrated.json).
 These code tasks do not wait for appearance approval; native safety confirmation
 blocks actual activation only. Member assistance settings/policies/experiments
 remain deferred; existing public ET relay configuration remains unchanged.

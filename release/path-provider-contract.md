@@ -66,4 +66,6 @@ ET owner 只交原任务范围的只读真实 peer/route 与 notices；当前 Pr
 纯 VM 使用实际 source，覆盖 ordinary/receive-only、逻辑 P2P、TTL、retirement、
 账号/房间/PC/socket/publication、重复 alias、旧异步 lease、opaque token A→B→A、
 mounted provider 和只清理自有订阅/计时器。没有实际 PC、网络、capture、ET 或 TUN。
-真实 SDK observation subscription、连接详情与新媒体冻结复验仍待 owner 交付。
+真实 SDK observation subscription、ET 数据消费与新媒体冻结复验仍待交付。
+生产连接详情已从 UI owner `1f400bca` 完整兼容补丁整合到 `ef5da42d`，纯模型/
+回调检查通过；它没有第二 Provider 或采样器，DOM/设计验收仍待完成。

@@ -26,6 +26,10 @@ if(m.validation.nativePacketDependency){
   assert(report.coreSha256===dependency.coreSha256&&report.packetDllStaticImportConfirmed===true&&report.executed===false,'Native dependency evidence identity mismatch');
   if(m.ready)assert(dependency.resolutionVerified===true&&dependency.finalPackageBlocked===false,'Packet.dll distribution/deployment dependency unresolved');
 }
+if(m.validation.uiConnectionDetailsDelivery){
+  const delivery=m.validation.uiConnectionDetailsDelivery;
+  assert(sha(delivery.receipt)===delivery.receiptSha256,'UI connection-details receipt changed');
+}
 if(m.easytier.nativePortsImplemented){
   const entries=require('../components/client/scripts/community-easytier-resources.cjs');
   const names=entries.map(e=>e.to.split('/').at(-1)).sort();

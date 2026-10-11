@@ -1,7 +1,7 @@
 {
   "schema": 2,
-  "id": "laokuai-cloud-passive-provider-candidate-20261011",
-  "stage": "provider-mounted-sdk-et-observers-and-details-pending",
+  "id": "laokuai-cloud-provider-and-production-details-candidate-20261011",
+  "stage": "provider-and-details-mounted-sdk-et-translators-and-native-dependency-pending",
   "ready": false,
   "repository": {
     "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud",
@@ -9,15 +9,15 @@
     "visibility": "private",
     "branch": "release/integration-20261011",
     "soleGitWriter": "task-6",
-    "codeCommit": "ca8290cfd2996d5ff41e04716e342ca0c848e96b",
-    "codeTree": "325924d5a888a00bc0e01141d6e6f9dfbedcf206",
+    "codeCommit": "ef5da42dcac55847168f48a8b01eef00cf71d347",
+    "codeTree": "7b6c69a29cd0aaff3895ee2c1359b390f005ea10",
     "newRepositoryReason": "Authenticated private-repo metadata and explicitly scoped old local core/game remotes revealed no matching existing private integration repository",
     "historyPolicy": "Original client history preserved; no force push/reset/rewrite; other components imported as licensed source snapshots"
   },
   "components": {
     "client": {
       "path": "components/client",
-      "tree": "d85bed4d1963cd77328d5b9c980825f01c8ce2d2",
+      "tree": "cf4a0ca184cc120c98832492cd13f92d72693cc4",
       "upstream": "Gryt-chat/client",
       "publicFork": "Thankyou-Cheems/gryt-client-i18n",
       "historyImportedFrom": "06ac43f51dbda3b9444c73270a126e10489110e9",
@@ -500,7 +500,7 @@
     "coreExecuted": false
   },
   "validation": {
-    "commit": "ca8290cfd2996d5ff41e04716e342ca0c848e96b",
+    "commit": "ef5da42dcac55847168f48a8b01eef00cf71d347",
     "clientFullTypes": "passed: tsc -b --noEmit (app and desktop) against exact installed SDK integration.3",
     "targetedHybridAndMemberLint": "passed",
     "targetedEtLint": "passed: 11 changed TS/MJS/CJS files, zero warnings",
@@ -749,7 +749,7 @@
       "staticSourceInventory": "pure resource contract passed",
       "runtimeExecution": false
     },
-    "fullClientTypesSourceCommit": "ca8290cfd2996d5ff41e04716e342ca0c848e96b",
+    "fullClientTypesSourceCommit": "ef5da42dcac55847168f48a8b01eef00cf71d347",
     "nativeSourceContracts": {
       "sourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
       "scenarios": 10,
@@ -924,7 +924,7 @@
       "plan": "release/path-wiring-owner-tasks.md",
       "sdk": "SDK owner: passive selected-media/auth-scope/decoded-window/stat snapshot, no new protocol; deliver separate immutable source/package",
       "et": "task-7 ET owner: owned-instance existing CLI/RPC peer/route read-only fields plus missing-binding/selected-route/measurement-time matrix; complete exact companion/driver notices",
-      "ui": "task-4 UI owner: production read-only connection details and selected-transport vs physical-underlay presentation, consuming current hooks/providers; keep permissions/PTT/Squad/menu behavior",
+      "ui": "task-4 production entry/details source integrated from 1f400bca; UI has no SDK/ET observer; full DOM/user design acceptance remains pending",
       "integration": "task-6: provider/scopes/leases/TTL mounted in candidate; consume owner actual SDK/ET contracts next, no protocol/capture duplication",
       "test": "capacity owner: fresh frozen 48/64/main-bootstrap functional/protocol/media tests, then capacity/FEC/quality scopes separately",
       "providerContract": "release/path-provider-contract.md"
@@ -964,11 +964,13 @@
       "scope": "Current tracked text; prior client private-delta/history and vendor boundary audit retained separately. Pattern scan is not proof of absence of all secrets."
     },
     "uiConnectionDetailsDelivery": {
-      "receipt": "release/acceptance/ui-connection-details-candidate.json",
-      "receiptSha256": "4f720a6cb864637b087d7cd6519f5c94aca4f5f31a6c392c43120f9dfbcaeaee",
-      "sourceCommit": "8157d7fc2275c3697238ba791920a74d046b431f",
-      "patchSha256": "64bcafd392d17d5136677a9aacf550b5ca9a89c4c01a544f246f9c2d175eb9a3",
-      "status": "hash-and-forward-apply-verified-waiting-owner-compatibility-followup-not-applied"
+      "receipt": "release/acceptance/ui-connection-details-integrated.json",
+      "receiptSha256": "97549ad3b88ce00061524b1e98c9ee187b84e19f844f326113b4992e9f29735a",
+      "sourceCommit": "1f400bca2a8821883b985e1ff5acc79d56b4a260",
+      "integrationSourceCommit": "ef5da42dcac55847168f48a8b01eef00cf71d347",
+      "patchSha256": "53c739b556c7ff9d5ddd32fb71294120a39e46d669e5110f5116a7d402225101",
+      "status": "complete-provider-aligned-patch-integrated-pure-and-full-app-types-passed-actual-data-and-dom-pending",
+      "productionEntryIntegrated": true
     },
     "nativePacketDependency": {
       "report": "release/acceptance/native-core-static-imports.json",
@@ -1014,10 +1016,10 @@
     "Dynamic non-destructive multi-community RPC transport; current production CLI path supports one community",
     "Current-version full capacity/CPU/FEC/listening and physical-direct acceptance",
     "Final portable package mapped to exact integrated commit and measured artifact SHA256",
-    "Mounted independent authenticated provider: SDK observer and actual ET data consumption pending; production connection details await immutable UI owner patch",
+    "Mounted independent provider and production connection details: actual SDK observer and ET data translators pending; DOM/accessibility/design acceptance pending",
     "SDK owner passive receive observer supporting SFU-only and Hybrid; independent scope/decoded windows/selected pair statistics. Existing selected state is insufficient for current strict UI proof",
     "ET owner existing read-only route/peer integration and exact missing authentication binding/final forwarding/RTT time fields; no new complete-path proof protocol",
-    "UI owner production connection details; task-6 consume frozen SDK/ET observer contracts in mounted provider. These code tasks do not wait for design approval",
+    "Production connection details source integrated; task-6 consumes frozen SDK/ET observer contracts next. Actual data is still absent, no second sampler/provider",
     "Capacity owner fresh frozen 48k SFU/64k peer and actual private-product bootstrap/sinks/prior-registry media/codec regression; previous passing 24k factory evidence is not new profile acceptance",
     "Exact dbaf core statically imports Packet.dll: Npcap redistribution and ordinary-user deployment unresolved; ET owner must audit optional pcap removal without reducing normal TUN/voice, then supply new exact-source build/PE evidence. No final package before resolution"
   ],

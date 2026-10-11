@@ -46,8 +46,10 @@ Preserve VoiceAudioControls/HoverAudioControl
 hover/click menus and manual mute/PTT idle/Squad suppression presence semantics.
 MemberVoiceMediaPathProvider is mounted once with independent authenticated
 connection/roster scopes, passive lifecycle leases and TTL. SDK observations are
-still absent pending the owner's immutable read-only interface; ET evidence and
-connection details remain pending. Follow release/path-provider-contract.md.
+still absent pending the owner's immutable read-only interface; ET evidence is
+pending. Production connection details are integrated from UI owner 1f400bca,
+with current hooks and no second provider/collector. Actual data/DOM/design
+acceptance remains pending. Follow release/path-provider-contract.md.
 UI work does not delay the capacity
 owner's reviewed dbaf0453 build or immutable 78513ba4 SDK3 evidence. The dbaf
 release build passed; private core28248cf2 and static product inputs are verified.

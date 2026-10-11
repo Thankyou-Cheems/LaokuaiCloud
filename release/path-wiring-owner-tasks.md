@@ -6,7 +6,8 @@ SDK3 `78513ba4` 的两/四端 24k loopback 复验已通过；ET native `dbaf0453
 release 编译已通过。保留这些冻结证据，另取新48/64/正式 bootstrap 快照复测。
 下面是下一轮独立功能提交的范围，不得改写旧验收输入。
 provider 已在后续 `ca8290cf` 候选挂载并建立独立连接 scope、lease、失效和 TTL；
-SDK 观察与生产连接详情尚未接通。候选合同见 `path-provider-contract.md`。
+SDK 观察尚未接通；生产连接详情已从 UI owner `1f400bca` 完整补丁整合到
+`ef5da42d`，实际数据与 DOM/设计验收仍待完成。候选合同见 `path-provider-contract.md`。
 不等待外观确认才开始纯代码接线，不为完整物理路径证明增加网络协议。
 
 ## 第一阶段可以完成什么
@@ -140,7 +141,8 @@ Owner：现有 task-4 UI owner；在独立冻结客户端候选上提交。
 逻辑选择、媒体可用性、切换/恢复状态、明确来源 RTT/丢包及年龄；独立 LAN 栏显示
 community phase/缺绑定理由。缺失数据直接说明缺什么。保留昵称菜单、权限动作、
 音量 hover/click、PTT/Squad 和键盘/focus/Escape 路径，不开放跨房媒体数据。
-此入口还没有实现；原型“右键/更多”不能作为生产交付证据。
+此入口的生产源码已在 `ef5da42d` 实现并经纯检查；实际 DOM/辅助技术与完整设计
+验收仍待完成。SDK/ET translator 不由 UI owner 创建。
 
 父可按上面四个互不重叠范围调度。每位 owner 单独交 commit/增量/纯检查/字段合同，
 task-6 按 SDK→ET→provider→详情顺序固定接线快照后再交测试 owner；不重新部署 landing，

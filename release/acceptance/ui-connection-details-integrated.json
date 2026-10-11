@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "ownerSourceCommit": "1f400bca2a8821883b985e1ff5acc79d56b4a260",
+  "ownerBaseCommit": "385793c5aa0811dcbed7ec96c3b377781a2cc43f",
+  "integrationSourceCommit": "ef5da42dcac55847168f48a8b01eef00cf71d347",
+  "completePatch": {
+    "name": "connection-details-complete.patch",
+    "sha256": "53c739b556c7ff9d5ddd32fb71294120a39e46d669e5110f5116a7d402225101"
+  },
+  "originalCandidateAppliedSeparately": false,
+  "incrementalAppliedSeparately": false,
+  "ownerHandoffSha256": "8f729784f6eb8d31f088cb88ea44c9ad424705b3af0c4dab3a33294a28f62948",
+  "fieldContractSha256": "d1ec7a550795f5e74c2757ecb68292f137c32549f799162c704b36cd435211e4",
+  "normalizedProviderSha256": "55fd4eb0c2dad1c7c50d9e3afe2423954b26d9002a122a6d39cffe5d7a132475",
+  "integrationAdaptations": [
+    "Two Node VM check scripts: import sorting; explicit node:process import for ESLint. Production UI/model/locale implementation and assertions preserved."
+  ],
+  "task6": {
+    "fullAppTypesPassed": true,
+    "targetedLintPassed": true,
+    "providerModelConformanceScenarios": 5,
+    "detailsScenarios": 11,
+    "pureSuites": [
+      {
+        "name": "check-provider-details-contract",
+        "exit": 0
+      },
+      {
+        "name": "check-connection-details-ui",
+        "exit": 0
+      },
+      {
+        "name": "check-i18n-completion",
+        "exit": 0
+      },
+      {
+        "name": "check-member-voice-media-path",
+        "exit": 0
+      },
+      {
+        "name": "check-member-voice-media-store",
+        "exit": 0
+      },
+      {
+        "name": "check-member-lan-status",
+        "exit": 0
+      },
+      {
+        "name": "check-member-voice-mode-display",
+        "exit": 0
+      },
+      {
+        "name": "check-voice-ui-experience",
+        "exit": 0
+      },
+      {
+        "name": "check-receive-volume-shortcut",
+        "exit": 0
+      },
+      {
+        "name": "check-hybrid-product-bootstrap",
+        "exit": 0
+      },
+      {
+        "name": "check-laokuai-integration",
+        "exit": 0
+      }
+    ],
+    "uniqueMountedProvider": true,
+    "productionDetailsSourceIntegrated": true,
+    "actualSdkObserver": false,
+    "actualEtObserver": false,
+    "browser": false,
+    "network": false,
+    "capture": false,
+    "nativeRuntime": false,
+    "finalPackageBuilt": false
+  },
+  "unverified": [
+    "Real DOM geometry, Escape/focus and screen readers",
+    "Fresh SDK/ET actual evidence translator and media acceptance",
+    "Complete user design approval"
+  ]
+}
