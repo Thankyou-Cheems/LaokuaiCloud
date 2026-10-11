@@ -1,8 +1,10 @@
 # 最小可靠路径接线：可直接调度的 owner 任务
 
-当前源码基点是 `31cec3c6fbc8a73f5a8fac0744f04e3022e0fbd9`。
-SDK3 媒体复验继续使用冻结 `78513ba4`；ET 编译继续使用冻结 native
-`dbaf0453` bundle。下面是下一轮独立功能提交的范围，不得改写这些验收输入。
+v3 源码基点是 `31cec3c6fbc8a73f5a8fac0744f04e3022e0fbd9`；私人产品启用链、
+SFU48/P2P64 请求和自编 core 静态输入已在 `0c5a194f` 完成代码与纯检查。
+SDK3 `78513ba4` 的两/四端 24k loopback 复验已通过；ET native `dbaf0453`
+release 编译已通过。保留这些冻结证据，另取新48/64/正式 bootstrap 快照复测。
+下面是下一轮独立功能提交的范围，不得改写旧验收输入。
 当前 provider 未挂载、生产连接详情未实现；三版 UI 的模式补漏没有完成这些功能。
 不等待外观确认才开始纯代码接线，不为完整物理路径证明增加网络协议。
 
@@ -92,6 +94,8 @@ collect-info 路径，不能凭字段名编造结果。只读取当前自有实�
 - 选中 WebRTC pair 与 ET destination 的认证关联和完整逐跳物理转发：尚不可得。
   本轮不补全链路新协议；保持独立 LAN 事实，不生成 full-path/direct proof。
 
+ET owner 同时完成五个固定 companion/core 的分发 notices 清单；本地输入已静态
+准备，自编 core 不能冒充官方 core。未运行 TUN，实际激活安全确认是独立步骤。
 ET owner 必须回交“已有 API 能读到的字段/不能读到的字段”表和独立纯 CLI/RPC
 adapter 测试；不得交一份永远空数组并宣称成员连接详情完成。若 authenticated
 binding 需要服务器提供者，由父另派 server/community owner，不能让 ET owner

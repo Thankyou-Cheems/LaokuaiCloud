@@ -36,15 +36,20 @@ Native build, coexistence/cleanup and payload acceptance remain pending. Task-6
 must not duplicate that native patch. Only the parent-designated capacity owner
 performs the isolated Rust build. All current UI changes require user prototype
 preview approval before final packaging. Keep existing desktop packages unchanged.
-SDK integration.3 controller-state repair is integrated. Await frozen-snapshot
-real media retest before final release acceptance. A WebRTC peer over ET relay is not proven physical direct.
+SDK integration.3 two/four-peer factory loopback media/controller retest passed
+at24k. Private product bootstrap is now source-wired with standard SFU48/P2P64
+requests, custom preferences and server caps preserved. Fresh complete-app/new
+profile media tests are still required. A WebRTC peer over ET relay is not proven physical direct.
 
-UI v2 at a8db5d91 is an intermediate candidate. The user requested v3 omissions;
-final design approval is pending. Preserve VoiceAudioControls/HoverAudioControl
+UI v3 is integrated at31cec3c6. Complete user design approval is pending.
+Preserve VoiceAudioControls/HoverAudioControl
 hover/click menus and manual mute/PTT idle/Squad suppression presence semantics.
 MemberVoiceMediaPathProvider is not mounted; real authenticated SDK/ET evidence
 wiring and connection details are pending. UI work does not delay the capacity
-owner's reviewed dbaf0453 native build or immutable 78513ba4 SDK3 retest inputs.
+owner's reviewed dbaf0453 build or immutable 78513ba4 SDK3 evidence. The dbaf
+release build passed; private core28248cf2 and static product inputs are verified.
+Do not run native core/TUN or treat input preparation as activation approval.
+Follow release/path-wiring-owner-tasks.md for non-overlapping SDK/ET/UI follow-ups.
 
 The final user-approved deployed landing source is archived separately in
 components/landing. Maintain exact HTML/illustration and sanitized deployment
