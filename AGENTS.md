@@ -87,15 +87,15 @@ Observer and details use one SDK sampler; unmount cancels owned subscriptions,
 not borrowed tracks/PCs/sockets. Fake-PC checks are not real media acceptance.
 ET owner observation/no-Npcap profile/notices are integrated. The final profile
 has17 features and omits FakeTCP/pnet fallback; TCP/UDP/QUIC and broadcast remain
-in source. Wait for capacity-owner BOTH core/CLI final hashes and normal/delay
-imports without Packet.dll/wpcap.dll, four-input runtime schema, licenses and
-activation acceptance. The old five-input Packet.dll product is not final.
+in source. Both core/CLI final hashes, normal/delay imports without capture DLLs,
+and the four-input runtime schema are verified. License obligations and actual
+activation acceptance remain pending. The old five-input product is historical.
 
 Frozen be06217 SDK3 actual SFU48 offer/sender/RTP/PCM/fallback, peer64 andcap16
 passed in isolated two/four SDK fixtures. Light4x5/2x10 passed with2 realSDKs
 plus18 authenticated RTP replayers; not20 completeSDKs or productE2E. Preserve
-old24k failures. Parent queues3bed observer/Provider real regression after current
-core+CLI build; UI-density delta must not delay this media test. Do not rerun pure
+old24k failures. The3bed Provider trial is complete; preserve its P2P failure and
+use corrected c3a72472 for the narrow retest. Do not rerun pure
 checks merely to record these immutable reports.
 
 Final UI3023c752 speaker/microphone state and 扬声器 copy is integrated, with
@@ -108,3 +108,16 @@ candidate for corrected P2P Provider proof. Do not bypass decoded proof or
 retest unrelated passing branches. Final no-Npcap core/CLI are delivered;
 task6 may inspect and stage bytes, never execute them. Actual TUN authorization
 and network/coexistence/cleanup acceptance remain separate.
+
+Source6cb8a9cf integrates exact final core d4f100ac and CLI b84fa350,
+four runtime files/schema2/both-binary cache identity/final package import checks.
+Old Packet/core/CLI inputs are preserved in history. Nine ET-owner15e1c4b
+reviewed trial/notice/profile Git blobs are imported unchanged. The trial source
+contains fixed machine scope/protection constants for the explicitly delegated
+single-host review; these are source guards, not imported profile contents or
+runtime diagnostics. Preserve scope c737fd45 and reject old scope/payloads.
+No trial/OS snapshot/PE is run by task6. Parent collects separate current human
+trial approval and coordinates actual acceptance. Seven pinned license/notice
+documents are present, but25 cached license texts and distribution-specific
+corresponding/relinkable-source review remain pending. Do not mark the payload
+or runtime accepted based only on final hashes or design approval.

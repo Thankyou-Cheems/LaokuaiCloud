@@ -1,0 +1,138 @@
+{
+  "schema": 1,
+  "sourceCommit": "6cb8a9cf1f730454e43e19a0cb60a106684ee3e2",
+  "nativeSourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
+  "nativeSourceTree": "e58f64a219c204cdaf364fc95466cf03acfb7c21",
+  "profileSha256": "8904d6aff6c819a6d3bc03700467c7878199a68c57c9771905b7c90ec8c805d7",
+  "originalBuildInputProfileSha256": "63485768b86b55e00b34f20353ef8a6b5395e768ef2cfee8266f56a0cc62aa84",
+  "files": {
+    "easytier-core.exe": {
+      "bytes": 20107264,
+      "sha256": "d4f100ace0ae50b5270af10f579a2ccf7b2991731f05b82920eefba60055d49a",
+      "origin": "Exact reviewed no-Npcap source/profile build"
+    },
+    "easytier-cli.exe": {
+      "bytes": 6050816,
+      "sha256": "b84fa350b9c8036649df3cdc8ee728c364ea81075d82fd3783cdeede3b9ddccd",
+      "origin": "Exact reviewed no-Npcap source/profile build"
+    },
+    "WinDivert64.sys": {
+      "bytes": 94144,
+      "sha256": "8da085332782708d8767bcace5327a6ec7283c17cfb85e40b03cd2323a90ddc2",
+      "origin": "Unchanged pinned signed driver companion"
+    },
+    "wintun.dll": {
+      "bytes": 427552,
+      "sha256": "e5da8447dc2c320edc0fc52fa01885c103de8c118481f683643cacc3220dafce",
+      "origin": "Unchanged pinned signed driver companion"
+    }
+  },
+  "packageSha256": "414f36e1cc6eff5f880b943a5116a71fe243f2bd9744501630128ebdce9ec467",
+  "packageBytes": 12396432,
+  "runtimeManifestSha256": "bc18d7e68a3996e686b9b123c09aebc62df0ffc57d12c77d7d77ce54badc1509",
+  "runtimeManifestSchemaVersion": 2,
+  "normalAndDelayImportsVerified": true,
+  "ownerBuildReceiptSha256": "2dbb3bb8f67c600fbf48b34e25a8fb3e56a57d58b3bfaa2432eca5ac706c51cf",
+  "ownerImportAuditSha256": "7eb78be98d262f56dce1e398ed46924d4362ed2d4b23217f9efa22a78b1174a4",
+  "task6Inspection": "Actual final bytes, strict AMD64 PE normal/delay table parser and forbidden ASCII/UTF16 identifiers; neither executable ran",
+  "historicalInputsPreserved": {
+    "directory": "build/community-lan/product/history/owned-create-packet-core-28248cf2",
+    "oldPackageSha256": "4c57e56ec2973d18216afe1e896e95f33b1441c8f8f18cc1eea14a3534de68b6",
+    "oldCoreSha256": "28248cf281690d95afa6550769452dc803338ee016d1f52e1150d12cda661eae"
+  },
+  "productLoader": {
+    "exactBothExecutablePins": true,
+    "cacheIdentityIncludesBothAndProfile": true,
+    "oldSchemaOfficialCliAndCaptureDllRejected": true
+  },
+  "sourceNoticeFilesPackaged": [
+    "release/licenses",
+    "release/EASYTIER-NOTICES.md",
+    "release/easytier-native-input-inventory.json"
+  ],
+  "validation": {
+    "assetIdentityRejectCases": 17,
+    "actualFrozenByteCache": "passed-in-memory-filesystem-only",
+    "packageGateScenarios": 7,
+    "ownedTrialPureChecks": 18,
+    "desktopTypes": "passed-noEmit",
+    "targetedLint": "passed",
+    "nativeExecuted": false,
+    "osSnapshotExecuted": false
+  },
+  "trial": {
+    "ownerSourceCommit": "15e1c4b97022912ed6f4048cf657a1cb090ce1d2",
+    "scopeSha256": "c737fd450558cd0176356dc0e1dea3a086bf34a9042ed8e60cd89a6c15b47f20",
+    "patchSha256": "12c93c145e39353a68970e6deaa5f6f6aacaaa89c2134e73941c9118e41aa045",
+    "files": [
+      {
+        "path": "components/client/release/EASYTIER-NOTICES.md",
+        "gitBlob": "afecdb5527183201cb827289353bf0a2493c3cdf",
+        "bytes": 8849,
+        "sha256": "9683fa39ced0539f56bd99bc5ec0cb898ab19acd7b1660850f86a65c3874fbf6"
+      },
+      {
+        "path": "components/client/release/easytier-native-input-inventory.json",
+        "gitBlob": "771a0896eb9aedabc5e42db9aaeb0341549db6c3",
+        "bytes": 5529,
+        "sha256": "5634266d1de6d19b527c26ef76443215ea25b1c87dc8164a178f019df83869b2"
+      },
+      {
+        "path": "components/client/scripts/EASYTIER-WINDOWS-FEATURES.md",
+        "gitBlob": "bce6f17e53bd224a76515be1ef7b9dd3e5f01079",
+        "bytes": 5763,
+        "sha256": "f9ab49b59d1447f01918df2dbb3ed40ad6dda6e8ed8f55e8bc42e391c253d8e9"
+      },
+      {
+        "path": "components/client/scripts/OWNED-TUN-TRIAL.md",
+        "gitBlob": "3bc24dd20ad889cfed6c3b62df90decce126925e",
+        "bytes": 6986,
+        "sha256": "6b275cf5b24d7cbdd7b45901d0756769a725c3eb22709406ff02d27ae30d03b9"
+      },
+      {
+        "path": "components/client/scripts/check-owned-tun-trial.mjs",
+        "gitBlob": "be1f7b5b059bf7520f8daa94c8e9bfa13990863a",
+        "bytes": 13917,
+        "sha256": "f76019a6a09ae2220403e4a9eb382a3cc5019b1fb9472db90108d3ffdc30e2f8"
+      },
+      {
+        "path": "components/client/scripts/easytier-windows-feature-profile.json",
+        "gitBlob": "e601e493d44e8aa2939c0718ba95925c3fc3d202",
+        "bytes": 2728,
+        "sha256": "8904d6aff6c819a6d3bc03700467c7878199a68c57c9771905b7c90ec8c805d7"
+      },
+      {
+        "path": "components/client/scripts/owned-tun-trial-policy.mjs",
+        "gitBlob": "40952779ac2d52e606497255e17e8894d88ecedf",
+        "bytes": 15548,
+        "sha256": "97da7f8e6972fcfe4c3b06fe7ee9876cee3179bb5a4211e8ff3b3343a42256c0"
+      },
+      {
+        "path": "components/client/scripts/owned-tun-trial-snapshot.ps1",
+        "gitBlob": "8a56c2df5f2e28b775ad02b9236fc50d5b5fd5b1",
+        "bytes": 7900,
+        "sha256": "4b704eb36676864243aa5ad2cd573ddb2819fa710099484d0597b092340d0028"
+      },
+      {
+        "path": "components/client/scripts/run-owned-tun-trial.mjs",
+        "gitBlob": "663f2646d5785e661cc540850d7423336b96cc97",
+        "bytes": 8939,
+        "sha256": "7c6c1048cd406b77c0fab5d8f3c9d01bbd6336ce1b95d3a5c5d3036047490262"
+      }
+    ],
+    "executed": false,
+    "currentApprovalReceivedByTask6": false
+  },
+  "licensing": {
+    "fiveOriginalLicenseTextsVerified": true,
+    "noticesAndInventoryPinned": true,
+    "missingCachedTopLevelLicenseTexts": 25,
+    "distributionSpecificReviewComplete": false,
+    "correspondingRelinkableSourceComplete": false
+  },
+  "actualNetworkVerified": false,
+  "activationApproved": false,
+  "physicalDirectVerified": false,
+  "ready": false,
+  "finalPackage": null
+}

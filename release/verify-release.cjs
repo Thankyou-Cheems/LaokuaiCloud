@@ -26,6 +26,15 @@ if(m.validation.nativePacketDependency){
   assert(report.coreSha256===dependency.coreSha256&&report.packetDllStaticImportConfirmed===true&&report.executed===false,'Native dependency evidence identity mismatch');
   if(m.ready)assert(dependency.resolutionVerified===true&&dependency.finalPackageBlocked===false,'Packet.dll distribution/deployment dependency unresolved');
 }
+if(m.validation.nativeNoNpcapIntegration){
+  const candidate=m.validation.nativeNoNpcapIntegration;
+  assert(sha(candidate.receipt)===candidate.receiptSha256,'No-Npcap integration receipt changed');
+  const receipt=JSON.parse(fs.readFileSync(path.join(root,candidate.receipt),'utf8'));
+  assert(receipt.nativeSourceCommit===m.components.easytier.privateSourceCommit&&receipt.normalAndDelayImportsVerified===true&&receipt.runtimeManifestSchemaVersion===2,'No-Npcap source/proof/schema mismatch');
+  for(const name of ['easytier-core.exe','easytier-cli.exe'])assert(receipt.files[name].sha256===m.easytier.privateWindowsRuntimeFiles[name].sha256,'No-Npcap exact binary mismatch');
+  for(const file of receipt.trial.files)assert(git(['rev-parse',`${receipt.sourceCommit}:${file.path}`])===file.gitBlob,'Frozen trial source changed');
+  assert(receipt.trial.executed===false&&receipt.activationApproved===false,'Static input falsely promoted to activation');
+}
 if(m.validation.uiConnectionDetailsDelivery){
   const delivery=m.validation.uiConnectionDetailsDelivery;
   assert(sha(delivery.receipt)===delivery.receiptSha256,'UI connection-details receipt changed');
