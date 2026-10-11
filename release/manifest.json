@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "id": "laokuai-cloud-receive-path-et-observation-frozen-20261011",
-  "stage": "modern-standard-static-crt-source-restored-native-build-pending-schema6-udp-test-wired-unapproved",
+  "stage": "modern-native-four-files-integrated-screened-source-restored-internal-pack-input-frozen-runtime-and-public-pending",
   "ready": false,
   "repository": {
     "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud",
@@ -9,15 +9,15 @@
     "visibility": "private",
     "branch": "release/integration-20261011",
     "soleGitWriter": "task-6",
-    "codeCommit": "4ba8a88b693e0367b3f33168da1134f635421945",
-    "codeTree": "9d630694670a0e0bc6c57ec57857604c2d600b24",
+    "codeCommit": "b68a4e2a03295a2a00ff6a0429f5ae5eb2476897",
+    "codeTree": "9ac1a6ab9f4582f7f421aaa3aa78fe107f7d5505",
     "newRepositoryReason": "Authenticated private-repo metadata and explicitly scoped old local core/game remotes revealed no matching existing private integration repository",
     "historyPolicy": "Original client history preserved; no force push/reset/rewrite; other components imported as licensed source snapshots"
   },
   "components": {
     "client": {
       "path": "components/client",
-      "tree": "f76af6b65434c7f7c155dd3e63608af02e33bae1",
+      "tree": "a39695ee2725894a532e834418060b0cfd94fdc5",
       "upstream": "Gryt-chat/client",
       "publicFork": "Thankyou-Cheems/gryt-client-i18n",
       "historyImportedFrom": "06ac43f51dbda3b9444c73270a126e10489110e9",
@@ -137,19 +137,19 @@
     },
     "easytier": {
       "path": "components/easytier",
-      "tree": "53fb2a6af49225e1412a6b6d649764edfa03894f",
+      "tree": "1af35e8bef73da0a0c3eaddef464a714d8a4b2a2",
       "mode": "Exact licensed frozen native source import; immutable downstream patches; create-only source review accepted",
       "upstream": "EasyTier/EasyTier",
       "publicFork": "Thankyou-Cheems/EasyTier",
       "upstreamCommit": "8b7f1f0196edb5b580829ed5f135050fb5853478",
       "tag": "v2.7.0",
       "prerelease": true,
-      "privateSourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
-      "patchSetSha256": "eb30fab089422c82256a8c8db9cb7a15d3c41b8b972a05729f63ebfbac7e8cad",
-      "privateBuildPackageSha256": "414f36e1cc6eff5f880b943a5116a71fe243f2bd9744501630128ebdce9ec467",
-      "status": "both-no-Npcap-executables-static-audited-four-inputs-staged-runtime-and-distribution-pending",
-      "privateSourceTree": "e58f64a219c204cdaf364fc95466cf03acfb7c21",
-      "codePatchSha256": "eb30fab089422c82256a8c8db9cb7a15d3c41b8b972a05729f63ebfbac7e8cad",
+      "privateSourceCommit": "089b6182c603c8ab60044b673effe0cf614cc28a",
+      "patchSetSha256": "490ffd127cc7c6a9d0d622ff161fe2086536e59be8b8281cf87e2f00e314aed5",
+      "privateBuildPackageSha256": "17bdccbab2d78b42642bbf934efb4c4bf9329a97ce4ed16685c3b5659f54ca74",
+      "status": "modern-standard-static-compiled-independent-audited-license-and-activation-pending",
+      "privateSourceTree": "25be11e0c9460bce1330cbd7964e4d6561f0bc14",
+      "codePatchSha256": "490ffd127cc7c6a9d0d622ff161fe2086536e59be8b8281cf87e2f00e314aed5",
       "sourceImport": {
         "path": "source",
         "archivedFiles": 1278,
@@ -180,14 +180,15 @@
         "path": "source/easytier/Cargo.toml",
         "sha256": "3c2acac6245433e4058a6bc9f8fa2e48a767d316e67e7cb60838ffefc10b28bb",
         "nativeRebuilt": false,
-        "currentRuntimeStillBaseline": true
+        "currentRuntimeStillBaseline": false,
+        "historicalSourceCheckpoint": true
       },
       "modernStaticCrtOverlay": {
         "integrationSourceCommit": "089b6182c603c8ab60044b673effe0cf614cc28a",
         "path": "source/easytier/Cargo.toml",
         "sha256": "4bd7cccf1477b8a82c8f374a23502853dc22c166ff630cee890dd27d4413a7a6",
-        "nativeRebuilt": false,
-        "currentRuntimeStillBaseline": true
+        "nativeRebuilt": true,
+        "currentRuntimeStillBaseline": false
       }
     },
     "landing": {
@@ -471,7 +472,7 @@
     "verification": "Owner verified official archive size/SHA256; task-6 independently rehashed all five extracted runtime files without execution",
     "networkVerified": false,
     "productionUpgrade": false,
-    "implementationStatus": "dbaf-runtime-immutable-modern-standard-static-crt-source-ready-for-sole-builder-udp-scope6-unapproved",
+    "implementationStatus": "modern-standard-static-four-file-input-frozen-actual-runtime-and-public-distribution-pending",
     "integratedLayer": "Owned child stdin stop/drain, trusted IPC, community lifetime/status and private manifest loader; config/permission gates retained",
     "nativePortsImplemented": true,
     "mainRuntime": "WindowsEasyTierCliRuntime via createWindowsEasyTierProduction; private Laokuai metadata injects production runtime",
@@ -531,7 +532,7 @@
       "acceptanceRequired": true
     },
     "provenancePath": "components/easytier/provenance.json",
-    "provenanceSha256": "5cc7b6247e3ab0d9a29e279a7f1fbef80c3c7ead34b2fb2d97da4d77a39a1798",
+    "provenanceSha256": "2baaaf6774131915fa6b185d4cd767143b5fd8962f4168d90fcf3485b03068f3",
     "officialWindowsReferenceFiles": {
       "easytier-core.exe": {
         "sha256": "6490c6f5b5b809065517bb3324ca34c0f1f367f81b7fda04a6352391508b8ff8",
@@ -556,7 +557,7 @@
     },
     "officialBinaryRole": "reference-only; cannot serve as private patched payload",
     "privatePayloadApproved": false,
-    "privatePatchedPayload": "four-file-no-Npcap-static-input-prepared-notices-review-and-activation-pending",
+    "privatePatchedPayload": "modern-four-file-static-input-prepared-not-runtime-accepted",
     "privatePatchRequirements": [
       "Disable global NetworkList cleanup by default",
       "Make automatic Windows firewall/category policy explicitly controllable",
@@ -564,55 +565,58 @@
       "Keep fixed v2.7.0 upstream base; no Tencent Linux node changes"
     ],
     "privateBuild": {
-      "status": "both-executables-compiled-static-verified-licenses-and-activation-pending",
-      "sourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
-      "sourceTree": "e58f64a219c204cdaf364fc95466cf03acfb7c21",
-      "patchSetSha256": "eb30fab089422c82256a8c8db9cb7a15d3c41b8b972a05729f63ebfbac7e8cad",
+      "status": "modern-standard-static-compiled-independent-audited-license-and-activation-pending",
+      "sourceCommit": "089b6182c603c8ab60044b673effe0cf614cc28a",
+      "sourceTree": "25be11e0c9460bce1330cbd7964e4d6561f0bc14",
+      "patchSetSha256": "490ffd127cc7c6a9d0d622ff161fe2086536e59be8b8281cf87e2f00e314aed5",
       "toolchain": {
         "requiredRust": "1.95",
         "actualRust": "1.95.0",
         "target": "x86_64-pc-windows-msvc",
         "built": true
       },
-      "buildReceiptSha256": "8c2b0084b74410cda72527ba4adbdb29b3cbb31c06e73f0662a825aeb662205a",
+      "buildReceiptSha256": "e66b9ae7350a8deca8bd9e2946eb3517fcb2bee02c352ac37c859893bae8dc7d",
       "buildReceiptPath": "build/community-lan/product/2.7.0-laokuai/build-receipt.json",
-      "packageSha256": "414f36e1cc6eff5f880b943a5116a71fe243f2bd9744501630128ebdce9ec467",
-      "packagePath": "build/community-lan/product/laokuai-no-npcap-runtime-input.zip",
+      "packageSha256": "17bdccbab2d78b42642bbf934efb4c4bf9329a97ce4ed16685c3b5659f54ca74",
+      "packagePath": "build/community-lan/product/laokuai-modern-static-runtime-input.zip",
       "windowsRuntimeFiles": {
         "easytier-core.exe": {
-          "bytes": 20107264,
-          "sha256": "d4f100ace0ae50b5270af10f579a2ccf7b2991731f05b82920eefba60055d49a",
-          "origin": "Exact reviewed no-Npcap source/profile build"
+          "bytes": 20284928,
+          "sha256": "f716a1139d66800bbc75daa200b1c0c6eecccb97e88e13167fafb8d7d38bb81d",
+          "origin": "Exact source089b6182 standard-static producer build"
         },
         "easytier-cli.exe": {
-          "bytes": 6050816,
-          "sha256": "b84fa350b9c8036649df3cdc8ee728c364ea81075d82fd3783cdeede3b9ddccd",
-          "origin": "Exact reviewed no-Npcap source/profile build"
+          "bytes": 6160896,
+          "sha256": "1ad46380937aab6dd7385ebb37bb458c94f8d1a3e68baf2e6c24ea973adc6411",
+          "origin": "Exact source089b6182 standard-static producer build"
         },
         "WinDivert64.sys": {
           "bytes": 94144,
           "sha256": "8da085332782708d8767bcace5327a6ec7283c17cfb85e40b03cd2323a90ddc2",
-          "origin": "Unchanged pinned signed driver companion"
+          "origin": "Unchanged signed companion reference"
         },
         "wintun.dll": {
           "bytes": 427552,
           "sha256": "e5da8447dc2c320edc0fc52fa01885c103de8c118481f683643cacc3220dafce",
-          "origin": "Unchanged pinned signed driver companion"
+          "origin": "Unchanged signed companion reference"
         }
       },
-      "runtimeManifestSha256": "bc18d7e68a3996e686b9b123c09aebc62df0ffc57d12c77d7d77ce54badc1509",
+      "runtimeManifestSha256": "4e0ddc3ad0a24eb090f0050e4c21d6cfcb6ff572eda9d0ba640e90baedf489ec",
       "runtimeManifestPath": "build/community-lan/product/2.7.0-laokuai/laokuai-build.json",
       "runtimeManifestSchemaVersion": 2,
       "normalAndDelayImportsVerified": true,
-      "featureProfileSha256": "8904d6aff6c819a6d3bc03700467c7878199a68c57c9771905b7c90ec8c805d7",
-      "originalBuildInputProfileSha256": "63485768b86b55e00b34f20353ef8a6b5395e768ef2cfee8266f56a0cc62aa84",
+      "featureProfileSha256": "e67bde65ff0afe846854e31b60562b15ba774df33eda6b0540c5d0a395faae02",
+      "originalBuildInputProfileSha256": null,
       "coreCompilationPassed": true,
       "cliCompilationPassed": true,
       "coreExecuted": false,
       "cliExecuted": false,
       "licensesAndNoticesVerified": false,
-      "trackedReceiptPath": "receipts/no-npcap-build.json",
-      "trackedRuntimeInputPath": "receipts/no-npcap-runtime-input.json"
+      "trackedReceiptPath": "receipts/modern-static-build.json",
+      "trackedRuntimeInputPath": "receipts/modern-static-runtime-input.json",
+      "historicalProfileJsonAtBuildFreezeSha256": "8904d6aff6c819a6d3bc03700467c7878199a68c57c9771905b7c90ec8c805d7",
+      "finalProfileAttestationCreatedAfterBuild": true,
+      "actualBuildInputsEvidence": "Native source089b6182, unchanged Cargo.lock, exact17 features and +crt-static in hash-verified producer receipt; finalized profile e67 is an integration attestation"
     },
     "finalPackGuardImplemented": true,
     "privatePayloadLoaderIntegrationPending": false,
@@ -620,34 +624,34 @@
     "bundleResourceDirectory": "community-lan/product/2.7.0-laokuai",
     "privateWindowsRuntimeFiles": {
       "easytier-core.exe": {
-        "bytes": 20107264,
-        "sha256": "d4f100ace0ae50b5270af10f579a2ccf7b2991731f05b82920eefba60055d49a",
-        "origin": "Exact reviewed no-Npcap source/profile build"
+        "bytes": 20284928,
+        "sha256": "f716a1139d66800bbc75daa200b1c0c6eecccb97e88e13167fafb8d7d38bb81d",
+        "origin": "Exact source089b6182 standard-static producer build"
       },
       "easytier-cli.exe": {
-        "bytes": 6050816,
-        "sha256": "b84fa350b9c8036649df3cdc8ee728c364ea81075d82fd3783cdeede3b9ddccd",
-        "origin": "Exact reviewed no-Npcap source/profile build"
+        "bytes": 6160896,
+        "sha256": "1ad46380937aab6dd7385ebb37bb458c94f8d1a3e68baf2e6c24ea973adc6411",
+        "origin": "Exact source089b6182 standard-static producer build"
       },
       "WinDivert64.sys": {
         "bytes": 94144,
         "sha256": "8da085332782708d8767bcace5327a6ec7283c17cfb85e40b03cd2323a90ddc2",
-        "origin": "Unchanged pinned signed driver companion"
+        "origin": "Unchanged signed companion reference"
       },
       "wintun.dll": {
         "bytes": 427552,
         "sha256": "e5da8447dc2c320edc0fc52fa01885c103de8c118481f683643cacc3220dafce",
-        "origin": "Unchanged pinned signed driver companion"
+        "origin": "Unchanged signed companion reference"
       }
     },
-    "privateBuildPackageSha256": "414f36e1cc6eff5f880b943a5116a71fe243f2bd9744501630128ebdce9ec467",
-    "privateBuildPackageInput": "build/community-lan/product/laokuai-no-npcap-runtime-input.zip",
-    "privateCoreSha256": "d4f100ace0ae50b5270af10f579a2ccf7b2991731f05b82920eefba60055d49a",
+    "privateBuildPackageSha256": "17bdccbab2d78b42642bbf934efb4c4bf9329a97ce4ed16685c3b5659f54ca74",
+    "privateBuildPackageInput": "build/community-lan/product/laokuai-modern-static-runtime-input.zip",
+    "privateCoreSha256": "f716a1139d66800bbc75daa200b1c0c6eecccb97e88e13167fafb8d7d38bb81d",
     "nativeCoreCompilationPassed": true,
     "coreExecuted": false,
     "localObservationStatus": "owned route/peer producer and scoped passive Provider facts source-integrated; authenticated member mapping absent",
     "noNpcapBuildProfile": "components/client/scripts/easytier-windows-feature-profile.json",
-    "privateCliSha256": "b84fa350b9c8036649df3cdc8ee728c364ea81075d82fd3783cdeede3b9ddccd",
+    "privateCliSha256": "1ad46380937aab6dd7385ebb37bb458c94f8d1a3e68baf2e6c24ea973adc6411",
     "cliExecuted": false
   },
   "validation": {
@@ -1365,7 +1369,15 @@
       "replacementReceipt": "release/acceptance/no-npcap-four-inputs-integrated.json",
       "replacementReceiptSha256": "a7ef1a8f2fa8eee9f3a84891870b8331d31d669d2a921bbdfe155ad2cb86c4e6",
       "replacementCoreSha256": "d4f100ace0ae50b5270af10f579a2ccf7b2991731f05b82920eefba60055d49a",
-      "replacementCliSha256": "b84fa350b9c8036649df3cdc8ee728c364ea81075d82fd3783cdeede3b9ddccd"
+      "replacementCliSha256": "b84fa350b9c8036649df3cdc8ee728c364ea81075d82fd3783cdeede3b9ddccd",
+      "modernReplacement": {
+        "sourceCommit": "089b6182c603c8ab60044b673effe0cf614cc28a",
+        "coreSha256": "f716a1139d66800bbc75daa200b1c0c6eecccb97e88e13167fafb8d7d38bb81d",
+        "cliSha256": "1ad46380937aab6dd7385ebb37bb458c94f8d1a3e68baf2e6c24ea973adc6411",
+        "normalAndDelayImportsCaptureFree": true,
+        "receipt": "release/acceptance/modern-native-four-inputs-integrated.json",
+        "runtimeAccepted": false
+      }
     },
     "sfuMicrophone48Candidate": {
       "receipt": "release/acceptance/sfu-microphone48-candidate.json",
@@ -1389,8 +1401,8 @@
     },
     "noNpcapBuildCandidate": {
       "profile": "components/client/scripts/easytier-windows-feature-profile.json",
-      "profileSha256": "8904d6aff6c819a6d3bc03700467c7878199a68c57c9771905b7c90ec8c805d7",
-      "sourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
+      "profileSha256": "e67bde65ff0afe846854e31b60562b15ba774df33eda6b0540c5d0a395faae02",
+      "sourceCommit": "089b6182c603c8ab60044b673effe0cf614cc28a",
       "features": [
         "cli",
         "wireguard",
@@ -1410,13 +1422,45 @@
         "linux-netlink",
         "tcp-hole-punch"
       ],
-      "status": "both-exact-PEs-static-verified-four-file-runtime-schema2-integrated-activation-and-distribution-pending",
+      "status": "modern-standard-static-compiled-independent-audited-license-and-activation-pending",
       "twoBinaryNormalAndDelayImportsVerified": true,
       "fourFileRuntimeManifestUpdated": true,
-      "coreSha256": "d4f100ace0ae50b5270af10f579a2ccf7b2991731f05b82920eefba60055d49a",
-      "cliSha256": "b84fa350b9c8036649df3cdc8ee728c364ea81075d82fd3783cdeede3b9ddccd",
+      "coreSha256": "f716a1139d66800bbc75daa200b1c0c6eecccb97e88e13167fafb8d7d38bb81d",
+      "cliSha256": "1ad46380937aab6dd7385ebb37bb458c94f8d1a3e68baf2e6c24ea973adc6411",
       "activationApproved": false,
-      "originalBuildInputProfileSha256": "63485768b86b55e00b34f20353ef8a6b5395e768ef2cfee8266f56a0cc62aa84"
+      "originalBuildInputProfileSha256": null,
+      "historicalCandidate": {
+        "profile": "components/client/scripts/easytier-windows-feature-profile.json",
+        "profileSha256": "8904d6aff6c819a6d3bc03700467c7878199a68c57c9771905b7c90ec8c805d7",
+        "sourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
+        "features": [
+          "cli",
+          "wireguard",
+          "websocket",
+          "smoltcp",
+          "tun",
+          "socks5",
+          "kcp",
+          "quic",
+          "magic-dns",
+          "zstd",
+          "upnp",
+          "icmp-proxy",
+          "management",
+          "endpoint-discovery",
+          "extended-services",
+          "linux-netlink",
+          "tcp-hole-punch"
+        ],
+        "status": "both-exact-PEs-static-verified-four-file-runtime-schema2-integrated-activation-and-distribution-pending",
+        "twoBinaryNormalAndDelayImportsVerified": true,
+        "fourFileRuntimeManifestUpdated": true,
+        "coreSha256": "d4f100ace0ae50b5270af10f579a2ccf7b2991731f05b82920eefba60055d49a",
+        "cliSha256": "b84fa350b9c8036649df3cdc8ee728c364ea81075d82fd3783cdeede3b9ddccd",
+        "activationApproved": false,
+        "originalBuildInputProfileSha256": "63485768b86b55e00b34f20353ef8a6b5395e768ef2cfee8266f56a0cc62aa84"
+      },
+      "profileAttestationFinalizedAfterActualBuild": true
     },
     "uiThirdVersionReview": {
       "overallApproved": true,
@@ -1473,7 +1517,31 @@
       "sourceCommit": "6cb8a9cf1f730454e43e19a0cb60a106684ee3e2",
       "normalAndDelayImportsVerified": true,
       "runtimeManifestSchemaVersion": 2,
-      "actualActivationAccepted": false
+      "actualActivationAccepted": false,
+      "historicalNativeSourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
+      "historicalRuntimeFiles": {
+        "easytier-core.exe": {
+          "bytes": 20107264,
+          "sha256": "d4f100ace0ae50b5270af10f579a2ccf7b2991731f05b82920eefba60055d49a",
+          "origin": "Exact reviewed no-Npcap source/profile build"
+        },
+        "easytier-cli.exe": {
+          "bytes": 6050816,
+          "sha256": "b84fa350b9c8036649df3cdc8ee728c364ea81075d82fd3783cdeede3b9ddccd",
+          "origin": "Exact reviewed no-Npcap source/profile build"
+        },
+        "WinDivert64.sys": {
+          "bytes": 94144,
+          "sha256": "8da085332782708d8767bcace5327a6ec7283c17cfb85e40b03cd2323a90ddc2",
+          "origin": "Unchanged pinned signed driver companion"
+        },
+        "wintun.dll": {
+          "bytes": 427552,
+          "sha256": "e5da8447dc2c320edc0fc52fa01885c103de8c118481f683643cacc3220dafce",
+          "origin": "Unchanged pinned signed driver companion"
+        }
+      },
+      "currentSource": false
     },
     "etFinalTrialSource": {
       "ownerCommit": "f273f5a73e565611fba63840635b465bf7f71d14",
@@ -1623,7 +1691,10 @@
           "reactivationApproved": false,
           "actualAttemptReceipt": "release/acceptance/et-actual65s-failed-owned-cleanup.json"
         }
-      }
+      },
+      "oldPayloadStillDbaf": true,
+      "usableForCurrentModernPayload": false,
+      "parentReportedLatestTunReview": "rejected; reported to human; no new trial by Task6"
     },
     "providerActualInstanceBinding": {
       "receipt": "release/acceptance/provider-instance-binding-real-media.json",
@@ -1783,7 +1854,10 @@
       "actualRuns": 2,
       "task6RehashedFiles": 201,
       "communityCallUiAccepted": false,
-      "productNativeEtAccepted": false
+      "productNativeEtAccepted": false,
+      "containsModernNative": false,
+      "nativeAssetPinsSinceBootstrapChanged": true,
+      "currentCompleteAppBootstrapAccepted": false
     },
     "etIndependentObserver": {
       "sourceCommit": "2d766aabbacb59bf231240d7687226a77342b817",
@@ -1837,7 +1911,8 @@
       "restorationReceiptSha256": "58a111afc174482b2cd7fa857c2be71ed76168b1fd7ab68640e4870bc0e74ca9",
       "buildHandoff": "release/source-materials/NEXT-NATIVE-BUILD-HANDOFF.md",
       "currentSource": false,
-      "supersededByModernStaticCrtSource": "089b6182c603c8ab60044b673effe0cf614cc28a"
+      "supersededByModernStaticCrtSource": "089b6182c603c8ab60044b673effe0cf614cc28a",
+      "historicalNativeSourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49"
     },
     "componentUiActual": {
       "receipt": "release/acceptance/component-ui-5d-run4.json",
@@ -1886,7 +1961,8 @@
       "currentHumanApprovalReceived": false,
       "nativeExecuted": false,
       "payloadStillDbaf": true,
-      "physicalEgressMeasured": false
+      "physicalEgressMeasured": false,
+      "currentPayloadMatched": false
     },
     "modernStaticCrtSource": {
       "sourceCommit": "089b6182c603c8ab60044b673effe0cf614cc28a",
@@ -1904,12 +1980,66 @@
       "registryArchives": 865,
       "gitBundles": 7,
       "sourceFiles": 1277,
-      "nativeBuilt": false,
-      "compilerLinkInputsVerified": false,
-      "newRuntimeDllRequirementsVerified": false,
+      "nativeBuilt": true,
+      "compilerLinkInputsVerified": true,
+      "newRuntimeDllRequirementsVerified": true,
       "buildHandoff": "release/source-materials/MODERN-NATIVE-BUILD-HANDOFF.md",
       "oldCompatibilitySourceSearchBlocksNewCandidate": false,
-      "oldBinariesLegalStatusUnchanged": true
+      "oldBinariesLegalStatusUnchanged": true,
+      "sourceOnlyReceiptHistorical": true,
+      "builtAcceptanceReceipt": "release/acceptance/modern-native-four-inputs-integrated.json"
+    },
+    "modernNativeRuntime": {
+      "sourceCommit": "b68a4e2a03295a2a00ff6a0429f5ae5eb2476897",
+      "nativeSourceCommit": "089b6182c603c8ab60044b673effe0cf614cc28a",
+      "receipt": "release/acceptance/modern-native-four-inputs-integrated.json",
+      "receiptSha256": "ecd0dce17610e6cbd3525f4bee481d155cf83f2ff3a8d774e55006d08f527a76",
+      "bom": "components/client/release/licenses/native-transitive/modern-native-bom.json",
+      "bomSha256": "593c2b6ceaa49e306141958f874d95c9fde523d84cd40605ec9a7e1b4e31539b",
+      "pure": "release/acceptance/modern-native-pure-checks.json",
+      "pureSha256": "66f9a8611f29e1d9f106cbfc1be480a4e8432ab55227c4b1ea84c2af181b3717",
+      "runtimeInputPackageSha256": "17bdccbab2d78b42642bbf934efb4c4bf9329a97ce4ed16685c3b5659f54ca74",
+      "producerFilesVerified": 98,
+      "nativeRuntimeAccepted": false
+    },
+    "modernRecipientSource": {
+      "files": [
+        {
+          "path": "release/source-materials/modern-recipient/screened-native-source.json",
+          "sha256": "211774075bc80ff297c2e42d61e906bf4b94fb5ac6cbccf60ea456cb3df2c298"
+        },
+        {
+          "path": "release/source-materials/modern-recipient/dependency-source.json",
+          "sha256": "c972a2508f07d36cb39576b5f9985801371806d1e5c972bc3547ce5e529e97c6"
+        },
+        {
+          "path": "release/source-materials/modern-recipient/restoration.json",
+          "sha256": "fc3740a789f84ecea9423f15dec9fa5e6c5960a25688e5e3c60c73ac790a4f81"
+        },
+        {
+          "path": "release/source-materials/modern-recipient/lock-and-feature-check.json",
+          "sha256": "e0d470b98693d59c3f228b903eb1e2dda98f12bed4e7a65c547d715646324090"
+        },
+        {
+          "path": "release/source-materials/modern-recipient/screened-target-check.json",
+          "sha256": "bf078478bbc9715623e75924d07d3425c3646c71e5a8f3e9e49f2b6de93dfcbd"
+        }
+      ],
+      "sourceFiles": 1262,
+      "excludedPrebuiltAssets": 15,
+      "registryArchives": 865,
+      "actualTargetRegistryArchives": 494,
+      "resolutionOnlyArchives": 371,
+      "currentGitSnapshots": 7,
+      "lockRecords": 1129,
+      "lockedOfflineTargetPackages": 504,
+      "packageVersionsAndRegistryChecksumsUnchanged": true,
+      "gitToLocalTransportChanges": 6,
+      "compilerOrNativeBuild": false,
+      "actualRecipientTransferAccepted": false,
+      "relinkAccepted": false,
+      "publicExportApproved": false,
+      "documentation": "release/source-materials/MODERN-RECIPIENT-SOURCE.md"
     }
   },
   "securityBoundary": {
@@ -1945,8 +2075,9 @@
     "Historical c737/dd60 approvals remain consumed. One newly approved3c/2392scope65s attempt also consumed: real NIC created, failed at first ownedForbiddenSocketCount1 before readiness/full-during, graceful ACK exit0 and two light/post-full cleanup confirmed; selected old configuration zero differences, NetworkList+1 retained. Unexpected endpoint classification pending source/read-only diagnosis; no reactivation approved Diagnostic17/schema5 now saves strict endpoint identities/details before refusal;101 pure+8 plan passed. Empty-list NAT collector is a source candidate, historical attribution unproven, new scope425b unapproved and no reactivation",
     "Internal83 portable artifact SHA7d430b1c/source83dd572f/static188files verified. Follow-up26 legal/FileSet changes and944 runner repair are absent from that artifact; no attribution to current code",
     "5d exact internal artifact d6a1ee40 / ASAR ed3ea18c passed two actual hidden offline empty-profile runs.201 final owner file hashes verified. New legal c62 bytes are absent from this old artifact; no final public release",
-    "Modern Win10/11 static CRT source089b6182 is integrated and fresh offline source/886metadata/504 target graph verified; no compiler/native executed. Parent assigns sole builder for new EXE/PDB/import/link-input provenance and functionality. Existing dbaf runtime,817 material and65s failure stay historical. Old modified CRT source search does not block new candidate if new link audit proves absent; new Microsoft licensed input/recipient/public-release scope remains.",
-    "Expected UDP source f273/schema6/a071 is wired with110 pure checks and19 source pins, allowing at most one stable-owned IPv4 wildcard bind for exact old dbaf/d4f payload. Fresh human activation approval is absent; egress and socket callsite are unmeasured. New binary must receive new payload scope."
+    "Expected UDP source f273/schema6/a071 is wired with110 pure checks and19 source pins, allowing at most one stable-owned IPv4 wildcard bind for exact old dbaf/d4f payload. Fresh human activation approval is absent; egress and socket callsite are unmeasured. New binary must receive new payload scope.",
+    "Modern source089b6182 actual native pair and standard MSVC/SDK PE/PDB/link evidence are integrated. Exact four-file runtime input17bdccba is ready for a parent-assigned internal full-app builder; no rebuilt complete app exists yet. Old schema6/a071 pins dbaf and must not execute the new payload. Parent reports latest TUN reviewer rejection; no runtime/coexistence acceptance.",
+    "Screened1262-file native source draft excludes15 prebuilt assets, including6 Packet files. Fresh source-only offline restoration uses865 registry archives/7 Git source snapshots and preserves1129 lock record versions/checksums with6 local transport changes. Actual recipient transfer/relink/platform license and distribution review remain pending; no public export."
   ],
   "finalPackage": null,
   "frozenPreviousHybrid": {
@@ -2039,5 +2170,6 @@
     "containsIndependentObserver3cSource": false,
     "containsCurrentEncodingSourceOverlay": false,
     "containsSocketDiagnostic17Source": false
-  }
+  },
+  "readyForInternalPackPreparation": true
 }

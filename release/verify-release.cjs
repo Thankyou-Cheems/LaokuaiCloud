@@ -116,7 +116,10 @@ if(m.validation.uiHiddenBootstrapActual){
   assert(receipt.testedFreeze==='5d309524116d2276d913af6f98a79436e9dbf3ed'&&receipt.status==='PASS-bootstrap-only'&&receipt.task6ReadOnlyVerification.files===201&&receipt.task6ReadOnlyVerification.allHashesMatched,'Actual UI source/evidence identity mismatch');
   assert(receipt.artifact.sha256==='d6a1ee4023fc33cf889798cb60b9a3dbe382a6a4a9af2e2b9f34168f223d4c83'&&receipt.appAsarSha256==='ed3ea18c2a6405a138386966ca41927a5ef1a8d5582afd6bdcedd6c6756682f0','Actual UI exact package identity changed');
   assert(receipt.actualRuns.length===2&&receipt.actualRuns.every(x=>x.exit===0&&x.residual.length===0&&!x.windowVisible&&!x.windowFocused)&&receipt.actualRuns[1].explicitEndpointAndForegroundQuerySuccess,'Actual UI bounded startup result changed');
-  assert(git(['diff','--name-only',receipt.testedFreeze,m.repository.codeCommit,'--','components/client/src','components/client/electron','components/voice','components/server','components/sfu'])==='','Measured UI/media source changed');
+  const bootstrapChanges=git(['diff','--name-only',receipt.testedFreeze,m.repository.codeCommit,'--','components/client/src','components/client/electron','components/voice','components/server','components/sfu']);
+  assert(bootstrapChanges===''||(m.validation.modernNativeRuntime&&bootstrapChanges==='components/client/electron/easyTierWindowsAssets.ts'),'Measured UI/media source changed outside independently verified native asset pins');
+  // Bootstrap acceptance stays with the exact old 5d package. The newer native
+  // asset loader pins do not inherit complete-app bootstrap acceptance.
   // The next native source overlay is independently verified; the measured 5d
   // package still contains only the immutable dbaf native binaries.
   assert(receipt.notAccepted.communityMemberRows&&receipt.notAccepted.callMenuFocusOcclusion&&receipt.notAccepted.actualDeviceListening&&receipt.notAccepted.etTunCoexistenceCleanup&&receipt.ready===false&&receipt.finalPackage===null&&!receipt.publicDistributionApproved&&!receipt.task6ReadOnlyVerification.productExecuted,'Bootstrap promoted to full product/native/release acceptance');
