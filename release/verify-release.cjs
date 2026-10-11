@@ -270,3 +270,13 @@ if(m.validation.modernNativeRuntime){
  const bom=JSON.parse(fs.readFileSync(path.join(root,e.bom)));assert(bom.targetPackages===504&&bom.packages.length===504&&sha(bom.licenseBundle.path)===bom.licenseBundle.sha256&&!bom.publicDistributionApproved&&!bom.actualRecipientSourceDelivered,'Modern BOM/notice/source boundary changed');
  assert(m.validation.etFinalTrialSource.oldPayloadStillDbaf===true&&!m.validation.etFinalTrialSource.usableForCurrentModernPayload,'Old trial authorization reused for modern payload');
 }
+if(m.validation.modernRecipientSource){
+ const e=m.validation.modernRecipientSource;
+ for(const x of e.files)assert(sha(x.path)===x.sha256,'Screened recipient evidence changed: '+x.path);
+ const dir=path.join(root,'release/source-materials/modern-recipient'),read=n=>JSON.parse(fs.readFileSync(path.join(dir,n)));
+ const s=read('screened-native-source.json'),d=read('dependency-source.json'),r=read('restoration.json'),l=read('lock-and-feature-check.json');
+ assert(s.retainedSourceFiles===1262&&s.excluded.length===15&&s.excluded.filter(x=>/(?:^|\/)Packet\.(dll|lib)$/i.test(x.path)).length===6,'Screened source scope changed');
+ assert(d.registry.length===865&&d.git.length===7&&d.activeRegistryArchives===494&&d.supplementalWorkspaceResolutionArchives===371&&d.fullWorkspaceClosurePacketFilenameScan.packetDllOrLibMembers===0,'Recipient dependency closure changed');
+ assert(r.exactTargetPackageSetMatched&&r.lockedOfflineTargetPackages===504&&!r.compilerBuildOrNativeExecuted&&!r.actualRecipientReceived&&!r.relinkAccepted&&!r.publicDistributionApproved,'Recipient source restoration promoted to build/relink/release');
+ assert(l.lockPackages===1129&&l.allPackageVersionsAndRegistryChecksumsUnchanged&&l.gitPackageTransportChanges.length===6&&l.thunkFeatures.length===0&&l.serviceManagerFeatures.length===0&&!l.nativeBuiltOrExecuted&&!l.publicApproved,'Relocated lock/feature proof changed');
+}
