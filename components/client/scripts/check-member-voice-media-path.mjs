@@ -151,12 +151,12 @@ check('actual connected member component passes exact member/publication and exc
  const collect=tree=>Array.isArray(tree)?tree.flatMap(collect):tree&&typeof tree==='object'?[tree,...collect(tree.props?.children)]:[];
  const nickname='很长的昵称'.repeat(30),props={nickname,isSpeaking:true,isMuted:false,isDeafened:false,isAFK:false,serverHost:'server-fixture',serverUserId:'remote-user',streamId:'remote-pub'};
  const nodes=collect(ConnectedUser({...props,isSelf:false,showVoiceMediaPath:true}));const badge=nodes.find(n=>n.type==='VoiceMediaStatus');
- assert.deepEqual({...badge.props},{host:'server-fixture',member:'remote-user',publicationId:'remote-pub'});
- const name=nodes.find(n=>n.props?.['data-gryt']==='member-name');assert.equal(name.props.title,nickname);assert.equal(name.props.style.minWidth,0);assert.match(name.props.className,/truncate/);
+ assert.deepEqual({...badge.props},{compact:true,host:'server-fixture',member:'remote-user',publicationId:'remote-pub'});
+ const name=nodes.find(n=>n.props?.['data-gryt']==='member-name');assert.equal(name.props.title,nickname);assert.match(name.props.className,/min-w-0/);assert.match(name.props.className,/truncate/);
  assert.ok(nodes.find(n=>n.type==='SpeakingHalo').props.active);assert.equal(collect(ConnectedUser({...props,isSelf:true,showVoiceMediaPath:true})).find(n=>n.type==='VoiceMediaStatus'),undefined);
  assert.equal(collect(ConnectedUser({...props,isSelf:false})).find(n=>n.type==='VoiceMediaStatus'),undefined);
 });
-check('existing nickname column, actual speaking halo, quality and separate LAN rows remain intact',()=>{
+check('single-line nickname, actual speaking halo, quality and separate LAN rows remain intact',()=>{
  const connected=read('src/packages/socket/src/components/connectedUser.tsx'),sidebar=read('src/packages/socket/src/components/MemberSidebar.tsx');
  assert.ok(connected.indexOf('<MemberVoiceMediaStatus')>connected.indexOf('data-gryt="member-name"'));
  assert.match(connected,/publicationId=\{streamId\}/);assert.match(connected,/<SpeakingHalo/);assert.match(connected,/<MemberVoiceQuality/);

@@ -121,7 +121,8 @@ export function ConnectedUser({
       transition={{ duration: 0.25 }}
       style={{ width: "100%", overflow: "hidden" }}
     >
-      <div className="flex items-center gap-2 px-3 py-1 w-full" data-gryt="voice-member" style={{
+      <div className="flex flex-nowrap items-center gap-2 px-3 py-1 w-full" data-gryt="voice-member" style={{
+          containerType: "inline-size",
           opacity: 1,
           transition: "opacity 0.3s ease",
         }}>
@@ -146,16 +147,17 @@ export function ConnectedUser({
               }}
             />
           </div>
-          <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <span className="text-sm truncate max-sm:whitespace-normal max-sm:overflow-visible max-sm:text-clip max-sm:break-words" data-gryt="member-name" title={nickname} style={{ minWidth: 0 }}>{nickname}</span>
-            <VoiceModeIcon host={serverHost} member={serverUserId} isSelf={isSelf} />
-            {showVoiceMediaPath && !isSelf && <MemberVoiceMediaStatus host={serverHost} member={serverUserId} publicationId={streamId} />}
-          </div>
+          <span className="min-w-0 flex-1 truncate text-sm" data-gryt="member-name" title={nickname}>{nickname}</span>
         </div>
 
-        <div className="flex shrink-0 gap-1 items-center">
-          <MemberVoiceQuality host={serverHost} member={serverUserId}/>
-      {!isSelf && <RemoteReceiveCorrection compact host={serverHost} member={serverUserId} streamId={streamId} />}
+        <div className="flex shrink-0 flex-nowrap gap-1 items-center" data-gryt="voice-member-status-icons">
+          <VoiceModeIcon host={serverHost} member={serverUserId} isSelf={isSelf} />
+          {showVoiceMediaPath && !isSelf && <MemberVoiceMediaStatus compact host={serverHost} member={serverUserId} publicationId={streamId} />}
+          <div className="inline-flex shrink-0 items-center gap-1" data-gryt="voice-member-secondary">
+            <MemberVoiceQuality host={serverHost} member={serverUserId}/>
+            {!isSelf && <RemoteReceiveCorrection compact host={serverHost} member={serverUserId} streamId={streamId} />}
+            {isAFK && <span className="text-xs font-bold text-gryt-warning">{socketI18n.t("socketFull.connectedUser_47ce15dbdf")}</span>}
+          </div>
           {isConnectingToVoice && (
             <Skeleton variant="circular" width="12px" height="12px" />
           )}
@@ -164,9 +166,6 @@ export function ConnectedUser({
           ) : isMuted ? (
             <PiMicrophoneSlashFill size={14} color="var(--gryt-danger-8)" />
           ) : null}
-          {isAFK && (
-            <span className="text-xs font-bold text-gryt-warning">{socketI18n.t("socketFull.connectedUser_47ce15dbdf")}</span>
-          )}
         </div>
       </div>
     </motion.div>

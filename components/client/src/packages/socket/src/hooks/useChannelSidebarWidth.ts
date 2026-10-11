@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 const KEY = "gryt.layout.channelSidebarWidth.v1";
 const MIN = 220;
 const MAX = 480;
-const DEFAULT = 280;
+const DEFAULT = 320;
 const clamp = (value: number) => Math.min(MAX, Math.max(MIN, value));
 
 /** A layout preference only. Shrinking the window does not overwrite the saved width. */

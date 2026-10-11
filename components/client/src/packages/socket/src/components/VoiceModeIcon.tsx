@@ -22,21 +22,21 @@ export function VoiceModeGlyph({ state, keyLabel, compact = false }: { state: Vo
       : state?.inputMode === "push_to_talk" && state.transmit === "normal" ? PiBroadcastFill : PiMicrophoneFill;
   return <Tooltip title={label}><span role="img" tabIndex={0} aria-label={label} data-testid="voice-mode-icon"
     data-squad-confirmed={state?.squad === "suppressed"} data-mic-closed={Boolean(closed)} data-voice-transmit={state?.transmit ?? "unknown"}
-    className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-x-1 gap-y-0.5 text-[10px] leading-tight" style={{ maxWidth: compact ? "100%" : 155, color: warning ? "var(--gryt-warning-11)" : closed ? "var(--gryt-danger-11)" : undefined }}>
+    className={`inline-flex items-center text-[10px] leading-tight ${compact ? "shrink-0 flex-nowrap gap-0.5" : "min-w-0 max-w-full flex-wrap gap-x-1 gap-y-0.5"}`} style={{ maxWidth: compact ? undefined : 155, color: warning ? "var(--gryt-warning-11)" : closed ? "var(--gryt-danger-11)" : undefined }}>
     {state ? <>
       <span aria-hidden="true" className="inline-flex items-center gap-0.5">
-        {state.inputMode === "push_to_talk" && <kbd className="rounded border border-gryt-border px-0.5 text-[9px]">PTT</kbd>}
-        <MicrophoneIcon size={13} />{t(`voiceMode.${state.inputMode}`)}
+        {!compact && state.inputMode === "push_to_talk" && <kbd className="rounded border border-gryt-border px-0.5 text-[9px]">PTT</kbd>}
+        <MicrophoneIcon size={13} />{!compact && t(`voiceMode.${state.inputMode}`)}
       </span>
-      {state.squad !== "off" && <span aria-hidden="true" className="inline-flex items-center gap-0.5">
+      {state.squad !== "off" && <span aria-hidden="true" className="relative inline-flex items-center gap-0.5">
         <PiGameControllerFill size={13} />
-        {state.squad === "suppressed" && <svg data-testid="squad-pause-glyph" width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M2 1h2v8H2zm4 0h2v8H6z" /></svg>}
-        {t(`voiceMode.compact.squad.${state.squad}`)}
+        {state.squad === "suppressed" && <svg data-testid="squad-pause-glyph" className={compact ? "absolute -right-0.5 -top-0.5" : undefined} width={compact ? 8 : 10} height={compact ? 8 : 10} viewBox="0 0 10 10" fill="currentColor"><path d="M2 1h2v8H2zm4 0h2v8H6z" /></svg>}
+        {!compact && t(`voiceMode.compact.squad.${state.squad}`)}
       </span>}
-      <span aria-hidden="true" className="inline-flex items-center gap-0.5 text-gryt-muted">
-        {warning && <PiWarningFill size={12} />}{t(`voiceMode.compact.transmit.${state.transmit}`)}
-      </span>
-    </> : <span aria-hidden="true">? {t("voiceMode.compact.unknown")}</span>}
+      {(!compact || warning) && <span aria-hidden="true" className="inline-flex items-center gap-0.5 text-gryt-muted">
+        {warning && <PiWarningFill size={12} />}{!compact && t(`voiceMode.compact.transmit.${state.transmit}`)}
+      </span>}
+    </> : <span aria-hidden="true">? {!compact && t("voiceMode.compact.unknown")}</span>}
   </span></Tooltip>;
 }
 export function VoiceModeIcon({ host, member, isSelf }: { host?: string; member?: string; isSelf?: boolean }) {

@@ -2214,3 +2214,8 @@ body {
 [data-gryt="audio-control-popup"] {
   max-height: min(var(--available-height, var(--gryt-overlay-height)), var(--gryt-overlay-height)) !important;
 }
+/* Room rows stay single-line; small saved sidebar widths keep core state icons
+   and reclaim the optional quality/correction slots for the nickname. */
+@container (max-width: 230px) {
+  [data-gryt="voice-member-secondary"] { display: none; }
+}

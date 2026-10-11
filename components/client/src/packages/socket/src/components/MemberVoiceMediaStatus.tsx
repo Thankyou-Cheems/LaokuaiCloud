@@ -6,7 +6,7 @@ import { useMemberVoiceMediaPath } from "@/webRTC/src/components/MemberVoiceMedi
 import { ConnectionTopologyIcon, type ConnectionTopologyKind } from "../../../../components/ConnectionTopologyIcon";
 import type { MemberVoiceMediaPath, VoicePathDirection } from "../../../../lib/memberVoiceMediaPath";
 
-export function MemberVoiceMediaStatusView({ path }: { path: MemberVoiceMediaPath }) {
+export function MemberVoiceMediaStatusView({ path, compact = false }: { path: MemberVoiceMediaPath; compact?: boolean }) {
   const { t } = useTranslation();
   const label = (d: VoicePathDirection & { mediaAvailable?: boolean }) =>
     d.selected === "peer" && d.mediaAvailable === true && d.label === "path-pending" ? t("memberVoicePath.p2pUnderlayPending") : t(`memberVoicePath.labels.${d.label}`);
@@ -32,15 +32,15 @@ export function MemberVoiceMediaStatusView({ path }: { path: MemberVoiceMediaPat
     [path.receive.label, path.send.label].every(value => ["direct", "member-relay", "server-relay"].includes(value)) ? "var(--gryt-success-11)" : "var(--gryt-neutral-11)";
   return (
     <Tooltip title={full}>
-      <span className="flex min-w-0 items-start gap-1 text-[10px] leading-tight cursor-help focus-visible:outline focus-visible:outline-2 focus-visible:outline-gryt-accent" style={{ color }}
+      <span className={`${compact ? "inline-flex shrink-0 items-center" : "flex min-w-0 items-start gap-1"} text-[10px] leading-tight cursor-help focus-visible:outline focus-visible:outline-2 focus-visible:outline-gryt-accent`} style={{ color }}
         data-gryt="member-voice-media-path" tabIndex={0} role="img" aria-label={full} title={full}
         onKeyDown={event => { if (event.key === "Enter" || event.key === " ") event.stopPropagation(); }}>
         <ConnectionTopologyIcon kind={icon} />
-        <span aria-hidden="true" className="min-w-0 break-words">{text}</span>
+        <span aria-hidden="true" className={compact ? "sr-only" : "min-w-0 break-words"}>{text}</span>
       </span>
     </Tooltip>
   );
 }
-export function MemberVoiceMediaStatus({ host, member, publicationId }: { host?: string; member?: string; publicationId?: string }) {
-  return <MemberVoiceMediaStatusView path={useMemberVoiceMediaPath(host, member, publicationId)} />;
+export function MemberVoiceMediaStatus({ host, member, publicationId, compact }: { host?: string; member?: string; publicationId?: string; compact?: boolean }) {
+  return <MemberVoiceMediaStatusView compact={compact} path={useMemberVoiceMediaPath(host, member, publicationId)} />;
 }

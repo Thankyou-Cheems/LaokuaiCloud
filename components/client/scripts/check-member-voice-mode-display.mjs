@@ -27,11 +27,12 @@ const nodes = tree => Array.isArray(tree)?tree.flatMap(nodes):tree&&typeof tree=
 const text = tree => Array.isArray(tree)?tree.map(text).join(" "):tree&&typeof tree==="object"?text(tree.props?.children):tree??"";
 const state = {v:1,seq:1,inputMode:"voice_activity",squad:"off",transmit:"normal"};
 let checks=0;const check=(name,fn)=>{fn();checks++;console.log("PASS "+name);};
-check("compact Chinese/English renders every state visibly with a focusable full explanation",()=>{
+check("compact glyphs retain full Chinese/English explanation while expanded mode renders every label",()=>{
  for(language of ["en","zh-CN"])for(const inputMode of ["voice_activity","push_to_talk"])for(const squad of ["off","standby","armed","suppressed","resuming","unavailable"])for(const transmit of ["normal","manual-muted","server-muted","ptt-idle","squad-suppressed","resuming","pending","suspended","error"]){
   const tree=glyph({compact:true,state:{...state,inputMode,squad,transmit}}),visible=text(tree),root=nodes(tree).find(n=>n.props?.["data-testid"]==="voice-mode-icon");
-  assert.ok(visible.includes(t(`voiceMode.${inputMode}`)));assert.ok(visible.includes(t(`voiceMode.compact.transmit.${transmit}`)));if(squad!=="off")assert.ok(visible.includes(t(`voiceMode.compact.squad.${squad}`)));
-  assert.equal(root.props.tabIndex,0);assert.ok(root.props["aria-label"].includes(t(`voiceMode.transmit.${transmit}`)));assert.ok(root.props.className.includes("flex-wrap"));
+  assert.ok(!visible.includes(t(`voiceMode.${inputMode}`)));assert.ok(!visible.includes(t(`voiceMode.compact.transmit.${transmit}`)));
+  assert.equal(root.props.tabIndex,0);assert.ok(root.props["aria-label"].includes(t(`voiceMode.transmit.${transmit}`)));assert.ok(root.props["aria-label"].includes(t(`voiceMode.${inputMode}`)));assert.ok(root.props.className.includes("flex-nowrap"));
+  const expanded=text(glyph({compact:false,state:{...state,inputMode,squad,transmit}}));assert.ok(expanded.includes(t(`voiceMode.${inputMode}`)));assert.ok(expanded.includes(t(`voiceMode.compact.transmit.${transmit}`)));if(squad!=="off")assert.ok(expanded.includes(t(`voiceMode.compact.squad.${squad}`)));
  }
 });
 check("PTT idle/active, manual mute and confirmed Squad each have distinct glyphs",()=>{
@@ -43,7 +44,7 @@ check("PTT idle/active, manual mute and confirmed Squad each have distinct glyph
  assert.ok(!render({squad:"armed",transmit:"pending"}).some(n=>n.props?.["data-testid"]==="squad-pause-glyph"));
 });
 check("missing or expired data uses an honest generic explanation in both languages",()=>{
- for(language of ["en","zh-CN"]){const tree=glyph({compact:true,state:null});assert.ok(text(tree).includes(t("voiceMode.compact.unknown")));assert.equal(tree.props.title,t("voiceMode.unknown"));assert.ok(!/old client|旧客户端/.test(tree.props.title));}
+ for(language of ["en","zh-CN"]){const tree=glyph({compact:true,state:null});assert.match(text(tree),/\?/);assert.equal(tree.props.title,t("voiceMode.unknown"));assert.ok(!/old client|旧客户端/.test(tree.props.title));}
 });
 check("requesting Squad suppression does not claim confirmed mute",()=>{
  const input={inputMode:"voice_activity",pttActive:false,manualMuted:false,serverMuted:false,squadEnabled:true,squadStatus:"ready",gateStatus:"normal",requestedSuppression:true};
@@ -57,8 +58,8 @@ check("remote states require current-room identity, increasing sequence and six-
  clock+=6001;expiry();assert.equal(store.useRemoteVoiceMode("h","m"),null);
  assert.equal(store.acceptVoiceMode("h",{...payload,state:{...state,seq:2}},roster,"r"),true);store.pruneVoiceModes("h",{c:{...roster.c,voiceChannelId:"other"}},"r");assert.equal(store.useRemoteVoiceMode("h","m"),null);
 });
-check("member nickname precedes a single existing mode component outside trailing icon cluster",()=>{
+check("member nickname precedes a single existing mode component inside a compact trailing icon cluster",()=>{
  const source=read("src/packages/socket/src/components/connectedUser.tsx");assert.equal((source.match(/<VoiceModeIcon/g)||[]).length,1);
- assert.ok(source.indexOf('data-gryt="member-name"')<source.indexOf("<VoiceModeIcon"));assert.ok(source.indexOf("<VoiceModeIcon")<source.indexOf('className="flex shrink-0 gap-1 items-center"'));
+ assert.ok(source.indexOf('data-gryt="member-name"')<source.indexOf('data-gryt="voice-member-status-icons"'));assert.ok(source.indexOf('data-gryt="voice-member-status-icons"')<source.indexOf("<VoiceModeIcon"));assert.ok(!source.includes("max-sm:whitespace-normal"));
 });
 console.log(`${checks} checks passed, including 216 localized state renders. Browser geometry/runtime remains unverified.`);
