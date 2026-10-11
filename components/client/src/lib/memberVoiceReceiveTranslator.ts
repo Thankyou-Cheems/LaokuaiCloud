@@ -63,7 +63,11 @@ export class MemberVoiceReceiveTranslator {
   }
   private refresh(): void {
     const h = this.disposed ? null : this.readHost(), key = h ? this.hostKey(h) : "";
-    if (key !== this.key) { this.key = key; this.ordinal++; this.rows.clear(); }
+    if (key !== this.key) {
+      // Every independently authenticated lifetime field retires old leases,
+      // including capability changes not represented in the store's room token.
+      this.store.clear(); this.key = key; this.ordinal++; this.rows.clear();
+    }
     if (!h) { this.scope = null; this.store.reconcile(); return; }
     const c = h.connection, a = h.hybridScope;
     this.scope = { source: "host-authenticated-connection", bindingId: `client-receive-${this.ordinal}`,

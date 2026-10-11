@@ -131,6 +131,15 @@ await test("last unsubscribe cancels sampling/retirement and late flight writes;
   resolve(f.report()); await flight; assert.equal(f.store.getSnapshot().entries.length, 0); close();
   f.defer(null); f.translator.start(); assert.equal(f.path().receive.mediaAvailable, false); f.dispose(); assert.equal(timers.size, 0);
 });
+await test("authenticated scope capability changes retire a lease even when the room token and PC remain identical", async () => {
+  const f = fixture(); f.host.hybridScope = { serverInstanceId: "instance", roomId: "room", roomGeneration: "same-token",
+    localParticipantId: "self", localSessionId: "self-session", canReceive: true, canPublish: false };
+  f.translator.update(); await f.fresh(); const lease = f.store.capture("remote-session");
+  const receive = f.store.getSnapshot().entries[0].evidence.receive;
+  f.host.hybridScope.canPublish = true; f.translator.update();
+  assert.notEqual(f.store.capture("remote-session"), lease); assert.equal(f.store.acceptReceive(lease, receive), false);
+  assert.equal(f.path().receive.mediaAvailable, false); f.dispose();
+});
 await test("local ET facts have independent UTC scope/TTL, never member mapping, RTT or physical voice proof", () => {
   const details = { source: "owned-cli-route-list", serverId: "community", instanceId: "instance", generation: 2,
     acquisitionStartedAtUnixMs: 100000, acquiredAtUnixMs: 101000, maxAgeMs: 5000, running: true, localPeerId: 1,
