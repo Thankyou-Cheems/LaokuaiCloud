@@ -1,0 +1,266 @@
+{
+  "schema": 1,
+  "status": "PASS-component-fixture-only",
+  "testedFreeze": "5d309524116d2276d913af6f98a79436e9dbf3ed",
+  "productCode": "12919aec27af82d7abe1387717b09a4bce2c729b",
+  "ownerReportSha256": "0ab964f5ffec72eb2b438b801c0e8769781b0ce1dd3d1936203c86d386ce41d0",
+  "ownerManifestSha256": "9da44c9a1e84df58d317e3d255bb584c7e5aac9b5a367b14d13a24d1a29bfc71",
+  "evidenceZip": {
+    "sha256": "8a33a0e0d5b016f6aa39616be5934af39dc4b37d46dc605c5c1e2c5bc849e8e5",
+    "bytes": 18072345
+  },
+  "actualAssertionsPassed": 33,
+  "captures": 21,
+  "finalRun": "run4",
+  "exit": 0,
+  "monitorSamples": 17,
+  "ownedForeground": false,
+  "ownedTCPUDP": false,
+  "residualProcesses": 0,
+  "productionInputs": [
+    {
+      "path": "components/client/src/packages/i18n/locales/en.json",
+      "sha256": "bcd3bf526b4e61330fd4dd1596150e052acb35be38e27d47a114c0483a10df48"
+    },
+    {
+      "path": "components/client/src/packages/i18n/locales/zh-CN.json",
+      "sha256": "f2cc57aae264114e67edae30b31ae1f3bdce0e5f9613caf1fbbb65726266087e"
+    },
+    {
+      "path": "components/client/src/packages/i18n/preferences.ts",
+      "sha256": "21d2584f57bd1dbcc47fde07e90cb6df34015ac1849640895fefa6c94ece6aef"
+    },
+    {
+      "path": "components/client/src/packages/i18n/LocalizedText.tsx",
+      "sha256": "c8c3165e135bed7c172f4ddf1ef3ebf522d2bcc60dcb31b62f85e71d60497501"
+    },
+    {
+      "path": "components/client/src/packages/i18n/index.ts",
+      "sha256": "2d446011ee554b9881269ad1df757725011418317229b21c442d007597370399"
+    },
+    {
+      "path": "components/client/src/packages/common/src/utils/owlAvatar.ts",
+      "sha256": "5cad5a607d7eb691ade2739dee2ad7bda7bd48e1cacc32d6176acebc426cbf48"
+    },
+    {
+      "path": "components/client/src/packages/lib/mentionTokens.ts",
+      "sha256": "72838475df593abc23faa9fb74edcfc0e0ab1f370b50d0e1104ca9f520ee3921"
+    },
+    {
+      "path": "components/client/src/lib/icons.tsx",
+      "sha256": "2a1024a9a5d619992f783cfa2c782f3a895191cf93ddb6aaf2fec481e5e0edf8"
+    },
+    {
+      "path": "components/client/src/packages/webRTC/src/components/TransmitSpeechAdapter.tsx",
+      "sha256": "74d90184631be36e63bdaf8d6f0fefe5160d0b3f07a4e5ba73e10067d06acf79"
+    },
+    {
+      "path": "components/client/src/lib/memberVoiceMediaPath.ts",
+      "sha256": "e00340cff34a86219cd5e9c86473d64fa826a512eb823b79d5f27fcd184a3f5b"
+    },
+    {
+      "path": "components/client/src/packages/webRTC/src/components/MemberVoiceMediaPathAdapter.tsx",
+      "sha256": "7402e14f168befcbdf88738e794cd0aa884b4c1dc5593f41a5ed2a7ad95dffc0"
+    },
+    {
+      "path": "components/client/src/components/ConnectionTopologyIcon.tsx",
+      "sha256": "d3da2c587188499079958e261e7ccf6e3be311d3db3752203059e507023bda1a"
+    },
+    {
+      "path": "components/client/src/packages/socket/src/components/MemberVoiceMediaStatus.tsx",
+      "sha256": "c47db7791aa5b814174cbdbf480c1a2ea25521beb7fdb9ca907e65c40c5467d2"
+    },
+    {
+      "path": "components/client/src/packages/socket/src/components/MemberVoiceQuality.tsx",
+      "sha256": "5d48a960056407d9cc8531fd048945b98cca2f8671bfd88bd233fbe23a91d758"
+    },
+    {
+      "path": "components/client/src/lib/receiveCorrectionRegistry.ts",
+      "sha256": "af416b2ff43a7badc00ce3fbb6649e3ff5eab7ed4df992784edd42d5d2c34d46"
+    },
+    {
+      "path": "components/client/src/packages/webRTC/src/components/ReceiveCorrectionAdapter.tsx",
+      "sha256": "2ef8275a698813bbcad0ca87f449af2eabe07bf8fd6c8b6176119d27e4cf12e8"
+    },
+    {
+      "path": "components/client/src/lib/receiveCorrection.ts",
+      "sha256": "4404e8513618fe8aeddf396d7b69979320cb4852396239473fe649873ee43cd1"
+    },
+    {
+      "path": "components/client/src/packages/socket/src/components/ReceiveCorrectionRing.tsx",
+      "sha256": "95188985c4d429b313c72dc8c52897dd60b85be790b9054e1bd11df4f9148ce6"
+    },
+    {
+      "path": "components/client/src/packages/socket/src/components/RemoteReceiveCorrection.tsx",
+      "sha256": "3001eb3d19f6747f4a668de3ca2df859d53ef99aaa4d318316f8b67c370032ff"
+    },
+    {
+      "path": "components/client/src/packages/socket/src/components/SpeakingHalo.tsx",
+      "sha256": "651a909569ddfb5f946bb1a70c104f654694232fe77d651323e49232e4f7fdff"
+    },
+    {
+      "path": "components/client/src/packages/socket/src/components/tileColor.ts",
+      "sha256": "5a4ea59c8c4868ad2f4010e3f57e50700fc78802101ca98957e131f0778c0faf"
+    },
+    {
+      "path": "components/client/src/packages/socket/src/components/speakingIndicator.ts",
+      "sha256": "a0aa80428a1de85ae2480388fd5829fa511822fde46db716063637bb2335d827"
+    },
+    {
+      "path": "components/client/src/packages/webRTC/src/components/ReceivePriorAdapter.tsx",
+      "sha256": "e05ca0378f8b1d5e37b272db6d440028198c757d91869b38c232aa1d2b588bc3"
+    },
+    {
+      "path": "components/client/src/packages/socket/src/lib/memberFacts.ts",
+      "sha256": "26918643b3f3a5cd96cb1283bb901826b901128b0c2a8ec0220b7412e8a19262"
+    },
+    {
+      "path": "components/client/src/packages/socket/src/components/UserContextMenu.tsx",
+      "sha256": "e587a749d83c78db039fcdd4a2bf7c145091eca6a8ddb888d6965e0bbc70bc22"
+    },
+    {
+      "path": "components/client/src/lib/squadRuntime.ts",
+      "sha256": "35d0fd6d81b367579256772b6fc1051874a682faa89b6ef3b4fb49a5b2873895"
+    },
+    {
+      "path": "components/client/src/lib/voiceMode.ts",
+      "sha256": "7d763f00ed45ee5bb34b6fa9c999ea88accb5632a2b84b7c635fb82e04b0e9f4"
+    },
+    {
+      "path": "components/client/src/lib/voiceModeStore.ts",
+      "sha256": "8bed44bcef2a184eeb8169f3e0291c19deee882d61f028c3f754c4618bd575b0"
+    },
+    {
+      "path": "components/client/src/packages/socket/src/components/VoiceModeIcon.tsx",
+      "sha256": "2a276aef9194384f80b9c7f8f5aa1f702383d420b089a4874ec864de707ef884"
+    },
+    {
+      "path": "components/client/src/packages/socket/src/components/connectedUser.tsx",
+      "sha256": "7c4e4167f1b974bd77d79934726562436b8acfd74884dce4a3a36aa668067781"
+    },
+    {
+      "path": "components/client/src/packages/socket/src/utils/emojiData.ts",
+      "sha256": "ddbc2a1437eada5e5622ed296c346e09fd0f52d9bbf01196075de492669c5631"
+    },
+    {
+      "path": "components/client/src/packages/socket/src/components/EmojiText.tsx",
+      "sha256": "1e4805dad4feaa75dc9eb4a5ba66d132508fb9783587bf976efb1c50a3a0852c"
+    },
+    {
+      "path": "components/client/src/packages/socket/src/components/LabelledDivider.tsx",
+      "sha256": "4fef69ee8faa740fb402df4f8a0223f24b05bf125cf17077ed09fe64f554098f"
+    },
+    {
+      "path": "components/client/src/packages/socket/src/components/sidebarTree.ts",
+      "sha256": "1291c2fd6fb6d870d7b8d3810ec067e12c241418dd2e8d8fb064a25404b69b2a"
+    },
+    {
+      "path": "components/client/src/packages/socket/src/components/UnreadIndicator.tsx",
+      "sha256": "86fefd882530422e8747d7ca3059a42a95ba22dd6f9c37eb14216f1554375141"
+    },
+    {
+      "path": "components/client/src/packages/socket/src/components/ChannelList.tsx",
+      "sha256": "4e28dca247814f1ef2fba2e69e1a1e8c25628eab7e09cc5e17dc357cf64f055e"
+    },
+    {
+      "path": "components/client/src/packages/socket/src/components/ServerHeader.tsx",
+      "sha256": "35141c02ece9fa1a60a1a85165c2da4a4b5ef49393a6457e6941aed8faf79e6b"
+    },
+    {
+      "path": "components/client/src/packages/socket/src/components/ServerSidebar.tsx",
+      "sha256": "daaf0c1106f802263cc10cd5c433da3f086ce49666c86d9a1e004f1b8f548088"
+    },
+    {
+      "path": "components/client/src/packages/socket/src/hooks/useChannelSidebarWidth.ts",
+      "sha256": "20a17524b4b61115d19d706116e4c2e328b9b235ff513c05726a5627ff898c2a"
+    },
+    {
+      "path": "components/client/src/packages/lib/audioVolume.ts",
+      "sha256": "31be1ce846fdd8d86f50a75092a6e3222afa02fed7a0880e01b1dee702b2ff05"
+    },
+    {
+      "path": "components/client/src/packages/webRTC/src/components/CallControlButton.tsx",
+      "sha256": "d07b93dc1ff16a882cf2758b721bea5935508ad0895a63ac81024c2f31e19d75"
+    },
+    {
+      "path": "components/client/src/packages/webRTC/src/components/EffectiveVoicePolicy.tsx",
+      "sha256": "e4b284fff0d3b2d224a79bd225ff5e42276f7e5295e1059e3325d52564ef1eaa"
+    },
+    {
+      "path": "components/client/src/packages/webRTC/src/components/HoverAudioControl.tsx",
+      "sha256": "e4a0fa57542de60b8fac6bef34af3912eec3033ee2e0f440dbdca1625ec10d30"
+    },
+    {
+      "path": "components/client/src/packages/webRTC/src/components/ReceiveLevelingAdapter.tsx",
+      "sha256": "f126795547f57cfc384e079540a1aa95736c7adc9b288a46d53c8abd9960e775"
+    },
+    {
+      "path": "components/client/src/packages/webRTC/src/components/VoiceAudioControls.tsx",
+      "sha256": "c573a5a168c7330e74b842a724f482f21dffcc554113f500cbbcfd8720ce3316"
+    }
+  ],
+  "testSeams": [
+    {
+      "specifier": "@/settings",
+      "reason": "synthetic React settings; no user settings store"
+    },
+    {
+      "specifier": "@gryt/voice",
+      "reason": "no SDK engine/capture/connection; useMicrophone read-only fixture only"
+    },
+    {
+      "specifier": "@/common",
+      "reason": "notification/privacy preferences and avatar inputs excluded"
+    },
+    {
+      "specifier": "../hooks/useSockets",
+      "reason": "no authenticated socket/account connection"
+    },
+    {
+      "specifier": "../hooks/usePermissions",
+      "reason": "all synthetic moderation permissions denied"
+    },
+    {
+      "specifier": "../hooks/friendsStore",
+      "reason": "friend actions disabled"
+    },
+    {
+      "specifier": "../hooks/useOpenInviteLink",
+      "reason": "no invite or server lookup"
+    },
+    {
+      "specifier": "../utils/requestVoiceMove",
+      "reason": "move/network actions disabled"
+    },
+    {
+      "specifier": "./ConnectionDetailsDialog",
+      "reason": "connection details excluded"
+    },
+    {
+      "specifier": "./MarkAsReadItem",
+      "reason": "notification actions excluded"
+    },
+    {
+      "specifier": "@/webRTC/src/adapters/VoiceQualityBridge",
+      "reason": "synthetic per-member quality readings, no bridge connection"
+    }
+  ],
+  "syntheticInputs": true,
+  "host": "hidden offscreen Electron renderer; custom local protocol; no preload/HTTP/CDP/audio/network",
+  "inputScope": "renderer sendInputEvent; settings-navigation handler uses explicitly identified DOM click",
+  "earlierTestHarnessFailuresPreserved": true,
+  "productPatch": null,
+  "userProfileUsed": false,
+  "completeAppAccountMediaAccepted": false,
+  "realDeviceCallGameCapacityAccepted": false,
+  "physicalInputAccepted": false,
+  "ready": false,
+  "finalPackage": null,
+  "task6ReadOnlyVerification": {
+    "manifestFiles": 178,
+    "allHashesMatched": true,
+    "productionInputHashes": 45,
+    "productExecuted": false,
+    "rawEvidenceImported": false
+  }
+}
