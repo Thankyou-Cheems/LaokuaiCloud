@@ -3705,6 +3705,7 @@
   }
 ,
   "memberVoicePath": {
+    "p2pUnderlayPending": "P2P · 底层路径待确认",
     "title": "与你的语音路径",
     "receive": "接收",
     "send": "发送",
@@ -3755,4 +3756,64 @@
   }
 ,
   "voiceRoom": {"members_one":"{{count}} 人","members_other":"{{count}} 人","expand":"展开房间成员","collapse":"收起房间成员","current":"你所在的语音房间"}
+,
+  "connectionDetails": {
+    "menu": "连接详情",
+    "memberActions": "{{nickname}} 的成员操作",
+    "more": "查看 {{nickname}} 的连接详情",
+    "title": "连接详情 · {{nickname}}",
+    "description": "只读展示当前观测；缺失或过期的数据会明确说明。",
+    "logicalSelection": "已选逻辑媒体传输",
+    "availabilityTitle": "新鲜解码媒体",
+    "transitionTitle": "选择 / 恢复状态",
+    "physicalPath": "有证据的媒体底层路径",
+    "lossWindow": "精确音频 track 丢包窗口",
+    "pathAge": "媒体观测年龄",
+    "metricsAge": "Transport 指标年龄",
+    "reason": "媒体证据缺项",
+    "metricsStatus": "指标证据状态",
+    "notMeasured": "未测得",
+    "notReported": "当前提供者尚未报告",
+    "localCommunity": "本机社区联机实例",
+    "localCommunityReason": "本机实例状态原因",
+    "bindingReason": "成员绑定 / 入网缺项",
+    "lanPathReason": "联机路径缺项",
+    "lanRttReason": "联机 RTT 缺项",
+    "lanTitle": "独立社区联机",
+    "selfBoundary": "自己的条目不存在本机到另一成员的媒体关系；本机联机状态独立展示。",
+    "sendBoundary": "发给此成员的已选媒体需要对方认证回执。本机上行字节或 SFU RTCP 不能证明对方收到音频。",
+    "metricBoundary": "RTT 属于已选对端 transport 或本机到 SFU transport，不代表端到端收听延迟。丢包属于精确的已选音频 track；当前提供者没有提供码率、累计字节或连续历史。",
+    "availability": {
+      "usable": "新鲜解码增量已确认",
+      "unavailable": "不可用已确认",
+      "unknown": "缺少新鲜解码媒体确认"
+    },
+    "transition": {
+      "stable": "稳定",
+      "confirmed-switching": "切换已确认",
+      "confirmed-failed": "失效已确认",
+      "unknown": "尚未报告"
+    },
+    "communityPhase": {
+      "disabled": "已关闭",
+      "activation-required": "等待激活",
+      "connecting": "连接中",
+      "connected": "已连接",
+      "disconnecting": "退出中",
+      "error": "错误"
+    },
+    "communityReason": {
+      "activation-required": "等待激活",
+      "needs-permission": "所需运行权限不可用",
+      "configuration-required": "缺少已授权的社区配置",
+      "runtime-required": "缺少运行组件",
+      "unsupported-target": "当前运行目标不受支持",
+      "multi-community-unavailable": "不支持同时加入多个社区",
+      "connect-failed": "连接失败",
+      "operation-timeout": "操作超时",
+      "cleanup-failed": "退出清理尚未确认",
+      "status-unavailable": "状态不可用",
+      "runtime-exited": "自有运行实例已退出"
+    }
+  }
 }

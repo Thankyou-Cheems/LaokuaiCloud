@@ -3705,6 +3705,7 @@
   }
 ,
   "memberVoicePath": {
+    "p2pUnderlayPending": "P2P · underlying path pending",
     "title": "Voice path with you",
     "receive": "Receive",
     "send": "Send",
@@ -3755,4 +3756,64 @@
   }
 ,
   "voiceRoom": {"members_one":"{{count}} member","members_other":"{{count}} members","expand":"Show room members","collapse":"Hide room members","current":"Your current voice room"}
+,
+  "connectionDetails": {
+    "menu": "Connection details",
+    "memberActions": "Actions for {{nickname}}",
+    "more": "Connection details for {{nickname}}",
+    "title": "Connection details · {{nickname}}",
+    "description": "Read-only current observations. Missing or expired data is shown explicitly.",
+    "logicalSelection": "Selected logical media transport",
+    "availabilityTitle": "Fresh decoded media",
+    "transitionTitle": "Selection / recovery state",
+    "physicalPath": "Proven underlying media path",
+    "lossWindow": "Audio-track packet-loss window",
+    "pathAge": "Media observation age",
+    "metricsAge": "Transport measurement age",
+    "reason": "Media evidence limitation",
+    "metricsStatus": "Metric evidence status",
+    "notMeasured": "Not measured",
+    "notReported": "Not reported by the current provider",
+    "localCommunity": "Local community instance",
+    "localCommunityReason": "Local instance status reason",
+    "bindingReason": "Member binding / enrollment limitation",
+    "lanPathReason": "LAN path limitation",
+    "lanRttReason": "LAN RTT limitation",
+    "lanTitle": "Independent community LAN",
+    "selfBoundary": "Your own row has no local-to-remote member media relationship. Local LAN state remains independent.",
+    "sendBoundary": "Selected send media requires an authenticated receipt from this member. Local outbound bytes or SFU RTCP do not prove that they received audio.",
+    "metricBoundary": "RTT belongs to the selected peer transport or local-to-SFU transport, not an end-to-end listening delay. Loss belongs to the exact selected audio track. Rates, cumulative bytes and history are not supplied by this provider.",
+    "availability": {
+      "usable": "Fresh decoded progress confirmed",
+      "unavailable": "Confirmed unavailable",
+      "unknown": "No fresh decoded-media confirmation"
+    },
+    "transition": {
+      "stable": "Stable",
+      "confirmed-switching": "Confirmed switching",
+      "confirmed-failed": "Confirmed failure",
+      "unknown": "Not reported"
+    },
+    "communityPhase": {
+      "disabled": "Disabled",
+      "activation-required": "Activation required",
+      "connecting": "Connecting",
+      "connected": "Connected",
+      "disconnecting": "Disconnecting",
+      "error": "Error"
+    },
+    "communityReason": {
+      "activation-required": "Activation required",
+      "needs-permission": "Required runtime permission is unavailable",
+      "configuration-required": "Authorized community configuration is missing",
+      "runtime-required": "Runtime files are missing",
+      "unsupported-target": "Unsupported runtime target",
+      "multi-community-unavailable": "Concurrent communities are unsupported",
+      "connect-failed": "Connection failed",
+      "operation-timeout": "Operation timed out",
+      "cleanup-failed": "Cleanup is unconfirmed",
+      "status-unavailable": "Status is unavailable",
+      "runtime-exited": "Owned runtime exited"
+    }
+  }
 }

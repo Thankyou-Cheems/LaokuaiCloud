@@ -8,7 +8,8 @@ import type { MemberVoiceMediaPath, VoicePathDirection } from "../../../../lib/m
 
 export function MemberVoiceMediaStatusView({ path }: { path: MemberVoiceMediaPath }) {
   const { t } = useTranslation();
-  const label = (d: VoicePathDirection) => t(`memberVoicePath.labels.${d.label}`);
+  const label = (d: VoicePathDirection & { mediaAvailable?: boolean }) =>
+    d.selected === "peer" && d.mediaAvailable === true && d.label === "path-pending" ? t("memberVoicePath.p2pUnderlayPending") : t(`memberVoicePath.labels.${d.label}`);
   const details = (d: VoicePathDirection, direction: "receive" | "send") => [
     `${t(`memberVoicePath.${direction}`)}：${label(d)}`,
     t(`memberVoicePath.selected.${d.selected}`),
@@ -19,8 +20,9 @@ export function MemberVoiceMediaStatusView({ path }: { path: MemberVoiceMediaPat
     t(`memberVoicePath.metrics.${d.metricsReason}`),
     d.ageMs === null ? "" : t("memberVoicePath.age", { seconds: (d.ageMs / 1000).toFixed(1) }),
   ].filter(Boolean).join(" · ");
-  const text = path.receive.label === path.send.label ? label(path.receive) :
-    `${t("memberVoicePath.receiveShort")}：${label(path.receive)} · ${t("memberVoicePath.sendShort")}：${label(path.send)}`;
+  const receiveText = label(path.receive), sendText = label(path.send);
+  const text = receiveText === sendText ? receiveText :
+    `${t("memberVoicePath.receiveShort")}：${receiveText} · ${t("memberVoicePath.sendShort")}：${sendText}`;
   const full = `${t("memberVoicePath.title")}。${details(path.receive, "receive")}。${details(path.send, "send")}。${t("memberVoicePath.boundary")}`;
   const icon: ConnectionTopologyKind = path.receive.label !== path.send.label ? "unknown"
     : path.receive.label === "switching" || path.receive.label === "pending" ? "connecting"

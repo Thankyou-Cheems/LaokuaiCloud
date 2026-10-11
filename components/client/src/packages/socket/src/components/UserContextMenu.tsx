@@ -1,5 +1,5 @@
 import { ContextMenu, Slider } from "@gryt/ui";
-import { ReactNode } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
 import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
@@ -12,6 +12,7 @@ import { useServerPermissions } from "../hooks/usePermissions";
 import { useSockets } from "../hooks/useSockets";
 import { makeRankOf } from "../lib/memberFacts";
 import { requestVoiceMove } from "../utils/requestVoiceMove";
+import { MemberConnectionDetailsDialog } from "./ConnectionDetailsDialog";
 
 /** A role id. The server defines what they are; this only passes them around. */
 type Role = string;
@@ -98,6 +99,30 @@ export function UserContextMenu({
   const {sockets,clients,serverDetailsList}=useSockets();
   const { has, can, roles } = useServerPermissions(serverHost || "");
   const friendship = useFriendState(serverHost, isSelf ? undefined : serverUserId);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const row = useRef<HTMLDivElement>(null);
+  const menuTrigger = useRef<HTMLDivElement>(null);
+  const detailsReturnFocus = useRef<HTMLElement | null>(null);
+  useEffect(() => { setDetailsOpen(false); }, [serverHost, serverUserId]);
+  const showDetails = Boolean(serverHost && serverUserId);
+  const openDetails = () => { detailsReturnFocus.current = row.current; setDetailsOpen(true); };
+  const detailsItem = showDetails ? <ContextMenu.Item data-gryt="connection-details-menu-item" onClick={openDetails}>{socketI18n.t("connectionDetails.menu")}</ContextMenu.Item> : null;
+  const withDetails = (menu: ReactNode) => !showDetails ? menu : <div ref={row} tabIndex={0} data-gryt="member-context-actions"
+    aria-label={socketI18n.t("connectionDetails.memberActions", { nickname })} aria-keyshortcuts="Shift+F10 ContextMenu"
+    className="relative min-w-0 w-full" style={{ paddingRight: isInVoice ? 28 : undefined, boxSizing: "border-box" }}
+    onKeyDown={event => {
+      if (event.target !== event.currentTarget || !(event.key === "ContextMenu" || event.key === "F10" && event.shiftKey)) return;
+      event.preventDefault(); event.stopPropagation();
+      const bounds = event.currentTarget.getBoundingClientRect();
+      menuTrigger.current?.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: bounds.left + 8, clientY: bounds.top + 8 }));
+    }}>
+    {menu}
+    {isInVoice && <button type="button" className="absolute right-0 top-1 h-6 w-6 rounded text-sm text-gryt-muted hover:bg-gryt-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-gryt-accent"
+      data-gryt="connection-details-more" aria-haspopup="dialog" aria-label={socketI18n.t("connectionDetails.more", { nickname })} title={socketI18n.t("connectionDetails.more", { nickname })}
+      onPointerDown={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); detailsReturnFocus.current = event.currentTarget; setDetailsOpen(true); }}>⋯</button>}
+    {detailsOpen && serverHost && serverUserId && <MemberConnectionDetailsDialog open={detailsOpen} onOpenChange={setDetailsOpen}
+      nickname={nickname} isSelf={isSelf} serverHost={serverHost} serverUserId={serverUserId} returnFocus={detailsReturnFocus} />}
+  </div>;
   // One step at a time. Removing a friend lives in the Friends list, away from a quick right-click.
   const friendItem = !serverHost || !serverUserId ? null
     : friendship === "none" ? { label: socketI18n.t("socketFull.userContextMenu_5a4eae4cab"), onClick: () => friendAction(serverHost, "request", serverUserId) }
@@ -123,12 +148,12 @@ export function UserContextMenu({
   };
 
   if (isSelf) {
-    return (
+    return withDetails(
       <ContextMenu.Root>
-        <ContextMenu.Trigger style={{ display: "contents" }}>{children}</ContextMenu.Trigger>
+        <ContextMenu.Trigger ref={menuTrigger} style={{ display: "contents" }}>{children}</ContextMenu.Trigger>
         <ContextMenu.Portal>
           <ContextMenu.Positioner collisionPadding={8}>
-            <ContextMenu.Popup className="min-w-45">
+            <ContextMenu.Popup className="min-w-45" finalFocus={detailsOpen ? false : undefined}>
           {/* The label names a group, and Base UI reads the group's id off
               context to point aria-labelledby at it. Without one it throws —
               which is what took the app down on a right-click. */}
@@ -138,6 +163,7 @@ export function UserContextMenu({
             </ContextMenu.GroupLabel>
           </ContextMenu.Group>
           <ContextMenu.Separator />
+          {detailsItem}
           <ContextMenu.Item onClick={() => openSettings("profile")}>{socketI18n.t("socketFull.userContextMenu_45016325c7")}</ContextMenu.Item>
           {serverUserId && (
             <ContextMenu.Item onClick={handleCopyId}>
@@ -198,17 +224,18 @@ export function UserContextMenu({
   const heldRoles = targetRoles ?? (targetRole ? [targetRole] : []);
   const targetRoleName = heldRoles.length > 0 ? heldRoles.map(nameOfRole).join(", ") : null;
 
-  return (
+  return withDetails(
     <ContextMenu.Root>
-      <ContextMenu.Trigger style={{ display: "contents" }}>{children}</ContextMenu.Trigger>
+      <ContextMenu.Trigger ref={menuTrigger} style={{ display: "contents" }}>{children}</ContextMenu.Trigger>
       <ContextMenu.Portal>
         <ContextMenu.Positioner collisionPadding={8}>
-          <ContextMenu.Popup className="min-w-55">
+          <ContextMenu.Popup className="min-w-55" finalFocus={detailsOpen ? false : undefined}>
         <ContextMenu.Group>
           <ContextMenu.GroupLabel>
             {nickname}
           </ContextMenu.GroupLabel>
         </ContextMenu.Group>
+        {detailsItem}
         {targetRole && (
           // A subtitle rather than a second heading: one group, one label.
           <div className="px-3 pb-1">
