@@ -286,9 +286,7 @@ jemalloc-sys = { package = "tikv-jemalloc-sys", version = "0.7.1", features = [
 cfg_aliases = "0.2.2"
 globwalk = "0.9.1"
 regex = "1"
-thunk-rs = { workspace = true, features = [
-    "win7",
-] }
+thunk-rs = { workspace = true }
 
 
 [dev-dependencies]
