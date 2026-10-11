@@ -1,69 +1,61 @@
-Current ET source correction: dbaf0453 is accepted for isolated compilation;
-ET-OWNERSHIP-001 source gap is resolved. Capacity owner is parent-authorized for
-one Rust 1.95 MSVC core build with normal official-registry locked dependency fetch.
-The direct build-information message was rejected by automatic approval review;
-its send awaits explicit user confirmation. SDK integration.3 is delivered and
-its import/retest is pending; no final package approval.
+# Frozen reviewed source awaiting native/media acceptance
 
-Previous frozen checkpoint description below remains historical.
+`manifest.json` is the authority for the sole private integration branch. UI,
+packaging, member status, Hybrid client wiring, SDK/server/SFU and ET retain
+their source origins, licenses and exact source/package hashes. Original dirty
+client snapshot/history, public forks and previous frozen ZIPs/bundles remain.
 
-# Reviewed private source checkpoint
+ET create-only source `dbaf0453` is integrated at `026c55c1`. The static
+ET-OWNERSHIP-001 gap is resolved: no existing-alias open fallback on the owned
+branch, actual OS LUID/GUID before address/session setup, case-insensitive Windows
+preflight. Source import preserves 1,277 exact Git blobs (contributor .env omitted),
+WTFPL vendor notices, fixed upstream and the pinned local TUN override. Versions
+and ordinary dependency lists remain locked. Ten source contracts and 22 mocked
+adapter checks pass; the owner reports five compiled pure Rust helper tests.
+This does not prove native compilation/coexistence/Drop/routes/networking.
 
-`manifest.json` coordinates the unique private integration branch, component
-trees, licensed source origins, exact SDK package and version-specific test state.
-Task-6 is the sole writer. Public forks, previous frozen ZIPs/bundles, original
-dirty client source and feature-owner histories remain preserved.
+The parent authorized its capacity owner to compile the frozen native bundle with
+Rust 1.95/MSVC, exact Cargo.lock/default features/+crt-static and explicit PROTOC.
+Normal official-registry fetch of locked missing dependencies is allowed. See
+[BUILD.md](../components/easytier/BUILD.md) and [REVIEW.md](../components/easytier/REVIEW.md).
+Task-6 has not compiled or run core/CLI/helper/driver/TUN/product. The direct build
+information message was rejected by automatic approval review; human send approval
+is pending. Do not treat that attempt as delivered or a started build.
 
-UI/pack/member/Hybrid client deltas and SDK `hybrid.integration.2` are integrated.
-The SDK package/source remains frozen at `114a9ad0`; its closed-PC guard occurs
-once. The parent now reports real two-peer direct RTP/PCM, actual SFU pause/mute
-and fallback ACK/media ordering passed on `a7ffde09`, but restored-audio
-controller-state mismatch still blocks acceptance. Await the SDK owner's repair
-and new frozen-snapshot retest. This is parent-reported evidence, not task-6
-runtime testing. Legacy `6e29f09 / opus20.alias.1` capacity evidence applies
-only to its recorded SDK/server/SFU versions, not the current release.
+SDK `hybrid.integration.3` at `6d710f34` is integrated by a nine-file delta,
+then exact local TGZ/dependency lock pin. Old integration.2 bytes stay unchanged;
+the closed-PC guard remains included once. All 300 owner source ZIP hashes and
+205 tar/installed packed hashes match; source import retains one existing portable
+optional-probe override. The controller now receives actual verified recovered SFU
+track/revision and avoids redundant unbound restore; scoped old pair cleanup and
+auth-generation fences are retained. Server `e84e1ca5` and SFU `a6bf86ad`
+are unchanged. Default audio/AGC/bitrate/PTT/Squad policy and UI are unchanged.
 
-ET owned-stop client delivery `30d2fc24` is integrated once at `7a9ba9dd`.
-The Windows adapter requests graceful stop via its captured child stdin, waits for
-closure and keeps forced/unconfirmed exits diagnostic. Private resource paths are
-separate from the official reference archive: five runtime files plus
-`laokuai-build.json`. The loader and package gate require exact downstream
-manifest/source/patch/build hashes and reject official-core fallback.
+Task-6 independently passed 129 pure auth/media-selection assertions (1/3 simulated
+remotes), full app/desktop noEmit types and 26 client pure/strict-type suites with
+the exact installed SDK. The initial offline install lacked locked cache entries;
+normal locked public-dependency fetch with every lifecycle script disabled filled
+the cache, then frozen/offline/ignore-scripts verification passed. Only the SDK
+entry changed in yarn.lock. No helper/product execution occurred.
 
-The ET owner's fixed v2.7.0 native snapshot `1a44fb98` is imported as 1,232
-exact licensed Git blobs; contributor runtime .env is excluded. The two-commit
-snapshot history is independent of upstream; no upstream history is invented.
-Review is **changes-required**: pinned rust-tun can open an existing adapter
-before the requested GUID check. See [the review](../components/easytier/REVIEW.md)
-and [isolated build inputs](../components/easytier/BUILD.md). Task-6 does not
-duplicate the native owner's fix or compile/run the native core. Rust 1.95 and
-x86_64-pc-windows-msvc are required; no compiled core hash has been measured.
+Previous integration.2 real two-peer evidence is version-specific: parent reported
+actual RTP/PCM/SFU pause/fallback passed but controller state remained wrong after
+auth recovery. It does not accept integration.3. After the ET build, capacity owner
+must retest a fresh immutable unified snapshot for actual auth restore ACK/fresh
+RTP/PCM, controller selected track/revision, room generation, 1/3 remotes and closed
+PC behavior. Raw logs remain outside Git. Task-6 actual peers/Docker/listeners are 0.
 
-Current app/desktop noEmit types, 11 changed code files' lint and 26 pure/type
-suites pass; these include 36 lifecycle, 22 adapter and 13 registry assertions.
-Eight static native source contracts and five package-gate scenarios also pass.
-The actual private beforePack blocks before build/preparation. None of these
-checks prove native adapter ownership, coexistence, route cleanup or networking.
+Member assistance settings/policies/experiments are deferred. Prioritize current
+voice P2P/SFU fallback, basic ET, truthful state and reliability. Existing public
+ET relay configuration stays unchanged. All current UI changes require user
+prototype preview approval before final packaging; member relay/server relay/
+physically verified direct must be distinguished. ET relay under a WebRTC peer
+does not prove physical direct. Dynamic non-destructive multi-community RPC,
+automatic authorized community provisioning and authenticated peer binding remain
+pending; production CLI supports one community.
 
-The parent reported the capacity heavy slot released. Only the parent-designated
-capacity owner schedules native compilation from a fresh frozen source copy.
-Do not compile or mutate any owner tree, launch products/helpers/core/CLI/drivers,
-change Tencent Linux nodes, firewall rules, profiles or existing ET processes.
-Automatic authorized community configuration, authenticated peer bindings and
-dynamic non-destructive multi-community RPC remain pending; current production
-supports one community. Member path/RTT stays unknown without actual evidence.
-
-All current UI changes require a static prototype and user preview approval
-before final packaging. Member relay, server relay and physically verified direct
-must be distinguished; a WebRTC peer over ET relay is not verified direct. The UI
-contract is pending. Existing desktop packages stay unchanged.
-
-`ready: false`, `finalPackage: null` and private-payload approval false are
-binding. Verify the source using:
-
-`node release/verify-release.cjs`
-
-`node release/verify-release.cjs --require-ready` exits 2 while blocked.
-Historical manifests below client docs describe earlier checkpoints. No public
-push, software publication or production upgrade follows this private source
-checkpoint. Profiles, credential material and raw local fixture logs are excluded.
+`ready=false`, `finalPackage=null` and private payload approval false remain.
+No current downstream core hash/build receipt or final portable package exists.
+Verify with `node release/verify-release.cjs`; `--require-ready` exits 2 until
+all acceptance gates pass. No desktop package replacement/public push/publication
+or production upgrade follows a private source checkpoint.

@@ -1,7 +1,7 @@
 {
   "schema": 2,
-  "id": "laokuai-cloud-et-owned-create-reviewed-20261011",
-  "stage": "source-reviewed-native-build-and-media-retest-pending",
+  "id": "laokuai-cloud-et-owned-create-sdk3-frozen-source-20261011",
+  "stage": "native-build-and-frozen-media-retest-pending",
   "ready": false,
   "repository": {
     "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud",
@@ -9,15 +9,15 @@
     "visibility": "private",
     "branch": "release/integration-20261011",
     "soleGitWriter": "task-6",
-    "codeCommit": "026c55c142b103b8b088f10daddfe04b1b9b67c1",
-    "codeTree": "81f3095b40823ed0e1f96ec6856809d1cc26413f",
+    "codeCommit": "23d6a002a6431ac15fd8b186770109721b27b236",
+    "codeTree": "60d9ff476efe72068a7a5a8df5773eb531cf5fed",
     "newRepositoryReason": "Authenticated private-repo metadata and explicitly scoped old local core/game remotes revealed no matching existing private integration repository",
     "historyPolicy": "Original client history preserved; no force push/reset/rewrite; other components imported as licensed source snapshots"
   },
   "components": {
     "client": {
       "path": "components/client",
-      "tree": "2eafd39963b041b410da0af6c50b28719f346439",
+      "tree": "71868f532f4f84943acc504cd5ed5d44c1a4da71",
       "upstream": "Gryt-chat/client",
       "publicFork": "Thankyou-Cheems/gryt-client-i18n",
       "historyImportedFrom": "06ac43f51dbda3b9444c73270a126e10489110e9",
@@ -25,38 +25,62 @@
       "completeDirtySourceSnapshot": "2b9f02076051e3a445bfa99e79d1fc7ac421e19f",
       "originalPreservation": "24 tracked modifications and 6 untracked files retained; all frozen snapshot blobs verified",
       "version": "1.13.22-laokuai.opus20.1",
-      "dependencyLockSha256": "4b4036ae404af59d5abddfcc312f9eba7cfadea00dd343ea17395b373277a2dd"
+      "dependencyLockSha256": "cbd589aa13e48a096080e12994ecd661b817c3ca20696d03efd4a2e2c25e5136"
     },
     "voice": {
       "path": "components/voice",
-      "tree": "c629e7cdc2910feed8cf0c4e61e68223f4d31107",
+      "tree": "7347828fce1cf2c58b5e9a4c2d8c9f53341e3952",
       "upstream": "Gryt-chat/voice",
       "publicFork": "Thankyou-Cheems/voice",
-      "sourceCommit": "114a9ad0ba2d9e1e83b9a762a150dba6a54e0ee4",
-      "sourceZipSha256": "eb278de388b296a6ccd5a834351f69a3c3aff72aab525868267f5434a8fda7ba",
-      "sourceFiles": 299,
-      "importCorrespondence": "298 exact files plus optional probe import path portability override; all production source bytes unchanged",
+      "sourceCommit": "6d710f34070cbc01bb838a77dfec0963b0ce298b",
+      "sourceZipSha256": "94fc43470dc8f724e0f702df962c8b1f05b83191a6713d36c6639f5b8b7db859",
+      "sourceFiles": 300,
+      "importCorrespondence": "299 exact source files plus existing optional probe import path portability override; production source exactly matches frozen owner source",
       "license": "AGPL-3.0-only; Signalsmith MIT and all receive-rnn notices preserved",
       "package": {
-        "path": "components/client/vendor/gryt-voice-0.6.2-laokuai.hybrid.integration.2.tgz",
-        "version": "0.6.2-laokuai.hybrid.integration.2",
-        "sha256": "cc514ec2fa7e2cf99daf0cb5782c4a66fc1b6b73ad8d6bdcdb1eb288c9cf8b92",
-        "sha1": "6beebf5901eb33e79cfc357db7792627a6f78f7c",
+        "path": "components/client/vendor/gryt-voice-0.6.2-laokuai.hybrid.integration.3.tgz",
+        "version": "0.6.2-laokuai.hybrid.integration.3",
+        "sha256": "29f858d9a97ae788748c59cc023cc350d9178e645adb39c7a96b327b8aa3299b",
+        "sha1": "a3b4348aab2d086fed058d29894ac0242d9c49d8",
         "installedPackedFiles": 205,
-        "installedByteVerification": "all matched final owner manifest",
-        "frozenOfflineInstall": "Yarn 1.22.22; offline; frozen-lockfile; all lifecycle scripts disabled"
+        "installedByteVerification": "all 205 installed bytes matched final owner manifest",
+        "frozenOfflineInstall": "Yarn 1.22.22 frozen-lockfile/offline/ignore-scripts passed after locked public dependency cache fill; lock changed only SDK entry"
       },
       "closedPcFix": {
         "sourceCommit": "114a9ad0ba2d9e1e83b9a762a150dba6a54e0ee4",
         "appliedOnceBySdkOwner": true,
         "pureAssertions": 159,
-        "classification": "Avoid invalid removeTrack on closed PC; no demonstrated leak repair"
+        "classification": "Avoid invalid removeTrack on closed PC; no demonstrated leak repair",
+        "inheritedBySourceCommit": "6d710f34070cbc01bb838a77dfec0963b0ce298b"
       },
       "intermediate1Preserved": true,
       "publicResearchResults": {
         "files": 69,
         "allExactPublicBlobs": true,
         "publicCommit": "26b3bf99d92642fc2ff09d54f5b9eae7ca51d06c"
+      },
+      "preservedSdk2": {
+        "sourceCommit": "114a9ad0ba2d9e1e83b9a762a150dba6a54e0ee4",
+        "sourceZipSha256": "eb278de388b296a6ccd5a834351f69a3c3aff72aab525868267f5434a8fda7ba",
+        "package": {
+          "path": "components/client/vendor/gryt-voice-0.6.2-laokuai.hybrid.integration.2.tgz",
+          "version": "0.6.2-laokuai.hybrid.integration.2",
+          "sha256": "cc514ec2fa7e2cf99daf0cb5782c4a66fc1b6b73ad8d6bdcdb1eb288c9cf8b92",
+          "sha1": "6beebf5901eb33e79cfc357db7792627a6f78f7c",
+          "installedPackedFiles": 205,
+          "installedByteVerification": "all matched final owner manifest",
+          "frozenOfflineInstall": "Yarn 1.22.22; offline; frozen-lockfile; all lifecycle scripts disabled"
+        },
+        "preserved": true
+      },
+      "authRecoveryFix": {
+        "sourceCommit": "5286699753a258af8f1ba9765ef11eadf6e904fc",
+        "finalServerGuardTestCommit": "6d710f34070cbc01bb838a77dfec0963b0ce298b",
+        "incrementalPatchSha256": "e82688edcba9ce81462d8a70d0e5d760297b891edd9d89659f783589acff7a34",
+        "cumulativePatchSha256": "e7dbe0feb797bec5635542bcf9eb8be08b8b4002c5d014aab7d368cf9942f88d",
+        "appliedNineFileDeltaOnce": true,
+        "pureAssertions": 129,
+        "realMediaAcceptance": false
       }
     },
     "server": {
@@ -200,6 +224,16 @@
       "patchConflicts": [],
       "reviewStatus": "accepted-static-source-contract",
       "nativeRuntimeAcceptance": false
+    },
+    {
+      "kind": "sdk-auth-recovery-source-and-package",
+      "deliveredCommit": "6d710f34070cbc01bb838a77dfec0963b0ce298b",
+      "productionFixCommit": "5286699753a258af8f1ba9765ef11eadf6e904fc",
+      "patchSha256": "e82688edcba9ce81462d8a70d0e5d760297b891edd9d89659f783589acff7a34",
+      "integratedCommit": "23d6a002a6431ac15fd8b186770109721b27b236",
+      "patchConflicts": [],
+      "clientSourceChanges": "Dependency/lock/TGZ pin only; existing UI/Hybrid host wiring retained",
+      "serverAndSfuChanged": false
     }
   ],
   "easytier": {
@@ -356,8 +390,8 @@
     "bundleResourceDirectory": "community-lan/product/2.7.0-laokuai"
   },
   "validation": {
-    "commit": "7a9ba9dd221fbf7bf5259600d39c76ccf8a43a59",
-    "clientFullTypes": "passed: tsc -b --noEmit (app and desktop projects)",
+    "commit": "23d6a002a6431ac15fd8b186770109721b27b236",
+    "clientFullTypes": "passed: tsc -b --noEmit (app and desktop) against exact installed SDK integration.3",
     "targetedHybridAndMemberLint": "passed",
     "targetedEtLint": "passed: 11 changed TS/MJS/CJS files, zero warnings",
     "clientPure": {
@@ -474,10 +508,10 @@
       "startupTrayScenarios": 18,
       "communityEtProductionScenarios": 22,
       "privateEtIntegration": "Actual private metadata gate, six downstream resource paths, scoped idle clock/snapshot disposal; no runtime execution",
-      "lastFullSuiteCommit": "7a9ba9dd221fbf7bf5259600d39c76ccf8a43a59"
+      "lastFullSuiteCommit": "23d6a002a6431ac15fd8b186770109721b27b236"
     },
     "sourcePackageInventory": "passed; includes exact Windows sidecar resource entries; source-only does not approve executable",
-    "sdkSourceAndPackage": "299 source ZIP files and 205 installed packed bytes verified; owner compile/pure evidence retained",
+    "sdkSourceAndPackage": "300 source ZIP file hashes verified; 299 exact import plus unchanged optional portable probe override; all 205 tar/installed packed hashes match",
     "server": "Owner type/JWT/temporary SQLite tests passed; fake SFU ACK/media; no real server acceptance here",
     "capacity": {
       "legacyLightweight20": {
@@ -528,6 +562,21 @@
         ]
       },
       "currentHybridTwoPeer": {
+        "status": "parent-requested-after-capacity-owner-ET-compile; fresh frozen snapshot retest pending",
+        "sdkVersion": "0.6.2-laokuai.hybrid.integration.3",
+        "sdkSourceCommit": "6d710f34070cbc01bb838a77dfec0963b0ce298b",
+        "sdkSha256": "29f858d9a97ae788748c59cc023cc350d9178e645adb39c7a96b327b8aa3299b",
+        "serverCommit": "e84e1ca5f7130bdc33528a9b563691267e7cb598",
+        "sfuCommit": "a6bf86ada2f31da85cc644f78e307f3ef0088e82",
+        "testInputPolicy": "Use the new immutable unified source commit/ZIP only; do not mutate any owner branch",
+        "target": "Actual auth restore ACK + fresh RTP/PCM and truthful selected controller/track/revision; 1/3 remotes, room generation, repeated release, closed-PC checks",
+        "sourceWritesAllowed": false,
+        "task6DockerRuns": 0,
+        "productionAcceptance": false
+      },
+      "task6DockerRuns": 0,
+      "fullClientOrProductionCapacityAccepted": false,
+      "previousHybridTwoPeerIntegration2": {
         "status": "parent-reported-real-media-pass-with-controller-state-mismatch; SDK repair/retest pending",
         "frozenIntegrationCommit": "a7ffde095467dcf89d278b95e26197396f850169",
         "frozenSourceZipSha256": "99ebe1ff0af756025b524aba16a24ee865bf136cc012e52b922c3fb1ec72eabc",
@@ -548,9 +597,7 @@
           "hybrid_cleanup_conflict controller state"
         ],
         "finalAcceptance": false
-      },
-      "task6DockerRuns": 0,
-      "fullClientOrProductionCapacityAccepted": false
+      }
     },
     "physicalDirectVerified": false,
     "actualPeerConnections": 0,
@@ -560,7 +607,7 @@
     "portableBuild": {
       "status": "blocked-private-build-native-acceptance-SDK-retest-and-user-UI-preview",
       "authorization": "One candidate build/portable package only; do not launch product, helpers, core, CLI or drivers",
-      "waitFor": "Capacity-owner measured native build; actual Windows acceptance; SDK integration.3 import/frozen media retest; user prototype approval",
+      "waitFor": "Capacity-owner measured ET native build and actual Windows acceptance; frozen SDK integration.3 media retest; user UI prototype approval",
       "requires": [
         "Fresh exact-source renderer/main outputs and native-helper build receipts",
         "EasyTier and bundled driver license/notice texts in final package",
@@ -579,7 +626,7 @@
       "staticSourceInventory": "pure resource contract passed",
       "runtimeExecution": false
     },
-    "fullClientTypesSourceCommit": "7a9ba9dd221fbf7bf5259600d39c76ccf8a43a59",
+    "fullClientTypesSourceCommit": "23d6a002a6431ac15fd8b186770109721b27b236",
     "nativeSourceContracts": {
       "sourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
       "scenarios": 10,
@@ -622,15 +669,29 @@
       "frozenBuildInputsComplete": true
     },
     "sdkRecoveryCandidate": {
-      "status": "owner-delivered-task6-integration-pending",
+      "status": "integrated-exact-install-and-pure-types-passed-real-media-retest-pending",
       "sourceCommit": "6d710f34070cbc01bb838a77dfec0963b0ce298b",
       "version": "0.6.2-laokuai.hybrid.integration.3",
       "sha256": "29f858d9a97ae788748c59cc023cc350d9178e645adb39c7a96b327b8aa3299b",
       "realMediaRetest": false
+    },
+    "sdkAuthRecoveryPure": {
+      "sourceCommit": "6d710f34070cbc01bb838a77dfec0963b0ce298b",
+      "packedSha256": "29f858d9a97ae788748c59cc023cc350d9178e645adb39c7a96b327b8aa3299b",
+      "assertions": 129,
+      "simulatedRemoteCounts": [
+        1,
+        3
+      ],
+      "status": "passed-independent-task6-on-exact-packed-code",
+      "actualPeerConnections": 0,
+      "listeners": 0,
+      "realAuthentication": false,
+      "actualSfuGate": false
     }
   },
   "securityBoundary": {
-    "currentTrackedTextScanned": 3165,
+    "currentTrackedTextScanned": 3166,
     "credentialPatternHits": 0,
     "currentMachinePathHits": 0,
     "sourceRawPrivateLogsImported": false,
@@ -650,7 +711,7 @@
   "pending": [
     "Capacity-owner isolated Rust 1.95 Windows MSVC core build of reviewed dbaf0453; retain exact lock/default features; official-registry locked fetch permitted; provide measured receipt/PE/resource hashes",
     "Approved private manifest/resources/driver notices; final static payload/ASAR/PE/package hash verification",
-    "SDK owner repair for restore_failed / selected:none / hybrid_cleanup_conflict; preserve integration.2 bytes and retest new frozen snapshot",
+    "Frozen SDK integration.3 real media/controller consistency retest after ET build owner releases the heavy slot",
     "UI owner static prototype plus user preview approval before final package; relay/direct labeling contract still pending",
     "Automatic authorized community configuration without asking users for node/secret/subnet values",
     "Explicit driver/local-management authorization and normal Windows administrator token; no UAC bypass",
