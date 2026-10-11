@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "checks": [
+    {
+      "check": "check-easytier-product-assets.mjs",
+      "exit": 0,
+      "summary": "17 invalid schema/source/profile/core/CLI/file-set cases rejected; missing manifest makes zero writes; no runtime/network execution"
+    },
+    {
+      "check": "check-private-easytier-wiring.mjs",
+      "exit": 0,
+      "summary": "Private metadata/runtime, exact four-file product resources and permission/update isolation passed; no native execution"
+    },
+    {
+      "check": "check-easytier-pack-gate.mjs",
+      "exit": 0,
+      "summary": "7 ET package-gate scenarios passed; synthetic metadata only; no executable, helper, build or profile accessed"
+    }
+  ],
+  "desktopTypecheck": {
+    "passed": true,
+    "command": "tsc --project tsconfig.node.json --noEmit --tsBuildInfoFile isolated-task6-path",
+    "firstCompositeFlagFailurePreserved": true
+  },
+  "firstHarnessFailuresPreserved": true,
+  "task6NativeExecuted": false,
+  "publicGate": false
+}

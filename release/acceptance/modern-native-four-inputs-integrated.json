@@ -1,0 +1,146 @@
+{
+  "schema": 1,
+  "sourceCommit": "089b6182c603c8ab60044b673effe0cf614cc28a",
+  "nativeSourceTree": "25be11e0c9460bce1330cbd7964e4d6561f0bc14",
+  "buildIntegrationFreeze": "33a166dd87d68b24506fdcdc2a7f020637c445c3",
+  "ownerDeliveryArchiveSha256": "24f7b05465a4eaec89c3ff8fba89892cd234907f3b81ec643471866229936a61",
+  "ownerManifestSha256": "bb60a5d9e74e61f436c4d2261db112c8b463de1e2cccb42c6b92f0c5a1bc55c3",
+  "ownerReportSha256": "1c074b51d360dcc749187ff9c9787a93e24830a8185f1af69cdf29a19ad2272e",
+  "ownerFilesHashed": 98,
+  "files": {
+    "easytier-core.exe": {
+      "bytes": 20284928,
+      "sha256": "f716a1139d66800bbc75daa200b1c0c6eecccb97e88e13167fafb8d7d38bb81d",
+      "origin": "Exact source089b6182 standard-static producer build"
+    },
+    "easytier-cli.exe": {
+      "bytes": 6160896,
+      "sha256": "1ad46380937aab6dd7385ebb37bb458c94f8d1a3e68baf2e6c24ea973adc6411",
+      "origin": "Exact source089b6182 standard-static producer build"
+    },
+    "WinDivert64.sys": {
+      "bytes": 94144,
+      "sha256": "8da085332782708d8767bcace5327a6ec7283c17cfb85e40b03cd2323a90ddc2",
+      "origin": "Unchanged signed companion reference"
+    },
+    "wintun.dll": {
+      "bytes": 427552,
+      "sha256": "e5da8447dc2c320edc0fc52fa01885c103de8c118481f683643cacc3220dafce",
+      "origin": "Unchanged signed companion reference"
+    }
+  },
+  "runtimeInputPackageSha256": "17bdccbab2d78b42642bbf934efb4c4bf9329a97ce4ed16685c3b5659f54ca74",
+  "runtimeInputPackageBytes": 12514682,
+  "profileSha256": "e67bde65ff0afe846854e31b60562b15ba774df33eda6b0540c5d0a395faae02",
+  "cumulativePatchSha256": "490ffd127cc7c6a9d0d622ff161fe2086536e59be8b8281cf87e2f00e314aed5",
+  "independentNormalAndDelayImports": [
+    {
+      "name": "easytier-core.exe",
+      "machine": "AMD64",
+      "sha256": "f716a1139d66800bbc75daa200b1c0c6eecccb97e88e13167fafb8d7d38bb81d",
+      "bytes": 20284928,
+      "normalImports": [
+        "kernel32.dll",
+        "advapi32.dll",
+        "bcryptprimitives.dll",
+        "ws2_32.dll",
+        "iphlpapi.dll",
+        "ntdll.dll",
+        "oleaut32.dll",
+        "rpcrt4.dll",
+        "api-ms-win-core-synch-l1-2-0.dll",
+        "crypt32.dll",
+        "bcrypt.dll",
+        "KERNEL32.dll",
+        "wintrust.dll"
+      ],
+      "delayImports": [],
+      "captureDllImports": [],
+      "noCaptureDllNormalOrDelayImports": true,
+      "executed": false
+    },
+    {
+      "name": "easytier-cli.exe",
+      "machine": "AMD64",
+      "sha256": "1ad46380937aab6dd7385ebb37bb458c94f8d1a3e68baf2e6c24ea973adc6411",
+      "bytes": 6160896,
+      "normalImports": [
+        "kernel32.dll",
+        "advapi32.dll",
+        "bcryptprimitives.dll",
+        "ws2_32.dll",
+        "ntdll.dll",
+        "iphlpapi.dll",
+        "oleaut32.dll",
+        "combase.dll",
+        "api-ms-win-core-synch-l1-2-0.dll",
+        "bcrypt.dll",
+        "shell32.dll",
+        "KERNEL32.dll"
+      ],
+      "delayImports": [],
+      "captureDllImports": [],
+      "noCaptureDllNormalOrDelayImports": true,
+      "executed": false
+    }
+  ],
+  "independentPePdbVerification": [
+    {
+      "exe": "easytier-core.exe",
+      "pdb": "easytier_core.pdb",
+      "pdbSha256": "4f73c3f0b17eb34e7ad0ac2baf62799d50cffb4c72f3998baea17a03d073367e",
+      "guidBytes": "68cc767848f5d1448b708a4e449d8c2d",
+      "age": 1,
+      "pePdbMatched": true,
+      "modules": 342,
+      "compatibilityOrRemovedEncodingPnetInputs": 0,
+      "libraries": [
+        "kernel32.lib",
+        "libcmt.lib",
+        "libucrt.lib",
+        "libvcruntime.lib",
+        "ntdll.lib",
+        "windows.0.48.5.lib"
+      ]
+    },
+    {
+      "exe": "easytier-cli.exe",
+      "pdb": "easytier_cli.pdb",
+      "pdbSha256": "ac4b855466efe726bffe3a3c68e20e8de06c4708c26a9a4629d4032cb6ff8769",
+      "guidBytes": "f1fb71960857e942bc019f4a0d84e14d",
+      "age": 1,
+      "pePdbMatched": true,
+      "modules": 301,
+      "compatibilityOrRemovedEncodingPnetInputs": 0,
+      "libraries": [
+        "kernel32.lib",
+        "libcmt.lib",
+        "libucrt.lib",
+        "libvcruntime.lib",
+        "windows.0.48.5.lib"
+      ]
+    }
+  ],
+  "standardPlatformInputs": 17,
+  "compatibilityLinkInputs": 0,
+  "unresolvedPlatformInputsOtherThanDeclaredDeletedLto": 0,
+  "deletedLtoTemporaryArguments": 34,
+  "deletedTempByteEquivalenceClaimed": false,
+  "actualCompiler": "MSVC14.44.35207",
+  "actualSdk": "10.0.26100.0",
+  "targetPackages": 504,
+  "missingTopLevelLicenseScanCases": 24,
+  "supplementaryEvidenceMapped": 24,
+  "licenseBundleSha256": "d829f68f80b5e0941cc36d135a1927f9e29a85cbb0a038d5496a8262b02a5d68",
+  "priorFrozenInputsPreserved": true,
+  "currentLicenseGate": false,
+  "currentPayloadGate": false,
+  "currentNativeApproval": false,
+  "newPayloadScopePrepared": false,
+  "oldScopeStillDbaf": true,
+  "runtimeAcceptance": false,
+  "nativeExecutedByTask6": false,
+  "osQueriesExecutedByTask6": false,
+  "rawOwnerLogsImported": false,
+  "publicApproved": false
+}

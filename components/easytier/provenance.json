@@ -14,23 +14,17 @@
     "compileAndPackage": "Capacity owner only, parent-scheduled isolated build; task-6 does not compile native core"
   },
   "patchSet": {
-    "status": "delivered-source-review-accepted-release-build-passed",
+    "status": "modern-standard-static-CRT-source-reviewed-and-built",
     "baseCommit": "8b7f1f0196edb5b580829ed5f135050fb5853478",
-    "sourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
-    "sourceTree": "e58f64a219c204cdaf364fc95466cf03acfb7c21",
-    "cumulativeSha256": "eb30fab089422c82256a8c8db9cb7a15d3c41b8b972a05729f63ebfbac7e8cad",
+    "sourceCommit": "089b6182c603c8ab60044b673effe0cf614cc28a",
+    "sourceTree": "25be11e0c9460bce1330cbd7964e4d6561f0bc14",
+    "cumulativeSha256": "490ffd127cc7c6a9d0d622ff161fe2086536e59be8b8281cf87e2f00e314aed5",
     "patches": [
       {
-        "path": "patches/laokuai-owned-create-cumulative-code.patch",
-        "sha256": "eb30fab089422c82256a8c8db9cb7a15d3c41b8b972a05729f63ebfbac7e8cad",
-        "bytes": 221080,
-        "role": "Cumulative production code including pinned vendored TUN dependency"
-      },
-      {
-        "path": "patches/laokuai-owned-create-source.patch",
-        "sha256": "168476f10affa8163d05f0e73d9f93750bc8db70c5c04e8c1a43cf58f7aaf4f3",
-        "bytes": 211306,
-        "role": "Corrective source delta from immutable 1a44 snapshot"
+        "path": "patches/laokuai-modern-static-cumulative-code.patch",
+        "sha256": "490ffd127cc7c6a9d0d622ff161fe2086536e59be8b8281cf87e2f00e314aed5",
+        "bytes": 222290,
+        "role": "Cumulative upstream production patch with only the final Cargo section updated"
       }
     ],
     "requirements": [
@@ -41,20 +35,21 @@
     ],
     "review": {
       "status": "accepted",
-      "reviewedCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
-      "reviewedTree": "e58f64a219c204cdaf364fc95466cf03acfb7c21",
+      "reviewedCommit": "089b6182c603c8ab60044b673effe0cf614cc28a",
+      "reviewedTree": "25be11e0c9460bce1330cbd7964e4d6561f0bc14",
       "blockingFindingIds": [],
       "resolvedSourceFindingIds": [
         "ET-OWNERSHIP-001"
       ],
       "reportPath": "REVIEW.md",
       "acceptanceScope": "Static create-only/pre-session identity source contract; actual Windows build/driver/coexistence not accepted",
-      "nativeExecution": false
+      "nativeExecution": false,
+      "reverseApplyCheckPassed": true
     },
     "snapshotBaseCommit": "f12351ef0410c55790bf97dd139688335866210c",
     "originalHistory": false,
     "upstreamArchiveSha256": "bfed31138cd535cb540233c9506f29919d495e4cbb9cff78a19d7a5974f14a40",
-    "codePatchSha256": "eb30fab089422c82256a8c8db9cb7a15d3c41b8b972a05729f63ebfbac7e8cad",
+    "codePatchSha256": "490ffd127cc7c6a9d0d622ff161fe2086536e59be8b8281cf87e2f00e314aed5",
     "previousSourceCommit": "1a44fb98e2429b050d69f36a1fee47eadf26caf5"
   },
   "officialWindowsReference": {
@@ -70,59 +65,59 @@
     }
   },
   "privateBuild": {
-    "status": "both-executables-compiled-static-verified-licenses-and-activation-pending",
-    "sourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
-    "sourceTree": "e58f64a219c204cdaf364fc95466cf03acfb7c21",
-    "patchSetSha256": "eb30fab089422c82256a8c8db9cb7a15d3c41b8b972a05729f63ebfbac7e8cad",
+    "status": "modern-standard-static-compiled-independent-audited-license-and-activation-pending",
+    "sourceCommit": "089b6182c603c8ab60044b673effe0cf614cc28a",
+    "sourceTree": "25be11e0c9460bce1330cbd7964e4d6561f0bc14",
+    "patchSetSha256": "490ffd127cc7c6a9d0d622ff161fe2086536e59be8b8281cf87e2f00e314aed5",
     "toolchain": {
       "requiredRust": "1.95",
       "actualRust": "1.95.0",
       "target": "x86_64-pc-windows-msvc",
       "built": true
     },
-    "buildReceiptSha256": "8c2b0084b74410cda72527ba4adbdb29b3cbb31c06e73f0662a825aeb662205a",
+    "buildReceiptSha256": "e66b9ae7350a8deca8bd9e2946eb3517fcb2bee02c352ac37c859893bae8dc7d",
     "buildReceiptPath": "build/community-lan/product/2.7.0-laokuai/build-receipt.json",
-    "packageSha256": "414f36e1cc6eff5f880b943a5116a71fe243f2bd9744501630128ebdce9ec467",
-    "packagePath": "build/community-lan/product/laokuai-no-npcap-runtime-input.zip",
+    "packageSha256": "17bdccbab2d78b42642bbf934efb4c4bf9329a97ce4ed16685c3b5659f54ca74",
+    "packagePath": "build/community-lan/product/laokuai-modern-static-runtime-input.zip",
     "windowsRuntimeFiles": {
       "easytier-core.exe": {
-        "bytes": 20107264,
-        "sha256": "d4f100ace0ae50b5270af10f579a2ccf7b2991731f05b82920eefba60055d49a",
-        "origin": "Exact reviewed no-Npcap source/profile build"
+        "bytes": 20284928,
+        "sha256": "f716a1139d66800bbc75daa200b1c0c6eecccb97e88e13167fafb8d7d38bb81d",
+        "origin": "Exact source089b6182 standard-static producer build"
       },
       "easytier-cli.exe": {
-        "bytes": 6050816,
-        "sha256": "b84fa350b9c8036649df3cdc8ee728c364ea81075d82fd3783cdeede3b9ddccd",
-        "origin": "Exact reviewed no-Npcap source/profile build"
+        "bytes": 6160896,
+        "sha256": "1ad46380937aab6dd7385ebb37bb458c94f8d1a3e68baf2e6c24ea973adc6411",
+        "origin": "Exact source089b6182 standard-static producer build"
       },
       "WinDivert64.sys": {
         "bytes": 94144,
         "sha256": "8da085332782708d8767bcace5327a6ec7283c17cfb85e40b03cd2323a90ddc2",
-        "origin": "Unchanged pinned signed driver companion"
+        "origin": "Unchanged signed companion reference"
       },
       "wintun.dll": {
         "bytes": 427552,
         "sha256": "e5da8447dc2c320edc0fc52fa01885c103de8c118481f683643cacc3220dafce",
-        "origin": "Unchanged pinned signed driver companion"
+        "origin": "Unchanged signed companion reference"
       }
     },
-    "runtimeManifestSha256": "bc18d7e68a3996e686b9b123c09aebc62df0ffc57d12c77d7d77ce54badc1509",
+    "runtimeManifestSha256": "4e0ddc3ad0a24eb090f0050e4c21d6cfcb6ff572eda9d0ba640e90baedf489ec",
     "runtimeManifestPath": "build/community-lan/product/2.7.0-laokuai/laokuai-build.json",
     "runtimeManifestSchemaVersion": 2,
     "normalAndDelayImportsVerified": true,
-    "featureProfileSha256": "8904d6aff6c819a6d3bc03700467c7878199a68c57c9771905b7c90ec8c805d7",
+    "featureProfileSha256": "e67bde65ff0afe846854e31b60562b15ba774df33eda6b0540c5d0a395faae02",
     "originalBuildInputProfileSha256": "63485768b86b55e00b34f20353ef8a6b5395e768ef2cfee8266f56a0cc62aa84",
     "coreCompilationPassed": true,
     "cliCompilationPassed": true,
     "coreExecuted": false,
     "cliExecuted": false,
     "licensesAndNoticesVerified": false,
-    "trackedReceiptPath": "receipts/no-npcap-build.json",
-    "trackedRuntimeInputPath": "receipts/no-npcap-runtime-input.json"
+    "trackedReceiptPath": "receipts/modern-static-build.json",
+    "trackedRuntimeInputPath": "receipts/modern-static-runtime-input.json"
   },
   "payload": {
     "kind": "pending-private-patched-windows",
-    "status": "four-file-no-Npcap-static-input-prepared-notices-review-and-activation-pending",
+    "status": "modern-static-four-file-input-license-and-activation-pending",
     "approved": false
   },
   "acceptance": {
@@ -237,6 +232,103 @@
       "coreExecuted": false,
       "trackedReceiptPath": "receipts/owned-create-build.json",
       "trackedRuntimeInputPath": "receipts/owned-create-runtime-input.json"
+    },
+    {
+      "status": "historical-dbaf-no-npcap-input-preserved",
+      "sourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
+      "sourceTree": "e58f64a219c204cdaf364fc95466cf03acfb7c21",
+      "patchSetSha256": "eb30fab089422c82256a8c8db9cb7a15d3c41b8b972a05729f63ebfbac7e8cad",
+      "toolchain": {
+        "requiredRust": "1.95",
+        "actualRust": "1.95.0",
+        "target": "x86_64-pc-windows-msvc",
+        "built": true
+      },
+      "buildReceiptSha256": "8c2b0084b74410cda72527ba4adbdb29b3cbb31c06e73f0662a825aeb662205a",
+      "buildReceiptPath": "build/community-lan/product/history/dbaf-no-npcap-d4f100ac/build-receipt.json",
+      "packageSha256": "414f36e1cc6eff5f880b943a5116a71fe243f2bd9744501630128ebdce9ec467",
+      "packagePath": "build/community-lan/product/laokuai-no-npcap-runtime-input.zip",
+      "windowsRuntimeFiles": {
+        "easytier-core.exe": {
+          "bytes": 20107264,
+          "sha256": "d4f100ace0ae50b5270af10f579a2ccf7b2991731f05b82920eefba60055d49a",
+          "origin": "Exact reviewed no-Npcap source/profile build"
+        },
+        "easytier-cli.exe": {
+          "bytes": 6050816,
+          "sha256": "b84fa350b9c8036649df3cdc8ee728c364ea81075d82fd3783cdeede3b9ddccd",
+          "origin": "Exact reviewed no-Npcap source/profile build"
+        },
+        "WinDivert64.sys": {
+          "bytes": 94144,
+          "sha256": "8da085332782708d8767bcace5327a6ec7283c17cfb85e40b03cd2323a90ddc2",
+          "origin": "Unchanged pinned signed driver companion"
+        },
+        "wintun.dll": {
+          "bytes": 427552,
+          "sha256": "e5da8447dc2c320edc0fc52fa01885c103de8c118481f683643cacc3220dafce",
+          "origin": "Unchanged pinned signed driver companion"
+        }
+      },
+      "runtimeManifestSha256": "bc18d7e68a3996e686b9b123c09aebc62df0ffc57d12c77d7d77ce54badc1509",
+      "runtimeManifestPath": "build/community-lan/product/history/dbaf-no-npcap-d4f100ac/laokuai-build.json",
+      "runtimeManifestSchemaVersion": 2,
+      "normalAndDelayImportsVerified": true,
+      "featureProfileSha256": "8904d6aff6c819a6d3bc03700467c7878199a68c57c9771905b7c90ec8c805d7",
+      "originalBuildInputProfileSha256": "63485768b86b55e00b34f20353ef8a6b5395e768ef2cfee8266f56a0cc62aa84",
+      "coreCompilationPassed": true,
+      "cliCompilationPassed": true,
+      "coreExecuted": false,
+      "cliExecuted": false,
+      "licensesAndNoticesVerified": false,
+      "trackedReceiptPath": "receipts/no-npcap-build.json",
+      "trackedRuntimeInputPath": "receipts/no-npcap-runtime-input.json"
+    }
+  ],
+  "historicalPatchSets": [
+    {
+      "status": "delivered-source-review-accepted-release-build-passed",
+      "baseCommit": "8b7f1f0196edb5b580829ed5f135050fb5853478",
+      "sourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
+      "sourceTree": "e58f64a219c204cdaf364fc95466cf03acfb7c21",
+      "cumulativeSha256": "eb30fab089422c82256a8c8db9cb7a15d3c41b8b972a05729f63ebfbac7e8cad",
+      "patches": [
+        {
+          "path": "patches/laokuai-owned-create-cumulative-code.patch",
+          "sha256": "eb30fab089422c82256a8c8db9cb7a15d3c41b8b972a05729f63ebfbac7e8cad",
+          "bytes": 221080,
+          "role": "Cumulative production code including pinned vendored TUN dependency"
+        },
+        {
+          "path": "patches/laokuai-owned-create-source.patch",
+          "sha256": "168476f10affa8163d05f0e73d9f93750bc8db70c5c04e8c1a43cf58f7aaf4f3",
+          "bytes": 211306,
+          "role": "Corrective source delta from immutable 1a44 snapshot"
+        }
+      ],
+      "requirements": [
+        "Disable global NetworkList cleanup by default",
+        "Make automatic Windows firewall/category policy explicitly controllable",
+        "Gracefully stop only the owned instance without deleting persistent configuration",
+        "Keep fixed v2.7.0 upstream base; no Tencent Linux node changes"
+      ],
+      "review": {
+        "status": "accepted",
+        "reviewedCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
+        "reviewedTree": "e58f64a219c204cdaf364fc95466cf03acfb7c21",
+        "blockingFindingIds": [],
+        "resolvedSourceFindingIds": [
+          "ET-OWNERSHIP-001"
+        ],
+        "reportPath": "REVIEW.md",
+        "acceptanceScope": "Static create-only/pre-session identity source contract; actual Windows build/driver/coexistence not accepted",
+        "nativeExecution": false
+      },
+      "snapshotBaseCommit": "f12351ef0410c55790bf97dd139688335866210c",
+      "originalHistory": false,
+      "upstreamArchiveSha256": "bfed31138cd535cb540233c9506f29919d495e4cbb9cff78a19d7a5974f14a40",
+      "codePatchSha256": "eb30fab089422c82256a8c8db9cb7a15d3c41b8b972a05729f63ebfbac7e8cad",
+      "previousSourceCommit": "1a44fb98e2429b050d69f36a1fee47eadf26caf5"
     }
   ]
 }

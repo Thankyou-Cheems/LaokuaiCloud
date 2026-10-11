@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "screenedSourceFiles": 1262,
+  "excludedPrebuiltAssets": 15,
+  "lockedOfflineTargetPackages": 504,
+  "exactPackageSetMatchedBuiltSource": true,
+  "usedExistingPrivateVerifiedDependencyCache": true,
+  "draftDependencyExportsAloneWereNotRestored": true,
+  "buildScriptsExecuted": false,
+  "nativeBuilt": false,
+  "nativeExecuted": false,
+  "publicApproved": false
+}

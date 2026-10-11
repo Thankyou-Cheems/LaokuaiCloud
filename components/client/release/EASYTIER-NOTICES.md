@@ -1,41 +1,63 @@
-# EasyTier native runtime notices and release provenance
+# EasyTier modern Windows native notices
 
-This is a source-backed notice/provenance handoff, not a release authorization or a completed license audit of every Rust dependency. Preserve these notices and the unmodified license texts when preparing the product. The private Electron main layer and the native runtime are separate components; do not label the customized native core an unmodified official binary.
+This internal candidate has exactly four runtime files: source089b6182 core
+20284928B/f716a113 and CLI6160896B/1ad46380, unchanged Wintun0.14.1 and
+WinDivert2.2.2 SYS. Full hashes are in easytier-native-input-inventory.json.
+Both matching EXE/PDBs and normal/delay imports were independently checked.
+No Packet/wpcap/Npcap/pnet or dynamic CRT imports were found. Product17 features
+and +crt-static remain; the Win7 thunk feature and unused Windows encoding
+feature are disabled. Matching PDB/link evidence has no VC-LTL/YY objects.
+These static results are not native, driver, game or network acceptance.
 
-## Frozen source and final four-file candidate
+Exact native code source: 089b6182c603c8ab60044b673effe0cf614cc28a; component tree
+25be11e0c9460bce1330cbd7964e4d6561f0bc14. Upstream8b7f1f01 production changes and
+the two Cargo feature fixes are represented by cumulative code patch
+490ffd127cc7c6a9d0d622ff161fe2086536e59be8b8281cf87e2f00e314aed5. Cargo.lock remains e3ee41507e7a8ef94470b70f4639140e67aadae646ada82dfd23b0beeb0e7fb2.
+The exact private1277-file source archive contains unlinked historical Packet
+assets and other prebuilt non-product assets. It is not a recipient/public source
+export. The screened source draft excludes all15 prebuilt assets, retains exact
+remaining code bytes and is labelled for Windows core/CLI only. Never ship the
+old archival companion, raw Microsoft libraries or a whole historical delivery
+ZIP as recipient source without the specific release review.
 
-The capacity owner's fixed no-Npcap build is now complete and statically audited. The current candidate has exactly `easytier-core.exe` (20,107,264 bytes, SHA-256 `d4f100ace0ae50b5270af10f579a2ccf7b2991731f05b82920eefba60055d49a`), `easytier-cli.exe` (6,050,816 bytes, SHA-256 `b84fa350b9c8036649df3cdc8ee728c364ea81075d82fd3783cdeede3b9ddccd`), unchanged `wintun.dll` and unchanged `WinDivert64.sys`. Both final PE files passed normal/delay imports, dumpbin headers/import/dependent checks and ASCII/UTF-16 identifier scans with no Packet/wpcap/Npcap/pnet dependency evidence. The runner pins the exact build receipt and import audit, then verifies all four source and staged file hashes before launching only the core. No binary or driver was executed for this static verification.
+## Retain original license and modification materials
 
-The final inventory is `finalProductCandidate` in the JSON; the historical five-file list remains evidence only. Npcap is not a required installed/running service, payload or activation prerequisite for this candidate. The single no-peer trial copies all four native files plus these notices/licenses to its isolated scratch directory; it does not execute the CLI and explicitly sets `enable_udp_broadcast_relay = false`, so it does not activate WinDivert. The product's broadcast backend is retained for later separate game/network acceptance.
+EasyTier is LGPL3 with incorporated GPL3 terms: retain licenses/EasyTier-LGPL-3.0.txt
+and licenses/GPL-3.0.txt, modified code, build recipes and applicable combined-work
+source/relink/installation information. Actual recipient receipt/relink acceptance
+is still unestablished. The vendored modified Rust TUN wrapper is WTFPL2, not MIT:
+retain licenses/rust-tun-WTFPL-2.0.txt and its source/provenance.
 
-The downstream native source is `dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49`, tree `e58f64a219c204cdaf364fc95466cf03acfb7c21`, based on EasyTier upstream `8b7f1f0196edb5b580829ed5f135050fb5853478`. Its cumulative code patch SHA-256 is `eb30fab089422c82256a8c8db9cb7a15d3c41b8b972a05729f63ebfbac7e8cad`; Cargo.lock SHA-256 is `e3ee41507e7a8ef94470b70f4639140e67aadae646ada82dfd23b0beeb0e7fb2`. Modified owned-TUN creation, owned-stop/host-policy behavior and Windows game broadcast compatibility are included. The existing source bundle SHA-256 is `71c09f9ba90cb87dcc3eb3d828477c21d5761a74c0fd049f965fa90b54d8425e`. Preserve that bundle and build recipe alongside the corresponding resulting binaries.
+Wintun0.14.1 signed prebuilt binary uses its original separate redistribution
+terms; preserve licenses/Wintun-0.14.1-LICENSE.txt and signed bytes, and use its
+Permitted API without implying endorsement. WinDivert2.2.2 retains the original
+LGPL3/GPL2 choice, licenses/WinDivert-v2.2.2-LICENSE.txt and the linked Rust/C
+backend sources. Broadcast capability is retained; it has not been activated
+for this build audit. No driver installation or maintenance entitlement is
+created by a signed-file hash.
 
-The historical five fixed runtime inputs, their complete hashes and provenance are in `easytier-native-input-inventory.json`. The official EasyTier input archive is [v2.7.0 Windows x86_64](https://github.com/EasyTier/EasyTier/releases/download/v2.7.0/easytier-windows-x86_64-v2.7.0.zip), 39,616,733 bytes, SHA-256 `790fd9be347b00753570ac2b65f874a591ede9427603fe34e74a86b2b084847f`; the custom core replaces its core. The old compiled custom core and official CLI both statically import Npcap Packet.dll. They are historical candidates and cannot be described as the final no-Npcap product.
+Current normal/build graph has504 packages. Its original license text bundle
+is licenses/native-transitive/MODERN-NATIVE-THIRD-PARTY-LICENSES.txt (324 unique
+texts); package identities/hashes are in modern-native-bom.json. The24 omissions
+from the top-level scan map to the retained prior original evidence, with the
+separate SeaHash CC0 and encoding_index_tests original provenance. Declared
+Cargo SPDX/author fields are metadata, not newly invented license grants.
+The historical506-package inventory/351-text bundle and original notices remain
+preserved. Old VC-LTL/YY/encoding-utils obligations apply to their old artifacts;
+they are not claimed as linked content in the new pair.
 
-## EasyTier and modified rust-tun
+Standard MSVC14.44.35207/SDK10.0.26100.0 linker/library identities are recorded
+in the build receipt; raw platform libraries are not supplied. Actual installed
+Visual Studio/SDK terms still govern platform use and redistribution. Official
+Microsoft runtime/REDIST references and response hashes are retained under
+release/source-materials; they do not grant raw library or modified-CRT rights.
 
-EasyTier's frozen source package license is LGPL version 3. Include [EasyTier-LGPL-3.0.txt](licenses/EasyTier-LGPL-3.0.txt) and its incorporated [GPL-3.0.txt](licenses/GPL-3.0.txt), copyright/provenance notices, modification description, corresponding source and instructions needed to rebuild the delivered version. A web link or private Git bundle alone does not establish that end users receive the required corresponding source or other applicable combined-work materials. Release owner must choose and verify a compliant source/relinking delivery method for the actual distributed work. No proprietary license exemption is asserted here.
+## Separate activation and distribution gates
 
-The owned-TUN dependency is vendored from [EasyTier/rust-tun](https://github.com/EasyTier/rust-tun/tree/12378839e7985283df0e4fb536b7137230356db5), exact upstream `12378839e7985283df0e4fb536b7137230356db5`, modified in `vendor/rust-tun`. Both its frozen Cargo metadata and LICENSE state WTFPL version 2, **not MIT**. Preserve the exact [rust-tun-WTFPL-2.0.txt](licenses/rust-tun-WTFPL-2.0.txt) and modified source. This refers to the Rust wrapper, not the Wintun driver binary's separate license.
-
-## Wintun
-
-`wintun.dll` is the unchanged official amd64 Wintun 0.14.1 binary. Its SHA-256 matches the amd64 ZIP entry byte-for-byte. [Official Wintun](https://www.wintun.net/) identifies its signed ZIP and distinguishes the source GPL 2 license from the prebuilt binaries' separate license. The reference ZIP SHA-256 is `07c256185d6ee3652e09fa55c0b673e2624b565e02c4b9091c79ca7d2f24ef51`.
-
-Include the exact [Wintun-0.14.1-LICENSE.txt](licenses/Wintun-0.14.1-LICENSE.txt) from that ZIP. Its redistribution exception concerns distribution alongside software using the Permitted API; preserve the signed binary and proprietary notices and do not imply WireGuard endorsement. Actual native use must remain within that API. These signed prebuilt terms must not be replaced with a generic GPL or MIT label. Distribution rights and driver activation permission are separate questions.
-
-## WinDivert
-
-`WinDivert64.sys` is byte-for-byte equal to both WinDivert64.sys entries in the [official WinDivert 2.2.2 A ZIP](https://reqrypt.org/download/WinDivert-2.2.2-A.zip), linked by the [official project](https://reqrypt.org/windivert.html). The exact ZIP's LICENSE matches the [v2.2.2 source LICENSE](https://github.com/basil00/WinDivert/blob/v2.2.2/LICENSE); include [WinDivert-v2.2.2-LICENSE.txt](licenses/WinDivert-v2.2.2-LICENSE.txt), which provides the LGPL 3 / GPL 2 choice and the referenced GNU texts. The WinDivert user-mode backend is statically incorporated through the pinned windivert/windivert-sys source; treat its applicable source/relinking requirements together with the actual linked binaries, rather than treating the SYS notice alone as complete.
-
-Provide the exact [WinDivert 2.2.2 source](https://reqrypt.org/download/WinDivert-2.2.2-Source.zip), the pinned Rust wrapper source (`adcc56d1550f7b5377ec2b3429f413ee24a77375`) and build instructions with the release's corresponding source delivery. This handoff does not claim those complete linked sources are already packaged for end users. WinDivert remains part of the current Windows game broadcast capture backend; removing FakeTCP does not remove it or its driver-loading capability.
-
-## Npcap: historical input, no redistribution authorization supplied
-
-The old `Packet.dll` metadata identifies Npcap 1.79, Insecure.Com LLC, and the historical CLI/core have mandatory imports of it. The [official Npcap OEM redistribution page](https://npcap.com/oem/redist) distinguishes free/demo use from external product redistribution. No applicable OEM redistribution license or version-specific license artifact was supplied here, so this handoff does not authorize shipping this DLL and does not invent an OEM entitlement. Existing machine installation is not evidence of product redistribution rights. Preserve this pending status if the old five-file candidate is retained for internal investigation.
-
-The no-Npcap profile removes only the official FakeTCP feature and its pnet dependency. It has rebuilt **both** core and CLI, retains ordinary TCP/UDP, TCP hole punching and the Windows broadcast code, and omits Packet.dll from the final inventory. Source/locked graph, compilation, final hashes and actual PE normal/delay-import absence are verified against the capacity-owner delivery. Never carry the old official CLI into that package. FakeTCP and its secondary interface-enumeration fallback are unavailable and must be disclosed; primary enumeration failures must remain visible. The profile and exact build command are in [EASYTIER-WINDOWS-FEATURES.md](../scripts/EASYTIER-WINDOWS-FEATURES.md).
-
-## Remaining release inputs
-
-The JSON distinguishes five historical inputs from the four actual final candidate inputs. The build owner has provided the locked no-Npcap build source ZIP (SHA-256 `af925b426f2a57b9708794c9d0f27971e1444cc0df064245c3163ce75615b492`) and an active dependency inventory of 506 packages plus cached license texts; 25 top-level license texts are missing from that cache, so distribution-specific license review is still incomplete. Those source/inventory files remain available in the fixed build delivery directory. No release entitlement is invented. Before release, owner must update the production runtime manifest/file inventory and installer/driver disclosure together, include these notices/license texts in the actual distributed package, and finish the applicable transitive review and corresponding/relinkable source delivery. The no-peer coexistence trial is a separate current-user-approved activation scope and does not clear public distribution or game/media acceptance.
+Schema6/a071 remains an old dbaf/d4f no-peer scope with unchanged evidence and
+no applicable new-payload approval. Do not use it to run this new pair. The
+modern product loader and four-file cache identity are pinned separately.
+License/distribution, actual recipient access/relink and native functionality
+are pending; payload.approved remains false, ready=false, finalPackage=null.
+No public release is authorized. Historical no-Npcap/five-file notice records
+are preserved in the integration history and components/easytier/receipts.

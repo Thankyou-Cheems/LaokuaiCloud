@@ -30,8 +30,8 @@ if(m.validation.nativeNoNpcapIntegration){
   const candidate=m.validation.nativeNoNpcapIntegration;
   assert(sha(candidate.receipt)===candidate.receiptSha256,'No-Npcap integration receipt changed');
   const receipt=JSON.parse(fs.readFileSync(path.join(root,candidate.receipt),'utf8'));
-  assert(receipt.nativeSourceCommit===m.components.easytier.privateSourceCommit&&receipt.normalAndDelayImportsVerified===true&&receipt.runtimeManifestSchemaVersion===2,'No-Npcap source/proof/schema mismatch');
-  for(const name of ['easytier-core.exe','easytier-cli.exe'])assert(receipt.files[name].sha256===m.easytier.privateWindowsRuntimeFiles[name].sha256,'No-Npcap exact binary mismatch');
+  assert(receipt.nativeSourceCommit===(candidate.historicalNativeSourceCommit||m.components.easytier.privateSourceCommit)&&receipt.normalAndDelayImportsVerified===true&&receipt.runtimeManifestSchemaVersion===2,'No-Npcap source/proof/schema mismatch');
+  for(const name of ['easytier-core.exe','easytier-cli.exe'])assert(receipt.files[name].sha256===(candidate.historicalRuntimeFiles||m.easytier.privateWindowsRuntimeFiles)[name].sha256,'No-Npcap exact binary mismatch');
   for(const file of receipt.trial.files)assert(git(['rev-parse',`${receipt.sourceCommit}:${file.path}`])===file.gitBlob,'Frozen trial source changed');
   assert(receipt.trial.executed===false&&receipt.activationApproved===false,'Static input falsely promoted to activation');
 }
@@ -134,7 +134,7 @@ if(m.validation.componentUiActual){
 if(m.validation.windowsServiceEncodingSource){
   const e=m.validation.windowsServiceEncodingSource;assert(sha(e.receipt)===e.receiptSha256&&sha(e.restorationReceipt)===e.restorationReceiptSha256,'Next Windows source/check receipt changed');
   git(['merge-base','--is-ancestor',e.sourceCommit,'HEAD']);assert(e.sourceCommit==='fb3ae901a02f763241ff8d78f1db0b89243fba24'&&e.changedFiles===1&&e.windowsActivePackages===504&&e.lockUnchanged&&!e.nativeBuilt&&!e.oldBinariesContainChange&&!e.linuxTreePassed,'Source removal falsely promoted to native/cross-platform acceptance');
-  assert(m.components.easytier.privateSourceCommit===e.baselineNativeSourceCommit&&m.components.easytier.pendingSourceOverlay.integrationSourceCommit===e.sourceCommit&&m.components.easytier.pendingSourceOverlay.currentRuntimeStillBaseline,'Historical native source/package correspondence changed');
+  assert((e.historicalNativeSourceCommit||m.components.easytier.privateSourceCommit)===e.baselineNativeSourceCommit&&m.components.easytier.pendingSourceOverlay.integrationSourceCommit===e.sourceCommit,'Historical native source/package correspondence changed');
   assert(sha('components/easytier/source/easytier/Cargo.toml')===(m.components.easytier.modernStaticCrtOverlay?.sha256||m.components.easytier.pendingSourceOverlay.sha256),'Current native overlay differs');
   assert(sha(m.validation.nativeLicenseFollowup.crtUnitReceipt)===m.validation.nativeLicenseFollowup.crtUnitReceiptSha256,'CRT source scope receipt changed');
 }
@@ -258,4 +258,12 @@ if(m.validation.etExpectedUdpScope){
 if(m.validation.modernStaticCrtSource){
  const e=m.validation.modernStaticCrtSource,r=JSON.parse(fs.readFileSync(path.join(root,e.receipt)));assert(sha(e.receipt)===e.receiptSha256,'Modern CRT receipt changed');
  assert(sha('components/easytier/source/easytier/Cargo.toml')===r.integratedCargoSha256&&sha('components/easytier/source/Cargo.lock')===r.cargoLockSha256&&r.features.length===17&&r.windowsNormalBuildPackages===504&&r.thunkFeatures.length===0&&r.serviceManagerFeatures.length===0&&r.crtStatic&&r.helperReturnsBeforeDownloadAndLinkSetup&&!r.nativeBuilt&&!r.newRuntimeDllRequirementsVerified,'Modern CRT source/build boundary changed');
+}
+
+if(m.validation.modernNativeRuntime){
+ const e=m.validation.modernNativeRuntime,r=JSON.parse(fs.readFileSync(path.join(root,e.receipt)));assert(sha(e.receipt)===e.receiptSha256,'Modern runtime receipt changed');
+ assert(r.ownerFilesHashed===98&&r.sourceCommit==='089b6182c603c8ab60044b673effe0cf614cc28a'&&r.standardPlatformInputs===17&&r.compatibilityLinkInputs===0&&r.independentPePdbVerification.every(x=>x.pePdbMatched&&x.compatibilityOrRemovedEncodingPnetInputs===0),'Modern producer/source/PE-PDB evidence mismatch');
+ assert(r.files['easytier-core.exe'].sha256===m.easytier.privateCoreSha256&&r.files['easytier-cli.exe'].sha256===m.easytier.privateCliSha256&&!r.currentPayloadGate&&!r.currentLicenseGate&&!r.currentNativeApproval&&!r.runtimeAcceptance&&!r.nativeExecutedByTask6&&!r.osQueriesExecutedByTask6&&!r.rawOwnerLogsImported&&!r.publicApproved,'Modern runtime falsely accepted or mismatched');
+ const bom=JSON.parse(fs.readFileSync(path.join(root,e.bom)));assert(bom.targetPackages===504&&bom.packages.length===504&&sha(bom.licenseBundle.path)===bom.licenseBundle.sha256&&!bom.publicDistributionApproved&&!bom.actualRecipientSourceDelivered,'Modern BOM/notice/source boundary changed');
+ assert(m.validation.etFinalTrialSource.oldPayloadStillDbaf===true&&!m.validation.etFinalTrialSource.usableForCurrentModernPayload,'Old trial authorization reused for modern payload');
 }

@@ -25,7 +25,7 @@ function assertPrivatePayloadContract(provenance) {
   assert.deepEqual(Object.keys(files).sort(), ["easytier-core.exe", "easytier-cli.exe", "WinDivert64.sys", "wintun.dll"].sort(), fail);
   assert.equal(build.runtimeManifestSchemaVersion, 2, fail);
   assert.equal(build.normalAndDelayImportsVerified, true, fail);
-  assert.equal(build.featureProfileSha256, "8904d6aff6c819a6d3bc03700467c7878199a68c57c9771905b7c90ec8c805d7", fail);
+  assert.equal(build.featureProfileSha256, "e67bde65ff0afe846854e31b60562b15ba774df33eda6b0540c5d0a395faae02", fail);
   for (const value of Object.values(files)) assert.ok(/^[a-f0-9]{64}$/.test(value.sha256 ?? "") && Number.isSafeInteger(value.bytes) && value.bytes > 0, fail);
   assert.notEqual(files["easytier-core.exe"].sha256, provenance.officialWindowsReference.files["easytier-core.exe"], fail);
   assert.notEqual(files["easytier-cli.exe"].sha256, provenance.officialWindowsReference.files["easytier-cli.exe"], fail);

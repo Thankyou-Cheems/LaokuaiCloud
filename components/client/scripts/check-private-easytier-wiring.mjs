@@ -11,7 +11,8 @@ const config = require("../electron-builder.laokuai.cjs");
 const source = fs.readFileSync(new URL("../electron/main.ts", import.meta.url), "utf8");
 const argument = source.match(/new EasyTierCommunityManager\(([^,]+), state =>/)[1];
 const runtime = {};
-const select = metadata => vm.runInNewContext(argument, {
+const select = (metadata, uiAcceptanceMode = false) => vm.runInNewContext(argument, {
+  UI_ACCEPTANCE_MODE: uiAcceptanceMode,
   IS_I18N_TEST: metadata.grytI18nTest === true,
   IS_LAOKUAI: metadata.grytLaokuai === true,
   easyTierProduction: { runtime },
@@ -19,6 +20,7 @@ const select = metadata => vm.runInNewContext(argument, {
 assert.equal(select(config.extraMetadata), runtime, "Actual private package metadata must inject production ports");
 assert.equal(select({ grytI18nTest: true }), null, "Isolated i18n package must keep null runtime");
 assert.equal(select({}), runtime, "Ordinary desktop must inject production ports");
+assert.equal(select(config.extraMetadata, true), null, "UI acceptance mode must keep native runtime unavailable");
 const exports = {};
 const pins = ts.transpileModule(fs.readFileSync(new URL("../electron/easyTierWindowsAssets.ts", import.meta.url), "utf8"), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },

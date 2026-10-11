@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "sourceCommit": "089b6182c603c8ab60044b673effe0cf614cc28a",
+  "lockPackages": 1129,
+  "allPackageVersionsAndRegistryChecksumsUnchanged": true,
+  "gitPackageTransportChanges": [
+    {
+      "name": "kcp-sys",
+      "version": "0.1.0",
+      "from": "git+https://github.com/EasyTier/kcp-sys?rev=268533568d734ae89dc89603078da3ca522effe1#268533568d734ae89dc89603078da3ca522effe1",
+      "to": "verified-local-source"
+    },
+    {
+      "name": "service-manager",
+      "version": "0.8.0",
+      "from": "git+https://github.com/EasyTier/service-manager-rs.git?branch=main#5eb28f7a686858eea4f4933534ed989d3b71dc2a",
+      "to": "verified-local-source"
+    },
+    {
+      "name": "thunk-rs",
+      "version": "0.3.5",
+      "from": "git+https://github.com/EasyTier/thunk.git#cbbeec75a66b7b3cf0824ae890d9d06bcfb9d1f3",
+      "to": "verified-local-source"
+    },
+    {
+      "name": "tokio-websockets",
+      "version": "0.13.2",
+      "from": "git+https://github.com/EasyTier/tokio-websockets#dc9771c7c215882349c3cb328877550a3593df21",
+      "to": "verified-local-source"
+    },
+    {
+      "name": "windivert-sys",
+      "version": "0.10.0",
+      "from": "git+https://github.com/EasyTier/windivert-rust.git?rev=adcc56d1550f7b5377ec2b3429f413ee24a77375#adcc56d1550f7b5377ec2b3429f413ee24a77375",
+      "to": "verified-local-source"
+    },
+    {
+      "name": "windivert",
+      "version": "0.6.0",
+      "from": "git+https://github.com/EasyTier/windivert-rust.git?rev=adcc56d1550f7b5377ec2b3429f413ee24a77375#adcc56d1550f7b5377ec2b3429f413ee24a77375",
+      "to": "verified-local-source"
+    }
+  ],
+  "thunkFeatures": [],
+  "serviceManagerFeatures": [],
+  "nativeBuiltOrExecuted": false,
+  "actualRecipientReceived": false,
+  "relinkAccepted": false,
+  "publicApproved": false
+}

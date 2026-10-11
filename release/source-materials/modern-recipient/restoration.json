@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "sourceCommit": "089b6182c603c8ab60044b673effe0cf614cc28a",
+  "sourceFiles": 1262,
+  "excludedHistoricalPrebuiltAssets": 15,
+  "registryArchives": 865,
+  "actualTargetRegistryArchives": 494,
+  "supplementalResolutionArchives": 371,
+  "gitCurrentSourceSnapshots": 7,
+  "lockedOfflineTargetPackages": 504,
+  "exactTargetPackageSetMatched": true,
+  "originalProducerLockSha256": "e3ee41507e7a8ef94470b70f4639140e67aadae646ada82dfd23b0beeb0e7fb2",
+  "relocatedLockSha256": "95b120e689f3c54297686c2fe2661287d2e9884fe5fd56abb961d936633392b4",
+  "sourceTransportChangedToLocalPaths": true,
+  "sourceSnapshotsVerified": true,
+  "firstResolutionUpdatesOnlyDraftLock": true,
+  "buildScriptsExecuted": false,
+  "compilerBuildOrNativeExecuted": false,
+  "actualRecipientReceived": false,
+  "relinkAccepted": false,
+  "publicDistributionApproved": false
+}
