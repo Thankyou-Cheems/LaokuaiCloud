@@ -50,6 +50,16 @@ commits/archives. The older `6e29f09` capacity snapshot remains unchanged.
 Client manifests under `components/client/docs/releases/` are historical
 checkpoints; this root manifest is the current release authority.
 
+Capacity evidence is version-specific. The older `6e29f09 / opus20.alias.1`
+passed isolated 4x5 and 2x10 layouts with 18 Pion replay actors and two real SDK
+observers, per-room 0/1/2 synthetic sources and 76 evidence consistency checks.
+Its server/SFU inputs differ from this candidate. That result does not verify
+20 full clients/encoders, production capacity, Hybrid or ET. Only evidence
+hashes and a bounded summary are recorded here; raw fixture logs stay outside Git.
+The separate real two-peer Hybrid direct/offload/fallback test is requested
+against immutable `a7ffde09 / hybrid.integration.2`; no result has arrived.
+That snapshot and its ZIP/bundle are preserved while future ET work uses a new HEAD.
+
 Only the approved private repository receives integration source. Public forks
 remain upstream PR sources. Legacy machine paths remain in preserved historical
 commits; current source uses environment/project paths. The 69 SDK research
