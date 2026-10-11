@@ -2,7 +2,7 @@ import type {
   EasyTierCommunityLease, EasyTierCommunityState, EasyTierReason,
 } from "../src/lib/easyTierCommunity";
 import { projectEasyTierMembers } from "./easyTierMemberAdapter";
-import { type EasyTierStatusSample, projectEasyTierStatus } from "./easyTierStatus";
+import { type EasyTierStatusSample, projectEasyTierStatus, projectEasyTierLocalDetails } from "./easyTierStatus";
 
 export interface EasyTierSession {
   instanceId: string;
@@ -30,8 +30,7 @@ interface Community {
   refreshing: boolean;
 }
 export function validEasyTierId(value: unknown): value is string {
-  return typeof value === "string" && value.length > 0 && value.length <= 256
-    && [...value].every(character => { const code = character.charCodeAt(0); return code > 0x1f && code !== 0x7f; });
+  return typeof value === "string" && value.length > 0 && value.length <= 256 && !/[\x00-\x1f\x7f]/.test(value);
 }
 export function validEasyTierLease(value: unknown): value is EasyTierCommunityLease {
   if (!value || typeof value !== "object") return false;
@@ -67,7 +66,9 @@ export class EasyTierCommunityManager {
       serverId, generation: c.state.generation, instanceId: c.session.instanceId,
     }, this.now(), this.maxAgeMs) : { virtualIp: null };
     const lanSnapshot = c.session ? projectEasyTierMembers(c.sample, { serverId, generation: c.state.generation, instanceId: c.session.instanceId }, c.state.phase, this.now(), this.unixNow(), this.maxAgeMs) : null;
-    return { ...c.state, virtualIp: status.virtualIp, lanSnapshot };
+    const localDetails = c.session && c.state.phase === "connected" ? projectEasyTierLocalDetails(c.sample,
+      { serverId, generation: c.state.generation, instanceId: c.session.instanceId }, this.now(), this.unixNow(), Math.min(this.maxAgeMs, 5000)) : null;
+    return { ...c.state, virtualIp: status.virtualIp, lanSnapshot, localDetails };
   }
   async connect(lease: EasyTierCommunityLease): Promise<EasyTierCommunityState> {
     if (!validEasyTierLease(lease)) throw new Error("invalid-community-lease");

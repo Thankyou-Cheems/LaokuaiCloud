@@ -80,6 +80,8 @@ export interface HybridMediaCandidate {
   decodedFrames: number;
   mediaSequence: number;
   observedAtMs: number;
+  /** Passive read of exact-track evidence; never starts another peer or capture. */
+  getReceiveObservation?(): import("./ReceivePath").ReceiveTrackObservation | null;
 }
 export interface HybridReceivePort {
   isCurrent(): boolean;

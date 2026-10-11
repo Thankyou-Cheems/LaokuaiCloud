@@ -1,16 +1,20 @@
-import { type ChildProcess,execFile, spawn } from "node:child_process";
+import { execFile, spawn, type ChildProcess } from "node:child_process";
 import { createServer } from "node:net";
 import { join } from "node:path";
 
 import { EasyTierOperationError } from "./easyTierCommunityManager";
 import type { EasyTierExistingConfiguration } from "./easyTierExistingConfiguration";
 import { easyTierVirtualIp } from "./easyTierStatus";
+import { sanitizedEasyTierCliNetwork, type EasyTierCliNetwork } from "./easyTierCliNetwork";
 
 export interface EasyTierCliCore {
   isAlive(): boolean;
   readNode(signal: AbortSignal): Promise<{ peerId: number; virtualIp: string | null }>;
+  readNetwork(signal: AbortSignal): Promise<EasyTierCliNetwork>;
   close(): Promise<void>;
   terminateOwned(): void;
+  /** Main-only diagnostics; this receipt alone never authorizes OS deletion. */
+  ownedResources?(): { pid: number | null; interfaces: EasyTierOwnedCleanupReport["interfaces"] };
 }
 export interface EasyTierOwnedCleanupReport {
   outcome: "graceful" | "forced" | "unconfirmed";
@@ -36,16 +40,21 @@ export function easyTierCoreArguments(config: EasyTierExistingConfiguration, por
 export function easyTierCliArguments(instanceId: string, portal: string): string[] {
   return ["--rpc-portal", portal, "--instance-id", instanceId, "--output", "json", "node", "info"];
 }
-export function sanitizedEasyTierCliNode(value: unknown): { peerId: number; virtualIp: string | null } {
+export function easyTierCliNetworkArguments(instanceId: string, portal: string): string[] {
+  return ["--rpc-portal", portal, "--instance-id", instanceId, "--verbose", "--output", "json", "route", "list"];
+}
+export function sanitizedEasyTierCliNode(value: unknown, instanceId?: string): { peerId: number; virtualIp: string | null } {
   const v = value as Record<string, unknown>;
   if (!v || Array.isArray(v) || !Number.isInteger(v.peer_id) || (v.peer_id as number) <= 0 || (v.peer_id as number) > 0xffffffff) throw new EasyTierOperationError("status-unavailable");
+  if (instanceId && (typeof v.inst_id !== "string" || v.inst_id.toLowerCase() !== instanceId.toLowerCase())) throw new EasyTierOperationError("status-unavailable");
   return { peerId: v.peer_id as number, virtualIp: easyTierVirtualIp(v.ipv4_addr) };
 }
-async function unusedLoopbackPortal(): Promise<string> {
+async function unusedLoopbackPortal(port = 0): Promise<string> {
+  if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error("invalid-owned-portal-port");
   const server = createServer();
   return new Promise((resolve, reject) => {
     server.once("error", () => reject(new EasyTierOperationError("connect-failed")));
-    server.listen({ host: "127.0.0.1", port: 0, exclusive: true }, () => {
+    server.listen({ host: "127.0.0.1", port, exclusive: true }, () => {
       const address = server.address();
       server.close(error => {
         if (error || !address || typeof address === "string") reject(new EasyTierOperationError("connect-failed"));
@@ -57,6 +66,8 @@ async function unusedLoopbackPortal(): Promise<string> {
 
 /** Owns exactly the children it creates. Never finds, attaches, kills by name, or discovers PIDs. */
 export class EasyTierWindowsProcesses {
+  /** Default stays ephemeral; an isolated, approved trial can pin its loopback port. */
+  constructor(private readonly requestedPortalPort = 0) {}
   private children = new Set<ChildProcess>();
   private cores = new Map<ChildProcess, () => Promise<void>>();
   private stopped = false;
@@ -83,7 +94,7 @@ export class EasyTierWindowsProcesses {
   }
   async start(directory: string, config: EasyTierExistingConfiguration, signal: AbortSignal): Promise<EasyTierCliCore> {
     if (this.stopped || signal.aborted) throw new EasyTierOperationError("connect-failed");
-    const portal = await unusedLoopbackPortal();
+    const portal = await unusedLoopbackPortal(this.requestedPortalPort);
     if (this.stopped || signal.aborted) throw new EasyTierOperationError("connect-failed");
     const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^(ET_|RUST_LOG$|RUST_BACKTRACE$)/i.test(key)));
     const child = spawn(join(directory, "easytier-core.exe"), easyTierCoreArguments(config, portal), {
@@ -161,25 +172,52 @@ export class EasyTierWindowsProcesses {
       });
     } catch (error) { await close(); throw error; }
     finally { signal.removeEventListener("abort", abort); }
-    const isAlive = () => alive && !this.stopped;
+    const isAlive = () => alive && !this.stopped && closing === null;
+    const readJson = (readSignal: AbortSignal, args: string[]): Promise<unknown> => {
+      if (!isAlive() || readSignal.aborted) return Promise.reject(new EasyTierOperationError("runtime-exited"));
+      return new Promise((resolve, reject) => {
+        const reader = execFile(join(directory, "easytier-cli.exe"), args,
+          { windowsHide: true, shell: false, cwd: directory, env, timeout: 2000, maxBuffer: 1024 * 1024, signal: readSignal },
+          (error, stdout) => {
+            if (error) { reject(new EasyTierOperationError("status-unavailable")); return; }
+            try { resolve(JSON.parse(stdout)); } catch { reject(new EasyTierOperationError("status-unavailable")); }
+          });
+        this.children.add(reader);
+        const release = () => this.children.delete(reader);
+        reader.once("exit", release); reader.on("error", () => { if (!reader.pid) release(); });
+      });
+    };
+    let networkFlight: Promise<EasyTierCliNetwork> | null = null;
     return {
       isAlive, terminateOwned, close,
+      ownedResources: () => ({ pid: child.pid ?? null, interfaces: interfaces.map(value => ({ ...value })) }),
       readNode: async readSignal => {
+        const node = await readJson(readSignal, easyTierCliArguments(config.instanceId, portal));
         if (!isAlive() || readSignal.aborted) throw new EasyTierOperationError("runtime-exited");
-        const node = await new Promise<unknown>((resolve, reject) => {
-          const reader = execFile(join(directory, "easytier-cli.exe"), easyTierCliArguments(config.instanceId, portal),
-            { windowsHide: true, shell: false, cwd: directory, env, timeout: 2000, maxBuffer: 1024 * 1024, signal: readSignal },
-            (error, stdout) => {
-              // Never propagate child error strings, raw stdout/stderr, config or public endpoints.
-              if (error) { reject(new EasyTierOperationError("status-unavailable")); return; }
-              try { resolve(JSON.parse(stdout)); } catch { reject(new EasyTierOperationError("status-unavailable")); }
-            });
-          this.children.add(reader);
-          const release = () => this.children.delete(reader);
-          reader.once("exit", release); reader.on("error", () => { if (!reader.pid) release(); });
-        });
+        return sanitizedEasyTierCliNode(node, config.instanceId);
+      },
+      readNetwork: async readSignal => {
         if (!isAlive() || readSignal.aborted) throw new EasyTierOperationError("runtime-exited");
-        return sanitizedEasyTierCliNode(node);
+        if (!networkFlight) {
+          const acquisitionStartedAtMs = performance.now(), acquisitionStartedAtUnixMs = Date.now();
+          const current = readJson(readSignal, easyTierCliNetworkArguments(config.instanceId, portal)).then(value => {
+            if (!isAlive() || readSignal.aborted) throw new EasyTierOperationError("runtime-exited");
+            let info: EasyTierCliNetwork["info"];
+            try { info = sanitizedEasyTierCliNetwork(value, config.instanceId); } catch { throw new EasyTierOperationError("status-unavailable"); }
+            return { info, latencyFirst: null, acquisitionStartedAtMs, acquisitionStartedAtUnixMs, acquiredAtMs: performance.now(), acquiredAtUnixMs: Date.now() } as EasyTierCliNetwork;
+          });
+          networkFlight = current;
+          void current.finally(() => { if (networkFlight === current) networkFlight = null; }).catch(() => {});
+        }
+        const flight = networkFlight;
+        let abort: (() => void) | null = null;
+        try {
+          const result = await Promise.race([flight, new Promise<never>((_resolve, reject) => {
+            abort = () => reject(new EasyTierOperationError("runtime-exited")); readSignal.addEventListener("abort", abort, { once: true });
+          })]);
+          if (!isAlive() || readSignal.aborted) throw new EasyTierOperationError("runtime-exited");
+          return JSON.parse(JSON.stringify(result)) as EasyTierCliNetwork;
+        } finally { if (abort) readSignal.removeEventListener("abort", abort); }
       },
     };
   }

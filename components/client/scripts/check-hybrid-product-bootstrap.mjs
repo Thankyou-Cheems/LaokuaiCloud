@@ -54,6 +54,7 @@ function fixture(policy, options = {}) {
     dispose() { this.disposed = true; }
   }
   const deps = { "@gryt/voice": { BrowserHybridVoiceSession: Session, useSFU: () => sfu, useMicrophone: value => { microphoneArgs.push(value); return microphone; } }, react: { useRef: value => ({ current: value }), useEffect: fn => effects.push(fn) }, "@/common": { useUserId: () => "account", getServerAccessToken: () => "fake-in-memory-only" }, "@/socket": { useSockets: () => ({ sockets: { host: socket }, serverDetailsList: { host: { server_info: { server_id: "server" } } }, clients: { host: roster } }) } };
+  deps["./MemberVoiceObservationAuthority"] = { useMemberVoiceObservationAuthority: () => null };
   const exports = {};
   vm.runInNewContext(bridgeCode.outputText, { exports, JSON, setTimeout: noOwnership, clearTimeout() {}, require: name => { assert.ok(Object.hasOwn(deps, name), name); return deps[name]; } });
   const suppliedPolicy = policy && { ...policy, onState: state => emitted.push(state) };

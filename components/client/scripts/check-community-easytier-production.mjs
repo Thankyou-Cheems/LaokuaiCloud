@@ -1,11 +1,9 @@
-/* eslint-env node */
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import { EventEmitter } from "node:events";
 import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
-
 import { unzipSync } from "fflate";
 import ts from "typescript";
 
@@ -36,6 +34,7 @@ deps["./easyTierCommunityManager"] = compile("electron/easyTierCommunityManager.
 deps["./easyTierTarget"] = compile("electron/easyTierTarget.ts");
 const assets = compile("electron/easyTierWindowsAssets.ts"); deps["./easyTierWindowsAssets"] = assets;
 const configuration = compile("electron/easyTierExistingConfiguration.ts");
+deps["./easyTierCliNetwork"] = compile("electron/easyTierCliNetwork.ts");
 const processes = compile("electron/easyTierWindowsProcesses.ts");
 const { WindowsEasyTierCliRuntime } = compile("electron/windowsEasyTierCliRuntime.ts");
 const { EasyTierCommunitySubscriptions, easyTierCommunityAction } = compile("src/lib/easyTierCommunitySubscriptions.ts");
@@ -47,6 +46,7 @@ const receipt = () => ({ schemaVersion: 1, approved: true, driverPermissionAppro
 function ports(overrides = {}) {
   const calls = []; let live = true;
   const core = { isAlive: () => live, readNode: async () => ({ peerId: 1, virtualIp: "10.9.8.7" }), close: async () => { calls.push("close"); live = false; }, terminateOwned() { calls.push("terminate"); live = false; } };
+  core.readNetwork = async signal => { const node = await core.readNode(signal); return { acquiredAtMs: 1000, acquisitionStartedAtMs: 1000, acquiredAtUnixMs: Date.now(), acquisitionStartedAtUnixMs: Date.now(), latencyFirst: null, info: { running: true, my_node_info: { peer_id: node.peerId, virtual_ipv4: node.virtualIp }, routes: [], peers: [] } }; };
   return { calls, core, platform: "win32", configuration: async id => { calls.push("configuration"); return { ...config, serverId: id }; },
     permission: async () => { calls.push("permission"); return true; }, verifiedAssets: async () => { calls.push("assets"); return "never-read"; },
     start: async () => { calls.push("start"); return core; }, shutdownOwned: () => core.terminateOwned(), pause: async () => {}, ...overrides };
@@ -183,7 +183,7 @@ await test("owned process implementation uses fake child handles and exact CLI s
   };
   cp.execFile = (file, args, options, callback) => {
     invocations.push({ file, args, options }); const child = new FakeChild(); children.push(child);
-    Promise.resolve().then(() => { child.exitCode = 0; child.emit("exit", 0); callback(null, JSON.stringify({ peer_id: 8, ipv4_addr: "10.9.8.7", config: "discarded-native-only" })); });
+    Promise.resolve().then(() => { child.exitCode = 0; child.emit("exit", 0); callback(null, JSON.stringify({ peer_id: 8, ipv4_addr: "10.9.8.7", inst_id: config.instanceId, config: "discarded-native-only" })); });
     return child;
   };
   net.createServer = () => {
@@ -237,6 +237,9 @@ await test("stop requests share one promise; timeout only kills its owned child 
   await ownedStopFixture(async ({ child, owner, core, fireNext }) => {
     const guid = "00000000-0000-4000-8000-000000000001";
     child.stdout.emit("data", Buffer.from(`discard native endpoints and configuration\nLAOKUAI_OWNED_NIC_V1 ${guid} 123 30\n`));
+    assert.deepEqual(plain(core.ownedResources()), { pid: 456, interfaces: [{ guid, luid: "123", ifIndex: 30 }] });
+    core.ownedResources().interfaces[0].guid = "mutated-copy";
+    assert.equal(core.ownedResources().interfaces[0].guid, guid);
     const first = core.close(), second = core.close(); assert.equal(first, second); assert.equal(child.kills, 0);
     assert.equal(child.stops, 1); fireNext(); await first;
     assert.equal(child.kills, 1); assert.equal(timers.size, 0);
@@ -245,6 +248,21 @@ await test("stop requests share one promise; timeout only kills its owned child 
     const reports = owner.cleanupReports(); reports[0].interfaces[0].guid = "changed";
     assert.equal(owner.cleanupReports()[0].interfaces[0].guid, guid);
   });
+});
+await test("isolated trial can pin loopback port; invalid pin cannot reserve or spawn", async () => {
+  const cp = deps["node:child_process"], net = deps["node:net"], savedCp = { ...cp }, savedNet = { ...net };
+  let reserves = 0, starts = 0;
+  net.createServer = () => {
+    reserves++;
+    const server = { once: () => server, listen: (options, callback) => { assert.equal(options.port, 15897); assert.equal(options.host, "127.0.0.1"); callback(); }, address: () => ({ port: 15897 }), close: callback => callback() }; return server;
+  };
+  cp.spawn = (_file, args) => { starts++; assert.ok(args.includes("127.0.0.1:15897")); throw new Error("synthetic-spawn-failure"); };
+  try {
+    for (const bad of [-1, 65536, NaN, 1.5]) await assert.rejects(new processes.EasyTierWindowsProcesses(bad).start("never-read", config, new AbortController().signal));
+    assert.equal(reserves, 0); assert.equal(starts, 0);
+    await assert.rejects(new processes.EasyTierWindowsProcesses(15897).start("never-read", config, new AbortController().signal));
+    assert.equal(reserves, 1); assert.equal(starts, 1);
+  } finally { Object.assign(cp, savedCp); Object.assign(net, savedNet); }
 });
 await test("missing stop receipt never claims graceful OS cleanup; long native lines cannot forge a tail receipt", async () => {
   await ownedStopFixture(async ({ child, owner, core }) => {

@@ -1,71 +1,40 @@
-# 路径 Provider 候选契约
+# 唯一路径 Provider 已接入只读 SDK 与 ET 候选
 
-父已并行派发 SDK、ET、UI；此候选在 `a36adcab` 之后推进，不改写该正式
-Hybrid48/64 复测快照、SDK3 package 或 ET dbaf/core 输入。
+SDK source b8f16d0eac49c2fb09a92f6298d8cbb9eaed7bc1 / receive-path.1。
+精确 TGZ SHA256 8abea479d053b6310e8c97746ae8b07f153a17d691dc20bdd5a241b6fe90caed。
+旧 SDK3、a36 媒体快照和24k/48k失败证据全部保留，不改写为本轮验收。
 
-## 已落地的客户端边界
+- ReceiveCorrectionBridge 内仍只有一个 MemberVoiceMediaBridge/Store。
+  普通 SFU 和 receive-only 不启动 Hybrid、不造本地 publication。
+- MemberVoiceReceiveTranslator 消费实际 ReceivePathObserver，scope 来自独立
+  当前认证 account/socket/room/roster，PC 引用和 getConnectionEpoch 同时匹配。
+  BrowserHybridVoiceSession.getReceiveScope 是独立被动 authority；观察行
+  的 scope 只能用于比对，不能反向创建当前身份。opaque token 原样保存。
+- SDK/Store 的生产时钟都是本页 performance.now。readAt 只标记逻辑选择
+  当前读数，绝不充当解码 proof 时间。首份报告仅 baseline；正 packets 和
+  totalSamplesReceived 窗口、真实 track 和新 generation 才能确认 fresh。
+- receiveGeneration/selectionEpoch 是本地正 ordinal，不称服务端 generation。
+  原 Hybrid routeGeneration/revision 单独保留 diagnostic。PC/auth/socket/
+  房间/session/publication/source/track/revision/token 退休会清证据并旋转
+  lease；相同 track ID 的新对象也不可复用旧窗口。完整快照缺行会清空。
+- 逻辑 peer 与可用 decode 独立于物理路径。failed fallback 但选中的 P2P
+  仍 fresh 时不声称断音；switching/recovering 保留真实过渡。send 没有远端
+  authenticated decoded receipt，继续未知。physicalDirectVerified=false。
+- 默认订阅不展示指标；详情打开通过同一 SDK observer 订阅 details，
+  没有第二 getStats/RMS/PC。RTT 只取 selected pair 的测量窗口，loss 只取
+  exact track 的 packet delta。真实0保留，缺失/重置/静默/过期不补0。
+  输出 metricsAgeMs/lossWindowMs；SFU RTT 是 SFU→本地 leg。
+- 最后 unsubscribe 取消 SDK 定时器与被动监听，丢弃旧 flight；客户端
+  unmount 只清自己的 observer 订阅/500ms lifecycle tick/socket监听，
+  不 stop/dispose 借用媒体、不 disconnect共享socket、不管 ET生命周期。
+- ET localDetails 由原 community main producer 读取自有实例 verbose route
+  list，经过许可、scope、single-flight、retirement 与<=5000ms acquisition
+  TTL。Renderer UTC 只用于 ET TTL，不能混到 SDK performance.now。
+  同一 Provider 的 localNetwork 和 useMemberVoiceLocalNetwork 可读这些
+  独立本机事实；memberBindings=[]、physicalPath=unknown、rttMs=null。
+  不把 next-hop/reportedDirect/cost 关联成员或称完整物理音频路径。
 
-- `ReceiveCorrectionBridge` 内挂载唯一 `MemberVoiceMediaBridge`，其 Provider 包住
-  Hybrid bridge 与既有 children，覆盖侧栏和房间视图。receive cache/registry、
-  manual/PTT/Squad、共享 socket、ET 生命周期不由新 store 接管。
-- 普通 SFU 使用 `authority: authenticated-connection` 的独立 account/socket/
-  room/PC/roster scope。真实 server instance 可缺，本地 publication 可为 null；
-  不启动 Hybrid 来获取这些字段，不造占位 publication。该 scope 不接受发送证明。
-- room authority 是客户端内部规范化输入，必须与独立当前 roster 的 instance、
-  room、local user/session 完全一致。原 SDK opaque room token 原样保存，映射到
-  本地单调生命周期 epoch；不 parse/hash token，不称其为服务端数值 generation。
-- 账号/房间/host/socket 对象或 id/PC/local publication/SDK room token 改变会退休
-  旧 lease。成员 publication/session/source 改变只退休对应绑定；screen alias、
-  同 publication/同 user/shared receive source 冲突全部拒绝。receive control 的
-  现有 retirement subscription 即时清空；500ms 本地 tick 覆盖 idle 生命周期和 TTL。
-- store 不读 getStats/RMS、不创建 PC/媒体、不 stop/dispose 借用输入。
-  tick 不更新 proof 时间。selection/track 变更时 `invalidateReceive(lease)` 会
-  旋转 lease，使之前捕获的异步回调不能重新填回旧证据。
-- `VoicePathDirection.selected` 与 `mediaAvailable` 独立于底层标签。新鲜 SFU
-  解码可显示 server-relay；新鲜 peer 解码可显示逻辑 P2P、底层待确认。
-  metrics 缺失仍是 null。未接 SDK subscription 时所有 evidence 保持缺失。
-
-## SDK 接口依赖：消费 owner 实际类型，不要求改名
-
-SDK owner 交回以下实际导出签名/字段来源后，task-6 单独写 translator：
-
-1. 普通 SFU 和 Hybrid 的只读 observation/subscription 注册与取消签名，及 SDK
-   connection epoch 对应当前 SFU PC 的方法。注册只观察，不取得输入/选择所有权。
-2. 每条接收边的 participant/session/publication、真实选中 source/control 或其他
-   可与当前 `streamSources[publication].receiveCleanup` 精确匹配的身份、track id、
-   route generation、selection revision、selection invalidation/retirement 事件。
-3. 普通 SFU 当前认证连接 scope；Hybrid authenticated room scope 的 server instance、
-   room、opaque generation token、local identity。SDK epoch 与 PC 不匹配就拒绝，
-   不能从 observation 复制 identity 来建立当前 roster scope。
-4. availability/transition 的实际定义、观察时间、解码窗口起止和正 frame 增量。
-   与客户端时钟同域才用于 TTL；raw RTCStats timestamp 或 remote clock 不能直接当
-   本地 observedAt。累计 decodedFrames、RMS、ICE 成功不补成 fresh proof。
-5. 可得的实际 selected ICE pair transport RTT、精确 selected audio track 的
-   packetsReceived/lost 窗口及其时间。SDK 未提供的字段直接缺失，不再做客户端轮询。
-
-内部 store 的 `AuthenticatedVoiceConnection.roomAuthority` 和
-`SelectedVoiceMediaEvidence` 是 integration 规范化类型，**不是宣称已存在的 SDK API**。
-translator 捕获 `store.capture(remoteSessionId)`，验证 SDK identity/epoch/selection，
-在实际 selection/track 变更前 invalidate，再用新 lease 接收完整新观察。
-不消费原始 SDP/candidate/IP/凭据，不发送新的媒体状态协议。
-
-## UI 与 ET owner 的稳定消费边界
-
-UI 继续用 `useMemberVoiceMediaPath(host, user, publication)` 与已有类型导出；
-scope 新字段可选，原 authenticated-room fixture 合同兼容。
-UI 可以将 `selected === peer && mediaAvailable === true` 展示为“P2P，底层待确认”，
-不把 path-pending 误读为逻辑媒体选择完全未知。发送保持未确认，直到有独立认证
-远端解码回执；当前本地 SFU RTCP 上行统计不能充当该回执。
-
-ET owner 只交原任务范围的只读真实 peer/route 与 notices；当前 Provider 不引用
-其半成品。community 本机 facts 可独立展示；没有认证 user/device↔peer 绑定时
-不关联成员，不合成语音物理路径。实际 ET 合同回来后另交 adapter 候选。
-
-## 当前验收范围
-
-纯 VM 使用实际 source，覆盖 ordinary/receive-only、逻辑 P2P、TTL、retirement、
-账号/房间/PC/socket/publication、重复 alias、旧异步 lease、opaque token A→B→A、
-mounted provider 和只清理自有订阅/计时器。没有实际 PC、网络、capture、ET 或 TUN。
-真实 SDK observation subscription、ET 数据消费与新媒体冻结复验仍待交付。
-生产连接详情已从 UI owner `1f400bca` 完整兼容补丁整合到 `ef5da42d`，纯模型/
-回调检查通过；它没有第二 Provider 或采样器，DOM/设计验收仍待完成。
+实际源码 Observer/Translator/Store 11组、挂载/lease/socket18组、SDK精确包
+154断言、完整app/desktop类型及目标lint通过；其他UI/ET纯检查见统一manifest。
+Task6真实PC/网络/capture/ET/TUN/Docker运行均0。后续容量owner只取此新冻结
+快照进行真实媒体/采样/48-64/恢复复验；DOM与用户设计批准也仍待完成。

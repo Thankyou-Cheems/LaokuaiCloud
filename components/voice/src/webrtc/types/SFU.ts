@@ -20,6 +20,8 @@ export type StreamSources = {
     stream: MediaStreamAudioSourceNode | MediaElementAudioSourceNode;
     audioElement?: HTMLAudioElement;
     receiveCleanup?: ReceiveStreamControl;
+    /** Passive authority for the actual edge while a Hybrid owner has borrowed it. */
+    receivePath?: import("./ReceivePath").ReceivePathSelectionPort;
   };
 };
 
@@ -66,6 +68,8 @@ export interface SFUInterface {
   connectionError: string | null;
   isConnecting: boolean;
   getPeerConnection?: () => RTCPeerConnection | null;
+  /** SDK-local PC identity, never a parsed or invented server room generation. */
+  getConnectionEpoch?: () => number | null;
   getScreenSenderTrackId?: () => string | null;
   getCameraSenderTrackId?: () => string | null;
   getScreenVideoSender?: () => RTCRtpSender | null;

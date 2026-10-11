@@ -56,6 +56,10 @@ export class BrowserHybridVoiceSession {
     this.monitor = new SfuDecodedAudioMonitor(options.getPeerConnection);
   }
   getState(): BrowserHybridVoiceState { return structuredClone(this.state); }
+  /** Current authenticated receive scope only; reading it never refreshes or probes authority. */
+  getReceiveScope(): HybridScope | null {
+    return this.current() && this.scope && this.authority.isCurrent(this.scope) ? { ...this.scope } : null;
+  }
   private publish(status: BrowserHybridVoiceState["status"], reason: string | null): void {
     const routing = this.controller?.getState() ?? null;
     reason ??= routing?.reason ?? null;
@@ -86,6 +90,10 @@ export class BrowserHybridVoiceSession {
     if (binding) { binding.port.dispose(); this.recoveries.delete(binding.port); this.ports.delete(source); }
     if (!source.receiveCleanup?.isCurrent?.()) return null;
     const port = new HybridReceivePortAdapter({ source, monitor: this.monitor,
+      getReadOnlyScope: () => this.getReceiveScope(),
+      getReadOnlyParticipant: () => ({ participantId: participant.participantId, sessionId: participant.sessionId, publicationId: participant.publicationId }),
+      getReadOnlyRoute: () => this.controller?.getState().routes.find(route => route.participantId === participant.participantId &&
+        route.sessionId === participant.sessionId && route.publicationId === participant.publicationId) ?? null,
       isCurrent: () => this.current() && this.options.getSource(participant) === source,
       onSelection: (_kind, track, revision) => this.options.onSelection?.(source, track, revision),
       onRetired: () => { this.ports.delete(source); this.recoveries.delete(port); this.controller?.retireReceivePort(port); },

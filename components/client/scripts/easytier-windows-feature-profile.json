@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "name": "windows-default-minus-faketcp-v1",
+  "sourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
+  "sourceTree": "e58f64a219c204cdaf364fc95466cf03acfb7c21",
+  "sourcePatchSha256": "eb30fab089422c82256a8c8db9cb7a15d3c41b8b972a05729f63ebfbac7e8cad",
+  "cargoLockSha256": "e3ee41507e7a8ef94470b70f4639140e67aadae646ada82dfd23b0beeb0e7fb2",
+  "toolchain": "1.95.0",
+  "target": "x86_64-pc-windows-msvc",
+  "package": "easytier",
+  "binaries": ["easytier-core", "easytier-cli"],
+  "noDefaultFeatures": true,
+  "features": ["cli", "wireguard", "websocket", "smoltcp", "tun", "socks5", "kcp", "quic", "magic-dns", "zstd", "upnp", "icmp-proxy", "management", "endpoint-discovery", "extended-services", "linux-netlink", "tcp-hole-punch"],
+  "removedDefaultFeatures": ["faketcp"],
+  "knownDifferences": ["FakeTCP transport unavailable; ordinary TCP/UDP and TCP hole punching retained", "pnet interface-enumeration fallback unavailable; normal network-interface backend retained", "Windows UDP broadcast relay and WinDivert backend remain; this is not a Wintun-only broadcast package"],
+  "metadataCheck": {"lockedOfflineCargoTreePassed": true, "activePnetPackages": 0, "compiled": false},
+  "requiredPostBuildChecks": ["PE normal and delay imports of both binaries exclude Packet.dll/wpcap.dll/Npcap", "Wintun TUN, ordinary TCP/UDP P2P and broadcast code remain", "New core AND CLI hashes; do not reuse the Npcap-dependent official CLI", "Corresponding source/license notices and product manifest updated together"],
+  "activationApproved": false
+}

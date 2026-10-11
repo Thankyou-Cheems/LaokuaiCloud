@@ -68,11 +68,11 @@ export class WindowsEasyTierCliRuntime implements EasyTierRuntime {
         read: async signal => {
           const context = { serverId: scope.serverId, generation: scope.generation, instanceId: config.instanceId,
             acquiredAtMs: performance.now(), acquiredAtUnixMs: Date.now(), freshRpc: !signal.aborted, latencyFirst: null, bindings: [] };
-          if (closed || this.stopped || !core.isAlive()) return { ...context, info: { running: false } };
-          const node = await core.readNode(signal);
-          // No authenticated user binding/measurement time exists in CLI output. Remain unknown.
-          return { ...context, acquiredAtMs: performance.now(), acquiredAtUnixMs: Date.now(), freshRpc: !signal.aborted,
-            info: { running: true, my_node_info: { peer_id: node.peerId, virtual_ipv4: node.virtualIp }, routes: [], peers: [] } };
+          if (closed || closing || this.stopped || !core.isAlive() || signal.aborted) return { ...context, freshRpc: false, info: { running: false } };
+          const network = await core.readNetwork(signal);
+          if (closed || closing || this.stopped || !core.isAlive() || signal.aborted) return { ...context, freshRpc: false, info: { running: false } };
+          // Verbose CLI supplies real local peer/route facts, not user binding or packet-path proof.
+          return { ...context, ...network, acquisitionSource: "owned-cli-route-list", freshRpc: true, bindings: [] };
         },
       };
     } catch (error) {

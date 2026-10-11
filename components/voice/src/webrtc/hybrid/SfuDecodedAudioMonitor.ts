@@ -1,4 +1,5 @@
 import type { HybridMediaCandidate } from "../types/Hybrid";
+import { readReceiveStats, receiveStatsFlight } from "./receivePathStats";
 
 interface Observation { packets: number; samples: number; sequence: number; at: number }
 interface Binding { stream: MediaStream; track: MediaStreamTrack; current(): boolean; observation: Observation;
@@ -51,6 +52,7 @@ export class SfuDecodedAudioMonitor {
     const read = async () => {
       // A flight begun before the restore ACK cannot define the new baseline.
       if (this.flight) await this.flight;
+      const shared = receiveStatsFlight(this.pc); if (shared) await shared;
       if (this.disposed) throw new Error("sfu_monitor_disposed");
       await this.read();
     };
@@ -63,7 +65,7 @@ export class SfuDecodedAudioMonitor {
   private read(): Promise<void> {
     if (this.flight) return this.flight;
     const pc = this.pc;
-    this.flight = pc.getStats().then(stats => {
+    this.flight = readReceiveStats(pc).then(stats => {
       if (this.disposed || this.getCurrentPc() !== pc) throw new Error("sfu_generation_changed");
       for (const binding of this.bindings) {
         if (!this.valid(binding)) {

@@ -1,4 +1,4 @@
-import type { EasyTierRoute } from "../src/lib/easyTierCommunity";
+import type { EasyTierRoute, EasyTierLocalNetworkDetails } from "../src/lib/easyTierCommunity";
 import type { LanEnrollment } from "../src/lib/memberLanStatus";
 
 interface EasyTierPeerState { userId: string; virtualIp: string | null; route: EasyTierRoute; rttMs: number | null }
@@ -45,6 +45,9 @@ export interface EasyTierStatusSample {
   selectedRoutes?: { fromPeerId: number; toPeerId: number; nextHopPeerId: number; observedAtMs: number; observedAtUnixMs: number }[];
   /** Verified next-hop role, independent of nicknames/hostnames/virtual addresses. */
   relayRoles?: { peerId: number; kind: "server" | "member"; observedAtUnixMs: number }[];
+  acquisitionSource?: "owned-cli-route-list";
+  acquisitionStartedAtMs?: number;
+  acquisitionStartedAtUnixMs?: number;
 }
 
 function record(value: unknown): Record<string, unknown> {
@@ -63,6 +66,50 @@ function uuid(value: unknown): string | null {
   if (!parts.every(x => typeof x === "number" && Number.isInteger(x) && x >= 0 && x <= 0xffffffff)) return null;
   const hex = parts.map(x => (x as number).toString(16).padStart(8, "0")).join("");
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+export const easyTierConnectionId = (value: unknown): string | null => {
+  const id = uuid(value);
+  return id === "00000000-0000-0000-0000-000000000000" ? null : id;
+};
+
+/** Bounded local facts stay independent of unprovided user/voice/forwarding evidence. */
+export function projectEasyTierLocalDetails(sample: EasyTierStatusSample | null, scope: {
+  serverId: string; instanceId: string; generation: number;
+}, nowMs: number, unixNowMs: number, maxAgeMs = 5000): EasyTierLocalNetworkDetails | null {
+  if (!Number.isFinite(nowMs) || !Number.isSafeInteger(unixNowMs) || unixNowMs <= 0 || !Number.isFinite(maxAgeMs) || maxAgeMs <= 0 || maxAgeMs > 5000) return null;
+  if (!sample || sample.acquisitionSource !== "owned-cli-route-list" || sample.serverId !== scope.serverId || sample.instanceId !== scope.instanceId || sample.generation !== scope.generation || !sample.freshRpc) return null;
+  const started = sample.acquisitionStartedAtMs, startedUnix = sample.acquisitionStartedAtUnixMs;
+  if (typeof started !== "number" || !Number.isFinite(started) || typeof startedUnix !== "number" || !Number.isSafeInteger(startedUnix) || startedUnix <= 0
+    || !Number.isFinite(sample.acquiredAtMs) || !Number.isSafeInteger(sample.acquiredAtUnixMs) || sample.acquiredAtUnixMs < startedUnix || sample.acquiredAtMs < started
+    || nowMs < sample.acquiredAtMs || nowMs - started > maxAgeMs || unixNowMs < sample.acquiredAtUnixMs || unixNowMs - startedUnix > maxAgeMs) return null;
+  const info = record(sample.info), node = record(info.my_node_info), localPeerId = peerId(node.peer_id);
+  if (info.running !== true || localPeerId === null) return null;
+  const routeRows = rows(info.routes), peerRows = rows(info.peers);
+  const routeIds = new Set<number>(), peerIds = new Set<number>();
+  if (!Array.isArray(info.routes) || !Array.isArray(info.peers) || routeRows.length > 1024 || peerRows.length > 1024) return null;
+  for (const r of routeRows) {
+    const id = peerId(r.peer_id); if (id === null || routeIds.has(id)) return null; routeIds.add(id);
+  }
+  for (const p of peerRows) {
+    const id = peerId(p.peer_id); if (id === null || id === localPeerId || peerIds.has(id) || !Array.isArray(p.conns) || p.conns.length > 64) return null; peerIds.add(id);
+    const connIds = new Set<string>();
+    for (const c of rows(p.conns)) {
+      const conn = easyTierConnectionId(c.conn_id);
+      if (!conn || connIds.has(conn) || c.my_peer_id !== localPeerId || c.peer_id !== id) return null; connIds.add(conn);
+    }
+  }
+  const validCost = (v: unknown) => typeof v === "number" && Number.isInteger(v) && v >= 0 && v <= 0x7fffffff ? v : null;
+  const tunnelType = (v: unknown) => typeof v === "string" && ["tcp", "udp", "quic", "wg", "wireguard", "ws", "wss", "ring", "faketcp"].includes(v) ? v : null;
+  return { source: "owned-cli-route-list", ...scope, acquisitionStartedAtUnixMs: startedUnix, acquiredAtUnixMs: sample.acquiredAtUnixMs, maxAgeMs,
+    running: true, localPeerId, virtualIp: easyTierVirtualIp(node.virtual_ipv4), latencyFirst: sample.latencyFirst,
+    routes: routeRows.map(r => ({ peerId: r.peer_id as number, virtualIp: easyTierVirtualIp(r.ipv4_addr), nextHopPeerId: peerId(r.next_hop_peer_id),
+      latencyFirstNextHopPeerId: peerId(r.next_hop_peer_id_latency_first), cost: validCost(r.cost), latencyFirstCost: validCost(r.cost_latency_first) })),
+    peers: peerRows.map(p => ({ peerId: p.peer_id as number, defaultConnectionId: easyTierConnectionId(p.default_conn_id),
+      connections: rows(p.conns).map(c => ({ connectionId: c.conn_id as string, closed: typeof c.is_closed === "boolean" ? c.is_closed : null,
+        tunnelType: tunnelType(record(c.tunnel).tunnel_type),
+        reportedDirect: Array.isArray(p.directly_connected_conns) && p.directly_connected_conns.includes(c.conn_id) })) })),
+    memberBinding: "unavailable", rttMs: null, missingEvidence: ["authenticated-user-peer-binding", ...(sample.latencyFirst === null ? ["latency-first-setting" as const] : []),
+      "selected-forwarding-decision", "rtt-measurement-time", "trusted-next-hop-role", "full-physical-path"] };
 }
 
 /** Only RFC1918 virtual IPv4 reaches UI; never an RPC physical/public address. */

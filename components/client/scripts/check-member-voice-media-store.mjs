@@ -127,24 +127,38 @@ test("normalized authenticated room tokens are matched to independent roster and
 let layout, cleanup, tick, currentStore;
 const input = fixture();
 const sfu = { currentServerConnected: input.host, currentChannelConnected: input.roomId, isConnected: true,
-  getPeerConnection: () => input.peerConnection, streamSources: { "remote-pub": { receiveCleanup: input.members[0].source } } };
+  getPeerConnection: () => input.peerConnection, getConnectionEpoch: () => 1,
+  streamSources: { "remote-pub": { receiveCleanup: input.members[0].source, stream: { mediaStream: { getTracks: () => [{ id: "track", kind: "audio", readyState: "live" }] } } } } };
 input.peerConnection.connectionState = "connected";
-const socket = { id: "local-session", connected: true };
+const socketListeners = new Map(), cleanups = [];
+const socket = { id: "local-session", connected: true, on: (event, callback) => socketListeners.set(event, callback),
+  off: event => socketListeners.delete(event) };
 const clients = { "local-session": { serverUserId: "local", streamID: "", hasJoinedChannel: true, voiceChannelId: "room" },
   "remote-session": { serverUserId: "remote", streamID: "remote-pub", hasJoinedChannel: true, voiceChannelId: "room", isConnectedToVoice: true } };
 const sockets = { sockets: { host: socket }, clients: { host: clients }, serverDetailsList: {} };
+const passiveClock = { performance: { now: () => now }, setTimeout: () => 8, clearTimeout() {} };
+const sdkStats = load("../voice/src/webrtc/hybrid/receivePathStats.ts", {}, passiveClock);
+const sdkObserver = load("../voice/src/webrtc/hybrid/ReceivePathObserver.ts", { "./receivePathStats": sdkStats }, passiveClock);
+const translator = load("src/lib/memberVoiceReceiveTranslator.ts", { "@gryt/voice": sdkObserver,
+  "./memberVoiceMediaStore": { MemberVoiceMediaStore } });
+const localNetwork = load("src/lib/memberVoiceLocalNetwork.ts", {});
 const bridge = load("src/packages/webRTC/src/adapters/MemberVoiceMediaBridge.tsx", {
   "@gryt/voice": { useSFU: () => sfu }, "@/common": { useUserId: () => "account" }, "@/socket": { useSockets: () => sockets },
-  react: { useCallback: fn => fn, useRef: value => ({ current: value }), useState: initialize => [currentStore = initialize()],
-    useLayoutEffect: fn => { layout = fn; }, useEffect: fn => { cleanup = fn(); }, useSyncExternalStore: (_subscribe, get) => get() },
+  react: { useCallback: fn => fn, useRef: value => ({ current: value }), useState: initialize => { const value = initialize(); if (value instanceof MemberVoiceMediaStore) currentStore = value; return [value]; },
+    useLayoutEffect: fn => { layout = fn; }, useEffect: fn => { cleanups.push(fn()); cleanup = () => cleanups.forEach(f => f?.()); }, useSyncExternalStore: (_subscribe, get) => get() },
   "react/jsx-runtime": { jsx: (type, props) => ({ type, props }) },
   "../../../../lib/memberVoiceMediaStore": { MemberVoiceMediaStore },
+  "../../../../lib/memberVoiceReceiveTranslator": translator,
+  "../../../../lib/memberVoiceLocalNetwork": localNetwork,
+  "../../../../lib/communityLanState": { useEasyTierCommunityState: () => undefined },
+  "./MemberVoiceObservationAuthority": { MemberVoiceObservationAuthorityProvider: "ObservationAuthority" },
   "../components/MemberVoiceMediaPathAdapter": { MemberVoiceMediaPathProvider: "MediaProvider" },
-}, { Date: { now: () => now }, setInterval: fn => { tick = fn; return 7; }, clearInterval: timer => { assert.equal(timer, 7); } });
+}, { Date: { now: () => 1_800_000_000_000 }, performance: { now: () => now }, setInterval: fn => { tick = fn; return 7; }, clearInterval: timer => { assert.equal(timer, 7); } });
 test("actual bridge mounts one provider above children, reconciles ordinary roster without enabling Hybrid", () => {
-  const rendered = bridge.MemberVoiceMediaBridge({ children: "room-and-sidebar" }); assert.equal(rendered.type, "MediaProvider");
+  const wrapped = bridge.MemberVoiceMediaBridge({ children: "room-and-sidebar" }); assert.equal(wrapped.type, "ObservationAuthority");
+  const rendered = wrapped.props.children; assert.equal(rendered.type, "MediaProvider");
   assert.equal(rendered.props.children, "room-and-sidebar"); layout(); assert.equal(currentStore.getSnapshot().entries.length, 1);
-  assert.equal(currentStore.capture("remote-session").scope.localPublicationId, null); assert.equal(path(currentStore).receive.reason, "not-integrated");
+  assert.equal(currentStore.capture("remote-session").scope.localPublicationId, null); assert.equal(path(currentStore).receive.reason, "media-unavailable");
 });
 test("bridge rejects screen aliases, duplicate publication and cross-room/unconnected roster", () => {
   for (const mutate of [() => clients["remote-session"].screenShareAudioStreamID = "remote-pub",
@@ -155,6 +169,12 @@ test("bridge rejects screen aliases, duplicate publication and cross-room/unconn
     clients["remote-session"].voiceChannelId = "room"; clients["remote-session"].isConnectedToVoice = true; tick();
   }
 });
+test("rapid disconnect/rejoin same socket and PC retires captured lease before the periodic tick", () => {
+  const lease = currentStore.capture("remote-session"); currentStore.acceptReceive(lease, media());
+  socket.connected = false; socketListeners.get("disconnect")(); assert.equal(currentStore.getSnapshot().entries.length, 0);
+  socket.connected = true; socketListeners.get("connect")(); assert.notEqual(currentStore.capture("remote-session"), lease);
+  assert.ok(!currentStore.acceptReceive(lease, media()));
+});
 test("idle PC/socket retirement and unmount clear the store without owning socket/source/ET", () => {
   const lease = currentStore.capture("remote-session"); currentStore.acceptReceive(lease, media());
   input.peerConnection.connectionState = "closed"; tick(); assert.equal(currentStore.getSnapshot().entries.length, 0);
@@ -162,8 +182,9 @@ test("idle PC/socket retirement and unmount clear the store without owning socke
   socket.connected = true; tick(); cleanup(); assert.equal(currentStore.getSnapshot().entries.length, 0);
   assert.equal(input.members[0].source.isCurrent(), true); assert.equal(socket.connected, true);
   const sourceText = read("src/packages/webRTC/src/adapters/MemberVoiceMediaBridge.tsx");
-  assert.doesNotMatch(sourceText, /\.getStats\(|\.disconnect\(|\.dispose\(|\.stop\(|new RTCPeerConnection|useMicrophone|fetch\(/);
+  assert.doesNotMatch(sourceText, /\.getStats\(|\.disconnect\(|\.dispose\(|(?:pc|socket|source|stream|track)\.stop\(|new RTCPeerConnection|useMicrophone|fetch\(/);
   const receive = read("src/packages/webRTC/src/adapters/ReceiveCorrectionBridge.tsx");
   assert.match(receive, /<MemberVoiceMediaBridge><HybridVoiceBridge[^]*\{children\}<\/MemberVoiceMediaBridge>/);
 });
-console.log(`${checks} passive store/mounted boundary scenarios passed. SDK observation subscription, production details and actual media remain pending.`);
+test("socket lifecycle listeners are removed on unmount", () => { assert.equal(socketListeners.size, 0); });
+console.log(`${checks} passive store/mounted observer boundary scenarios passed. Actual media acceptance remains pending.`);

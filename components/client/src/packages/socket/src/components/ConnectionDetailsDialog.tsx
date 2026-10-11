@@ -4,6 +4,7 @@ import { type RefObject, useEffect, useRef, useState } from "react";
 
 import { getOwnServerUserId } from "@/common";
 import { useTranslation } from "@/i18n";
+import { useMemberVoiceObservationAuthority } from "@/webRTC/src/adapters/MemberVoiceObservationAuthority";
 import { useMemberVoiceMediaPath } from "@/webRTC/src/components/MemberVoiceMediaPathAdapter";
 
 import { useEasyTierCommunityState, useEasyTierMemberSnapshot } from "../../../../lib/communityLanState";
@@ -78,6 +79,8 @@ export function MemberConnectionDetailsDialog({ serverHost, serverUserId, ...pro
   const { clients, serverDetailsList } = useSockets();
   const { servers } = useServerManagement();
   const sfu = useSFU();
+  const observations = useMemberVoiceObservationAuthority();
+  useEffect(() => props.open ? observations?.requestDetails() : undefined, [props.open, observations]);
   const serverId = servers[serverHost]?.serverId ?? serverDetailsList[serverHost]?.server_info?.server_id;
   const community = useEasyTierCommunityState(serverId);
   const lanSnapshot = useEasyTierMemberSnapshot(serverId);

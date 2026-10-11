@@ -5,6 +5,7 @@ import { getServerAccessToken, useUserId } from "@/common";
 import { useSockets } from "@/socket";
 
 import type { ReceiveCorrectionRegistry } from "../../../../lib/receiveCorrectionRegistry";
+import { useMemberVoiceObservationAuthority } from "./MemberVoiceObservationAuthority";
 
 /** Separate explicit network opt-in. It enables voice only and never starts EasyTier. */
 export interface HybridVoicePolicy {
@@ -20,13 +21,14 @@ export interface HybridVoicePolicy {
 export function HybridVoiceBridge({ policy, config, registry }: { policy?: HybridVoicePolicy; config: VoiceConfig; registry: ReceiveCorrectionRegistry }) {
   const account = useUserId(), sfu = useSFU(), microphone = useMicrophone(false);
   const sockets = useSockets();
+  const observations = useMemberVoiceObservationAuthority();
   const { currentServerConnected: host, currentChannelConnected: channel, isConnected, streamSources } = sfu;
   const socket = sockets.sockets[host], pc = sfu.getPeerConnection?.() ?? null;
   const serverId = sockets.serverDetailsList[host]?.server_info?.server_id;
   const scopeKey = JSON.stringify([account, serverId, host, channel, socket?.id]);
   const context = useRef({ scopeKey, sfu, microphone, sockets, policy, config });
   context.current = { scopeKey, sfu, microphone, sockets, policy, config };
-  const live = useRef<{ scopeKey: string; session: BrowserHybridVoiceSession } | undefined>(undefined);
+  const live = useRef<{ scopeKey: string; session: BrowserHybridVoiceSession; releaseObservation?: () => void } | undefined>(undefined);
   const configured = policy?.allowNetwork === true;
   const profileKey = JSON.stringify([policy?.rtcConfiguration, policy?.microphoneCodec, config.connection.microphoneCodec, config.connection.maxBitrate]);
 
@@ -44,7 +46,7 @@ export function HybridVoiceBridge({ policy, config, registry }: { policy?: Hybri
             return;
           }
         }
-        old.session.dispose(); if (live.current === old) live.current = undefined;
+        old.releaseObservation?.(); old.session.dispose(); if (live.current === old) live.current = undefined;
       }
       const codec = context.current.policy?.microphoneCodec ?? context.current.config.connection.microphoneCodec;
       if (cancelled || !configured || !account || !serverId || !channel || !socket?.connected || !socket.id || !isConnected ||
@@ -69,17 +71,17 @@ export function HybridVoiceBridge({ policy, config, registry }: { policy?: Hybri
         channelMaxBitrateBps: context.current.config.connection.maxBitrate, enabled: context.current.policy?.enabled, allowNetwork: true,
         getPeerConnection: () => context.current.sfu.getPeerConnection?.() ?? null, getMicrophone: () => context.current.microphone,
         isCurrent: current, getSource: sourceFor,
-        onSelection: (source, track) => { if (source.receiveCleanup) registry.selectTrack(source.receiveCleanup, track); },
-        onState: state => context.current.policy?.onState?.(state),
+        onSelection: (source, track) => { if (source.receiveCleanup) registry.selectTrack(source.receiveCleanup, track); observations?.update(); },
+        onState: state => { observations?.update(); context.current.policy?.onState?.(state); },
       });
       if (cancelled) { session.dispose(); return; }
-      live.current = { scopeKey, session }; await session.update();
+      live.current = { scopeKey, session, releaseObservation: observations?.registerSession(session) }; await session.update();
     };
     void boot().catch(() => context.current.policy?.onState?.({status:"unsupported",reason:"hybrid_unavailable",routing:null,physicalDirectVerified:false}));
     return () => { cancelled = true; clearTimeout(retry); };
-  }, [account, serverId, host, channel, socket, scopeKey, pc, isConnected, configured, profileKey, registry]);
+  }, [account, serverId, host, channel, socket, scopeKey, pc, isConnected, configured, profileKey, registry, observations]);
   useEffect(() => { void live.current?.session.setEnabled(policy?.enabled === true); }, [policy?.enabled]);
   useEffect(() => { void live.current?.session.update(); }, [streamSources, sockets.clients]);
-  useEffect(() => () => { live.current?.session.dispose(); live.current = undefined; }, []);
+  useEffect(() => () => { live.current?.releaseObservation?.(); live.current?.session.dispose(); live.current = undefined; }, []);
   return null;
 }

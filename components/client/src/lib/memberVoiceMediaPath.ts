@@ -1,3 +1,5 @@
+import type { VoiceLocalNetworkReading } from "./memberVoiceLocalNetwork";
+
 /** Passive UI contract. Populate only from authenticated roster + selected usable SDK media.
  * This does not consume candidates, PC existence, LAN adjacency, or listening impressions.
  * The adapter owns invalidation and its clock; it must not copy scope from untrusted telemetry.
@@ -25,6 +27,7 @@ export interface SelectedVoiceMediaEvidence {
   transition: "stable" | "confirmed-switching" | "confirmed-failed" | "unknown";
   mediaRouteId: string; routeGeneration: number; selectionRevision: number;
   selectedTrackId: string | null;
+  diagnostic?: { status: string; reason: string | null; hybridRouteGeneration: number | null; hybridSelectionRevision: number };
   /** Fresh positive decoded-media progress, correlated with this exact selected track.
    * Sending requires an authenticated remote receipt, not local outbound bytes/ICE success. */
   mediaProof?: {
@@ -67,6 +70,8 @@ export interface MemberVoiceMediaPathEntry {
 export interface MemberVoiceMediaPathSnapshot {
   nowMs: number;
   entries: readonly MemberVoiceMediaPathEntry[];
+  /** Independently scoped local ET facts; never used as member/media proof. */
+  localNetwork?: VoiceLocalNetworkReading;
 }
 export type VoicePathLabel = "direct" | "member-relay" | "server-relay" | "path-pending" | "switching" | "error" | "pending";
 export type VoicePathReason = "not-integrated" | "scope-mismatch" | "missing" | "expired" | "invalid" | "inconsistent" | "media-unavailable" | "underlay-unproven";
@@ -77,6 +82,8 @@ export interface VoicePathDirection {
   rttMs: number | null; lossPercent: number | null;
   metricsScope?: "peer-transport" | "sfu-transport";
   metricsReason: "missing" | "expired" | "invalid" | "measured";
+  metricsAgeMs?: number | null;
+  lossWindowMs?: number | null;
   /** Logical SDK selection and fresh decoded availability are independent of underlay. */
   mediaAvailable?: boolean;
   transition?: SelectedVoiceMediaEvidence["transition"];
@@ -108,7 +115,14 @@ function direction(e: SelectedVoiceMediaEvidence | undefined, kind: "receive" | 
   if (e.availability === "usable" && (e.selected === "none" || e.transition === "confirmed-failed")) return pending("inconsistent");
   const result: VoicePathDirection = { ...pending("media-unavailable"), selected: e.selected, ageMs: now - e.observedAtMs, mediaAvailable: false, transition: e.transition };
   if (e.selected === "none" && e.availability === "unavailable" && e.transition === "stable") result.label = "pending";
-  if (e.transition === "confirmed-switching") return { ...result, label: "switching", reason: undefined };
+  if (e.transition === "confirmed-switching") {
+    const proof = e.mediaProof;
+    const available = e.availability === "usable" && e.selected !== "none" && text(e.selectedTrackId) && !!proof &&
+      proof.source === (kind === "receive" ? "sdk-decoded-receive-media" : "authenticated-remote-decoded-media") &&
+      fresh(proof.observedAtMs, now) && fresh(proof.windowStartedAtMs, now) && proof.windowStartedAtMs < proof.observedAtMs &&
+      Number.isSafeInteger(proof.decodedFramesDelta) && proof.decodedFramesDelta > 0 && sameRoute(proof, e) && proof.selectedTrackId === e.selectedTrackId;
+    return { ...result, label: "switching", reason: undefined, mediaAvailable: available };
+  }
   if (e.transition === "confirmed-failed" && e.availability === "unavailable") return { ...result, label: "error", reason: undefined };
   if (e.transition !== "stable" || e.availability !== "usable" || e.selected === "none") return result;
   if (!text(e.selectedTrackId)) return pending("invalid");
@@ -135,11 +149,13 @@ function direction(e: SelectedVoiceMediaEvidence | undefined, kind: "receive" | 
   if (!fresh(m.observedAtMs, now)) return { ...result, metricsReason: m.observedAtMs <= now ? "expired" : "invalid" };
   if (m.source !== "selected-media-stats" || !sameRoute(m, e) || m.scope !== (e.selected === "peer" ? "peer-transport" : "sfu-transport")) return { ...result, metricsReason: "invalid" };
   result.metricsScope = m.scope;
+  result.metricsAgeMs = now - m.observedAtMs;
   if (typeof m.rttMs === "number" && Number.isFinite(m.rttMs) && m.rttMs >= 0 && m.rttMs <= 60_000) result.rttMs = m.rttMs;
   const loss = m.loss;
   if (loss && Number.isSafeInteger(loss.packetsLost) && loss.packetsLost >= 0 && Number.isSafeInteger(loss.packetsReceived) && loss.packetsReceived >= 0 &&
     Number.isSafeInteger(loss.packetsLost + loss.packetsReceived) && loss.packetsLost + loss.packetsReceived > 0 && Number.isFinite(loss.windowMs) && loss.windowMs >= 500 && loss.windowMs <= 10_000) {
     result.lossPercent = 100 * loss.packetsLost / (loss.packetsLost + loss.packetsReceived);
+    result.lossWindowMs = loss.windowMs;
   }
   result.metricsReason = result.rttMs !== null || result.lossPercent !== null ? "measured" : "invalid";
   return result;

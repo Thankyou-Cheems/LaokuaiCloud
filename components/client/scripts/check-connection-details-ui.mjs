@@ -24,6 +24,7 @@ let clients={c:{serverUserId:"m",hasJoinedChannel:true,voiceChannelId:"r",isConn
 let requested,community={phase:"connected",reason:null},lanSnapshot,cacheClears=0,muteChanges=[],volumeChanges=[];
 const sockets={sockets:{},get clients(){return {h:clients};},serverDetailsList:{h:{server_info:{server_id:"community"},channels:[]}}};
 const deps={"react/jsx-runtime":{jsx,jsxs:jsx},react,"@gryt/ui":ui,"@gryt/voice":{useSFU:()=>sfu},"@/i18n":{useTranslation:()=>({t}),i18n:{t}},
+"@/webRTC/src/adapters/MemberVoiceObservationAuthority":{useMemberVoiceObservationAuthority:()=>null},
 "@/common":{getOwnServerUserId:()=>"self"},"@/settings":{useSettings:()=>({userVolumes:{},updateUserVolume:(id,value)=>volumeChanges.push([id,value]),resetUserVolume(){},openSettings(){}})},
 "@/webRTC/src/components/MemberVoiceMediaPathAdapter":{useMemberVoiceMediaPath:(...args)=>{requested=args;return emptyPath;}},
 "../../../../lib/communityLanState":{useEasyTierCommunityState:()=>community,useEasyTierMemberSnapshot:()=>({snapshot:lanSnapshot,nowMs:1000})},

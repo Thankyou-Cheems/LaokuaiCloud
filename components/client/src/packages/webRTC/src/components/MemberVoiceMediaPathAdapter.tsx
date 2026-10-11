@@ -5,9 +5,12 @@ import { type MemberVoiceMediaPathSnapshot, readMemberVoiceMediaPath } from "../
 
 export type { MemberVoiceMediaPathEntry, MemberVoiceMediaPathSnapshot } from "../../../../lib/memberVoiceMediaPath";
 const Context = createContext<MemberVoiceMediaPathSnapshot | undefined>(undefined);
-/** One mounted passive store. Observations remain absent until the SDK read-only
- * adapter supplies fresh selected-media authority; mounting never creates media. */
+/** One mounted passive store, populated by the SDK read-only adapter. */
 export const MemberVoiceMediaPathProvider = Context.Provider;
+export function useMemberVoiceLocalNetwork(serverId?: string) {
+  const local = useContext(Context)?.localNetwork;
+  return local?.serverId === serverId ? local : undefined;
+}
 export function useMemberVoiceMediaPath(host?: string, member?: string, publicationId?: string) {
   const snapshot = useContext(Context);
   const matches = host && member && publicationId ? snapshot?.entries.filter(entry =>

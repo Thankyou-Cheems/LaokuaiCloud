@@ -51,9 +51,10 @@ UI v3 is integrated at31cec3c6. Complete user design approval is pending.
 Preserve VoiceAudioControls/HoverAudioControl
 hover/click menus and manual mute/PTT idle/Squad suppression presence semantics.
 MemberVoiceMediaPathProvider is mounted once with independent authenticated
-connection/roster scopes, passive lifecycle leases and TTL. SDK observations are
-still absent pending the owner's immutable read-only interface; ET evidence is
-pending. Production connection details are integrated from UI owner 1f400bca,
+connection/roster scopes, passive lifecycle leases and TTL. SDK receive-path.1 observations are now translated from the owner's immutable
+observer with actual PC epoch, independent scope, exact source/track fences and
+performance.now decode windows. ET localDetails is separately scoped/expired;
+member-to-peer bindings and physical audio paths remain unavailable. Production connection details are integrated from UI owner 1f400bca,
 with current hooks and no second provider/collector. Actual data/DOM/design
 acceptance remains pending. Follow release/path-provider-contract.md.
 UI work does not delay the capacity
@@ -76,3 +77,12 @@ Current scope defers member-assistance settings/policies/experiments. Prioritize
 existing voice P2P/SFU fallback, basic ET connectivity, truthful status and
 reliability, then user-approved UI prototype before packaging. Keep public ET
 servers' existing relay configuration unchanged.
+
+SDK receive-path source b8f16d0e and exact package8abea479 are integrated once.
+Observer and details use one SDK sampler; unmount cancels owned subscriptions,
+not borrowed tracks/PCs/sockets. Fake-PC checks are not real media acceptance.
+ET owner observation/no-Npcap profile/notices are integrated. The final profile
+has17 features and omits FakeTCP/pnet fallback; TCP/UDP/QUIC and broadcast remain
+in source. Wait for capacity-owner BOTH core/CLI final hashes and normal/delay
+imports without Packet.dll/wpcap.dll, four-input runtime schema, licenses and
+activation acceptance. The old five-input Packet.dll product is not final.

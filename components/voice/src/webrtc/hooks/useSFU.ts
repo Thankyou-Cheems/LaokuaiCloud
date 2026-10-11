@@ -19,6 +19,7 @@ import { createVideoSendController } from "./videoSender";
 import { type Phase, voiceLog } from "./voiceLogger";
 import { snapshotMicrophoneCodec } from "./microphoneCodec";
 import { idleMicrophoneCodecState, type MicrophoneCodecState } from "../types/MicrophoneCodec";
+import { receiveConnectionEpoch } from "../hybrid/receivePathStats";
 
 function codecKey(profile: import("../types/MicrophoneCodec").MicrophoneCodecProfile | undefined): string | undefined {
   try { return JSON.stringify(snapshotMicrophoneCodec(profile)); } catch { return JSON.stringify(profile); }
@@ -1035,6 +1036,7 @@ function useSfuHook(): SFUInterface {
 
   // The same function on every render, so an effect that lists one doesn't re-run each time.
   const getPeerConnection = useCallback(() => peerConnectionRef.current, []);
+  const getConnectionEpoch = useCallback(() => receiveConnectionEpoch(peerConnectionRef.current), []);
   const getScreenSenderTrackId = useCallback(() => screenVideoSenderRef.current?.track?.id ?? null, []);
   const getScreenVideoSender = useCallback(() => screenVideoSenderRef.current, []);
   const getCameraSenderTrackId = useCallback(() => videoSenderRef.current?.track?.id ?? null, []);
@@ -1061,6 +1063,7 @@ function useSfuHook(): SFUInterface {
     connectionError: connectionState.error,
     isConnecting,
     getPeerConnection,
+    getConnectionEpoch,
     getScreenSenderTrackId,
     getScreenVideoSender,
     getCameraSenderTrackId,

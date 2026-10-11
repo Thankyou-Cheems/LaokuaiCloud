@@ -16,7 +16,7 @@ const client=JSON.parse(fs.readFileSync(path.join(root,'components/client/packag
 assert(client.devDependencies['@gryt/voice']==='file:'+packageInfo.path.replace('components/client/',''),'Client SDK pin mismatch');
 const tar=zlib.gunzipSync(fs.readFileSync(path.join(root,packageInfo.path)));let packed,files=0;
 for(let pos=0;pos+512<=tar.length;){const header=tar.subarray(pos,pos+512);if(header.every(x=>x===0))break;const field=(start,length)=>header.toString('utf8',start,start+length).split('\0')[0];const size=parseInt(field(124,12).trim()||'0',8);assert(Number.isSafeInteger(size)&&size>=0&&pos+512+size<=tar.length,'Invalid SDK tar');const name=field(0,100),type=field(156,1);if(type==='0'||type===''){files++;if(name==='package/package.json')packed=JSON.parse(tar.toString('utf8',pos+512,pos+512+size));}pos+=512+Math.ceil(size/512)*512;}
-assert(packed?.version===packageInfo.version&&files===205,'SDK packed version/inventory mismatch');
+assert(packed?.version===packageInfo.version&&Number.isSafeInteger(packageInfo.installedPackedFiles)&&files===packageInfo.installedPackedFiles,'SDK packed version/inventory mismatch');
 assert(m.easytier.tag==='v2.7.0'&&m.easytier.prerelease&&m.easytier.tagCommit==='8b7f1f0196edb5b580829ed5f135050fb5853478','ET source target mismatch');
 assert(m.validation.clientPure.checks.every(x=>x.exit===0),'Recorded checks not green');
 if(m.validation.nativePacketDependency){
@@ -35,6 +35,23 @@ if(m.validation.sfuMicrophone48Candidate){
   assert(sha(candidate.receipt)===candidate.receiptSha256,'SFU48 candidate/failure receipt changed');
   const receipt=JSON.parse(fs.readFileSync(path.join(root,candidate.receipt),'utf8'));
   assert(receipt.candidateSourceCommit===m.components.sfu.sourceCommit&&receipt.sfuTree===m.components.sfu.tree,'SFU48 exact source mismatch');
+}
+if(m.validation.receivePathIntegration){
+  const candidate=m.validation.receivePathIntegration;
+  assert(sha(candidate.receipt)===candidate.receiptSha256,'Receive-path integration receipt changed');
+  const receipt=JSON.parse(fs.readFileSync(path.join(root,candidate.receipt),'utf8'));
+  assert(receipt.sdk.sourceCommit===m.components.voice.sourceCommit&&receipt.sdk.packageSha256===packageInfo.sha256,'Receive-path SDK source/package mismatch');
+  assert(receipt.clockDomain==='performance.now'&&receipt.physicalDirectVerified===false&&receipt.sentToRemote===null,'Receive-path evidence boundary mismatch');
+}
+if(m.validation.etLocalObservation){
+  const candidate=m.validation.etLocalObservation;
+  assert(sha(candidate.receipt)===candidate.receiptSha256,'ET local-observation receipt changed');
+  const inventory=JSON.parse(fs.readFileSync(path.join(root,'components/client/release/easytier-native-input-inventory.json'),'utf8'));
+  for(const license of inventory.licenseTexts)assert(sha('components/client/release/'+license.file)===license.sha256,'ET license bytes mismatch');
+}
+if(m.ready&&m.validation.noNpcapBuildCandidate){
+  const candidate=m.validation.noNpcapBuildCandidate;
+  assert(candidate.twoBinaryNormalAndDelayImportsVerified===true&&candidate.fourFileRuntimeManifestUpdated===true,'Final core/CLI no-Npcap imports and runtime schema not verified');
 }
 if(m.easytier.nativePortsImplemented){
   const entries=require('../components/client/scripts/community-easytier-resources.cjs');

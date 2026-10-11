@@ -2,6 +2,8 @@ import type { MicrophoneInterface } from "../../audio/types/Microphone";
 import { applyLocalMicrophoneCodecSdp, applyMicrophoneCodec, snapshotMicrophoneCodec } from "../hooks/microphoneCodec";
 import { idleMicrophoneCodecState, type MicrophoneCodecProfile, type MicrophoneCodecState } from "../types/MicrophoneCodec";
 import type { HybridMediaCandidate, HybridPeerFactoryOptions, HybridPeerMetrics, HybridPeerSession, HybridPublication, HybridSignalBody } from "../types/Hybrid";
+import { readReceiveStats, ReceiveTrackStats } from "./receivePathStats";
+import type { ReceiveTrackObservation } from "../types/ReceivePath";
 
 export interface BrowserHybridPeerOptions {
   /** Explicit host-supplied ICE configuration. No public discovery server is added. */
@@ -52,6 +54,8 @@ export class BrowserHybridPeer implements HybridPeerSession {
   private timer?: ReturnType<typeof setTimeout>;
   private statsFlight?: Promise<RTCStatsReport>;
   private waiters = new Set<{ resolve(candidate: HybridMediaCandidate): void; reject(error: Error): void }>();
+  private readonly receiveStats = new ReceiveTrackStats();
+  private receiveObservation: ReceiveTrackObservation | null = null;
 
   constructor(private readonly factory: HybridPeerFactoryOptions, private readonly options: BrowserHybridPeerOptions) {
     const profile = snapshotMicrophoneCodec(options.microphoneCodec);
@@ -137,7 +141,7 @@ export class BrowserHybridPeer implements HybridPeerSession {
   }
   private stats(): Promise<RTCStatsReport> {
     if (this.statsFlight) return this.statsFlight;
-    const result = this.pc.getStats(); this.statsFlight = result;
+    const result = readReceiveStats(this.pc); this.statsFlight = result;
     void result.finally(() => { if (this.statsFlight === result) this.statsFlight = undefined; }).catch(() => undefined);
     return result;
   }
@@ -146,6 +150,7 @@ export class BrowserHybridPeer implements HybridPeerSession {
     void this.stats().then(report => {
       if (this.disposed || this.failed) return;
       const now = performance.now(); let samples = 0, packets = 0;
+      this.receiveObservation = this.remoteTrack ? this.receiveStats.observe(report, this.remoteTrack.id, now) : null;
       report.forEach(row => { if (row.type === "inbound-rtp" && (row.kind ?? row.mediaType) === "audio" &&
         Number.isSafeInteger(row.totalSamplesReceived) && row.totalSamplesReceived >= 0 && Number.isSafeInteger(row.packetsReceived) && row.packetsReceived >= 0 &&
         (!row.trackIdentifier || row.trackIdentifier === this.remoteTrack?.id)) { samples += row.totalSamplesReceived; packets += row.packetsReceived; } });
@@ -160,7 +165,13 @@ export class BrowserHybridPeer implements HybridPeerSession {
   }
   private candidate(): HybridMediaCandidate | undefined {
     if (!this.remote || !this.remoteTrack || this.decodedFrames <= 0 || !this.isHealthy()) return;
-    return { stream: this.remote, track: this.remoteTrack, decodedFrames: this.decodedFrames, mediaSequence: this.sequence, observedAtMs: this.lastDecodedAt };
+    return { stream: this.remote, track: this.remoteTrack, decodedFrames: this.decodedFrames, mediaSequence: this.sequence,
+      observedAtMs: this.lastDecodedAt, getReceiveObservation: () => this.getReceiveObservation() };
+  }
+  getReceiveObservation(): ReceiveTrackObservation | null {
+    const value = this.receiveObservation;
+    return !this.disposed && !this.failed && this.pc.connectionState === "connected" && this.remoteTrack?.readyState === "live" &&
+      value?.trackId === this.remoteTrack.id && performance.now() - value.observedAtMs <= 3000 ? structuredClone(value) : null;
   }
   private isHealthy(): boolean {
     return !this.disposed && !this.failed && this.pc.connectionState === "connected" &&

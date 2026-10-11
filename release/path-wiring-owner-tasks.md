@@ -1,3 +1,10 @@
+# 本轮交付状态
+
+SDK b8f16d0e receive-path.1 已冻结并精确接入；ET observation19文件、17-feature
+no-Npcap构建方案与5份原始license notices已整合。下文保留原派工边界。
+Task6只写统一Provider/translator；容量owner拿新冻结快照，负责真实媒体复验
+及两个最终PE构建/导入检查；无member binding/全路径/RTT时保持未知。
+
 # 最小可靠路径接线：可直接调度的 owner 任务
 
 v3 源码基点是 `31cec3c6fbc8a73f5a8fac0744f04e3022e0fbd9`；私人产品启用链、
@@ -6,7 +13,7 @@ SDK3 `78513ba4` 的两/四端 24k loopback 复验已通过；ET native `dbaf0453
 release 编译已通过。保留这些冻结证据，另取新48/64/正式 bootstrap 快照复测。
 下面是下一轮独立功能提交的范围，不得改写旧验收输入。
 provider 已在后续 `ca8290cf` 候选挂载并建立独立连接 scope、lease、失效和 TTL；
-SDK 观察尚未接通；生产连接详情已从 UI owner `1f400bca` 完整补丁整合到
+SDK 观察已接只读接口，真实媒体复验待容量owner；生产连接详情已从 UI owner `1f400bca` 完整补丁整合到
 `ef5da42d`，实际数据与 DOM/设计验收仍待完成。候选合同见 `path-provider-contract.md`。
 不等待外观确认才开始纯代码接线，不为完整物理路径证明增加网络协议。
 
