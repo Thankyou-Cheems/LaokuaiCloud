@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "checkedUtc": "2026-10-11T13:26:16.013Z",
+  "originalOfficialResponsesRetained": true,
+  "licenseClearanceGranted": false,
+  "documents": [
+    {
+      "file": "redistributing-visual-cpp.html",
+      "url": "https://learn.microsoft.com/en-us/cpp/windows/redistributing-visual-cpp-files?view=msvc-170",
+      "bytes": 60515,
+      "sha256": "d043535e62cf29d31c74c7b2bf51285f896b475785174636eb2a6e20ad031dbb",
+      "responseStatus": 200,
+      "actualLicensedBuildToolsTermsStillMustBeRecorded": true
+    },
+    {
+      "file": "visualstudio2022-redist.html",
+      "url": "https://learn.microsoft.com/en-us/visualstudio/releases/2022/redistribution",
+      "bytes": 62995,
+      "sha256": "d86e9c4a6ce6fd6e89464f3ae296d0be313c315f4a03b8a7da1a059680a21dad",
+      "responseStatus": 200,
+      "actualLicensedBuildToolsTermsStillMustBeRecorded": true
+    },
+    {
+      "file": "mt-static-runtime.html",
+      "url": "https://learn.microsoft.com/en-us/cpp/build/reference/md-mt-ld-use-run-time-library?view=msvc-170",
+      "bytes": 51513,
+      "sha256": "95879325e9731876f0fcc8d1f3647cfbd8783b603295c1ee75174beb017d8a94",
+      "responseStatus": 200,
+      "actualLicensedBuildToolsTermsStillMustBeRecorded": true
+    }
+  ]
+}

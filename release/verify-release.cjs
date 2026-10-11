@@ -135,7 +135,7 @@ if(m.validation.windowsServiceEncodingSource){
   const e=m.validation.windowsServiceEncodingSource;assert(sha(e.receipt)===e.receiptSha256&&sha(e.restorationReceipt)===e.restorationReceiptSha256,'Next Windows source/check receipt changed');
   git(['merge-base','--is-ancestor',e.sourceCommit,'HEAD']);assert(e.sourceCommit==='fb3ae901a02f763241ff8d78f1db0b89243fba24'&&e.changedFiles===1&&e.windowsActivePackages===504&&e.lockUnchanged&&!e.nativeBuilt&&!e.oldBinariesContainChange&&!e.linuxTreePassed,'Source removal falsely promoted to native/cross-platform acceptance');
   assert(m.components.easytier.privateSourceCommit===e.baselineNativeSourceCommit&&m.components.easytier.pendingSourceOverlay.integrationSourceCommit===e.sourceCommit&&m.components.easytier.pendingSourceOverlay.currentRuntimeStillBaseline,'Historical native source/package correspondence changed');
-  assert(sha('components/easytier/source/easytier/Cargo.toml')===m.components.easytier.pendingSourceOverlay.sha256,'Current native overlay differs');
+  assert(sha('components/easytier/source/easytier/Cargo.toml')===(m.components.easytier.modernStaticCrtOverlay?.sha256||m.components.easytier.pendingSourceOverlay.sha256),'Current native overlay differs');
   assert(sha(m.validation.nativeLicenseFollowup.crtUnitReceipt)===m.validation.nativeLicenseFollowup.crtUnitReceiptSha256,'CRT source scope receipt changed');
 }
 if(m.validation.nativeLatestApprovedAttempt){
@@ -190,7 +190,7 @@ if(m.validation.nativeActual65sAttempt){
 }
 if(m.validation.etSocketEvidenceSource){
   const e=m.validation.etSocketEvidenceSource;assert(sha(e.receipt)===e.receiptSha256,'Socket diagnostic receipt changed');
-  const r=JSON.parse(fs.readFileSync(path.join(root,e.receipt),'utf8'));for(const x of r.imports)assert(sha(x.path)===x.sha256&&git(['rev-parse',`HEAD:${x.path}`])===x.ownerGitBlob,'Current socket diagnostic source changed');
+  const r=JSON.parse(fs.readFileSync(path.join(root,e.receipt),'utf8'));for(const x of r.imports)assert((e.frozenIntegrationCommit||sha(x.path)===x.sha256)&&git(['rev-parse',`${e.frozenIntegrationCommit||'HEAD'}:${x.path}`])===x.ownerGitBlob,'Frozen socket diagnostic source changed');
   assert(r.ownerCommit==='17f3dd1fd73b2efa4dc1042f18437799c35b20e5'&&r.scopeSchema===5&&r.sourcePins===17&&r.scopeSha256==='425b0131d0bf016a9ee5d4000b3fec492b5c637dcfe5d30dff1300386bce022c'&&r.task6PureChecks===101&&r.task6PlanningChecks===8&&r.task6Checks.every(x=>x.exit===0),'Current diagnostic source/test/scope mismatch');
   assert(!r.newScopeApproved&&r.previous2392ApprovalConsumed&&r.oldNativeBinariesUnchanged&&!r.historicalUnexpectedSocketCauseConfirmed&&!r.task6NativeExecuted&&!r.task6OsQueryExecuted&&!r.rawOwnerEndpointEvidenceImported,'Diagnostics promoted to new native approval or historical attribution');
 }
@@ -248,3 +248,14 @@ if(m.components.landing){
 }
 console.log(JSON.stringify({id:m.id,codeCommit:m.repository.codeCommit,sourceConsistent:true,components:Object.keys(m.components),sdkVersion:packed.version,ready:m.ready,easytier:m.easytier.implementationStatus,actualNetworkVerified:m.easytier.actualNetworkVerified}));
 if(process.argv.includes('--require-ready')&&!m.ready){console.error('Release blocked: '+m.pending.join('; '));process.exitCode=2;}
+
+if(m.validation.etExpectedUdpScope){
+ const e=m.validation.etExpectedUdpScope,r=JSON.parse(fs.readFileSync(path.join(root,e.receipt)));assert(sha(e.receipt)===e.receiptSha256,'UDP scope receipt changed');
+ for(const x of r.imports)assert(sha(x.path)===x.sha256&&git(['rev-parse','HEAD:'+x.path])===x.ownerGitBlob,'Wired UDP source changed');
+ assert(r.scopeSchema===6&&r.sourcePins===19&&r.pureChecks===110&&r.tests.every(x=>x.exit===0)&&r.scopeSha256==='a071fe9bdca3c58e3ceb9477f4a19b596b5c4ef14ee5ac62e88503b7be736010','UDP scope identity changed');
+ assert(!r.activationAuthorized&&!r.nativeExecuted&&!r.osQueriesExecuted&&r.previousTrialResultUnchanged&&r.payloadSourceCommit==='dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49'&&r.udpEgress==='not-measured','UDP source promoted to native/egress acceptance');
+}
+if(m.validation.modernStaticCrtSource){
+ const e=m.validation.modernStaticCrtSource,r=JSON.parse(fs.readFileSync(path.join(root,e.receipt)));assert(sha(e.receipt)===e.receiptSha256,'Modern CRT receipt changed');
+ assert(sha('components/easytier/source/easytier/Cargo.toml')===r.integratedCargoSha256&&sha('components/easytier/source/Cargo.lock')===r.cargoLockSha256&&r.features.length===17&&r.windowsNormalBuildPackages===504&&r.thunkFeatures.length===0&&r.serviceManagerFeatures.length===0&&r.crtStatic&&r.helperReturnsBeforeDownloadAndLinkSetup&&!r.nativeBuilt&&!r.newRuntimeDllRequirementsVerified,'Modern CRT source/build boundary changed');
+}

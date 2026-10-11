@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "sourceCommit": "089b6182c603c8ab60044b673effe0cf614cc28a",
+  "nativeBaselineSourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
+  "changedPath": "easytier/Cargo.toml",
+  "baselineSha256": "fc86d2cd78da0642586293c144ed18d94ae0702a141aab0af9c3cff738bf482d",
+  "integratedSha256": "4bd7cccf1477b8a82c8f374a23502853dc22c166ff630cee890dd27d4413a7a6",
+  "cargoLockSha256": "e3ee41507e7a8ef94470b70f4639140e67aadae646ada82dfd23b0beeb0e7fb2",
+  "features": [
+    "cli",
+    "wireguard",
+    "websocket",
+    "smoltcp",
+    "tun",
+    "socks5",
+    "kcp",
+    "quic",
+    "magic-dns",
+    "zstd",
+    "upnp",
+    "icmp-proxy",
+    "management",
+    "endpoint-discovery",
+    "extended-services",
+    "linux-netlink",
+    "tcp-hole-punch"
+  ],
+  "windowsNormalBuildPackages": 504,
+  "thunkFeatures": [],
+  "thunkSourceSha256": "3539dbd2f5c445ca1e15a4edafcdefae52a20231b2c898bffdb16e00a683211a",
+  "crtStatic": true,
+  "nativeBuilt": false
+}

@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "scopeSha256": "a071fe9bdca3c58e3ceb9477f4a19b596b5c4ef14ee5ac62e88503b7be736010",
+  "scopeSchema": 6,
+  "sourcePins": 19,
+  "allObservationSourcePinsVerified": true,
+  "configSha256": "6ae15afd1d86966050a29c6aec393cfaa95e50d397c5e54c41955e76ec98ecd7",
+  "patchSha256": "88786a328495fc1ad31b964ecb78a657723f35ed9b171fe4388d4cd75e9fa680",
+  "sourceOnly": true,
+  "nativeExecuted": false,
+  "osQueriesExecuted": false
+}

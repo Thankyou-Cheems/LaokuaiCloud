@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "sourceCommit": "089b6182c603c8ab60044b673effe0cf614cc28a",
+  "baselineNativeSourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
+  "changedFiles": 1,
+  "overlayManifestSha256": "5223f8c55b9c1fc345abd53eb26b8e7c9876887afc44b6e7b25d00489289e20a",
+  "integratedCargoSha256": "4bd7cccf1477b8a82c8f374a23502853dc22c166ff630cee890dd27d4413a7a6",
+  "cargoLockSha256": "e3ee41507e7a8ef94470b70f4639140e67aadae646ada82dfd23b0beeb0e7fb2",
+  "sourceMaterialsByteVerified": true,
+  "baselineSourceFiles": 1277,
+  "registryArchives": 865,
+  "gitBundles": 7,
+  "isolatedCargoHome": true,
+  "buildScriptsExecuted": false,
+  "nativeBuildExecuted": false,
+  "nativeExecuted": false,
+  "publicDistributionApproved": false,
+  "recipientRelinkAccepted": false,
+  "thunkFeatures": [],
+  "crtStatic": true,
+  "metadataTimeoutMs": 600000,
+  "normalizedMetadataGraphSha256": "683e5e7f13cf8fab8dd558850be94f3a39bb9a6fd4f9f03860119277d07e1f6f",
+  "metadataPackages": 886,
+  "metadataRegistryPackages": 865,
+  "windowsNormalBuildPackages": 504,
+  "windowsServiceManagerFeatures": [],
+  "removedWindowsPackages": [
+    "codepage@0.1.3",
+    "encoding-utils@0.1.0"
+  ],
+  "lockUnchanged": true,
+  "metadataWorkspaceFeaturesAreNotTargetBuildAcceptance": true
+}
