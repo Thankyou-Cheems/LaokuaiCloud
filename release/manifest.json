@@ -9,15 +9,15 @@
     "visibility": "private",
     "branch": "release/integration-20261011",
     "soleGitWriter": "task-6",
-    "codeCommit": "7a2b629bab87386ebba935a930e810afafca0772",
-    "codeTree": "246e53be5ea51fee67e62460237edbb81e8f31d5",
+    "codeCommit": "d5fe2946485f2004f9f7705118c759c3032f58f1",
+    "codeTree": "4f42035a405a2633bfac8fc3e1648e6a850df5e8",
     "newRepositoryReason": "Authenticated private-repo metadata and explicitly scoped old local core/game remotes revealed no matching existing private integration repository",
     "historyPolicy": "Original client history preserved; no force push/reset/rewrite; other components imported as licensed source snapshots"
   },
   "components": {
     "client": {
       "path": "components/client",
-      "tree": "dc154c81f86b20a1165bdaa1e7bdd8ed8dc14a7b",
+      "tree": "86b3bcde8833d949838869021470f085672896a1",
       "upstream": "Gryt-chat/client",
       "publicFork": "Thankyou-Cheems/gryt-client-i18n",
       "historyImportedFrom": "06ac43f51dbda3b9444c73270a126e10489110e9",
@@ -547,8 +547,8 @@
     "noNpcapBuildProfile": "components/client/scripts/easytier-windows-feature-profile.json"
   },
   "validation": {
-    "commit": "7a2b629bab87386ebba935a930e810afafca0772",
-    "clientFullTypes": "passed: full app and desktop tsc noEmit against exact receive-path.1 installed package",
+    "commit": "d5fe2946485f2004f9f7705118c759c3032f58f1",
+    "clientFullTypes": "passed: full app noEmit after capability lease fix atd5fe2946; full desktop noEmit at7a2b629b with unchanged desktop source",
     "targetedHybridAndMemberLint": "passed",
     "targetedEtLint": "passed: 11 changed TS/MJS/CJS files, zero warnings",
     "clientPure": {
@@ -735,7 +735,14 @@
         ],
         "lastFullSuiteCommit": "0c5a194ff11cd469c0d5fe4cbf77c5bcd08e8fe2"
       },
-      "lastTargetedSuiteCommit": "7a2b629bab87386ebba935a930e810afafca0772"
+      "lastTargetedSuiteCommit": "7a2b629bab87386ebba935a930e810afafca0772",
+      "capabilityLeaseFollowup": {
+        "sourceCommit": "d5fe2946485f2004f9f7705118c759c3032f58f1",
+        "translatorGroups": 12,
+        "mountedStoreGroups": 18,
+        "lint": "passed",
+        "actualPCs": 0
+      }
     },
     "sourcePackageInventory": "passed; includes exact Windows sidecar resource entries; source-only does not approve executable",
     "sdkSourceAndPackage": "305 source ZIP hashes verified; 304 exact imports plus retained optional probe; 212 tar/installed bytes exact; old SDK artifacts preserved",
@@ -857,7 +864,7 @@
       },
       "receivePathRetest": {
         "status": "pending-parent-capacity-queue-only",
-        "inputCodeCommit": "7a2b629bab87386ebba935a930e810afafca0772",
+        "inputCodeCommit": "d5fe2946485f2004f9f7705118c759c3032f58f1",
         "sdkSourceCommit": "b8f16d0eac49c2fb09a92f6298d8cbb9eaed7bc1",
         "sdkVersion": "0.6.2-laokuai.receive-path.1",
         "sdkSha256": "8abea479d053b6310e8c97746ae8b07f153a17d691dc20bdd5a241b6fe90caed",
@@ -897,7 +904,7 @@
       "staticSourceInventory": "pure resource contract passed",
       "runtimeExecution": false
     },
-    "fullClientTypesSourceCommit": "7a2b629bab87386ebba935a930e810afafca0772",
+    "fullClientTypesSourceCommit": "d5fe2946485f2004f9f7705118c759c3032f58f1",
     "nativeSourceContracts": {
       "sourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
       "scenarios": 10,
@@ -1107,7 +1114,7 @@
       "network": false,
       "capture": false,
       "nativeRuntime": false,
-      "supersededBySourceCommit": "7a2b629bab87386ebba935a930e810afafca0772"
+      "supersededBySourceCommit": "d5fe2946485f2004f9f7705118c759c3032f58f1"
     },
     "providerCandidateBoundaryScan": {
       "textFiles": 3194,
@@ -1146,9 +1153,9 @@
       "status": "pure-cap-fix-passed-authentic-offer-and-media-retest-pending"
     },
     "receivePathIntegration": {
-      "sourceCommit": "7a2b629bab87386ebba935a930e810afafca0772",
+      "sourceCommit": "d5fe2946485f2004f9f7705118c759c3032f58f1",
       "receipt": "release/acceptance/receive-path-integrated.json",
-      "receiptSha256": "8a2ee009ad1632de90b43dcf6582eaea4ece9d14ad150ed2fb02b64d84ea72d9",
+      "receiptSha256": "035e064c910d1ad31b8830dd36b0dfb4e9163b5f945690ee6f75d6cbb35e90da",
       "status": "exact-SDK-installed-sole-provider-translator-pure-and-types-passed-real-media-pending",
       "sdkSourceCommit": "b8f16d0eac49c2fb09a92f6298d8cbb9eaed7bc1"
     },
@@ -1217,17 +1224,14 @@
     "Dynamic non-destructive multi-community RPC transport; current production CLI path supports one community",
     "Current-version full capacity/CPU/FEC/listening and physical-direct acceptance",
     "Final portable package mapped to exact integrated commit and measured artifact SHA256",
-    "Mounted independent provider and production connection details: actual SDK observer and ET data translators pending; DOM/accessibility/design acceptance pending",
-    "SDK owner passive receive observer supporting SFU-only and Hybrid; independent scope/decoded windows/selected pair statistics. Existing selected state is insufficient for current strict UI proof",
-    "ET owner existing read-only route/peer integration and exact missing authentication binding/final forwarding/RTT time fields; no new complete-path proof protocol",
-    "Production connection details source integrated; task-6 consumes frozen SDK/ET observer contracts next. Actual data is still absent, no second sampler/provider",
     "Capacity owner fresh frozen 48k SFU/64k peer and actual private-product bootstrap/sinks/prior-registry media/codec regression; previous passing 24k factory evidence is not new profile acceptance",
     "Exact dbaf core statically imports Packet.dll: Npcap redistribution and ordinary-user deployment unresolved; ET owner must audit optional pcap removal without reducing normal TUN/voice, then supply new exact-source build/PE evidence. No final package before resolution",
     "Frozen a36 actual SFU48 failed at genuine24000 remote offer; new8d4ae5aa reserved-microphone48 cap policy passed pure checks only. Fresh authentic SDP/sender/RTP/PCM/restore retest required; previous P2P64/cap/custom-peer/DSP passes preserved",
     "Fresh receive-path.1 unified snapshot real media and selected-edge/clock/fence sampling acceptance by sole capacity owner",
     "BOTH final core/CLI with exact 17-feature no-Npcap profile; normal/delay PE imports exclude Packet.dll/wpcap.dll; four-input runtime schema and final hashes updated together",
     "Authenticated member-to-ET-peer binding, selected forwarding/full physical path and timestamped ET RTT are absent; keep unknown",
-    "Active transitive licenses and corresponding/relinkable native source delivery remain pending"
+    "Active transitive licenses and corresponding/relinkable native source delivery remain pending",
+    "Mounted single Provider and connection details: actual frozen-source sampler/media/data/DOM/accessibility and user design acceptance pending"
   ],
   "finalPackage": null,
   "frozenPreviousHybrid": {

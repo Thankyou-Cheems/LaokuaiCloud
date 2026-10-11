@@ -34,7 +34,7 @@ SDK source b8f16d0eac49c2fb09a92f6298d8cbb9eaed7bc1 / receive-path.1。
   独立本机事实；memberBindings=[]、physicalPath=unknown、rttMs=null。
   不把 next-hop/reportedDirect/cost 关联成员或称完整物理音频路径。
 
-实际源码 Observer/Translator/Store 11组、挂载/lease/socket18组、SDK精确包
+实际源码 Observer/Translator/Store 12组、挂载/lease/socket18组、SDK精确包
 154断言、完整app/desktop类型及目标lint通过；其他UI/ET纯检查见统一manifest。
 Task6真实PC/网络/capture/ET/TUN/Docker运行均0。后续容量owner只取此新冻结
 快照进行真实媒体/采样/48-64/恢复复验；DOM与用户设计批准也仍待完成。

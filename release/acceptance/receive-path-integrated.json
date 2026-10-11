@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "integrationSourceCommit": "7a2b629bab87386ebba935a930e810afafca0772",
+  "integrationSourceCommit": "d5fe2946485f2004f9f7705118c759c3032f58f1",
   "sdk": {
     "sourceCommit": "b8f16d0eac49c2fb09a92f6298d8cbb9eaed7bc1",
     "version": "0.6.2-laokuai.receive-path.1",
@@ -26,7 +26,7 @@
   ],
   "logicalSelectionProof": "actual selected edge; availability requires positive exact-track decoded PCM-sample-frame window; first report is baseline",
   "details": "same SDK sampler, opt-in existing dialog; RTT from selected-pair window, loss from exact-track packet window; zero retained only when measured",
-  "translatorFakeScenarios": 11,
+  "translatorFakeScenarios": 12,
   "mountedStoreScenarios": 18,
   "sdkExactPackedAssertions": 154,
   "fullAppAndDesktopNoEmitTypes": "passed",
@@ -37,5 +37,6 @@
   "networkListeners": 0,
   "capture": false,
   "nativeExecution": false,
-  "realMediaAcceptance": false
+  "realMediaAcceptance": false,
+  "authorityCapabilityRetirement": "all host authority fields retire leases, even unchanged token/PC"
 }
