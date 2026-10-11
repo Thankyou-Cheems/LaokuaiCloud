@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { decodeFacts } from './owned-tun-snapshot-semantics.mjs';
 
 export const DIAGNOSTIC_PREFIX = 'LAOKUAI_READONLY_V1 ';
 const phases = new Set(['administrator','helper','adapters','addresses','routes','dns','interface-fingerprints',
@@ -48,7 +49,7 @@ export function snapshotDiagnostic(error, stderr, elapsedMs, timeoutMs, aborted)
 }
 
 /** Inject execFile for pure tests. Cancellation and the outer watchdog retain priority. */
-export function readOwnedSnapshot({ execFile, executable, script, ownedPid, signal, timeoutMs, maxBuffer, now = performance.now.bind(performance), onDiagnostic }) {
+export function readOwnedSnapshot({ execFile, executable, script, ownedPid, signal, timeoutMs, maxBuffer, now = performance.now.bind(performance), onDiagnostic, onSnapshot = async () => {} }) {
   const started = now();
   return new Promise((resolve, reject) => {
     let called = false;
@@ -56,18 +57,29 @@ export function readOwnedSnapshot({ execFile, executable, script, ownedPid, sign
       if (called) return; called = true;
       const diagnostic = snapshotDiagnostic(error, stderr, Math.max(0, Math.round(now() - started)), timeoutMs, signal.aborted);
       let value, failure;
+      try { value = JSON.parse(String(stdout).replace(/^\uFEFF/, '')); } catch { /* No partial JSON baseline. */ }
       if (error) failure = diagnostic.stderr.at(-1)?.reason === 'requires-administrator' ? 'read-only-snapshot-requires-administrator'
         : signal.aborted ? 'read-only-snapshot-cancelled' : error.killed || error.code === 'ETIMEDOUT' ? 'read-only-snapshot-timeout' : 'read-only-snapshot-unavailable';
       else {
-        try { value = JSON.parse(String(stdout).replace(/^\uFEFF/, '')); }
-        catch { failure = 'invalid-read-only-snapshot'; }
+        if (!value) failure = 'invalid-read-only-snapshot';
         if (!failure && (value?.snapshotSchema !== 1 || value.complete !== true)) failure = 'incomplete-read-only-snapshot';
         if (!failure && signal.aborted) failure = 'read-only-snapshot-cancelled';
       }
+      // Full safe input is persisted before any policy comparison, including later decode/read failures.
+      if (value?.snapshotSchema === 1) {
+        if (value.semanticEncoded) {
+          try { value.semanticFacts = decodeFacts(value.semanticEncoded); }
+          catch { failure ||= 'invalid-semantic-configuration'; }
+        }
+        try { await onSnapshot(value); }
+        catch { failure = 'read-only-snapshot-write-failed'; }
+      }
+      if (!failure && signal.aborted) failure = 'read-only-snapshot-cancelled';
+      if (!value && failure) { diagnostic.partialOutputBytes=Buffer.byteLength(String(stdout));diagnostic.partialOutputSha256=digest(String(stdout)); }
       diagnostic.failure = failure ?? null;
       try { await onDiagnostic(diagnostic); }
       catch { reject(new Error('read-only-diagnostic-write-failed')); return; }
-      if (failure) reject(new Error(failure)); else resolve(value);
+      if (failure) reject(new Error(failure)); else if (signal.aborted) reject(new Error('read-only-snapshot-cancelled')); else resolve(value);
     };
     try {
       execFile(executable, ['-NoProfile','-NonInteractive','-File',script,'-OwnedPid',String(ownedPid)],

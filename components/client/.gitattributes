@@ -13,3 +13,6 @@ release/licenses/*.txt -text whitespace=-blank-at-eof,cr-at-eol
 
 # Approval scope pins the exact read-only PowerShell source bytes.
 scripts/owned-tun-trial-snapshot.ps1 text eol=lf
+
+# Preserve exact pinned independent observer PowerShell source.
+scripts/owned-tun-light-snapshot.ps1 text eol=lf

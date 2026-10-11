@@ -1,11 +1,35 @@
+import { runObservedTrial } from './owned-tun-observation-run.mjs';
 import { createHash } from 'node:crypto';
+import { configurationDifferences, validateFacts } from './owned-tun-snapshot-semantics.mjs';
 
 const deepFreeze = value => { if (value && typeof value === 'object') { for (const child of Object.values(value)) deepFreeze(child); Object.freeze(value); } return value; };
 const delivery = 'C:\\Users\\cheb2\\Documents\\Codex\\2026-10-10\\task-2\\et-windows-build-no-npcap\\delivery';
 export const SCOPE = deepFreeze({
-  schema: 3, trial: 'single-no-peer-owned-tun-no-npcap', maximumRunMs: 30000,
+  schema: 4, trial: 'single-no-peer-owned-tun-no-npcap', maximumRunMs: 65000,
+  prepareTimeoutMs: 5000, readinessDeadlineMs: 10000, finalFreshLightBudgetMs: 10000,
+  light: { timeoutMs:5000, pauseMs:1000, maximumInFlight:1, warmupDuringPreparedPreflight:true },
+  residualSettleMs:15000, residualCleanSamples:2, fullDuringCount:1,
+  observationWorker: { independentSupervisor:true, closeTimeoutMs:6000 },
+  observationSources: {
+    'run-owned-tun-trial.mjs': 'e18b6d7e6a093571e19743bc735621b63aa715fc761c96aefcf30f69c4cbceb9',
+    'owned-tun-observation-run.mjs': '248591cc995b366d87d5efa7e8526d72d8c8aa1e5fcd984c3ba7752d576df032',
+    'owned-tun-observer.mjs': '3f68032bdb28341be4813d5b14d8954a8a1e9739775d7444147ff4285c2abc07',
+    'owned-tun-observer-worker.mjs': '594d28b93d332dbefc732fbd9fb109219e1b14804d9f6a353e20e3ce15aa0586',
+    'owned-tun-light-snapshot.ps1': '9e0c7efe04e067d45b4ffb987c8b7c38dd04e7cc5e049bca8c48be0c0041fba2',
+    'owned-tun-light-policy.mjs': '700301d74ae768f949a75450bcd9ac808e36dceb682fa614d3f536465b129837',
+    'owned-tun-trial-snapshot.ps1': '94772cb9db5f309e2c4c0db6d87a742f72088644127956092d4a93dd57911da9',
+    'owned-tun-snapshot-reader.mjs': '0af9c31e564cd4a8fe795c2f64d72578a61df1a3fadea20b4be0cd01c01fc0cf',
+    'owned-tun-snapshot-semantics.mjs': '9e841ab28da0024481dff48c633f57c3fcbd55a830af7a222f09ce940fb6e083',
+    'benchmark-owned-tun-observer.mjs': '5e9bf752466283feef6c9f102a00bbe220a04df9bf9109918f05b33ae2b5d06e',
+    '../electron/easyTierWindowsProcesses.ts': '8cb6681df8200e19dd5183fe2ba597fc87e243a85709acf0290fa931bd731db7',
+    '../electron/easyTierCommunityManager.ts': '0b9a6ebd3ef3514dbb997ca223ac7afbcbc435ddcd7907dd299d62c921a27629',
+    '../electron/easyTierMemberAdapter.ts': '797886965ea2be2c45796a9a038250ed488d61287bf98d11a5d67a06aedaacbb',
+    '../electron/easyTierStatus.ts': '477522d1ff63225a09ab87b92b0e0b6f197793f47719ef7fb69aaa6b2c833ba1',
+    '../electron/easyTierCliNetwork.ts': '3cb7bd032b124ef73d368de766b6f63493a73de32e1b8d7ef97bb478b8c01b65'
+  },
   snapshot: { timeoutMs: 40000, maxBufferBytes: 2097152, diagnosticProtocol: 1,
-    scriptSha256: 'f73213399a3d07d6e317c480e59ccd87d1e948ffce86aa5e4a94c1a3d1909fdb', readerSha256: 'f2f7394a9cb1666d3a66ae2a8e0606c4ea7ba8f42f8d1ba481fd682e71848726' },
+    scriptSha256: '94772cb9db5f309e2c4c0db6d87a742f72088644127956092d4a93dd57911da9', readerSha256: '0af9c31e564cd4a8fe795c2f64d72578a61df1a3fadea20b4be0cd01c01fc0cf', semanticsSha256: '9e841ab28da0024481dff48c633f57c3fcbd55a830af7a222f09ce940fb6e083',
+    comparisonSchema: 1, persistCompleteSafeSnapshots: true },
   stopForceAfterMs: 4000, stopFinalAfterMs: 6000, residualObservationMs: 40000,
   alias: 'lk_trial_20261011_a', virtualAddress: '10.253.253.1', prefix: 30,
   portal: '127.0.0.1:15897', peerServers: [], etListeners: [], stunServers: [], upnp: false,
@@ -106,6 +130,8 @@ export function buildIsolatedConfig(instanceId) {
 }
 
 export function validateBefore(s) {
+  validateFacts(s?.semanticFacts);
+  if(JSON.stringify(Object.keys(s.semanticFacts.interfaces).sort())!==JSON.stringify(s.adapters.map(n=>canonGuid(n.guid)).sort())) fail('interface-semantic-evidence-incomplete');
   if (!s?.complete || !s.administrator || !s.guiAlive || s.driverCount !== 1 || s.driverVer !== SCOPE.driverVer || s.driverSysSha256 !== SCOPE.driverSysSha256 || !s.driverRunning) fail('baseline-or-driver-unavailable');
   const old = s.adapters.find(n => canonGuid(n.guid) === SCOPE.protectedGuid);
   if (!old || old.status !== 'Up' || !old.addresses.some(a => a.ip === SCOPE.protectedAddress && a.prefix === SCOPE.protectedPrefix)) fail('old-private-network-not-ready');
@@ -115,12 +141,16 @@ export function validateBefore(s) {
 
 export function validateDuring(before, now, owned) {
   if (!now?.complete || !now.guiAlive || !now.driverRunning || now.driverVer !== before.driverVer || now.driverSysSha256 !== before.driverSysSha256 || now.driverCount !== before.driverCount) fail('old-network-or-driver-changed');
-  if (now.firewallSha256 !== before.firewallSha256 || now.default4Sha256 !== before.default4Sha256 || now.default6Sha256 !== before.default6Sha256) fail('global-network-policy-changed');
+  validateFacts(now.semanticFacts);
+  if(JSON.stringify(Object.keys(now.semanticFacts.interfaces).sort())!==JSON.stringify(now.adapters.map(n=>canonGuid(n.guid)).sort())) fail('interface-semantic-evidence-incomplete');
+  const differences=configurationDifferences(before,now);
+  if (differences.some(d=>!d.interfaceGuid)) fail('global-network-configuration-drift');
+  if (differences.some(d=>d.interfaceGuid)) fail('existing-interface-configuration-drift');
   if (now.guiFingerprint !== before.guiFingerprint || now.ownedForbiddenSocketCount !== 0) fail('foreign-network-socket-or-gui-identity-changed');
   for (const profile of before.categories) if (!now.categories.some(p => p.id === profile.id && p.category === profile.category)) fail('existing-network-category-changed');
   for (const old of before.adapters) {
     const current = now.adapters.find(n => canonGuid(n.guid) === canonGuid(old.guid));
-    if (!current || current.fingerprint !== old.fingerprint) fail('existing-interface-changed');
+    if (!current || current.ifIndex !== old.ifIndex || current.luid !== old.luid || current.status !== old.status) fail('existing-interface-identity-or-state-drift');
   }
   const added = now.adapters.filter(n => !before.adapters.some(old => canonGuid(n.guid) === canonGuid(old.guid)));
   if (added.length > 1) fail('unexpected-extra-interface');
@@ -144,70 +174,4 @@ export function validateAfter(before, now, reports) {
   if (reports.length !== 1 || reports[0].outcome !== 'graceful') fail('owned-stop-unconfirmed');
 }
 
-/** All effects injected. Deadline signals owned shutdown even when startup or a read stalls. */
-export async function runBoundedTrial(p) {
-  const before = await p.snapshot();
-  validateBefore(before);
-  await p.prepare();
-  const prepared = await p.snapshot();
-  validateBefore(prepared); validateDuring(before, prepared, null);
-  let reason = null, stopped = false, ready = false, failure = null, core;
-  let signalStop;
-  const stopEvent = new Promise(resolve => { signalStop = resolve; });
-  const stop = code => {
-    if (stopped) return;
-    stopped = true; reason = code;
-    p.processes.shutdownOwned();
-    signalStop();
-    p.cancelReads?.();
-  };
-  const timer = p.setTimer(() => stop('deadline'), SCOPE.maximumRunMs);
-  const detach = p.onCancel(() => stop('operator-stop'));
-  async function untilStop(operation) {
-    const result = await Promise.race([Promise.resolve(operation).then(value => ({ value })), stopEvent.then(() => ({ stopped: true }))]);
-    if (result.stopped) return undefined;
-    return result.value;
-  }
-  try {
-    core = await untilStop(p.start());
-    if (core && !stopped) {
-      while (!stopped) {
-        const now = await untilStop(p.snapshot());
-        if (!now || stopped) break;
-        if (!core.isAlive()) fail('owned-core-exited');
-        const valid = validateDuring(before, now, core.ownedResources());
-        ready ||= valid;
-        await untilStop(p.pause(1500));
-      }
-    }
-  } catch (error) { if (!stopped) { failure = String(error.message); stop('failure'); } }
-  finally {
-    if (!stopped) stop('failure');
-    p.clearTimer(timer); detach();
-    try { await p.processes.drainOwned(); } catch { failure ||= 'owned-cleanup-failed'; }
-  }
-  const reports = p.processes.cleanupReports();
-  let after, residual = true, observationExpired = false, endObservation;
-  const observationEnd = new Promise(resolve => { endObservation = resolve; });
-  const observationTimer = p.setTimer(() => { observationExpired = true; endObservation(); }, SCOPE.residualObservationMs);
-  while (!observationExpired) {
-    try {
-      const sample = await Promise.race([p.snapshot().then(value => ({ value })), observationEnd.then(() => ({ expired: true }))]);
-      if (sample.expired) break;
-      after = sample.value; validateAfter(before, after, reports); residual = false; break;
-    }
-    catch (error) {
-      const code = String(error.message);
-      if (code !== 'owned-residual-present') { failure ||= code; break; }
-      await Promise.race([p.pause(1000), observationEnd]);
-    }
-  }
-  p.clearTimer(observationTimer);
-  p.cancelReads?.();
-  if (residual) failure ||= 'owned-residual-or-observation-unavailable';
-  if (!ready) failure ||= 'owned-nic-never-ready';
-  if (reason !== 'deadline') failure ||= reason;
-  return { schema: 1, outcome: failure ? 'failed' : 'passed', reason, failure,
-    scopeSha256: SCOPE_SHA256, ready, before, after: after ?? null, reports,
-    realCommunityJoinVerified: false, deletedOsResources: false };
-}
+export function runBoundedTrial(p) { return runObservedTrial(p,SCOPE,SCOPE_SHA256); }

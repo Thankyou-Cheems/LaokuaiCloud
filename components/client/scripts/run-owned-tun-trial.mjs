@@ -5,8 +5,7 @@ import vm from 'node:vm';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
-import { execFile } from 'node:child_process';
-import { readOwnedSnapshot } from './owned-tun-snapshot-reader.mjs';
+import { createOwnedObserver } from './owned-tun-observer.mjs';
 import { SCOPE, SCOPE_SHA256, TRIAL_SUSPENDED, sha256, validateApproval, verifyTrialPayload, verifyTrialDocuments, buildIsolatedConfig, runBoundedTrial } from './owned-tun-trial-policy.mjs';
 
 const scripts = path.dirname(fileURLToPath(import.meta.url));
@@ -40,17 +39,15 @@ async function execute() {
   // Nothing else (OS reads, copies, configs, sockets, child processes) precedes this gate.
   validateApproval(process.argv.slice(2));
   if (process.platform !== 'win32') throw new Error('windows-only');
-  for (const [file, expected] of [['owned-tun-trial-snapshot.ps1', SCOPE.snapshot.scriptSha256], ['owned-tun-snapshot-reader.mjs', SCOPE.snapshot.readerSha256]]) {
+  for (const [file, expected] of Object.entries(SCOPE.observationSources)) {
     if (sha256(await fsp.readFile(path.join(scripts, file))) !== expected) throw new Error('approved-snapshot-source-mismatch');
   }
   const { EasyTierWindowsProcesses } = loadOwnedAdapter();
   const processes = new EasyTierWindowsProcesses(15897);
-  const reads = new Set();
   let latestCore, directory, config, reportPath, diagnosticDirectory;
-  let diagnosticReady;
-  let diagnosticSequence = 0;
-  const cancelReads = () => { for (const control of reads) control.abort(); };
-  const saveDiagnostic = async diagnostic => {
+  let diagnosticReady,observer,observerReady;
+  const cancelReads = () => observer?.cancel();
+  const saveEvidence = async (name, evidence) => {
     // Exists even when the first preflight fails, before payload/config preparation.
     diagnosticReady ??= (async () => {
       const root = path.join(client, '.laokuai-tun-diagnostics');
@@ -62,24 +59,22 @@ async function execute() {
       return diagnosticDirectory;
     })();
     const destination = await diagnosticReady;
-    await fsp.writeFile(path.join(destination, `snapshot-${++diagnosticSequence}.json`),
-      JSON.stringify({ ...diagnostic, scopeSha256: SCOPE_SHA256 }, null, 2), { flag: 'wx' });
+    await fsp.writeFile(path.join(destination, name),
+      JSON.stringify({ ...evidence, scopeSha256: SCOPE_SHA256 }, null, 2), { flag: 'wx' });
   };
-  const snapshot = () => {
-    const control = new AbortController(); reads.add(control);
-    const pid = latestCore?.ownedResources()?.pid ?? 0;
-    const powershell = path.join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
-    return readOwnedSnapshot({ execFile, executable: powershell, script: path.join(scripts, 'owned-tun-trial-snapshot.ps1'),
-      ownedPid: pid, signal: control.signal, timeoutMs: SCOPE.snapshot.timeoutMs, maxBuffer: SCOPE.snapshot.maxBufferBytes,
-      onDiagnostic: saveDiagnostic }).finally(() => reads.delete(control));
-  };
+  const getObserver=()=>observerReady??=(async()=>{
+    await saveEvidence('observer-scope.json',{scope:SCOPE});
+    observer=createOwnedObserver({scripts,directory:diagnosticDirectory,powershell:path.join(process.env.SystemRoot??'C:\\Windows','System32','WindowsPowerShell','v1.0','powershell.exe')});
+    return observer;
+  })();
   const onCancel = stop => {
     const listener = () => { stop(); cancelReads(); };
     process.on('SIGINT', listener); process.on('SIGTERM', listener);
     return () => { process.off('SIGINT', listener); process.off('SIGTERM', listener); };
   };
   try {
-    const result = await runBoundedTrial({ processes, snapshot, cancelReads,
+    const result = await runBoundedTrial({ processes, cancelReads,
+      full:async args=>(await getObserver()).full(args),light:async args=>(await getObserver()).light(args),
       setTimer: (callback, ms) => setTimeout(callback, ms), clearTimer: timer => clearTimeout(timer),
       onCancel, pause: ms => new Promise(resolve => setTimeout(resolve, ms)),
       prepare: async () => {
@@ -121,6 +116,8 @@ async function execute() {
         return latestCore;
       },
     });
+    try { await observer?.close(); } catch { result.outcome='failed';result.failure??='observer-close-unconfirmed'; }
+    await saveEvidence('trial-result.json',result);
     await fsp.writeFile(reportPath, JSON.stringify(result, null, 2), { flag: 'wx' });
     console.log(JSON.stringify({ outcome: result.outcome, failure: result.failure, ready: result.ready,
       scopeSha256: SCOPE_SHA256, reportPath, diagnosticDirectory, reports: result.reports, realCommunityJoinVerified: false }));
@@ -130,9 +127,10 @@ async function execute() {
     try { await processes.drainOwned(); } catch { /* Keep owned cleanup evidence, never remove OS resources. */ }
     const result = { outcome: 'failed', failure: /^[a-z0-9-]{1,96}$/.test(error.message ?? '') ? error.message : 'trial-preflight-or-execution-failed', scopeSha256: SCOPE_SHA256,
       reports: processes.cleanupReports(), diagnosticDirectory, realCommunityJoinVerified: false, deletedOsResources: false };
+    await saveEvidence('trial-failure.json',result).catch(()=>{});
     if (reportPath) await fsp.writeFile(reportPath, JSON.stringify(result, null, 2), { flag: 'wx' }).catch(() => {});
     console.log(JSON.stringify(result)); process.exitCode = 1;
-  } finally { cancelReads(); }
+  } finally { cancelReads(); await observer?.close().catch(()=>{}); }
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

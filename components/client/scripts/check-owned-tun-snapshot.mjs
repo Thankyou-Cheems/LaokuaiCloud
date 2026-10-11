@@ -16,6 +16,22 @@ function fixture({error=null, stdout='{"snapshotSchema":1,"complete":true}', std
     onDiagnostic:async d=>{diagnostics.push(d); if(writeError) throw new Error('disk failure');}});
   return {result,diagnostics,get call(){return call;}};
 }
+await test('complete safe snapshot persists before comparison and write failure fails closed',async()=>{
+  const calls=[];
+  const run=onSnapshot=>readOwnedSnapshot({execFile:(exe,args,opts,done)=>done(null,'{"snapshotSchema":1,"complete":true}',''),
+    executable:'powershell.exe',script:'snapshot.ps1',ownedPid:0,signal:new AbortController().signal,timeoutMs:40000,maxBuffer:2097152,
+    onSnapshot,onDiagnostic:async()=>calls.push('diagnostic')});
+  await run(async s=>{assert.equal(s.complete,true);calls.push('full-safe-snapshot');});
+  assert.deepEqual(calls,['full-safe-snapshot','diagnostic']);
+  await assert.rejects(run(async()=>{throw new Error('disk');}),/read-only-snapshot-write-failed/);
+});
+await test('later semantic decode failure still retains complete safe input',async()=>{
+  let archived;
+  const result=readOwnedSnapshot({execFile:(exe,args,opts,done)=>done(null,JSON.stringify({snapshotSchema:1,complete:true,semanticEncoded:{schema:1,encoding:'gzip-base64',data:'AA=='}}),''),
+    executable:'powershell.exe',script:'snapshot.ps1',ownedPid:0,signal:new AbortController().signal,timeoutMs:40000,maxBuffer:2097152,
+    onSnapshot:async s=>{archived=s;},onDiagnostic:async()=>{}});
+  await assert.rejects(result,/invalid-semantic-configuration/);assert.equal(archived.complete,true);
+});
 await test('complete snapshot retains safe stderr/timing and readonly arguments', async()=>{
   const f=fixture(); assert.deepEqual(await f.result,{snapshotSchema:1,complete:true});
   assert.deepEqual(f.call[1],['-NoProfile','-NonInteractive','-File','snapshot.ps1','-OwnedPid','0']);
@@ -72,8 +88,18 @@ await test('long or incomplete stderr remains bounded and unknown',()=>{
 await test('scope pins both readonly sources and rejects consumed approval',()=>{
   assert.equal(sha256(fs.readFileSync(new URL('./owned-tun-trial-snapshot.ps1',import.meta.url))),SCOPE.snapshot.scriptSha256);
   assert.equal(sha256(fs.readFileSync(new URL('./owned-tun-snapshot-reader.mjs',import.meta.url))),SCOPE.snapshot.readerSha256);
+  assert.equal(sha256(fs.readFileSync(new URL('./owned-tun-snapshot-semantics.mjs',import.meta.url))),SCOPE.snapshot.semanticsSha256);
   assert.notEqual(SCOPE_SHA256,'c737fd450558cd0176356dc0e1dea3a086bf34a9042ed8e60cd89a6c15b47f20');
   assert.throws(()=>validateApproval(['--execute','--approved-scope-sha256','c737fd450558cd0176356dc0e1dea3a086bf34a9042ed8e60cd89a6c15b47f20']));
   assert.throws(()=>validateApproval(['--execute','--approved-scope-sha256','c44bdbae1f2839914485b8c062b739557af271f92e27120a64bbef498be320ee']));
+  assert.throws(()=>validateApproval(['--execute','--approved-scope-sha256','dd60b94603ffb3e17a85450810e2f3edfba3183705e0d515f662037916692dfc']));
+});
+await test('incomplete/cancelled/error snapshots are saved; absent JSON retains only digest metadata',async()=>{
+ for(const [stdout,error] of [['{"snapshotSchema":1,"complete":false}',null],['{"snapshotSchema":1,"complete":true}',{code:1}]]){
+  let archived;
+  const value=readOwnedSnapshot({execFile:(exe,args,opts,done)=>done(error,stdout,''),executable:'fake',script:'fake',ownedPid:0,signal:new AbortController().signal,timeoutMs:40000,maxBuffer:2097152,onSnapshot:async s=>{archived=s;},onDiagnostic:async()=>{}});
+  await assert.rejects(value);assert.equal(archived.snapshotSchema,1);
+ }
+ const f=fixture({stdout:'partial-safe-output',error:{code:1}});await assert.rejects(f.result);assert.equal(f.diagnostics[0].partialOutputSha256,sha256('partial-safe-output'));assert.ok(!JSON.stringify(f.diagnostics).includes('partial-safe-output'));
 });
 console.log(`passed ${count} pure snapshot checks; no OS/native activation`);
