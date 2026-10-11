@@ -1,7 +1,7 @@
 {
   "schema": 2,
-  "id": "laokuai-cloud-et-compatibility-reviewed-checkpoint-20261011",
-  "stage": "source-review-changes-required",
+  "id": "laokuai-cloud-et-owned-create-reviewed-20261011",
+  "stage": "source-reviewed-native-build-and-media-retest-pending",
   "ready": false,
   "repository": {
     "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud",
@@ -9,15 +9,15 @@
     "visibility": "private",
     "branch": "release/integration-20261011",
     "soleGitWriter": "task-6",
-    "codeCommit": "291fd645181c92ffd761dead3fbc46e4566002cd",
-    "codeTree": "4e7ea0aa24cc545e044bf97d0cbfe4ae8b9ff17e",
+    "codeCommit": "026c55c142b103b8b088f10daddfe04b1b9b67c1",
+    "codeTree": "81f3095b40823ed0e1f96ec6856809d1cc26413f",
     "newRepositoryReason": "Authenticated private-repo metadata and explicitly scoped old local core/game remotes revealed no matching existing private integration repository",
     "historyPolicy": "Original client history preserved; no force push/reset/rewrite; other components imported as licensed source snapshots"
   },
   "components": {
     "client": {
       "path": "components/client",
-      "tree": "831bc3158a7901576226c5dfab503f6db61bb126",
+      "tree": "2eafd39963b041b410da0af6c50b28719f346439",
       "upstream": "Gryt-chat/client",
       "publicFork": "Thankyou-Cheems/gryt-client-i18n",
       "historyImportedFrom": "06ac43f51dbda3b9444c73270a126e10489110e9",
@@ -87,30 +87,39 @@
     },
     "easytier": {
       "path": "components/easytier",
-      "tree": "362a77313466bcc8b543abb4840cb5510b3b31e1",
+      "tree": "89976a4791e5e945dc0a71d06ea323b411195b5f",
       "mode": "Exact licensed frozen native source import; immutable downstream patches; review changes required",
       "upstream": "EasyTier/EasyTier",
       "publicFork": "Thankyou-Cheems/EasyTier",
       "upstreamCommit": "8b7f1f0196edb5b580829ed5f135050fb5853478",
       "tag": "v2.7.0",
       "prerelease": true,
-      "privateSourceCommit": "1a44fb98e2429b050d69f36a1fee47eadf26caf5",
-      "patchSetSha256": "b7258770f7f6b6bc5e0ec660d3439964a132c9cae98e9f51ffdf84b51b589079",
+      "privateSourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
+      "patchSetSha256": "eb30fab089422c82256a8c8db9cb7a15d3c41b8b972a05729f63ebfbac7e8cad",
       "privateBuildPackageSha256": null,
-      "status": "blocked-existing-adapter-ownership-fix-and-isolated-build",
-      "privateSourceTree": "c589da1a2049a6bc6e78996fcf0909e40f307bcb",
-      "codePatchSha256": "3c4270f5bccf3f9223d09764472d56ef7f939a105bf16c1831a61485f032c274",
+      "status": "source-review-accepted-native-build-and-acceptance-pending",
+      "privateSourceTree": "e58f64a219c204cdaf364fc95466cf03acfb7c21",
+      "codePatchSha256": "eb30fab089422c82256a8c8db9cb7a15d3c41b8b972a05729f63ebfbac7e8cad",
       "sourceImport": {
         "path": "source",
-        "archivedFiles": 1233,
-        "importedFiles": 1232,
+        "archivedFiles": 1278,
+        "importedFiles": 1277,
         "allImportedGitBlobsExact": true,
         "excluded": [
           "easytier-contrib/easytier-uptime/.env"
         ],
         "licenseSha256": "e3a994d82e644b03a792a930f574002658412f62407f5fee083f2555c5f23118",
-        "cargoLockSha256": "3f605207a2e29b1ebf24d3e032ab65f00ae3c93d489fa983164c4d3e995dfe70",
-        "bundleSha256": "825130c4064acca5cf15f01f9774d4aa8ad678516c3c3491d1457175c9129e58"
+        "cargoLockSha256": "e3ee41507e7a8ef94470b70f4639140e67aadae646ada82dfd23b0beeb0e7fb2",
+        "bundleSha256": "71c09f9ba90cb87dcc3eb3d828477c21d5761a74c0fd049f965fa90b54d8425e",
+        "vendoredTun": {
+          "path": "source/vendor/rust-tun",
+          "repository": "https://github.com/EasyTier/rust-tun",
+          "upstreamCommit": "12378839e7985283df0e4fb536b7137230356db5",
+          "license": "WTFPL-2.0; original headers and notice retained",
+          "upstreamProvenancePath": "source/vendor/rust-tun/UPSTREAM-PROVENANCE.json",
+          "version": "1.1.1",
+          "sourceOverrideOnly": true
+        }
       },
       "originalHistory": false
     }
@@ -180,6 +189,17 @@
         "Document static existing-alias open-before-GUID gap; native source unmodified by task-6"
       ],
       "reviewStatus": "changes-required"
+    },
+    {
+      "kind": "et-owned-create-correction",
+      "deliveredCommit": "1b29040ca9199f02cfe92c3f533d3d9e2120e55c",
+      "deliveredSourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
+      "sourceDeltaSha256": "168476f10affa8163d05f0e73d9f93750bc8db70c5c04e8c1a43cf58f7aaf4f3",
+      "patchSha256": "6cd485ac94e1f6aecb419cb13eb0960facc907624e42870fa4dd60971bfc3b75",
+      "integratedCommit": "026c55c142b103b8b088f10daddfe04b1b9b67c1",
+      "patchConflicts": [],
+      "reviewStatus": "accepted-static-source-contract",
+      "nativeRuntimeAcceptance": false
     }
   ],
   "easytier": {
@@ -219,7 +239,7 @@
     "verification": "Owner verified official archive size/SHA256; task-6 independently rehashed all five extracted runtime files without execution",
     "networkVerified": false,
     "productionUpgrade": false,
-    "implementationStatus": "windows-owned-stop-and-loader-integrated-native-review-changes-required",
+    "implementationStatus": "windows-create-only-source-reviewed-native-build-pending",
     "integratedLayer": "Owned child stdin stop/drain, trusted IPC, community lifetime/status and private manifest loader; config/permission gates retained",
     "nativePortsImplemented": true,
     "mainRuntime": "WindowsEasyTierCliRuntime via createWindowsEasyTierProduction; private Laokuai metadata injects production runtime",
@@ -245,7 +265,7 @@
     "firstRunReady": false,
     "releaseActivationBlockedPendingHostCompatibility": true,
     "hostCompatibility": {
-      "status": "changes-required-ET-OWNERSHIP-001",
+      "status": "source-create-only-correction-accepted-native-coexistence-pending",
       "evidence": "Parent activation preflight; not independently executed by task-6",
       "existingPrivateEtPresentReported": true,
       "upstreamTunSideEffectsReported": [
@@ -259,13 +279,15 @@
       "task6ExistingEtKills": 0,
       "sourceFixOwner": "ET feature owner; no parallel fix in integration tree",
       "review": {
-        "sourceCommit": "1a44fb98e2429b050d69f36a1fee47eadf26caf5",
-        "sourceTree": "c589da1a2049a6bc6e78996fcf0909e40f307bcb",
-        "reportPath": "components/easytier/REVIEW.md",
-        "blockingFindingIds": [
+        "status": "accepted",
+        "reviewedCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
+        "reviewedTree": "e58f64a219c204cdaf364fc95466cf03acfb7c21",
+        "blockingFindingIds": [],
+        "resolvedSourceFindingIds": [
           "ET-OWNERSHIP-001"
         ],
-        "finding": "Pinned rust-tun opens existing alias and starts session before post-create requested-GUID check; case-sensitive preflight plus race does not ensure create-only",
+        "reportPath": "REVIEW.md",
+        "acceptanceScope": "Static create-only/pre-session identity source contract; actual Windows build/driver/coexistence not accepted",
         "nativeExecution": false
       }
     },
@@ -277,7 +299,7 @@
       "acceptanceRequired": true
     },
     "provenancePath": "components/easytier/provenance.json",
-    "provenanceSha256": "9a89619a81c8f59708aa0afed8fd9b112e566b27cec6cc2d731ff1816b80d0f2",
+    "provenanceSha256": "da4809c6cf8e45a33d3f0f229c888d7dbc16ad30420c90564d738b6426a34be4",
     "officialWindowsReferenceFiles": {
       "easytier-core.exe": {
         "sha256": "6490c6f5b5b809065517bb3324ca34c0f1f367f81b7fda04a6352391508b8ff8",
@@ -302,7 +324,7 @@
     },
     "officialBinaryRole": "reference-only; cannot serve as private patched payload",
     "privatePayloadApproved": false,
-    "privatePatchedPayload": "blocked-existing-adapter-ownership-review-fix-and-parent-scheduled-native-build",
+    "privatePatchedPayload": "source-reviewed-pending-exact-private-build-native-acceptance",
     "privatePatchRequirements": [
       "Disable global NetworkList cleanup by default",
       "Make automatic Windows firewall/category policy explicitly controllable",
@@ -310,10 +332,10 @@
       "Keep fixed v2.7.0 upstream base; no Tencent Linux node changes"
     ],
     "privateBuild": {
-      "status": "blocked-review-fix-and-parent-scheduled-build",
-      "sourceCommit": "1a44fb98e2429b050d69f36a1fee47eadf26caf5",
-      "sourceTree": "c589da1a2049a6bc6e78996fcf0909e40f307bcb",
-      "patchSetSha256": "b7258770f7f6b6bc5e0ec660d3439964a132c9cae98e9f51ffdf84b51b589079",
+      "status": "pending-parent-authorized-capacity-owner-build",
+      "sourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
+      "sourceTree": "e58f64a219c204cdaf364fc95466cf03acfb7c21",
+      "patchSetSha256": "eb30fab089422c82256a8c8db9cb7a15d3c41b8b972a05729f63ebfbac7e8cad",
       "toolchain": {
         "requiredRust": "1.95",
         "target": "x86_64-pc-windows-msvc",
@@ -536,9 +558,9 @@
     "portableBinaryBuilt": false,
     "staticRuntimeAssetPreparation": "five official reference files independently rehashed; not accepted as patched payload",
     "portableBuild": {
-      "status": "blocked-native-review-fix-private-build-SDK-retest-and-user-UI-preview",
+      "status": "blocked-private-build-native-acceptance-SDK-retest-and-user-UI-preview",
       "authorization": "One candidate build/portable package only; do not launch product, helpers, core, CLI or drivers",
-      "waitFor": "ET owner create-only fix, review and capacity-owner native build; SDK controller-state repair and frozen retest; user UI prototype approval",
+      "waitFor": "Capacity-owner measured native build; actual Windows acceptance; SDK integration.3 import/frozen media retest; user prototype approval",
       "requires": [
         "Fresh exact-source renderer/main outputs and native-helper build receipts",
         "EasyTier and bundled driver license/notice texts in final package",
@@ -559,17 +581,18 @@
     },
     "fullClientTypesSourceCommit": "7a9ba9dd221fbf7bf5259600d39c76ccf8a43a59",
     "nativeSourceContracts": {
-      "sourceCommit": "1a44fb98e2429b050d69f36a1fee47eadf26caf5",
-      "scenarios": 8,
-      "status": "passed-static-literal-contracts",
-      "reviewFindingCleared": false,
+      "sourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
+      "scenarios": 10,
+      "status": "passed-static-contracts",
+      "sourceReviewFindingResolved": true,
       "rustCompile": false,
-      "nativeExecution": false
+      "nativeExecution": false,
+      "ownerPureRustAssertions": 5
     },
     "nativeImport": {
-      "sourceCommit": "1a44fb98e2429b050d69f36a1fee47eadf26caf5",
-      "sourceTree": "c589da1a2049a6bc6e78996fcf0909e40f307bcb",
-      "exactGitBlobs": 1232,
+      "sourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
+      "sourceTree": "e58f64a219c204cdaf364fc95466cf03acfb7c21",
+      "exactGitBlobs": 1277,
       "excludedRuntimeEnvironment": true,
       "licenseSha256": "e3a994d82e644b03a792a930f574002658412f62407f5fee083f2555c5f23118"
     },
@@ -577,10 +600,37 @@
       "requiredBeforeFinalPackage": true,
       "status": "pending-owner-static-prototype-and-user-approval",
       "transportPresentationContract": "Distinguish member relay, server relay and physically verified direct; WebRTC peer over ET relay must not be called direct"
+    },
+    "nativeBuild": {
+      "status": "parent-authorized-capacity-owner-isolated-build",
+      "sourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
+      "sourceTree": "e58f64a219c204cdaf364fc95466cf03acfb7c21",
+      "bundleSha256": "71c09f9ba90cb87dcc3eb3d828477c21d5761a74c0fd049f965fa90b54d8425e",
+      "cargoLockSha256": "e3ee41507e7a8ef94470b70f4639140e67aadae646ada82dfd23b0beeb0e7fb2",
+      "rust": "1.95.0",
+      "target": "x86_64-pc-windows-msvc",
+      "defaultFeaturesPreserved": true,
+      "officialRegistryLockedFetchAuthorized": true,
+      "knownMissingCachedDependency": "ab_glyph 0.2.32",
+      "runtimeExecutionAuthorized": false,
+      "task6Builds": 0
+    },
+    "capacityOwnerHandoff": {
+      "status": "direct-message-rejected-by-auto-review-user-approval-pending",
+      "targetThread": "01a123e1-3500-76b2-b8f0-bff187df40f7",
+      "reason": "Explicit human authorization for sending internal build information to that thread not recognized",
+      "frozenBuildInputsComplete": true
+    },
+    "sdkRecoveryCandidate": {
+      "status": "owner-delivered-task6-integration-pending",
+      "sourceCommit": "6d710f34070cbc01bb838a77dfec0963b0ce298b",
+      "version": "0.6.2-laokuai.hybrid.integration.3",
+      "sha256": "29f858d9a97ae788748c59cc023cc350d9178e645adb39c7a96b327b8aa3299b",
+      "realMediaRetest": false
     }
   },
   "securityBoundary": {
-    "currentTrackedTextScanned": 3117,
+    "currentTrackedTextScanned": 3165,
     "credentialPatternHits": 0,
     "currentMachinePathHits": 0,
     "sourceRawPrivateLogsImported": false,
@@ -598,8 +648,7 @@
     "preserved": true
   },
   "pending": [
-    "Native-owner create-only adapter ownership fix for ET-OWNERSHIP-001; fresh immutable source/code patch/bundle and review",
-    "Parent-scheduled capacity-owner isolated Rust 1.95 Windows MSVC core build; exact Cargo.lock/PROTOC/native dependencies/build receipt and executable hashes",
+    "Capacity-owner isolated Rust 1.95 Windows MSVC core build of reviewed dbaf0453; retain exact lock/default features; official-registry locked fetch permitted; provide measured receipt/PE/resource hashes",
     "Approved private manifest/resources/driver notices; final static payload/ASAR/PE/package hash verification",
     "SDK owner repair for restore_failed / selected:none / hybrid_cleanup_conflict; preserve integration.2 bytes and retest new frozen snapshot",
     "UI owner static prototype plus user preview approval before final package; relay/direct labeling contract still pending",

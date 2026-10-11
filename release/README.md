@@ -1,3 +1,12 @@
+Current ET source correction: dbaf0453 is accepted for isolated compilation;
+ET-OWNERSHIP-001 source gap is resolved. Capacity owner is parent-authorized for
+one Rust 1.95 MSVC core build with normal official-registry locked dependency fetch.
+The direct build-information message was rejected by automatic approval review;
+its send awaits explicit user confirmation. SDK integration.3 is delivered and
+its import/retest is pending; no final package approval.
+
+Previous frozen checkpoint description below remains historical.
+
 # Reviewed private source checkpoint
 
 `manifest.json` coordinates the unique private integration branch, component
