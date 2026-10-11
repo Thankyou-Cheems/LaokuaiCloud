@@ -1,0 +1,75 @@
+{
+  "schema": 1,
+  "parentIntegrationCommit": "00997cad6ab580b1c0a657dd8fdad9ac016fa1b7",
+  "nativeBaselineSourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
+  "changedPath": "easytier/Cargo.toml",
+  "baselineSha256": "fc86d2cd78da0642586293c144ed18d94ae0702a141aab0af9c3cff738bf482d",
+  "integratedSha256": "3c2acac6245433e4058a6bc9f8fa2e48a767d316e67e7cb60838ffefc10b28bb",
+  "cargoLockSha256": "e3ee41507e7a8ef94470b70f4639140e67aadae646ada82dfd23b0beeb0e7fb2",
+  "serviceManagerGitCommit": "5eb28f7a686858eea4f4933534ed989d3b71dc2a",
+  "windowsServiceManagerFeatures": [],
+  "actualWindowsFeatureTreeSha256": "14cc954f1b0afb944cf077fc056e4a5b2b2aacb6821e10a4bf3e6d805a264415",
+  "metadataWorkspaceUnionFeatures": [
+    "default",
+    "encoding"
+  ],
+  "metadataFeaturesAreNotTargetBuildAcceptance": true,
+  "windowsRemovedPackages": [
+    "codepage@0.1.3",
+    "encoding-utils@0.1.0"
+  ],
+  "windowsAddedPackages": [],
+  "windowsNormalBuildPackagesBefore": 506,
+  "windowsNormalBuildPackagesAfter": 504,
+  "windowsMetadataPackages": 886,
+  "windowsMetadataRegistryPackages": 865,
+  "normalizedMetadataGraphSha256": "683e5e7f13cf8fab8dd558850be94f3a39bb9a6fd4f9f03860119277d07e1f6f",
+  "nonWindowsDefaultDeclarationPreserved": true,
+  "linuxTreePassed": false,
+  "linuxTreeBlockedByMissingFrozenArchive": "iana-time-zone-0.1.65.crate",
+  "features": [
+    "cli",
+    "wireguard",
+    "websocket",
+    "smoltcp",
+    "tun",
+    "socks5",
+    "kcp",
+    "quic",
+    "magic-dns",
+    "zstd",
+    "upnp",
+    "icmp-proxy",
+    "management",
+    "endpoint-discovery",
+    "extended-services",
+    "linux-netlink",
+    "tcp-hole-punch"
+  ],
+  "checks": [
+    {
+      "target": "x86_64-pc-windows-msvc",
+      "version": "baseline",
+      "exit": 0,
+      "lockUnchanged": true,
+      "activePackages": 506,
+      "treeSha256": "cb3e7b79a7ca9597dc21c66564b48795d6795ac9d67a7a4e5b398e0ce025c871",
+      "stderr": ""
+    },
+    {
+      "target": "x86_64-pc-windows-msvc",
+      "version": "integrated",
+      "exit": 0,
+      "lockUnchanged": true,
+      "activePackages": 504,
+      "treeSha256": "06553783b2253be7b21dcf13599c60812c96f2bf45c545ad247ffa6db1bfbc69",
+      "stderr": ""
+    }
+  ],
+  "sourceIntegrated": true,
+  "nativeBuilt": false,
+  "nativeExecuted": false,
+  "buildScriptsExecuted": false,
+  "frozenBinariesUnchanged": true,
+  "oldBinaryNoticeQuestionResolved": false
+}
