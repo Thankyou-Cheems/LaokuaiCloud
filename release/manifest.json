@@ -1,7 +1,7 @@
 {
   "schema": 2,
-  "id": "laokuai-cloud-hybrid-bootstrap-48-64-core-input-20261011",
-  "stage": "source-wiring-advanced-sdk-et-authority-details-and-quality-retest-pending",
+  "id": "laokuai-cloud-passive-provider-candidate-20261011",
+  "stage": "provider-mounted-sdk-et-observers-and-details-pending",
   "ready": false,
   "repository": {
     "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud",
@@ -9,15 +9,15 @@
     "visibility": "private",
     "branch": "release/integration-20261011",
     "soleGitWriter": "task-6",
-    "codeCommit": "0c5a194ff11cd469c0d5fe4cbf77c5bcd08e8fe2",
-    "codeTree": "c0bb2119085243a493604ff0a9a74c0ada408c05",
+    "codeCommit": "ca8290cfd2996d5ff41e04716e342ca0c848e96b",
+    "codeTree": "325924d5a888a00bc0e01141d6e6f9dfbedcf206",
     "newRepositoryReason": "Authenticated private-repo metadata and explicitly scoped old local core/game remotes revealed no matching existing private integration repository",
     "historyPolicy": "Original client history preserved; no force push/reset/rewrite; other components imported as licensed source snapshots"
   },
   "components": {
     "client": {
       "path": "components/client",
-      "tree": "e59620fa7dc1828399988d00cb9b3755e4d44a3f",
+      "tree": "d85bed4d1963cd77328d5b9c980825f01c8ce2d2",
       "upstream": "Gryt-chat/client",
       "publicFork": "Thankyou-Cheems/gryt-client-i18n",
       "historyImportedFrom": "06ac43f51dbda3b9444c73270a126e10489110e9",
@@ -500,7 +500,7 @@
     "coreExecuted": false
   },
   "validation": {
-    "commit": "0c5a194ff11cd469c0d5fe4cbf77c5bcd08e8fe2",
+    "commit": "ca8290cfd2996d5ff41e04716e342ca0c848e96b",
     "clientFullTypes": "passed: tsc -b --noEmit (app and desktop) against exact installed SDK integration.3",
     "targetedHybridAndMemberLint": "passed",
     "targetedEtLint": "passed: 11 changed TS/MJS/CJS files, zero warnings",
@@ -749,7 +749,7 @@
       "staticSourceInventory": "pure resource contract passed",
       "runtimeExecution": false
     },
-    "fullClientTypesSourceCommit": "0c5a194ff11cd469c0d5fe4cbf77c5bcd08e8fe2",
+    "fullClientTypesSourceCommit": "ca8290cfd2996d5ff41e04716e342ca0c848e96b",
     "nativeSourceContracts": {
       "sourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
       "scenarios": 10,
@@ -923,8 +923,43 @@
       "sdk": "SDK owner: passive selected-media/auth-scope/decoded-window/stat snapshot, no new protocol; deliver separate immutable source/package",
       "et": "task-7 ET owner: owned-instance existing CLI/RPC peer/route read-only fields plus missing-binding/selected-route/measurement-time matrix; complete exact companion/driver notices",
       "ui": "task-4 UI owner: production read-only connection details and selected-transport vs physical-underlay presentation, consuming current hooks/providers; keep permissions/PTT/Squad/menu behavior",
-      "integration": "task-6: independent scope/epoch and unique provider integration after frozen contracts; no protocol/capture duplication",
-      "test": "capacity owner: fresh frozen 48/64/main-bootstrap functional/protocol/media tests, then capacity/FEC/quality scopes separately"
+      "integration": "task-6: provider/scopes/leases/TTL mounted in candidate; consume owner actual SDK/ET contracts next, no protocol/capture duplication",
+      "test": "capacity owner: fresh frozen 48/64/main-bootstrap functional/protocol/media tests, then capacity/FEC/quality scopes separately",
+      "providerContract": "release/path-provider-contract.md"
+    },
+    "memberPathProviderCandidate": {
+      "sourceCommit": "ca8290cfd2996d5ff41e04716e342ca0c848e96b",
+      "contract": "release/path-provider-contract.md",
+      "frozenMediaTestInput": "a36adcab5c9e89a649bb56d6d6a35acb5607d61d",
+      "testInputModified": false,
+      "providerMounted": true,
+      "independentAuthenticatedConnectionScopes": true,
+      "receiveOnlySupported": true,
+      "opaqueRoomTokenPreserved": true,
+      "localEpochNeverParsedOrHashed": true,
+      "lifecycleLeaseRetirement": true,
+      "selectionInvalidationRotatesLease": true,
+      "idleClockAndTtl": true,
+      "logicalSelectionSeparateFromPhysicalUnderlay": true,
+      "sdkObserverSubscribed": false,
+      "etObserverSubscribed": false,
+      "productionDetails": false,
+      "newStoreAndBridgePureScenarios": 16,
+      "existingPathScenarios": 17,
+      "fullAppTypesPassed": true,
+      "desktopTypesPassed": true,
+      "targetedLintPassed": true,
+      "integrationPurePassed": true,
+      "hybridBootstrapPurePassed": true,
+      "actualPeerConnections": 0,
+      "network": false,
+      "capture": false,
+      "nativeRuntime": false
+    },
+    "providerCandidateBoundaryScan": {
+      "textFiles": 3194,
+      "hits": [],
+      "scope": "Current tracked text; prior client private-delta/history and vendor boundary audit retained separately. Pattern scan is not proof of absence of all secrets."
     }
   },
   "securityBoundary": {
@@ -955,10 +990,10 @@
     "Dynamic non-destructive multi-community RPC transport; current production CLI path supports one community",
     "Current-version full capacity/CPU/FEC/listening and physical-direct acceptance",
     "Final portable package mapped to exact integrated commit and measured artifact SHA256",
-    "Independently scoped authenticated current SDK media/selection and complete ET underlay producer for the passive UI provider; connection details remain prototype-only",
+    "Mounted independent authenticated provider: SDK observer and actual ET data consumption pending; production connection details await immutable UI owner patch",
     "SDK owner passive receive observer supporting SFU-only and Hybrid; independent scope/decoded windows/selected pair statistics. Existing selected state is insufficient for current strict UI proof",
     "ET owner existing read-only route/peer integration and exact missing authentication binding/final forwarding/RTT time fields; no new complete-path proof protocol",
-    "UI owner production connection details; task-6 mount scoped provider after immutable SDK/ET contracts. These code tasks do not wait for design approval",
+    "UI owner production connection details; task-6 consume frozen SDK/ET observer contracts in mounted provider. These code tasks do not wait for design approval",
     "Capacity owner fresh frozen 48k SFU/64k peer and actual private-product bootstrap/sinks/prior-registry media/codec regression; previous passing 24k factory evidence is not new profile acceptance"
   ],
   "finalPackage": null,

@@ -5,7 +5,8 @@ SFU48/P2P64 请求和自编 core 静态输入已在 `0c5a194f` 完成代码与�
 SDK3 `78513ba4` 的两/四端 24k loopback 复验已通过；ET native `dbaf0453`
 release 编译已通过。保留这些冻结证据，另取新48/64/正式 bootstrap 快照复测。
 下面是下一轮独立功能提交的范围，不得改写旧验收输入。
-当前 provider 未挂载、生产连接详情未实现；三版 UI 的模式补漏没有完成这些功能。
+provider 已在后续 `ca8290cf` 候选挂载并建立独立连接 scope、lease、失效和 TTL；
+SDK 观察与生产连接详情尚未接通。候选合同见 `path-provider-contract.md`。
 不等待外观确认才开始纯代码接线，不为完整物理路径证明增加网络协议。
 
 ## 第一阶段可以完成什么
@@ -103,7 +104,8 @@ binding 需要服务器提供者，由父另派 server/community owner，不能�
 
 ## 客户端整合 owner：scope、provider 与单一数据流
 
-Owner：task-6，在接到冻结 SDK/ET 合同后唯一整合；不让两位功能 owner 写同一客户端文件。
+Owner：task-6，已在独立新候选准备 scope/provider/store；接到冻结 SDK/ET 合同后
+继续唯一整合。不让两位功能 owner 写同一客户端文件。
 文件：`src/packages/webRTC/src/adapters/HybridVoiceBridge.tsx`、
 `src/packages/webRTC/src/adapters/ReceiveCorrectionBridge.tsx`、
 `src/packages/webRTC/src/components/MemberVoiceMediaPathAdapter.tsx`、

@@ -44,8 +44,11 @@ profile media tests are still required. A WebRTC peer over ET relay is not prove
 UI v3 is integrated at31cec3c6. Complete user design approval is pending.
 Preserve VoiceAudioControls/HoverAudioControl
 hover/click menus and manual mute/PTT idle/Squad suppression presence semantics.
-MemberVoiceMediaPathProvider is not mounted; real authenticated SDK/ET evidence
-wiring and connection details are pending. UI work does not delay the capacity
+MemberVoiceMediaPathProvider is mounted once with independent authenticated
+connection/roster scopes, passive lifecycle leases and TTL. SDK observations are
+still absent pending the owner's immutable read-only interface; ET evidence and
+connection details remain pending. Follow release/path-provider-contract.md.
+UI work does not delay the capacity
 owner's reviewed dbaf0453 build or immutable 78513ba4 SDK3 evidence. The dbaf
 release build passed; private core28248cf2 and static product inputs are verified.
 Do not run native core/TUN or treat input preparation as activation approval.

@@ -55,6 +55,13 @@ Run `node release/verify-build-inputs.cjs` for the prepared local bytes.
 [Path wiring owner tasks](path-wiring-owner-tasks.md) gives precise parallel SDK,
 ET and UI file scopes, available APIs, missing fields and acceptance checks.
 Task-6 consumes frozen contracts for independent scope/epoch/provider integration.
+The subsequent `ca8290cf` candidate mounts the one passive provider with independent
+authenticated connection scopes, receive-only compatibility, exact opaque token
+epochs, retirement leases and TTL. Sixteen new store/bridge scenarios and seventeen
+existing path scenarios pass, as do app/desktop types, targeted lint, integration
+and Hybrid bootstrap checks. SDK observations are still absent; the new code does
+not change the `a36adcab` media test input. See
+[Provider contract](path-provider-contract.md) for precise interface requirements.
 These code tasks do not wait for appearance approval; native safety confirmation
 blocks actual activation only. Member assistance settings/policies/experiments
 remain deferred; existing public ET relay configuration remains unchanged.
