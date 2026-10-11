@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "integrationSourceCommit": "7a2b629bab87386ebba935a930e810afafca0772",
+  "ownerCommits": {
+    "observation": "2451a609fe249ba317be5b7c64ab0ac5e8ef0a24",
+    "featureProfileAndTrialHold": "c81c3bb90318bedc3b6fca0e2b4f2ad58f3ca49d",
+    "notices": "67a8e5b6df4e123ef27ebd08a528a92056a64846"
+  },
+  "inputBase": "be06217ea3a5f3b097b2ce2ff7d1da671796c733",
+  "patchSha256": "8d74f256f75955a8ef9e4c1b23a7f4eee98af748cf05fdd66aa3c06b4cbafc67",
+  "appliedOnce": true,
+  "patchConflicts": [],
+  "noticeInventory": "components/client/release/easytier-native-input-inventory.json",
+  "exactOriginalLicenseFiles": 5,
+  "getStateAndOnStateLocalDetails": true,
+  "observationSource": "owned --verbose --output json route list; existing fixed argv/single-flight/permission/retirement scope",
+  "scope": [
+    "serverId",
+    "instanceId",
+    "generation"
+  ],
+  "ttlFromAcquisitionStartMs": 5000,
+  "rendererClockDomain": "UTC, separate from SDK performance.now",
+  "providerConsumption": "sole member path Provider exposes independent localNetwork/useMemberVoiceLocalNetwork; no member mapping or media underlay",
+  "memberBindings": [],
+  "physicalPath": "unknown",
+  "rttMs": null,
+  "independentFakeChecks": {
+    "lifecycle": 36,
+    "production": 23,
+    "network": 10,
+    "strictTypes": "passed"
+  },
+  "ownerReportedChecks": {
+    "lifecyclePure": 36,
+    "productionFakePorts": 23,
+    "newNetworkFakePorts": 10,
+    "trialPure": 15,
+    "strictNoEmitTypes": "passed",
+    "licenseOriginalAndStagedByteHashes": "5 passed",
+    "bundlePrerequisiteVerified": "e8347aa42fc7ce610927e6db3e517ea33f52dcb7",
+    "integrationForwardReverseApply": "passed against frozen source; result files match tested source",
+    "heavyBuildOrNativeExecution": false
+  },
+  "actualCoreOrCliExecuted": false,
+  "actualNetworking": false,
+  "sourcePolicy": "startup-only one-owned-session CLI guard preserved; no remote server/policy change",
+  "noNpcapBuild": {
+    "profile": "components/client/scripts/easytier-windows-feature-profile.json",
+    "profileSha256": "63485768b86b55e00b34f20353ef8a6b5395e768ef2cfee8266f56a0cc62aa84",
+    "sourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
+    "sourceTree": "e58f64a219c204cdaf364fc95466cf03acfb7c21",
+    "cargoLockSha256": "e3ee41507e7a8ef94470b70f4639140e67aadae646ada82dfd23b0beeb0e7fb2",
+    "features": [
+      "cli",
+      "wireguard",
+      "websocket",
+      "smoltcp",
+      "tun",
+      "socks5",
+      "kcp",
+      "quic",
+      "magic-dns",
+      "zstd",
+      "upnp",
+      "icmp-proxy",
+      "management",
+      "endpoint-discovery",
+      "extended-services",
+      "linux-netlink",
+      "tcp-hole-punch"
+    ],
+    "omitted": [
+      "FakeTCP",
+      "pnet interface enumeration fallback"
+    ],
+    "retained": [
+      "TCP",
+      "UDP",
+      "QUIC",
+      "TCP hole punching",
+      "broadcast/WinDivert"
+    ],
+    "compiledByTask6": false,
+    "requiresBothBinaryNormalAndDelayImports": true,
+    "finalCoreSha256": null,
+    "finalCliSha256": null,
+    "fourFileRuntimeManifestUpdated": false,
+    "activationApproved": false
+  }
+}

@@ -1,7 +1,7 @@
 {
   "schema": 2,
-  "id": "laokuai-cloud-sfu-microphone48-fix-candidate-20261011",
-  "stage": "sfu48-source-fixed-real-retest-and-sdk-et-translators-pending",
+  "id": "laokuai-cloud-receive-path-et-observation-frozen-20261011",
+  "stage": "read-only-path-integration-pure-verified-real-media-and-final-native-build-pending",
   "ready": false,
   "repository": {
     "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud",
@@ -9,15 +9,15 @@
     "visibility": "private",
     "branch": "release/integration-20261011",
     "soleGitWriter": "task-6",
-    "codeCommit": "8d4ae5aaac270d7e8e37ba5b1e7c579405a59dce",
-    "codeTree": "ffd7bbce10ba23826c4fc3fb902d20ee0c8ac87b",
+    "codeCommit": "7a2b629bab87386ebba935a930e810afafca0772",
+    "codeTree": "246e53be5ea51fee67e62460237edbb81e8f31d5",
     "newRepositoryReason": "Authenticated private-repo metadata and explicitly scoped old local core/game remotes revealed no matching existing private integration repository",
     "historyPolicy": "Original client history preserved; no force push/reset/rewrite; other components imported as licensed source snapshots"
   },
   "components": {
     "client": {
       "path": "components/client",
-      "tree": "cf4a0ca184cc120c98832492cd13f92d72693cc4",
+      "tree": "dc154c81f86b20a1165bdaa1e7bdd8ed8dc14a7b",
       "upstream": "Gryt-chat/client",
       "publicFork": "Thankyou-Cheems/gryt-client-i18n",
       "historyImportedFrom": "06ac43f51dbda3b9444c73270a126e10489110e9",
@@ -25,33 +25,33 @@
       "completeDirtySourceSnapshot": "2b9f02076051e3a445bfa99e79d1fc7ac421e19f",
       "originalPreservation": "24 tracked modifications and 6 untracked files retained; all frozen snapshot blobs verified",
       "version": "1.13.22-laokuai.opus20.1",
-      "dependencyLockSha256": "cbd589aa13e48a096080e12994ecd661b817c3ca20696d03efd4a2e2c25e5136"
+      "dependencyLockSha256": "d2d38246a119b974b724d96846c11dfb191c2b177786316d82238180e1ba5032"
     },
     "voice": {
       "path": "components/voice",
-      "tree": "7347828fce1cf2c58b5e9a4c2d8c9f53341e3952",
+      "tree": "647578eb66cfc154283b758f38b065c10b72364d",
       "upstream": "Gryt-chat/voice",
       "publicFork": "Thankyou-Cheems/voice",
-      "sourceCommit": "6d710f34070cbc01bb838a77dfec0963b0ce298b",
-      "sourceZipSha256": "94fc43470dc8f724e0f702df962c8b1f05b83191a6713d36c6639f5b8b7db859",
-      "sourceFiles": 300,
-      "importCorrespondence": "299 exact source files plus existing optional probe import path portability override; production source exactly matches frozen owner source",
+      "sourceCommit": "b8f16d0eac49c2fb09a92f6298d8cbb9eaed7bc1",
+      "sourceZipSha256": "c1b98510416c8b56dd41e5cde90009d0eeafb42e96d0db6398a9401e5a5ccf2b",
+      "sourceFiles": 305,
+      "importCorrespondence": "304 exact Git-blob archive files plus retained optional portable probe override; production source exact",
       "license": "AGPL-3.0-only; Signalsmith MIT and all receive-rnn notices preserved",
       "package": {
-        "path": "components/client/vendor/gryt-voice-0.6.2-laokuai.hybrid.integration.3.tgz",
-        "version": "0.6.2-laokuai.hybrid.integration.3",
-        "sha256": "29f858d9a97ae788748c59cc023cc350d9178e645adb39c7a96b327b8aa3299b",
-        "sha1": "a3b4348aab2d086fed058d29894ac0242d9c49d8",
-        "installedPackedFiles": 205,
-        "installedByteVerification": "all 205 installed bytes matched final owner manifest",
-        "frozenOfflineInstall": "Yarn 1.22.22 frozen-lockfile/offline/ignore-scripts passed after locked public dependency cache fill; lock changed only SDK entry"
+        "path": "components/client/vendor/gryt-voice-0.6.2-laokuai.receive-path.1.tgz",
+        "version": "0.6.2-laokuai.receive-path.1",
+        "sha256": "8abea479d053b6310e8c97746ae8b07f153a17d691dc20bdd5a241b6fe90caed",
+        "sha1": "31933fb5791bf6d28b56e152ffea4f207127f77f",
+        "installedPackedFiles": 212,
+        "installedByteVerification": "all 212 tar and installed files match frozen owner manifest",
+        "frozenOfflineInstall": "Yarn 1.22.22 frozen/offline/ignore-scripts passed after locked public cache fill; lock diff only SDK entry"
       },
       "closedPcFix": {
         "sourceCommit": "114a9ad0ba2d9e1e83b9a762a150dba6a54e0ee4",
         "appliedOnceBySdkOwner": true,
         "pureAssertions": 159,
         "classification": "Avoid invalid removeTrack on closed PC; no demonstrated leak repair",
-        "inheritedBySourceCommit": "6d710f34070cbc01bb838a77dfec0963b0ce298b"
+        "inheritedBySourceCommit": "b8f16d0eac49c2fb09a92f6298d8cbb9eaed7bc1"
       },
       "intermediate1Preserved": true,
       "publicResearchResults": {
@@ -82,6 +82,26 @@
         "pureAssertions": 129,
         "realMediaAcceptance": true,
         "realMediaAcceptanceScope": "Frozen SDK3 factory, two/four real SDK loopback at 24k; not full app, new quality profile, WAN/ET or full-capacity acceptance"
+      },
+      "preservedSdk3": {
+        "sourceCommit": "6d710f34070cbc01bb838a77dfec0963b0ce298b",
+        "sourceZipSha256": "94fc43470dc8f724e0f702df962c8b1f05b83191a6713d36c6639f5b8b7db859",
+        "package": {
+          "path": "components/client/vendor/gryt-voice-0.6.2-laokuai.hybrid.integration.3.tgz",
+          "version": "0.6.2-laokuai.hybrid.integration.3",
+          "sha256": "29f858d9a97ae788748c59cc023cc350d9178e645adb39c7a96b327b8aa3299b",
+          "sha1": "a3b4348aab2d086fed058d29894ac0242d9c49d8",
+          "installedPackedFiles": 205,
+          "installedByteVerification": "all 205 installed bytes matched final owner manifest",
+          "frozenOfflineInstall": "Yarn 1.22.22 frozen-lockfile/offline/ignore-scripts passed after locked public dependency cache fill; lock changed only SDK entry"
+        },
+        "preserved": true
+      },
+      "receivePathObserver": {
+        "sourceCommit": "b8f16d0eac49c2fb09a92f6298d8cbb9eaed7bc1",
+        "patchSha256": "103b9a56447c0b04f68b97ae29fd551bda553714b9137ddd4eaf8f506f61c9b3",
+        "appliedOnce": true,
+        "actualMediaAcceptance": false
       }
     },
     "server": {
@@ -317,6 +337,26 @@
       "packageInputSha256": "4c57e56ec2973d18216afe1e896e95f33b1441c8f8f18cc1eea14a3534de68b6",
       "owner": "capacity-owner-build/task-6-static-integration",
       "coreExecuted": false
+    },
+    {
+      "kind": "passive-sdk-receive-path-source-package-and-sole-provider-translator",
+      "deliveredCommit": "b8f16d0eac49c2fb09a92f6298d8cbb9eaed7bc1",
+      "integratedCommit": "7a2b629bab87386ebba935a930e810afafca0772",
+      "patchSha256": "103b9a56447c0b04f68b97ae29fd551bda553714b9137ddd4eaf8f506f61c9b3",
+      "packageSha256": "8abea479d053b6310e8c97746ae8b07f153a17d691dc20bdd5a241b6fe90caed",
+      "realMediaAcceptance": false
+    },
+    {
+      "kind": "owned-et-read-only-observation-no-npcap-profile-and-license-notices",
+      "deliveredCommits": {
+        "observation": "2451a609fe249ba317be5b7c64ab0ac5e8ef0a24",
+        "featureProfileAndTrialHold": "c81c3bb90318bedc3b6fca0e2b4f2ad58f3ca49d",
+        "notices": "67a8e5b6df4e123ef27ebd08a528a92056a64846"
+      },
+      "integratedCommit": "7a2b629bab87386ebba935a930e810afafca0772",
+      "patchSha256": "8d74f256f75955a8ef9e4c1b23a7f4eee98af748cf05fdd66aa3c06b4cbafc67",
+      "patchConflicts": [],
+      "nativeSourceChanged": false
     }
   ],
   "easytier": {
@@ -502,22 +542,56 @@
     "privateBuildPackageInput": "build/community-lan/product/laokuai-owned-create-runtime-input.zip",
     "privateCoreSha256": "28248cf281690d95afa6550769452dc803338ee016d1f52e1150d12cda661eae",
     "nativeCoreCompilationPassed": true,
-    "coreExecuted": false
+    "coreExecuted": false,
+    "localObservationStatus": "owned route/peer producer and scoped passive Provider facts source-integrated; authenticated member mapping absent",
+    "noNpcapBuildProfile": "components/client/scripts/easytier-windows-feature-profile.json"
   },
   "validation": {
-    "commit": "ef5da42dcac55847168f48a8b01eef00cf71d347",
-    "clientFullTypes": "passed: tsc -b --noEmit (app and desktop) against exact installed SDK integration.3",
+    "commit": "7a2b629bab87386ebba935a930e810afafca0772",
+    "clientFullTypes": "passed: full app and desktop tsc noEmit against exact receive-path.1 installed package",
     "targetedHybridAndMemberLint": "passed",
     "targetedEtLint": "passed: 11 changed TS/MJS/CJS files, zero warnings",
     "clientPure": {
       "status": "passed",
       "checks": [
         {
-          "name": "check-voice-ui-experience",
+          "name": "check-member-voice-receive-translator",
           "exit": 0
         },
         {
-          "name": "check-squad-key-list-ui",
+          "name": "check-member-voice-media-store",
+          "exit": 0
+        },
+        {
+          "name": "check-member-voice-media-path",
+          "exit": 0
+        },
+        {
+          "name": "check-provider-details-contract",
+          "exit": 0
+        },
+        {
+          "name": "check-connection-details-ui",
+          "exit": 0
+        },
+        {
+          "name": "check-hybrid-product-bootstrap",
+          "exit": 0
+        },
+        {
+          "name": "check-laokuai-integration",
+          "exit": 0
+        },
+        {
+          "name": "check-member-lan-status",
+          "exit": 0
+        },
+        {
+          "name": "check-member-voice-mode-display",
+          "exit": 0
+        },
+        {
+          "name": "check-voice-ui-experience",
           "exit": 0
         },
         {
@@ -529,75 +603,7 @@
           "exit": 0
         },
         {
-          "name": "check-settings-search-i18n",
-          "exit": 0
-        },
-        {
-          "name": "check-nickname-scope",
-          "exit": 0
-        },
-        {
-          "name": "check-nickname-display-scope",
-          "exit": 0
-        },
-        {
-          "name": "check-transmit-speech-indicator",
-          "exit": 0
-        },
-        {
-          "name": "check-receive-leveling",
-          "exit": 0
-        },
-        {
-          "name": "check-pure-voice-policy",
-          "exit": 0
-        },
-        {
-          "name": "check-laokuai-package-audit",
-          "exit": 0
-        },
-        {
-          "name": "check-private-profile-upgrade",
-          "exit": 0
-        },
-        {
-          "name": "check-private-startup",
-          "exit": 0
-        },
-        {
-          "name": "check-private-profile",
-          "exit": 0
-        },
-        {
-          "name": "check-private-defaults",
-          "exit": 0
-        },
-        {
-          "name": "check-squad-broker",
-          "exit": 0
-        },
-        {
-          "name": "check-laokuai-integration",
-          "exit": 0
-        },
-        {
-          "name": "check-voice-transport-preset",
-          "exit": 0
-        },
-        {
-          "name": "check-i18n",
-          "exit": 0
-        },
-        {
-          "name": "check-member-lan-status",
-          "exit": 0
-        },
-        {
           "name": "check-community-easytier",
-          "exit": 0
-        },
-        {
-          "name": "check-community-easytier-types",
           "exit": 0
         },
         {
@@ -605,15 +611,11 @@
           "exit": 0
         },
         {
-          "name": "check-private-easytier-wiring",
+          "name": "check-community-easytier-network",
           "exit": 0
         },
         {
-          "name": "check-hybrid-receive-bindings-typescript-vm",
-          "exit": 0
-        },
-        {
-          "name": "member-lan-strict-types",
+          "name": "check-community-easytier-types",
           "exit": 0
         }
       ],
@@ -623,10 +625,120 @@
       "startupTrayScenarios": 18,
       "communityEtProductionScenarios": 22,
       "privateEtIntegration": "Actual private metadata gate, six downstream resource paths, scoped idle clock/snapshot disposal; no runtime execution",
-      "lastFullSuiteCommit": "0c5a194ff11cd469c0d5fe4cbf77c5bcd08e8fe2"
+      "lastFullSuiteCommit": "0c5a194ff11cd469c0d5fe4cbf77c5bcd08e8fe2",
+      "previousFullSuite": {
+        "checks": [
+          {
+            "name": "check-voice-ui-experience",
+            "exit": 0
+          },
+          {
+            "name": "check-squad-key-list-ui",
+            "exit": 0
+          },
+          {
+            "name": "check-receive-volume-shortcut",
+            "exit": 0
+          },
+          {
+            "name": "check-i18n-completion",
+            "exit": 0
+          },
+          {
+            "name": "check-settings-search-i18n",
+            "exit": 0
+          },
+          {
+            "name": "check-nickname-scope",
+            "exit": 0
+          },
+          {
+            "name": "check-nickname-display-scope",
+            "exit": 0
+          },
+          {
+            "name": "check-transmit-speech-indicator",
+            "exit": 0
+          },
+          {
+            "name": "check-receive-leveling",
+            "exit": 0
+          },
+          {
+            "name": "check-pure-voice-policy",
+            "exit": 0
+          },
+          {
+            "name": "check-laokuai-package-audit",
+            "exit": 0
+          },
+          {
+            "name": "check-private-profile-upgrade",
+            "exit": 0
+          },
+          {
+            "name": "check-private-startup",
+            "exit": 0
+          },
+          {
+            "name": "check-private-profile",
+            "exit": 0
+          },
+          {
+            "name": "check-private-defaults",
+            "exit": 0
+          },
+          {
+            "name": "check-squad-broker",
+            "exit": 0
+          },
+          {
+            "name": "check-laokuai-integration",
+            "exit": 0
+          },
+          {
+            "name": "check-voice-transport-preset",
+            "exit": 0
+          },
+          {
+            "name": "check-i18n",
+            "exit": 0
+          },
+          {
+            "name": "check-member-lan-status",
+            "exit": 0
+          },
+          {
+            "name": "check-community-easytier",
+            "exit": 0
+          },
+          {
+            "name": "check-community-easytier-types",
+            "exit": 0
+          },
+          {
+            "name": "check-community-easytier-production",
+            "exit": 0
+          },
+          {
+            "name": "check-private-easytier-wiring",
+            "exit": 0
+          },
+          {
+            "name": "check-hybrid-receive-bindings-typescript-vm",
+            "exit": 0
+          },
+          {
+            "name": "member-lan-strict-types",
+            "exit": 0
+          }
+        ],
+        "lastFullSuiteCommit": "0c5a194ff11cd469c0d5fe4cbf77c5bcd08e8fe2"
+      },
+      "lastTargetedSuiteCommit": "7a2b629bab87386ebba935a930e810afafca0772"
     },
     "sourcePackageInventory": "passed; includes exact Windows sidecar resource entries; source-only does not approve executable",
-    "sdkSourceAndPackage": "300 source ZIP file hashes verified; 299 exact import plus unchanged optional portable probe override; all 205 tar/installed packed hashes match",
+    "sdkSourceAndPackage": "305 source ZIP hashes verified; 304 exact imports plus retained optional probe; 212 tar/installed bytes exact; old SDK artifacts preserved",
     "server": "Owner type/JWT/temporary SQLite tests passed; fake SFU ACK/media; no real server acceptance here",
     "capacity": {
       "legacyLightweight20": {
@@ -742,6 +854,20 @@
         "wireBytesMeasured": false,
         "newCandidateRealRetestPassed": false,
         "rawLogsImported": false
+      },
+      "receivePathRetest": {
+        "status": "pending-parent-capacity-queue-only",
+        "inputCodeCommit": "7a2b629bab87386ebba935a930e810afafca0772",
+        "sdkSourceCommit": "b8f16d0eac49c2fb09a92f6298d8cbb9eaed7bc1",
+        "sdkVersion": "0.6.2-laokuai.receive-path.1",
+        "sdkSha256": "8abea479d053b6310e8c97746ae8b07f153a17d691dc20bdd5a241b6fe90caed",
+        "sfuSourceCommit": "8d4ae5aaac270d7e8e37ba5b1e7c579405a59dce",
+        "sfuTree": "24c3669c4ca13d39f8132225ae1cb4a450750729",
+        "serverCommit": "e84e1ca5f7130bdc33528a9b563691267e7cb598",
+        "target": "fresh source snapshot actual selected receive track/PC epoch/decode/stat windows, SFU48/P2P64/cap16/auth ACK/fallback/stop forwarding + restore; no rewriting old failures",
+        "sourceWritesAllowed": false,
+        "task6ActualPeers": 0,
+        "productionAcceptance": false
       }
     },
     "physicalDirectVerified": false,
@@ -750,7 +876,7 @@
     "portableBinaryBuilt": false,
     "staticRuntimeAssetPreparation": "five official reference files independently rehashed; not accepted as patched payload",
     "portableBuild": {
-      "status": "blocked-packet-dll-distribution-and-driver-prerequisite-unresolved",
+      "status": "blocked-final-two-binary-no-npcap-imports-runtime-schema-licenses-design-and-media-acceptance",
       "authorization": "One candidate build/portable package only; do not launch product, helpers, core, CLI or drivers",
       "waitFor": "Current user UI approval for final package; notices/private payload completion; frozen new 48/64/bootstrap media/quality tests; native activation safety confirmation applies only to runtime steps",
       "requires": [
@@ -771,7 +897,7 @@
       "staticSourceInventory": "pure resource contract passed",
       "runtimeExecution": false
     },
-    "fullClientTypesSourceCommit": "ef5da42dcac55847168f48a8b01eef00cf71d347",
+    "fullClientTypesSourceCommit": "7a2b629bab87386ebba935a930e810afafca0772",
     "nativeSourceContracts": {
       "sourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
       "scenarios": 10,
@@ -980,7 +1106,8 @@
       "actualPeerConnections": 0,
       "network": false,
       "capture": false,
-      "nativeRuntime": false
+      "nativeRuntime": false,
+      "supersededBySourceCommit": "7a2b629bab87386ebba935a930e810afafca0772"
     },
     "providerCandidateBoundaryScan": {
       "textFiles": 3194,
@@ -1017,10 +1144,53 @@
       "sourceCommit": "8d4ae5aaac270d7e8e37ba5b1e7c579405a59dce",
       "sourceTree": "24c3669c4ca13d39f8132225ae1cb4a450750729",
       "status": "pure-cap-fix-passed-authentic-offer-and-media-retest-pending"
+    },
+    "receivePathIntegration": {
+      "sourceCommit": "7a2b629bab87386ebba935a930e810afafca0772",
+      "receipt": "release/acceptance/receive-path-integrated.json",
+      "receiptSha256": "8a2ee009ad1632de90b43dcf6582eaea4ece9d14ad150ed2fb02b64d84ea72d9",
+      "status": "exact-SDK-installed-sole-provider-translator-pure-and-types-passed-real-media-pending",
+      "sdkSourceCommit": "b8f16d0eac49c2fb09a92f6298d8cbb9eaed7bc1"
+    },
+    "etLocalObservation": {
+      "sourceCommit": "7a2b629bab87386ebba935a930e810afafca0772",
+      "receipt": "release/acceptance/et-local-observation-integrated.json",
+      "receiptSha256": "a5b77c7037e7f020c0260f9ad001b0366239ada85124201bd5187aa37d8769d9",
+      "status": "actual-producer-source-integrated-scope-TTL-pure-passed-no-live-network-acceptance"
+    },
+    "noNpcapBuildCandidate": {
+      "profile": "components/client/scripts/easytier-windows-feature-profile.json",
+      "profileSha256": "63485768b86b55e00b34f20353ef8a6b5395e768ef2cfee8266f56a0cc62aa84",
+      "sourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
+      "features": [
+        "cli",
+        "wireguard",
+        "websocket",
+        "smoltcp",
+        "tun",
+        "socks5",
+        "kcp",
+        "quic",
+        "magic-dns",
+        "zstd",
+        "upnp",
+        "icmp-proxy",
+        "management",
+        "endpoint-discovery",
+        "extended-services",
+        "linux-netlink",
+        "tcp-hole-punch"
+      ],
+      "status": "parent-queued-capacity-owner-build-both-core-and-cli",
+      "twoBinaryNormalAndDelayImportsVerified": false,
+      "fourFileRuntimeManifestUpdated": false,
+      "coreSha256": null,
+      "cliSha256": null,
+      "activationApproved": false
     }
   },
   "securityBoundary": {
-    "currentTrackedTextScanned": 3190,
+    "currentTrackedTextScanned": 3228,
     "credentialPatternHits": 0,
     "currentMachinePathHits": 0,
     "sourceRawPrivateLogsImported": false,
@@ -1053,7 +1223,11 @@
     "Production connection details source integrated; task-6 consumes frozen SDK/ET observer contracts next. Actual data is still absent, no second sampler/provider",
     "Capacity owner fresh frozen 48k SFU/64k peer and actual private-product bootstrap/sinks/prior-registry media/codec regression; previous passing 24k factory evidence is not new profile acceptance",
     "Exact dbaf core statically imports Packet.dll: Npcap redistribution and ordinary-user deployment unresolved; ET owner must audit optional pcap removal without reducing normal TUN/voice, then supply new exact-source build/PE evidence. No final package before resolution",
-    "Frozen a36 actual SFU48 failed at genuine24000 remote offer; new8d4ae5aa reserved-microphone48 cap policy passed pure checks only. Fresh authentic SDP/sender/RTP/PCM/restore retest required; previous P2P64/cap/custom-peer/DSP passes preserved"
+    "Frozen a36 actual SFU48 failed at genuine24000 remote offer; new8d4ae5aa reserved-microphone48 cap policy passed pure checks only. Fresh authentic SDP/sender/RTP/PCM/restore retest required; previous P2P64/cap/custom-peer/DSP passes preserved",
+    "Fresh receive-path.1 unified snapshot real media and selected-edge/clock/fence sampling acceptance by sole capacity owner",
+    "BOTH final core/CLI with exact 17-feature no-Npcap profile; normal/delay PE imports exclude Packet.dll/wpcap.dll; four-input runtime schema and final hashes updated together",
+    "Authenticated member-to-ET-peer binding, selected forwarding/full physical path and timestamped ET RTT are absent; keep unknown",
+    "Active transitive licenses and corresponding/relinkable native source delivery remain pending"
   ],
   "finalPackage": null,
   "frozenPreviousHybrid": {

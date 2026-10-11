@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "integrationSourceCommit": "7a2b629bab87386ebba935a930e810afafca0772",
+  "sdk": {
+    "sourceCommit": "b8f16d0eac49c2fb09a92f6298d8cbb9eaed7bc1",
+    "version": "0.6.2-laokuai.receive-path.1",
+    "sourceZipSha256": "c1b98510416c8b56dd41e5cde90009d0eeafb42e96d0db6398a9401e5a5ccf2b",
+    "packageSha256": "8abea479d053b6310e8c97746ae8b07f153a17d691dc20bdd5a241b6fe90caed",
+    "patchSha256": "103b9a56447c0b04f68b97ae29fd551bda553714b9137ddd4eaf8f506f61c9b3",
+    "verifiedArchivedSourceFiles": 305,
+    "byteExactImportedFiles": 304,
+    "retainedSourceOverride": "optional scripts/probe-native-dsp-delay.mjs portability override; production source exact",
+    "packedAndInstalledExactFiles": 212
+  },
+  "clockDomain": "performance.now",
+  "authority": "independent current authenticated host/roster plus current passive Hybrid session scope getter; observation scope only compared",
+  "lifecycle": [
+    "actual PC object and SDK connection epoch",
+    "account/socket/room/local session",
+    "remote session/publication/source control",
+    "same-ID new track object",
+    "raw revision and local selection epoch",
+    "opaque Hybrid room token",
+    "full snapshot missing/invalid row",
+    "last unsubscribe stale-flight fence"
+  ],
+  "logicalSelectionProof": "actual selected edge; availability requires positive exact-track decoded PCM-sample-frame window; first report is baseline",
+  "details": "same SDK sampler, opt-in existing dialog; RTT from selected-pair window, loss from exact-track packet window; zero retained only when measured",
+  "translatorFakeScenarios": 11,
+  "mountedStoreScenarios": 18,
+  "sdkExactPackedAssertions": 154,
+  "fullAppAndDesktopNoEmitTypes": "passed",
+  "targetedLint": "passed",
+  "physicalDirectVerified": false,
+  "sentToRemote": null,
+  "actualPeerConnections": 0,
+  "networkListeners": 0,
+  "capture": false,
+  "nativeExecution": false,
+  "realMediaAcceptance": false
+}
