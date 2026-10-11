@@ -7,6 +7,7 @@ import { useSockets } from "@/socket";
 import type { MovePolicyBinding } from "../../../../lib/movePolicy";
 import { receiveMicrophoneStreamIds } from "../../../../lib/pureVoicePolicy";
 import { useSquadGateEnabled } from "../../../../lib/squadRuntime";
+import { voicePresetCodec } from "../../../../lib/voiceTransportPreset";
 
 /**
  * The client's settings, in the shape the engine asks for — **the one place that
@@ -62,7 +63,7 @@ export function useVoiceConfigFromSettings(stunHosts: string[],move?:MovePolicyB
       screen:{quality:"480p",fps:30,gamingMode:false},
       connection: {
         mediaMode:"audio-only",
-        microphoneCodec:{codec:"opus",maxBitrateBps:s.voiceTransportPreset.maxBitrateBps,packetTimeMs:s.voiceTransportPreset.packetTimeMs,channels:1,vbr:true,dtx:s.voiceTransportPreset.requestDtx,fec:s.voiceTransportPreset.requestInbandFec},
+        microphoneCodec:voicePresetCodec(s.voiceTransportPreset),
         receiveMicrophoneStreamIds:microphones,
         stunHosts,
         eSportsMode,

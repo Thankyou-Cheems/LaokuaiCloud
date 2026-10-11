@@ -3635,8 +3635,8 @@
   },
   "transport": {
     "title": "Voice bandwidth",
-    "description": "Mono Opus with variable bitrate. This requests encoder and server preferences; actual traffic may differ. This experimental preset has not been shown to meet the target voice quality.",
-    "shared": "Data-saving experiment: 24 kbps / 20 ms",
+    "description": "Mono Opus with variable bitrate. The standard profile requests 48 kbps via the server and 64 kbps for peer audio; actual traffic depends on negotiation and channel limits.",
+    "shared": "Standard: server 48 / peer 64 kbps · 20 ms",
     "custom": "Custom transport preferences",
     "reconnect": "Changes apply after reconnecting. Legacy esports mode does not override this voice bandwidth selection.",
     "bitrate": "Maximum bitrate: {{value}} kbps",

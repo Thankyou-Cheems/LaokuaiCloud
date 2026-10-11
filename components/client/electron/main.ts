@@ -2216,9 +2216,10 @@ function createMainWindow(): BrowserWindow {
       ),
       // Read off argv in preload rather than fetched over IPC: the titlebar has
       // to know before its first paint, or it renders and then vanishes.
-      additionalArguments: drawsWindowButtons()
-        ? []
-        : [NO_WINDOW_CHROME_FLAG],
+      additionalArguments: [
+        ...(drawsWindowButtons() ? [] : [NO_WINDOW_CHROME_FLAG]),
+        ...(IS_LAOKUAI ? ["--laokuai-hybrid-voice"] : []),
+      ],
       contextIsolation: true,
       nodeIntegration: false,
       // The idle default only; a call turns it off. See setRendererThrottling.

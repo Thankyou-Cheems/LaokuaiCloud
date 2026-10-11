@@ -9,6 +9,7 @@ import { useServerManagement, useSockets } from "@/socket";
 import {createMoveAuthoritySession} from "../../../../lib/moveAuthoritySession";
 import {isMovePolicyAcknowledged,type MovePolicyBinding,type MovePolicyEvidence} from "../../../../lib/movePolicy";
 import { transmitSpeechIndicator } from "../../../../lib/transmitSpeechIndicator";
+import { peerVoicePreset, voicePresetCodec } from "../../../../lib/voiceTransportPreset";
 import {emitAuthenticated} from "../../../socket/src/utils/tokenManager";
 import {EffectiveVoicePolicyProvider} from "../components/EffectiveVoicePolicy";
 import { ReceiveLevelingProvider } from "../components/ReceiveLevelingAdapter";
@@ -97,6 +98,10 @@ function useDeviceCallbacks(): VoiceConfigCallbacks {
 
 export function VoiceProvider({ children, hybrid }: { children?: ReactNode; hybrid?: HybridVoicePolicy }) {
   const account=useUserId();
+  const { voiceTransportPreset } = useSettings();
+  const effectiveHybrid = useMemo(() => hybrid ? { ...hybrid,
+    microphoneCodec: hybrid.microphoneCodec ?? voicePresetCodec(peerVoicePreset(voiceTransportPreset)),
+  } : undefined, [hybrid, voiceTransportPreset]);
   const { currentlyViewingServer } = useServerManagement();
   const { sockets, serverDetailsList } = useSockets();
   const callbacks = useDeviceCallbacks();
@@ -179,7 +184,7 @@ export function VoiceProvider({ children, hybrid }: { children?: ReactNode; hybr
           behaviours that were deliberately left out of the package: the connect
           sound, ending a call when its server is removed, and the server hanging
           up on us. */}
-      <ReceiveCorrectionBridge config={config} hybrid={hybrid}>
+      <ReceiveCorrectionBridge config={config} hybrid={effectiveHybrid}>
         <VoiceLifecycle />
         <EffectiveVoicePolicyProvider value={{inputMode:config.audio.inputMode,requiredPushToTalk:requiredPushToTalk===true,
           serverMuted:config.audio.serverMuted,serverDeafened:config.audio.serverDeafened,canSpeak:config.audio.transmitEligible===true}}>
@@ -187,5 +192,5 @@ export function VoiceProvider({ children, hybrid }: { children?: ReactNode; hybr
         </EffectiveVoicePolicyProvider>
       </ReceiveCorrectionBridge>
     </VoiceConfigProvider>
-  ),[config,callbacks,target,authorities,evidence,requiredPushToTalk,children,hybrid]);
+  ),[config,callbacks,target,authorities,evidence,requiredPushToTalk,children,effectiveHybrid]);
 }

@@ -33,7 +33,7 @@ export function settingAnchorId(title: string): string {
 }
 
 export const SETTINGS_INDEX: SettingsIndexEntry[] = [
-  { id: "voice-transport", title: "Voice bandwidth", description: "Mono Opus with variable bitrate. This requests encoder and server preferences; actual traffic may differ. This experimental preset has not been shown to meet the target voice quality.", destination: "sound-video", page: "voice", section: "Voice" },
+  { id: "voice-transport", title: "Voice bandwidth", description: "Mono Opus with variable bitrate. The standard profile requests 48 kbps via the server and 64 kbps for peer audio; actual traffic depends on negotiation and channel limits.", destination: "sound-video", page: "voice", section: "Voice" },
   { id: "voice-transport-bitrate", title: "Maximum bitrate (kbps)", description: "The channel may impose a lower cap. This is RTP audio payload, excluding packet and network overhead.", destination: "sound-video", page: "voice", section: "Voice" },
   { id: "voice-transport-packet-time", title: "Packet duration preference", description: "The server must negotiate this preference. Longer packets add buffering delay.", destination: "sound-video", page: "voice", section: "Voice" },
   { id: "voice-transport-dtx", title: "Request DTX", description: "Request fewer packets during silence. This setting alone does not prove the encoder reduces packet rate.", destination: "sound-video", page: "voice", section: "Voice" },

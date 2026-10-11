@@ -1,4 +1,4 @@
-import { BrowserHybridVoiceSession, type BrowserHybridVoiceState, type HybridParticipant, useMicrophone, useSFU, type VoiceConfig } from "@gryt/voice";
+import { BrowserHybridVoiceSession, type BrowserHybridVoiceState, type HybridParticipant, type MicrophoneCodecProfile, useMicrophone, useSFU, type VoiceConfig } from "@gryt/voice";
 import { useEffect, useRef } from "react";
 
 import { getServerAccessToken, useUserId } from "@/common";
@@ -10,7 +10,10 @@ import type { ReceiveCorrectionRegistry } from "../../../../lib/receiveCorrectio
 export interface HybridVoicePolicy {
   enabled: boolean;
   allowNetwork: boolean;
-  rtcConfiguration: RTCConfiguration;
+  /** Optional override; otherwise inherit the current authorized SFU PC configuration. */
+  rtcConfiguration?: RTCConfiguration;
+  /** Independent peer encoder profile; channel permission/cap is still passed separately. */
+  microphoneCodec?: MicrophoneCodecProfile;
   onState?(state: BrowserHybridVoiceState): void;
 }
 
@@ -25,7 +28,7 @@ export function HybridVoiceBridge({ policy, config, registry }: { policy?: Hybri
   context.current = { scopeKey, sfu, microphone, sockets, policy, config };
   const live = useRef<{ scopeKey: string; session: BrowserHybridVoiceSession } | undefined>(undefined);
   const configured = policy?.allowNetwork === true;
-  const profileKey = JSON.stringify([policy?.rtcConfiguration, config.connection.microphoneCodec, config.connection.maxBitrate]);
+  const profileKey = JSON.stringify([policy?.rtcConfiguration, policy?.microphoneCodec, config.connection.microphoneCodec, config.connection.maxBitrate]);
 
   useEffect(() => {
     let cancelled = false;
@@ -43,9 +46,10 @@ export function HybridVoiceBridge({ policy, config, registry }: { policy?: Hybri
         }
         old.session.dispose(); if (live.current === old) live.current = undefined;
       }
-      const codec = context.current.config.connection.microphoneCodec, ice = context.current.policy?.rtcConfiguration;
+      const codec = context.current.policy?.microphoneCodec ?? context.current.config.connection.microphoneCodec;
       if (cancelled || !configured || !account || !serverId || !channel || !socket?.connected || !socket.id || !isConnected ||
-        !pc || pc.connectionState !== "connected" || !codec || !ice) return;
+        !pc || pc.connectionState !== "connected" || !codec) return;
+      const ice = context.current.policy?.rtcConfiguration ?? pc.getConfiguration();
       const current = () => context.current.scopeKey === scopeKey && context.current.sfu.isConnected &&
         context.current.sfu.getPeerConnection?.() === pc && socket.connected && socket.id === JSON.parse(scopeKey)[4];
       const sourceFor = (participant: HybridParticipant) => {

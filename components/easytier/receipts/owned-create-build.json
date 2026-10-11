@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
+  "sourceTree": "e58f64a219c204cdaf364fc95466cf03acfb7c21",
+  "patchSetSha256": "eb30fab089422c82256a8c8db9cb7a15d3c41b8b972a05729f63ebfbac7e8cad",
+  "cargoLockSha256": "e3ee41507e7a8ef94470b70f4639140e67aadae646ada82dfd23b0beeb0e7fb2",
+  "sourceBundleSha256": "71c09f9ba90cb87dcc3eb3d828477c21d5761a74c0fd049f965fa90b54d8425e",
+  "originalOwnerReceiptSha256": "42594ef7472b9f064a8c6540ef44682f3bd4280a67aa2a914f2f3e710d06eb7d",
+  "originalOwnerReportSha256": "fa8e25e1597901e1bcdde7fd93df32f1562fd56a5ec78fe961b9dc6d78ca6aab",
+  "command": "cargo +1.95.0 build --locked --offline --release -p easytier --bin easytier-core --target x86_64-pc-windows-msvc -j 1",
+  "startedAtUtc": "2026-10-11T08:02:40.539972+00:00",
+  "completedAtUtc": "2026-10-11T08:17:29.518457+00:00",
+  "elapsedSeconds": 888.978,
+  "exitCode": 0,
+  "rust": "1.95.0",
+  "target": "x86_64-pc-windows-msvc",
+  "defaultFeaturesPreserved": true,
+  "crtStaticPreserved": true,
+  "sourceWrites": false,
+  "core": {
+    "bytes": 20388864,
+    "sha256": "28248cf281690d95afa6550769452dc803338ee016d1f52e1150d12cda661eae",
+    "origin": "Reviewed downstream source build"
+  },
+  "staticPE": {
+    "machine": "AMD64",
+    "format": "PE32+",
+    "executed": false
+  },
+  "provenanceScope": "Capacity-owner build record plus independent task6 bytes/source/PE verification; raw build paths/logs excluded",
+  "task6NativeBuilds": 0,
+  "coreExecuted": false,
+  "runtimeActivationApproved": false
+}

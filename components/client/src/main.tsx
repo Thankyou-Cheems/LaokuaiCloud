@@ -43,6 +43,7 @@ import { installAiToolkit } from "./devtools/aiToolkit";
 import { setNativeZoom } from "./lib/electron";
 import { initGlobalStorage } from "./lib/globalStorage";
 import { syncGoogleFonts } from "./lib/googleFonts";
+import { LAOKUAI_HYBRID_VOICE_POLICY } from "./lib/hybridVoicePolicy";
 import { captureLogs } from "./lib/reports/logs";
 import { pushTitlebarOverlay } from "./lib/titlebarOverlay";
 
@@ -231,7 +232,7 @@ initGlobalStorage().then(async () => {
           separate registry from the one above. Sits below <SingletonHooks />
           because it reads useSockets and useServerManagement, which are the
           client's own singletons. */}
-      <VoiceProvider>
+      <VoiceProvider hybrid={window.electronAPI?.hybridVoiceEnabled === true ? LAOKUAI_HYBRID_VOICE_POLICY : undefined}>
         <ThemedApp />
       </VoiceProvider>
     </React.StrictMode>,

@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "status": "passed-with-runtime-scope-limits",
+  "evidenceOrigin": "Capacity-owner immutable report and parent handoff; task-6 verified report hash and frozen pins, did not execute these tests",
+  "reportSha256": "42f78d0a950e3c1902f13d3b6a36c71cdcd385d66968194f3208885c3e2e2c62",
+  "evidenceManifestSha256": "94cd5bfa649632797cda1f9e23c7c30787ddcbcca18b503ee4b147f7f723360a",
+  "evidenceManifestFileCount": 2308,
+  "frozenClientCommit": "78513ba4ad014fade0da268aeaeaa54a81ac3580",
+  "sourceZipSha256": "109b712ec84609efac134688f8781b3656cf6cf6e102f3d4484e6d78f7477d30",
+  "sdkSourceCommit": "6d710f34070cbc01bb838a77dfec0963b0ce298b",
+  "sdkVersion": "0.6.2-laokuai.hybrid.integration.3",
+  "sdkPackageSha256": "29f858d9a97ae788748c59cc023cc350d9178e645adb39c7a96b327b8aa3299b",
+  "serverCommit": "e84e1ca5f7130bdc33528a9b563691267e7cb598",
+  "sfuCommit": "a6bf86ada2f31da85cc644f78e307f3ef0088e82",
+  "twoSdkCasesPassed": [
+    "Actual SFU baseline and selected PCM progress",
+    "Loopback peer RTP/decoded media, protected publication and exact SFU pause",
+    "PTT/Squad acknowledged protected output gates",
+    "Peer failure restore ACK then fresh selected SFU media/track/revision",
+    "Fixture cached-auth fault/recovery with truthful controller and PCM",
+    "Actual room generation, room switch and explicit closed-PC disconnect/connect recovery"
+  ],
+  "fourSdkRosterOrdersPassed": true,
+  "actualSdkEncoders": 4,
+  "bidirectionalPeerConnections": 6,
+  "directedForwardingRoutes": 12,
+  "maxProbeConcurrency": 2,
+  "ownedContainersRemoved": 3,
+  "foreignContainersTouched": false,
+  "bitrateRequestBps": 24000,
+  "packetTimeMs": 20,
+  "scope": "Network-none loopback functional media tests with oscillator captures and real JWT/SQLite/Socket.IO/Pion/SDK",
+  "limitations": [
+    "Cached token fault, not database token-version revocation or a new authenticated socket",
+    "Factory opted in explicitly; full product bootstrap/sinks/prior-registry not accepted",
+    "24k request only; new SFU48/P2P64 source requires fresh protocol/media/quality retest",
+    "No Windows TUN/runtime/coexistence/Drop/route cleanup",
+    "No Internet/EasyTier physical path, FEC loss recovery, 15-20 full encoders or real device/listening acceptance"
+  ],
+  "rawPrivateLogsImported": false,
+  "task6RuntimeExecutions": 0,
+  "finalPackageApproved": false
+}

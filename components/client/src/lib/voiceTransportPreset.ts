@@ -1,5 +1,7 @@
 /** Transport intent only. SDP/encoder evidence must come from the Voice SDK. */
 export const VOICE_TRANSPORT_SETTINGS_KEY = "voiceTransportPresetV1";
+export const STANDARD_SFU_BITRATE_BPS = 48_000;
+export const STANDARD_PEER_BITRATE_BPS = 64_000;
 export interface VoiceTransportPreset {
   schemaVersion: 1;
   selection: "shared-20" | "custom";
@@ -12,9 +14,19 @@ export interface VoiceTransportPreset {
 }
 
 export function sharedVoicePreset(): VoiceTransportPreset {
-  return { schemaVersion: 1, selection: "shared-20", maxBitrateBps: 24_000,
+  return { schemaVersion: 1, selection: "shared-20", maxBitrateBps: STANDARD_SFU_BITRATE_BPS,
     packetTimeMs: 20, channels: 1, variableBitrate: true,
     requestDtx: true, requestInbandFec: true };
+}
+
+/** Standard peer quality is separate from SFU ingress. Explicit custom limits stay exact. */
+export function peerVoicePreset(preset: VoiceTransportPreset): VoiceTransportPreset {
+  return preset.selection === "custom" ? { ...preset } : { ...sharedVoicePreset(), maxBitrateBps: STANDARD_PEER_BITRATE_BPS };
+}
+
+export function voicePresetCodec(preset: VoiceTransportPreset) {
+  return { codec: "opus" as const, maxBitrateBps: preset.maxBitrateBps, packetTimeMs: preset.packetTimeMs,
+    channels: 1 as const, vbr: true as const, dtx: preset.requestDtx, fec: preset.requestInbandFec };
 }
 
 export function readVoiceTransportPreset(value: unknown): VoiceTransportPreset | undefined {

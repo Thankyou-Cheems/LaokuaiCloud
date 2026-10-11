@@ -216,6 +216,8 @@ export interface WatchedProgram {
 
 export interface ElectronAPI {
   isElectron: true;
+  /** Read-only product policy supplied by main; not a media authorization. */
+  hybridVoiceEnabled?: boolean;
   /** False where the compositor draws and places windows itself. */
   drawsWindowChrome: boolean;
   /** The Mac App Store build. Absent on builds from before it existed. */
