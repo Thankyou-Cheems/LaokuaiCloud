@@ -632,5 +632,19 @@
     "sourceZipSha256": "4a250453681d09ccaed6ed223c68e6cde126d721438dc492f45080375aca9731",
     "bundleSha256": "b2f3dcd6adb5da443fdb8a62160edd1f7beb16d169869dde3ab1b8f3246e2cc3",
     "preserved": true
+  },
+  "currentWorkScope": {
+    "priority": [
+      "Existing voice P2P and SFU fallback",
+      "Basic ET connectivity",
+      "Truthful status and reliability",
+      "UI prototype preview approval before final packaging"
+    ],
+    "deferred": [
+      "Member-assistance settings",
+      "Member-assistance policies",
+      "Member-assistance experiments"
+    ],
+    "publicEtRelayConfiguration": "Preserve existing configuration"
   }
 }

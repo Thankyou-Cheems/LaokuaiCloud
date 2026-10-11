@@ -38,3 +38,8 @@ performs the isolated Rust build. All current UI changes require user prototype
 preview approval before final packaging. Keep existing desktop packages unchanged.
 Await the SDK owner's controller-state repair and frozen-snapshot retest before
 final release freeze. A WebRTC peer over ET relay is not proven physical direct.
+
+Current scope defers member-assistance settings/policies/experiments. Prioritize
+existing voice P2P/SFU fallback, basic ET connectivity, truthful status and
+reliability, then user-approved UI prototype before packaging. Keep public ET
+servers' existing relay configuration unchanged.
