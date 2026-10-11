@@ -1,0 +1,139 @@
+import { createReadStream, existsSync } from "fs";
+import { copyFile, mkdir, readFile, stat, unlink, writeFile } from "fs/promises";
+import { dirname, join } from "path";
+import { Readable } from "stream";
+
+import { RangeNotSatisfiableError, resolveByteRange } from "../utils/byteRange";
+
+let dataDir: string | null = null;
+
+export function initFilesystem(): void {
+  dataDir = process.env.DATA_DIR || "./data";
+}
+
+function getDataDir(): string {
+  if (!dataDir) throw new Error("Filesystem storage not initialized. Call initFilesystem() first.");
+  return dataDir;
+}
+
+function resolvePath(bucket: string, key: string): string {
+  return join(getDataDir(), bucket, key);
+}
+
+export async function ensureBucket(bucket: string): Promise<void> {
+  const dir = join(getDataDir(), bucket);
+  await mkdir(dir, { recursive: true });
+}
+
+export async function putObject(params: {
+  bucket: string;
+  key: string;
+  body?: Buffer | Uint8Array | Blob | string;
+  sourcePath?: string;
+  contentType?: string;
+  aclPublicRead?: boolean;
+}): Promise<void> {
+  const filePath = resolvePath(params.bucket, params.key);
+  await mkdir(dirname(filePath), { recursive: true });
+
+  // Copy rather than read into memory, and copyFile rather than rename: the temp
+  // directory is often on another filesystem, where rename fails with EXDEV.
+  if (params.sourcePath) {
+    await copyFile(params.sourcePath, filePath);
+    if (params.contentType) {
+      await writeFile(filePath + ".meta", JSON.stringify({ contentType: params.contentType }));
+    }
+    return;
+  }
+
+  let data: Buffer | Uint8Array;
+  if (Buffer.isBuffer(params.body) || params.body instanceof Uint8Array) {
+    data = params.body;
+  } else if (typeof params.body === "string") {
+    data = Buffer.from(params.body);
+  } else {
+    const arrayBuffer = await (params.body as Blob).arrayBuffer();
+    data = Buffer.from(arrayBuffer);
+  }
+
+  await writeFile(filePath, data);
+
+  if (params.contentType) {
+    await writeFile(filePath + ".meta", JSON.stringify({ contentType: params.contentType }));
+  }
+}
+
+export async function getObject(params: {
+  bucket: string;
+  key: string;
+  range?: string;
+}): Promise<{
+  Body: Readable | undefined;
+  ContentType?: string;
+  ContentLength?: number;
+  ContentRange?: string;
+}> {
+  const filePath = resolvePath(params.bucket, params.key);
+
+  if (!existsSync(filePath)) {
+    const err = new Error(`Object not found: ${params.key}`);
+    (err as NodeJS.ErrnoException).code = "NoSuchKey";
+    throw err;
+  }
+
+  let contentType: string | undefined;
+  const metaPath = filePath + ".meta";
+  if (existsSync(metaPath)) {
+    try {
+      const meta = JSON.parse(await readFile(metaPath, "utf-8"));
+      contentType = meta.contentType;
+    } catch {
+      // ignore meta read errors
+    }
+  }
+
+  const stats = await stat(filePath);
+  const totalSize = stats.size;
+
+  const range = resolveByteRange(params.range, totalSize);
+  if (range.kind === "unsatisfiable") throw new RangeNotSatisfiableError(totalSize);
+  if (range.kind === "partial") {
+    const { start, end } = range;
+    const stream = createReadStream(filePath, { start, end });
+    return {
+      Body: stream,
+      ContentType: contentType,
+      ContentLength: end - start + 1,
+      ContentRange: `bytes ${start}-${end}/${totalSize}`,
+    };
+  }
+
+  const stream = createReadStream(filePath);
+  return {
+    Body: stream,
+    ContentType: contentType,
+    ContentLength: totalSize,
+  };
+}
+
+export async function getObjectSignedUrl(_params: {
+  bucket: string;
+  key: string;
+  expiresInSeconds?: number;
+}): Promise<string> {
+  throw new Error("Signed URLs are not supported with filesystem storage");
+}
+
+export async function deleteObject(params: { bucket: string; key: string }): Promise<void> {
+  const filePath = resolvePath(params.bucket, params.key);
+  try {
+    await unlink(filePath);
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+  }
+  try {
+    await unlink(filePath + ".meta");
+  } catch {
+    // meta file may not exist
+  }
+}

@@ -1,0 +1,203 @@
+{
+  "browser": "153.0.8010.12",
+  "hook": {
+    "checks": {
+      "permissionDefaultClosed": true,
+      "muted": true,
+      "pttIdle": true,
+      "pttRelease": true,
+      "suppressed": true,
+      "rebuildHeld": true,
+      "publicationIdStable": true,
+      "disconnected": true,
+      "noSpeak": true,
+      "noHandles": true,
+      "disabled": true,
+      "sharedRnnoise": true,
+      "processorFaultClosed": true,
+      "manualPermissionPcmZero": true,
+      "manualEligiblePcmNonzero": true,
+      "manualActualAckRevision": true,
+      "manualNativeOldTailCleared": true,
+      "sharedRnnoiseNativeOldTailCleared": true
+    },
+    "manualPcmEvidence": {
+      "manualNoPermissionPcm": {
+        "peak": 0,
+        "samples": 4800
+      },
+      "manualAllowedPcm": {
+        "peak": 0.04151003062725067,
+        "samples": 4800
+      },
+      "manualDisconnectedPcm": {
+        "peak": 0,
+        "samples": 4800
+      },
+      "manualReconnectedPcm": {
+        "peak": 0.022622112184762955,
+        "samples": 4800
+      },
+      "manualRevokedPcm": {
+        "peak": 0,
+        "samples": 4800
+      },
+      "manualClosedRevision": 18,
+      "finalRevision": 24
+    },
+    "nativeFreshMarker": [
+      {
+        "source": "webrtc_rnn",
+        "edge": "connection",
+        "beforeEdgeFrame": 199680,
+        "releaseRequestedFrame": 199680,
+        "requestedForbiddenMs": 0,
+        "releaseWaitMs": 41.69999999925494,
+        "openAck": {
+          "type": "boundary",
+          "revision": 29,
+          "blocked": false,
+          "frame": 200704
+        },
+        "preEdgeMarkerPeak": 0.06414103507995605,
+        "oldTailAfterActualOpenPeak": 0,
+        "observedSamples": 6272
+      },
+      {
+        "source": "webrtc_rnn",
+        "edge": "ptt",
+        "beforeEdgeFrame": 217984,
+        "releaseRequestedFrame": 217984,
+        "requestedForbiddenMs": 0,
+        "releaseWaitMs": 42.400000002235174,
+        "openAck": {
+          "type": "boundary",
+          "revision": 36,
+          "blocked": false,
+          "frame": 218880
+        },
+        "preEdgeMarkerPeak": 0.05862180143594742,
+        "oldTailAfterActualOpenPeak": 0,
+        "observedSamples": 5760
+      },
+      {
+        "source": "rnnoise",
+        "edge": "connection",
+        "beforeEdgeFrame": 236160,
+        "releaseRequestedFrame": 236160,
+        "requestedForbiddenMs": 0,
+        "releaseWaitMs": 42.399999998509884,
+        "openAck": {
+          "type": "boundary",
+          "revision": 43,
+          "blocked": false,
+          "frame": 237696
+        },
+        "preEdgeMarkerPeak": 0.006920367944985628,
+        "oldTailAfterActualOpenPeak": 0,
+        "observedSamples": 5760
+      },
+      {
+        "source": "rnnoise",
+        "edge": "ptt",
+        "beforeEdgeFrame": 255360,
+        "releaseRequestedFrame": 255360,
+        "requestedForbiddenMs": 0,
+        "releaseWaitMs": 42.600000001490116,
+        "openAck": {
+          "type": "boundary",
+          "revision": 50,
+          "blocked": false,
+          "frame": 256896
+        },
+        "preEdgeMarkerPeak": 0.01176978275179863,
+        "oldTailAfterActualOpenPeak": 0,
+        "observedSamples": 5760
+      },
+      {
+        "source": "rnnoise",
+        "edge": "squad",
+        "beforeEdgeFrame": 272640,
+        "releaseRequestedFrame": 272640,
+        "requestedForbiddenMs": 0,
+        "releaseWaitMs": 41.900000002235174,
+        "openAck": {
+          "type": "boundary",
+          "revision": 54,
+          "blocked": false,
+          "frame": 274176
+        },
+        "preEdgeMarkerPeak": 0.020149480551481247,
+        "oldTailAfterActualOpenPeak": 0,
+        "observedSamples": 5376
+      }
+    ]
+  },
+  "rate441": {
+    "unsupportedNsObservable": true
+  },
+  "peaks": [
+    {
+      "kind": "quiet-speech",
+      "preRnnoisePeak": 0.005166998133063316,
+      "postRnnoisePeak": 0.0051259142346680164,
+      "emergencyClampSamples": 0,
+      "trustedFrames": 302,
+      "bound": 0.8912509381337456
+    },
+    {
+      "kind": "normal-speech",
+      "preRnnoisePeak": 0.10287953913211823,
+      "postRnnoisePeak": 0.10225363075733185,
+      "emergencyClampSamples": 0,
+      "trustedFrames": 369,
+      "bound": 0.8912509381337456
+    },
+    {
+      "kind": "max-gain-shout",
+      "preRnnoisePeak": 0.6337488293647766,
+      "postRnnoisePeak": 0.6041251420974731,
+      "emergencyClampSamples": 0,
+      "trustedFrames": 385,
+      "bound": 0.8912509381337456
+    },
+    {
+      "kind": "seeded-broadband",
+      "preRnnoisePeak": 0.06688734889030457,
+      "postRnnoisePeak": 0.007278042379766703,
+      "emergencyClampSamples": 0,
+      "trustedFrames": 0,
+      "bound": 0.8912509381337456
+    },
+    {
+      "kind": "synthetic-fan",
+      "preRnnoisePeak": 0.04059242829680443,
+      "postRnnoisePeak": 0.00012166764645371586,
+      "emergencyClampSamples": 0,
+      "trustedFrames": 0,
+      "bound": 0.8912509381337456
+    },
+    {
+      "kind": "synthetic-keyboard",
+      "preRnnoisePeak": 0.4858020842075348,
+      "postRnnoisePeak": 0.01984633132815361,
+      "emergencyClampSamples": 0,
+      "trustedFrames": 0,
+      "bound": 0.8912509381337456
+    }
+  ],
+  "sourceHashes": {
+    "src/audio/hooks/useMicrophone.ts": "925de18af224aae461bd2632f129579365593edc8fe4c382894b385a51b861c4",
+    "src/audio/hooks/microphonePipeline.ts": "1aca2cb4c6666c52284666286cd23fd54f844eb8a40546b92069385e93756b74",
+    "src/audio/processors/rnnoiseProcessor.ts": "bf2a59e5fe250a3fc815d37300aae486626a2bd216bb90e10081b313dc84a994",
+    "src/audio/processors/rnnoiseWorker.ts": "f73951f624ec7a4a82caa68be2c293daf13696034c254528a8c058e399a7f8c6",
+    "src/audio/processors/noiseGateProcessor.ts": "aff92054db216f7e74fd9801cdead650ee6da0a87e37eae7bee0468b84f20d1c",
+    "src/audio/processors/transmitSpeechProcessor.ts": "3091e46534b224e8670c48087236d9321698ab78a8fffc2a3b4f0c2ce206880e",
+    "src/audio/processors/adaptiveTransmitGate.ts": "7178f428b67109151235b00c81e69287c25e7b6c7b3488f323726699ad082b3a",
+    "src/audio/processors/transmitSpeechCode.ts": "77e8b9dc9bbd11a1451344a892286416911e70870faf9a25aa18671fd0a61069",
+    "src/audio/processors/transmitCaptureProcessor.ts": "7d855863c344addc482aaf9262f64b29d35e6fd73c618aa04188a727bc8763c4",
+    "src/audio/lib/transmission.ts": "dbbe908e515e320c56f8fd451cc2b039d5f4b4cf24bcb6a7c4351a03e9321673"
+  },
+  "nsOffWaveformEvidence": "adaptive-send-marker-results.json actual 44.1/48k public PCM parity, not a per-kind peak claim",
+  "note": "Actual public PCM and RNN, headless muted loopback server, getUserMedia forbidden, BelowNormal."
+}

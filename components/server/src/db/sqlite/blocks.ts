@@ -1,0 +1,116 @@
+import { getSqliteDb, toIso } from "./connection";
+
+/**
+ * A personal act: no permission, and it works against somebody who outranks you.
+ * Gryt ids throughout, since a server id lasts until they rejoin.
+ */
+
+export interface BlockedPerson {
+  grytUserId: string;
+  serverUserId: string | null;
+  nickname: string | null;
+  createdAt: string;
+}
+
+export async function blockUser(
+  blockerGrytUserId: string,
+  blockedGrytUserId: string,
+): Promise<void> {
+  const db = getSqliteDb();
+  /* OR IGNORE rather than OR REPLACE. Blocking somebody twice is the same
+   * state, and replacing would move `created_at` forward for no reason. */
+  db.prepare(
+    `INSERT OR IGNORE INTO blocks (blocker_gryt_user_id, blocked_gryt_user_id, created_at) VALUES (?, ?, ?)`,
+  ).run(blockerGrytUserId, blockedGrytUserId, toIso(new Date()));
+}
+
+export async function unblockUser(
+  blockerGrytUserId: string,
+  blockedGrytUserId: string,
+): Promise<void> {
+  const db = getSqliteDb();
+  db.prepare(
+    `DELETE FROM blocks WHERE blocker_gryt_user_id = ? AND blocked_gryt_user_id = ?`,
+  ).run(blockerGrytUserId, blockedGrytUserId);
+}
+
+/** `LEFT JOIN`, because somebody blocked and then banned is gone from `users`
+    and dropping the row would look like the block had been undone. */
+export async function listBlocks(blockerGrytUserId: string): Promise<BlockedPerson[]> {
+  const db = getSqliteDb();
+  const rows = db
+    .prepare(
+      `SELECT b.blocked_gryt_user_id, b.created_at, u.server_user_id, u.nickname
+         FROM blocks b
+         LEFT JOIN users u ON u.gryt_user_id = b.blocked_gryt_user_id
+        WHERE b.blocker_gryt_user_id = ?
+        ORDER BY b.created_at DESC`,
+    )
+    .all(blockerGrytUserId) as {
+    blocked_gryt_user_id: string;
+    created_at: string;
+    server_user_id: string | null;
+    nickname: string | null;
+  }[];
+
+  return rows.map((r) => ({
+    grytUserId: r.blocked_gryt_user_id,
+    serverUserId: r.server_user_id,
+    nickname: r.nickname,
+    createdAt: r.created_at,
+  }));
+}
+
+/** Both directions, because asking one way round lets the blocked person start
+    the conversation the block exists to prevent. */
+export async function eitherHasBlocked(
+  aGrytUserId: string,
+  bGrytUserId: string,
+): Promise<boolean> {
+  const db = getSqliteDb();
+  const row = db
+    .prepare(
+      `SELECT 1 FROM blocks
+        WHERE (blocker_gryt_user_id = ? AND blocked_gryt_user_id = ?)
+           OR (blocker_gryt_user_id = ? AND blocked_gryt_user_id = ?)
+        LIMIT 1`,
+    )
+    .get(aGrytUserId, bGrytUserId, bGrytUserId, aGrytUserId);
+  return !!row;
+}
+
+/** The delivery question in the ids delivery has, translated here rather than at
+    every call site. */
+export async function blockersOfSender(senderServerUserId: string): Promise<Set<string>> {
+  const db = getSqliteDb();
+  const rows = db
+    .prepare(
+      `SELECT blocker.server_user_id AS server_user_id
+         FROM blocks b
+         JOIN users sender  ON sender.gryt_user_id  = b.blocked_gryt_user_id
+         JOIN users blocker ON blocker.gryt_user_id = b.blocker_gryt_user_id
+        WHERE sender.server_user_id = ?`,
+    )
+    .all(senderServerUserId) as { server_user_id: string }[];
+
+  return new Set(rows.map((r) => r.server_user_id));
+}
+
+/** The other direction from `blockersOfSender`: a fetch knows who is reading and
+    has to drop the senders they do not want. */
+export async function blockedServerIdsFor(
+  blockerServerUserId: string,
+): Promise<Set<string>> {
+  const db = getSqliteDb();
+  const rows = db
+    .prepare(
+      `SELECT blocked.server_user_id AS server_user_id
+         FROM blocks b
+         JOIN users blocker ON blocker.gryt_user_id = b.blocker_gryt_user_id
+         JOIN users blocked ON blocked.gryt_user_id = b.blocked_gryt_user_id
+        WHERE blocker.server_user_id = ?`,
+    )
+    .all(blockerServerUserId) as { server_user_id: string }[];
+
+  return new Set(rows.map((r) => r.server_user_id));
+}

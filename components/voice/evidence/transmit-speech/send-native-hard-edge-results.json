@@ -1,0 +1,94 @@
+{
+  "browser": "153.0.8010.12",
+  "rows": [
+    {
+      "rate": 44100,
+      "optionalCompressor": false,
+      "requestedClosedMs": 3,
+      "closeSample": 2048,
+      "openSample": 2304,
+      "actualClosedMs": 5.804988662131519,
+      "peakAtModelInputAfterReopen": 0.014619090594351292,
+      "lastOldMarkerSample": 2578,
+      "inputAfterCloseExactlyZero": true
+    },
+    {
+      "rate": 44100,
+      "optionalCompressor": false,
+      "requestedClosedMs": 5,
+      "closeSample": 2048,
+      "openSample": 2304,
+      "actualClosedMs": 5.804988662131519,
+      "peakAtModelInputAfterReopen": 0.014619090594351292,
+      "lastOldMarkerSample": 2578,
+      "inputAfterCloseExactlyZero": true
+    },
+    {
+      "rate": 44100,
+      "optionalCompressor": true,
+      "requestedClosedMs": 3,
+      "closeSample": 2048,
+      "openSample": 2304,
+      "actualClosedMs": 5.804988662131519,
+      "peakAtModelInputAfterReopen": 0.04537790268659592,
+      "lastOldMarkerSample": 2850,
+      "inputAfterCloseExactlyZero": true
+    },
+    {
+      "rate": 44100,
+      "optionalCompressor": true,
+      "requestedClosedMs": 5,
+      "closeSample": 2048,
+      "openSample": 2304,
+      "actualClosedMs": 5.804988662131519,
+      "peakAtModelInputAfterReopen": 0.04537790268659592,
+      "lastOldMarkerSample": 2850,
+      "inputAfterCloseExactlyZero": true
+    },
+    {
+      "rate": 48000,
+      "optionalCompressor": false,
+      "requestedClosedMs": 3,
+      "closeSample": 2048,
+      "openSample": 2304,
+      "actualClosedMs": 5.333333333333333,
+      "peakAtModelInputAfterReopen": 0.013891349546611309,
+      "lastOldMarkerSample": 2602,
+      "inputAfterCloseExactlyZero": true
+    },
+    {
+      "rate": 48000,
+      "optionalCompressor": false,
+      "requestedClosedMs": 5,
+      "closeSample": 2048,
+      "openSample": 2304,
+      "actualClosedMs": 5.333333333333333,
+      "peakAtModelInputAfterReopen": 0.013891349546611309,
+      "lastOldMarkerSample": 2602,
+      "inputAfterCloseExactlyZero": true
+    },
+    {
+      "rate": 48000,
+      "optionalCompressor": true,
+      "requestedClosedMs": 3,
+      "closeSample": 2048,
+      "openSample": 2304,
+      "actualClosedMs": 5.333333333333333,
+      "peakAtModelInputAfterReopen": 0.041412632912397385,
+      "lastOldMarkerSample": 2898,
+      "inputAfterCloseExactlyZero": true
+    },
+    {
+      "rate": 48000,
+      "optionalCompressor": true,
+      "requestedClosedMs": 5,
+      "closeSample": 2048,
+      "openSample": 2304,
+      "actualClosedMs": 5.333333333333333,
+      "peakAtModelInputAfterReopen": 0.041412632912397385,
+      "lastOldMarkerSample": 2898,
+      "inputAfterCloseExactlyZero": true
+    }
+  ],
+  "note": "True offline native compressor/4x oversampler marker at model input. The source is exactly zero after close; existing native history survives a short hard gate. Not a portable native delay or a full hook freshness proof."
+}

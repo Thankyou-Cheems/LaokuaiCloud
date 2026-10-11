@@ -1,0 +1,87 @@
+[
+  {
+    "source": "webrtc_rnn",
+    "edge": "connection",
+    "beforeEdgeFrame": 199680,
+    "releaseRequestedFrame": 199680,
+    "requestedForbiddenMs": 0,
+    "releaseWaitMs": 41.69999999925494,
+    "openAck": {
+      "type": "boundary",
+      "revision": 29,
+      "blocked": false,
+      "frame": 200704
+    },
+    "preEdgeMarkerPeak": 0.06414103507995605,
+    "oldTailAfterActualOpenPeak": 0,
+    "observedSamples": 6272
+  },
+  {
+    "source": "webrtc_rnn",
+    "edge": "ptt",
+    "beforeEdgeFrame": 217984,
+    "releaseRequestedFrame": 217984,
+    "requestedForbiddenMs": 0,
+    "releaseWaitMs": 42.400000002235174,
+    "openAck": {
+      "type": "boundary",
+      "revision": 36,
+      "blocked": false,
+      "frame": 218880
+    },
+    "preEdgeMarkerPeak": 0.05862180143594742,
+    "oldTailAfterActualOpenPeak": 0,
+    "observedSamples": 5760
+  },
+  {
+    "source": "rnnoise",
+    "edge": "connection",
+    "beforeEdgeFrame": 236160,
+    "releaseRequestedFrame": 236160,
+    "requestedForbiddenMs": 0,
+    "releaseWaitMs": 42.399999998509884,
+    "openAck": {
+      "type": "boundary",
+      "revision": 43,
+      "blocked": false,
+      "frame": 237696
+    },
+    "preEdgeMarkerPeak": 0.006920367944985628,
+    "oldTailAfterActualOpenPeak": 0,
+    "observedSamples": 5760
+  },
+  {
+    "source": "rnnoise",
+    "edge": "ptt",
+    "beforeEdgeFrame": 255360,
+    "releaseRequestedFrame": 255360,
+    "requestedForbiddenMs": 0,
+    "releaseWaitMs": 42.600000001490116,
+    "openAck": {
+      "type": "boundary",
+      "revision": 50,
+      "blocked": false,
+      "frame": 256896
+    },
+    "preEdgeMarkerPeak": 0.01176978275179863,
+    "oldTailAfterActualOpenPeak": 0,
+    "observedSamples": 5760
+  },
+  {
+    "source": "rnnoise",
+    "edge": "squad",
+    "beforeEdgeFrame": 272640,
+    "releaseRequestedFrame": 272640,
+    "requestedForbiddenMs": 0,
+    "releaseWaitMs": 41.900000002235174,
+    "openAck": {
+      "type": "boundary",
+      "revision": 54,
+      "blocked": false,
+      "frame": 274176
+    },
+    "preEdgeMarkerPeak": 0.020149480551481247,
+    "oldTailAfterActualOpenPeak": 0,
+    "observedSamples": 5376
+  }
+]

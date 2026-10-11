@@ -1,0 +1,22 @@
+# Final sending evidence
+
+Final single-model implementation is in the commit accompanying these artifacts; initial independent observer 0ed62d5 is superseded. No package version/lock change, push, deployment, real microphone/profile or user-client run occurred.
+
+- adaptive-send-headless-results.json: genuine muted Chromium 153 graph, 18 hook checks including actual manual/bypass publication PCM zero without permission/disconnected/revoked, two eligible nonzero controls, actual ACK revisions, five direct stable-boundary old-tail marker cases; 44.1k NS requested/unapplied observation, six native-DSP/RNNoise peak cases; ten actual source hashes normalize CRLF to LF.
+- adaptive-send-marker-results.json: actual production worklet queue/carrier and boundary markers; real unchanged WebRTC RNN fallback exact Float32 parity after known 10ms buffering at both rates; handle destroyed.
+- rnnoise-invalid-input-results.json: production worker with actual RNNoise, NaN/Inf explicit fault + sanitized buffer, fresh init recovers 368 trusted speech frames.
+- native-dsp-delay-probe-results.json: true OfflineAudioContext impulses; why browser-dependent downstream native delays cannot be hard-coded as a frame association contract.
+- rnnoise-evidence-probe-results.json: true installed RNNoise, 20ms peak delay, heap 20,578,304 bytes, speech and noise probability distribution.
+- transmission-results.json: 40 synthetic transmission checks, including all 25 existing plus physical opt-in eligibility, pending/stale/actual closed/open ACK, failed processor ACK retirement, fresh generation supersession and safe opt-in exit preserving mute. Publication-over-raw selector regression also passed.
+- send-hard-edge-before-fix.json: retained actual failing stable-boundary marker at f5d92e8; pre-close native PCM reappeared after an actual open ACK with peak .064146 despite stopping the injected source.
+- send-native-hard-edge-results.json: actual OfflineAudioContext native input-tail investigation before the fix; exact source zero after close but buffered marker remained at model input. This is neither a portable delay nor a full hook result.
+- send-hard-edge-hook-results.json: final five direct-boundary marker cases with both sole models, connection/PTT and RNNoise Squad; nonzero old-marker prerequisite and zero old samples after actual open ACK. Requested 4ms intervals were quantized to 0ms in the final run (the earlier failed run measured 10.67ms) in the coarse AudioContext clock; do not label them exact audio intervals.
+- prototype/: old observer-only evidence. These are not final architecture/performance results.
+
+Final checks passed: npm run typecheck, npm run build, npm run check-surface (54 exports), npm run check-native-entry (56 reachable files, no web-only bundler references), npm run check-type-names, npm run test:comment-length, generated transmit core --check, adaptive core, markers, invalid-input worker, headless and all 25 existing transmission checks. The follow-up gate/ACK/freshness fixes additionally pass 15 transmission checks and the exact source headless PCM assertions. Active-call-target/native ends/native PTT regressions pass with optional event-method guards.
+
+The first new graph test failed with stale carrier because old graph disposal disconnected a shared RNNoise-to-gate edge after the new graph attached it. Per-graph zero-delay PCM/carrier taps and targeted detach corrected the real failure. Pending reset before worker channel attachment is also regression-tested.
+
+The later hard-edge marker failure showed why resetting only model queues was insufficient. Fresh release now rebuilds the native graph, observes new capture, then resets/awaits shared RNNoise output. The model-off fallback is recreated on generation change. Recovery discards buffered samples; observed final waits about 41–43ms are one synthetic run and not a first-word quality/latency guarantee. SDK node histories can be reset; device/OS/browser capture and already submitted encoder/network buffers are outside that guarantee.
+
+The final emergency clamp bound is mathematical +/-10^(-1/20), nonfinite output zero; an over-range marker exercises it. Six recorded peak scenarios needed zero clamp samples. NS-off waveform parity is the separate actual public-PCM marker result, not a hard-coded per-kind peak flag. Real listening, first-word naturalness, device/AGC behavior under game load and arbitrary noises remain unvalidated. No real-time deadline/no-underrun claim.

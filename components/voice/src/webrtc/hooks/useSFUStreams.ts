@@ -1,0 +1,337 @@
+import { Dispatch, MutableRefObject, SetStateAction, useEffect, useRef } from "react";
+
+import { sliderToOutputGain } from "../../shared/audioVolume";
+import { getReceiveController } from "../../audio/lib/receiveGraph";
+import { useVoiceConfig } from "../../config/index";
+
+import { Streams, StreamSources, VideoStreams } from "../types/SFU";
+import type { RoomCoordinator } from "../../types";
+import { voiceLog } from "./voiceLogger";
+import { sameReceiveAudioTracks } from "./receiveStreamIdentity";
+
+interface UseSFUStreamsParams {
+  streams: Streams;
+  setStreams: Dispatch<SetStateAction<Streams>>;
+  streamSources: StreamSources;
+  setStreamSources: Dispatch<SetStateAction<StreamSources>>;
+  setVideoStreams: Dispatch<SetStateAction<VideoStreams>>;
+  audioContext: AudioContext | null | undefined;
+  remoteBusNode: GainNode | undefined;
+  outputVolume: number;
+  isDeafened: boolean;
+  isConnected: boolean;
+  room: RoomCoordinator | null;
+  previousRemoteStreamsRef: MutableRefObject<Set<string>>;
+}
+
+export function useSFUStreams({
+  streams,
+  setStreams,
+  streamSources,
+  setStreamSources,
+  setVideoStreams,
+  audioContext,
+  outputVolume,
+  isDeafened,
+  isConnected,
+  room,
+  previousRemoteStreamsRef,
+}: UseSFUStreamsParams): void {
+  const config = useVoiceConfig();
+  const streamsRef = useRef(streams);
+  streamsRef.current = streams;
+  const streamSourcesRef = useRef(streamSources);
+  streamSourcesRef.current = streamSources;
+  // Track peer connections and emit events when peers join/leave
+  useEffect(() => {
+    if (!isConnected) {
+      previousRemoteStreamsRef.current.clear();
+      return;
+    }
+
+    const currentRemoteStreams = new Set<string>();
+    Object.entries(streams).forEach(([streamId, streamData]) => {
+      if (!streamData.isLocal) {
+        currentRemoteStreams.add(streamId);
+      }
+    });
+
+    const previousRemoteStreams = previousRemoteStreamsRef.current;
+
+    const newPeers = [...currentRemoteStreams].filter(streamId => !previousRemoteStreams.has(streamId));
+    const disconnectedPeers = [...previousRemoteStreams].filter(streamId => !currentRemoteStreams.has(streamId));
+
+    if (room) {
+      newPeers.forEach(streamId => room.peerChanged(streamId, true));
+      disconnectedPeers.forEach(streamId => room.peerChanged(streamId, false));
+    }
+
+    previousRemoteStreamsRef.current = currentRemoteStreams;
+  }, [streams, isConnected, room, previousRemoteStreamsRef]);
+
+  // Cleanup stale streamSources when streams are removed or their underlying
+  // MediaStream is replaced (e.g. alias swap after SFU renegotiation).
+  useEffect(() => {
+    const removedIds = Object.keys(streamSources).filter((id) => streams[id] === undefined);
+
+    // Pipelines whose source MediaStream no longer matches the current entry: an alias can
+    // point streams[id] at a new MediaStream while the pipeline holds the old one.
+    const mismatchedIds = Object.keys(streamSources).filter((id) => {
+      const streamData = streams[id];
+      if (!streamData) return false;
+      if (streamSources[id].gain.context !== audioContext) return true;
+      const sourceNode = streamSources[id].stream;
+      if ("mediaStream" in sourceNode) {
+        return !sameReceiveAudioTracks((sourceNode as MediaStreamAudioSourceNode).mediaStream, streamData.stream);
+      }
+      return false;
+    });
+
+    const allStaleIds = [...removedIds, ...mismatchedIds];
+    if (allStaleIds.length === 0) return;
+
+    if (mismatchedIds.length > 0) {
+      voiceLog.info("WEBRTC", `Stale pipeline cleanup: ${mismatchedIds.length} mismatched source(s): [${mismatchedIds.join(", ")}]`);
+    }
+
+    // Only disconnect audio nodes if no other (non-stale) entry shares them.
+    // Aliases reuse the same object reference, so check identity.
+    const staleSet = new Set(allStaleIds);
+    const survivingEntries = new Set(
+      Object.entries(streamSources)
+        .filter(([id]) => !staleSet.has(id))
+        .map(([, entry]) => entry),
+    );
+
+    allStaleIds.forEach((id) => {
+      const source = streamSources[id];
+      if (survivingEntries.has(source)) return;
+      try {
+        source.receiveCleanup?.dispose();
+        source.gain.disconnect();
+        source.analyser.disconnect();
+        source.stream.disconnect();
+        if (source.audioElement) {
+          source.audioElement.pause();
+          source.audioElement.srcObject = null;
+          source.audioElement.remove();
+        }
+      } catch { /* already disconnected */ }
+    });
+
+    setStreamSources((prev) => {
+      const next = { ...prev };
+      allStaleIds.forEach((id) => delete next[id]);
+      return next;
+    });
+  }, [streams, streamSources, setStreamSources, audioContext]);
+
+  // Setup audio processing (sourceNode/analyser/gainNode) per remote stream
+  useEffect(() => {
+    if (!audioContext) {
+      voiceLog.warn("WEBRTC", "useSFUStreams: no audioContext — skipping playback setup");
+      return;
+    }
+
+    const newStreamSources: StreamSources = { ...streamSources };
+    let hasChanges = false;
+
+    // MediaStream.id to streamSources key, so aliases — several keys on one MediaStream —
+    // reuse a single playback pipeline instead of creating duplicates.
+    const mediaStreamToSourceKey = new Map<MediaStream, string>();
+    // Track-level dedup: catches the case where the same audio track is
+    // re-wrapped in a new MediaStream after SFU renegotiation.
+    const audioTrackToSourceKey = new Map<MediaStreamTrack, string>();
+    for (const [key] of Object.entries(newStreamSources)) {
+      const streamData = streams[key];
+      if (streamData) {
+        mediaStreamToSourceKey.set(streamData.stream, key);
+        for (const t of streamData.stream.getAudioTracks()) {
+          audioTrackToSourceKey.set(t, key);
+        }
+      }
+    }
+
+    Object.keys(streams).forEach((streamID) => {
+      const stream = streams[streamID];
+
+      if (stream.isLocal) return;
+      if (newStreamSources[streamID]) return;
+
+      const audioTracks = stream.stream.getAudioTracks();
+      if (!audioTracks.length) {
+        voiceLog.warn("WEBRTC", `Remote stream ${streamID} has 0 audio tracks — skipping`);
+        return;
+      }
+
+      // If another stream key already created playback for this exact
+      // MediaStream, reuse that pipeline instead of creating a duplicate.
+      const existingKey = mediaStreamToSourceKey.get(stream.stream);
+      if (existingKey && newStreamSources[existingKey]) {
+        voiceLog.info("WEBRTC", `Stream ${streamID} shares MediaStream ${stream.stream.id} with ${existingKey} — reusing playback pipeline`);
+        newStreamSources[streamID] = newStreamSources[existingKey];
+        hasChanges = true;
+        return;
+      }
+
+      // Same audio track served via a new MediaStream (renegotiation alias)
+      const existingByTrack = audioTracks
+        .map(t => audioTrackToSourceKey.get(t))
+        .find(key => key !== undefined && newStreamSources[key] &&
+          "mediaStream" in newStreamSources[key].stream &&
+          sameReceiveAudioTracks((newStreamSources[key].stream as MediaStreamAudioSourceNode).mediaStream, stream.stream));
+      if (existingByTrack) {
+        voiceLog.info("WEBRTC", `Stream ${streamID} shares audio track(s) with ${existingByTrack} — reusing playback pipeline`);
+        newStreamSources[streamID] = newStreamSources[existingByTrack];
+        hasChanges = true;
+        return;
+      }
+
+      voiceLog.step("WEBRTC", "PLAY", `Setting up playback for remote stream ${streamID}`, {
+        trackCount: audioTracks.length,
+        tracks: audioTracks.map(t => ({ id: t.id, readyState: t.readyState, enabled: t.enabled, muted: t.muted })),
+        audioContextState: audioContext.state,
+        outputVolume,
+        isDeafened,
+      });
+
+      try {
+        // Use an HTMLAudioElement to ensure Chrome decodes the WebRTC stream.
+        // createMediaStreamSource() alone doesn't always trigger the decoder.
+        const audioEl = new Audio();
+        audioEl.srcObject = stream.stream;
+        audioEl.autoplay = true;
+        // Mute the element itself — all volume goes through the Web Audio gain node
+        audioEl.volume = 0;
+        audioEl.play().catch(e => voiceLog.warn("WEBRTC", `Audio element play() rejected: ${e.message}`));
+
+        const sourceNode = audioContext.createMediaStreamSource(stream.stream);
+        const analyserNode = audioContext.createAnalyser();
+        const gainNode = audioContext.createGain();
+
+        // This node is exclusively the caller's per-person manual gain. Master is on the summed bus.
+        const outputGain = 1;
+        gainNode.gain.value = 1;
+
+        sourceNode.connect(analyserNode);
+        const receiveController = getReceiveController(audioContext, config.audio.receiveLevelingEnabled ?? false);
+        // Apply master/mute before attaching a newly audible route, including the first route.
+        receiveController.bus.gain.setValueAtTime(sliderToOutputGain(outputVolume), audioContext.currentTime);
+        receiveController.setMuted(isDeafened || outputVolume === 0);
+        const receiveCleanup = receiveController.attach(analyserNode, gainNode);
+
+        voiceLog.ok("WEBRTC", "PLAY", `Playback connected: stream ${streamID} → analyser → gain(${outputGain.toFixed(2)}) → speakers`, {
+          audioContextState: audioContext.state,
+          destinationChannels: audioContext.destination.maxChannelCount,
+        });
+
+        const entry = {
+          gain: gainNode,
+          analyser: analyserNode,
+          stream: sourceNode,
+          audioElement: audioEl,
+          receiveCleanup,
+        };
+
+        newStreamSources[streamID] = entry;
+        mediaStreamToSourceKey.set(stream.stream, streamID);
+        for (const track of audioTracks) audioTrackToSourceKey.set(track, streamID);
+
+        hasChanges = true;
+      } catch (error) {
+        voiceLog.fail("WEBRTC", "PLAY", `Failed to setup playback for stream ${streamID}`, error);
+      }
+    });
+
+    if (hasChanges) {
+      voiceLog.info("WEBRTC", `streamSources updated – keys: [${Object.keys(newStreamSources).join(", ")}]`);
+      setStreamSources(newStreamSources);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [streams, audioContext, streamSources, setStreamSources]);
+
+  /* Deafen on React Native: there is no AudioContext, so the gain node the web path zeroes
+     never exists. `enabled` is the lever both platforms have, and only where no context. */
+  useEffect(() => {
+    if (audioContext) return;
+
+    // Depends on `streams` rather than reading the ref, so a peer who joins while you are
+    // deafened arrives silent instead of being the one person you can hear.
+    for (const streamData of Object.values(streams)) {
+      if (streamData.isLocal) continue;
+      for (const track of streamData.stream.getAudioTracks()) {
+        track.enabled = !isDeafened;
+      }
+    }
+  }, [streams, isDeafened, audioContext]);
+
+  // Safety net: periodically remove streams whose tracks have all ended.
+  // Handles edge cases where track.onended doesn't fire (ICE failure, etc).
+  useEffect(() => {
+    if (!isConnected) return;
+
+    const interval = setInterval(() => {
+      const current = streamsRef.current;
+      const deadIds: string[] = [];
+      Object.entries(current).forEach(([id, data]) => {
+        if (data.isLocal) return;
+        const tracks = data.stream.getTracks();
+        if (tracks.length === 0 || tracks.every(t => t.readyState === "ended")) {
+          deadIds.push(id);
+        }
+      });
+      if (deadIds.length > 0) {
+        voiceLog.info("WEBRTC", `Orphan cleanup: removing ${deadIds.length} dead stream(s): ${deadIds.join(", ")}`);
+        setStreams(prev => {
+          const next = { ...prev };
+          deadIds.forEach(id => delete next[id]);
+          return next;
+        });
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [isConnected, setStreams]);
+
+  // Track the first stream ID seen for each track so we can alias after
+  // SFU renegotiations that assign new stream IDs to the same tracks.
+  const trackToOriginalStreamRef = useRef<Map<string, string>>(new Map());
+
+  // Extract video MediaStreams from remote streams for rendering in VoiceView
+  useEffect(() => {
+    const nextVideo: VideoStreams = {};
+    const trackMap = trackToOriginalStreamRef.current;
+
+    Object.entries(streams).forEach(([streamId, data]) => {
+      if (data.isLocal) return;
+      const videoTracks = data.stream.getVideoTracks();
+      if (videoTracks.length > 0 && videoTracks.some(t => t.readyState === "live")) {
+        nextVideo[streamId] = data.stream;
+
+        for (const track of videoTracks) {
+          const originalId = trackMap.get(track.id);
+          if (!originalId) {
+            trackMap.set(track.id, streamId);
+          } else if (originalId !== streamId) {
+            nextVideo[originalId] = data.stream;
+          }
+        }
+      }
+    });
+
+    setVideoStreams(prev => {
+      const prevKeys = Object.keys(prev).sort().join(",");
+      const nextKeys = Object.keys(nextVideo).sort().join(",");
+      if (prevKeys !== nextKeys) {
+        console.log(`[ScreenShare] videoStreams keys changed: [${prevKeys}] -> [${nextKeys}]`);
+        return nextVideo;
+      }
+      const streamsChanged = Object.keys(nextVideo).some(k => prev[k] !== nextVideo[k]);
+      if (streamsChanged) {
+        console.log(`[ScreenShare] videoStreams objects changed (same keys): [${nextKeys}]`);
+        return nextVideo;
+      }
+      return prev;
+    });
+  }, [streams, setVideoStreams]);
+}

@@ -1,0 +1,1183 @@
+import { Dispatch, MutableRefObject, SetStateAction } from "react";
+
+import { isAudioOnly, microphoneReceiveAllowed, type MediaPolicy } from "../../shared/mediaPolicy";
+import { getVoicePlatform } from "../../platform";
+import type { RoomCoordinator } from "../../types";
+import { SFUConnectionState, Streams } from "../types/SFU";
+import {
+  connectingMayBeWritten,
+  peerConnectedSettles,
+} from "./connectionProgress";
+import { getCachedSfuUrl, selectBestSfuUrl } from "./selectBestSfuUrl";
+import { connectToSfuWebSocket } from "./sfuConnection";
+import type { VideoWanted } from "./videoDemand";
+import { RoomRefusal, SFUConnectionStateInternal } from "./sfuTypes";
+import { voiceLog } from "./voiceLogger";
+import { applyMicrophoneCodec, snapshotMicrophoneCodec } from "./microphoneCodec";
+
+/** How often the connect flow looks for the microphone while it waits. */
+const MIC_POLL_MS = 200;
+
+/**
+ * How long to wait when no request for the microphone is outstanding. Short on purpose:
+ * nothing is on its way, so waiting is just a spinner.
+ */
+const MIC_IDLE_WAIT_MS = 6_000;
+
+/**
+ * How long to wait while a `getUserMedia` is actually in flight. Long on purpose: a request
+ * can sit behind a permission dialog, and six seconds cut one off after fifteen.
+ */
+const MIC_BUSY_WAIT_MS = 30_000;
+
+
+type IceCandidateStat = {
+  address: string;
+  port: number;
+  candidateType: string;
+  protocol: string;
+  networkType?: string;
+};
+
+type IceCandidatePairStat = RTCIceCandidatePairStats & { selected?: boolean };
+type TransportStat = RTCTransportStats & { selectedCandidatePairId?: string };
+type IceCandidateStatsLike = RTCStats & {
+  address?: string;
+  ip?: string;
+  port?: number;
+  candidateType?: string;
+  protocol?: string;
+  networkType?: string;
+};
+
+async function dumpIceSelectedPair(pc: RTCPeerConnection, label: string) {
+  try {
+    const report = await pc.getStats();
+
+    const candidateMap = new Map<string, IceCandidateStat>();
+    const pairStats: IceCandidatePairStat[] = [];
+    let transportSelectedPairId: string | null = null;
+
+    report.forEach((stat) => {
+      if (stat.type === "local-candidate" || stat.type === "remote-candidate") {
+        const c = stat as IceCandidateStatsLike;
+        candidateMap.set(c.id, {
+          address: c.address ?? c.ip ?? "?",
+          port: c.port ?? 0,
+          candidateType: c.candidateType ?? "?",
+          protocol: c.protocol ?? "?",
+          networkType: c.networkType,
+        });
+        return;
+      }
+
+      if (stat.type === "candidate-pair") {
+        pairStats.push(stat as IceCandidatePairStat);
+        return;
+      }
+
+      if (stat.type === "transport") {
+        const t = stat as TransportStat;
+        if (typeof t.selectedCandidatePairId === "string") {
+          transportSelectedPairId = t.selectedCandidatePairId;
+        }
+      }
+    });
+
+    const selectedPair =
+      (transportSelectedPairId
+        ? pairStats.find((p) => p.id === transportSelectedPairId)
+        : null) ||
+      pairStats.find((p) => ("selected" in p ? p.selected === true : false)) ||
+      pairStats.find((p) => p.nominated === true && p.state === "succeeded") ||
+      pairStats.find((p) => p.state === "succeeded") ||
+      null;
+
+    if (!selectedPair) {
+      voiceLog.warn(
+        "WEBRTC",
+        `ICE debug (${label}): no candidate-pair selected yet`,
+        {
+          connectionState: pc.connectionState,
+          iceConnectionState: pc.iceConnectionState,
+          signalingState: pc.signalingState,
+        },
+      );
+      return;
+    }
+
+    const local = candidateMap.get(selectedPair.localCandidateId);
+    const remote = candidateMap.get(selectedPair.remoteCandidateId);
+
+    voiceLog.info("WEBRTC", `ICE debug (${label}): selected candidate pair`, {
+      pair: {
+        id: selectedPair.id,
+        state: selectedPair.state,
+        nominated: selectedPair.nominated,
+        selected: selectedPair.selected,
+        currentRoundTripTimeMs:
+          typeof selectedPair.currentRoundTripTime === "number"
+            ? Math.round(selectedPair.currentRoundTripTime * 1000)
+            : null,
+        availableOutgoingBitrateKbps:
+          typeof selectedPair.availableOutgoingBitrate === "number"
+            ? Math.round(selectedPair.availableOutgoingBitrate / 1000)
+            : null,
+      },
+      local: local
+        ? { ...local, address: `${local.address}:${local.port}` }
+        : null,
+      remote: remote
+        ? { ...remote, address: `${remote.address}:${remote.port}` }
+        : null,
+    });
+
+    const nonFrozen = pairStats.filter((p) => p.state && p.state !== "frozen");
+    if (nonFrozen.length > 0) {
+      const sample = nonFrozen.slice(0, 8).map((p) => {
+        const r = candidateMap.get(p.remoteCandidateId);
+        return {
+          state: p.state,
+          nominated: p.nominated,
+          selected: p.selected,
+          remote: r
+            ? `${r.address}:${r.port} (${r.candidateType}/${r.protocol})`
+            : p.remoteCandidateId,
+        };
+      });
+      voiceLog.info(
+        "WEBRTC",
+        `ICE debug (${label}): candidate-pair sample`,
+        sample,
+      );
+    }
+  } catch (error) {
+    voiceLog.warn("WEBRTC", `ICE debug (${label}) failed`, error);
+  }
+}
+
+export interface SetupPeerConnectionDeps {
+  interceptDisconnect?: () => boolean;
+  getMediaPolicy?: () => MediaPolicy;
+  sfuWebSocketRef: MutableRefObject<WebSocket | null>;
+  connectionTimeoutRef: MutableRefObject<NodeJS.Timeout | null>;
+  isDisconnectingRef: MutableRefObject<boolean>;
+  setStreams: Dispatch<SetStateAction<Streams>>;
+  setConnectionState: Dispatch<SetStateAction<SFUConnectionStateInternal>>;
+  performCleanup?: (skipServerUpdate?: boolean) => Promise<void>;
+}
+
+export function setupPeerConnection(
+  stunServers: string[],
+  deps: SetupPeerConnectionDeps,
+  eSportsModeEnabled: boolean = false,
+): RTCPeerConnection {
+  const {
+    sfuWebSocketRef,
+    connectionTimeoutRef,
+    isDisconnectingRef,
+    setStreams,
+    setConnectionState,
+    performCleanup,
+  } = deps;
+
+  const config: RTCConfiguration = {
+    iceServers: [{ urls: stunServers }],
+    iceCandidatePoolSize: 10,
+    iceTransportPolicy: "all",
+    bundlePolicy: eSportsModeEnabled ? "max-bundle" : "balanced",
+    rtcpMuxPolicy: "require",
+    certificates: undefined,
+  };
+
+  const pc = getVoicePlatform().createPeerConnection(config);
+  let iceDebugDumped = false;
+  let wasConnected = false;
+  let disconnectedTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  const dumpIceOnce = (label: string) => {
+    if (iceDebugDumped) return;
+    iceDebugDumped = true;
+    dumpIceSelectedPair(pc, label).catch(() => undefined);
+  };
+
+  pc.onicecandidate = (event) => {
+    if (event.candidate) {
+      voiceLog.info(
+        "WEBRTC",
+        `Local ICE candidate: type=${event.candidate.type} proto=${event.candidate.protocol} ${event.candidate.address}:${event.candidate.port}`,
+      );
+      if (sfuWebSocketRef.current?.readyState === WebSocket.OPEN) {
+        try {
+          sfuWebSocketRef.current.send(
+            JSON.stringify({
+              event: "candidate",
+              data: JSON.stringify(event.candidate),
+            }),
+          );
+        } catch (error) {
+          voiceLog.fail(
+            "WEBRTC",
+            "ICE",
+            "Error sending local ICE candidate",
+            error,
+          );
+        }
+      } else {
+        voiceLog.warn(
+          "WEBRTC",
+          `WebSocket not open (state=${sfuWebSocketRef.current?.readyState}), local ICE candidate dropped`,
+        );
+      }
+    } else {
+      voiceLog.ok("WEBRTC", "ICE", "ICE gathering complete (null candidate)");
+    }
+  };
+
+  pc.oniceconnectionstatechange = () => {
+    const state = pc.iceConnectionState;
+    if (state === "connected" || state === "completed") {
+      voiceLog.ok("WEBRTC", "ICE", `ICE connection state → ${state}`);
+      dumpIceOnce(`ice-${state}`);
+    } else if (state === "failed" || state === "disconnected") {
+      voiceLog.fail("WEBRTC", "ICE", `ICE connection state → ${state}`);
+      dumpIceOnce(`ice-${state}`);
+    } else {
+      voiceLog.info("WEBRTC", `ICE connection state → ${state}`);
+    }
+  };
+  pc.onicegatheringstatechange = () => {
+    voiceLog.info("WEBRTC", `ICE gathering state → ${pc.iceGatheringState}`);
+  };
+  pc.onsignalingstatechange = () => {
+    voiceLog.info("WEBRTC", `Signaling state → ${pc.signalingState}`);
+  };
+
+  pc.onnegotiationneeded = () => {
+    voiceLog.info(
+      "WEBRTC",
+      "Negotiation needed (handled explicitly by track add/remove)",
+    );
+  };
+
+  // Transceiver mid to the first stream id seen. Mids are stable across renegotiations, so
+  // alias entries survive Chrome assigning a new MediaStream id.
+  const midToOriginalStream = new Map<string, string>();
+
+  pc.ontrack = (event) => {
+    const policy = deps.getMediaPolicy?.() ?? {};
+    if (isAudioOnly(policy) && (event.track.kind !== "audio" || !microphoneReceiveAllowed(pc.remoteDescription?.sdp, event.transceiver?.mid ?? null, policy))) {
+      event.track.enabled = false;
+      voiceLog.warn("WEBRTC", "Audio-only denied remote track before routing", { kind: event.track.kind, mid: event.transceiver?.mid });
+      return;
+    }
+    const remoteStream = event.streams[0] ?? new MediaStream([event.track]);
+    const mid = event.transceiver?.mid;
+    voiceLog.ok(
+      "WEBRTC",
+      "TRACK",
+      `Remote track received: kind=${event.track.kind} streamId=${remoteStream.id} trackId=${event.track.id} mid=${mid ?? "null"}`,
+    );
+
+    const receiver = event.receiver as RTCRtpReceiver & {
+      playoutDelayHint?: number;
+      jitterBufferTarget?: number;
+    };
+    if ("playoutDelayHint" in receiver) {
+      receiver.playoutDelayHint = 0;
+    }
+    if ("jitterBufferTarget" in receiver) {
+      receiver.jitterBufferTarget = 0;
+    }
+
+    // Delayed codec report for incoming video tracks
+    if (event.track.kind === "video") {
+      setTimeout(() => {
+        event.receiver
+          .getStats()
+          .then((stats) => {
+            stats.forEach((report) => {
+              if (report.type === "inbound-rtp" && report.kind === "video") {
+                const codecId = report.codecId;
+                if (codecId) {
+                  stats.forEach((inner) => {
+                    if (inner.id === codecId && inner.type === "codec") {
+                      voiceLog.ok(
+                        "WEBRTC",
+                        "RECV-CODEC",
+                        `Incoming video codec mid=${mid}: ${inner.mimeType} pt=${inner.payloadType} ${inner.sdpFmtpLine || ""}`,
+                        {
+                          bytesReceived: report.bytesReceived,
+                          framesDecoded: report.framesDecoded,
+                          width: report.frameWidth,
+                          height: report.frameHeight,
+                        },
+                      );
+                    }
+                  });
+                }
+              }
+            });
+          })
+          .catch(() => {
+            /* stats unavailable */
+          });
+      }, 3000);
+    }
+
+    let aliasStreamId: string | undefined;
+    if (mid) {
+      const original = midToOriginalStream.get(mid);
+      if (!original) {
+        midToOriginalStream.set(mid, remoteStream.id);
+      } else if (original !== remoteStream.id) {
+        aliasStreamId = original;
+        voiceLog.info(
+          "WEBRTC",
+          `Stream ID changed for mid=${mid}: ${original} → ${remoteStream.id} (preserving alias)`,
+        );
+      }
+    }
+
+    setStreams((prev) => {
+      const next = {
+        ...prev,
+        [remoteStream.id]: { stream: remoteStream, isLocal: false },
+      };
+      if (aliasStreamId) {
+        next[aliasStreamId] = { stream: remoteStream, isLocal: false };
+      }
+      return next;
+    });
+
+    event.track.onended = () => {
+      voiceLog.info(
+        "WEBRTC",
+        `Remote track ended: streamId=${remoteStream.id} trackId=${event.track.id}`,
+      );
+      setStreams((prev) => {
+        const next = { ...prev };
+        delete next[remoteStream.id];
+        if (aliasStreamId) delete next[aliasStreamId];
+        return next;
+      });
+    };
+  };
+
+  pc.onconnectionstatechange = () => {
+    const state = pc.connectionState;
+    const detail = {
+      connectionState: state,
+      iceState: pc.iceConnectionState,
+      signalingState: pc.signalingState,
+    };
+
+    switch (state) {
+      case "connected":
+        voiceLog.ok(
+          "CONNECT",
+          9,
+          "WebRTC CONNECTED — voice chat is live!",
+          detail,
+        );
+        voiceLog.divider("VOICE CONNECTED");
+        wasConnected = true;
+        iceDebugDumped = false;
+        dumpIceOnce("pc-connected");
+        if (disconnectedTimeoutId) {
+          clearTimeout(disconnectedTimeoutId);
+          disconnectedTimeoutId = null;
+        }
+        if (connectionTimeoutRef.current) {
+          clearTimeout(connectionTimeoutRef.current);
+          connectionTimeoutRef.current = null;
+        }
+        setConnectionState((prev) =>
+          peerConnectedSettles(prev.state)
+            ? { ...prev, state: SFUConnectionState.CONNECTED }
+            : prev,
+        );
+        break;
+      case "disconnected":
+        voiceLog.warn(
+          "WEBRTC",
+          `Connection state → disconnected — attempting ICE recovery`,
+          detail,
+        );
+        dumpIceOnce("pc-disconnected");
+        try {
+          pc.restartIce();
+        } catch {
+          /* ignored */
+        }
+        disconnectedTimeoutId = setTimeout(() => {
+          disconnectedTimeoutId = null;
+          if (
+            pc.connectionState !== "connected" &&
+            pc.connectionState !== "closed" &&
+            !isDisconnectingRef.current
+          ) {
+            voiceLog.fail(
+              "WEBRTC",
+              "PC",
+              "ICE recovery timed out after 5s — forcing reconnect",
+              {
+                connectionState: pc.connectionState,
+                iceState: pc.iceConnectionState,
+              },
+            );
+            dumpIceOnce("ice-recovery-timeout");
+            setConnectionState((prev) => ({
+              ...prev,
+              state: SFUConnectionState.FAILED,
+              error: "Connection lost",
+            }));
+            performCleanup?.(false).catch(() => undefined);
+          }
+        }, 5_000);
+        break;
+      case "connecting":
+        voiceLog.info("WEBRTC", `Connection state → ${state}`, detail);
+        break;
+      case "failed":
+      case "closed":
+        if (deps.interceptDisconnect?.()) return;
+        if (disconnectedTimeoutId) {
+          clearTimeout(disconnectedTimeoutId);
+          disconnectedTimeoutId = null;
+        }
+        voiceLog.fail("WEBRTC", "PC", `Connection state → ${state}`, detail);
+        dumpIceOnce(`pc-${state}`);
+        if (!isDisconnectingRef.current) {
+          setConnectionState((prev) => ({
+            ...prev,
+            state: SFUConnectionState.FAILED,
+            error: wasConnected
+              ? "Connection lost"
+              : "WebRTC connection failed",
+          }));
+          performCleanup?.(false).catch(() => undefined);
+        }
+        break;
+      default:
+        voiceLog.info("WEBRTC", `Connection state → ${state}`, detail);
+    }
+  };
+
+  try {
+    const dataChannel = pc.createDataChannel("health", {
+      ordered: true,
+      maxRetransmits: 3,
+    });
+    dataChannel.onopen = null;
+    dataChannel.onclose = null;
+    dataChannel.onerror = (error) => {
+      console.error("Data channel error:", error);
+    };
+  } catch {
+    // Data channel creation is optional
+  }
+
+  return pc;
+}
+
+export interface ConnectParams {
+  microphoneCodec?: import("../types/MicrophoneCodec").MicrophoneCodecProfile;
+  onMicrophoneCodecState?: (state: import("../types/MicrophoneCodec").MicrophoneCodecState) => void;
+  interceptDisconnect?: () => boolean;
+  getMediaPolicy?: () => MediaPolicy;
+  channelID: string;
+  eSportsModeEnabled?: boolean;
+  channelMaxBitrateBps?: number | null;
+  connectSeq: number;
+  connectSeqRef: MutableRefObject<number>;
+  refs: {
+    isConnectingRef: MutableRefObject<boolean>;
+    isDisconnectingRef: MutableRefObject<boolean>;
+    peerConnectionRef: MutableRefObject<RTCPeerConnection | null>;
+    sfuWebSocketRef: MutableRefObject<WebSocket | null>;
+    registeredTracksRef: MutableRefObject<RTCRtpSender[]>;
+    connectionTimeoutRef: MutableRefObject<NodeJS.Timeout | null>;
+    microphoneBufferRef: MutableRefObject<{
+      publicationStream?: MediaStream;
+      processedStream?: MediaStream;
+      mediaStream?: MediaStream;
+    }>;
+    /** True while a `getUserMedia` is out. See `MIC_BUSY_WAIT_MS`. */
+    micAcquiringRef: MutableRefObject<boolean>;
+    activeSfuUrlRef: MutableRefObject<string | null>;
+    /**
+     * The stream id this connection announced to the signalling server. Held rather than
+     * re-read: `replaceTrack` leaves the sender publishing under the id it was created with.
+     */
+    announcedStreamIdRef: MutableRefObject<string | null>;
+  };
+  connectionState: SFUConnectionStateInternal;
+  isConnected: boolean;
+  /**
+   * Opaque identity for what is being connected to. The client passes the server's host; the
+   * engine compares it and reports it back, and does not parse it.
+   */
+  targetId: string;
+  stunHosts: string[];
+  room: RoomCoordinator;
+  /**
+   * Called when this connect supersedes a live one somewhere else. Telling the previous
+   * server needs that server's connection, and the engine holds only the one it is opening.
+   */
+  releasePreviousRoom?: (previousTargetId: string) => void | Promise<void>;
+  sfuConnectionRefs: {
+    isDisconnectingRef: MutableRefObject<boolean>;
+    sfuWebSocketRef: MutableRefObject<WebSocket | null>;
+    peerConnectionRef: MutableRefObject<RTCPeerConnection | null>;
+  };
+  setConnectionState: Dispatch<SetStateAction<SFUConnectionStateInternal>>;
+  setStreams: Dispatch<SetStateAction<Streams>>;
+  performCleanup: (skipServerUpdate?: boolean) => Promise<void>;
+  onVideoWanted?: (wanted: VideoWanted & { mid: string }) => void;
+  onIngestCap?: (bps: number | null) => void;
+}
+
+/* The SFU rejects explicit nulls where it accepts an absent key. */
+function withoutNulls<T extends object>(value: T): T {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, v]) => v !== null && v !== undefined),
+  ) as T;
+}
+
+export async function sfuConnect(params: ConnectParams): Promise<void> {
+  const {
+    channelID,
+    refs,
+    connectionState,
+    isConnected,
+    targetId,
+    stunHosts,
+    room,
+    releasePreviousRoom,
+    sfuConnectionRefs,
+    setConnectionState,
+    setStreams,
+    performCleanup,
+    channelMaxBitrateBps,
+    eSportsModeEnabled,
+    connectSeq,
+    connectSeqRef,
+    onVideoWanted,
+    onIngestCap,
+  } = params;
+  const {
+    isConnectingRef,
+    isDisconnectingRef,
+    peerConnectionRef,
+    sfuWebSocketRef,
+    registeredTracksRef,
+    connectionTimeoutRef,
+    microphoneBufferRef,
+    micAcquiringRef,
+    activeSfuUrlRef,
+  } = refs;
+
+  const isStale = () => connectSeqRef.current !== connectSeq;
+  let microphoneCodec: ReturnType<typeof snapshotMicrophoneCodec>;
+
+  try {
+    try { microphoneCodec = snapshotMicrophoneCodec(params.microphoneCodec); }
+    catch (error) {
+      params.onMicrophoneCodecState?.({ status: "degraded", reason: "invalid_profile", requested: null,
+        effectiveMaxBitrateBps: null, remoteMaxAverageBitrateBps: null, limitedBy: [],
+        senderMaxBitrateBps: null, remoteOfferMatches: null, rtpVerified: false, errorName: "TypeError" });
+      throw error;
+    }
+    voiceLog.divider("VOICE CONNECT START");
+    voiceLog.step("CONNECT", 0, "Starting connection flow", {
+      channelID,
+      server: targetId,
+      currentState: connectionState.state,
+      isConnected,
+      seq: connectSeq,
+    });
+
+    if (!channelID) {
+      voiceLog.fail("CONNECT", 0, "Invalid channel ID (empty)");
+      throw new Error("Invalid channel ID");
+    }
+
+    if (
+      connectionState.state === SFUConnectionState.CONNECTED &&
+      connectionState.roomId === channelID &&
+      connectionState.serverId === targetId
+    ) {
+      voiceLog.info("CONNECT", "Already connected to this room — skipping");
+      return;
+    }
+
+    // If another connection is in progress, tear it down first
+    if (isConnectingRef.current) {
+      voiceLog.info(
+        "CONNECT",
+        "Superseding in-progress connection — cleaning up",
+      );
+      await performCleanup(true);
+    }
+
+    if (isDisconnectingRef.current) {
+      voiceLog.info("CONNECT", "Waiting for previous disconnect to finish…");
+      for (let i = 0; i < 5; i++) {
+        if (!isDisconnectingRef.current) break;
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+    }
+
+    if (isStale()) {
+      voiceLog.info("CONNECT", "Superseded before start — aborting");
+      return;
+    }
+    isConnectingRef.current = true;
+
+    // ---- Step 1: Room-switching cleanup ----
+    if (
+      isConnected &&
+      (connectionState.roomId !== channelID ||
+        connectionState.serverId !== targetId)
+    ) {
+      voiceLog.step(
+        "CONNECT",
+        1,
+        "Room switch detected — cleaning up previous connection",
+        {
+          oldRoom: connectionState.roomId,
+          oldServer: connectionState.serverId,
+        },
+      );
+
+      if (connectionState.serverId && releasePreviousRoom) {
+        try {
+          await releasePreviousRoom(connectionState.serverId);
+          voiceLog.ok("CONNECT", 1, "Notified old server of disconnect");
+        } catch (error) {
+          voiceLog.fail("CONNECT", 1, "Error notifying old server", error);
+        }
+      }
+
+      if (sfuWebSocketRef.current) {
+        const oldWs = sfuWebSocketRef.current;
+        sfuWebSocketRef.current = null;
+        try {
+          oldWs.onopen = null;
+          oldWs.onmessage = null;
+          oldWs.onclose = null;
+          oldWs.onerror = null;
+          if (
+            oldWs.readyState === WebSocket.OPEN ||
+            oldWs.readyState === WebSocket.CONNECTING
+          ) {
+            oldWs.close(1000, "Switching rooms");
+          }
+          voiceLog.ok("CONNECT", 1, "Old SFU WebSocket closed");
+        } catch (error) {
+          voiceLog.fail("CONNECT", 1, "Error cleaning up old WebSocket", error);
+        }
+      }
+
+      if (peerConnectionRef.current) {
+        const oldPc = peerConnectionRef.current;
+        peerConnectionRef.current = null;
+        try {
+          oldPc.onicecandidate = null;
+          oldPc.oniceconnectionstatechange = null;
+          oldPc.onicegatheringstatechange = null;
+          oldPc.onsignalingstatechange = null;
+          oldPc.ontrack = null;
+          oldPc.onconnectionstatechange = null;
+          oldPc.ondatachannel = null;
+          if (oldPc.connectionState !== "closed") {
+            oldPc.close();
+          }
+          voiceLog.ok("CONNECT", 1, "Old peer connection closed");
+        } catch (error) {
+          voiceLog.fail(
+            "CONNECT",
+            1,
+            "Error cleaning up old peer connection",
+            error,
+          );
+        }
+      }
+
+      registeredTracksRef.current = [];
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      if (isStale()) {
+        voiceLog.info("CONNECT", "Superseded during cleanup — aborting");
+        return;
+      }
+    }
+
+    // ---- Step 2: Set CONNECTING state ----
+    voiceLog.step("CONNECT", 2, "Setting state to CONNECTING");
+    setConnectionState({
+      state: SFUConnectionState.CONNECTING,
+      roomId: channelID,
+      serverId: targetId,
+      error: null,
+      callAloneTimeoutSeconds: null,
+    });
+
+    // ---- Step 3: Wait for microphone ----
+    voiceLog.step("CONNECT", 3, "Waiting for microphone stream", {
+      hasProcessedStream: !!microphoneBufferRef.current.processedStream,
+      hasMediaStream: !!microphoneBufferRef.current.mediaStream,
+    });
+
+    let streamToUse =
+      microphoneBufferRef.current.publicationStream ||
+      microphoneBufferRef.current.processedStream ||
+      microphoneBufferRef.current.mediaStream;
+
+    if (streamToUse) {
+      const audioTracks = streamToUse.getAudioTracks();
+      const hasLiveTracks =
+        audioTracks.length > 0 &&
+        audioTracks.some((track) => track.readyState === "live");
+      voiceLog.info(
+        "CONNECT",
+        `Initial stream check: ${audioTracks.length} tracks, live=${hasLiveTracks}`,
+      );
+      if (!hasLiveTracks) streamToUse = undefined;
+    }
+
+    if (!streamToUse) {
+      /* The deadline is decided per tick, not once: a request can start while this is
+         already waiting, which is the ordinary case. */
+      let waited = 0;
+      voiceLog.info("CONNECT", "No live stream yet — waiting for the microphone…");
+      for (;;) {
+        // Check the thing being waited for before applying the timeout. getUserMedia can
+        // settle just before isAcquiring flips false, which shortens the deadline again.
+        streamToUse =
+          microphoneBufferRef.current.publicationStream ||
+          microphoneBufferRef.current.processedStream ||
+          microphoneBufferRef.current.mediaStream;
+        if (streamToUse) {
+          const audioTracks = streamToUse.getAudioTracks();
+          if (
+            audioTracks.length > 0 &&
+            audioTracks.some((track) => track.readyState === "live")
+          ) {
+            voiceLog.ok(
+              "CONNECT",
+              3,
+              `Microphone ready after ${waited}ms`,
+              {
+                trackCount: audioTracks.length,
+                trackStates: audioTracks.map((t) => ({
+                  id: t.id,
+                  readyState: t.readyState,
+                  label: t.label,
+                })),
+              },
+            );
+            break;
+          }
+          streamToUse = undefined;
+        }
+
+        const deadline = micAcquiringRef.current
+          ? MIC_BUSY_WAIT_MS
+          : MIC_IDLE_WAIT_MS;
+        if (waited >= deadline) break;
+
+        const delay = Math.min(MIC_POLL_MS, deadline - waited);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        waited += delay;
+        if (isStale()) {
+          voiceLog.info("CONNECT", "Superseded during mic poll — aborting");
+          return;
+        }
+      }
+      if (!streamToUse) {
+        voiceLog.fail(
+          "CONNECT",
+          3,
+          `Microphone did not arrive within ${waited / 1000}s` +
+            (micAcquiringRef.current ? " (a request is still in flight)" : ""),
+        );
+        /* Says what happened rather than what was assumed. "Microphone not available -
+           please check microphone settings" sent people to a screen with nothing wrong. */
+        throw new Error(
+          micAcquiringRef.current
+            ? `The microphone did not become available within ${waited / 1000} seconds`
+            : "No microphone was opened for this call",
+        );
+      }
+    } else {
+      const tracks = streamToUse.getAudioTracks();
+      voiceLog.ok("CONNECT", 3, "Microphone stream available immediately", {
+        trackCount: tracks.length,
+        trackStates: tracks.map((t) => ({
+          id: t.id,
+          readyState: t.readyState,
+          label: t.label,
+        })),
+      });
+    }
+
+    const audioTracks = streamToUse.getAudioTracks();
+    if (
+      audioTracks.length === 0 ||
+      !audioTracks.some((track) => track.readyState === "live")
+    ) {
+      voiceLog.info("CONNECT", "Tracks not live yet — waiting up to 1.5s…");
+      for (let attempt = 0; attempt < 10; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, 150));
+        if (isStale()) {
+          voiceLog.info("CONNECT", "Superseded during track wait — aborting");
+          return;
+        }
+        const currentTracks = streamToUse.getAudioTracks();
+        if (
+          currentTracks.length > 0 &&
+          currentTracks.some((track) => track.readyState === "live")
+        )
+          break;
+      }
+      const finalTracks = streamToUse.getAudioTracks();
+      if (
+        finalTracks.length === 0 ||
+        !finalTracks.some((track) => track.readyState === "live")
+      ) {
+        voiceLog.fail("CONNECT", 3, "Microphone tracks never became live", {
+          trackStates: finalTracks.map((t) => ({
+            id: t.id,
+            readyState: t.readyState,
+          })),
+        });
+        throw new Error(
+          "Microphone not ready - please wait a moment and try again",
+        );
+      }
+    }
+
+    if (isStale()) {
+      voiceLog.info("CONNECT", "Superseded before room access — aborting");
+      return;
+    }
+
+    // ---- Step 4: Request room access ----
+    voiceLog.step("CONNECT", 4, "Requesting room access from server", {
+      roomId: channelID,
+    });
+    const access = await room.requestAccess(channelID);
+    if (!access.granted) {
+      voiceLog.fail(
+        "CONNECT",
+        4,
+        `Room access denied: ${access.reason ?? "unknown"}`,
+        { retryAfterMs: access.retryAfterMs },
+      );
+      const reason = access.reason ?? "Unknown error";
+      if (access.retryAfterMs === undefined) throw new RoomRefusal(reason);
+      throw new Error(`Room access denied: ${reason}`);
+    }
+    voiceLog.ok("CONNECT", 4, "Room access granted", {
+      room_id: access.roomId,
+      candidates: access.sfuUrls?.length ?? 0,
+    });
+    if (isStale()) {
+      voiceLog.info("CONNECT", "Superseded after room access — aborting");
+      return;
+    }
+
+    // ---- Step 5: Setup WebRTC peer connection ----
+    voiceLog.step("CONNECT", 5, "Creating RTCPeerConnection", {
+      stunServers: stunHosts,
+      eSportsModeEnabled,
+    });
+    const peerConnection = setupPeerConnection(
+      stunHosts,
+      {
+        getMediaPolicy: params.getMediaPolicy,
+        interceptDisconnect: params.interceptDisconnect,
+        sfuWebSocketRef,
+        connectionTimeoutRef,
+        isDisconnectingRef,
+        setStreams,
+        setConnectionState,
+        performCleanup,
+      },
+      eSportsModeEnabled,
+    );
+    peerConnectionRef.current = peerConnection;
+    voiceLog.ok("CONNECT", 5, "RTCPeerConnection created", {
+      signalingState: peerConnection.signalingState,
+      connectionState: peerConnection.connectionState,
+    });
+
+    connectionTimeoutRef.current = setTimeout(() => {
+      const pc = peerConnectionRef.current;
+      if (
+        pc &&
+        !isDisconnectingRef.current &&
+        pc.connectionState !== "connected"
+      ) {
+        voiceLog.fail(
+          "CONNECT",
+          "TIMEOUT",
+          "Full connection timed out after 20s",
+          {
+            pcState: pc.connectionState,
+            iceState: pc.iceConnectionState,
+          },
+        );
+        dumpIceSelectedPair(pc, "timeout").catch(() => undefined);
+        setConnectionState((prev) => ({
+          ...prev,
+          state: SFUConnectionState.FAILED,
+          error: "Connection timed out",
+        }));
+        performCleanup(false).catch(console.error);
+      }
+    }, 20000);
+
+    if (isStale()) {
+      voiceLog.info(
+        "CONNECT",
+        "Superseded after peer connection setup — aborting",
+      );
+      peerConnection.close();
+      peerConnectionRef.current = null;
+      return;
+    }
+
+    // ---- Step 6: Add local tracks ----
+    const localStream = streamToUse;
+    const tracks: RTCRtpSender[] = [];
+    const microphoneTrack = localStream.getAudioTracks()[0];
+    localStream.getTracks().forEach((track) => {
+      if (isAudioOnly(params.getMediaPolicy?.() ?? {}) && track !== microphoneTrack) { track.stop(); return; }
+      const sender = peerConnection.addTrack(track, localStream);
+      tracks.push(sender);
+    });
+    registeredTracksRef.current = tracks;
+
+    voiceLog.ok("CONNECT", 6, "Local audio tracks added to peer connection", {
+      trackCount: tracks.length,
+      tracks: localStream.getTracks().map((t) => ({
+        kind: t.kind,
+        id: t.id,
+        readyState: t.readyState,
+        label: t.label,
+      })),
+    });
+
+    // With Opus's 510 kbps as the ceiling, Chrome gave the microphone 510 of a 548 kbps send
+    // estimate and the camera 30 (GRYT-1332). Voice needs tens of kbps.
+    const DEFAULT_MAX_BITRATE_BPS = 64_000;
+    const ESPORTS_MAX_BITRATE_BPS = 128_000;
+    const effectiveBitrate = microphoneCodec?.maxBitrateBps ?? (eSportsModeEnabled
+      ? ESPORTS_MAX_BITRATE_BPS
+      : typeof channelMaxBitrateBps === "number" && channelMaxBitrateBps > 0
+        ? channelMaxBitrateBps
+        : DEFAULT_MAX_BITRATE_BPS);
+
+    voiceLog.info(
+      "CONNECT",
+      microphoneCodec ? `Explicit Opus profile — requesting ${effectiveBitrate / 1000}kbps/${microphoneCodec.packetTimeMs}ms`
+      : eSportsModeEnabled
+        ? `eSports mode — capping bitrate at ${ESPORTS_MAX_BITRATE_BPS / 1000}kbps (Opus studio quality)`
+        : `Applying max bitrate: ${effectiveBitrate / 1000}kbps${channelMaxBitrateBps ? " (channel)" : " (default)"}`,
+    );
+    if (microphoneCodec) {
+      const state = await applyMicrophoneCodec(peerConnection, tracks, microphoneCodec, undefined, channelMaxBitrateBps);
+      if (!isStale()) params.onMicrophoneCodecState?.(state);
+      if (state.reason === "bitrate_below_opus_minimum") throw new Error(state.reason);
+    } else tracks.forEach((sender) => {
+      try {
+        if (sender.track?.kind !== "audio") return;
+        const params = sender.getParameters();
+        const enc =
+          params.encodings && params.encodings.length > 0
+            ? params.encodings.map(withoutNulls)
+            : [{} as RTCRtpEncodingParameters];
+        enc[0] = { ...enc[0], maxBitrate: effectiveBitrate };
+        sender
+          .setParameters({ ...withoutNulls(params), encodings: enc })
+          .catch(() => undefined);
+      } catch {
+        // ignore
+      }
+    });
+
+    setStreams((prev) => {
+      const nonLocalEntries = Object.entries(prev).filter(
+        ([, s]) => !s.isLocal,
+      );
+      const nonLocal = Object.fromEntries(nonLocalEntries);
+      return {
+        ...nonLocal,
+        [localStream.id]: { stream: localStream, isLocal: true },
+      };
+    });
+
+    // ---- Step 7: Connect to SFU WebSocket ----
+    const sfuCandidates = access.sfuUrls ?? [];
+    if (sfuCandidates.length === 0) {
+      throw new Error("Room access granted without an SFU address");
+    }
+    const cacheKey = access.cacheKey ?? targetId;
+    const sfuUrl =
+      getCachedSfuUrl(cacheKey) ??
+      (await selectBestSfuUrl(sfuCandidates, cacheKey));
+    if (isStale()) {
+      voiceLog.info("CONNECT", "Superseded before SFU WebSocket — aborting");
+      peerConnection.close();
+      peerConnectionRef.current = null;
+      return;
+    }
+    activeSfuUrlRef.current = sfuUrl;
+    voiceLog.step("CONNECT", 7, "Connecting WebSocket to SFU", {
+      sfu_url: sfuUrl,
+      eSportsModeEnabled,
+    });
+    // What the SFU said about itself on the way in. In a local because the state write below
+    // is a whole object, so setting it inside onRoomJoined would be overwritten.
+    let callAloneTimeoutSeconds: number | null = null;
+
+    let sfuWebSocket: WebSocket;
+    try {
+      sfuWebSocket = await connectToSfuWebSocket(
+        sfuUrl,
+        access.joinToken,
+        sfuConnectionRefs,
+        eSportsModeEnabled,
+        {
+          microphoneCodec,
+          channelMaxBitrateBps,
+          onMicrophoneCodecState: state => { if (!isStale()) params.onMicrophoneCodecState?.(state); },
+          getMediaPolicy: params.getMediaPolicy,
+          getMicrophoneSenders: () => registeredTracksRef.current,
+          interceptDisconnect: params.interceptDisconnect,
+          onRoomJoined: (info) => {
+            callAloneTimeoutSeconds = info.callAloneTimeoutSeconds;
+            if (!isStale()) onIngestCap?.(info.maxIngestKbps === null ? null : info.maxIngestKbps * 1000);
+          },
+          onVideoWanted: (wanted) => {
+            if (!isStale()) onVideoWanted?.(wanted);
+          },
+          onAbnormalClose: (info) => {
+            if (params.interceptDisconnect?.()) return;
+            if (isStale() || isDisconnectingRef.current) return;
+
+            voiceLog.warn(
+              "SFU-WS",
+              `Abnormal SFU WebSocket close (${info.code}) — marking voice connection failed for auto-reconnect`,
+              info,
+            );
+
+            setConnectionState((prev) => {
+              if (prev.state === SFUConnectionState.DISCONNECTED) return prev;
+
+              return {
+                ...prev,
+                state: SFUConnectionState.FAILED,
+                error: `SFU signaling connection lost (${info.code})`,
+              };
+            });
+
+            // Do not notify the signaling server as a user-initiated leave here.
+            // This is a transport failure; useSFU.ts already has recovery logic for FAILED.
+            performCleanup(true).catch((error) => {
+              console.error("Error during SFU abnormal-close cleanup:", error);
+            });
+          },
+        },
+      );
+      sfuWebSocketRef.current = sfuWebSocket;
+      voiceLog.ok("CONNECT", 7, "SFU WebSocket connected & room joined");
+    } catch (error) {
+      voiceLog.fail("CONNECT", 7, "SFU WebSocket connection failed", error);
+      throw new Error("Failed to connect to SFU server");
+    }
+
+    if (isStale()) {
+      voiceLog.info("CONNECT", "Superseded after SFU WebSocket — aborting");
+      sfuWebSocket.close(1000, "Superseded");
+      sfuWebSocketRef.current = null;
+      peerConnection.close();
+      peerConnectionRef.current = null;
+      return;
+    }
+
+    // ---- Step 8: Notify signaling server ----
+    voiceLog.step(
+      "CONNECT",
+      8,
+      "Notifying signaling server (stream:set + channel:joined)",
+      {
+        streamId: localStream.id,
+      },
+    );
+    refs.announcedStreamIdRef.current = localStream.id;
+    room.setLocalStream(localStream.id);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    room.announceJoined(true);
+    voiceLog.ok("CONNECT", 8, "Signaling server notified");
+
+    // Usually stays CONNECTING and `pc.onconnectionstatechange` settles it, but it can
+    // have settled already. roomId is the bare channel id, matching client.voiceChannelId.
+    setConnectionState((prev) => ({
+      state: connectingMayBeWritten(prev.state)
+        ? SFUConnectionState.CONNECTING
+        : prev.state,
+      roomId: channelID,
+      serverId: targetId,
+      error: null,
+      callAloneTimeoutSeconds,
+    }));
+
+    voiceLog.step(
+      "CONNECT",
+      9,
+      "Waiting for WebRTC ICE + DTLS to complete (state → CONNECTED)…",
+      {
+        currentPcState: peerConnection.connectionState,
+        currentIceState: peerConnection.iceConnectionState,
+      },
+    );
+
+  } catch (error) {
+    if (isStale()) {
+      voiceLog.info("CONNECT", "Superseded connection threw — ignoring error");
+      return;
+    }
+    voiceLog.fail("CONNECT", "X", "CONNECTION FAILED", error);
+
+    const errorMessage =
+      error instanceof Error ? error.message : "Connection failed";
+
+    performCleanup(false).catch(console.error);
+
+    // FAILED is what recovery retries, so a refusal skips it and ends with the reason.
+    if (error instanceof RoomRefusal) {
+      setConnectionState({
+        state: SFUConnectionState.DISCONNECTED,
+        roomId: null,
+        serverId: null,
+        error: error.reason,
+        callAloneTimeoutSeconds: null,
+      });
+      throw error;
+    }
+
+    setConnectionState((prev) => ({
+      ...prev,
+      state: SFUConnectionState.FAILED,
+      error: errorMessage,
+    }));
+
+    throw error;
+  } finally {
+    if (!isStale()) {
+      isConnectingRef.current = false;
+    }
+  }
+}

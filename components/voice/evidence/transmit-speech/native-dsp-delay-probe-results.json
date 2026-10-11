@@ -1,0 +1,222 @@
+{
+  "browser": "153.0.8010.12",
+  "rows": [
+    {
+      "rate": 44100,
+      "compressors": 0,
+      "oversample": "none",
+      "amplitude": 0.0001,
+      "peakDelaySamples": 0,
+      "firstDelaySamples": 0,
+      "lastDelaySamples": 0
+    },
+    {
+      "rate": 44100,
+      "compressors": 0,
+      "oversample": "none",
+      "amplitude": 0.05,
+      "peakDelaySamples": 0,
+      "firstDelaySamples": 0,
+      "lastDelaySamples": 0
+    },
+    {
+      "rate": 44100,
+      "compressors": 0,
+      "oversample": "4x",
+      "amplitude": 0.0001,
+      "peakDelaySamples": 192,
+      "firstDelaySamples": 126,
+      "lastDelaySamples": 258
+    },
+    {
+      "rate": 44100,
+      "compressors": 0,
+      "oversample": "4x",
+      "amplitude": 0.05,
+      "peakDelaySamples": 192,
+      "firstDelaySamples": 87,
+      "lastDelaySamples": 297
+    },
+    {
+      "rate": 44100,
+      "compressors": 1,
+      "oversample": "none",
+      "amplitude": 0.0001,
+      "peakDelaySamples": 264,
+      "firstDelaySamples": 264,
+      "lastDelaySamples": 264
+    },
+    {
+      "rate": 44100,
+      "compressors": 1,
+      "oversample": "none",
+      "amplitude": 0.05,
+      "peakDelaySamples": 264,
+      "firstDelaySamples": 264,
+      "lastDelaySamples": 264
+    },
+    {
+      "rate": 44100,
+      "compressors": 1,
+      "oversample": "4x",
+      "amplitude": 0.0001,
+      "peakDelaySamples": 456,
+      "firstDelaySamples": 389,
+      "lastDelaySamples": 523
+    },
+    {
+      "rate": 44100,
+      "compressors": 1,
+      "oversample": "4x",
+      "amplitude": 0.05,
+      "peakDelaySamples": 456,
+      "firstDelaySamples": 351,
+      "lastDelaySamples": 561
+    },
+    {
+      "rate": 44100,
+      "compressors": 2,
+      "oversample": "none",
+      "amplitude": 0.0001,
+      "peakDelaySamples": 528,
+      "firstDelaySamples": 528,
+      "lastDelaySamples": 528
+    },
+    {
+      "rate": 44100,
+      "compressors": 2,
+      "oversample": "none",
+      "amplitude": 0.05,
+      "peakDelaySamples": 528,
+      "firstDelaySamples": 528,
+      "lastDelaySamples": 528
+    },
+    {
+      "rate": 44100,
+      "compressors": 2,
+      "oversample": "4x",
+      "amplitude": 0.0001,
+      "peakDelaySamples": 720,
+      "firstDelaySamples": 652,
+      "lastDelaySamples": 788
+    },
+    {
+      "rate": 44100,
+      "compressors": 2,
+      "oversample": "4x",
+      "amplitude": 0.05,
+      "peakDelaySamples": 720,
+      "firstDelaySamples": 614,
+      "lastDelaySamples": 826
+    },
+    {
+      "rate": 48000,
+      "compressors": 0,
+      "oversample": "none",
+      "amplitude": 0.0001,
+      "peakDelaySamples": 0,
+      "firstDelaySamples": 0,
+      "lastDelaySamples": 0
+    },
+    {
+      "rate": 48000,
+      "compressors": 0,
+      "oversample": "none",
+      "amplitude": 0.05,
+      "peakDelaySamples": 0,
+      "firstDelaySamples": 0,
+      "lastDelaySamples": 0
+    },
+    {
+      "rate": 48000,
+      "compressors": 0,
+      "oversample": "4x",
+      "amplitude": 0.0001,
+      "peakDelaySamples": 192,
+      "firstDelaySamples": 126,
+      "lastDelaySamples": 258
+    },
+    {
+      "rate": 48000,
+      "compressors": 0,
+      "oversample": "4x",
+      "amplitude": 0.05,
+      "peakDelaySamples": 192,
+      "firstDelaySamples": 87,
+      "lastDelaySamples": 297
+    },
+    {
+      "rate": 48000,
+      "compressors": 1,
+      "oversample": "none",
+      "amplitude": 0.0001,
+      "peakDelaySamples": 288,
+      "firstDelaySamples": 288,
+      "lastDelaySamples": 288
+    },
+    {
+      "rate": 48000,
+      "compressors": 1,
+      "oversample": "none",
+      "amplitude": 0.05,
+      "peakDelaySamples": 288,
+      "firstDelaySamples": 288,
+      "lastDelaySamples": 288
+    },
+    {
+      "rate": 48000,
+      "compressors": 1,
+      "oversample": "4x",
+      "amplitude": 0.0001,
+      "peakDelaySamples": 480,
+      "firstDelaySamples": 414,
+      "lastDelaySamples": 546
+    },
+    {
+      "rate": 48000,
+      "compressors": 1,
+      "oversample": "4x",
+      "amplitude": 0.05,
+      "peakDelaySamples": 480,
+      "firstDelaySamples": 375,
+      "lastDelaySamples": 585
+    },
+    {
+      "rate": 48000,
+      "compressors": 2,
+      "oversample": "none",
+      "amplitude": 0.0001,
+      "peakDelaySamples": 576,
+      "firstDelaySamples": 576,
+      "lastDelaySamples": 576
+    },
+    {
+      "rate": 48000,
+      "compressors": 2,
+      "oversample": "none",
+      "amplitude": 0.05,
+      "peakDelaySamples": 576,
+      "firstDelaySamples": 576,
+      "lastDelaySamples": 576
+    },
+    {
+      "rate": 48000,
+      "compressors": 2,
+      "oversample": "4x",
+      "amplitude": 0.0001,
+      "peakDelaySamples": 768,
+      "firstDelaySamples": 701,
+      "lastDelaySamples": 835
+    },
+    {
+      "rate": 48000,
+      "compressors": 2,
+      "oversample": "4x",
+      "amplitude": 0.05,
+      "peakDelaySamples": 768,
+      "firstDelaySamples": 662,
+      "lastDelaySamples": 874
+    }
+  ],
+  "note": "OfflineAudioContext synthetic impulses, no device capture and --mute-audio. One browser implementation; not a portable delay contract."
+}

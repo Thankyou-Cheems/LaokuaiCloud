@@ -1,0 +1,11 @@
+# Experimental voice pair authority
+
+Source only; real network acceptance is paused. `VOICE_HYBRID_ENABLED` defaults false. The existing voice transport is unaffected when disabled. Production socket registration adds opt-in `voice:hybrid:scope/lease/signal/forwarding/release` handlers. Actual signed JWT/database membership, current socket session, room, permission and publication are required; fixture identity cannot advertise support. Support requires an applied real SFU probe over the current registered SFU connection.
+
+The server mints UUID pair IDs and room/instance generations. Ordered canonical bounded SDP/ICE is scoped to that pair. Old release/cleanup cannot change a new pair's gate. Mute/deafen, publication replacement, move and leave invalidate pairs; the SFU lease has its own maximum-ten-second expiry. The receiver requests only its own source→receiver forwarding edge. An ACK is sent only after actual SFU command acknowledgment and post-ACK lifecycle checks. A stubbed ACK in a unit test is explicitly not real forwarding verification.
+
+`scripts/run-hybrid-unit.cjs` installs no-network guards before loading modules, uses a random in-memory JWT secret and temporary SQLite directory, and runs only `voiceHybrid.test.ts`. It creates no socket or media listener. Existing general test suites may contain network tests and must not be run under the current Windows fixture stop.
+
+The separate SDK source includes `docs/hybrid-network.md` with the exact public API/receive ownership/codec/quality contract. Latest candidates are SFU48kbps and peer64kbps (peer48kbps listening alternative), mono20ms; actual administrative and remote caps always win. No production configuration has been raised. Acceptance requires actual per-source SFU receiver/egress counters and synthetic decoded PCM, followed by 15–20 users in multiple rooms with few simultaneous speakers. Runtime peer/offload, capacity, FEC and listening acceptance remain absent.
+
+Current media is microphone-only. Future screen media requires proven direct P2P and must refuse SFU/TURN/EasyTier relay; loss of verified direct transport pauses that receiver's video immediately. Signaling-server use and voice SFU fallback remain permitted. No video implementation is added here.

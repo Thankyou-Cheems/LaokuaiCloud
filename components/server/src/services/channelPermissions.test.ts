@@ -1,0 +1,405 @@
+import assert from "node:assert/strict";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { after, before, describe, it } from "node:test";
+
+import { getSqliteDb, initSqlite } from "../db/sqlite/connection";
+import { upsertServerChannel } from "../db/sqlite/channels";
+import {
+  createPermissionScope,
+  replacePermissionRules,
+  setChannelPermissionScope,
+  deletePermissionTemplate,
+  listPermissionTemplates,
+} from "../db/sqlite/channelScopes";
+import { migrateRankGatesToScopes, RANK_GATE_MIGRATION_KEY } from "../db/sqlite/rankGateMigration";
+import { createRoleDefinition } from "../db/sqlite/roleDefinitions";
+import { createServerConfigIfNotExists, setServerRole } from "../db/sqlite/servers";
+import { upsertUser } from "../db/sqlite/users";
+import { CHANNEL_PERMISSIONS, type ChannelPermission } from "../constants/permissions";
+import { channelPermissionsByChannel, mayInChannel, mayViewChannel, resetChannelPermissionCache, scopedChannelIds, visibleChannelIds } from "./channelPermissions";
+
+/**
+ * Mostly about inherit, which is the absence of a rule: a model turning "no
+ * rule" into "denied" locks every channel the first time anybody sets a cell.
+ */
+
+let dir: string;
+
+const OPEN = "open-chan";
+const LOCKED = "locked-chan";
+const GRANTING = "granting-chan";
+
+let lowUser = "";
+let highUser = "";
+let ownerUser = "";
+
+before(async () => {
+  dir = mkdtempSync(join(tmpdir(), "gryt-chanperms-"));
+  process.env.DATA_DIR = dir;
+  await initSqlite();
+  await createServerConfigIfNotExists();
+
+  await createRoleDefinition("low", { name: "Low", rank: 10, permissions: ["read_messages", "send_messages"] });
+  // Deliberately without send_messages, so an allow rule has something to grant.
+  await createRoleDefinition("high", { name: "High", rank: 80, permissions: ["read_messages"] });
+
+  const low = await upsertUser("acct-low", "Low");
+  await setServerRole(low.server_user_id, "low");
+  lowUser = low.server_user_id;
+
+  const high = await upsertUser("acct-high", "High");
+  await setServerRole(high.server_user_id, "high");
+  highUser = high.server_user_id;
+
+  const owner = await upsertUser("acct-owner", "Owner");
+  await setServerRole(owner.server_user_id, "owner");
+  ownerUser = owner.server_user_id;
+  getSqliteDb().prepare(`UPDATE server_config SET owner_gryt_user_id = ?`).run("acct-owner");
+
+  await upsertServerChannel({ channelId: OPEN, name: "Open", type: "text" });
+  await upsertServerChannel({ channelId: LOCKED, name: "Locked", type: "text" });
+  await upsertServerChannel({ channelId: GRANTING, name: "Granting", type: "text" });
+
+  const locked = await createPermissionScope({ name: "Staff only", isTemplate: true });
+  await replacePermissionRules(locked, [{ roleId: "low", permission: "read_messages", effect: "deny" }]);
+  await setChannelPermissionScope(LOCKED, locked);
+
+  const granting = await createPermissionScope({ isTemplate: false });
+  await replacePermissionRules(granting, [{ roleId: "high", permission: "send_messages", effect: "allow" }]);
+  await setChannelPermissionScope(GRANTING, granting);
+
+  resetChannelPermissionCache();
+});
+
+/** The channels whose list, in the payload, carries this permission. */
+async function channelsAllowing(serverUserId: string | null, permission: ChannelPermission): Promise<Set<string>> {
+  const held = await channelPermissionsByChannel(serverUserId);
+  return new Set([...held].filter(([, list]) => list.includes(permission)).map(([id]) => id));
+}
+
+after(() => {
+  delete process.env.DATA_DIR;
+  rmSync(dir, { recursive: true, force: true });
+});
+
+describe("a channel with no scope", () => {
+  it("gives every role exactly what the server gave it", async () => {
+    assert.equal(await mayInChannel(OPEN, lowUser, "send_messages"), true);
+    assert.equal(await mayInChannel(OPEN, highUser, "send_messages"), false, "high has no send_messages server-wide");
+  });
+
+  it("is visible to anybody who may read at all", async () => {
+    assert.ok((await visibleChannelIds(lowUser)).has(OPEN));
+    assert.ok((await visibleChannelIds(highUser)).has(OPEN));
+  });
+});
+
+describe("deny", () => {
+  it("takes a permission the role holds server-wide", async () => {
+    assert.equal(await mayInChannel(LOCKED, lowUser, "read_messages"), false);
+    assert.equal(await mayViewChannel(LOCKED, lowUser), false);
+  });
+
+  it("leaves everything it does not mention alone", async () => {
+    // The scope denies read_messages and says nothing about send_messages. One
+    // reading a rule as "this scope decides everything" would deny posting.
+    assert.equal(await mayInChannel(LOCKED, lowUser, "send_messages"), true);
+  });
+
+  it("says nothing about a role it does not name", async () => {
+    assert.equal(await mayViewChannel(LOCKED, highUser), true);
+    assert.ok((await visibleChannelIds(highUser)).has(LOCKED));
+  });
+
+  it("hides the channel rather than marking it locked", async () => {
+    assert.ok(!(await visibleChannelIds(lowUser)).has(LOCKED));
+  });
+});
+
+describe("allow", () => {
+  it("grants a permission the role does not hold server-wide", async () => {
+    // This is what makes allow worth having: `high` cannot post anywhere, and
+    // in this one channel it can.
+    assert.equal(await mayInChannel(GRANTING, highUser, "send_messages"), true);
+    assert.equal(await mayInChannel(OPEN, highUser, "send_messages"), false);
+  });
+});
+
+describe("the owner", () => {
+  it("is not gated by a scope that denies their role", async () => {
+    assert.equal(await mayViewChannel(LOCKED, ownerUser), true);
+    assert.equal(await mayInChannel(LOCKED, ownerUser, "send_messages"), true);
+  });
+
+  it("sees every channel", async () => {
+    const visible = await visibleChannelIds(ownerUser);
+    for (const id of [OPEN, LOCKED, GRANTING]) assert.ok(visible.has(id), `owner cannot see ${id}`);
+  });
+});
+
+describe("nobody", () => {
+  it("gets nothing before they have proved who they are", async () => {
+    assert.equal(await mayViewChannel(OPEN, "temp_12345"), false);
+    assert.equal((await visibleChannelIds("temp_12345")).size, 0);
+    assert.equal((await visibleChannelIds(null)).size, 0);
+  });
+});
+
+describe("an id that is not a channel", () => {
+  it("is visible, because a direct message has no scope to clear", async () => {
+    // `resolveConversationAccess` asks this about every conversation id it
+    // sees. Treating an unknown id as hidden would lock every DM on the server.
+    assert.equal(await mayViewChannel("dm_0123456789abcdef", lowUser), true);
+  });
+});
+
+describe("the fast path for a server that uses none of this", () => {
+  it("reports only the channels that actually point at a scope", async () => {
+    const scoped = await scopedChannelIds();
+    assert.ok(scoped.has(LOCKED));
+    assert.ok(scoped.has(GRANTING));
+    assert.ok(!scoped.has(OPEN), "an unscoped channel must not put the broadcasts on the slow path");
+  });
+});
+
+describe("switching a channel away from a custom scope", () => {
+  it("takes the private scope with it, and leaves a shared template alone", async () => {
+    const db = getSqliteDb();
+    const before = db
+      .prepare(`SELECT COUNT(*) AS n FROM channel_permission_scopes WHERE is_template = 0`)
+      .get() as { n: number };
+
+    await setChannelPermissionScope(GRANTING, null);
+    resetChannelPermissionCache();
+
+    const after = db
+      .prepare(`SELECT COUNT(*) AS n FROM channel_permission_scopes WHERE is_template = 0`)
+      .get() as { n: number };
+    assert.equal(after.n, before.n - 1, "the channel's own scope should have gone with it");
+
+    // The template LOCKED points at is shared, so it survives its channel
+    // being repointed.
+    await setChannelPermissionScope(LOCKED, null);
+    resetChannelPermissionCache();
+    assert.equal((await listPermissionTemplates()).length, 1, "a template must outlive the channels using it");
+
+    // Put it back for anything that runs after this.
+    const templates = await listPermissionTemplates();
+    await setChannelPermissionScope(LOCKED, templates[0].scope_id);
+    resetChannelPermissionCache();
+  });
+});
+
+describe("deleting a template", () => {
+  it("puts its channels back to inheriting rather than leaving them dangling", async () => {
+    const doomed = await createPermissionScope({ name: "Doomed", isTemplate: true });
+    await replacePermissionRules(doomed, [{ roleId: "low", permission: "read_messages", effect: "deny" }]);
+    await setChannelPermissionScope(OPEN, doomed);
+    resetChannelPermissionCache();
+    assert.equal(await mayViewChannel(OPEN, lowUser), false);
+
+    await deletePermissionTemplate(doomed);
+    resetChannelPermissionCache();
+
+    // Through a null scope rather than an id that no longer resolves: both
+    // answer visible, and only one leaves the editor pointing at nothing.
+    assert.equal(await mayViewChannel(OPEN, lowUser), true);
+    assert.ok(!(await scopedChannelIds()).has(OPEN));
+  });
+});
+
+describe("the rank gate migration, against a real database", () => {
+  it("runs once and refuses to run again", async () => {
+    const db = getSqliteDb();
+
+    // The marker is set, so a second call is a no-op: a second pass would
+    // rebuild scopes for channels somebody has since edited by hand.
+    const marker = db
+      .prepare(`SELECT value FROM schema_meta WHERE key = ?`)
+      .get(RANK_GATE_MIGRATION_KEY) as { value: string } | undefined;
+    assert.ok(marker, "the migration should have recorded that it ran");
+
+    db.prepare(`UPDATE channels SET post_min_rank = 80 WHERE channel_id = ?`).run(OPEN);
+    assert.equal(migrateRankGatesToScopes(db), 0, "a second run must convert nothing");
+
+    const stillNoScope = db
+      .prepare(`SELECT permission_scope_id FROM channels WHERE channel_id = ?`)
+      .get(OPEN) as { permission_scope_id: string | null };
+    assert.equal(stillNoScope.permission_scope_id, null);
+
+    db.prepare(`UPDATE channels SET post_min_rank = NULL WHERE channel_id = ?`).run(OPEN);
+  });
+
+  it("converts a gate when the marker is not there", async () => {
+    const db = getSqliteDb();
+    db.prepare(`DELETE FROM schema_meta WHERE key = ?`).run(RANK_GATE_MIGRATION_KEY);
+    db.prepare(`UPDATE channels SET view_min_rank = 50 WHERE channel_id = ?`).run(OPEN);
+
+    assert.equal(migrateRankGatesToScopes(db), 1);
+    resetChannelPermissionCache();
+
+    // `low` is rank 10 and below the old gate of 50, so the channel is gone
+    // for them exactly as it was before the upgrade.
+    assert.equal(await mayViewChannel(OPEN, lowUser), false);
+    assert.equal(await mayViewChannel(OPEN, highUser), true, "rank 80 was above the gate and still is");
+  });
+});
+
+describe("where somebody may post", () => {
+  /* Its own channel and scope: the fixtures above are unhooked by tests further
+     up, so leaning on one passes for the wrong reason. */
+  const PODIUM = "podium-chan";
+
+  before(async () => {
+    await upsertServerChannel({ channelId: PODIUM, name: "Podium", type: "text" });
+    const scope = await createPermissionScope({ isTemplate: false });
+    await replacePermissionRules(scope, [
+      { roleId: "high", permission: "send_messages", effect: "allow" },
+    ]);
+    await setChannelPermissionScope(PODIUM, scope);
+    resetChannelPermissionCache();
+  });
+
+  it("agrees with mayInChannel, channel by channel", async () => {
+    // The list the client draws from and the gate the send goes through cannot
+    // disagree, or a composer appears where the message is refused.
+    const postable = await channelsAllowing(highUser, "send_messages");
+    for (const channel of [OPEN, LOCKED, PODIUM]) {
+      assert.equal(
+        postable.has(channel),
+        await mayInChannel(channel, highUser, "send_messages"),
+        channel,
+      );
+    }
+  });
+
+  it("carries a channel-level allow", async () => {
+    // high holds no send_messages server-wide; the scope on PODIUM gives it.
+    const postable = await channelsAllowing(highUser, "send_messages");
+    assert.ok(postable.has(PODIUM));
+    assert.ok(!postable.has(OPEN));
+  });
+
+  it("gives the owner everything", async () => {
+    const postable = await channelsAllowing(ownerUser, "send_messages");
+    for (const channel of [OPEN, LOCKED, PODIUM]) assert.ok(postable.has(channel), channel);
+  });
+
+  it("says nothing about who may see the channel", async () => {
+    // Only about send_messages: the payload intersects this with
+    // visibleChannelIds, so folding visibility in is the rule written twice.
+    assert.ok((await channelsAllowing(lowUser, "send_messages")).has(PODIUM));
+  });
+
+  it("gives a stranger nothing", async () => {
+    assert.equal((await channelsAllowing("temp_12345", "send_messages")).size, 0);
+    assert.equal((await channelsAllowing(null, "send_messages")).size, 0);
+  });
+});
+
+describe("which voice rooms somebody may enter", () => {
+  /* Visible and not enterable has always been expressible, and nothing told a
+     client, so the row looked open and the refusal came from the media stack. */
+  const GREENROOM = "greenroom";
+
+  before(async () => {
+    await upsertServerChannel({ channelId: GREENROOM, name: "Green room", type: "voice" });
+    const scope = await createPermissionScope({ isTemplate: false });
+    await replacePermissionRules(scope, [
+      { roleId: "low", permission: "join_voice", effect: "deny" },
+    ]);
+    await setChannelPermissionScope(GREENROOM, scope);
+    resetChannelPermissionCache();
+  });
+
+  it("keeps the room visible and shuts the door", async () => {
+    // Both halves, because either one alone is a different feature: hidden is
+    // not locked, and locked is not hidden.
+    assert.ok((await visibleChannelIds(lowUser)).has(GREENROOM), "the room vanished instead of locking");
+    assert.ok(!(await channelsAllowing(lowUser, "join_voice")).has(GREENROOM));
+  });
+
+  it("agrees with mayInChannel", async () => {
+    assert.equal(
+      (await channelsAllowing(lowUser, "join_voice")).has(GREENROOM),
+      await mayInChannel(GREENROOM, lowUser, "join_voice"),
+    );
+  });
+
+  it("leaves a room with no scope alone", async () => {
+    // `low` holds join_voice server-wide only if its definition grants it; what
+    // matters here is that the two answers match, whichever way they go.
+    assert.equal(
+      (await channelsAllowing(lowUser, "join_voice")).has(OPEN),
+      await mayInChannel(OPEN, lowUser, "join_voice"),
+    );
+  });
+
+  it("lets the owner in anywhere", async () => {
+    assert.ok((await channelsAllowing(ownerUser, "join_voice")).has(GREENROOM));
+  });
+
+  it("gives a stranger nothing", async () => {
+    assert.equal((await channelsAllowing("temp_12345", "join_voice")).size, 0);
+  });
+});
+
+describe("every channel permission, per channel", () => {
+  /* The thirteen a client hides controls by (GRYT-1416). A list that disagrees
+     with the gate draws a button the server refuses, or hides one it allows. */
+  const PARLOUR = "parlour";
+
+  before(async () => {
+    await upsertServerChannel({ channelId: PARLOUR, name: "Parlour", type: "text" });
+    const scope = await createPermissionScope({ isTemplate: false });
+    await replacePermissionRules(scope, [
+      { roleId: "low", permission: "add_reactions", effect: "deny" },
+      { roleId: "low", permission: "attach_files", effect: "deny" },
+      { roleId: "high", permission: "add_reactions", effect: "allow" },
+    ]);
+    await setChannelPermissionScope(PARLOUR, scope);
+    resetChannelPermissionCache();
+  });
+
+  it("agrees with mayInChannel for all thirteen, in every channel", async () => {
+    for (const user of [lowUser, highUser, ownerUser]) {
+      const held = await channelPermissionsByChannel(user);
+      assert.ok(held.size > 0, "no channels listed");
+      for (const [channel, list] of held) {
+        for (const permission of CHANNEL_PERMISSIONS) {
+          assert.equal(
+            list.includes(permission),
+            await mayInChannel(channel, user, permission),
+            `${user} ${permission} in ${channel}`,
+          );
+        }
+      }
+    }
+  });
+
+  it("takes a deny away in that channel and nowhere else", async () => {
+    const held = await channelPermissionsByChannel(lowUser);
+    assert.ok(!held.get(PARLOUR)?.includes("add_reactions"));
+    assert.ok(!held.get(PARLOUR)?.includes("attach_files"));
+    assert.ok(held.get(PARLOUR)?.includes("send_messages"), "a deny on two took a third");
+  });
+
+  it("carries an allow for a role without it server-wide", async () => {
+    const held = await channelPermissionsByChannel(highUser);
+    assert.ok(held.get(PARLOUR)?.includes("add_reactions"));
+    assert.ok(!held.get(OPEN)?.includes("add_reactions"));
+  });
+
+  it("lists nothing outside the matrix", async () => {
+    const held = await channelPermissionsByChannel(ownerUser);
+    const known = new Set<string>(CHANNEL_PERMISSIONS);
+    for (const list of held.values()) for (const p of list) assert.ok(known.has(p), p);
+  });
+
+  it("gives a stranger nothing", async () => {
+    assert.equal((await channelPermissionsByChannel("temp_12345")).size, 0);
+    assert.equal((await channelPermissionsByChannel(null)).size, 0);
+  });
+});

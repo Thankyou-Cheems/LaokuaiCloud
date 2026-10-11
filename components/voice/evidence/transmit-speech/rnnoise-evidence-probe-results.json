@@ -1,0 +1,47 @@
+{
+  "rnnoiseVersion": "2025.1.5",
+  "rate": 48000,
+  "frameSize": 480,
+  "heapBytes": 20578304,
+  "rows": [
+    {
+      "kind": "impulse",
+      "maxProbability": 0.7993108630180359,
+      "trustedFrames": 0,
+      "candidateFrames": 1,
+      "peak": 0.009790763258934021,
+      "peakAt": 6000,
+      "firstNonzero": 5285,
+      "impulseInputAt": 5040,
+      "impulsePeakDelaySamples": 960,
+      "probabilities": [
+        0,
+        0,
+        0.7993108630180359,
+        0.4904112219810486,
+        0.013420522212982178,
+        0.012213647365570068,
+        0.006706833839416504
+      ]
+    },
+    {
+      "kind": "public-speech",
+      "maxProbability": 1,
+      "trustedFrames": 368,
+      "candidateFrames": 408,
+      "peak": 0.03234247863292694,
+      "peakAt": 382880,
+      "firstNonzero": 8672
+    },
+    {
+      "kind": "seeded-noise",
+      "maxProbability": 0.8499209880828857,
+      "trustedFrames": 0,
+      "candidateFrames": 592,
+      "peak": 0.011930234730243683,
+      "peakAt": 1092,
+      "firstNonzero": 481
+    }
+  ],
+  "note": "Real installed embedded RNNoise WASM, environment check stub only, no device/browser/API/network. Node fixture, not deadline or sound-quality certification."
+}

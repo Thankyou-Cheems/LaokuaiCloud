@@ -1,0 +1,144 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # 24, matching Release. npm rather than yarn: this repo is npm, and
+          # `npm ci` is what the release installs with.
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+      - run: npm run typecheck
+
+      # No comment runs past two lines. The script carries the list of paths still
+      # to be swept, and that list only ever shrinks.
+      - run: npm run test:comment-length
+
+      - run: npm run build
+
+      - name: Check receive DSP with synthetic audio
+        run: npm run check-receive-dsp
+
+      # These three run against the built dist and used to run only from `prepublishOnly`,
+      # which is after a merge. GRYT-344 and GRYT-433 are why they run before one.
+      - name: Check the built package imports and is complete
+        run: npm run check-surface
+
+      - name: Check the React Native entry stays free of web-only code
+        run: npm run check-native-entry
+
+      - name: Check no exported name is declared twice
+        run: npm run check-type-names
+
+      # The one piece of parsing here a wrong answer is silent in: an SFU saying 0 and one
+      # that did not say both look like a working connection until two minutes in.
+      - name: Check what room_joined is parsed into
+        run: npm run check-room-joined
+
+      # Whether a run of face detections may move everybody's crop. One detection that
+      # found a face in a bookshelf used to be enough (GRYT-852).
+      - name: Check how face detections are combined
+        run: npm run check-face-framing
+
+      # The sent track has to follow the pipeline when a voice setting rebuilds
+      # it, once. It was being replaced twice per rebuild, matched by position.
+      - name: Check the sent audio track is swapped once
+        run: npm run check-track-replace
+
+      # Whether a call reads as connected. Both writes are needed and either order
+      # happens, so one of them overwriting the other is silent (GRYT-1136).
+      - name: Check a connected call reads as connected
+        run: npm run check-connection-settles
+
+      # A native audio helper can exit mid-share. The shared audio stream has to
+      # go with it, or the share keeps sending a track that is silent for good.
+      - name: Check a stopped native audio capture leaves the share
+        run: npm run check-native-audio-ends
+
+      # The SFU's candidate can reach us before its offer. Added then, it was rejected and
+      # lost, and the join waited out its 20s timeout (GRYT-1263).
+      - name: Check candidates that beat the offer are kept
+        run: npm run check-early-candidates
+
+      # Drops a call while another server is on screen. Recovery goes back to the call's
+      # server with that server's STUN list, and once it gives up, the call stays ended.
+      - name: Check recovery stays on the active call server
+        run: npm run check-active-call-target
+
+      # Device changes can leave an older getUserMedia call alive. Its eventual result must
+      # not replace the new device or clear the busy flag while the replacement is opening.
+      - name: Check microphone request races
+        run: npm run check-mic-request-race
+
+      # Chromium's outbound-rtp has no trackIdentifier, so the track comes from media-source.
+      - name: Check outbound video stats find their track
+        run: npm run check-video-stats
+
+      # The SFU offers two video m-lines, and addTrack won't reuse one that has sent. A camera that
+      # got a new sender each time it came back took the screen's (GRYT-1329).
+      - name: Check the camera keeps its sender when it goes off
+        run: npm run check-camera-sender
+
+      # The SFU makes every offer, so a role can only send on a slot it offered. A camera paused
+      # before its renegotiation gave its slot to the share, and #67's own m-lines never sent (GRYT-1337).
+      - name: Check each role goes out on an SFU slot of its own
+        run: npm run check-sfu-slots
+
+      # The microphone's ceiling, and that a channel's own setting outlives a reconnect. At Opus's
+      # 510 kbps, a camera on a thin link was left 30 kbps (GRYT-1332).
+      - name: Check the microphone's bitrate ceiling
+        run: npm run check-mic-bitrate
+
+      # Replacing the camera's track with itself held it at 1080p on a thin link, and a client
+      # effect listing useSFU's getters did that on every render (GRYT-1333).
+      - name: Check the camera is only re-added for a new track
+        run: npm run check-camera-resync
+
+      # The latency poll restarted on every render, about eight getStats a second (GRYT-1330).
+      - name: Check the latency poll reads once a second
+        run: npm run check-voice-latency
+
+      # Cloudflare closes the SFU socket with 1001 when its proxy restarts. That was read as the
+      # call ending, and the server put the member out of voice a few seconds later (GRYT-1359).
+      - name: Check a proxy going away reconnects the call
+        run: npm run check-going-away
+
+      # Signalling back with the SFU dead rebuilds the call. That read as DISCONNECTED, and the
+      # client took it for leaving and switched the camera and screen share off (GRYT-1362).
+      - name: Check a rebuilt call reports reconnecting
+        run: npm run check-recovery-disconnect
+
+      # Cancelling the picker to share something else marked a running share stopped and left
+      # its capture going (GRYT-1425).
+      - name: Check a failed re-pick keeps the share
+        run: npm run check-failed-repick
+
+      # The encoding follows what viewers draw, holds its way down and re-kicks a frozen resume,
+      # and an SFU that never sends video_wanted leaves it exactly as the settings ask (GRYT-1432).
+      - name: Check video follows what viewers draw
+        run: npm run check-video-demand
+
+      # The uplink is split between camera and share in the design's order, and the split follows
+      # the send estimate: down at once, up only once the room is there (GRYT-1483).
+      - name: Check the camera and the share split the uplink
+        run: npm run check-video-budget
+
+      # A room refused with no retryAfterMs ends the call once, with its reason. It went to recovery,
+      # asked five more times over 30 seconds, then blamed the network (GRYT-1476).
+      - name: Check a refused room is not asked for again
+        run: npm run check-room-refusals
+
+      # Push to talk on a phone, where there is no Web Audio node to gate. setPushToTalkActive
+      # did nothing there and the microphone stayed open (GRYT-1536).
+      - name: Check push to talk gates the phone's microphone
+        run: npm run check-native-ptt

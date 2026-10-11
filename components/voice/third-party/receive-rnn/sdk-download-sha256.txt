@@ -1,0 +1,2 @@
+a06e7ddda0c168f7ad52e6e0509c98db3545dcb254d3b9052e9e6b8423eaee7d  emsdk-4.0.20/downloads/c387d7a7e9537d0041d2c3ae71b7538cc978104e-wasm-binaries.tar.xz
+f4cb75bb036f0d0eddf6b79d9596df1aaab9ddccd6a20bf489be5abe9467e84e  emsdk-4.0.20/downloads/node-v22.16.0-linux-x64.tar.xz

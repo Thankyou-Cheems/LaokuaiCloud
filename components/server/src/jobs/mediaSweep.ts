@@ -1,0 +1,144 @@
+import consola from "consola";
+import {
+  deleteFileRecord,
+  getAllAvatarFileIds,
+  getAllBannerFileIds,
+  getAllFileRecords,
+  getAllGroupIconFileIds,
+  getAllReferencedAttachmentIds,
+  getAllWebhookAvatarFileIds,
+} from "../db";
+import { deleteObject } from "../storage";
+
+const SWEEP_INTERVAL_MS = parseInt(process.env.MEDIA_SWEEP_INTERVAL_MS || String(10 * 60 * 1000)); // default 10 min
+const GRACE_PERIOD_MS = parseInt(process.env.MEDIA_SWEEP_GRACE_MS || String(30 * 60 * 1000)); // default 30 min
+
+let sweepTimer: ReturnType<typeof setInterval> | null = null;
+
+export async function runMediaSweep(): Promise<{ deleted: number; errors: number }> {
+  const bucket = process.env.S3_BUCKET;
+  if (!bucket) {
+    consola.warn("[media-sweep] S3_BUCKET not configured, skipping sweep");
+    return { deleted: 0, errors: 0 };
+  }
+
+  const now = Date.now();
+  let deleted = 0;
+  let errors = 0;
+
+  const [allFiles, referencedIds] = await Promise.all([getAllFileRecords(), referencedFileIds()]);
+
+  const orphaned = allFiles.filter((f) => {
+    if (referencedIds.has(f.file_id)) return false;
+    const ageMs = now - new Date(f.created_at).getTime();
+    return ageMs > GRACE_PERIOD_MS;
+  });
+
+  if (orphaned.length === 0) {
+    consola.debug(`[media-sweep] No orphaned files (${allFiles.length} total, ${referencedIds.size} referenced)`);
+    return { deleted: 0, errors: 0 };
+  }
+
+  consola.info(`[media-sweep] Found ${orphaned.length} orphaned file(s) to clean up`);
+
+  for (const file of orphaned) {
+    try {
+      await deleteObject({ bucket, key: file.s3_key });
+      if (file.thumbnail_key) {
+        await deleteObject({ bucket, key: file.thumbnail_key }).catch((e) => consola.warn("S3 thumbnail delete failed", e));
+      }
+      await deleteFileRecord(file.file_id);
+      deleted++;
+    } catch (err) {
+      consola.error(`[media-sweep] Failed to delete file ${file.file_id} (${file.s3_key}):`, err);
+      errors++;
+    }
+  }
+
+  consola.info(`[media-sweep] Sweep complete: ${deleted} deleted, ${errors} errors`);
+  return { deleted, errors };
+}
+
+/** One list for both deleters, so neither can remove what the other keeps. */
+async function referencedFileIds(): Promise<Set<string>> {
+  const sources = await Promise.all([
+    getAllReferencedAttachmentIds(),
+    getAllAvatarFileIds(),
+    getAllBannerFileIds(),
+    getAllGroupIconFileIds(),
+    getAllWebhookAvatarFileIds(),
+  ]);
+  return new Set<string>(sources.flatMap((ids) => [...ids]));
+}
+
+/** Which of `fileIds` nothing points at any more. Reads the same sources as
+    the periodic sweep, so it cannot select something the sweep would keep. */
+export async function unreferencedAmong(fileIds: string[]): Promise<string[]> {
+  if (fileIds.length === 0) return [];
+
+  const referenced = await referencedFileIds();
+
+  return fileIds.filter((id) => !referenced.has(id));
+}
+
+/** `deleteFilesNow` trusts its caller; this does the checking. A file can be
+    attached to several messages, since forwarding one is enough. */
+export async function deleteUnreferencedFiles(fileIds: string[]): Promise<{ deleted: number; errors: number }> {
+  return deleteFilesNow(await unreferencedAmong(fileIds));
+}
+
+export async function deleteFilesNow(fileIds: string[]): Promise<{ deleted: number; errors: number }> {
+  if (fileIds.length === 0) return { deleted: 0, errors: 0 };
+
+  const bucket = process.env.S3_BUCKET;
+  if (!bucket) {
+    consola.warn("[media-sweep] S3_BUCKET not configured, leaving files for the sweep");
+    return { deleted: 0, errors: 0 };
+  }
+
+  const wanted = new Set(fileIds);
+  const files = (await getAllFileRecords()).filter((f) => wanted.has(f.file_id));
+
+  let deleted = 0;
+  let errors = 0;
+
+  for (const file of files) {
+    try {
+      await deleteObject({ bucket, key: file.s3_key });
+      if (file.thumbnail_key) {
+        await deleteObject({ bucket, key: file.thumbnail_key }).catch((e) =>
+          consola.warn("[media-sweep] thumbnail delete failed", e),
+        );
+      }
+      await deleteFileRecord(file.file_id);
+      deleted++;
+    } catch (err) {
+      consola.error(`[media-sweep] Immediate delete failed for ${file.file_id} (${file.s3_key}):`, err);
+      errors++;
+    }
+  }
+
+  if (deleted || errors) {
+    consola.info(`[media-sweep] Immediate delete: ${deleted} removed, ${errors} left for the sweep`);
+  }
+  return { deleted, errors };
+}
+
+export function startMediaSweep(): void {
+  consola.info(`[media-sweep] Starting periodic sweep every ${Math.round(SWEEP_INTERVAL_MS / 1000)}s (grace period: ${Math.round(GRACE_PERIOD_MS / 1000)}s)`);
+
+  setTimeout(() => {
+    runMediaSweep().catch((err) => consola.error("[media-sweep] Sweep failed:", err));
+  }, 30_000);
+
+  sweepTimer = setInterval(() => {
+    runMediaSweep().catch((err) => consola.error("[media-sweep] Sweep failed:", err));
+  }, SWEEP_INTERVAL_MS);
+}
+
+export function stopMediaSweep(): void {
+  if (sweepTimer) {
+    clearInterval(sweepTimer);
+    sweepTimer = null;
+  }
+}

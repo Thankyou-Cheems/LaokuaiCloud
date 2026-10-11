@@ -1,0 +1,42 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-selfhosted
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.env
+
+public/
+
+# Generated JS in src (should not be committed)
+src/**/*.js
+src/**/*.js.map
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Local runtime data (DATA_DIR): SQLite database, uploads, identity keys.
+# start_dev.sh points ws1/ws2 at ./data/ws1 and ./data/ws2.
+data/
+server-*.txt
+server-checks.json
+voice-mode-socket-evidence.json

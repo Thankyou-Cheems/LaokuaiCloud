@@ -1,0 +1,762 @@
+import { useCallback, useEffect, useRef } from "react";
+
+import { sliderToOutputGain } from "../../shared/audioVolume";
+import { voiceLog } from "../../webrtc/hooks/voiceLogger";
+
+import { MicrophoneBufferType } from "../types/Microphone";
+import { createTransmitCapture } from "../processors/transmitCaptureProcessor";
+
+/**
+ * Makeup gain applied after the compressor, in decibels. Constant rather than derived, so
+ * the ceiling is a number somebody can read; the measurements are at the call site.
+ */
+const COMPRESSOR_MAKEUP_DB = 3;
+
+/** Where the limiter starts working. Speech below it passes unchanged (GRYT-1679). */
+const LIMITER_THRESHOLD_DB = -6;
+
+/** Chrome's compressor adds +3.3 dB makeup at these settings (measured). Taken back off so the
+ *  always-on stage doesn't make everyone louder. */
+const LIMITER_MAKEUP_DB = 3.34;
+
+/** Hard ceiling after the limiter: a tanh curve, so nothing reaches 0 dBFS even at +20 dB in. */
+const OUTPUT_CEILING_DB = -1;
+
+/** WaveShaper input range. The curve maps -range..range, so a signal far over full scale still bends smoothly. */
+const SOFT_CLIP_RANGE = 4;
+
+function createSoftClipper(audioContext: AudioContext): { input: GainNode; output: WaveShaperNode } {
+  const ceiling = Math.pow(10, OUTPUT_CEILING_DB / 20);
+  const curve = new Float32Array(4096);
+  for (let i = 0; i < curve.length; i++) {
+    const x = ((i / (curve.length - 1)) * 2 - 1) * SOFT_CLIP_RANGE;
+    curve[i] = ceiling * Math.tanh(x / ceiling);
+  }
+  const input = audioContext.createGain();
+  input.gain.value = 1 / SOFT_CLIP_RANGE;
+  const output = audioContext.createWaveShaper();
+  output.curve = curve;
+  output.oversample = "4x";
+  input.connect(output);
+  return { input, output };
+}
+
+export interface CreateMicrophoneBufferParams {
+  audioContext: AudioContext;
+  micStream: MediaStream | undefined;
+  rnnoiseNode: AudioWorkletNode | null;
+  speechEvidenceNode?: AudioWorkletNode | null;
+  frameAlignedSpeech?: boolean;
+  /**
+   * Gate running on the audio thread. When null the pipeline falls back to the GainNode
+   * driven from the main thread, which cannot gate while the window is hidden.
+   */
+  noiseGateNode: AudioWorkletNode | null;
+  eSportsModeEnabled: boolean;
+  autoGainEnabled: boolean;
+  compressorEnabled: boolean;
+  captureGeneration?: number;
+}
+
+export function createMicrophoneBuffer({
+  audioContext,
+  micStream,
+  rnnoiseNode,
+  speechEvidenceNode,
+  frameAlignedSpeech=false,
+  noiseGateNode,
+  eSportsModeEnabled,
+  autoGainEnabled,
+  compressorEnabled,
+  captureGeneration,
+}: CreateMicrophoneBufferParams): MicrophoneBufferType {
+  const input = audioContext.createGain();
+  const volumeGain = audioContext.createGain();
+  const rawOutput = audioContext.createGain();
+  const noiseGate = audioContext.createGain();
+  const muteGain = audioContext.createGain();
+  const analyser = audioContext.createAnalyser();
+  const finalAnalyser = audioContext.createAnalyser();
+  const outputDestination = audioContext.createMediaStreamDestination();
+  const output = audioContext.createMediaStreamSource(outputDestination.stream);
+
+  const fftSize = eSportsModeEnabled ? 128 : 256;
+  const smoothing = eSportsModeEnabled ? 0.3 : 0.8;
+
+  analyser.fftSize = fftSize;
+  analyser.smoothingTimeConstant = smoothing;
+  finalAnalyser.fftSize = fftSize;
+  finalAnalyser.smoothingTimeConstant = smoothing;
+
+  // Everything the pipeline does to your voice, taken before the mute. The microphone test
+  // plays this rather than finalAnalyser, which is silent whenever you are muted.
+  const monitorTap = audioContext.createGain();
+  monitorTap.gain.value = 1;
+
+  // A side branch off the same tap, so the settings meter measures what the test plays. It
+  // used to read finalAnalyser, so in a channel you heard yourself and the meter sat at 0.
+  const monitorAnalyser = audioContext.createAnalyser();
+  monitorAnalyser.fftSize = fftSize;
+  monitorAnalyser.smoothingTimeConstant = smoothing;
+
+  volumeGain.gain.value = 2.0;
+  rawOutput.gain.value = 1;
+  noiseGate.gain.value = frameAlignedSpeech && !noiseGateNode ? 0 : 1;
+  muteGain.gain.value = 1;
+
+  let processingChain: AudioNode = input;
+
+  const capture = captureGeneration !== undefined ? createTransmitCapture(audioContext, captureGeneration) : undefined;
+  if (capture) { processingChain.connect(capture.node); processingChain = capture.node; }
+
+  processingChain.connect(volumeGain);
+  processingChain = volumeGain;
+
+  processingChain.connect(analyser);
+  processingChain.connect(rawOutput);
+
+  if (rnnoiseNode && !frameAlignedSpeech) {
+    try {
+      processingChain.connect(rnnoiseNode);
+      processingChain = rnnoiseNode;
+    } catch (error) {
+      console.error("Failed to connect RNNoise AudioWorklet node:", error);
+    }
+  }
+
+  let agcAnalyser: AnalyserNode | undefined;
+  let agcGain: GainNode | undefined;
+
+  if (autoGainEnabled) {
+    agcAnalyser = audioContext.createAnalyser();
+    agcAnalyser.fftSize = 2048;
+    agcAnalyser.smoothingTimeConstant = 0;
+
+    agcGain = audioContext.createGain();
+    agcGain.gain.value = 1.0;
+
+    processingChain.connect(agcAnalyser);
+    agcAnalyser.connect(agcGain);
+    processingChain = agcGain;
+  }
+
+  let compressor: DynamicsCompressorNode | undefined;
+  let compressorMakeup: GainNode | undefined;
+
+  if (compressorEnabled) {
+    compressor = audioContext.createDynamicsCompressor();
+    compressor.threshold.value = -24;
+    compressor.knee.value = 20;
+    compressor.ratio.value = 6;
+    compressor.attack.value = 0.003;
+    compressor.release.value = 0.25;
+
+    processingChain.connect(compressor);
+    processingChain = compressor;
+
+    // Downward compression on its own makes a signal less peaky, not louder, so without
+    // this the toggle reads as doing nothing — which is what GRYT-119 was reported as.
+    compressorMakeup = audioContext.createGain();
+    compressorMakeup.gain.value = 1;
+    processingChain.connect(compressorMakeup);
+    processingChain = compressorMakeup;
+  }
+
+  // Always on, whatever else is: auto gain and the compressor both add level, and nothing
+  // else stops a loud word going over 0 dBFS.
+  const limiter = audioContext.createDynamicsCompressor();
+  limiter.threshold.value = LIMITER_THRESHOLD_DB;
+  limiter.knee.value = 0;
+  limiter.ratio.value = 20;
+  limiter.attack.value = 0.001;
+  limiter.release.value = 0.1;
+  const limiterTrim = audioContext.createGain();
+  limiterTrim.gain.value = Math.pow(10, -LIMITER_MAKEUP_DB / 20);
+  const softClip = createSoftClipper(audioContext);
+  processingChain.connect(limiter);
+  limiter.connect(limiterTrim);
+  limiterTrim.connect(softClip.input);
+  processingChain = softClip.output;
+
+  const finalModel = frameAlignedSpeech ? rnnoiseNode ?? speechEvidenceNode : undefined;
+  const modelTap=finalModel?audioContext.createGain():undefined;
+  const evidenceTap=finalModel?audioContext.createGain():undefined;
+  if(finalModel && modelTap && evidenceTap) {
+    evidenceTap.channelCount=4;evidenceTap.channelCountMode="explicit";evidenceTap.channelInterpretation="discrete";
+    processingChain.connect(finalModel);finalModel.connect(modelTap,0,0);finalModel.connect(evidenceTap,1,0);processingChain=modelTap;
+  }
+  if (noiseGateNode) {
+    if(evidenceTap)evidenceTap.connect(noiseGateNode,0,2);
+    // Input 0 carries the signal being gated. Input 1 is a tap taken before RNNoise, because
+    // that is where the threshold was measured — post-chain would change what it means.
+    processingChain.connect(noiseGateNode, 0, 0);
+    volumeGain.connect(noiseGateNode, 0, 1);
+    noiseGateNode.connect(monitorTap);
+  } else {
+    processingChain.connect(noiseGate);
+    noiseGate.connect(monitorTap);
+  }
+
+  monitorTap.connect(monitorAnalyser);
+  monitorTap.connect(muteGain);
+  muteGain.connect(finalAnalyser);
+  finalAnalyser.connect(outputDestination);
+
+  return {
+    frameAlignedSpeech,
+    input,
+    output,
+    rawOutput,
+    analyser,
+    finalAnalyser,
+    monitorTap,
+    monitorAnalyser,
+    mediaStream: micStream || new MediaStream(),
+    processedStream: outputDestination.stream,
+    muteGain,
+    volumeGain,
+    noiseGate,
+    noiseGateWorklet: noiseGateNode ?? undefined,
+    rnnoiseNode: rnnoiseNode ?? undefined,
+    speechCarrier: frameAlignedSpeech ? noiseGateNode ?? undefined : undefined,
+    agcAnalyser,
+    agcGain,
+    compressor,
+    compressorMakeup,
+    limiter,
+    captureBarrier: capture?.node,
+    captureFresh: capture?.fresh,
+    disposePipeline: () => {
+      if (rnnoiseNode) { try { rnnoiseNode.disconnect(modelTap ?? agcAnalyser ?? compressor ?? limiter); } catch { /* Already detached. */ } }
+      if(finalModel && evidenceTap) {try{finalModel.disconnect(evidenceTap,1,0);}catch{/* Detached. */}}
+      if(speechEvidenceNode && modelTap) {try{speechEvidenceNode.disconnect(modelTap,0,0);}catch{/* Detached. */}}
+      if (noiseGateNode) { try { noiseGateNode.disconnect(monitorTap); } catch { /* Already detached. */ } }
+      if (capture) { capture.node.port.postMessage('dispose'); capture.node.port.close(); }
+      for (const node of [input, volumeGain, rawOutput, noiseGate, muteGain, analyser, finalAnalyser,
+        monitorTap, monitorAnalyser, output, outputDestination, agcAnalyser, agcGain, compressor,
+        compressorMakeup, limiter, limiterTrim, softClip.input, softClip.output, modelTap, evidenceTap, capture?.node]) node?.disconnect();
+      for (const track of outputDestination.stream.getTracks()) track.stop();
+    },
+  };
+}
+
+export interface PipelineControlParams {
+  microphoneBuffer: MicrophoneBufferType;
+  audioContext: AudioContext | undefined;
+  micStream: MediaStream | undefined;
+  micVolume: number;
+  isMuted: boolean;
+  noiseGate: number;
+  noiseGateRelease: number;
+  loopbackEnabled: boolean;
+  inputMode: "voice_activity" | "push_to_talk";
+  eSportsModeEnabled: boolean;
+  autoGainEnabled: boolean;
+  autoGainTargetDb: number;
+  compressorAmount: number;
+}
+
+export function usePipelineControls({
+  microphoneBuffer,
+  audioContext,
+  micStream,
+  micVolume,
+  isMuted,
+  noiseGate,
+  noiseGateRelease,
+  loopbackEnabled,
+  inputMode,
+  eSportsModeEnabled,
+  autoGainEnabled,
+  autoGainTargetDb,
+  compressorAmount,
+}: PipelineControlParams) {
+  const sourceNodeRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const loopbackGainRef = useRef<GainNode | null>(null);
+  const agcGainValueRef = useRef(1.0);
+  const evidenceGainRef = useRef(1.0);
+
+  useEffect(() => {
+    if (sourceNodeRef.current) {
+      try {
+        sourceNodeRef.current.disconnect();
+      } catch {
+        // Ignore disconnect errors.
+      }
+
+      sourceNodeRef.current = null;
+    }
+
+    if (micStream && audioContext && microphoneBuffer.input) {
+      const tracks = micStream.getAudioTracks();
+
+      voiceLog.step("LOOPBACK", 1, "Connecting mic source → pipeline input", {
+        contextState: audioContext.state,
+        trackCount: tracks.length,
+        tracks: tracks.map((track) => ({
+          id: track.id,
+          label: track.label,
+          readyState: track.readyState,
+          enabled: track.enabled,
+        })),
+        hasInput: !!microphoneBuffer.input,
+      });
+
+      try {
+        const sourceNode = audioContext.createMediaStreamSource(micStream);
+        sourceNode.connect(microphoneBuffer.input);
+        sourceNodeRef.current = sourceNode;
+
+        voiceLog.ok("LOOPBACK", 1, "Mic source connected to pipeline");
+      } catch (error) {
+        voiceLog.fail(
+          "LOOPBACK",
+          1,
+          "Failed to connect mic source to pipeline",
+          error,
+        );
+      }
+    } else {
+      voiceLog.warn(
+        "LOOPBACK",
+        "Source connection skipped — missing prerequisites",
+        {
+          hasMicStream: !!micStream,
+          hasAudioContext: !!audioContext,
+          contextState: audioContext?.state,
+          hasInput: !!microphoneBuffer.input,
+        },
+      );
+    }
+
+    return () => {
+      if (sourceNodeRef.current) {
+        try {
+          sourceNodeRef.current.disconnect();
+        } catch {
+          // Ignore disconnect errors.
+        }
+
+        sourceNodeRef.current = null;
+      }
+    };
+  }, [micStream, audioContext, microphoneBuffer.input]);
+
+  useEffect(() => {
+    if (!microphoneBuffer.volumeGain) return;
+
+    microphoneBuffer.volumeGain.gain.setValueAtTime(
+      sliderToOutputGain(micVolume),
+      audioContext?.currentTime || 0,
+    );
+  }, [micVolume, microphoneBuffer.volumeGain, audioContext]);
+
+  useEffect(() => {
+    if (!microphoneBuffer.muteGain) return;
+
+    if (inputMode === "push_to_talk") {
+      voiceLog.info(
+        "LOOPBACK",
+        "Mute gain → 0 (PTT mode, managed by PTT hook)",
+      );
+
+      microphoneBuffer.muteGain.gain.setValueAtTime(
+        0,
+        audioContext?.currentTime || 0,
+      );
+
+      return;
+    }
+
+    const gainValue = isMuted ? 0 : 1;
+
+    voiceLog.info(
+      "LOOPBACK",
+      `Mute gain → ${gainValue} (isMuted=${isMuted}, inputMode=${inputMode})`,
+    );
+
+    microphoneBuffer.muteGain.gain.setValueAtTime(
+      gainValue,
+      audioContext?.currentTime || 0,
+    );
+  }, [isMuted, microphoneBuffer.muteGain, audioContext, inputMode]);
+
+  /**
+   * Noise gate control — audio thread. The gate lives in an AudioWorklet so it keeps running
+   * while hidden; threshold 0 disables gating, which is what push-to-talk wants.
+   */
+  useEffect(() => {
+    const gate = microphoneBuffer.noiseGateWorklet;
+    if (!gate || !audioContext) return;
+
+    const gating = inputMode !== "push_to_talk";
+
+    gate.parameters.get("threshold")?.setValueAtTime(
+      gating ? noiseGate : 0,
+      audioContext.currentTime,
+    );
+    gate.parameters.get("release")?.setValueAtTime(
+      noiseGateRelease,
+      audioContext.currentTime,
+    );
+    gate.parameters
+      .get("smoothing")
+      ?.setValueAtTime(eSportsModeEnabled ? 0.3 : 0.8, audioContext.currentTime);
+  }, [
+    microphoneBuffer.noiseGateWorklet,
+    audioContext,
+    noiseGate,
+    noiseGateRelease,
+    inputMode,
+    eSportsModeEnabled,
+  ]);
+
+  /**
+   * Noise gate control — main thread fallback, only when the worklet failed. It forces the
+   * gate open while hidden, so a worklet failure degrades to "gate stops" not "mic stops".
+   */
+  useEffect(() => {
+    if (microphoneBuffer.noiseGateWorklet || microphoneBuffer.frameAlignedSpeech) return;
+    if (inputMode === "push_to_talk") return;
+
+    if (
+      !microphoneBuffer.analyser ||
+      !microphoneBuffer.noiseGate ||
+      !audioContext
+    ) {
+      return;
+    }
+
+    let animationFrame: number | null = null;
+    let holdTimeout: ReturnType<typeof setTimeout> | null = null;
+    let gateOpen = false;
+    let stopped = false;
+
+    const analyserNode = microphoneBuffer.analyser;
+    const noiseGateNode = microphoneBuffer.noiseGate;
+    const bufferLength = analyserNode.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+
+    const applyGain = (value: number) => {
+      const rampTime = 0.01;
+      const now = audioContext.currentTime;
+
+      noiseGateNode.gain.cancelScheduledValues(now);
+      noiseGateNode.gain.setValueAtTime(noiseGateNode.gain.value, now);
+      noiseGateNode.gain.linearRampToValueAtTime(value, now + rampTime);
+    };
+
+    const clearHoldTimeout = () => {
+      if (!holdTimeout) return;
+
+      clearTimeout(holdTimeout);
+      holdTimeout = null;
+    };
+
+    const forceGateOpenForBackgroundCapture = () => {
+      clearHoldTimeout();
+      gateOpen = true;
+      applyGain(1);
+    };
+
+    const closeGate = () => {
+      gateOpen = false;
+      applyGain(0);
+    };
+
+    const scheduleNextFrame = () => {
+      if (stopped || document.hidden) {
+        animationFrame = null;
+        return;
+      }
+
+      animationFrame = requestAnimationFrame(checkNoiseGate);
+    };
+
+    const checkNoiseGate = () => {
+      if (stopped) {
+        animationFrame = null;
+        return;
+      }
+
+      if (document.hidden) {
+        forceGateOpenForBackgroundCapture();
+        animationFrame = null;
+        return;
+      }
+
+      analyserNode.getByteFrequencyData(dataArray);
+
+      let sum = 0;
+      for (let i = 0; i < bufferLength; i++) {
+        sum += dataArray[i] * dataArray[i];
+      }
+
+      const rms = Math.sqrt(sum / bufferLength);
+      const volume = (rms / 255) * 100;
+      const aboveThreshold = volume >= noiseGate;
+
+      if (aboveThreshold) {
+        clearHoldTimeout();
+
+        if (!gateOpen) {
+          gateOpen = true;
+          applyGain(1);
+        }
+      } else if (gateOpen && !holdTimeout) {
+        holdTimeout = setTimeout(closeGate, noiseGateRelease);
+      }
+
+      scheduleNextFrame();
+    };
+
+    const startNoiseGateLoop = () => {
+      if (stopped || document.hidden || animationFrame !== null) return;
+      animationFrame = requestAnimationFrame(checkNoiseGate);
+    };
+
+    const stopNoiseGateLoop = () => {
+      if (animationFrame === null) return;
+
+      cancelAnimationFrame(animationFrame);
+      animationFrame = null;
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopNoiseGateLoop();
+        forceGateOpenForBackgroundCapture();
+        return;
+      }
+
+      startNoiseGateLoop();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    if (document.hidden) {
+      forceGateOpenForBackgroundCapture();
+    } else {
+      startNoiseGateLoop();
+    }
+
+    return () => {
+      stopped = true;
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      stopNoiseGateLoop();
+      clearHoldTimeout();
+    };
+  }, [
+    microphoneBuffer.analyser,
+    microphoneBuffer.noiseGate,
+    microphoneBuffer.noiseGateWorklet,
+    audioContext,
+    noiseGate,
+    noiseGateRelease,
+    inputMode,
+  ]);
+
+  /**
+   * AGC feedback loop. setInterval rather than requestAnimationFrame, so gain keeps updating
+   * when the renderer is hidden or unfocused.
+   */
+  useEffect(() => {
+    if (
+      !autoGainEnabled ||
+      !microphoneBuffer.agcAnalyser ||
+      !microphoneBuffer.agcGain ||
+      !audioContext
+    ) {
+      return;
+    }
+
+    const analyserNode = microphoneBuffer.agcAnalyser;
+    const gainNode = microphoneBuffer.agcGain;
+    const dataArray = new Float32Array(analyserNode.fftSize);
+
+    const targetLinear = Math.pow(10, autoGainTargetDb / 20);
+    const silenceFloor = 0.001;
+    const minGain = 0.1;
+    // +12 dB at most. +30 dB lifted room noise between words into a clipped first syllable.
+    const maxGain = 4;
+    const peakCeiling = Math.pow(10, LIMITER_THRESHOLD_DB / 20);
+    const smoothUp = 0.02;
+    const smoothDown = 0.5;
+
+    const adjust = () => {
+      analyserNode.getFloatTimeDomainData(dataArray);
+
+      let sum = 0;
+      let peak = 0;
+      for (let i = 0; i < dataArray.length; i++) {
+        sum += dataArray[i] * dataArray[i];
+        const a = Math.abs(dataArray[i]);
+        if (a > peak) peak = a;
+      }
+
+      const rms = Math.sqrt(sum / dataArray.length);
+
+      if (rms <= silenceFloor) return;
+
+      // Aim for the RMS target, but never so loud that the peak passes the ceiling.
+      const desiredGain = Math.min(targetLinear / rms, peakCeiling / Math.max(peak, 1e-6));
+      const clamped = Math.max(minGain, Math.min(maxGain, desiredGain));
+      const alpha = clamped > agcGainValueRef.current ? smoothUp : smoothDown;
+
+      agcGainValueRef.current += (clamped - agcGainValueRef.current) * alpha;
+      if(Math.abs(20*Math.log10(agcGainValueRef.current/evidenceGainRef.current))>=2) {
+        microphoneBuffer.speechCarrier?.port.postMessage("reset-evidence");evidenceGainRef.current=agcGainValueRef.current;
+      }
+
+      gainNode.gain.setTargetAtTime(
+        agcGainValueRef.current,
+        audioContext.currentTime,
+        0.05,
+      );
+    };
+
+    adjust();
+
+    const intervalId = window.setInterval(adjust, 50);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [
+    autoGainEnabled,
+    microphoneBuffer.agcAnalyser,
+    microphoneBuffer.agcGain,
+    audioContext,
+    autoGainTargetDb,
+  ]);
+
+  useEffect(() => {
+    if (!microphoneBuffer.compressor) return;
+
+    const t = compressorAmount / 100;
+    const threshold = -10 + t * (-40 - -10);
+    const ratio = 1 + t * (20 - 1);
+    const knee = 40 + t * (5 - 40);
+    const now = audioContext?.currentTime || 0;
+
+    microphoneBuffer.compressor.threshold.setValueAtTime(threshold, now);
+    microphoneBuffer.compressor.ratio.setValueAtTime(ratio, now);
+    microphoneBuffer.compressor.knee.setValueAtTime(knee, now);
+
+    if (microphoneBuffer.compressorMakeup) {
+      // A constant, not |threshold| x (1 - 1/ratio), which is +22.6 dB at the default and
+      // clips. Measured on speech at -20 dBFS: +6 clips, +3 leaves the peak at -1.5.
+      const makeupDb = compressorAmount > 0 ? COMPRESSOR_MAKEUP_DB : 0;
+      microphoneBuffer.compressorMakeup.gain.setValueAtTime(
+        Math.pow(10, makeupDb / 20),
+        now,
+      );
+    }
+  }, [
+    microphoneBuffer.compressor,
+    microphoneBuffer.compressorMakeup,
+    compressorAmount,
+    audioContext,
+  ]);
+
+  useEffect(() => {
+    voiceLog.step("LOOPBACK", 3, "Loopback effect running", {
+      loopbackEnabled,
+      hasFinalAnalyser: !!microphoneBuffer.finalAnalyser,
+      hasAudioContext: !!audioContext,
+      contextState: audioContext?.state,
+      hasMuteGain: !!microphoneBuffer.muteGain,
+      muteGainValue: microphoneBuffer.muteGain?.gain.value,
+      hasNoiseGate: !!microphoneBuffer.noiseGate,
+      noiseGateValue: microphoneBuffer.noiseGate?.gain.value,
+      hasVolumeGain: !!microphoneBuffer.volumeGain,
+      volumeGainValue: microphoneBuffer.volumeGain?.gain.value,
+    });
+
+    const monitorSource =
+      microphoneBuffer.monitorTap ?? microphoneBuffer.finalAnalyser;
+
+    if (monitorSource && audioContext) {
+      try {
+        if (loopbackGainRef.current) {
+          voiceLog.info(
+            "LOOPBACK",
+            "Disconnecting previous loopback gain node",
+          );
+          loopbackGainRef.current.disconnect();
+          loopbackGainRef.current = null;
+        }
+
+        const loopbackGain = audioContext.createGain();
+        loopbackGain.gain.value = 1;
+        loopbackGainRef.current = loopbackGain;
+
+        monitorSource.connect(loopbackGain);
+        voiceLog.info("LOOPBACK", "Connected monitor tap to loopbackGain");
+
+        if (loopbackEnabled) {
+          loopbackGain.connect(audioContext.destination);
+
+          voiceLog.ok(
+            "LOOPBACK",
+            3,
+            "Loopback ACTIVE — connected to speakers",
+            {
+              contextState: audioContext.state,
+              destinationChannels: audioContext.destination.maxChannelCount,
+              sampleRate: audioContext.sampleRate,
+            },
+          );
+        } else {
+          voiceLog.info(
+            "LOOPBACK",
+            "Loopback disabled — NOT connected to speakers",
+          );
+        }
+      } catch (error) {
+        voiceLog.fail("LOOPBACK", 3, "Loopback control error", error);
+      }
+    } else {
+      voiceLog.warn(
+        "LOOPBACK",
+        "Loopback effect skipped — missing finalAnalyser or audioContext",
+        {
+          hasFinalAnalyser: !!microphoneBuffer.finalAnalyser,
+          hasAudioContext: !!audioContext,
+        },
+      );
+    }
+
+    return () => {
+      if (loopbackGainRef.current) {
+        try {
+          loopbackGainRef.current.disconnect();
+        } catch {
+          // Ignore disconnect errors.
+        }
+
+        loopbackGainRef.current = null;
+      }
+    };
+  }, [
+    loopbackEnabled,
+    microphoneBuffer.monitorTap,
+    microphoneBuffer.finalAnalyser,
+    audioContext,
+    microphoneBuffer.muteGain,
+    microphoneBuffer.noiseGate,
+    microphoneBuffer.volumeGain,
+  ]);
+
+  const getVisualizerData = useCallback((): Uint8Array | null => {
+    if (!microphoneBuffer.finalAnalyser) return null;
+
+    const bufferLength = microphoneBuffer.finalAnalyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    microphoneBuffer.finalAnalyser.getByteFrequencyData(dataArray);
+
+    return dataArray;
+  }, [microphoneBuffer.finalAnalyser]);
+
+  return { getVisualizerData };
+}

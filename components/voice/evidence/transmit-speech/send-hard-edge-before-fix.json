@@ -1,0 +1,15 @@
+{
+  "beforeEdgeFrame": 189184,
+  "releaseRequestedFrame": 189696,
+  "requestedForbiddenMs": 10.666666666666666,
+  "releaseWaitMs": 22,
+  "openAck": {
+    "type": "boundary",
+    "revision": 22,
+    "blocked": false,
+    "frame": 189696
+  },
+  "preEdgeMarkerPeak": 0.06414757668972015,
+  "oldTailAfterActualOpenPeak": 0.06414618343114853,
+  "observedSamples": 5760
+}

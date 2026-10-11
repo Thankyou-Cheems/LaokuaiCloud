@@ -1,0 +1,84 @@
+import { getFileOwnership, isConversationMember, listPendingReportConversationsForFile } from "../db";
+import { resolveConversationAccess } from "../socket/utils/conversationAccess";
+import { mayViewChannel } from "./channelPermissions";
+import { hasPermission } from "./permissions";
+
+/** `undetermined` is a read that failed, which a caller answers with a retry
+    rather than a 404 that ends a video mid-play. */
+export type FileReadVerdict = "allowed" | "denied" | "undetermined";
+
+const ALLOW_TTL_MS = 15_000;
+const ALLOW_CACHE_MAX = 10_000;
+
+// Allows only: a Range request per chunk would otherwise redo the lookup each
+// time. A denial is not cached, so a file sent a moment later is not refused.
+const allowCache = new Map<string, number>();
+
+/** For tests, and for anything that must see a revoked access at once. */
+export function resetFileAccessCache(): void {
+  allowCache.clear();
+}
+
+async function decide(fileId: string, serverUserId: string, grytUserId?: string): Promise<FileReadVerdict> {
+  const owner = await getFileOwnership(fileId);
+  if (!owner) return "denied";
+
+  if (owner.isAvatar) return "allowed";
+  if (owner.uploadedBy === serverUserId) return "allowed";
+
+  // Uploaded before ownership was recorded and not attached anywhere: any member
+  // reads it, as every file was before, so nothing already uploaded stops working.
+  if (owner.uploadedBy === null && owner.attachedTo.length === 0 && owner.groupIconOf.length === 0) {
+    return "allowed";
+  }
+
+  for (const conversationId of owner.groupIconOf) {
+    if (await isConversationMember(conversationId, serverUserId)) return "allowed";
+  }
+
+  let undetermined = false;
+  for (const conversationId of owner.attachedTo) {
+    const access = await resolveConversationAccess(conversationId, serverUserId);
+    if (access.allowed) return "allowed";
+    if (access.reason === "undetermined") undetermined = true;
+  }
+
+  // A moderator reads what was reported, including from a DM they are not in,
+  // on the same terms as the queue that showed it to them.
+  if (await hasPermission(serverUserId, "view_reports", grytUserId)) {
+    for (const conversationId of await listPendingReportConversationsForFile(fileId)) {
+      if (await mayViewChannel(conversationId, serverUserId, grytUserId)) return "allowed";
+    }
+  }
+
+  return undetermined ? "undetermined" : "denied";
+}
+
+/** Whether a member may read one stored file: its uploader, anybody who can
+    see where it was sent, or any member for an avatar or an unowned older file. */
+export async function fileReadVerdict(
+  fileId: string,
+  serverUserId: string | null | undefined,
+  grytUserId?: string,
+): Promise<FileReadVerdict> {
+  if (!serverUserId || serverUserId.startsWith("temp_")) return "denied";
+
+  const key = `${serverUserId}\u0000${fileId}`;
+  const expires = allowCache.get(key);
+  if (expires !== undefined && expires > Date.now()) return "allowed";
+
+  let verdict: FileReadVerdict;
+  try {
+    verdict = await decide(fileId, serverUserId, grytUserId);
+  } catch {
+    return "undetermined";
+  }
+
+  if (verdict === "allowed") {
+    if (allowCache.size >= ALLOW_CACHE_MAX) allowCache.clear();
+    allowCache.set(key, Date.now() + ALLOW_TTL_MS);
+  } else {
+    allowCache.delete(key);
+  }
+  return verdict;
+}

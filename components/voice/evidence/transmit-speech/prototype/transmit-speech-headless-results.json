@@ -1,0 +1,47 @@
+{
+  "browser": "153.0.8010.12",
+  "direct": [
+    {
+      "rate": 44100,
+      "userMuteImmediate": true,
+      "suppressImmediate": true,
+      "recoveryImmediate": true,
+      "disconnectImmediate": true,
+      "positiveWhileBlocked": 0,
+      "publicationIdStable": true,
+      "failure": {
+        "status": "unavailable",
+        "reason": "processor_failed"
+      },
+      "cleaned": true
+    },
+    {
+      "rate": 48000,
+      "userMuteImmediate": true,
+      "suppressImmediate": true,
+      "recoveryImmediate": true,
+      "disconnectImmediate": true,
+      "positiveWhileBlocked": 0,
+      "publicationIdStable": true,
+      "failure": {
+        "status": "unavailable",
+        "reason": "processor_failed"
+      },
+      "cleaned": true
+    }
+  ],
+  "hook": {
+    "permissionDefaultClosed": true,
+    "muted": true,
+    "pttIdle": true,
+    "pttRelease": true,
+    "suppressed": true,
+    "rebuildHeld": true,
+    "publicationIdStable": true,
+    "disconnected": true,
+    "noSpeak": true,
+    "noHandles": true,
+    "disabled": true
+  },
+  "note": "Actual public PCM and RNN, headless muted loopback server, getUserMedia forbidden, BelowNormal."
+}

@@ -1,0 +1,849 @@
+import assert from "node:assert/strict";
+import { createHash, generateKeyPairSync, randomBytes, type KeyObject } from "node:crypto";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { after, before, describe, it } from "node:test";
+
+import type { ClientState } from "ts-mls/dist/src/clientState";
+import type { KeyPackage, PrivateKeyPackage } from "ts-mls/dist/src/keyPackage";
+
+import { blockUser, unblockUser } from "../../db/sqlite/blocks";
+import { getSqliteDb, initSqlite } from "../../db/sqlite/connection";
+import { setContactPrefs } from "../../db/sqlite/contactPrefs";
+import { createGroupConversation, openDirectConversation } from "../../db/sqlite/conversations";
+import { appendMlsMessage, createMlsGroup, getMlsGroupForConversation } from "../../db/sqlite/mls";
+import { createServerConfigIfNotExists, setServerRole, updateServerConfig } from "../../db/sqlite/servers";
+import { hasWrittenTo } from "../../db/sqlite/contactPrefs";
+import { insertFile, listMessages } from "../../db/sqlite/messages";
+import { setUserModerationState, upsertUser } from "../../db/sqlite/users";
+import { unreferencedAmong } from "../../jobs/mediaSweep";
+import { mlsRetentionDays, runMlsRetention } from "../../jobs/mlsRetention";
+import { fileReadVerdict, resetFileAccessCache } from "../../services/fileAccess";
+import { checkKeyPackageLifetime, parseGroupMessage, parseKeyPackage, parseWelcome } from "../../services/mlsWire";
+import type { Clients } from "../../types";
+import { generateAccessToken } from "../../utils/jwt";
+import { resetRateLimits } from "../../utils/rateLimiter";
+import { resetChannelIdCache } from "../utils/conversationAccess";
+import { refreshClientPermissions } from "../utils/standing";
+import { registerChatHandlers } from "./chat";
+import { registerMlsHandlers } from "./mls";
+import type { EventHandlerMap, HandlerContext } from "./types";
+
+/** Real suite 1 MLS from ts-mls on both ends, so what the server stores and hands
+    back is proven to still open, not just to be the same length. */
+
+/* eslint-disable @typescript-eslint/no-require-imports */
+const { signDeviceCertificate } =
+  require("@gryt/crypto/mls-device-certificate") as typeof import("@gryt/crypto/dist/mls-device-certificate");
+const mls = {
+  ...(require("ts-mls/clientState.js") as typeof import("ts-mls/dist/src/clientState")),
+  ...(require("ts-mls/createCommit.js") as typeof import("ts-mls/dist/src/createCommit")),
+  ...(require("ts-mls/createMessage.js") as typeof import("ts-mls/dist/src/createMessage")),
+  ...(require("ts-mls/processMessages.js") as typeof import("ts-mls/dist/src/processMessages")),
+  ...(require("ts-mls/keyPackage.js") as typeof import("ts-mls/dist/src/keyPackage")),
+  ...(require("ts-mls/message.js") as typeof import("ts-mls/dist/src/message")),
+  ...(require("ts-mls/crypto/getCiphersuiteImpl.js") as typeof import("ts-mls/dist/src/crypto/getCiphersuiteImpl")),
+  ...(require("ts-mls/crypto/ciphersuite.js") as typeof import("ts-mls/dist/src/crypto/ciphersuite")),
+  ...(require("ts-mls/defaultCapabilities.js") as typeof import("ts-mls/dist/src/defaultCapabilities")),
+  ...(require("ts-mls/lifetime.js") as typeof import("ts-mls/dist/src/lifetime")),
+  ...(require("ts-mls/pskIndex.js") as typeof import("ts-mls/dist/src/pskIndex")),
+};
+/* eslint-enable @typescript-eslint/no-require-imports */
+
+type Impl = Awaited<ReturnType<typeof mls.getCiphersuiteImpl>>;
+let impl: Impl;
+
+const HOST = "mls.test:5001";
+let dir: string;
+
+interface Reply {
+  ok: boolean;
+  error?: string;
+  [key: string]: unknown;
+}
+
+interface Participant {
+  serverUserId: string;
+  grytUserId: string;
+  accessToken: string;
+  handlers: EventHandlerMap;
+  received: (event: string) => Record<string, unknown>[];
+  clear: () => void;
+  call: (event: string, payload?: Record<string, unknown>) => Promise<Reply>;
+}
+
+const clientsInfo: Clients = {};
+const sockets = new Map<string, { emit: (event: string, payload?: unknown) => boolean }>();
+const io = { to: () => ({ emit() {} }), emit() {}, sockets: { sockets } };
+
+let seq = 0;
+async function connect(nickname: string): Promise<Participant> {
+  seq += 1;
+  const clientId = `mls-socket-${seq}`;
+  const grytUserId = `account-mls-${seq}`;
+  const user = await upsertUser(grytUserId, nickname);
+  await setServerRole(user.server_user_id, "member");
+
+  const emitted: { event: string; payload: unknown }[] = [];
+  const emit = (event: string, payload?: unknown) => {
+    emitted.push({ event, payload });
+    return true;
+  };
+  sockets.set(clientId, { emit });
+  clientsInfo[clientId] = {
+    serverUserId: user.server_user_id, grytUserId, nickname, color: "#666666",
+    isMuted: false, isDeafened: false, streamID: "", hasJoinedChannel: false, voiceChannelId: "", isAFK: false,
+    cameraEnabled: false, cameraStreamID: "", screenShareEnabled: false, screenShareVideoStreamID: "",
+    screenShareAudioStreamID: "", isServerMuted: false, isServerDeafened: false,
+  } as Clients[string];
+  await refreshClientPermissions(clientsInfo, clientId);
+
+  const ctx = {
+    io,
+    socket: { id: clientId, handshake: { headers: { host: HOST }, address: "127.0.0.1" }, emit, join() {}, leave() {} },
+    clientId,
+    serverId: "mls-test",
+    clientsInfo,
+    sfuClient: null,
+    getClientIp: () => `10.9.0.${seq}`,
+    clientAddressIsOwn: () => true,
+  } as unknown as HandlerContext;
+  const handlers = { ...registerChatHandlers(ctx), ...registerMlsHandlers(ctx) };
+  const accessToken = generateAccessToken({ grytUserId, serverUserId: user.server_user_id, nickname, serverHost: HOST, tokenVersion: 0 });
+
+  return {
+    serverUserId: user.server_user_id,
+    grytUserId,
+    accessToken,
+    handlers,
+    received: (event) => emitted.filter((e) => e.event === event).map((e) => e.payload as Record<string, unknown>),
+    clear: () => {
+      emitted.length = 0;
+    },
+    call: (event, payload = {}) =>
+      new Promise<Reply>((resolve) => {
+        void handlers[event]({ accessToken, ...payload }, resolve);
+      }),
+  };
+}
+
+/** One device's MLS side, as a client would hold it. */
+interface Device {
+  id: string;
+  packages: { publicPackage: KeyPackage; privatePackage: PrivateKeyPackage }[];
+  state?: ClientState;
+}
+
+const encodeKp = (kp: KeyPackage) => mls.encodeMlsMessage({ version: "mls10", wireformat: "mls_key_package", keyPackage: kp });
+
+/** What the crypto engine writes: 30 days, starting an hour back. */
+function lifetimeFrom(start = Math.floor(Date.now() / 1000) - 3600, days = 30) {
+  return { notBefore: BigInt(start), notAfter: BigInt(start + days * 24 * 60 * 60) };
+}
+
+/** A device id the way @gryt/crypto makes one: 16 bytes, unpadded base64url. */
+const deviceIdFor = (label: string) => createHash("sha256").update(label).digest().subarray(0, 16).toString("base64url");
+
+const rawKey = (k: KeyObject, part: "x" | "d") => new Uint8Array(Buffer.from(k.export({ format: "jwk" })[part] as string, "base64url"));
+
+/* Signed by @gryt/crypto, as a client signs it. The fixture below is a certificate from a
+   crypto build, so a change to the format shows up there too. */
+function certify(person: KeyObject, leafPublic: Uint8Array, deviceId: string): Uint8Array {
+  return signDeviceCertificate({
+    personPrivateKey: rawKey(person, "d"),
+    scope: "srv:mls-test" as Parameters<typeof signDeviceCertificate>[0]["scope"],
+    leafSignatureKey: leafPublic,
+    deviceId,
+    deviceName: "Test device",
+  });
+}
+
+async function makeDevice(label: string, count: number, lifetime = lifetimeFrom()): Promise<Device> {
+  const id = deviceIdFor(label);
+  const person = generateKeyPairSync("ed25519");
+  const leaf = generateKeyPairSync("ed25519");
+  const leafKeys = { signKey: rawKey(leaf.privateKey, "d"), publicKey: rawKey(leaf.publicKey, "x") };
+  const certificate = certify(person.privateKey, leafKeys.publicKey, id);
+  const packages = [];
+  for (let i = 0; i < count; i++) {
+    packages.push(
+      await mls.generateKeyPackageWithKey(
+        { credentialType: "basic", identity: certificate },
+        mls.defaultCapabilities(),
+        lifetime,
+        [],
+        leafKeys,
+        impl,
+      ),
+    );
+  }
+  return { id, packages };
+}
+
+async function publish(p: Participant, d: Device, lastResort = false): Promise<Reply> {
+  const encoded = d.packages.map((k) => encodeKp(k.publicPackage));
+  return p.call("mls:keypackages:publish", {
+    deviceId: d.id,
+    keyPackages: lastResort ? encoded.slice(0, -1) : encoded,
+    ...(lastResort ? { lastResort: encoded[encoded.length - 1] } : {}),
+  });
+}
+
+/* The claimed package's private half, matched by ref as a client matches it. */
+async function privateFor(d: Device, claimed: Uint8Array): Promise<Device["packages"][number]> {
+  const parsed = await parseKeyPackage(claimed);
+  assert.ok(parsed.ok);
+  for (const k of d.packages) {
+    const mine = await parseKeyPackage(encodeKp(k.publicPackage));
+    if (mine.ok && mine.ref === parsed.ref) return k;
+  }
+  throw new Error("claimed a package this device never made");
+}
+
+function decode(bytes: Uint8Array) {
+  const [msg] = mls.decodeMlsMessage(bytes, 0)!;
+  return msg;
+}
+
+async function startGroup(owner: Device): Promise<{ groupIdHex: string }> {
+  const groupId = randomBytes(16);
+  owner.state = await mls.createGroup(groupId, owner.packages[0].publicPackage, owner.packages[0].privatePackage, [], impl);
+  return { groupIdHex: groupId.toString("hex") };
+}
+
+async function commitAdding(committer: Device, kps: Uint8Array[]) {
+  const extraProposals = kps.map((b) => {
+    const m = decode(b);
+    assert.equal(m.wireformat, "mls_key_package");
+    return { proposalType: "add" as const, add: { keyPackage: (m as { keyPackage: KeyPackage }).keyPackage } };
+  });
+  const result = await mls.createCommit(
+    { state: committer.state!, cipherSuite: impl },
+    { extraProposals, wireAsPublicMessage: true, ratchetTreeExtension: true },
+  );
+  return {
+    result,
+    commit: mls.encodeMlsMessage(result.commit),
+    welcome: result.welcome ? mls.encodeMlsMessage({ version: "mls10", wireformat: "mls_welcome", welcome: result.welcome }) : undefined,
+  };
+}
+
+async function applicationMessage(sender: Device, text: string): Promise<Uint8Array> {
+  const r = await mls.createApplicationMessage(sender.state!, new TextEncoder().encode(text), impl);
+  sender.state = r.newState;
+  return mls.encodeMlsMessage({ version: "mls10", wireformat: "mls_private_message", privateMessage: r.privateMessage });
+}
+
+async function receive(d: Device, bytes: Uint8Array): Promise<string | null> {
+  const m = decode(bytes);
+  if (m.wireformat !== "mls_private_message" && m.wireformat !== "mls_public_message") throw new Error(m.wireformat);
+  const r = await mls.processMessage(m, d.state!, mls.emptyPskIndex, () => "accept", impl);
+  d.state = r.newState;
+  return r.kind === "applicationMessage" ? new TextDecoder().decode(r.message) : null;
+}
+
+let alice: Participant;
+let bob: Participant;
+let mallory: Participant;
+let dm: string;
+
+before(async () => {
+  dir = mkdtempSync(join(tmpdir(), "gryt-mls-"));
+  process.env.DATA_DIR = dir;
+  await initSqlite();
+  await createServerConfigIfNotExists();
+  resetChannelIdCache();
+  impl = await mls.getCiphersuiteImpl(mls.getCiphersuiteFromName("MLS_128_DHKEMX25519_AES128GCM_SHA256_Ed25519"));
+
+  alice = await connect("Alice");
+  bob = await connect("Bob");
+  mallory = await connect("Mallory");
+  dm = (await openDirectConversation(alice.serverUserId, bob.serverUserId)).conversation_id;
+});
+
+after(() => {
+  delete process.env.DATA_DIR;
+  rmSync(dir, { recursive: true, force: true });
+});
+
+/* Made by @gryt/crypto at 272bb78 with createMlsDevice, from a fixed seed, scope
+   "srv:fixture" and device name "Kari's laptop". The leaf key is a throwaway. */
+const CRYPTO_FIXTURE = {
+  certificate:
+    "01000b7372763a66697874757265420251a7e0a7e9710c96e0f61565e130dc9448e0050aa0f201f749724aa77a3d273eb81ac2ad4863ee0f63b1c4981fdf49a262f59acf31545ce2bb02f4c979df000102030405060708090a0b0c0d0e0f0d4b6172692773206c6170746f70000000006aba15b6a051f73314187a2387d91bc1e7203c744845f35106d34f282731ec71d247c53dc871324a87f7bcdea676a7895623c4d0974ca055c889c2e8bb408534db0c2c02",
+  leafSignKey: "3dfa52a5808178ff13be55e2f3057b81f8f0618fe7715209e9da7925653eca0f",
+  leafPublicKey: "273eb81ac2ad4863ee0f63b1c4981fdf49a262f59acf31545ce2bb02f4c979df",
+  deviceId: "AAECAwQFBgcICQoLDA0ODw",
+};
+
+describe("the wire parser", () => {
+  it("names a Welcome's recipient by the same ref as the KeyPackage it was built from", async () => {
+    const a = await makeDevice("wire-a", 1);
+    const b = await makeDevice("wire-b", 1);
+    await startGroup(a);
+    const { commit, welcome } = await commitAdding(a, [encodeKp(b.packages[0].publicPackage)]);
+
+    const kp = await parseKeyPackage(encodeKp(b.packages[0].publicPackage));
+    const w = parseWelcome(welcome!);
+    const c = await parseGroupMessage(commit);
+    assert.ok(kp.ok && w.ok && c.ok);
+    assert.deepEqual(w.recipients, [kp.ref]);
+    assert.deepEqual([c.kind, c.epoch, c.addedRefs], ["commit", 0, [kp.ref]]);
+  });
+
+  it("refuses junk, trailing bytes and another ciphersuite", async () => {
+    const good = encodeKp((await makeDevice("wire-c", 1)).packages[0].publicPackage);
+    assert.equal((await parseKeyPackage(new Uint8Array([1, 2, 3]))).ok, false);
+    assert.equal((await parseKeyPackage(new Uint8Array([...good, 0]))).ok, false, "trailing bytes nobody looked at");
+
+    // MLSMessage header (4 bytes), then the KeyPackage's version (2) and cipher_suite (2).
+    const suite2 = new Uint8Array(good);
+    suite2[7] = 2;
+    const refused = await parseKeyPackage(suite2);
+    assert.equal(!refused.ok && refused.error, "unsupported_ciphersuite");
+  });
+
+  it("reads a device certificate @gryt/crypto signed", async () => {
+    const f = CRYPTO_FIXTURE;
+    const hex = (h: string) => new Uint8Array(Buffer.from(h, "hex"));
+    const leafKeys = { signKey: hex(f.leafSignKey), publicKey: hex(f.leafPublicKey) };
+    const certificate = hex(f.certificate);
+    const make = async (identity: Uint8Array, keys = leafKeys) =>
+      encodeKp((await mls.generateKeyPackageWithKey(
+        { credentialType: "basic", identity }, mls.defaultCapabilities(), mls.defaultLifetime, [], keys, impl,
+      )).publicPackage);
+
+    const kp = await parseKeyPackage(await make(certificate));
+    assert.ok(kp.ok);
+    assert.equal(kp.deviceId, f.deviceId);
+    const asBuffer = await parseKeyPackage(Buffer.from(await make(certificate)));
+    assert.ok(asBuffer.ok, "a Buffer, as socket.io hands it over, reads the same (GRYT-1520)");
+
+    const tampered = certificate.slice();
+    tampered[tampered.length - 70] ^= 1;
+    assert.equal((await parseKeyPackage(await make(tampered))).ok, false, "a changed signedAt breaks the person key's signature");
+    assert.equal((await parseKeyPackage(await make(new TextEncoder().encode("just a name")))).ok, false);
+
+    const other = generateKeyPairSync("ed25519");
+    const otherLeaf = { signKey: rawKey(other.privateKey, "d"), publicKey: rawKey(other.publicKey, "x") };
+    const stolen = await parseKeyPackage(await make(certificate, otherLeaf));
+    assert.equal(!stolen.ok && stolen.message, "That KeyPackage's device certificate is for another leaf key.");
+  });
+
+  it("refuses a KeyPackage its leaf key didn't sign", async () => {
+    const good = encodeKp((await makeDevice("wire-e", 1)).packages[0].publicPackage);
+    const forged = new Uint8Array(good);
+    forged[forged.length - 1] ^= 1;
+    const r = await parseKeyPackage(forged);
+    assert.equal(!r.ok && r.error, "invalid_key_package");
+  });
+
+  it("refuses a commit sent as PrivateMessage, since its adds can't be checked", async () => {
+    const a = await makeDevice("wire-d", 1);
+    await startGroup(a);
+    const r = await mls.createCommit({ state: a.state!, cipherSuite: impl }, {});
+    const parsed = await parseGroupMessage(mls.encodeMlsMessage(r.commit));
+    assert.equal(!parsed.ok && parsed.error, "must_be_public");
+  });
+});
+
+describe("KeyPackages", () => {
+  it("are refused from somebody not signed in", async () => {
+    const d = await makeDevice("anon", 1);
+    const reply = await new Promise<Reply>((resolve) => {
+      void alice.handlers["mls:keypackages:publish"]({ accessToken: "not-a-token", deviceId: d.id, keyPackages: [encodeKp(d.packages[0].publicPackage)] }, resolve);
+    });
+    assert.equal(reply.error, "unauthenticated");
+  });
+
+  it("are refused when they aren't KeyPackages", async () => {
+    const reply = await alice.call("mls:keypackages:publish", { deviceId: "junk", keyPackages: [Buffer.from("hello")] });
+    assert.equal(reply.error, "invalid_key_package");
+  });
+
+  it("are refused when they'd last past 30 days, or already have", async () => {
+    const now = Math.floor(Date.now() / 1000);
+    const cases: [ReturnType<typeof lifetimeFrom>, string][] = [
+      [lifetimeFrom(now - 3600, 31), "key_package_lifetime"],
+      [{ notBefore: BigInt(0), notAfter: BigInt("18446744073709551615") }, "key_package_lifetime"],
+      [lifetimeFrom(now - 31 * 86400), "key_package_expired"],
+      [lifetimeFrom(now + 60), "key_package_not_yet_valid"],
+    ];
+    for (const [lifetime, error] of cases) {
+      const d = await makeDevice("lifetimes", 1, lifetime);
+      const r = await publish(alice, d);
+      assert.equal(r.error, error);
+      assert.ok(Math.abs((r.serverTime as number) - now) < 5, "the server's clock comes back, to retry against");
+    }
+  });
+
+  it("take both ends of the 30 days, and ts-mls's default for now", async () => {
+    const now = Math.floor(Date.now() / 1000);
+    const at = new Date(now * 1000);
+    const edge = (lt: ReturnType<typeof lifetimeFrom>) => checkKeyPackageLifetime(lt, at).ok;
+    assert.equal(edge(lifetimeFrom(now)), true, "valid from its first second");
+    assert.equal(edge(lifetimeFrom(now - 30 * 86400)), true, "and through its last");
+    assert.equal(edge(lifetimeFrom(now + 1)), false);
+    assert.equal(edge(lifetimeFrom(now - 30 * 86400 - 1)), false);
+
+    const lena = await connect("Lena");
+    const legacy = await makeDevice("legacy", 1, mls.defaultLifetime);
+    assert.equal((await publish(lena, legacy)).ok, true, "@gryt/crypto 0.6.0 and older write this");
+    const row = getSqliteDb().prepare(`SELECT not_before, not_after FROM mls_key_packages WHERE device_id = ?`)
+      .get(legacy.id) as { not_before: number; not_after: number };
+    assert.ok(Math.abs(row.not_before - now) < 5);
+    assert.equal(row.not_after - row.not_before, 30 * 86400, "kept 30 days from upload");
+  });
+
+  it("aren't handed out once expired", async () => {
+    const gina = await connect("Gina");
+    const hans = await connect("Hans");
+    const conv = (await openDirectConversation(gina.serverUserId, hans.serverUserId)).conversation_id;
+    const hansPhone = await makeDevice("hans-phone", 1);
+    await publish(hans, hansPhone);
+    const ginaLaptop = await makeDevice("gina-laptop", 1);
+    await publish(gina, ginaLaptop);
+
+    getSqliteDb().prepare(`UPDATE mls_key_packages SET not_after = ? WHERE device_id = ?`)
+      .run(Math.floor(Date.now() / 1000) - 1, hansPhone.id);
+    const claimed = await gina.call("mls:keypackages:claim", { conversationId: conv, deviceId: ginaLaptop.id });
+    assert.deepEqual(claimed.keyPackages, []);
+    assert.deepEqual(claimed.missing, [{ serverUserId: hans.serverUserId, deviceId: hansPhone.id }]);
+    assert.deepEqual(claimed.more, [], "nothing left over: a DM never has more than nine other devices");
+
+    const sync = await hans.call("mls:sync", { deviceId: hansPhone.id });
+    assert.equal((sync.keyPackages as { unclaimed: number }).unclaimed, 0, "so the phone knows to upload more");
+  });
+
+  it("are refused under another device's id", async () => {
+    const d = await makeDevice("mine", 1);
+    const r = await alice.call("mls:keypackages:publish", {
+      deviceId: deviceIdFor("somebody-else"),
+      keyPackages: [encodeKp(d.packages[0].publicPackage)],
+    });
+    assert.equal(r.error, "device_mismatch");
+  });
+
+  it("stop at five devices per member", async () => {
+    const carol = await connect("Carol");
+    for (let i = 0; i < 5; i++) {
+      assert.equal((await publish(carol, await makeDevice(`carol-${i}`, 1))).ok, true);
+    }
+    const sixth = await publish(carol, await makeDevice("carol-5", 1));
+    assert.equal(sixth.error, "too_many_devices");
+
+    assert.equal((await carol.call("mls:device:remove", { deviceId: deviceIdFor("carol-0") })).ok, true);
+    assert.equal((await publish(carol, await makeDevice("carol-5", 1))).ok, true, "removing one frees its slot");
+  });
+
+  it("won't take a removed device back, though a new one is fine (GRYT-1555)", async () => {
+    const hana = await connect("Hana");
+    const ivar = await connect("Ivar");
+    const conv = (await openDirectConversation(hana.serverUserId, ivar.serverUserId)).conversation_id;
+    const laptop = await makeDevice("hana-laptop", 1);
+    const phone = await makeDevice("hana-phone", 2);
+    const ivarPhone = await makeDevice("ivar-phone", 1);
+    assert.equal((await publish(hana, laptop)).ok, true);
+    assert.equal((await publish(hana, phone)).ok, true);
+    assert.equal((await publish(ivar, ivarPhone)).ok, true);
+
+    assert.equal((await hana.call("mls:device:remove", { deviceId: phone.id })).ok, true);
+    // The phone is still signed in and does what the driver does on reconnect.
+    assert.equal((await hana.call("mls:sync", { deviceId: phone.id })).error, "device_removed");
+    assert.equal((await publish(hana, await makeDevice("hana-phone", 2))).error, "device_removed");
+    const own = await hana.call("mls:keypackages:claim", { conversationId: conv, deviceId: phone.id });
+    assert.equal(own.error, "device_removed");
+
+    const claimed = await ivar.call("mls:keypackages:claim", { conversationId: conv, deviceId: ivarPhone.id });
+    assert.deepEqual((claimed.keyPackages as { deviceId: string }[]).map((k) => k.deviceId), [laptop.id]);
+    const listed = await ivar.call("mls:devices", { conversationId: conv });
+    assert.equal((listed.devices as { deviceId: string }[]).some((d) => d.deviceId === phone.id), false);
+
+    assert.equal((await publish(hana, await makeDevice("hana-phone-again", 1))).ok, true, "setting it up again is a new device");
+  });
+
+  it("are handed out once each, then the last-resort one", async () => {
+    const eve = await connect("Eve");
+    const frank = await connect("Frank");
+    const conv = (await openDirectConversation(eve.serverUserId, frank.serverUserId)).conversation_id;
+    const frankPhone = await makeDevice("frank-phone", 3);
+    const eveLaptop = await makeDevice("eve-laptop", 1);
+    assert.deepEqual(await publish(frank, frankPhone, true), { ok: true, stored: 3, unclaimed: 2, lastResort: true });
+    await publish(eve, eveLaptop);
+
+    const refs = [];
+    for (let i = 0; i < 4; i++) {
+      const r = await eve.call("mls:keypackages:claim", { conversationId: conv, deviceId: deviceIdFor("eve-laptop") });
+      assert.equal(r.ok, true);
+      const [kp] = r.keyPackages as { keyPackage: Buffer; lastResort: boolean }[];
+      const parsed = await parseKeyPackage(kp.keyPackage);
+      assert.ok(parsed.ok);
+      refs.push([parsed.ref, kp.lastResort]);
+    }
+    assert.notEqual(refs[0][0], refs[1][0], "one package to two groups would share an init key");
+    assert.deepEqual(refs.map((r) => r[1]), [false, false, true, true]);
+    assert.equal(refs[2][0], refs[3][0]);
+  });
+
+  it("are not handed to somebody outside the conversation", async () => {
+    await publish(mallory, await makeDevice("mallory-1", 1));
+    const r = await mallory.call("mls:keypackages:claim", { conversationId: dm, deviceId: deviceIdFor("mallory-1") });
+    assert.equal(r.error, "not_found", "the same answer as a conversation that doesn't exist");
+  });
+
+  it("follow blocks, contact settings and the server's DM switch", async () => {
+    const g = await connect("Gina");
+    const h = await connect("Hal");
+    const conv = (await openDirectConversation(g.serverUserId, h.serverUserId)).conversation_id;
+    await publish(g, await makeDevice("gina-1", 1));
+    await publish(h, await makeDevice("hal-1", 3));
+    const claim = () => g.call("mls:keypackages:claim", { conversationId: conv, deviceId: deviceIdFor("gina-1") });
+
+    await blockUser(h.grytUserId, g.grytUserId);
+    assert.equal((await claim()).error, "unknown_member");
+    await unblockUser(h.grytUserId, g.grytUserId);
+
+    await setContactPrefs(h.grytUserId, { messages: "nobody", calls: "nobody" });
+    assert.equal((await claim()).error, "contact_refused");
+    await setContactPrefs(h.grytUserId, { messages: "everyone", calls: "friends" });
+
+    await updateServerConfig({ allowDms: false });
+    assert.equal((await claim()).error, "dms_disabled");
+    await updateServerConfig({ allowDms: true });
+
+    assert.equal((await claim()).ok, true);
+  });
+
+  it("are rate limited, since each claim uses up somebody else's", async () => {
+    const i = await connect("Ida");
+    const j = await connect("Jon");
+    const conv = (await openDirectConversation(i.serverUserId, j.serverUserId)).conversation_id;
+    await publish(i, await makeDevice("ida-1", 1));
+    await publish(j, await makeDevice("jon-1", 1), true);
+    const replies = [];
+    for (let n = 0; n < 25; n++) replies.push(await i.call("mls:keypackages:claim", { conversationId: conv, deviceId: deviceIdFor("ida-1") }));
+    assert.ok(replies.some((r) => r.error === "rate_limited"));
+  });
+});
+
+describe("a DM over MLS", () => {
+  const a1: Device = { id: "alice-laptop", packages: [] };
+  const b1: Device = { id: "bob-phone", packages: [] };
+  let groupIdHex: string;
+
+  it("starts with the first group registered, and the second told to wait", async () => {
+    Object.assign(a1, await makeDevice(a1.id, 2));
+    Object.assign(b1, await makeDevice(b1.id, 2));
+    await publish(alice, a1);
+    await publish(bob, b1);
+
+    ({ groupIdHex } = await startGroup(a1));
+    const first = await alice.call("mls:group:create", { conversationId: dm, groupId: groupIdHex });
+    const second = await bob.call("mls:group:create", { conversationId: dm, groupId: randomBytes(16).toString("hex") });
+    assert.equal(first.ok, true);
+    assert.equal(second.error, "group_exists");
+    assert.equal((second.group as { groupId: string }).groupId, groupIdHex);
+  });
+
+  it("is refused to somebody outside it", async () => {
+    assert.equal((await mallory.call("mls:group:create", { conversationId: dm, groupId: "ab" })).error, "not_found");
+    assert.equal((await mallory.call("mls:log:fetch", { conversationId: dm, after: 0 })).error, "not_found");
+    assert.equal((await mallory.call("mls:devices", { conversationId: dm })).error, "not_found");
+  });
+
+  it("adds Bob's phone with a commit and hands it the Welcome", async () => {
+    const claim = await alice.call("mls:keypackages:claim", { conversationId: dm, deviceId: a1.id });
+    const [kp] = claim.keyPackages as { keyPackage: Buffer; deviceId: string }[];
+    assert.equal(kp.deviceId, b1.id);
+
+    bob.clear();
+    const { result, commit, welcome } = await commitAdding(a1, [kp.keyPackage]);
+    const reply = await alice.call("mls:commit", { conversationId: dm, deviceId: a1.id, commit, welcome });
+    assert.deepEqual(reply, { ok: true, seq: 1, epoch: 1 });
+    a1.state = result.newState;
+
+    const [pushed] = bob.received("mls:welcome");
+    assert.equal(pushed.deviceId, b1.id);
+    const sync = await bob.call("mls:sync", { deviceId: b1.id });
+    const [waiting] = sync.welcomes as { welcomeId: string; data: Buffer }[];
+    assert.equal(waiting.welcomeId, pushed.welcomeId);
+
+    const w = decode(waiting.data);
+    if (w.wireformat !== "mls_welcome") throw new Error(w.wireformat);
+    const mine = await privateFor(b1, kp.keyPackage);
+    b1.state = await mls.joinGroup(w.welcome, mine.publicPackage, mine.privatePackage, mls.emptyPskIndex, impl);
+
+    assert.deepEqual(await bob.call("mls:welcome:ack", { deviceId: b1.id, welcomeIds: [waiting.welcomeId] }), { ok: true, deleted: 1 });
+    assert.deepEqual((await bob.call("mls:sync", { deviceId: b1.id })).welcomes, []);
+  });
+
+  it("carries a message that still opens on the other side", async () => {
+    alice.clear();
+    bob.clear();
+    const bytes = await applicationMessage(a1, "hello bob");
+    const reply = await alice.call("mls:send", { conversationId: dm, deviceId: a1.id, message: bytes });
+    assert.deepEqual(reply, { ok: true, seq: 2 });
+
+    const [live] = bob.received("mls:message");
+    assert.equal(live.kind, "application");
+    assert.equal(await receive(b1, live.data as Buffer), "hello bob");
+    assert.equal(alice.received("mls:message").length, 1, "the sender's other sockets see it too");
+    assert.equal(bob.received("dm:opened").length, 1, "the first message puts the conversation in Bob's list");
+  });
+
+  it("leaves apps from before MLS a line saying there's a message, marked so newer ones hide it", async () => {
+    const [line] = bob.received("chat:new");
+    assert.equal(line.sender_server_id, "system", "a system line, since a plain one would carry the old app's Not encrypted mark");
+    assert.equal(line.text, `[@Alice](mention:${alice.serverUserId}) sent an end-to-end encrypted message. Update Gryt to read it.`);
+    assert.deepEqual(line.mls_placeholder, { seq: 2, sender_server_id: alice.serverUserId });
+    assert.deepEqual(alice.received("chat:new"), [], "not to the sender, whose own old apps find it in history");
+
+    const stored = (await listMessages(dm)).filter((m) => m.mls_placeholder);
+    assert.deepEqual(stored.map((m) => m.mls_placeholder?.seq), [2]);
+    assert.equal(await hasWrittenTo(alice.serverUserId, bob.serverUserId), true, "so contact settings see the MLS message");
+  });
+
+  it("tells the other side about a new device, and lists devices by conversation", async () => {
+    alice.clear();
+    const b2 = await makeDevice("bob-laptop", 1);
+    await publish(bob, b2);
+    assert.deepEqual(alice.received("mls:devices:changed"), [{ serverUserId: bob.serverUserId }]);
+
+    const listed = await alice.call("mls:devices", { conversationId: dm });
+    const ids = (listed.devices as { deviceId: string }[]).map((d) => d.deviceId).sort();
+    assert.deepEqual(ids, ["alice-laptop", "bob-laptop", "bob-phone"].map(deviceIdFor).sort());
+    const own = await bob.call("mls:devices");
+    assert.equal((own.devices as unknown[]).length, 2);
+
+    const sync = await bob.call("mls:sync", { deviceId: deviceIdFor("bob-laptop") });
+    assert.deepEqual(sync.keyPackages, { unclaimed: 1, lastResort: false, target: 20 });
+    assert.deepEqual((sync.groups as { conversationId: string }[]).map((g) => g.conversationId), [dm]);
+    assert.equal((await bob.call("mls:device:remove", { deviceId: deviceIdFor("bob-laptop") })).ok, true);
+  });
+
+  it("orders two commits racing for one epoch", async () => {
+    const [fromAlice, fromBob] = await Promise.all([
+      mls.createCommit({ state: a1.state!, cipherSuite: impl }, { wireAsPublicMessage: true }),
+      mls.createCommit({ state: b1.state!, cipherSuite: impl }, { wireAsPublicMessage: true }),
+    ]);
+    const [ra, rb] = await Promise.all([
+      alice.call("mls:commit", { conversationId: dm, deviceId: a1.id, commit: mls.encodeMlsMessage(fromAlice.commit) }),
+      bob.call("mls:commit", { conversationId: dm, deviceId: b1.id, commit: mls.encodeMlsMessage(fromBob.commit) }),
+    ]);
+
+    const replies = [ra, rb];
+    assert.equal(replies.filter((r) => r.ok).length, 1, "exactly one commit per epoch");
+    const loser = replies.find((r) => !r.ok)!;
+    assert.deepEqual([loser.error, loser.epoch], ["stale_epoch", 2]);
+
+    // The loser catches up from its cursor, as a client would, and both agree again.
+    const aliceWon = ra.ok;
+    const winnerState = aliceWon ? fromAlice.newState : fromBob.newState;
+    const behind = aliceWon ? b1 : a1;
+    const fetched = await (aliceWon ? bob : alice).call("mls:log:fetch", { conversationId: dm, after: 2 });
+    const [entry] = fetched.entries as { kind: string; data: Buffer }[];
+    assert.equal(entry.kind, "commit");
+    await receive(behind, entry.data);
+    if (aliceWon) a1.state = winnerState;
+    else b1.state = winnerState;
+    assert.equal(a1.state!.groupContext.epoch, b1.state!.groupContext.epoch);
+
+    const retried = await (aliceWon ? bob : alice).call("mls:commit", {
+      conversationId: dm,
+      deviceId: behind.id,
+      commit: mls.encodeMlsMessage((aliceWon ? fromBob : fromAlice).commit),
+    });
+    assert.equal(retried.error, "stale_epoch", "a commit built on the old epoch stays refused");
+  });
+
+  it("refuses a message from an epoch that hasn't happened, and one for another group", async () => {
+    const other = await makeDevice("other", 1);
+    await startGroup(other);
+    const foreign = await applicationMessage(other, "wrong group");
+    assert.equal((await alice.call("mls:send", { conversationId: dm, deviceId: a1.id, message: foreign })).error, "wrong_group");
+
+    const commit = await mls.createCommit({ state: a1.state!, cipherSuite: impl }, { wireAsPublicMessage: true });
+    const ahead = await applicationMessage({ ...a1, state: commit.newState }, "from the future");
+    assert.equal((await alice.call("mls:send", { conversationId: dm, deviceId: a1.id, message: ahead })).error, "future_epoch");
+  });
+
+  it("won't add a device that belongs to nobody in the conversation", async () => {
+    const outsider = await makeDevice("mallory-2", 1);
+    await publish(mallory, outsider);
+    const { commit, welcome } = await commitAdding(a1, [encodeKp(outsider.packages[0].publicPackage)]);
+    const r = await alice.call("mls:commit", { conversationId: dm, deviceId: a1.id, commit, welcome });
+    assert.equal(r.error, "not_a_member_device");
+  });
+
+  it("pages the log from a cursor", async () => {
+    for (let i = 0; i < 3; i++) {
+      await alice.call("mls:send", { conversationId: dm, deviceId: a1.id, message: await applicationMessage(a1, `m${i}`) });
+    }
+    const first = await bob.call("mls:log:fetch", { conversationId: dm, after: 0, limit: 2 });
+    assert.deepEqual((first.entries as { seq: number }[]).map((e) => e.seq), [1, 2]);
+    assert.equal(first.hasMore, true);
+    const rest = await bob.call("mls:log:fetch", { conversationId: dm, after: first.nextCursor as number, limit: 50 });
+    assert.equal(rest.hasMore, false);
+    assert.equal(rest.gap, false);
+    const all = [...(first.entries as { seq: number }[]), ...(rest.entries as { seq: number }[])].map((e) => e.seq);
+    assert.deepEqual(all, all.map((_, i) => i + 1), "no seq skipped, none repeated");
+  });
+
+  it("holds back a blocked sender's messages but never a commit", async () => {
+    await blockUser(bob.grytUserId, alice.grytUserId);
+    bob.clear();
+    const head = (getMlsGroupForConversation(dm)!).headSeq;
+
+    await alice.call("mls:send", { conversationId: dm, deviceId: a1.id, message: await applicationMessage(a1, "ignored") });
+    const c = await mls.createCommit({ state: a1.state!, cipherSuite: impl }, { wireAsPublicMessage: true });
+    const cr = await alice.call("mls:commit", { conversationId: dm, deviceId: a1.id, commit: mls.encodeMlsMessage(c.commit) });
+    assert.equal(cr.ok, true);
+    a1.state = c.newState;
+
+    assert.deepEqual(bob.received("mls:message").map((m) => m.kind), ["commit"]);
+    assert.deepEqual(bob.received("chat:new"), [], "nor the line for older apps");
+    await bob.handlers["chat:fetch"]({ conversationId: dm, limit: 50 });
+    const history = bob.received("chat:history")[0] as { items: { mls_placeholder?: { sender_server_id: string } }[] };
+    assert.ok(!history.items.some((m) => m.mls_placeholder), "and history leaves it out too");
+    const fetched = await bob.call("mls:log:fetch", { conversationId: dm, after: head });
+    assert.deepEqual((fetched.entries as { kind: string }[]).map((e) => e.kind), ["commit"]);
+    assert.equal(fetched.nextCursor, head + 2, "the cursor still moves past what was held back");
+    await unblockUser(bob.grytUserId, alice.grytUserId);
+  });
+
+  it("refuses a muted member's message, as chat:send does", async () => {
+    await setUserModerationState(alice.serverUserId, { muted: true, mutedUntil: new Date(Date.now() + 60_000) });
+    const r = await alice.call("mls:send", { conversationId: dm, deviceId: a1.id, message: await applicationMessage(a1, "muted") });
+    assert.equal(r.error, "muted");
+    await setUserModerationState(alice.serverUserId, { muted: false, mutedUntil: null });
+  });
+
+  it("isn't offered for a group DM yet", async () => {
+    const group = await createGroupConversation(alice.serverUserId, [bob.serverUserId, mallory.serverUserId]);
+    const r = await alice.call("mls:group:create", { conversationId: group.conversation_id, groupId: "cd" });
+    assert.equal(r.error, "not_supported");
+  });
+
+  it("leaves no line for what isn't a message", async () => {
+    bob.clear();
+    const before = (await listMessages(dm)).length;
+    const quiet = await alice.call("mls:send", { conversationId: dm, deviceId: a1.id, message: await applicationMessage(a1, "a reaction"), placeholder: false });
+    assert.equal(quiet.ok, true);
+    assert.equal(bob.received("mls:message").length, 1);
+    assert.deepEqual(bob.received("chat:new"), []);
+    assert.equal((await listMessages(dm)).length, before);
+
+    const odd = await alice.call("mls:send", { conversationId: dm, deviceId: a1.id, message: await applicationMessage(a1, "x"), placeholder: "no" });
+    assert.equal(odd.error, "invalid_payload");
+  });
+
+  it("carries files, and keeps them from the media sweep while the entry is there", async () => {
+    const upload = (id: string, by: string) => insertFile({
+      file_id: id, s3_key: `uploads/${id}`, mime: "application/octet-stream", size: 10, width: null, height: null,
+      thumbnail_key: null, original_name: `${id}.bin`, uploaded_by_server_user_id: by,
+    });
+    await upload("mls-file-alice", alice.serverUserId);
+    await upload("mls-file-bob", bob.serverUserId);
+    resetFileAccessCache();
+    resetRateLimits();
+    assert.equal(await fileReadVerdict("mls-file-alice", bob.serverUserId), "denied");
+    assert.deepEqual(await unreferencedAmong(["mls-file-alice"]), ["mls-file-alice"]);
+
+    const send = async (attachmentIds: unknown, placeholder = false) =>
+      alice.call("mls:send", { conversationId: dm, deviceId: a1.id, message: await applicationMessage(a1, "a file"), placeholder, attachmentIds });
+    const sent = await send(["mls-file-alice", "mls-file-alice"]);
+    assert.equal(sent.ok, true, "a message with no line for older apps can carry files too");
+
+    assert.deepEqual(await unreferencedAmong(["mls-file-alice"]), [], "the media sweep leaves it alone");
+    assert.equal(await fileReadVerdict("mls-file-alice", bob.serverUserId), "allowed", "and the other side can fetch it");
+    const refs = getSqliteDb().prepare(`SELECT seq FROM mls_attachments WHERE file_id = ?`).all("mls-file-alice") as { seq: number }[];
+    assert.deepEqual(refs.map((r) => r.seq), [sent.seq]);
+
+    assert.equal((await send(["mls-file-bob"])).error, "attachment_not_found", "only files the sender can read");
+    assert.equal((await send(["no-such-upload"])).error, "attachment_not_found");
+    assert.equal((await send(Array.from({ length: 11 }, (_, i) => `f${i}`))).error, "too_many_attachments");
+    assert.equal((await send("mls-file-alice")).error, "invalid_payload");
+  });
+});
+
+describe("packets socket.io will carry", () => {
+  /* socket.io-parser closes the connection on more than ten binary parts (GRYT-1528). */
+  it("hands out waiting Welcomes nine at a time, and says when there are more", async () => {
+    const kim = await connect("Kim");
+    const phone = await makeDevice("kim-phone", 1);
+    await publish(kim, phone);
+    const insert = getSqliteDb().prepare(
+      `INSERT INTO mls_welcomes (welcome_id, server_user_id, device_id, group_id, data, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
+    );
+    for (let i = 0; i < 11; i++) {
+      insert.run(`kim-welcome-${i}`, kim.serverUserId, phone.id, `ab${i}`, new Uint8Array([i]), new Date(Date.now() + i).toISOString());
+    }
+
+    const first = await kim.call("mls:sync", { deviceId: phone.id });
+    const ids = (first.welcomes as { welcomeId: string }[]).map((w) => w.welcomeId);
+    assert.deepEqual(ids, Array.from({ length: 9 }, (_, i) => `kim-welcome-${i}`), "oldest first");
+    assert.equal(first.moreWelcomes, true);
+
+    await kim.call("mls:welcome:ack", { deviceId: phone.id, welcomeIds: ids });
+    const rest = await kim.call("mls:sync", { deviceId: phone.id });
+    assert.equal((rest.welcomes as unknown[]).length, 2);
+    assert.equal(rest.moreWelcomes, false);
+  });
+
+  it("pages the log ten entries at a time, whatever limit is asked for", async () => {
+    const lou = await connect("Lou");
+    const max = await connect("Max");
+    const conv = (await openDirectConversation(lou.serverUserId, max.serverUserId)).conversation_id;
+    createMlsGroup("cafe01", conv, lou.serverUserId);
+    for (let i = 0; i < 12; i++) {
+      appendMlsMessage("application", { groupId: "cafe01", epoch: 0, senderServerUserId: lou.serverUserId, senderDeviceId: "d", data: new Uint8Array([i, 1]) });
+    }
+    for (const limit of [200, undefined]) {
+      const page = await max.call("mls:log:fetch", { conversationId: conv, after: 0, limit });
+      assert.equal((page.entries as unknown[]).length, 10);
+      assert.equal(page.hasMore, true);
+    }
+  });
+});
+
+describe("retention", () => {
+  it("is 30 days, and a host can only make it shorter", () => {
+    assert.equal(mlsRetentionDays({}), 30);
+    assert.equal(mlsRetentionDays({ MLS_RETENTION_DAYS: "7" }), 7);
+    assert.equal(mlsRetentionDays({ MLS_RETENTION_DAYS: "90" }), 30);
+    assert.equal(mlsRetentionDays({ MLS_RETENTION_DAYS: "0" }), 30);
+    assert.equal(mlsRetentionDays({ MLS_RETENTION_DAYS: "soon" }), 30);
+  });
+
+  it("lets an entry's files go when the entry is swept", async () => {
+    const group = getMlsGroupForConversation(dm)!;
+    const { seq } = getSqliteDb().prepare(`SELECT seq FROM mls_attachments WHERE file_id = ?`).get("mls-file-alice") as { seq: number };
+    const old = new Date(Date.now() - 40 * 24 * 60 * 60 * 1000).toISOString();
+    getSqliteDb().prepare(`UPDATE mls_log SET created_at = ? WHERE group_id = ? AND seq = ?`).run(old, group.groupId, seq);
+
+    assert.ok(runMlsRetention().fileIds.includes("mls-file-alice"));
+    assert.deepEqual(await unreferencedAmong(["mls-file-alice"]), ["mls-file-alice"], "the media sweep can have it now");
+    resetFileAccessCache();
+    assert.equal(await fileReadVerdict("mls-file-alice", bob.serverUserId), "denied");
+  });
+
+  it("sweeps old ciphertext, and a device behind it is told it has a gap", async () => {
+    const group = getMlsGroupForConversation(dm)!;
+    const old = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();
+    getSqliteDb().prepare(`UPDATE mls_log SET created_at = ? WHERE group_id = ? AND seq <= 3`).run(old, group.groupId);
+
+    process.env.MLS_RETENTION_DAYS = "7";
+    try {
+      assert.ok(runMlsRetention().log >= 3);
+    } finally {
+      delete process.env.MLS_RETENTION_DAYS;
+    }
+
+    const behind = await bob.call("mls:log:fetch", { conversationId: dm, after: 1 });
+    assert.equal(behind.gap, true);
+    assert.equal((behind.entries as { seq: number }[])[0].seq, 4);
+    const caughtUp = await bob.call("mls:log:fetch", { conversationId: dm, after: 3 });
+    assert.equal(caughtUp.gap, false);
+  });
+});

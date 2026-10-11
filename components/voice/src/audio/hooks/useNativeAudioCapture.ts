@@ -1,0 +1,194 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+
+import { useCaptureLease } from "../../shared/useCaptureLease";
+import { getVoiceHost } from "../../host";
+import { getWorkletUrl, PCM_PLAYER_WORKLET_NAME } from "../processors/pcmPlayerProcessor";
+
+/**
+ * What `useNativeAudioCapture()` returns. The `State` suffix is load-bearing:
+ * `NativeAudioCapture` in `host/index.ts` is the host API, and both used to share a name.
+ */
+export interface NativeAudioCaptureState {
+  /** Whether the native binary is present on this platform. */
+  available: boolean;
+  /** Whether native capture is currently running. */
+  active: boolean;
+  /** The MediaStream produced by the native capture (null when inactive). */
+  stream: MediaStream | null;
+  start: (audioContext: AudioContext, sourceId?: string) => Promise<boolean>;
+  stop: () => void;
+}
+
+/**
+ * Manages a native audio capture session: with a window sourceId, only that app's audio;
+ * otherwise all system audio but Gryt's own. A no-op where there is no native binary.
+ */
+export function useNativeAudioCapture(): NativeAudioCaptureState {
+  const { lease, audioOnly } = useCaptureLease();
+  const [available, setAvailable] = useState(false);
+  const [active, setActive] = useState(false);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+
+  const workletNodeRef = useRef<AudioWorkletNode | null>(null);
+  const destinationRef = useRef<MediaStreamAudioDestinationNode | null>(null);
+  const cleanupIpcRef = useRef<Array<() => void>>([]);
+
+  // Probe availability on mount, with retry for IPC race conditions
+  useEffect(() => {
+    if (!getVoiceHost().hasNativeCapture()) return;
+    const api = getVoiceHost().getNativeAudio();
+    if (!api) return;
+
+    let cancelled = false;
+
+    async function probe(attempt: number) {
+      try {
+        const v = await api!.isNativeAudioCaptureAvailable();
+        if (!cancelled) {
+          console.log(`[NativeAudioCapture] availability probe: ${v}`);
+          setAvailable(v);
+        }
+      } catch (err) {
+        if (cancelled) return;
+        if (attempt < 3) {
+          console.warn(`[NativeAudioCapture] probe attempt ${attempt} failed, retrying...`, err);
+          setTimeout(() => probe(attempt + 1), 500 * attempt);
+        } else {
+          console.error("[NativeAudioCapture] probe failed after retries", err);
+        }
+      }
+    }
+
+    probe(1);
+
+    const unsubDiag = api.onNativeAudioDiagnostic((msg: string) => {
+      console.log(`[NativeAudioCapture:main] ${msg}`);
+    });
+
+    return () => {
+      cancelled = true;
+      unsubDiag();
+    };
+  }, []);
+
+  const stop = useCallback(() => {
+    lease.invalidate();
+    const api = getVoiceHost().getNativeAudio();
+    api?.stopNativeAudioCapture();
+
+    if (workletNodeRef.current) {
+      workletNodeRef.current.port.postMessage({ type: "stop" });
+      workletNodeRef.current.disconnect();
+      workletNodeRef.current = null;
+    }
+    destinationRef.current?.stream.getTracks().forEach(track => track.stop());
+    destinationRef.current = null;
+
+    for (const unsub of cleanupIpcRef.current) unsub();
+    cleanupIpcRef.current = [];
+
+    setStream(null);
+    setActive(false);
+  }, []);
+
+  const start = useCallback(
+    async (audioContext: AudioContext, sourceId?: string): Promise<boolean> => {
+      const token = lease.begin();
+      if (token === null) return false;
+      const api = getVoiceHost().getNativeAudio();
+      if (!api) return false;
+
+      try {
+        await audioContext.audioWorklet.addModule(getWorkletUrl());
+      } catch {
+        // Already registered
+      }
+
+      if (!lease.valid(token)) return false;
+
+      const workletNode = new AudioWorkletNode(audioContext, PCM_PLAYER_WORKLET_NAME, {
+        outputChannelCount: [2],
+      });
+      const destination = audioContext.createMediaStreamDestination();
+      workletNode.connect(destination);
+
+      workletNodeRef.current = workletNode;
+      destinationRef.current = destination;
+
+      let pcmChunks = 0;
+      let pcmTotalBytes = 0;
+      let peakSample = 0;
+      let sumSquares = 0;
+      let totalSamples = 0;
+      let logIntervalId: ReturnType<typeof setInterval> | null = null;
+
+      logIntervalId = setInterval(() => {
+        if (pcmChunks > 0) {
+          const rms = totalSamples > 0 ? Math.sqrt(sumSquares / totalSamples) : 0;
+          const rmsDb = rms > 0 ? 20 * Math.log10(rms / 32768) : -Infinity;
+          const peakDb = peakSample > 0 ? 20 * Math.log10(peakSample / 32768) : -Infinity;
+          console.log(
+            `[NativeAudioCapture] PCM stats: ${pcmChunks} chunks, ${(pcmTotalBytes / 1024).toFixed(0)} KB total | peak ${peakDb.toFixed(1)} dBFS, rms ${rmsDb.toFixed(1)} dBFS`,
+          );
+          peakSample = 0;
+          sumSquares = 0;
+          totalSamples = 0;
+        } else {
+          console.warn("[NativeAudioCapture] PCM stats: 0 chunks received (no audio data flowing)");
+        }
+      }, 5000);
+
+      const unsubData = api.onNativeAudioData((pcmArrayBuffer: ArrayBuffer) => {
+        pcmChunks++;
+        pcmTotalBytes += pcmArrayBuffer.byteLength;
+        if (pcmChunks === 1) {
+          console.log(
+            `[NativeAudioCapture] first PCM chunk in renderer: ${pcmArrayBuffer.byteLength} bytes`,
+          );
+        }
+        const int16 = new Int16Array(pcmArrayBuffer);
+        for (let i = 0; i < int16.length; i++) {
+          const abs = Math.abs(int16[i]);
+          if (abs > peakSample) peakSample = abs;
+          sumSquares += int16[i] * int16[i];
+        }
+        totalSamples += int16.length;
+        workletNode.port.postMessage({ type: "pcm", samples: int16 }, [int16.buffer]);
+      });
+
+      const unsubStopped = api.onNativeAudioStopped(() => {
+        stop();
+      });
+
+      cleanupIpcRef.current = [
+        unsubData,
+        unsubStopped,
+        () => { if (logIntervalId) clearInterval(logIntervalId); },
+      ];
+
+      if (!lease.valid(token)) { stop(); return false; }
+      const started = await api.startNativeAudioCapture(sourceId);
+      if (!started) {
+        stop();
+        return false;
+      }
+
+      if (!lease.valid(token)) { stop(); return false; }
+      setStream(destination.stream);
+      setActive(true);
+      return true;
+    },
+    [stop],
+  );
+
+  useEffect(() => { if (audioOnly) stop(); }, [audioOnly, stop]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      stop();
+    };
+  }, [stop]);
+
+  return { available, active, stream, start, stop };
+}

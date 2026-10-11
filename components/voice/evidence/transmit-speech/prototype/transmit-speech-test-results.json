@@ -1,0 +1,34 @@
+{
+  "tests": [
+    "real public PCM speech 44100Hz with allocation-free process",
+    "exact silence clears within one 10ms frame plus pending frame 44100Hz",
+    "seeded broadband noise never indicates speech 44100Hz",
+    "real public PCM speech 48000Hz with allocation-free process",
+    "exact silence clears within one 10ms frame plus pending frame 48000Hz",
+    "seeded broadband noise never indicates speech 48000Hz",
+    "unsupported sample rate remains unavailable",
+    "reset refreshes frozen WASM ABI pointers and clears activity",
+    "actual model rejection and nonfinite input fail closed",
+    "generated production worklet resets at gate revisions and disposes its actual RNN handle",
+    "all shared test runtime handles cleaned"
+  ],
+  "results": [
+    {
+      "rate": 44100,
+      "speakingBlocks": 1303,
+      "silenceClearMs": 20.317460317460316,
+      "noiseBlocks": 0,
+      "elapsedMs": 42.7832,
+      "realtimeFactor": 0.0053479
+    },
+    {
+      "rate": 48000,
+      "speakingBlocks": 1368,
+      "silenceClearMs": 10.666666666666666,
+      "noiseBlocks": 0,
+      "elapsedMs": 30.785300000000007,
+      "realtimeFactor": 0.0038481625000000006
+    }
+  ],
+  "heapBytes": 16777216
+}

@@ -1,0 +1,79 @@
+{
+  "verified_date_utc": "2026-10-10",
+  "software": [
+    {
+      "name": "webrtc-audio-processing",
+      "version": "2.1 (WebRTC M131)",
+      "url": "https://gstreamer.freedesktop.org/src/mirror/webrtc-audio-processing/webrtc-audio-processing-2.1.tar.xz",
+      "file": "webrtc-audio-processing-2.1.tar.xz",
+      "license": "BSD-3-Clause + WebRTC PATENTS, with retained third-party notices",
+      "bytes": 604192,
+      "sha256": "ae9302824b2038d394f10213cab05312c564a038434269f11dbf68f511f9f9fe"
+    },
+    {
+      "name": "abseil-cpp",
+      "version": "20240722.1",
+      "url": "https://github.com/abseil/abseil-cpp/archive/refs/tags/20240722.1.tar.gz",
+      "release_url": "https://github.com/abseil/abseil-cpp/releases/tag/20240722.1",
+      "file": "abseil-cpp-20240722.1.tar.gz",
+      "license": "Apache-2.0",
+      "use": "Only genuine headers required by this subset; no Abseil .cc objects linked",
+      "bytes": 2242894,
+      "sha256": "40cee67604060a7c8794d931538cb55f4d444073e556980c88b6c49bb9b19bb7"
+    }
+  ],
+  "official_golden_fixtures": [
+    {
+      "filename": "samples.pcm",
+      "url": "https://storage.googleapis.com/chromium-webrtc-resources/2417ed3d330eb118f6b16962438189468180b642",
+      "bytes": 854112,
+      "sha256": "e9f4bdcf85546a8153c0bba9e5ef0acdc9158c53fb816a8727fd44a9a913f4fe",
+      "sha1": "2417ed3d330eb118f6b16962438189468180b642",
+      "role": "Official RNN VAD golden test input: mono 48kHz int16 PCM; 889 complete 10ms frames; not human-annotated speech labels"
+    },
+    {
+      "filename": "vad_prob.dat",
+      "url": "https://storage.googleapis.com/chromium-webrtc-resources/68640327266262c3fe047ec7f07a46a355ff90b9",
+      "bytes": 3556,
+      "sha256": "ab1831511e7b3a79f937bd39a2093b70635a0cb1ac500ae974815377a839a58f",
+      "sha1": "68640327266262c3fe047ec7f07a46a355ff90b9",
+      "role": "Official float32 per-frame golden probabilities for numerical parity, not ground truth"
+    }
+  ],
+  "compiler": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 4.0.20 (6913738ec5371a88c4af5a80db0ab42bad3de681)\nCopyright (C) 2025 the Emscripten authors (see AUTHORS.txt)\nThis is free and open source software under the MIT license.\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+  "native_binary_sha256": "d65077754a4635b6dcf5cf8c91ffc581ddc9efb41e6007d370d60a05c8734f44",
+  "dsp_source_changes": false,
+  "numeric_stubs": false,
+  "system_package_installations": false,
+  "wasm_build_performed": true,
+  "native_executable_in_zip": null,
+  "clean_build_binary_sha256": "d65077754a4635b6dcf5cf8c91ffc581ddc9efb41e6007d370d60a05c8734f44",
+  "clean_build_golden_csv_sha256": "57bf0ae78fdd610b17de8c26b0d2a86d443de52f590b044010f9b24b786527e7",
+  "clean_build_csv_equals_original": true,
+  "wasm": {
+    "file": "dist/gryt-rnn.wasm",
+    "sha256": "21b6eb801901c5250215ff6a29b83471b13cdf45b69ba3fe438770b391a1d95b",
+    "bytes": 91173,
+    "sdk_version": "4.0.20",
+    "sdk_release": "c387d7a7e9537d0041d2c3ae71b7538cc978104e",
+    "sdk_root_tar_sha256": "2a8a70eb1c0a47883272a001feb4c7209db6e9bcc36774dd9770050e7ac64fa0",
+    "sdk_binaries_sha256": "a06e7ddda0c168f7ad52e6e0509c98db3545dcb254d3b9052e9e6b8423eaee7d",
+    "sdk_node_sha256": "f4cb75bb036f0d0eddf6b79d9596df1aaab9ddccd6a20bf489be5abe9467e84e",
+    "sdk_compressed_bytes": 385030732,
+    "sdk_installed_bytes_approx": 2100000000,
+    "compiler_version": "emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 4.0.20 (6913738ec5371a88c4af5a80db0ab42bad3de681)\nCopyright (C) 2025 the Emscripten authors (see AUTHORS.txt)\nThis is free and open source software under the MIT license.\nThere is NO warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+    "rnn_math": "upstream scalar",
+    "resampler_math": "upstream scalar",
+    "pffft_math": "PFFFT_SIMD_DISABLE",
+    "rtc_dcheck": "enabled with compile-time assertion",
+    "initial_memory_bytes": 16777216,
+    "memory_growth": false,
+    "stack_bytes": 262144,
+    "max_speakers_per_instance": 32
+  },
+  "browser_verified": false,
+  "browser_blocker": "Standalone Chromium launch socket() Operation not permitted; supported cloud browser later returned explicit URL policy denial. Stopped without bypass.",
+  "sdk_hash_authentication_note": "SHA-256 observed locally from fixed official URLs. Release identity verified against official emsdk tags manifest; not claimed to be signed publisher SHA-256.",
+  "native_reference_compiler": "g++ (Debian 14.2.0-19) 14.2.0",
+  "clean_wasm_rebuild_byte_identical": true
+}

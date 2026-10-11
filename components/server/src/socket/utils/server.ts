@@ -1,0 +1,472 @@
+import consola from "consola";
+import { Server, Socket } from "socket.io";
+import { Clients } from "../../types";
+import { publicClientList } from "./clients";
+import type { ChannelNotificationLevel, JoinPolicy, RoleDefinitionRecord } from "../../db/interfaces";
+import { type ChannelPermission, FALLBACK_ROLE_ID, PERMISSIONS } from "../../constants/permissions";
+import { getEffectiveStanding } from "../../services/permissions";
+import {
+  channelPermissionsByChannel,
+  keepsEmptyFolders,
+  resetChannelPermissionCache,
+  visibleSidebarItems,
+} from "../../services/channelPermissions";
+import { getAcceptedIdentityTiers } from "../../auth/identity";
+import { announcedPlugins } from "../../plugins";
+import { getVoiceSeatLimit } from "../../utils/voiceSeats";
+import { syncAllClients, broadcastMemberList } from "./clients";
+import { refreshAllClientPermissions } from "./standing";
+import { recipientClientIds } from "./recipients";
+import {
+  channelNotificationLevel,
+  DEFAULT_AVATAR_MAX_BYTES,
+  DEFAULT_UPLOAD_MAX_BYTES,
+  ensureDefaultChannels,
+  ensureDefaultSidebarItems,
+  getServerConfig,
+  listEmojiJobs,
+  listRoleDefinitions,
+  listServerChannels,
+  listServerSidebarItems,
+  resolveChannelScopes,
+} from "../../db";
+
+import { pushVoiceCapabilities } from "./voiceCapabilities";
+import { workerClearsQuarantine, workerTranscodesVideo } from "../../services/workerCapabilities";
+import { MLS_CIPHERSUITE_ID } from "../../services/mlsWire";
+import { mlsRetentionDays } from "../../jobs/mlsRetention";
+import { voiceAtomicMoveEnabled } from "./voiceMoveCapability";
+import { audioOnlyEnabled } from "../../sfu/audioOnly";
+
+// Module-level references set by socketHandler so REST routes can trigger broadcasts
+let _io: Server | null = null;
+let _serverId: string | null = null;
+let _clientsInfo: Clients | null = null;
+
+export function setSocketRefs(io: Server, serverId: string, clientsInfo: Clients) {
+  _io = io;
+  _serverId = serverId;
+  _clientsInfo = clientsInfo;
+}
+
+export function broadcastServerUiUpdate(reason: "settings" | "icon" | "other" = "other"): void {
+  if (!_io || !_serverId || !_clientsInfo) return;
+  consola.info(`Broadcasting server UI update (${reason})`);
+  // Every caller is a change that can move somebody's standing, and this is the
+  // only place the cache is written after a join.
+  const clients = _clientsInfo;
+  void refreshAllClientPermissions(clients).catch((e) =>
+    consola.warn("refreshing client permissions failed", e),
+  );
+  for (const [sid, s] of _io.sockets.sockets) {
+    sendInfo(s, _clientsInfo, _serverId).catch((e) => consola.warn("sendInfo failed", e));
+    if (_clientsInfo[sid]?.grytUserId) {
+      sendServerDetails(s, _clientsInfo, _serverId).catch((e) => consola.warn("sendServerDetails failed", e));
+    }
+  }
+  syncAllClients(_io, _clientsInfo);
+  broadcastMemberList(_io, _clientsInfo, _serverId);
+  void pushVoiceCapabilities();
+}
+
+/** To every socket one member has open, from a REST route that has no socket of its own. */
+export function emitToMember(serverUserId: string, event: string, payload: unknown): void {
+  if (!_io || !_clientsInfo) return;
+  for (const [clientId, ci] of Object.entries(_clientsInfo)) {
+    if (ci.serverUserId === serverUserId) _io.sockets.sockets.get(clientId)?.emit(event, payload);
+  }
+}
+
+/** For a REST route that changed a member, such as an avatar the worker has just cleared. */
+export function broadcastMembersUpdate(): void {
+  if (!_io || !_serverId || !_clientsInfo) return;
+  broadcastMemberList(_io, _clientsInfo, _serverId);
+}
+
+export function broadcastChatNew(message: Record<string, unknown>): void {
+  if (!_io || !_clientsInfo) return;
+  const io = _io;
+  const clientsInfo = _clientsInfo;
+  const conversationId = typeof message.conversation_id === "string" ? message.conversation_id : "";
+  // read_messages and, for a scoped channel, visibility — the same choke point
+  // as a member's own message, so a webhook post does not outrun the gate.
+  void recipientClientIds(conversationId, { allowed: true, kind: "channel" }, clientsInfo, null)
+    .then((recipients) => {
+      for (const cid of recipients) io.sockets.sockets.get(cid)?.emit("chat:new", message);
+    })
+    .catch((e) => consola.warn("broadcastChatNew failed", e));
+}
+
+export function broadcastCustomEmojisUpdate(): void {
+  if (!_io) return;
+  consola.info("Broadcasting custom emojis update");
+  _io.to("verifiedClients").emit("server:emojis:updated");
+}
+
+export function broadcastEmojiQueueUpdate(): void {
+  if (!_io) return;
+  scheduleEmojiQueueStateBroadcast();
+}
+
+export function sendEmojiQueueStateToSocket(socket: Socket): void {
+  if (!_io) return;
+  void Promise.resolve()
+    .then(async () => {
+      const jobs = await listEmojiJobs(150);
+      const pendingCount = jobs.filter((j) => j.status === "queued" || j.status === "processing").length;
+      socket.emit("server:emojiQueue:state", {
+        pendingCount,
+        jobs: jobs.map((j) => ({
+          job_id: j.job_id,
+          name: j.name,
+          status: j.status,
+          error_message: j.error_message,
+          created_at: j.created_at.toISOString(),
+          updated_at: j.updated_at.toISOString(),
+        })),
+      });
+    })
+    .catch((e) => {
+      consola.warn("Failed to send emoji queue state", e);
+    });
+}
+
+type EmojiQueueState = {
+  pendingCount: number;
+  jobs: Array<{
+    job_id: string;
+    name: string;
+    status: string;
+    error_message: string | null;
+    created_at: string;
+    updated_at: string;
+  }>;
+};
+
+let _emojiQueueBroadcastTimer: ReturnType<typeof setTimeout> | null = null;
+
+function scheduleEmojiQueueStateBroadcast(): void {
+  const io = _io;
+  if (!io) return;
+  if (_emojiQueueBroadcastTimer) return;
+
+  _emojiQueueBroadcastTimer = setTimeout(() => {
+    _emojiQueueBroadcastTimer = null;
+    void Promise.resolve()
+      .then(async () => {
+        const jobs = await listEmojiJobs(150);
+        const pendingCount = jobs.filter((j) => j.status === "queued" || j.status === "processing").length;
+        const state: EmojiQueueState = {
+          pendingCount,
+          jobs: jobs.map((j) => ({
+            job_id: j.job_id,
+            name: j.name,
+            status: j.status,
+            error_message: j.error_message,
+            created_at: j.created_at.toISOString(),
+            updated_at: j.updated_at.toISOString(),
+          })),
+        };
+        consola.info("Broadcasting emoji queue state", { pendingCount });
+        io.to("verifiedClients").emit("server:emojiQueue:state", state);
+      })
+      .catch((e) => {
+        consola.warn("Failed to broadcast emoji queue state", e);
+      });
+  }, 250);
+}
+
+const sfuHostsRaw = process.env.SFU_PUBLIC_HOST || process.env.SFU_WS_HOST || "";
+const sfuHosts = sfuHostsRaw.split(",").map(h => h.trim()).filter(Boolean);
+const sfuHost = sfuHosts[0] || undefined;
+const disableStun = process.env.DISABLE_STUN?.toLowerCase() === "true";
+const stunHosts = disableStun
+  ? []
+  : (process.env.STUN_SERVERS?.split(",").filter(Boolean) || []);
+const voiceSeatLimit = getVoiceSeatLimit();
+
+// Validate configuration
+if (!sfuHost) {
+  consola.error("Missing SFU WebSocket Host! Voice functionality will not work.");
+}
+if (stunHosts.length === 0 && !disableStun) {
+  consola.error("Missing STUN servers! SFU may not reach all clients.");
+}
+
+export async function sendInfo(socket: Socket, clientsInfo: Clients | undefined, _instanceId: string) {
+  const activeMembers = clientsInfo ? Object.values(clientsInfo).filter((client) => 
+    client.serverUserId && !client.serverUserId.startsWith('temp_')
+  ).length : 0;
+
+  // grytUserId is set only after a join or a session restore has checked a
+  // token against this host and the current token version, as HTTP /info does.
+  const isMember = !!clientsInfo?.[socket.id]?.grytUserId;
+
+  let displayName = process.env.SERVER_NAME || "Unknown Server";
+  let description = process.env.SERVER_DESCRIPTION || "A Gryt server";
+  // Falls back to the stricter answer if the config cannot be read, so a
+  // database wobble never advertises a server as easier to get into than it is.
+  let joinPolicy: JoinPolicy = "invite";
+  try {
+    const cfg = await getServerConfig();
+    if (cfg?.display_name) displayName = cfg.display_name;
+    if (cfg?.description) description = cfg.description;
+    if (cfg?.join_policy) joinPolicy = cfg.join_policy;
+  } catch {
+    // ignore DB errors; fall back to env
+  }
+
+  const serverInfo = {
+    voice_atomic_move_enabled: await voiceAtomicMoveEnabled(),
+    voice_audio_only: audioOnlyEnabled(),
+    name: displayName,
+    description,
+    members: activeMembers.toString(),
+    // Members only, matching HTTP /info: a precise build number lets anyone
+    // scan for hosts running a version with a known vulnerability.
+    ...(isMember ? { version: process.env.SERVER_VERSION || "1.0.0" } : {}),
+    // Sent before anyone joins, so a client can say what is needed rather than
+    // after a refusal. Unauthenticated: it is the server's own advertisement.
+    identityTiers: getAcceptedIdentityTiers(),
+    // The other half of the tiers: which identities are accepted, and what is
+    // asked of one to get in.
+    joinPolicy,
+    /** A constant, not a setting: either the code relays the column or it does
+        not. Absent means no, so no client needs a table of versions. */
+    encryptedDirectMessages: true,
+    /** The MLS delivery service (GRYT-1500). `retentionDays` is how long a device can be away,
+        and `reports` means `chat:report` takes the reporter's copy of an MLS message (GRYT-1557). */
+    mls: { version: 1, ciphersuites: [MLS_CIPHERSUITE_ID], retentionDays: mlsRetentionDays(), reports: true },
+  };
+  
+  socket.emit("server:info", serverInfo);
+}
+
+export async function sendServerDetails(socket: Socket, clientsInfo: Clients, instanceId: string) {
+  // Only send server details to registered users
+  const clientId = socket.id;
+  const client = clientsInfo[clientId];
+  
+  // Check if client has joined the server (is a registered user)
+  if (!client || !client.grytUserId) {
+    consola.warn(`🚫 Client ${clientId} requested server details without joining`);
+    socket.emit("server:details", {
+      error: "join_required",
+      message: "Please join the server first"
+    });
+    return;
+  }
+
+  // Sidebar items are persisted in DB; bootstrap defaults if missing.
+  // We still emit `channels` for backward compatibility (derived from sidebar items).
+  let sidebar_items: { id: string; kind: string; position: number; channelId?: string; spacerHeight?: number; label?: string; parentItemId?: string }[] = [];
+  let channels: { id: string; name: string; type: string; description?: string; requirePushToTalk?: boolean; disableRnnoise?: boolean; maxBitrate?: number; eSportsMode?: boolean; textInVoice?: boolean; layout?: "chat" | "forum"; automated?: boolean; defaultNotificationLevel?: ChannelNotificationLevel; forumTags?: { id: string; name: string; emoji?: string | null; color?: string | null }[]; permissionScopeId?: string | null; canSend?: boolean; canJoin?: boolean; myPermissions?: readonly ChannelPermission[] }[] = [];
+  // Empty until read, so a failed read names nobody's voice channel.
+  let visibleToThem: ReadonlySet<string> = new Set();
+  try {
+    // Seeding creates the first channels here, and a cache holding the empty
+    // list from a moment ago filters every one of them out of the first join.
+    if (await ensureDefaultSidebarItems()) resetChannelPermissionCache();
+
+    const [allItems, allChannels] = await Promise.all([
+      listServerSidebarItems(),
+      listServerChannels(),
+    ]);
+
+    const channelById = new Map(allChannels.map((c) => [c.channel_id, c]));
+    const scopes = resolveChannelScopes(allChannels, allItems);
+
+    // Both arrays below derive from `items`. Filtering `channels` alone leaves
+    // the id, position and label in `sidebar_items`, which the client draws.
+    const [held, keepEmpty] = await Promise.all([
+      channelPermissionsByChannel(client.serverUserId, client.grytUserId),
+      keepsEmptyFolders(client.serverUserId, client.grytUserId),
+    ]);
+    // What the client draws each control for, per channel; the handlers still
+    // decide. Seeing, posting and joining are read off the same lists.
+    const allowing = (permission: ChannelPermission) =>
+      new Set([...held].filter(([, list]) => list.includes(permission)).map(([id]) => id));
+    const visible = allowing("read_messages");
+    const postable = allowing("send_messages");
+    const joinable = allowing("join_voice");
+    visibleToThem = visible;
+    // A folder goes with its last visible channel, so its name goes with it too.
+    const items = visibleSidebarItems(allItems, visible, keepEmpty);
+
+    // Without `parentItemId` the client has folders it cannot fill.
+    sidebar_items = items.map((it) => ({
+      id: it.item_id,
+      kind: it.kind,
+      position: it.position,
+      channelId: it.channel_id ?? undefined,
+      spacerHeight: it.spacer_height ?? undefined,
+      label: it.label ?? undefined,
+      parentItemId: it.parent_item_id ?? undefined,
+    }));
+
+    channels = items
+      .filter((it) => it.kind === "channel" && !!it.channel_id)
+      .flatMap((it) => {
+        const c = channelById.get(it.channel_id as string);
+        if (!c) return [];
+        return [{
+          id: c.channel_id,
+          name: c.name,
+          type: c.type,
+          description: c.description ?? undefined,
+          requirePushToTalk: c.require_push_to_talk || false,
+          disableRnnoise: c.disable_rnnoise || false,
+          maxBitrate: c.max_bitrate ?? undefined,
+          eSportsMode: c.esports_mode || false,
+          textInVoice: c.text_in_voice || false,
+          layout: c.layout,
+          automated: c.automated || false,
+          defaultNotificationLevel: channelNotificationLevel(c),
+          forumTags: c.forum_tags,
+          permissionScopeId: scopes.get(c.channel_id)?.scopeId ?? null,
+          canSend: postable.has(c.channel_id),
+          canJoin: joinable.has(c.channel_id),
+          myPermissions: held.get(c.channel_id) ?? [],
+        }];
+      });
+
+    // A sidebar naming no channels falls back to the channel list. Filtered
+    // too: this branch is reached exactly when somebody should see nothing.
+    if (channels.length === 0) {
+      channels = allChannels.filter((c) => visible.has(c.channel_id)).map((c) => ({
+        id: c.channel_id,
+        name: c.name,
+        type: c.type,
+        description: c.description ?? undefined,
+        requirePushToTalk: c.require_push_to_talk || false,
+        disableRnnoise: c.disable_rnnoise || false,
+        maxBitrate: c.max_bitrate ?? undefined,
+        eSportsMode: c.esports_mode || false,
+        textInVoice: c.text_in_voice || false,
+        layout: c.layout,
+        automated: c.automated || false,
+        defaultNotificationLevel: channelNotificationLevel(c),
+        forumTags: c.forum_tags,
+        permissionScopeId: scopes.get(c.channel_id)?.scopeId ?? null,
+        canSend: postable.has(c.channel_id),
+        canJoin: joinable.has(c.channel_id),
+        myPermissions: held.get(c.channel_id) ?? [],
+      }));
+    }
+  } catch (e) {
+    consola.warn("Failed to load persisted sidebar/channels (falling back to defaults):", e);
+    if (await ensureDefaultChannels().catch((e) => { consola.warn("ensureDefaultChannels fallback failed", e); return false; })) resetChannelPermissionCache();
+    channels = [
+      { name: "General", type: "text", id: "general", description: "General text chat" },
+      { name: "Random", type: "text", id: "random", description: "Random discussions and off-topic chat" },
+      {
+        name: process.env.VOICE_CHANNEL_NAME || "Voice Chat",
+        type: "voice",
+        id: process.env.VOICE_CHANNEL_ID || "voice",
+        description: "Voice communication channel",
+      },
+    ];
+    sidebar_items = channels.map((c, idx) => ({
+      id: `sb_fallback_${c.id}`,
+      kind: "channel",
+      position: (idx + 1) * 10,
+      channelId: c.id,
+    }));
+  }
+
+  let cfgName = process.env.SERVER_NAME || "Unknown Server";
+  let cfgDesc = process.env.SERVER_DESCRIPTION || "A Gryt server";
+  let cfgIconUrl: string | null = null;
+  let cfgAvatarMaxBytes: number = DEFAULT_AVATAR_MAX_BYTES;
+  let cfgUploadMaxBytes: number = DEFAULT_UPLOAD_MAX_BYTES;
+  let cfgVideoProfiles = true;
+  let cfgExternalEmojis = false;
+  let isOwner = false;
+  let role = FALLBACK_ROLE_ID;
+  let roleIds: string[] = [];
+  // Advisory only, so the UI can stop offering what the server will refuse.
+  // Every one is enforced here too.
+  let permissions: string[] = [];
+  let roleDefinitions: RoleDefinitionRecord[] = [];
+  try {
+    const cfg = await getServerConfig();
+    if (cfg?.display_name) cfgName = cfg.display_name;
+    if (cfg?.description) cfgDesc = cfg.description;
+    if (cfg?.icon_url) cfgIconUrl = cfg.icon_url;
+    if (typeof cfg?.avatar_max_bytes === "number") cfgAvatarMaxBytes = cfg.avatar_max_bytes;
+    if (typeof cfg?.upload_max_bytes === "number") cfgUploadMaxBytes = cfg.upload_max_bytes;
+    cfgVideoProfiles = cfg?.video_profiles_enabled !== false;
+    cfgExternalEmojis = cfg?.external_emojis_enabled === true;
+    isOwner = !!(cfg?.owner_gryt_user_id && cfg.owner_gryt_user_id === client.grytUserId);
+    if (client.serverUserId && !client.serverUserId.startsWith("temp_")) {
+      const standing = await getEffectiveStanding(client.serverUserId, client.grytUserId);
+      role = standing.roleId;
+      roleIds = standing.roleIds;
+      permissions = [...standing.permissions];
+    } else if (isOwner) {
+      role = "owner";
+    }
+    // The full list, not the caller's own role: the sidebar colours and labels
+    // everybody.
+    roleDefinitions = await listRoleDefinitions();
+  } catch {
+    // ignore DB errors; fall back to env
+  }
+
+  const serverDetails = {
+    sfu_host: sfuHost,
+    sfu_hosts: sfuHosts,
+    stun_hosts: stunHosts,
+    voice_capacity_max: voiceSeatLimit,
+    // The same builder as `server:clients`, so this cannot carry anybody's token.
+    clients: publicClientList(clientsInfo, visibleToThem),
+    sidebar_items,
+    channels,
+    server_info: {
+      server_id: instanceId,
+      name: cfgName,
+      description: cfgDesc,
+      icon_url: cfgIconUrl,
+      is_owner: isOwner,
+      role,
+      /** Every role they hold, so a client can tell a role mention aimed at them. */
+      role_ids: roleIds.length > 0 ? roleIds : [role],
+      permissions,
+      /** So a newer client can tell "denied" from "never heard of it": both are
+          an absence in `permissions`, and the second reads as a blank server. */
+      permission_catalogue: PERMISSIONS,
+      roles: roleDefinitions.map((r) => ({
+        id: r.role_id,
+        name: r.name,
+        color: r.color,
+        rank: r.rank,
+        permissions: r.permissions,
+        isSystem: r.is_system,
+        mentionable: r.mentionable,
+      })),
+      max_members: parseInt(process.env.MAX_MEMBERS || "100"),
+      voice_enabled: !!sfuHost,
+      avatar_max_bytes: cfgAvatarMaxBytes,
+      upload_max_bytes: cfgUploadMaxBytes,
+      /** Uploads go through the worker's sandbox first, and whether a video avatar or banner is taken. */
+      uploads_checked: workerClearsQuarantine(),
+      video_profiles: workerTranscodesVideo() && cfgVideoProfiles,
+      /** Messages here may show other Gryt servers' custom emoji. */
+      external_emojis: cfgExternalEmojis,
+      version: process.env.SERVER_VERSION || "1.0.0",
+      /** What code sits between a member and the people they talk to, so it is
+          not configurable. No version: that names which known problem applies. */
+      plugins: announcedPlugins(),
+      /** A constant: folders carry permissions here. Absent on an older server,
+          which ignores the folder scope events. */
+      folder_permissions: true,
+    },
+  };
+
+  socket.emit("server:details", serverDetails);
+  consola.info(`Sent server details to client ${socket.id}:`, {
+    channels: channels.length,
+    voice_enabled: !!sfuHost,
+    stun_servers: stunHosts.length,
+  });
+}

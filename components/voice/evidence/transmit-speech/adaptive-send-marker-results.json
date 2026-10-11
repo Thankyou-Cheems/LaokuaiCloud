@@ -1,0 +1,25 @@
+{
+  "rnnoiseCarrierExact480Samples": true,
+  "underrunZeroCarrier": true,
+  "oldGenerationRejected": true,
+  "finalGateSpeechAndPcmAligned": true,
+  "hardBoundaryZeroAndFalse": true,
+  "finiteClampMinus1Dbfs": true,
+  "pendingResetPortRace": true,
+  "fallback": [
+    {
+      "rate": 44100,
+      "pairedSamples": 87879,
+      "exactPcmParity": true,
+      "knownDelaySamples": 441,
+      "handleDestroyed": true
+    },
+    {
+      "rate": 48000,
+      "pairedSamples": 95520,
+      "exactPcmParity": true,
+      "knownDelaySamples": 480,
+      "handleDestroyed": true
+    }
+  ]
+}

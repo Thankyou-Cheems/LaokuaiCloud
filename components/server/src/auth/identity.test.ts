@@ -1,0 +1,603 @@
+import assert from "node:assert/strict";
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
+import { afterEach, describe, it } from "node:test";
+
+import {
+  calculateJwkThumbprint,
+  exportJWK,
+  generateKeyPair,
+  SignJWT,
+  type JWK,
+} from "jose";
+
+import { BUNDLED_IDENTITY_JWKS } from "./bundledJwks";
+import {
+  getAcceptedIdentityTiers,
+  identityTierAccepted,
+  IdentityVerificationError,
+  verifyAssertion,
+  verifyCertificate,
+} from "./identity";
+
+const SELF_ISSUER = "gryt:self";
+
+async function makeKeyPair() {
+  const { privateKey, publicKey } = await generateKeyPair("ES256", {
+    extractable: true,
+  });
+  const publicJwk = await exportJWK(publicKey);
+  return { privateKey, publicJwk };
+}
+
+/** A self-signed certificate the way a client makes one, with the escape hatches
+    a hostile client would reach for exposed as options. */
+async function makeSelfSignedCert(opts?: {
+  claimSub?: string;
+  jwkOverride?: JWK;
+  signWith?: Awaited<ReturnType<typeof makeKeyPair>>["privateKey"];
+  issuer?: string;
+  expiresIn?: string;
+  preferredUsername?: string;
+}) {
+  const { privateKey, publicJwk } = await makeKeyPair();
+
+  const jwt = await new SignJWT({
+    jwk: opts?.jwkOverride ?? publicJwk,
+    ...(opts?.preferredUsername
+      ? { preferred_username: opts.preferredUsername }
+      : {}),
+  })
+    .setProtectedHeader({ alg: "ES256", typ: "JWT" })
+    .setIssuer(opts?.issuer ?? SELF_ISSUER)
+    .setSubject(opts?.claimSub ?? "ignored")
+    .setIssuedAt()
+    .setExpirationTime(opts?.expiresIn ?? "24h")
+    .sign(opts?.signWith ?? privateKey);
+
+  return { jwt, publicJwk, privateKey };
+}
+
+afterEach(() => {
+  delete process.env.GRYT_IDENTITY_TIERS;
+});
+
+describe("accepted identity tiers", () => {
+  it("admits only accounts by default", () => {
+    assert.deepEqual(getAcceptedIdentityTiers(), ["account"]);
+    assert.equal(identityTierAccepted("account"), true);
+    assert.equal(identityTierAccepted("local"), false);
+  });
+
+  it("admits local identity when configured", () => {
+    process.env.GRYT_IDENTITY_TIERS = "account,local";
+    assert.equal(identityTierAccepted("local"), true);
+  });
+
+  it("falls back to the default rather than something looser", () => {
+    process.env.GRYT_IDENTITY_TIERS = "nonsense, ";
+    assert.deepEqual(getAcceptedIdentityTiers(), ["account"]);
+  });
+
+  it("ignores unknown tiers alongside known ones", () => {
+    process.env.GRYT_IDENTITY_TIERS = "local,wishful";
+    assert.deepEqual(getAcceptedIdentityTiers(), ["local"]);
+  });
+});
+
+describe("self-signed certificates", () => {
+  it("verifies and derives sub from the key", async () => {
+    const { jwt, publicJwk } = await makeSelfSignedCert();
+    const expected = await calculateJwkThumbprint(publicJwk, "sha256");
+
+    const result = await verifyCertificate(jwt);
+
+    assert.equal(result.tier, "local");
+    assert.equal(result.issuer, SELF_ISSUER);
+    assert.equal(result.sub, `key:${expected}`);
+  });
+
+  it("ignores a sub the certificate claims for itself", async () => {
+    // The attack this tier lives or dies on: a self-signed certificate naming
+    // somebody else's account id.
+    const stolen = "0c8f2e1a-4b6d-4f2a-9c3e-71b0a5d9e4f7";
+    const { jwt, publicJwk } = await makeSelfSignedCert({ claimSub: stolen });
+    const expected = await calculateJwkThumbprint(publicJwk, "sha256");
+
+    const result = await verifyCertificate(jwt);
+
+    assert.notEqual(result.sub, stolen);
+    assert.equal(result.sub, `key:${expected}`);
+  });
+
+  it("does not carry a self-asserted username", async () => {
+    const { jwt } = await makeSelfSignedCert({ preferredUsername: "Sivert" });
+    const result = await verifyCertificate(jwt);
+    assert.equal(result.preferredUsername, undefined);
+  });
+
+  it("rejects a certificate signed by a key other than the one it carries", async () => {
+    const other = await makeKeyPair();
+    const { jwt } = await makeSelfSignedCert({ signWith: other.privateKey });
+
+    await assert.rejects(() => verifyCertificate(jwt), /certificate/i);
+  });
+
+  it("rejects private key material", async () => {
+    const { privateKey } = await makeKeyPair();
+    const privateJwk = await exportJWK(privateKey);
+    const { jwt } = await makeSelfSignedCert({ jwkOverride: privateJwk });
+
+    await assert.rejects(() => verifyCertificate(jwt), /private key material/i);
+  });
+
+  it("rejects a curve it does not expect", async () => {
+    const { publicKey } = await generateKeyPair("ES384", { extractable: true });
+    const p384 = await exportJWK(publicKey);
+    const { jwt } = await makeSelfSignedCert({ jwkOverride: p384 });
+
+    await assert.rejects(() => verifyCertificate(jwt), /P-256/);
+  });
+
+  it("rejects an expired certificate", async () => {
+    const { jwt } = await makeSelfSignedCert({ expiresIn: "-1h" });
+    await assert.rejects(() => verifyCertificate(jwt), /certificate/i);
+  });
+
+  it("does not treat a CA-issued certificate as self-signed", async () => {
+    // An unknown issuer goes down the CA path and fails there. Pinned at a closed
+    // port so it never reaches the real id.gryt.chat.
+    process.env.GRYT_TRUSTED_CERT_ISSUERS = "http://127.0.0.1:1";
+    try {
+      const { jwt } = await makeSelfSignedCert({ issuer: "https://id.example" });
+      await assert.rejects(() => verifyCertificate(jwt), /not trusted/i);
+    } finally {
+      delete process.env.GRYT_TRUSTED_CERT_ISSUERS;
+    }
+  });
+
+  it("rejects a malformed certificate", async () => {
+    await assert.rejects(() => verifyCertificate("not-a-jwt"), /well-formed/i);
+  });
+});
+
+// ── Issuer-qualified ids ────────────────────────────────────────────
+// Real JWKS endpoints on loopback, because the property only exists past a
+// successful CA verification: whether one trusted CA can name another's user.
+
+async function startJwksServer(publicJwk: JWK, kid: string) {
+  // Counted, because a fetch that happens and succeeds looks exactly like one
+  // that never happened.
+  let hits = 0;
+
+  const server = createServer((req, res) => {
+    if (req.url === "/.well-known/jwks.json") {
+      hits += 1;
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ keys: [{ ...publicJwk, kid, alg: "ES256", use: "sig" }] }));
+      return;
+    }
+    res.writeHead(404).end();
+  });
+
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const { port } = server.address() as AddressInfo;
+
+  return {
+    origin: `http://127.0.0.1:${port}`,
+    hits: () => hits,
+    close: () => new Promise<void>((resolve) => server.close(() => resolve())),
+  };
+}
+
+/** A certificate authority: a signing key, a JWKS endpoint, and a way to issue. */
+async function startCa(kid: string) {
+  const { privateKey, publicKey } = await generateKeyPair("ES256", {
+    extractable: true,
+  });
+  const jwks = await startJwksServer(await exportJWK(publicKey), kid);
+
+  return {
+    origin: jwks.origin,
+    hits: jwks.hits,
+    publicJwk: await exportJWK(publicKey),
+    close: jwks.close,
+    async issue(sub: string, holderJwk: JWK, expiresIn = "24h") {
+      return new SignJWT({ jwk: holderJwk })
+        .setProtectedHeader({ alg: "ES256", typ: "JWT", kid })
+        .setIssuer(jwks.origin)
+        .setSubject(sub)
+        .setIssuedAt()
+        .setExpirationTime(expiresIn)
+        .sign(privateKey);
+    },
+  };
+}
+
+describe("the CA's keys are shipped, not fetched", () => {
+  /** `BUNDLED_IDENTITY_JWKS` is written into rather than mocked, so the loopback
+      CA gets a real entry in the same shape as the shipped one. */
+  function bundle(origin: string, keys: JWK[]) {
+    BUNDLED_IDENTITY_JWKS[origin] = { keys };
+    return () => {
+      delete BUNDLED_IDENTITY_JWKS[origin];
+    };
+  }
+
+  it("verifies against the bundled key without asking the CA", async () => {
+    const ca = await startCa("bundled-kid");
+    const holder = await makeKeyPair();
+    const unbundle = bundle(ca.origin, [
+      { ...ca.publicJwk, kid: "bundled-kid", alg: "ES256", use: "sig" },
+    ]);
+    process.env.GRYT_TRUSTED_CERT_ISSUERS = ca.origin;
+
+    try {
+      const result = await verifyCertificate(await ca.issue("abc", holder.publicJwk));
+
+      assert.equal(result.tier, "account");
+      assert.equal(result.sub, "abc");
+      assert.equal(ca.hits(), 0,
+        "the whole point: a server that already holds the key must not tell the CA it exists");
+    } finally {
+      delete process.env.GRYT_TRUSTED_CERT_ISSUERS;
+      unbundle();
+      await ca.close();
+    }
+  });
+
+  it("asks the CA when the certificate names a key this build does not have", async () => {
+    // What a key rotation looks like from here. Hard-failing would refuse every
+    // account holder on every old build the day a key rolled.
+    const ca = await startCa("rotated-kid");
+    const stale = await makeKeyPair();
+    const holder = await makeKeyPair();
+    const unbundle = bundle(ca.origin, [
+      { ...stale.publicJwk, kid: "retired-kid", alg: "ES256", use: "sig" },
+    ]);
+    process.env.GRYT_TRUSTED_CERT_ISSUERS = ca.origin;
+
+    try {
+      const result = await verifyCertificate(await ca.issue("abc", holder.publicJwk));
+
+      assert.equal(result.sub, "abc", "a rotated key still verifies");
+      assert.ok(ca.hits() >= 1, "and it can only have done so by asking");
+    } finally {
+      delete process.env.GRYT_TRUSTED_CERT_ISSUERS;
+      unbundle();
+      await ca.close();
+    }
+  });
+
+  it("does not ask the CA about a certificate forged under a bundled kid", async () => {
+    // Falling back on any failure lets anybody reaching a join endpoint make
+    // this server fetch a URL, as often as they like.
+    const ca = await startCa("bundled-kid");
+    const impostor = await makeKeyPair();
+    const holder = await makeKeyPair();
+
+    // The bundled entry names the kid the CA signs with and carries somebody
+    // else's key under it, so the signature fails against a key we do hold.
+    const unbundle = bundle(ca.origin, [
+      { ...impostor.publicJwk, kid: "bundled-kid", alg: "ES256", use: "sig" },
+    ]);
+    process.env.GRYT_TRUSTED_CERT_ISSUERS = ca.origin;
+
+    try {
+      const forged = await ca.issue("abc", holder.publicJwk);
+
+      await assert.rejects(
+        () => verifyCertificate(forged),
+        IdentityVerificationError,
+      );
+      assert.equal(ca.hits(), 0,
+        "a bad signature must not be a way to make this server make a request");
+    } finally {
+      delete process.env.GRYT_TRUSTED_CERT_ISSUERS;
+      unbundle();
+      await ca.close();
+    }
+  });
+
+  it("does not ask the CA about an expired certificate", async () => {
+    // A claims failure is not a key failure. Retrying fails identically, one
+    // round trip later, and tells the CA something for nothing.
+    const ca = await startCa("bundled-kid");
+    const holder = await makeKeyPair();
+    const unbundle = bundle(ca.origin, [
+      { ...ca.publicJwk, kid: "bundled-kid", alg: "ES256", use: "sig" },
+    ]);
+    process.env.GRYT_TRUSTED_CERT_ISSUERS = ca.origin;
+
+    try {
+      const expired = await ca.issue("abc", holder.publicJwk, "-1h");
+
+      await assert.rejects(
+        () => verifyCertificate(expired),
+        IdentityVerificationError,
+      );
+      assert.equal(ca.hits(), 0);
+    } finally {
+      delete process.env.GRYT_TRUSTED_CERT_ISSUERS;
+      unbundle();
+      await ca.close();
+    }
+  });
+
+  it("still fetches for an issuer nothing is bundled for", async () => {
+    // Somebody running their own CA: a key pinned in a binary is pinned by
+    // whoever built it, so this path is unchanged.
+    const ca = await startCa("theirs");
+    const holder = await makeKeyPair();
+    process.env.GRYT_TRUSTED_CERT_ISSUERS = ca.origin;
+
+    try {
+      const result = await verifyCertificate(await ca.issue("abc", holder.publicJwk));
+
+      assert.equal(result.sub, "abc");
+      assert.ok(ca.hits() >= 1);
+    } finally {
+      delete process.env.GRYT_TRUSTED_CERT_ISSUERS;
+      await ca.close();
+    }
+  });
+
+  it("ships a key for the issuer it trusts by default", async () => {
+    // A typo in the origin is silent: every server falls through to the network
+    // and nothing else changes.
+    assert.ok(
+      BUNDLED_IDENTITY_JWKS["https://id.gryt.chat"],
+      "no bundled keys for the default issuer, so nothing stops phoning home",
+    );
+
+    const keys = BUNDLED_IDENTITY_JWKS["https://id.gryt.chat"].keys;
+    assert.ok(keys.length > 0, "an empty key list bundles nothing");
+
+    for (const key of keys) {
+      assert.equal(key.kty, "EC");
+      assert.equal(key.crv, "P-256");
+      assert.equal(key.alg, "ES256");
+      assert.ok(key.kid, "a key with no kid can never be matched against a certificate");
+      assert.equal(key.d, undefined, "a private key must never be in a shipped file");
+    }
+  });
+});
+
+describe("issuer-qualified ids", () => {
+  it("stores the primary issuer's users under a bare sub", async () => {
+    const ca = await startCa("primary");
+    const holder = await makeKeyPair();
+    process.env.GRYT_TRUSTED_CERT_ISSUERS = ca.origin;
+    try {
+      const jwt = await ca.issue("abc-123", holder.publicJwk);
+      const result = await verifyCertificate(jwt);
+
+      assert.equal(result.tier, "account");
+      assert.equal(result.sub, "abc-123");
+      assert.equal(result.grytUserId, "abc-123");
+    } finally {
+      delete process.env.GRYT_TRUSTED_CERT_ISSUERS;
+      await ca.close();
+    }
+  });
+
+  it("writes the issuer into the id for every other trusted issuer", async () => {
+    const primary = await startCa("primary");
+    const other = await startCa("other");
+    const holder = await makeKeyPair();
+    process.env.GRYT_TRUSTED_CERT_ISSUERS = `${primary.origin},${other.origin}`;
+    try {
+      const jwt = await other.issue("abc-123", holder.publicJwk);
+      const result = await verifyCertificate(jwt);
+
+      // The `sub` is untouched — it is what the client signed its assertion
+      // with and has to keep matching.
+      assert.equal(result.sub, "abc-123");
+      assert.equal(result.grytUserId, `${other.origin}|abc-123`);
+    } finally {
+      delete process.env.GRYT_TRUSTED_CERT_ISSUERS;
+      await Promise.all([primary.close(), other.close()]);
+    }
+  });
+
+  it("refuses to let a second CA name the first CA's user", async () => {
+    // A `sub` is handed to every server on every join, so a trusted CA already
+    // knows one. What must not follow is inheriting that user's stored id.
+    const primary = await startCa("primary");
+    const hostile = await startCa("hostile");
+    const victim = await makeKeyPair();
+    const attacker = await makeKeyPair();
+    process.env.GRYT_TRUSTED_CERT_ISSUERS = `${primary.origin},${hostile.origin}`;
+    try {
+      const real = await verifyCertificate(
+        await primary.issue("abc-123", victim.publicJwk),
+      );
+      const impostor = await verifyCertificate(
+        await hostile.issue("abc-123", attacker.publicJwk),
+      );
+
+      assert.equal(real.sub, impostor.sub);
+      assert.notEqual(real.grytUserId, impostor.grytUserId);
+    } finally {
+      delete process.env.GRYT_TRUSTED_CERT_ISSUERS;
+      await Promise.all([primary.close(), hostile.close()]);
+    }
+  });
+
+  it("refuses a sub that already looks qualified", async () => {
+    // Otherwise the primary issuer, whose users are stored bare, could mint a
+    // sub that lands exactly on another issuer's user.
+    const primary = await startCa("primary");
+    const other = await startCa("other");
+    const holder = await makeKeyPair();
+    process.env.GRYT_TRUSTED_CERT_ISSUERS = `${primary.origin},${other.origin}`;
+    try {
+      const jwt = await primary.issue(`${other.origin}|abc-123`, holder.publicJwk);
+      await assert.rejects(() => verifyCertificate(jwt), /must not contain/i);
+    } finally {
+      delete process.env.GRYT_TRUSTED_CERT_ISSUERS;
+      await Promise.all([primary.close(), other.close()]);
+    }
+  });
+
+  it("refuses a CA sub in the self-signed namespace", async () => {
+    const ca = await startCa("primary");
+    const holder = await makeKeyPair();
+    process.env.GRYT_TRUSTED_CERT_ISSUERS = ca.origin;
+    try {
+      const jwt = await ca.issue("key:pretending", holder.publicJwk);
+      await assert.rejects(() => verifyCertificate(jwt), /reserved/i);
+    } finally {
+      delete process.env.GRYT_TRUSTED_CERT_ISSUERS;
+      await ca.close();
+    }
+  });
+
+  it("rejects an untrusted issuer without contacting it", async () => {
+    // An unknown issuer costs nothing: no signature check per trusted issuer and
+    // no JWKS fetch. The unroutable address would hang if it were tried.
+    const rogue = await startCa("rogue");
+    const holder = await makeKeyPair();
+    process.env.GRYT_TRUSTED_CERT_ISSUERS = "http://192.0.2.1:1";
+    try {
+      const jwt = await rogue.issue("abc-123", holder.publicJwk);
+      await assert.rejects(() => verifyCertificate(jwt), /not trusted/i);
+    } finally {
+      delete process.env.GRYT_TRUSTED_CERT_ISSUERS;
+      await rogue.close();
+    }
+  });
+});
+
+/** Signed by a client whose clock reads `offsetSeconds` away from ours. Negative
+    is behind, which is the direction that used to fail. */
+async function makeAssertion(
+  privateKey: Awaited<ReturnType<typeof makeKeyPair>>["privateKey"],
+  opts: { sub: string; aud: string; nonce: string; offsetSeconds?: number }
+) {
+  const now = Math.floor(Date.now() / 1000) + (opts.offsetSeconds ?? 0);
+
+  return await new SignJWT({ nonce: opts.nonce })
+    .setProtectedHeader({ alg: "ES256", typ: "JWT" })
+    .setSubject(opts.sub)
+    .setAudience(opts.aud)
+    .setIssuedAt(now)
+    .setExpirationTime(now + 60)
+    .sign(privateKey);
+}
+
+describe("assertions from a machine whose clock is wrong", () => {
+  const AUD = "10.0.0.5:5000";
+  const NONCE = "nonce-for-this-socket";
+
+  it("accepts one signed an hour behind this server", async () => {
+    const { privateKey, publicJwk } = await makeKeyPair();
+    const assertion = await makeAssertion(privateKey, {
+      sub: "someone",
+      aud: AUD,
+      nonce: NONCE,
+      offsetSeconds: -3600,
+    });
+
+    const { sub } = await verifyAssertion(assertion, publicJwk, AUD, NONCE);
+    assert.equal(sub, "someone");
+  });
+
+  it("accepts one signed an hour ahead", async () => {
+    const { privateKey, publicJwk } = await makeKeyPair();
+    const assertion = await makeAssertion(privateKey, {
+      sub: "someone",
+      aud: AUD,
+      nonce: NONCE,
+      offsetSeconds: 3600,
+    });
+
+    const { sub } = await verifyAssertion(assertion, publicJwk, AUD, NONCE);
+    assert.equal(sub, "someone");
+  });
+
+  it("still refuses one from a clock beyond the tolerance, and says how far", async () => {
+    const { privateKey, publicJwk } = await makeKeyPair();
+    const dayBehind = -(25 * 60 * 60);
+    const assertion = await makeAssertion(privateKey, {
+      sub: "someone",
+      aud: AUD,
+      nonce: NONCE,
+      offsetSeconds: dayBehind,
+    });
+
+    await assert.rejects(
+      () => verifyAssertion(assertion, publicJwk, AUD, NONCE),
+      (err: unknown) => {
+        assert.ok(err instanceof IdentityVerificationError);
+        assert.equal(err.reason, "assertion_rejected");
+        // Positive: their clock is behind ours. Roughly, since the assertion
+        // was signed a moment ago in real time.
+        assert.ok(err.skewMs !== undefined);
+        const hoursBehind = err.skewMs / 3_600_000;
+        assert.ok(
+          hoursBehind > 24.9 && hoursBehind < 25.1,
+          `expected ~25h behind, got ${hoursBehind}`
+        );
+        return true;
+      }
+    );
+  });
+
+  it("reports no skew when the failure was not about time", async () => {
+    const { privateKey, publicJwk } = await makeKeyPair();
+    const assertion = await makeAssertion(privateKey, {
+      sub: "someone",
+      aud: "a-different-server:5000",
+      nonce: NONCE,
+    });
+
+    await assert.rejects(
+      () => verifyAssertion(assertion, publicJwk, AUD, NONCE),
+      (err: unknown) => {
+        assert.ok(err instanceof IdentityVerificationError);
+        assert.equal(err.skewMs, undefined);
+        return true;
+      }
+    );
+  });
+
+  it("refuses a wrong nonce however good the clock is", async () => {
+    const { privateKey, publicJwk } = await makeKeyPair();
+    const assertion = await makeAssertion(privateKey, {
+      sub: "someone",
+      aud: AUD,
+      nonce: "some-other-nonce",
+    });
+
+    await assert.rejects(
+      () => verifyAssertion(assertion, publicJwk, AUD, NONCE),
+      (err: unknown) => {
+        assert.ok(err instanceof IdentityVerificationError);
+        assert.equal(err.reason, "nonce_mismatch");
+        return true;
+      }
+    );
+  });
+});
+
+describe("certificates keep a tight clock", () => {
+  it("refuses a self-signed certificate that expired ten minutes ago", async () => {
+    const { jwt } = await makeSelfSignedCert({ expiresIn: "-10m" });
+
+    await assert.rejects(
+      () => verifyCertificate(jwt),
+      (err: unknown) => {
+        assert.ok(err instanceof IdentityVerificationError);
+        assert.equal(err.reason, "certificate_rejected");
+        return true;
+      }
+    );
+  });
+
+  it("allows the couple of minutes an unsynchronised machine is out by", async () => {
+    const { jwt } = await makeSelfSignedCert({ expiresIn: "-30s" });
+    const cert = await verifyCertificate(jwt);
+    assert.equal(cert.tier, "local");
+  });
+});

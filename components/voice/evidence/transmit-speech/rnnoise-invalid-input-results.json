@@ -1,0 +1,8 @@
+{
+  "nonfiniteInputSanitized": true,
+  "explicitFault": "rnnoise-nonfinite-input",
+  "realModelFreshInitRecovery": true,
+  "trustedFrames": 368,
+  "destroySent": true,
+  "note": "Real installed RNNoise WASM and production worker processFrame; no browser, microphone or network."
+}

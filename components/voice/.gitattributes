@@ -1,0 +1,3 @@
+# Inline AudioWorklet template strings must rebuild identically from Git archives.
+*.ts text eol=lf
+*.tsx text eol=lf

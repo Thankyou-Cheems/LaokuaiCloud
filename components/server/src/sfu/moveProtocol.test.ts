@@ -1,0 +1,22 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { SFUClient } from "./client";
+import type { SfuMoveCommand } from "./moveProtocol";
+test("SFU move replies correlate each command independently from idempotent transfer ID",async()=>{
+ const client=new SFUClient("synthetic-server","synthetic-secret","synthetic.invalid");
+ const sent:{event:string;data:string}[]=[];
+ const control=client as unknown as {ws:unknown;handleMessage:(m:{event:string;data:string})=>void};
+ control.ws={readyState:1,send(raw:string){sent.push(JSON.parse(raw))},close(){}};
+ const request:SfuMoveCommand={request_id:"synthetic-transfer",user_id:"u",source_room_id:"old",destination_room_id:"new",socket_id:"generation",nonce:"synthetic-nonce",expires_at_ms:Date.now()+30000,capabilities:["speak"],is_muted:false,is_deafened:false};
+ const first=client.requestMove("prepare",request);
+ const firstData=JSON.parse(sent[0].data);
+ control.handleMessage({event:"move_result",data:JSON.stringify({request_id:request.request_id,command_id:firstData.command_id,status:"prepared"})});
+ assert.equal((await first).status,"prepared");
+ let secondResolved=false;const second=client.requestMove("status",request).then(r=>{secondResolved=true;return r});
+ const secondData=JSON.parse(sent[1].data);
+ assert.notEqual(secondData.command_id,firstData.command_id);
+ control.handleMessage({event:"move_result",data:JSON.stringify({request_id:request.request_id,command_id:firstData.command_id,status:"prepared"})});
+ await Promise.resolve();assert.equal(secondResolved,false);
+ control.handleMessage({event:"move_result",data:JSON.stringify({request_id:request.request_id,command_id:secondData.command_id,status:"committed"})});
+ assert.equal((await second).status,"committed");client.disconnect();
+});

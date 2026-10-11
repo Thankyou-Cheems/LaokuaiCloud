@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # 22, not the client's 24: the Dockerfile and Release Server both use
+          # it, so anything newer tests something we do not ship.
+          node-version: "22"
+          cache: yarn
+      - run: yarn install --frozen-lockfile
+
+      # The reason this workflow exists: ten test files and 87 tests that
+      # nothing ran on a pull request.
+      - run: yarn test
+
+      # examples/ is what operators copy, and it runs against the same api
+      # object, so a change to that surface breaks here.
+      - run: yarn test:examples
+
+      # `build` is tsc: the name is from package.json, but this is the type
+      # check.
+      - run: yarn build
+
+      # The whole repo, now that the flat config describes scripts/ too.
+      - run: npx eslint .
+
+      # No comment runs past two lines. The script carries the list of paths
+      # still to be swept, and that list only ever shrinks.
+      - run: node scripts/check-comment-length.mjs
+
+      # The bundles start the SFU on the host itself, so their config.env has to
+      # keep its registration and metrics on 127.0.0.1 (GRYT-1264).
+      - run: node scripts/check-selfhosted-config.mjs

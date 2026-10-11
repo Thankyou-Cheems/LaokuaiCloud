@@ -1,0 +1,234 @@
+import { consola } from "consola";
+
+interface GitHubRelease {
+	tag_name: string;
+	prerelease: boolean;
+}
+
+interface ComponentVersionInfo {
+	current: string;
+	latest: string;
+	latestStable: string;
+	latestBeta: string | null;
+	updateAvailable: boolean;
+	channel: "stable" | "beta";
+}
+
+type ReportedComponent = Omit<ComponentVersionInfo, "current"> & { current: string | null };
+
+export interface VersionStatus {
+	server: ComponentVersionInfo;
+	sfu: ReportedComponent | null;
+	/** Null means cannot say — none configured, or none answering — which is not
+	    the same as a worker that answered and is out of date. */
+	worker: ReportedComponent | null;
+}
+
+interface CacheEntry {
+	data: { stable: string; beta: string | null };
+	fetchedAt: number;
+}
+
+const CACHE_TTL_MS = 5 * 60 * 1000;
+const GH_API = "https://api.github.com/repos";
+const REPOS = {
+	server: "Gryt-chat/server",
+	sfu: "Gryt-chat/sfu",
+	worker: "Gryt-chat/image-worker",
+} as const;
+
+const releaseCache = new Map<string, CacheEntry>();
+
+async function fetchLatestVersions(repo: string): Promise<{ stable: string; beta: string | null }> {
+	const cached = releaseCache.get(repo);
+	if (cached && Date.now() - cached.fetchedAt < CACHE_TTL_MS) return cached.data;
+
+	const res = await fetch(`${GH_API}/${repo}/releases?per_page=20`, {
+		headers: { Accept: "application/vnd.github+json", "User-Agent": "gryt-server" },
+		signal: AbortSignal.timeout(10_000),
+	});
+
+	if (!res.ok) throw new Error(`GitHub API ${res.status}: ${res.statusText}`);
+
+	const releases: GitHubRelease[] = await res.json();
+
+	let stable: string | null = null;
+	let beta: string | null = null;
+
+	for (const r of releases) {
+		const ver = r.tag_name.replace(/^v/, "");
+		if (!r.prerelease && !stable) stable = ver;
+		if (r.prerelease && !beta) beta = ver;
+		if (stable && beta) break;
+	}
+
+	const data = { stable: stable || "0.0.0", beta };
+	releaseCache.set(repo, { data, fetchedAt: Date.now() });
+	return data;
+}
+
+/** The stages the release workflows produce, in order. Closed on purpose; see
+    `parseVersion`. */
+const PRERELEASE_STAGES = ["alpha", "beta", "rc"] as const;
+
+interface ParsedVersion {
+	release: [number, number, number];
+	/** Null for a plain release, which sorts above every prerelease of itself. */
+	pre: { stage: number; number: number } | null;
+}
+
+/**
+ * Plain releases and the `-<stage>.<n>` the workflows produce, nothing else.
+ * Full semver reads `git describe`'s `1.0.48-1-gafa06e4` as a prerelease.
+ */
+export function parseVersion(v: string): ParsedVersion | null {
+	const m = /^(\d+)\.(\d+)\.(\d+)(?:-([a-z]+)\.(\d+))?$/.exec(v.trim());
+	if (!m) return null;
+
+	const release: [number, number, number] = [Number(m[1]), Number(m[2]), Number(m[3])];
+	if (m[4] === undefined) return { release, pre: null };
+
+	const stage = PRERELEASE_STAGES.indexOf(m[4] as (typeof PRERELEASE_STAGES)[number]);
+	if (stage === -1) return null;
+
+	return { release, pre: { stage, number: Number(m[5]) } };
+}
+
+/** Negative, zero or positive as usual, or null when either side is not a version we compare. */
+export function compareSemver(a: string, b: string): number | null {
+	const pa = parseVersion(a);
+	const pb = parseVersion(b);
+	if (!pa || !pb) return null;
+
+	for (let i = 0; i < 3; i++) {
+		const diff = pa.release[i] - pb.release[i];
+		if (diff !== 0) return diff;
+	}
+
+	// Same three numbers. A release outranks any prerelease of itself, which is
+	// what makes 1.6.15-beta.1 an update to nothing and 1.6.15 an update to it.
+	if (!pa.pre && !pb.pre) return 0;
+	if (!pa.pre) return 1;
+	if (!pb.pre) return -1;
+
+	return pa.pre.stage - pb.pre.stage || pa.pre.number - pb.pre.number;
+}
+
+export function detectChannel(current: string, latestStable: string, latestBeta: string | null): "stable" | "beta" {
+	if (current === latestStable) return "stable";
+
+	const vsStable = compareSemver(current, latestStable);
+	// Unparseable means we cannot place it on either channel, so take the
+	// quieter of the two rather than inventing a beta.
+	if (vsStable === null) return "stable";
+
+	if (vsStable <= 0) return "stable";
+	if (latestBeta) return "beta";
+	return "stable";
+}
+
+export function buildComponentInfo(
+	current: string,
+	versions: { stable: string; beta: string | null },
+): ComponentVersionInfo {
+	const channel = detectChannel(current, versions.stable, versions.beta);
+	const latest = channel === "beta" && versions.beta ? versions.beta : versions.stable;
+	return {
+		current,
+		latest,
+		latestStable: versions.stable,
+		latestBeta: versions.beta,
+		// null when either side is not a plain release version, and an unknown
+		// comparison must not turn into a prompt to update.
+		updateAvailable: (compareSemver(latest, current) ?? 0) > 0,
+		channel,
+	};
+}
+
+async function fetchSfuCurrentVersion(): Promise<string | null> {
+	const wsHost = process.env.SFU_WS_HOST;
+	if (!wsHost) return null;
+
+	const httpUrl = wsHost.replace(/^ws(s?):\/\//, "http$1://");
+	try {
+		const res = await fetch(`${httpUrl}/health`, { signal: AbortSignal.timeout(5_000) });
+		if (!res.ok) return null;
+		const data = await res.json();
+		return (data as { version?: string }).version ?? null;
+	} catch {
+		return null;
+	}
+}
+
+/** A separate process, so the server cannot know at build time. Unset means no
+    answer rather than an error: plenty of deployments have no worker. */
+async function fetchWorkerCurrentVersion(): Promise<string | null> {
+	const url = process.env.IMAGE_WORKER_URL;
+	if (!url) return null;
+
+	try {
+		const res = await fetch(`${url.replace(/\/$/, "")}/version`, {
+			signal: AbortSignal.timeout(5_000),
+		});
+		if (!res.ok) return null;
+		const data = await res.json();
+		const version = (data as { version?: unknown }).version;
+		// A worker older than /version answers health here, which has no version
+		// field — so this reads as "cannot say" rather than as a wrong number.
+		return typeof version === "string" && version !== "unknown" ? version : null;
+	} catch {
+		return null;
+	}
+}
+
+/** Shared by the SFU and the worker: both are asked, and both may not answer. */
+function buildReportedComponent(
+	current: string | null,
+	versions: { stable: string; beta: string | null },
+): ReportedComponent {
+	if (current) return { ...buildComponentInfo(current, versions), current };
+	return {
+		current: null,
+		latest: versions.stable,
+		latestStable: versions.stable,
+		latestBeta: versions.beta,
+		updateAvailable: false,
+		channel: "stable",
+	};
+}
+
+export async function getVersionStatus(): Promise<VersionStatus> {
+	const serverVersion = process.env.SERVER_VERSION || "0.0.0";
+
+	const [serverVersions, sfuVersions, sfuCurrent, workerCurrent] = await Promise.all([
+		fetchLatestVersions(REPOS.server).catch((err) => {
+			consola.warn("Version check: failed to fetch server releases", err.message);
+			return { stable: "0.0.0", beta: null };
+		}),
+		process.env.SFU_WS_HOST
+			? fetchLatestVersions(REPOS.sfu).catch((err) => {
+				consola.warn("Version check: failed to fetch SFU releases", err.message);
+				return { stable: "0.0.0", beta: null };
+			})
+			: null,
+		fetchSfuCurrentVersion(),
+		fetchWorkerCurrentVersion(),
+	]);
+
+	const server = buildComponentInfo(serverVersion, serverVersions);
+
+	const sfu = sfuVersions ? buildReportedComponent(sfuCurrent, sfuVersions) : null;
+
+	// Only asked about when there is a worker answering. A release list for a
+	// component nobody is running is noise.
+	let worker: VersionStatus["worker"] = null;
+	if (workerCurrent) {
+		const workerVersions = await fetchLatestVersions(REPOS.worker).catch((err) => {
+			consola.warn("Version check: failed to fetch image worker releases", err.message);
+			return { stable: "0.0.0", beta: null };
+		});
+		worker = buildReportedComponent(workerCurrent, workerVersions);
+	}
+
+	return { server, sfu, worker };
+}

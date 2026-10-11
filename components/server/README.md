@@ -1,0 +1,52 @@
+<div align="center">
+  <img src="https://raw.githubusercontent.com/Gryt-chat/client/main/public/logo.svg" width="80" alt="Gryt logo" />
+  <h1>Gryt Signaling Server</h1>
+  <p>Node.js signalling server for <a href="https://github.com/Gryt-chat/gryt">Gryt</a>, the voice, video and text chat platform.<br />Handles WebRTC signalling, rooms, text chat and file uploads.</p>
+</div>
+
+<br />
+
+## Docker
+
+```bash
+docker pull ghcr.io/gryt-chat/server:latest
+docker run -p 5000:5000 --env-file .env ghcr.io/gryt-chat/server:latest
+```
+
+Browse tags at [ghcr.io/gryt-chat/server](https://github.com/Gryt-chat/server/pkgs/container/server).
+
+## Quick start (development)
+
+```bash
+yarn install
+cp example.env .env
+yarn dev
+```
+
+Starts on **http://localhost:5000**.
+
+## Documentation
+
+Full docs at **[docs.gryt.chat/docs/host/server](https://docs.gryt.chat/docs/host/server)**:
+
+- [API Reference](https://docs.gryt.chat/docs/build/server-api) — WebSocket events, REST endpoints, data structures
+- [Rate Limiting](https://docs.gryt.chat/docs/host/rate-limiting) — score-based system, configuration
+- [Multi-Server](https://docs.gryt.chat/docs/host/multi-server) — server isolation, room IDs
+- [Deployment](https://docs.gryt.chat/docs/host) — Docker Compose, Kubernetes
+
+## Issues
+
+Please report bugs and request features in the [main Gryt repository](https://github.com/Gryt-chat/gryt/issues).
+
+## Sponsors
+
+What sponsoring pays for, the tiers, and everyone who has sponsored:
+[gryt.chat/sponsors](https://gryt.chat/sponsors). To sponsor:
+[GitHub Sponsors](https://github.com/sponsors/Gryt-chat).
+
+The list itself lives in the [Gryt README](https://github.com/Gryt-chat/gryt#sponsors),
+in one place rather than ten, so it cannot fall out of step across repositories.
+
+## License
+
+[AGPL-3.0](https://github.com/Gryt-chat/gryt/blob/main/LICENSE) — Part of [Gryt](https://github.com/Gryt-chat/gryt)

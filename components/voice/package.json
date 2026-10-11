@@ -1,0 +1,112 @@
+{
+  "name": "@gryt/voice",
+  "version": "0.6.2-laokuai.hybrid.integration.2",
+  "description": "Gryt's voice engine: signalling, ICE, tracks and audio, with web and React Native adapters.",
+  "license": "AGPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Gryt-chat/voice.git"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./native": {
+      "types": "./dist/native.d.ts",
+      "default": "./dist/native.js"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "third-party",
+    "docs/receive-leveling.md",
+    "docs/transmission-suppression.md",
+    "docs/receive-longterm.md",
+    "docs/audio-only.md",
+    "docs/transmit-speech-activity.md",
+    "docs/webrtc-stats-boundary.md",
+    "docs/staged-move.md",
+    "docs/microphone-codec.md",
+    "docs/hybrid-prototype.md",
+    "docs/hybrid-network.md",
+    "docs/hybrid-integration.md"
+  ],
+  "scripts": {
+    "build": "node scripts/generate-receive-dsp.mjs --check && node scripts/generate-transmit-speech.mjs --check && node -e \"fs.rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.json && node scripts/add-esm-extensions.mjs",
+    "typecheck": "node scripts/generate-receive-dsp.mjs --check && node scripts/generate-transmit-speech.mjs --check && tsc -p tsconfig.json --noEmit",
+    "check-receive-dsp": "node scripts/check-receive-dsp.mjs",
+    "bench-receive-dsp": "node scripts/bench-receive-dsp.mjs",
+    "test:comment-length": "node scripts/check-comment-length.mjs",
+    "prepublishOnly": "npm run build && npm run check-surface && npm run check-native-entry && npm run check-type-names",
+    "check-surface": "node scripts/check-public-surface.mjs",
+    "check-native-entry": "node scripts/check-native-entry.mjs",
+    "check-type-names": "node scripts/check-type-names.mjs",
+    "check-room-joined": "node scripts/check-room-joined.mjs",
+    "check-face-framing": "node scripts/check-face-framing.mjs",
+    "check-track-replace": "node scripts/check-track-replace.mjs",
+    "check-connection-settles": "node scripts/check-connection-settles.mjs",
+    "check-native-audio-ends": "node scripts/check-native-audio-ends.mjs",
+    "check-early-candidates": "node scripts/check-early-candidates.mjs",
+    "check-active-call-target": "node scripts/check-active-call-target.mjs",
+    "check-mic-request-race": "node scripts/check-mic-request-race.mjs",
+    "check-video-stats": "node scripts/check-video-stats.mjs",
+    "check-camera-sender": "node scripts/check-camera-sender.mjs",
+    "check-sfu-slots": "node scripts/check-sfu-slots.mjs",
+    "check-mic-bitrate": "node scripts/check-mic-bitrate.mjs",
+    "check-camera-resync": "node scripts/check-camera-resync.mjs",
+    "check-voice-latency": "node scripts/check-voice-latency.mjs",
+    "check-going-away": "node scripts/check-going-away.mjs",
+    "check-recovery-disconnect": "node scripts/check-recovery-disconnect.mjs",
+    "check-failed-repick": "node scripts/check-failed-repick.mjs",
+    "check-video-demand": "node scripts/check-video-demand.mjs",
+    "check-video-budget": "node scripts/check-video-budget.mjs",
+    "check-room-refusals": "node scripts/check-room-refusals.mjs",
+    "check-native-ptt": "node scripts/check-native-ptt.mjs",
+    "check-transmission": "node scripts/check-transmission.mjs",
+    "check-transmission-publication": "node scripts/check-transmission-publication.mjs",
+    "check-receive-longterm": "node scripts/check-receive-longterm.mjs",
+    "check-receive-recovery": "node scripts/check-receive-recovery.mjs",
+    "check-media-policy": "node scripts/check-media-policy.mjs",
+    "check-audio-only-engine": "node scripts/check-audio-only-engine.mjs",
+    "check-receive-prior": "node scripts/check-receive-prior.mjs",
+    "check-transmit-speech-core": "node scripts/generate-transmit-speech.mjs --check",
+    "check-adaptive-transmit-gate": "node scripts/check-adaptive-transmit-gate.mjs",
+    "check-adaptive-send-markers": "node scripts/check-adaptive-send-markers.mjs",
+    "check-adaptive-send-headless": "node scripts/check-adaptive-send-headless.mjs",
+    "check-rnnoise-invalid-input": "node scripts/check-rnnoise-invalid-input.mjs",
+    "check-staged-move": "node scripts/check-staged-move.mjs",
+    "check-microphone-codec": "node scripts/check-microphone-codec.mjs",
+    "check-microphone-codec-headless": "node scripts/check-microphone-codec-headless.mjs",
+    "check-hybrid": "node scripts/check-hybrid.mjs",
+    "check-hybrid-network-boundary": "node scripts/check-hybrid-network-boundary.mjs",
+    "check-hybrid-integration": "node scripts/check-hybrid-integration.mjs",
+    "check-hybrid-session": "node scripts/check-hybrid-session.mjs",
+    "check-closed-pc-cleanup": "node scripts/check-closed-pc-cleanup.mjs"
+  },
+  "devDependencies": {
+    "@mediapipe/tasks-vision": "^1.0.1",
+    "@shiguredo/rnnoise-wasm": "^2025.1.5",
+    "@types/node": "^20.19.33",
+    "@types/react": "^19",
+    "react-native-webrtc": "^124.0.8",
+    "react-test-renderer": "^19.2.8",
+    "typescript": "^5.9.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-native-webrtc": ">=124"
+  },
+  "peerDependenciesMeta": {
+    "react-native-webrtc": {
+      "optional": true
+    }
+  }
+}

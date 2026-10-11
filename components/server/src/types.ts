@@ -1,0 +1,46 @@
+export type UserStatus = 'online' | 'in_voice' | 'afk' | 'offline';
+
+export interface Clients {
+  [id: string]: {
+    grytUserId?: string; // Internal Gryt Auth user ID (never exposed to clients)
+    serverUserId: string; // Secret server user ID (never exposed to clients)
+    nickname: string;
+    color: string;
+    isMuted: boolean;
+    isDeafened: boolean;
+    streamID: string;
+    hasJoinedChannel: boolean;
+    voiceChannelId: string;
+    isConnectedToVoice?: boolean;
+    isAFK: boolean;
+    cameraEnabled: boolean;
+    cameraStreamID: string;
+    screenShareEnabled: boolean;
+    screenShareVideoStreamID: string;
+    screenShareAudioStreamID: string;
+    isServerMuted: boolean;
+    isServerDeafened: boolean;
+    /** On the connection rather than in `users`, like `isAFK`: a stored one would
+        still claim they are listening to something a week later. */
+    activity?: string;
+    /** The Rich Presence card, checked by `normaliseRichActivity`. Never set without `activity`. */
+    richActivity?: import("./utils/richActivity").RichActivity;
+    /** The phone says it went to the background, so it should be woken by push. */
+    appInBackground?: boolean;
+    status?: UserStatus;
+    lastSeen?: Date;
+    accessToken?: string; // JWT access token for this server
+    /** Authenticated SDK declaration. It is not proof the staged PC is ready. */
+    voiceMoveStagingSupported?: boolean;
+    /** Never used to authorise an action; see socket/utils/standing. Undefined
+        until the socket has joined. */
+    permissions?: ReadonlySet<import("./constants/permissions").Permission>;
+    latencyStats?: {
+      estimatedOneWayMs: number | null;
+      networkRttMs: number | null;
+      jitterMs: number | null;
+      codec: string | null;
+      bitrateKbps: number | null;
+    };
+  };
+}

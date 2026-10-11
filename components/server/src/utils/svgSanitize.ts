@@ -1,0 +1,115 @@
+/**
+ * The `<img>` draw and the file response's CSP are what carry the safety; this
+ * covers a copy opened from disk. Nothing here rasterises.
+ */
+
+import createDOMPurify from "dompurify";
+import { JSDOM } from "jsdom";
+
+// One window for the process. Building a JSDOM per upload is slow, and
+// DOMPurify only needs somewhere to parse.
+const purify = createDOMPurify(new JSDOM("").window);
+
+/** A vector needing more than this is an embedded raster or something built to
+    be expensive to parse. Neither is an avatar. */
+export const MAX_SVG_BYTES = 512 * 1024;
+
+export type SvgValidationResult =
+  | { valid: true; svg: string; width: number; height: number }
+  | { valid: false; reason: string };
+
+/** viewBox first, since it defines the coordinate space. width/height may carry
+    units, so anything non-numeric is ignored rather than guessed at. */
+function readDimensions(el: Element): { width: number; height: number } | null {
+  const viewBox = el.getAttribute("viewBox");
+  if (viewBox) {
+    const parts = viewBox.trim().split(/[\s,]+/).map(Number);
+    if (parts.length === 4 && parts.every(Number.isFinite)) {
+      const [, , w, h] = parts;
+      if (w > 0 && h > 0) return { width: Math.round(w), height: Math.round(h) };
+    }
+  }
+
+  const w = parseFloat(el.getAttribute("width") || "");
+  const h = parseFloat(el.getAttribute("height") || "");
+  if (Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0) {
+    return { width: Math.round(w), height: Math.round(h) };
+  }
+
+  return null;
+}
+
+/** The original bytes are deliberately not kept. */
+export function sanitizeSvg(buffer: Buffer): SvgValidationResult {
+  if (buffer.length > MAX_SVG_BYTES) {
+    return {
+      valid: false,
+      reason: `That SVG is too large (max ${Math.round(MAX_SVG_BYTES / 1024)}KB).`,
+    };
+  }
+
+  const source = buffer.toString("utf8");
+
+  // Cheap rejection before parsing, so obviously-not-an-SVG does not get a DOM
+  // built for it.
+  if (!/<svg[\s>]/i.test(source)) {
+    return { valid: false, reason: "That file is not an SVG." };
+  }
+
+  let clean: string;
+  try {
+    clean = purify.sanitize(source, {
+      USE_PROFILES: { svg: true, svgFilters: true },
+      // foreignObject is how HTML gets back into an SVG. The rest are external
+      // references: inert through <img>, and phoning home anywhere else.
+      FORBID_TAGS: ["foreignObject", "script", "a", "use", "image"],
+      FORBID_ATTR: ["href", "xlink:href", "formaction", "ping"],
+    });
+  } catch {
+    return { valid: false, reason: "That SVG could not be read." };
+  }
+
+  // Refused rather than repaired: an SVG carrying <script> is not an innocent
+  // file. BODY is jsdom's wrapper, removed from every parse, clean or not.
+  const removed = purify.removed
+    .map((r) => {
+      const el = (r as { element?: Node }).element;
+      const attr = (r as { attribute?: Attr }).attribute;
+      return el?.nodeName ?? attr?.name ?? "";
+    })
+    .filter((name) => name && name.toUpperCase() !== "BODY");
+
+  if (removed.length > 0) {
+    const unique = [...new Set(removed)].slice(0, 3).join(", ");
+    return {
+      valid: false,
+      reason:
+        `That SVG contains things that can run code or call out to other sites ` +
+        `(${unique}), so it was not accepted. Export it again without scripting ` +
+        `or interactivity, or upload a PNG.`,
+    };
+  }
+
+  if (!clean.trim()) {
+    return {
+      valid: false,
+      reason: "Nothing was left of that SVG after removing unsafe content.",
+    };
+  }
+
+  const doc = new JSDOM(clean, { contentType: "image/svg+xml" }).window.document;
+  const root = doc.querySelector("svg");
+  if (!root) {
+    return { valid: false, reason: "That file is not a valid SVG." };
+  }
+
+  const dims = readDimensions(root);
+  if (!dims) {
+    return {
+      valid: false,
+      reason: "That SVG has no viewBox or size, so it cannot be displayed reliably.",
+    };
+  }
+
+  return { valid: true, svg: clean, width: dims.width, height: dims.height };
+}
