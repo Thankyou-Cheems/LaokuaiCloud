@@ -2146,6 +2146,21 @@
       "publicUploaded": false,
       "recipientTransferred": false,
       "repositoryVisibilityChanged": false
+    },
+    "modernRuntimeMinimalHandoff": {
+      "receipt": "release/acceptance/modern-runtime-minimal-handoff-prepared.json",
+      "receiptSha256": "576392f06e4d0378028acaea87501d54e3ac4c7db73c1feeb3088b60b5d526c8",
+      "doc": "release/source-materials/MINIMAL-MODERN-RUNTIME-ACCEPTANCE.md",
+      "sourceCommit": "089b6182c603c8ab60044b673effe0cf614cc28a",
+      "preparedOnly": true,
+      "sourceCargoOnlyChanged": true,
+      "sharedRustFilesUnchanged": 624,
+      "runtime4FilesRehashed": true,
+      "oldAuthorizationReusable": false,
+      "metadataSchemaAdapterRequired": true,
+      "runnableScopeSha256": null,
+      "activationApproved": false,
+      "nativeExecuted": false
     }
   },
   "securityBoundary": {
@@ -2185,7 +2200,8 @@
     "Modern source089b6182 actual native pair is in completed full-app84292bf portable3cff0c00; internal build/static audit/run2 hidden bootstrap passed, run1 monitor anomaly preserved. Old schema6/a071/dbaf cannot execute this new payload; parent reports TUN review rejected. Actual native and real-call acceptance remain separate.",
     "Screened1262-file native source draft excludes15 prebuilt assets, including6 Packet files. Fresh source-only offline restoration uses865 registry archives/7 Git source snapshots and preserves1129 lock record versions/checksums with6 local transport changes. Actual recipient transfer/relink/platform license and distribution review remain pending; no public export.",
     "Assigned recipient engineering proof remains one fresh offline screened-kit core/CLI compile+link using a test-only LGPL library version marker; prepared1262-file helper/lock guards preserve exact scope. Exact Client/Voice,405-file custom UI and RNNoise wrapper/native/fixed-model source review is now prepared privately. Actual recipient transfer/access, permitted external export/platform redistribution review and independent recipient app rebuild remain separate release actions. Extra UI/audio tests are not licensing proof",
-    "Private source offer: exact842 client/Voice plus405-file custom UI source and RNNoise wrapper/native/model archives are sealed with acquisition/lock/notices/SHA and no Git history. No external transfer or public URL; absence of public URL is not an internal-test blocker. User must choose concrete recipients/channel or screened public target/brand scope before sharing; current private integration repository stays private."
+    "Private source offer: exact842 client/Voice plus405-file custom UI source and RNNoise wrapper/native/model archives are sealed with acquisition/lock/notices/SHA and no Git history. No external transfer or public URL; absence of public URL is not an internal-test blocker. User must choose concrete recipients/channel or screened public target/brand scope before sharing; current private integration repository stays private.",
+    "Modern089b/f716+1ad4 minimum runtime handoff is now prepared:624 shared Rust files and lock identical, only Cargo.toml dependency/CRT selection changes. Strict original modern producer schema adaptation, re-pinned pwsh7 runner/new source+scope closure and fresh protected-object preflight/approval must precede one no-peer test. Real2-client community/device/media/fallback and optional chosen-game coexistence use separately explicit scopes; do not repeat passing old dbaf or unchanged UI/SDK/capacity checks."
   ],
   "finalPackage": null,
   "frozenPreviousHybrid": {
