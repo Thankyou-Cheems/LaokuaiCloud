@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "id": "laokuai-cloud-receive-path-et-observation-frozen-20261011",
-  "stage": "internal83-artifact-static-verified-current-followup-and-readonly-baseline-frozen-native-and-complete-application-acceptance-pending",
+  "stage": "ui-isolation-source-reviewed-frozen-build-and-actual-dom-pending-dd60-approved-preflight-failed-before-core",
   "ready": false,
   "repository": {
     "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud",
@@ -9,15 +9,15 @@
     "visibility": "private",
     "branch": "release/integration-20261011",
     "soleGitWriter": "task-6",
-    "codeCommit": "944c42880b00cf8da839bf061e8f5439f86b4304",
-    "codeTree": "f6aef607633178f795265199819edc091f537b0e",
+    "codeCommit": "12919aec27af82d7abe1387717b09a4bce2c729b",
+    "codeTree": "4481dd9ccc4686b214dd5a87cd5844981e98fb5b",
     "newRepositoryReason": "Authenticated private-repo metadata and explicitly scoped old local core/game remotes revealed no matching existing private integration repository",
     "historyPolicy": "Original client history preserved; no force push/reset/rewrite; other components imported as licensed source snapshots"
   },
   "components": {
     "client": {
       "path": "components/client",
-      "tree": "9ae35bf34aa17f8e8d710e603e9a75e04c398b75",
+      "tree": "9b1bc0da9e31fe8620ec207af895806cbc63544c",
       "upstream": "Gryt-chat/client",
       "publicFork": "Thankyou-Cheems/gryt-client-i18n",
       "historyImportedFrom": "06ac43f51dbda3b9444c73270a126e10489110e9",
@@ -408,6 +408,14 @@
       "internalArtifactSourceFreeze": "83dd572fad7837c9716153b9cc2e58535db1b875",
       "artifactSha256": "7d430b1cdf64cd07f439264b4d73ba3771f5a105796c8041f15c2424c66cb0e9",
       "actualActivationAccepted": false
+    },
+    {
+      "kind": "ui-isolation-source-integrated-and-dd60-factual-correction",
+      "integratedCommit": "12919aec27af82d7abe1387717b09a4bce2c729b",
+      "patchSha256": "dc51a377f823be3365f37d51bb87f4fe5bb4eca24b3d2517c2bf4fa0e877b9b0",
+      "patchConflicts": [],
+      "sourceAccepted": true,
+      "actualApplicationExecuted": false
     }
   ],
   "easytier": {
@@ -1456,8 +1464,8 @@
       "scopeSha256": "dd60b94603ffb3e17a85450810e2f3edfba3183705e0d515f662037916692dfc",
       "exactSourceFiles": 7,
       "pureChecks": 30,
-      "executed": false,
-      "currentHumanApprovalReceived": false,
+      "executed": true,
+      "currentHumanApprovalReceived": true,
       "productionActivationApproved": false,
       "sourceReceipt": "release/acceptance/snapshot-diagnostic-repair-integrated.json",
       "sourceReceiptSha256": "926d7b96307b6f977d1d950897dde1e2b42e9126401300370b9ce12c73c0644d",
@@ -1476,7 +1484,11 @@
         "currentSingleAttemptApprovalConsumed": true,
         "actualReceipt": "release/acceptance/tun-preflight-unavailable.json",
         "actualReceiptSha256": "3f74f4ca077292edbb658b2e78bbbe7935bb3d298ee382673d42bbee7616b453"
-      }
+      },
+      "approvalConsumed": true,
+      "executionStage": "Owner preflight only; stopped before core/TUN",
+      "nativeActivationExecuted": false,
+      "actualAttemptReceipt": "release/acceptance/native-dd60-preflight-failed.json"
     },
     "providerActualInstanceBinding": {
       "receipt": "release/acceptance/provider-instance-binding-real-media.json",
@@ -1541,8 +1553,10 @@
       "pureChecks": 30,
       "administratorBaselineAccepted": true,
       "actualActivationAccepted": false,
-      "currentHumanApprovalReceived": false,
-      "oldSingleAttemptApprovalConsumed": true
+      "currentHumanApprovalReceived": true,
+      "oldSingleAttemptApprovalConsumed": true,
+      "currentApprovalConsumed": true,
+      "sourceReceiptFlagsDescribeEarlierSourceFreeze": true
     },
     "nativeReadOnlyBaseline": {
       "receipt": "release/acceptance/admin-readonly-baseline.json",
@@ -1552,6 +1566,27 @@
       "completedPhases": 23,
       "task6Executed": false,
       "nativeBeforeAfterPreservationAccepted": false
+    },
+    "uiIsolatedStartupSource": {
+      "receipt": "release/acceptance/ui-isolated-startup-source-integrated.json",
+      "receiptSha256": "c207e334c387c15635719f154a7c70fc66312929440a4aaf4b2108de157656ff",
+      "sourceCommit": "12919aec27af82d7abe1387717b09a4bce2c729b",
+      "pureAndTypeChecks": 23,
+      "targetedLintPassed": true,
+      "sourceAccepted": true,
+      "applicationExecuted": false,
+      "actualUiAccepted": false
+    },
+    "nativeLatestApprovedAttempt": {
+      "receipt": "release/acceptance/native-dd60-preflight-failed.json",
+      "receiptSha256": "f293d34af7ae7911dafd6249e7339ea2ec139967f622a9da50af7840bde46069",
+      "scopeSha256": "dd60b94603ffb3e17a85450810e2f3edfba3183705e0d515f662037916692dfc",
+      "currentHumanApprovalReceived": true,
+      "approvalConsumed": true,
+      "preflightExecutedByEtOwner": true,
+      "coreStarted": false,
+      "nativeBeforeAfterAccepted": false,
+      "actualDifferenceUnknown": true
     }
   },
   "securityBoundary": {
@@ -1584,9 +1619,9 @@
     "Authenticated member-to-ET-peer binding, selected forwarding/full physical path and timestamped ET RTT are absent; keep unknown",
     "All25 native license omissions reviewed:23 original text/notice cases recovered; two MIT author-notice provenance questions and one CC0/source-notice clarification remain. Complete corresponding/relinkable source recipient delivery pending",
     "c3a72472 production Provider seam actual P2P/retirement/fallback/sampler/null passed; complete main/preload/renderer/account/socket bootstrap, visual UI and actual capture/listening still unaccepted",
-    "Old TUN approval consumed by failed preflight; final732ad82e scope dd60b946 includes complete administrator readonly baseline and30 pure checks, but no fresh native approval/operation or before-after preservation acceptance",
+    "Both c737 and later approved dd60 scoped attempts are consumed. dd60 completed two23-phase snapshots but fingerprint mismatch stopped before core; exact field difference unknown. Readonly ET-owner diagnosis/repair pending; no new native retry authorized",
     "Internal83 portable artifact SHA7d430b1c/source83dd572f/static188files verified. Follow-up26 legal/FileSet changes and944 runner repair are absent from that artifact; no attribution to current code",
-    "Full application UI isolation patch is being prepared by the sole capacity owner. Existing83 packaged main starts HTTP/mDNS and may hook/helpers, so no UI launch acceptance or task6 execution; wait for immutable source delta"
+    "UI isolation source12919aec is reviewed,23 pure/type checks and targeted lint passed. New frozen build/compiled asar/import-time audit and actual hidden bounded DOM/process/listener/no-focus acceptance by designated owner are pending; old83 executable lacks the mode"
   ],
   "finalPackage": null,
   "frozenPreviousHybrid": {

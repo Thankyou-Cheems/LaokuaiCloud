@@ -101,6 +101,22 @@ if(m.validation.nativeLicenseReview){
   assert(sha(legal.review)===legal.reviewSha256&&sha(legal.textBundle)===legal.textBundleSha256&&sha(legal.distributionReview)===legal.distributionReviewSha256,'Native license review bytes changed');
   require('./verify-native-licenses.cjs');
 }
+if(m.validation.uiIsolatedStartupSource){
+  const entry=m.validation.uiIsolatedStartupSource;
+  assert(sha(entry.receipt)===entry.receiptSha256,'UI source receipt changed');
+  const receipt=JSON.parse(fs.readFileSync(path.join(root,entry.receipt),'utf8'));
+  assert(receipt.sourceCommit===entry.sourceCommit&&receipt.validation.integrationPureAndTypeChecks===23&&receipt.validation.targetedEslint.startsWith('passed'),'UI reviewed source/check identity mismatch');
+  for(const file of receipt.files)assert(sha(file.path)===file.sha256&&git(['rev-parse',`${receipt.sourceCommit}:${file.path}`])===file.gitBlob,'UI source/check bytes drifted');
+  assert(receipt.applicationExecuted===false&&receipt.compiledPackageVerified===false&&receipt.actualDomOrScreenshot===false&&receipt.actualNoListenerOrFocusVerified===false&&receipt.old83ArtifactContainsMode===false,'UI source promoted to actual startup');
+}
+if(m.validation.nativeLatestApprovedAttempt){
+  const entry=m.validation.nativeLatestApprovedAttempt;
+  assert(sha(entry.receipt)===entry.receiptSha256,'Latest approved ET attempt receipt changed');
+  const receipt=JSON.parse(fs.readFileSync(path.join(root,entry.receipt),'utf8'));
+  assert(receipt.scopeSha256===entry.scopeSha256&&receipt.currentHumanApprovalReceived===true&&receipt.approvalConsumed===true&&receipt.authorizedAttempts===1&&receipt.networkRetries===0,'Latest ET attempt authorization drifted');
+  assert(receipt.snapshots.length===2&&receipt.snapshots.every(s=>s.phaseCount===23&&s.failure===null)&&receipt.coreStartReached===false&&receipt.temporaryNicCreated===false&&receipt.nativeBeforeAfterPreservationAccepted===false&&receipt.task6Executed===false,'Failed latest preflight promoted to native acceptance');
+  assert(receipt.actualComparison.actualPolicyModificationProven===false&&entry.actualDifferenceUnknown===true,'Unknown comparison mismatch reclassified as proven policy mutation');
+}
 if(m.validation.followupPackagingCompatibility){
   const candidate=m.validation.followupPackagingCompatibility;
   assert(sha(candidate.receipt)===candidate.receiptSha256,'Follow-up packaging receipt changed');

@@ -1,0 +1,111 @@
+{
+  "schema": 1,
+  "sourceOwnerCommit": "732ad82e6528ae1567abf31b6429dabc6ef362e0",
+  "scopeSha256": "dd60b94603ffb3e17a85450810e2f3edfba3183705e0d515f662037916692dfc",
+  "ownerEvidenceDirectory": "task-7/et-main-delivery/no-npcap-trial/actual-retry-dd60-20261011",
+  "handoffSha256": "86cfb4c52c9a121abc2b28b2ad1717e346ee2a9c33bcb3d55917d9bd9426ab16",
+  "artifacts": [
+    {
+      "name": "authorization.json",
+      "bytes": 688,
+      "sha256": "1425ae82d0889b298832c4fb92f208065e9679cb03632ab7d1bce150c24a9e45"
+    },
+    {
+      "name": "static-input-check.json",
+      "bytes": 915,
+      "sha256": "407e10f5f14c672d582b2b5dbdf6adcf307d96bd598b8b6de90598b37d821ab7"
+    },
+    {
+      "name": "uac-receipt.json",
+      "bytes": 435,
+      "sha256": "81fceb6c7bbe2bf83182abbf705ef2742c6fe33498e7768f0400def02d4c126f"
+    },
+    {
+      "name": "launch-status.json",
+      "bytes": 520,
+      "sha256": "4b6ea1a9bd16ad5a313a0eecc48b1c055dc291974ad0a5d75979d071c24945d7"
+    },
+    {
+      "name": "runner-output.json",
+      "bytes": 425,
+      "sha256": "8783e5abfbf5f2d96d9d3d566e9a2f10cd64f2f4c3a7b39565e01c0178f7fc5d"
+    },
+    {
+      "name": "trial-result.json",
+      "bytes": 425,
+      "sha256": "8783e5abfbf5f2d96d9d3d566e9a2f10cd64f2f4c3a7b39565e01c0178f7fc5d"
+    },
+    {
+      "name": "snapshot-1.json",
+      "bytes": 5440,
+      "sha256": "c3e8682ee513db5cdad96345f8a1ba5a26f105dd61102d59501f7f73e3023103"
+    },
+    {
+      "name": "snapshot-2.json",
+      "bytes": 5440,
+      "sha256": "70a3c841512cbc09d474759030869890d8099729ffea21f5e9144b645bfac295"
+    },
+    {
+      "name": "post-failure-observation.json",
+      "bytes": 607,
+      "sha256": "917961aa4b921692231c5e3985e0d52c4b94ee67fd26360af5f758fc81225022"
+    },
+    {
+      "name": "launch-journal.mjs",
+      "bytes": 2569,
+      "sha256": "a3eaf17d3ce3803633c475414f05e5e9300bb4bf04eb70ef6e56ef7fbc030b5b"
+    },
+    {
+      "name": "verify-inputs.mjs",
+      "bytes": 2719,
+      "sha256": "7953abd824b1bc63f945ebbb14098802c2076536a17075a24be8a670e62121c0"
+    }
+  ],
+  "task6ReadOnlyHashesMatched": 11,
+  "currentHumanApprovalReceived": true,
+  "approvalConsumed": true,
+  "authorizedAttempts": 1,
+  "normalUacLaunches": 1,
+  "networkRetries": 0,
+  "outcome": "failed-before-native-start",
+  "failure": "global-network-policy-changed",
+  "runnerExitCode": 1,
+  "elapsedMs": 39754,
+  "snapshots": [
+    {
+      "name": "snapshot-1.json",
+      "elapsedMs": 19337,
+      "failure": null,
+      "lastPhase": "serialize",
+      "phaseCount": 23,
+      "droppedLines": 0
+    },
+    {
+      "name": "snapshot-2.json",
+      "elapsedMs": 19540,
+      "failure": null,
+      "lastPhase": "serialize",
+      "phaseCount": 23,
+      "droppedLines": 0
+    }
+  ],
+  "coreStartReached": false,
+  "temporaryNicCreated": false,
+  "nativeDriverOrHelperExecuted": false,
+  "globalNetworkOrPermissionWrites": false,
+  "nativeBeforeAfterPreservationAccepted": false,
+  "actualComparison": {
+    "globalPolicyOrDefaultRouteFingerprintMatched": false,
+    "whichComponent": "unknown: frozen failure path did not persist complete comparison objects",
+    "actualPolicyModificationProven": false
+  },
+  "diagnosisRepairPending": true,
+  "noFurtherActivation": true,
+  "task6Executed": false,
+  "privateHostDetailsImported": false,
+  "remaining": [
+    "Readonly field comparison/source diagnosis and immutable runner repair by ET owner",
+    "A consumed one-shot approval does not authorize another activation",
+    "Native create/run/stop and complete before/after acceptance remain unverified"
+  ]
+}

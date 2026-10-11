@@ -1,0 +1,105 @@
+{
+  "schema": 1,
+  "sourceCommit": "12919aec27af82d7abe1387717b09a4bce2c729b",
+  "previousFreeze": "f7c4c024cbebfe35f00c4001d176244d311dd2a9",
+  "ownerEvidenceDirectory": "task-2/ui-acceptance-preparation",
+  "ownerEvidence": {
+    "REPORT.md": {
+      "sha256": "a854ba35a35b1ecaf56379ebc8f810f2ff84bfac0ee331eb2fb3850b5202cf19",
+      "bytes": 6170
+    },
+    "ui-acceptance-minimal-review.patch": {
+      "sha256": "dc51a377f823be3365f37d51bb87f4fe5bb4eca24b3d2517c2bf4fa0e877b9b0",
+      "bytes": 45285
+    },
+    "ui-acceptance-source-review.zip": {
+      "sha256": "c4f2558878cb21813533d176b815e2f037f52455e93739da34f21f5b708810a5",
+      "bytes": 124886
+    },
+    "SHA256-MANIFEST.json": {
+      "sha256": "189f56fca2ec259e0a3d89f1e1722f1eceb13b3dce2c88b34bde7703109cd29b",
+      "bytes": 3275
+    },
+    "HANDOFF.json": {
+      "sha256": "7b7df74fe569e2cb77fc7d602bd18de271c89e5a16472c12d2f21e928d71d990",
+      "bytes": 940
+    },
+    "evidence/VALIDATION.json": {
+      "sha256": "268e7639996e8593c1e039543d334ff4cc704b257195539011388aa5f3c8f2a5",
+      "bytes": 1690
+    }
+  },
+  "patchSha256": "dc51a377f823be3365f37d51bb87f4fe5bb4eca24b3d2517c2bf4fa0e877b9b0",
+  "patchBase": "83dd572fad7837c9716153b9cc2e58535db1b875",
+  "patchConflicts": [],
+  "files": [
+    {
+      "path": "components/client/electron/main.ts",
+      "sha256": "ef5a1fbf29c8b11902f811d540319462596573b4e431ca4fd76505f6d4ccffdf",
+      "gitBlob": "31ee206f2916b41ecd5f59ea0419b89b9efda9c5"
+    },
+    {
+      "path": "components/client/electron/uiAcceptanceMode.ts",
+      "sha256": "b55139db151472e86e0ddb2ffbda4a6fb8927f68355dd9f7c33247849a171610",
+      "gitBlob": "2ca67ab3011af0bcf879aec9cac9de7831fed677"
+    },
+    {
+      "path": "components/client/scripts/check-ui-acceptance-mode.cjs",
+      "sha256": "e8f0e6bb67edfa9d6832bad6b9616dd287925d033fe2a89aafa3dfabfa7c8513",
+      "gitBlob": "470ceab72d6e43872b7ab3367e57a538667f3486"
+    }
+  ],
+  "integrationAdaptations": [
+    "Sort two imports and use Electron IpcMain listener type instead of explicit any",
+    "Central UI guards prevent focus-event update checks, update/installation callbacks and old-install-backup cleanup",
+    "Add reproducible exact integrated-source pure/type checks;23 checks including actual updater/backup functions returning before side effects"
+  ],
+  "validation": {
+    "ownerPureAndTypeChecks": 22,
+    "integrationPureAndTypeChecks": 23,
+    "checkNames": [
+      "ordinary launch has no mode/path/Chromium mutations",
+      "foreign package rejected before path writes",
+      "malformed and repeated flags rejected before path writes",
+      "profile/debug options rejected before path writes",
+      "relative/non-fresh directories rejected before path writes",
+      "fresh mode has separate real userData/sessionData/crashDumps paths",
+      "same directory cannot be admitted twice",
+      "local protocol resolves real file only",
+      "protocol rejects junction escaping asset root",
+      "allowlisted IPC retains original handler result unchanged",
+      "native/listener/secret/new IPC fails closed before handler entry",
+      "external/window/update IPC cannot enter handler",
+      "isolated persistence event retains real handler",
+      "removeHandler retains Electron receiver",
+      "default and future sessions deny media permissions",
+      "session requests allow local assets and block http/ws/file/remote custom host",
+      "diagnostic observer registers without showing/focusing/capturing window",
+      "UI mode returns before updater/focus/installer-backup side effects",
+      "main mode validation occurs before logs/stores/single-instance lock",
+      "main all IPC registrations use guarded port",
+      "main listener/autostart/native/show boundaries have explicit mode guards",
+      "real tsconfig.node full-project read-only overlay typecheck",
+      "protocol returns exact local bytes, CSP and missing-file 404"
+    ],
+    "fullTsconfigNode": "passed-noEmit-readonly-overlay",
+    "targetedEslint": "passed-electron-main-and-mode",
+    "firstDefaultLintFailure": "two import-sort errors and one explicit-any error; corrected",
+    "firstSandboxPureFailure": "junction fixture creation EPERM; same dedicated Task6-only fixture check passed with scoped tool escalation"
+  },
+  "acceptedAtSource": true,
+  "applicationExecuted": false,
+  "compiledPackageVerified": false,
+  "actualDomOrScreenshot": false,
+  "actualNoListenerOrFocusVerified": false,
+  "nativeExecuted": false,
+  "normalLaunchPreservedByConditionalMode": true,
+  "old83ArtifactContainsMode": false,
+  "publicDistributionApproved": false,
+  "remaining": [
+    "New exact frozen build and compiled/asar/import-time guard audit by designated build owner",
+    "Separately coordinated bounded hidden actual process/socket/no-focus and DOM/viewport evidence",
+    "Authenticated member/voice menus, device and native acceptance remain separate",
+    "webRequest is not an OS or WebRTC egress firewall; no zero-egress claim from source checks"
+  ]
+}
