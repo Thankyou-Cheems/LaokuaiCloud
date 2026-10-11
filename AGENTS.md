@@ -46,6 +46,12 @@ MemberVoiceMediaPathProvider is not mounted; real authenticated SDK/ET evidence
 wiring and connection details are pending. UI work does not delay the capacity
 owner's reviewed dbaf0453 native build or immutable 78513ba4 SDK3 retest inputs.
 
+The final user-approved deployed landing source is archived separately in
+components/landing. Maintain exact HTML/illustration and sanitized deployment
+provenance; do not import shared/private deployment configuration or raw logs.
+Do not redeploy as part of source integration. Landing approval does not grant
+desktop design acceptance, runtime activation or final package release approval.
+
 Current scope defers member-assistance settings/policies/experiments. Prioritize
 existing voice P2P/SFU fallback, basic ET connectivity, truthful status and
 reliability, then user-approved UI prototype before packaging. Keep public ET

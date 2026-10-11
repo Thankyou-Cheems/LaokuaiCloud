@@ -53,7 +53,19 @@ presence implementations are unchanged; their original pure checks pass. Preserv
 hover/click menus when implementing the approved design. The UI owner is preparing
 the third prototype and actual implementation matrix. The second prototype's seven
 VM checks are owner-reported; task-6 has not rendered it. Final design is unapproved.
-No landing candidate or final product package is included.
+No final product package is included.
+
+The separately user-approved, deployed landing page is archived under
+`components/landing` from the final create-only delivery. All six owner source
+files and the unchanged embedded illustration match their frozen hashes. The
+HTML is 2,141,608 bytes, SHA-256
+`519faa9074d5331efae9642f010973ef86b51e7e81abeb40420b3c3a6b65e139`,
+with title “唠蒯云 · 来唠嗑吧” and no download link. Copy/fallback/content checks
+and 18 pure route cases pass. `deployment-record.json` retains owner-reported
+HTTPS/hash and protocol regressions while omitting private machine paths, shared
+configuration and raw diagnostics. The scoped reviewed Caddy fragment is not a
+replacement for the full shared configuration. Task-6 did not redeploy or probe
+production. Landing approval does not accept the desktop UI or final package.
 
 The immutable `78513ba4` ZIP/bundle remains the capacity owner's SDK3 media test
 input. Reviewed native `dbaf0453` remains approved for isolated compilation by

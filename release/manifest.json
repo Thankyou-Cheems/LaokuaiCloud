@@ -1,6 +1,6 @@
 {
   "schema": 2,
-  "id": "laokuai-cloud-ui-v2-intermediate-source-20261011",
+  "id": "laokuai-cloud-ui-v2-approved-landing-source-20261011",
   "stage": "ui-third-version-native-build-and-sdk-media-retest-pending",
   "ready": false,
   "repository": {
@@ -9,8 +9,8 @@
     "visibility": "private",
     "branch": "release/integration-20261011",
     "soleGitWriter": "task-6",
-    "codeCommit": "a8db5d9148aba13afe6cfb582e1227e571b60902",
-    "codeTree": "bbd2ce888ef2b031a6ac2884d945f56e1f28a648",
+    "codeCommit": "6f8b89162fecb7339e32630b7e092e989c96b159",
+    "codeTree": "44c4cffcc33dea9f91eff13d876bf22c45dcb871",
     "newRepositoryReason": "Authenticated private-repo metadata and explicitly scoped old local core/game remotes revealed no matching existing private integration repository",
     "historyPolicy": "Original client history preserved; no force push/reset/rewrite; other components imported as licensed source snapshots"
   },
@@ -146,6 +146,23 @@
         }
       },
       "originalHistory": false
+    },
+    "landing": {
+      "path": "components/landing",
+      "tree": "e1215b01f703d2a2dba56ba9cb1261b55789220a",
+      "domain": "voice.ruikang.wang",
+      "status": "approved-deployed-final-static-source-integrated",
+      "finalPatchSha256": "6d2ce663d8a4e7f70169fa9a9f98d1fd4a722eff663fea884b3871aed42c2027",
+      "htmlBytes": 2141608,
+      "htmlSha256": "519faa9074d5331efae9642f010973ef86b51e7e81abeb40420b3c3a6b65e139",
+      "embeddedImageSha256": "06b380ae3c6f155ba11551d6eeb8a97f21a528cf6a51d9a83d43a0d26ca5a415",
+      "exactOwnerSourceFiles": 6,
+      "title": "唠蒯云 · 来唠嗑吧",
+      "deliveryManifestSha256": "b6dc617825a372a3916588040a8c59db351b2fa41c75d8af945a6363c8e33952",
+      "deploymentRecordSha256": "29cfe3740a12dca46e48b7e46300a066afac24dd3623914b47d035bf1cedf0c8",
+      "noDownloadLink": true,
+      "independentOfDesktopRelease": true,
+      "task6Redeployed": false
     }
   },
   "deliveries": [
@@ -246,6 +263,22 @@
         "Import sorting only in four check scripts; functional owner source unchanged"
       ],
       "finalDesignAccepted": false
+    },
+    {
+      "kind": "approved-final-static-landing",
+      "deliveredCommit": null,
+      "patchSha256": "6d2ce663d8a4e7f70169fa9a9f98d1fd4a722eff663fea884b3871aed42c2027",
+      "integratedCommit": "6f8b89162fecb7339e32630b7e092e989c96b159",
+      "patchConflicts": [],
+      "exactSourceFiles": 6,
+      "previousPlaceholderImported": false,
+      "deploymentEvidence": "Normalized owner receipt, not a task6 live regression",
+      "excluded": [
+        "Full shared configuration",
+        "Private machine paths",
+        "Credentials",
+        "Raw live probe diagnostics"
+      ]
     }
   ],
   "easytier": {
@@ -734,10 +767,42 @@
       "listeners": 0,
       "realAuthentication": false,
       "actualSfuGate": false
+    },
+    "landing": {
+      "sourceCommit": "6f8b89162fecb7339e32630b7e092e989c96b159",
+      "status": "exact-frozen-source-and-pure-checks-passed-owner-production-receipt-preserved",
+      "exactSourceFileHashes": 6,
+      "embeddedImageHash": "verified",
+      "copiedOriginalPixels": true,
+      "copyFallbackAndStaticChecks": "passed",
+      "pureRouteScenarios": 18,
+      "publishedHtmlHashMatchesOwnerReport": true,
+      "ownerReportedHttpsGetHead200": true,
+      "ownerReportedWebSocket101AndEngineIoOpen": true,
+      "ownerReportedPolling": true,
+      "ownerReportedOutsideVoiceBytesUnchanged": true,
+      "ownerReportedResponseByteRegression": [
+        "default_root",
+        "non_html_root",
+        "html_without_fetch_metadata",
+        "query_root",
+        "html_q_zero",
+        "info",
+        "info_head",
+        "icon",
+        "api_unknown",
+        "unknown",
+        "bomana",
+        "pay",
+        "bomana_update"
+      ],
+      "actualNetworkTask6": 0,
+      "task6Redeployed": false,
+      "userApproval": "Parent confirms explicit user final landing deployment approval; unrelated desktop UI remains pending"
     }
   },
   "securityBoundary": {
-    "currentTrackedTextScanned": 3173,
+    "currentTrackedTextScanned": 3181,
     "credentialPatternHits": 0,
     "currentMachinePathHits": 0,
     "sourceRawPrivateLogsImported": false,
