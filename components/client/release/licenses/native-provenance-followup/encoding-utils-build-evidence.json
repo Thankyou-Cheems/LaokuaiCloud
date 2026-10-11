@@ -1,0 +1,150 @@
+{
+  "schema": 1,
+  "scope": "Read-only normal Windows no-Npcap runtime build/source evidence; no build or execution",
+  "encodingUtils": {
+    "version": "0.1.0",
+    "id": "registry+https://github.com/rust-lang/crates.io-index#encoding-utils@0.1.0",
+    "license": "MIT",
+    "authors": [
+      "a632079"
+    ],
+    "activeNativeGraph": true
+  },
+  "serviceManager": {
+    "source": "git+https://github.com/EasyTier/service-manager-rs.git?branch=main#5eb28f7a686858eea4f4933534ed989d3b71dc2a",
+    "features": [
+      "default",
+      "encoding"
+    ],
+    "declaredDependency": {
+      "name": "encoding-utils",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "req": "^0.1",
+      "kind": null,
+      "rename": null,
+      "optional": true,
+      "uses_default_features": true,
+      "features": [],
+      "target": null,
+      "registry": null
+    }
+  },
+  "binaryEvidence": [
+    {
+      "name": "easytier-core.exe",
+      "sha256": "d4f100ace0ae50b5270af10f579a2ccf7b2991731f05b82920eefba60055d49a",
+      "bytes": 20107264,
+      "expectedFrozenSha256": "d4f100ace0ae50b5270af10f579a2ccf7b2991731f05b82920eefba60055d49a",
+      "matchesFrozen": true,
+      "pdb": {
+        "bytes": 5312512,
+        "sha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+        "guid": "e79e161cf1a3c3469c68af21dd2e6b3e",
+        "age": 1,
+        "matchesPeCodeView": true,
+        "boundedMatchingPublicSymbolNames": []
+      },
+      "importGetAcPStringPresent": false,
+      "codePresenceConclusion": "Build/source participation established; final optimized code inclusion needs usable symbol/link provenance; absence of names is not evidence of exclusion"
+    },
+    {
+      "name": "easytier-cli.exe",
+      "sha256": "b84fa350b9c8036649df3cdc8ee728c364ea81075d82fd3783cdeede3b9ddccd",
+      "bytes": 6050816,
+      "expectedFrozenSha256": "b84fa350b9c8036649df3cdc8ee728c364ea81075d82fd3783cdeede3b9ddccd",
+      "matchesFrozen": true,
+      "pdb": {
+        "bytes": 3141632,
+        "sha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+        "guid": "d8a528357e3dd64eb008e502b7d881fb",
+        "age": 1,
+        "matchesPeCodeView": true,
+        "boundedMatchingPublicSymbolNames": []
+      },
+      "importGetAcPStringPresent": false,
+      "codePresenceConclusion": "Build/source participation established; final optimized code inclusion needs usable symbol/link provenance; absence of names is not evidence of exclusion"
+    }
+  ],
+  "buildArtifactEvidence": [
+    {
+      "directory": "encoding-utils-2239d43ec4a2fadb",
+      "file": "lib-encoding_utils.json",
+      "sha256": "75f0921f3122137cb9c704f76bdde5377e1511468badce02ced6ead578933832",
+      "features": "[]",
+      "declaredFeatures": "[]",
+      "dependencyNames": [
+        "codepage",
+        "encoding_rs",
+        "windows_sys"
+      ],
+      "profile": 5676177281124121000,
+      "rustflags": [
+        "-C",
+        "target-feature=+crt-static"
+      ]
+    },
+    {
+      "directory": "service-manager-8d118cae3420d3e4",
+      "file": "lib-service_manager.json",
+      "sha256": "949b4039736f76b59284fd7c2ff1052e30ca028e6ae6d0885e5eacdf0323a11e",
+      "features": "[\"default\", \"encoding\"]",
+      "declaredFeatures": "[\"clap\", \"default\", \"encoding\", \"serde\"]",
+      "dependencyNames": [
+        "encoding_rs",
+        "which",
+        "dirs",
+        "cfg_if",
+        "encoding_utils",
+        "xml",
+        "plist"
+      ],
+      "profile": 5676177281124121000,
+      "rustflags": [
+        "-C",
+        "target-feature=+crt-static"
+      ]
+    },
+    {
+      "directory": "service-manager-e8117777e5ab5bf4",
+      "file": "lib-service_manager.json",
+      "sha256": "394da0d190e49253959ca667003c73e742fd204b52cf8351ae5229e6617da52a",
+      "features": "[\"default\", \"encoding\"]",
+      "declaredFeatures": "[\"clap\", \"default\", \"encoding\", \"serde\"]",
+      "dependencyNames": [
+        "encoding_rs",
+        "which",
+        "dirs",
+        "cfg_if",
+        "encoding_utils",
+        "xml",
+        "plist"
+      ],
+      "profile": 5676177281124121000,
+      "rustflags": [
+        "-C",
+        "target-feature=+crt-static"
+      ]
+    },
+    {
+      "file": "encoding_utils-2239d43ec4a2fadb.d",
+      "bytes": 1305,
+      "sha256": "3383c795125a15a6835cdee4febeeda4561fea876133a2b01089037e509310b2",
+      "mutableCache": true
+    },
+    {
+      "file": "libencoding_utils-2239d43ec4a2fadb.rlib",
+      "bytes": 8114,
+      "sha256": "b89ae808e1b0cd80b70d7d8531bab7ad24be1bde9b710f1378d7bb049b2fd6c7",
+      "mutableCache": true
+    },
+    {
+      "file": "libencoding_utils-2239d43ec4a2fadb.rmeta",
+      "bytes": 4047,
+      "sha256": "d9bec09d8a70bb7c14e127856d2646b7de5240e378644ceabea611421652c875",
+      "mutableCache": true
+    }
+  ],
+  "noBuildNoNativeExecution": true,
+  "retainedAsDistributedPotentialRuntimeDependency": true,
+  "sourceNoticeQuestionNotWaivedByStripping": true
+}

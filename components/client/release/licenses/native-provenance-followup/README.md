@@ -1,0 +1,15 @@
+# Effective provenance follow-up
+
+This folder supplements the frozen 26d84d8e inventory; it does not replace that historical BOM or alter the old 83dd572f / 5d309524 application artifacts.
+
+SeaHash 4.1.0's original upstream LICENSE-only repair supplies the authentic MIT text with unchanged code and Cargo declaration. The original text has no copyright line; none was invented. Original recovered text cases therefore advance from 23 to 24. encoding-utils 0.1.0 is the remaining original author-notice provenance question. Its declared MIT metadata is retained; no claim of invalid licensing is made and no author inquiry was sent.
+
+encoding_index_tests 0.1.4 exactly matches its pinned original source and explicit CC0-1.0 Cargo declaration. Its original header credits Kang Seonghoon and refers to the family's MIT terms. The CC0 declaration/terms, original source header and authentic referenced MIT text are retained together. This establishes provenance; it does not manufacture an SPDX AND/OR expression or claim the author's licensing intent was externally clarified. The SPDX MIT reference is a reference, not an author-issued grant.
+
+The Cargo graph omits two actual link-input families: thunk-rs selects VC-LTL 5.2.2 and YY-Thunks 1.1.7. Both original build-output directories contain the exact official archives and record VC-LTL link-search / YY-Thunks Win7 object arguments. These are build-input facts, not a final link map enumerating every included library member.
+
+VC-LTL's pinned root LICENSE is EPL-2.0. The original source includes Microsoft SDK terms and notices, preserved here and in its exact source ZIP. The bounded complete text scan did not find an affirmative secondary-license grant outside the generic LICENSE template. Do not infer a GPL grant from that template. Exact linked-unit coverage, compatibility and distribution/source obligations need separate review; no blanket legal clearance or blanket incompatibility is asserted. Sources: [pinned original VC-LTL license](https://github.com/Chuyu-Team/VC-LTL5/blob/19f302fcf2b4dfb05f86405dbf58437b0ee4166a/LICENSE), [Eclipse EPL FAQ](https://www.eclipse.org/legal/epl-2.0/faq/).
+
+YY-Thunks' original MIT license and 2018 Chuyu-Team notice are retained. Rust 1.95.0's authentic library attribution and original term files are preserved as a conservative input reference, not a claim that every listed license is linked. Compiler-only tools and proprietary SDK installations are not redistributed here.
+
+These source/notice records are available to the next exact application package inventory. Existing artifacts do not acquire new notice bytes retroactively. Public distribution remains unapproved; final corresponding-source delivery, recipient access, relink/installation information and actual package notice inventory remain open. Internal UI testing proceeds under its separate authorization.

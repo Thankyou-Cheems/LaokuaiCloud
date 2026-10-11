@@ -1,0 +1,203 @@
+{
+  "schema": 1,
+  "historical26BomPreserved": true,
+  "nativeSourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
+  "nativeCargoLockSha256": "e3ee41507e7a8ef94470b70f4639140e67aadae646ada82dfd23b0beeb0e7fb2",
+  "frozenBinariesUnchanged": true,
+  "effectiveFacts": {
+    "seahash": {
+      "version": "4.1.0",
+      "declaredLicense": "MIT",
+      "publishedCommit": "94b632aeac099031c373599313d5b5f0acbbaec0",
+      "upstreamLicenseRepairCommit": "3088c5c912b70b586d27bf553fbe964e025a2c89",
+      "compareOnlyAddsLicense": true,
+      "codeAndCargoUnchanged": true,
+      "originalTextRecovered": true,
+      "copyrightLineAbsentInOriginal": true,
+      "copyrightInvented": false,
+      "status": "Original missing text recovered from authoritative LICENSE-only repair; retain source authors metadata without fabricated copyright"
+    },
+    "encodingIndexTests": {
+      "version": "0.1.4",
+      "upstreamCommit": "4e79c35ab6a351881a86dbff565c4db0085cc113",
+      "declaredLicense": "CC0-1.0",
+      "publishedSourceMatchesPinnedUpstream": true,
+      "originalSourceCopyright": "2013-2015 Kang Seonghoon",
+      "sourceReferencesFamilyMit": true,
+      "retentionPolicy": "Keep original CC0 declaration, CC0 terms, source header and referenced original family MIT text together; do not invent a combined SPDX expression",
+      "authorIntentClarificationObtained": false,
+      "status": "Original source/declaration correspondence established; preserve both notices, intent not externally clarified"
+    },
+    "encodingUtils": {
+      "version": "0.1.0",
+      "declaredLicense": "MIT",
+      "declaredAuthors": [
+        "a632079"
+      ],
+      "publishedCommit": "f029c6e1eec8153c4d06e872b3ca9a88d90db174",
+      "initialCommit": "f6f8e4e5d63813e3bd5e440f793638db7ba3f22f",
+      "upstreamCommitsExamined": 2,
+      "originalLicenseOrCopyrightFileRecovered": false,
+      "authorContacted": false,
+      "copyrightInvented": false,
+      "currentBuildGraphIncludes": true,
+      "optimizedFinalCodeInclusionEstablished": false,
+      "status": "One original author-notice provenance question remains; declared MIT is retained, no assertion of invalid licensing"
+    },
+    "vcLtl": {
+      "version": "5.2.2",
+      "upstreamCommit": "19f302fcf2b4dfb05f86405dbf58437b0ee4166a",
+      "originalRootLicense": "EPL-2.0",
+      "secondaryGrantFoundOutsideGenericLicense": false,
+      "matchingFiles": [],
+      "embeddedMicrosoftSdkTermsRetained": true,
+      "status": "Additional input outside Cargo BOM; original EPL and Microsoft notices retained. Exact linked units, distribution/source scope and license compatibility require review; no grant inferred from Exhibit A template"
+    },
+    "yyThunks": {
+      "version": "1.1.7",
+      "upstreamCommit": "853335d043276dfe1228d8b66341f2f2a33a70ab",
+      "license": "MIT",
+      "originalCopyright": "2018 Chuyu-Team",
+      "originalNoticeRecovered": true
+    },
+    "rustStd": {
+      "version": "1.95.0",
+      "compiler": "1.95.0 (59807616e 2026-04-14)",
+      "originalLibraryNoticeRecovered": true,
+      "originalLicenseFilesRetained": true,
+      "status": "Original library attribution and term files, not an assertion every listed compiler/runtime license is linked"
+    }
+  },
+  "prior25Cases": {
+    "historicalOriginalTextCasesRecovered": 23,
+    "additionalOriginalTextRecovered": 1,
+    "effectiveOriginalTextCasesRecovered": 24,
+    "originalAuthorNoticeQuestionsRemaining": 1,
+    "cc0SourceIntentExternallyClarified": false
+  },
+  "noBuildNoNativeExecution": true,
+  "publicDistributionApproved": false,
+  "recipientSourceOrRelinkAccepted": false,
+  "originalFiles": [
+    {
+      "path": "CC0-1.0-legalcode.txt",
+      "bytes": 7048,
+      "sha256": "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499"
+    },
+    {
+      "path": "encoding-Cargo-4e79c35ab6a351881a86dbff565c4db0085cc113.txt",
+      "bytes": 362,
+      "sha256": "07ebd9eb7e38ea0875bbada8b5ef238dd770f8cb7ac34ddda4a0f20bca81e8b3"
+    },
+    {
+      "path": "encoding-code-4e79c35ab6a351881a86dbff565c4db0085cc113.txt",
+      "bytes": 6736,
+      "sha256": "84750177833f1014df0eabdb62f8c0e59d46ae5b3c9fdc3df3247d7b05241991"
+    },
+    {
+      "path": "encoding-license-4e79c35ab6a351881a86dbff565c4db0085cc113.txt",
+      "bytes": 1084,
+      "sha256": "f35cb7760b1baf8636c53bf8fb1ffa1e7346d683c4de7788fae78c7de2d26b84"
+    },
+    {
+      "path": "MIT-SPDX-reference.txt",
+      "bytes": 1078,
+      "sha256": "b85dcd3e453d05982552c52b5fc9e0bdd6d23c6f8e844b984a88af32570b0cc0"
+    },
+    {
+      "path": "rust-1.95.0-COPYRIGHT-library.html",
+      "bytes": 425661,
+      "sha256": "90567e2718bf7fd65a71a3a43c5596488e80e5f51ed02bfea6fec54458b5f3d1"
+    },
+    {
+      "path": "rust-original-Apache-2.0.txt",
+      "bytes": 10280,
+      "sha256": "074e6e32c86a4c0ef8b3ed25b721ca23aca83df277cd88106ef7177c354615ff"
+    },
+    {
+      "path": "rust-original-BSD-2-Clause.txt",
+      "bytes": 1267,
+      "sha256": "f32fb3b417a194167cfad068223fc975ba96c5960513a10f66a3c28720aec1df"
+    },
+    {
+      "path": "rust-original-CC-BY-SA-4.0.txt",
+      "bytes": 20137,
+      "sha256": "23ee78c8bae49cf08ea2f0c84945c66b987ebe4520881fb51b3dad4fb43d07c2"
+    },
+    {
+      "path": "rust-original-GCC-exception-3.1.txt",
+      "bytes": 3320,
+      "sha256": "a3966c9410ef94a1efbfa9ec04e9c1994026a70623fbf0885ce36737bfba3b54"
+    },
+    {
+      "path": "rust-original-GPL-2.0-only.txt",
+      "bytes": 17642,
+      "sha256": "54b212ba1f97f6948fa5486239ab505dd820b02e50cbfd296b4062c8609a70af"
+    },
+    {
+      "path": "rust-original-GPL-3.0-or-later.txt",
+      "bytes": 34795,
+      "sha256": "05315fce6c35f79b8a35454828995fa26336f235895ac64557abc028f4ffcea2"
+    },
+    {
+      "path": "rust-original-ISC.txt",
+      "bytes": 730,
+      "sha256": "0ff61769b238634e042ab759dddfd104a8e69d091e3600ae3410e401a6164381"
+    },
+    {
+      "path": "rust-original-LLVM-exception.txt",
+      "bytes": 919,
+      "sha256": "e34c58338bd89d43e709e226610d8f32b3e3c47f4ad9a99a8dc1d4ac7842488e"
+    },
+    {
+      "path": "rust-original-MIT.txt",
+      "bytes": 1078,
+      "sha256": "b85dcd3e453d05982552c52b5fc9e0bdd6d23c6f8e844b984a88af32570b0cc0"
+    },
+    {
+      "path": "rust-original-NCSA.txt",
+      "bytes": 1676,
+      "sha256": "39cb0234065c92b9e6cee3830cbb52b1aa289aa8fe9ba2e66730fec5cf05c630"
+    },
+    {
+      "path": "rust-original-OFL-1.1.txt",
+      "bytes": 4016,
+      "sha256": "8eea8287e5876b539670cadb82e99f9a7afddec6f6730811be1daf25d2e9bcfd"
+    },
+    {
+      "path": "rust-original-Unicode-3.0.txt",
+      "bytes": 1995,
+      "sha256": "f5062c9a188d81dfe66b56db4182dcf9e4b17c0d9b0d311a8e20b3a1b075c443"
+    },
+    {
+      "path": "seahash-license-compare.txt",
+      "bytes": 2832,
+      "sha256": "882f58c211d415d9d94638c957544649abf3b2fca3ac2574a57be67198c320ec"
+    },
+    {
+      "path": "seahash-original-license.txt",
+      "bytes": 1023,
+      "sha256": "23f18e03dc49df91622fe2a76176497404e46ced8a715d9d2b67a7446571cca3"
+    },
+    {
+      "path": "vc-ltl5-LICENSE.txt",
+      "bytes": 13968,
+      "sha256": "84c677edb6b15ac6485a5352128787771ebbf740cf4b232987c99b9048931ff9"
+    },
+    {
+      "path": "vc-ltl5-Readme.md",
+      "bytes": 15737,
+      "sha256": "f310b88a4c5c0e9a537777144c659d322bb6de701e88da055289076b448aae21"
+    },
+    {
+      "path": "vc-ltl5-sdk_license.rtf",
+      "bytes": 235594,
+      "sha256": "7e28c7527acda5b1a140ce26902ca3e4fb2e5b12759c0d6b98929450b6eb3a1d"
+    },
+    {
+      "path": "yy-thunks-LICENSE.txt",
+      "bytes": 1067,
+      "sha256": "09a1c20e9b40e3bbfff81e0ddc1209265f55eba07cd072c5a1bc755a134579b3"
+    }
+  ]
+}

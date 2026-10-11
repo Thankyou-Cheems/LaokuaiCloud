@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "proposedOnly": true,
+  "sourceIntegrated": false,
+  "binariesRebuilt": false,
+  "nativeExecuted": false,
+  "sourceManifestBaselineSha256": "fc86d2cd78da0642586293c144ed18d94ae0702a141aab0af9c3cff738bf482d",
+  "sourceManifestCandidateSha256": "3c2acac6245433e4058a6bc9f8fa2e48a767d316e67e7cb60838ffefc10b28bb",
+  "lockSha256": "e3ee41507e7a8ef94470b70f4639140e67aadae646ada82dfd23b0beeb0e7fb2",
+  "nativeSource": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
+  "changedPath": "easytier/Cargo.toml",
+  "effect": "Disable only service-manager optional encoding default feature on Windows; preserve original feature defaults on other platforms",
+  "results": [
+    {
+      "name": "baseline",
+      "exit": 0,
+      "lockUnchanged": true,
+      "uniquePackages": 506,
+      "encodingUtilsActive": true,
+      "treeSha256": "caf3d94b0e7f19ecf81b248f395b98e044e9a9e4271826ef589ccf04e2ba0dab",
+      "stderrSummary": ""
+    },
+    {
+      "name": "candidate",
+      "exit": 0,
+      "lockUnchanged": true,
+      "uniquePackages": 504,
+      "encodingUtilsActive": false,
+      "treeSha256": "eb533f5d9ee9f122a23113b9bf6eb71d0af6ca039996b814c09e8738d8298488",
+      "stderrSummary": ""
+    }
+  ],
+  "removedWindowsActivePackages": [
+    "codepage@0.1.3",
+    "encoding-utils@0.1.0"
+  ],
+  "remaining": [
+    "Parent coordinates owner review and isolated rebuild if choosing this option",
+    "Exact new native core/CLI hashes, PE imports, BOM, source/lock/resource/manifest identity and feature/functionality regression acceptance must be refreshed",
+    "Do not remove a license question from already frozen83/native binaries based on an unbuilt candidate"
+  ],
+  "patchSha256": "5f4ef28f7f32dbd08f4ecae4307d50163bf357b366272b14013de441fa27c5bf"
+}
