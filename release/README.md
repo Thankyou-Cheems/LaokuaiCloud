@@ -1,7 +1,7 @@
 # Current private integration source
 
 `manifest.json` is the single authority for the private integration branch.
-Current code commit: `0c5a194ff11cd469c0d5fe4cbf77c5bcd08e8fe2`.
+Current code commit: `8d4ae5aaac270d7e8e37ba5b1e7c579405a59dce`.
 Original client dirty snapshot/history and every previous frozen delivery remain.
 Component owners work independently; task-6 alone writes the integration branch.
 
@@ -17,7 +17,8 @@ are distinct, and the existing audio-menu trigger is larger. Hover/click callbac
 authenticated seq/6s TTL and protected speech behavior remain. 216 localized mode
 renders, 6 mode, 6 room, 17 path, 13 LAN and 6 icon cases pass. The prototype's 14
 checks are owner-reported; task-6 did not render it. Final user design approval is
-pending. Runtime path provider and production connection details are not complete.
+pending. The passive provider and production details source are mounted; actual
+SDK/ET observation translators and real DOM/design acceptance remain pending.
 
 The private product Hybrid bootstrap is now connected through main metadata,
 preload and the renderer to VoiceProvider. Ordinary desktop/i18n/browser paths do
@@ -33,13 +34,35 @@ checks and 26 existing pure/type suites pass. The settings search suite exposed 
 outdated English alias, which was corrected and rechecked (5,328 bilingual cases).
 These are configuration checks, not observed new codec/media/quality acceptance.
 
-SDK3 remains exactly `6d710f34`, TGZ `29f858d9...`; server `e84e1ca5` and SFU
-`a6bf86ad` are unchanged. Capacity owner passed real two/four-SDK factory loopback
+SDK3 remains exactly `6d710f34`, TGZ `29f858d9...`; server `e84e1ca5` is unchanged.
+SFU base `a6bf86ad` is preserved; its subsequent microphone48 policy fix is
+`8d4ae5aa`. Capacity owner passed real two/four-SDK factory loopback
 at24k using immutable `78513ba4`, including controller/PCM auth recovery, room
 generations, explicit closed-PC recovery and differing roster orders. See
 [acceptance/sdk3-loopback.json](acceptance/sdk3-loopback.json). This does not accept
 the new48/64 profiles, full app, database revocation/new auth socket, WAN/ET,
 15–20 encoders, FEC loss recovery or real-device listening. Raw logs stay outside Git.
+
+The later frozen `a36adcab` real test passed peer64 actual SDP/sender/RTP/PCM,
+both paths'16k cap, custom peer32/40ms/DTXoff plus reconnect request preservation,
+PTT/Squad/auth recovery, differing four-SDK rosters and actual SFU pause/restore.
+Overall48/64 acceptance **failed**: authentic SFU offer/sender remained24k and the
+SDK reported `remote_offer_profile_mismatch`. The exact report SHA256
+`102627ef7a7745106b1648a505b2c7c13ff12a81622a03dc4f53ac35f535f046`
+and2387-file inventory identity are preserved in
+[SFU48 candidate receipt](acceptance/sfu-microphone48-candidate.json).
+
+The minimal fix changes only the reserved receiving microphone's default ceiling
+to48k and retains any lower existing SDP limit.20ms and other slots are unchanged;
+malformed caps are rejected. The current SDK still applies min(request/custom,
+real channel cap, remote receive cap); SFU claims have no per-channel bitrate
+field and no such authority was fabricated. Eleven stdlib Go cap cases, ten
+invalid limits, parameter/idempotence checks and335 actual SDK fake-sender checks
+pass. No new Pion PC or real offer/media test was run by task-6. Fresh authentic
+SFU48 negotiation/RTP/PCM/restore retest is required; custom SFU40ms/DTXoff remains
+unaccepted. Complete product bootstrap, wire bytes,20-user new defaults and
+listening remain untested. Run `node components/sfu/scripts/check-microphone-caps.cjs`
+with local Go and the frozen installed client dependencies for the pure checks.
 
 Reviewed ET native `dbaf0453` release compilation passed with Rust1.95/MSVC,
 locked/offline/default features/+crt-static in888.978s. Task-6 independently checked

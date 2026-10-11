@@ -40,6 +40,12 @@ SDK integration.3 two/four-peer factory loopback media/controller retest passed
 at24k. Private product bootstrap is now source-wired with standard SFU48/P2P64
 requests, custom preferences and server caps preserved. Fresh complete-app/new
 profile media tests are still required. A WebRTC peer over ET relay is not proven physical direct.
+Frozen a36adcab real testing passed peer64/cap16/custom-peer and functional
+regressions but failed overall SFU48 because the authentic receive offer still
+advertised24k. Preserve that failure. The task-6 minimal SFU8d4ae5aa source fix
+advertises48k only for the reserved microphone, preserves lower SDP caps and20ms,
+and requires a fresh capacity-owner real negotiation/media retest. Do not alter
+P2P/DSP/cap code that already passed or relabel old24k as a48k acceptance.
 
 UI v3 is integrated at31cec3c6. Complete user design approval is pending.
 Preserve VoiceAudioControls/HoverAudioControl

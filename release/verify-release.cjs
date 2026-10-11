@@ -30,6 +30,12 @@ if(m.validation.uiConnectionDetailsDelivery){
   const delivery=m.validation.uiConnectionDetailsDelivery;
   assert(sha(delivery.receipt)===delivery.receiptSha256,'UI connection-details receipt changed');
 }
+if(m.validation.sfuMicrophone48Candidate){
+  const candidate=m.validation.sfuMicrophone48Candidate;
+  assert(sha(candidate.receipt)===candidate.receiptSha256,'SFU48 candidate/failure receipt changed');
+  const receipt=JSON.parse(fs.readFileSync(path.join(root,candidate.receipt),'utf8'));
+  assert(receipt.candidateSourceCommit===m.components.sfu.sourceCommit&&receipt.sfuTree===m.components.sfu.tree,'SFU48 exact source mismatch');
+}
 if(m.easytier.nativePortsImplemented){
   const entries=require('../components/client/scripts/community-easytier-resources.cjs');
   const names=entries.map(e=>e.to.split('/').at(-1)).sort();

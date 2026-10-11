@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "candidateSourceCommit": "8d4ae5aaac270d7e8e37ba5b1e7c579405a59dce",
+  "sfuTree": "24c3669c4ca13d39f8132225ae1cb4a450750729",
+  "preservedSfuBase": "a6bf86ada2f31da85cc644f78e307f3ef0088e82",
+  "frozenFailedIntegration": "a36adcab5c9e89a649bb56d6d6a35acb5607d61d",
+  "failureEvidence": {
+    "reportSha256": "102627ef7a7745106b1648a505b2c7c13ff12a81622a03dc4f53ac35f535f046",
+    "keyResultsSha256": "4e4af7b1941133dc180312eb0142cb3bd9beeb9374068b3a72e55ef6623be5c2",
+    "proofSha256": "55836a4a071d54ba130b4f8eeac97afda966025cd0d0272f555c5987a571da94",
+    "inventorySha256": "ad00085e4b34020751b545f49ba52d04bc00fab23e795973bff2d661fdc9271f",
+    "inventoryEntries": 2387,
+    "rawLogsImported": false,
+    "overall48_64Accepted": false,
+    "sfu48Accepted": false,
+    "blocker": "frozen real SFU offer maxaveragebitrate24000; sender readback24000; degraded remote_offer_profile_mismatch",
+    "partialPassed": {
+      "p2p64ActualSdpSenderReadbackAndRtpPcm": true,
+      "actualLower16CapBothPaths": true,
+      "customPeer32_40msDtxOffAndReconnectRequest": true,
+      "pttSquadAuthRestoreRosterAndSfuPauseResume": true
+    },
+    "customSfuEncodingAccepted": false,
+    "fullApplicationE2E": false,
+    "wholeWireBytes": null,
+    "ownContainersRemoved": 5
+  },
+  "minimalFix": {
+    "sfuReceiveCeilingBps": 48000,
+    "retainLowerExistingSdpCap": true,
+    "invalidExplicitCapRejected": true,
+    "reservedFirstMicrophoneOnly": true,
+    "packetTimeMs": 20,
+    "audioOnlyOptInUnchanged": true,
+    "peerProfileChanged": false,
+    "agcDspChanged": false,
+    "tokenPermissionProtocolChanged": false,
+    "existingChannelCapInputToSfuPolicy": false,
+    "existingSdkEncoderMinOfRequestedChannelAndRemote": true,
+    "customAbove48SfuLimitedByReceiveCeiling": true,
+    "customSfu40msDtxOffNegotiationNotAccepted": true
+  },
+  "validation": {
+    "stdlibGoReceiveCapCases": 11,
+    "invalidCaps": 10,
+    "idempotenceAndOtherParametersPassed": true,
+    "actualFrozenSdkFakeSenderChecks": 335,
+    "actualPreferSdpWrapperExecuted": false,
+    "actualNetworkRetestPassed": false,
+    "network": false,
+    "capture": false,
+    "pionPeerConnections": 0,
+    "docker": false,
+    "largeBuild": false
+  },
+  "delta": {
+    "file": "fix-sfu-microphone48.patch",
+    "sha256": "fbc597ca5c030f97dc59ee093c1a00e9b19e09cb729950cd371de26237d0f672",
+    "baseIntegration": "81c529366e5773578969e2624a2e55304b5f6968"
+  },
+  "next": "Capacity owner uses a fresh immutable private Git pin/source; compile the new SFU and re-test the authentic unmodified offer/sender/PCM/restore. Preserve a36 failure and do not relabel it as success."
+}

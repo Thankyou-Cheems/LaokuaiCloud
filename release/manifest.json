@@ -1,7 +1,7 @@
 {
   "schema": 2,
-  "id": "laokuai-cloud-provider-and-production-details-candidate-20261011",
-  "stage": "provider-and-details-mounted-sdk-et-translators-and-native-dependency-pending",
+  "id": "laokuai-cloud-sfu-microphone48-fix-candidate-20261011",
+  "stage": "sfu48-source-fixed-real-retest-and-sdk-et-translators-pending",
   "ready": false,
   "repository": {
     "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud",
@@ -9,8 +9,8 @@
     "visibility": "private",
     "branch": "release/integration-20261011",
     "soleGitWriter": "task-6",
-    "codeCommit": "ef5da42dcac55847168f48a8b01eef00cf71d347",
-    "codeTree": "7b6c69a29cd0aaff3895ee2c1359b390f005ea10",
+    "codeCommit": "8d4ae5aaac270d7e8e37ba5b1e7c579405a59dce",
+    "codeTree": "ffd7bbce10ba23826c4fc3fb902d20ee0c8ac87b",
     "newRepositoryReason": "Authenticated private-repo metadata and explicitly scoped old local core/game remotes revealed no matching existing private integration repository",
     "historyPolicy": "Original client history preserved; no force push/reset/rewrite; other components imported as licensed source snapshots"
   },
@@ -102,13 +102,18 @@
     },
     "sfu": {
       "path": "components/sfu",
-      "tree": "49790205196090fda9b6a2553352f3faf75e368b",
+      "tree": "24c3669c4ca13d39f8132225ae1cb4a450750729",
       "upstream": "Gryt-chat/sfu",
       "userFork": null,
-      "sourceCommit": "a6bf86ada2f31da85cc644f78e307f3ef0088e82",
-      "sourceZipSha256": "4ae3b662d26606b7c9faf95cacebd8e8fe6dc5eeeb42d14e0f7ac600ed4ca9be",
-      "sourceFiles": 90,
-      "modified": false
+      "sourceCommit": "8d4ae5aaac270d7e8e37ba5b1e7c579405a59dce",
+      "sourceFiles": 93,
+      "modified": true,
+      "preservedBaseSnapshot": {
+        "sourceCommit": "a6bf86ada2f31da85cc644f78e307f3ef0088e82",
+        "sourceZipSha256": "4ae3b662d26606b7c9faf95cacebd8e8fe6dc5eeeb42d14e0f7ac600ed4ca9be",
+        "sourceFiles": 90
+      },
+      "modification": "Minimal reserved microphone receive ceiling48 with lower-cap preservation; existing base snapshot preserved"
     },
     "easytier": {
       "path": "components/easytier",
@@ -720,6 +725,23 @@
           "hybrid_cleanup_conflict controller state"
         ],
         "finalAcceptance": false
+      },
+      "current48_64": {
+        "status": "functional-regressions-passed-standard-SFU48-blocked",
+        "frozenIntegrationCommit": "a36adcab5c9e89a649bb56d6d6a35acb5607d61d",
+        "reportSha256": "102627ef7a7745106b1648a505b2c7c13ff12a81622a03dc4f53ac35f535f046",
+        "proofSha256": "55836a4a071d54ba130b4f8eeac97afda966025cd0d0272f555c5987a571da94",
+        "sfuSourceCommit": "a6bf86ada2f31da85cc644f78e307f3ef0088e82",
+        "sdkSourceCommit": "6d710f34070cbc01bb838a77dfec0963b0ce298b",
+        "overallAccepted": false,
+        "p2p64ActualSdpSenderAndRtpPcmPassed": true,
+        "lower16BothPathsPassed": true,
+        "customPeer32_40msDtxOffAndReconnectPassed": true,
+        "customSfuEncodingAccepted": false,
+        "fullAppBootstrapAccepted": false,
+        "wireBytesMeasured": false,
+        "newCandidateRealRetestPassed": false,
+        "rawLogsImported": false
       }
     },
     "physicalDirectVerified": false,
@@ -916,9 +938,11 @@
       "customPreferencesPreserved": true,
       "serverCapsPreserved": true,
       "agcDspChanged": false,
-      "status": "code-and-pure-request-caps-migration-bootstrap-passed-actual-48-64-retest-pending",
+      "status": "frozen-a36-real-sfu48-failed-peer64-partial-passed-new-sfu48-source-fix-pure-passed-real-retest-pending",
       "testedPriorBitrateBps": 24000,
-      "testOwner": "capacity owner"
+      "testOwner": "capacity owner",
+      "sfuReceivePolicySourceCommit": "8d4ae5aaac270d7e8e37ba5b1e7c579405a59dce",
+      "actual48_64Accepted": false
     },
     "ownerTasks": {
       "plan": "release/path-wiring-owner-tasks.md",
@@ -986,6 +1010,13 @@
       "owner": "ET owner",
       "optionalFeatureAuditPending": true,
       "constraints": "No fabricated DLL, no blanket Npcap prerequisite for ordinary users, no silent normal TUN/voice feature reduction"
+    },
+    "sfuMicrophone48Candidate": {
+      "receipt": "release/acceptance/sfu-microphone48-candidate.json",
+      "receiptSha256": "f602aa9ab3895ff3f22418d4638b0264765ab921975b08a7b5542f3084d8c93a",
+      "sourceCommit": "8d4ae5aaac270d7e8e37ba5b1e7c579405a59dce",
+      "sourceTree": "24c3669c4ca13d39f8132225ae1cb4a450750729",
+      "status": "pure-cap-fix-passed-authentic-offer-and-media-retest-pending"
     }
   },
   "securityBoundary": {
@@ -1021,7 +1052,8 @@
     "ET owner existing read-only route/peer integration and exact missing authentication binding/final forwarding/RTT time fields; no new complete-path proof protocol",
     "Production connection details source integrated; task-6 consumes frozen SDK/ET observer contracts next. Actual data is still absent, no second sampler/provider",
     "Capacity owner fresh frozen 48k SFU/64k peer and actual private-product bootstrap/sinks/prior-registry media/codec regression; previous passing 24k factory evidence is not new profile acceptance",
-    "Exact dbaf core statically imports Packet.dll: Npcap redistribution and ordinary-user deployment unresolved; ET owner must audit optional pcap removal without reducing normal TUN/voice, then supply new exact-source build/PE evidence. No final package before resolution"
+    "Exact dbaf core statically imports Packet.dll: Npcap redistribution and ordinary-user deployment unresolved; ET owner must audit optional pcap removal without reducing normal TUN/voice, then supply new exact-source build/PE evidence. No final package before resolution",
+    "Frozen a36 actual SFU48 failed at genuine24000 remote offer; new8d4ae5aa reserved-microphone48 cap policy passed pure checks only. Fresh authentic SDP/sender/RTP/PCM/restore retest required; previous P2P64/cap/custom-peer/DSP passes preserved"
   ],
   "finalPackage": null,
   "frozenPreviousHybrid": {
