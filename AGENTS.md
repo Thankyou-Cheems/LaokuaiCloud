@@ -1,0 +1,25 @@
+# Sole integration ownership
+
+Task-6 is the only writer of this release integration branch. Component owners
+work on independent feature trees and deliver immutable commits/patches/packages.
+Testing uses frozen snapshots and must not mutate owners' branches.
+
+Preserve component boundaries and license/provenance records. Client source is
+in `components/client`; Voice SDK, server and SFU each have their own directories.
+`release/manifest.json` is the repository-wide coordination authority. Client
+manifests under its docs preserve earlier checkpoints, not current global state.
+
+The user approved this private integration repository and necessary product
+code/brand assets. Confirm `origin` is PRIVATE before each push. Never push this
+integration history to public forks. Do not import secrets, real profiles,
+user chats, local diagnostics or source delivery ZIPs. Do not rewrite old history,
+force push, delete old trees, change production, or publish software automatically.
+
+EasyTier must use approved v2.7.0 prerelease and exact official asset hashes.
+Joining a server/community owns ET lifetime independently of voice rooms. LAN
+membership does not authorize cross-room media; LAN direct does not prove voice
+or screen physical-direct transport. Actual network acceptance is pending.
+
+Lightweight static/type/pure checks are allowed. No Docker, listeners, browser,
+native helpers or large application builds in this stage. Bilingual Conventional
+Commits use the existing valid author identity.
