@@ -23,4 +23,12 @@ check("twenty actual member renders keep nickname first, compact right-side stat
 });
 check("small-width rule keeps mode/path core while secondary displays remain mounted",()=>{const style=read("src/style.css");assert.match(style,/@container \(max-width: 230px\)[\s\S]*voice-member-secondary/);const tree=member({nickname:"m",isSelf:false,isSpeaking:false,isMuted:false,isDeafened:false,isAFK:false});assert.ok(nodes(tree).some(n=>n.type==="Correction"));assert.ok(nodes(tree).some(n=>n.type==="Quality"));});
 check("existing channel scrollport keeps zero min-height and bottom bar separate",()=>{const sidebar=read("src/packages/socket/src/components/ServerSidebar.tsx");assert.match(sidebar,/minHeight: 0,[\s\S]*overflowY: "auto"/);const mobile=read("src/packages/socket/src/components/MobileServerView.tsx");assert.match(mobile,/overflowY: "auto"/);assert.ok(!sidebar.includes("RoomCallBar"));assert.ok(read("src/packages/socket/src/components/GlobalCallBar.tsx").includes("RoomCallBar"));});
+check("member deafen prioritizes the speaker silhouette even when microphone auto-mute is also set",()=>{
+ for(const flags of [{isMuted:true},{isDeafened:true},{isMuted:true,isDeafened:true},{isServerDeafened:true},{isServerMuted:true}]){
+  const tree=member({nickname:"m",isSelf:true,isSpeaking:true,isMuted:false,isDeafened:false,isAFK:false,...flags});const all=nodes(tree),deafened=flags.isDeafened||flags.isServerDeafened;
+  assert.ok(all.some(n=>n.type===(deafened?"SpeakerSlash":"MicSlash")));assert.ok(!all.some(n=>n.type===(deafened?"MicSlash":"SpeakerSlash")));
+  const state=all.find(n=>n.props?.title===(deafened?"voiceAudio.deafenedState":"voiceAudio.mutedState"));assert.equal(state.props.role,"img");assert.equal(state.props["aria-label"],state.props.title);assert.equal(state.props.tabIndex,0);
+  assert.equal(all.find(n=>n.type==="Halo").props.active,false);
+ }
+});
 console.log(`${checks} actual density/layout-hook scenarios passed; no browser geometry or native runtime.`);

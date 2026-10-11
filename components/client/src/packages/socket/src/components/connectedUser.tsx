@@ -91,7 +91,9 @@ export function ConnectedUser({
 }) {
   useSocketTranslation();
   const actualSelfSpeech=useTransmitSpeech();
-  const speaking=(isSelf ? actualSelfSpeech : isSpeaking) && !isMuted && !isServerMuted;
+  const deafened = isDeafened || isServerDeafened;
+  const speaking=(isSelf ? actualSelfSpeech : isSpeaking) && !isMuted && !isServerMuted && !deafened;
+  const closedLabel = socketI18n.t(deafened ? "voiceAudio.deafenedState" : "voiceAudio.mutedState");
   const hue = tileHue(nickname, avatarColor, { nickname, worn: avatarWorn });
 
   return (
@@ -161,11 +163,10 @@ export function ConnectedUser({
           {isConnectingToVoice && (
             <Skeleton variant="circular" width="12px" height="12px" />
           )}
-          {isDeafened ? (
-            <PiSpeakerSlashFill size={14} color="var(--gryt-danger-8)" />
-          ) : isMuted ? (
-            <PiMicrophoneSlashFill size={14} color="var(--gryt-danger-8)" />
-          ) : null}
+          {(deafened || isMuted || isServerMuted) && <span role="img" tabIndex={0} title={closedLabel} aria-label={closedLabel}>
+            {deafened ? <PiSpeakerSlashFill size={14} color="var(--gryt-danger-8)" />
+              : <PiMicrophoneSlashFill size={14} color="var(--gryt-danger-8)" />}
+          </span>}
         </div>
       </div>
     </motion.div>

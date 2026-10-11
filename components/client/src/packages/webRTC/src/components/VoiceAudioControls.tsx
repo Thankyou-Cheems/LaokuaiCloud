@@ -41,7 +41,8 @@ export function VoiceAudioControls({ direction = "row", iconSize = 16 }: {
   return <div className={`flex max-w-full ${direction === "column" ? "flex-col" : "flex-row flex-wrap"} items-center gap-1`} data-gryt="voice-audio-controls">
     <HoverAudioControl label={tr("voiceAudio.microphone")} side={side} action={
       <CallControlButton className="!w-auto !px-2 gap-1" state={isServerMuted || speakDenied ? "blocked" : isMuted ? "off" : "idle"}
-        aria-label={(isMuted || isServerMuted) ? tr("ui.unmuteMicrophone") : tr("ui.muteMicrophone")}
+        aria-label={isDeafened && !isServerMuted && !speakDenied ? tr("voiceAudio.restoreMicAndSpeaker") : (isMuted || isServerMuted) ? tr("ui.unmuteMicrophone") : tr("ui.muteMicrophone")}
+        title={isDeafened ? tr("voiceAudio.deafenedMicrophone") : undefined}
         onClick={() => {
           if (isServerMuted || speakDenied) {
             toast(tr(speakDenied ? "pureVoice.speakDenied" : "ui.youAreServerMutedByAnAdmin"), { icon: <PiMicrophoneSlashFill size={18} />, id: "server-muted" });
@@ -55,7 +56,7 @@ export function VoiceAudioControls({ direction = "row", iconSize = 16 }: {
       <span className="tabular-nums">{micVolume}%</span>
       <Slider aria-label={tr("voiceAudio.microphone")} value={micVolume} min={0} max={MAX_VOLUME_PERCENT} step={1}
         onValueChange={(next) => setMicVolume(Number(next))} />
-      {(isMuted || isServerMuted || speakDenied) && <p role="status" className="text-sm text-gryt-muted">{tr(speakDenied ? "pureVoice.speakDenied" : "voiceAudio.muted")}</p>}
+      {(isMuted || isServerMuted || speakDenied) && <p role="status" className="text-sm text-gryt-muted">{tr(speakDenied ? "pureVoice.speakDenied" : isDeafened ? "voiceAudio.deafenedMicrophone" : "voiceAudio.muted")}</p>}
       <Button tone="neutral" onClick={() => setMicVolume(100)}>{tr("receiveVolume.reset")}</Button>
     </HoverAudioControl>
 

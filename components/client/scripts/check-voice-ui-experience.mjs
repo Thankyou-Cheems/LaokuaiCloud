@@ -210,4 +210,22 @@ check("all edited TSX sources transpile without syntax errors", () => {
     assert.deepEqual(result.diagnostics?.filter(diagnostic => diagnostic.category === ts.DiagnosticCategory.Error), [], path);
   }
 });
+check("microphone mute and speaker deafen keep distinct outlines and explain automatic microphone stop", () => {
+  for (language of ["zh-CN", "en"]) for (const [muted, deafened] of [[false, false], [true, false], [true, true]]) {
+    reset(); policy = undefined;
+    Object.assign(settings, { isMuted: muted, isDeafened: deafened, isServerMuted: false, isServerDeafened: false });
+    const controls = nodes(render(VoiceAudioControls, {})).filter(node => node.type === "HoverAudioControl");
+    const mic = controls[0].props.action, speaker = controls[1].props.action;
+    assert.ok(find(mic, muted ? "PiMicrophoneSlashFill" : "PiMicrophoneFill"));
+    assert.ok(find(speaker, deafened ? "PiSpeakerSlashFill" : "PiSpeakerHighFill"));
+    assert.equal(find(speaker, "PiMicrophoneSlashFill"), undefined);
+    assert.equal(speaker.props["aria-label"], t(deafened ? "ui.undeafen" : "ui.deafen"));
+    if (deafened) { assert.equal(mic.props["aria-label"], t("voiceAudio.restoreMicAndSpeaker")); assert.equal(mic.props.title, t("voiceAudio.deafenedMicrophone")); }
+  }
+  const icons = read("src/lib/icons.tsx");
+  assert.match(icons, /PiMicrophoneSlashFill: Icon = weighted\(MicrophoneSlash/);
+  assert.match(icons, /PiSpeakerSlashFill: Icon = weighted\(SpeakerSlash/);
+  for (const value of [locales["zh-CN"].pureVoice.speaker, locales["zh-CN"].voiceAudio.deafenedState]) assert.match(value, /扬声器/);
+  assert.doesNotMatch(JSON.stringify(locales["zh-CN"]), /音箱/);
+});
 console.log(`${checks} UI component/source scenarios passed; no real React DOM, browser, helper, profile, audio or network.`);

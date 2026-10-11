@@ -403,8 +403,8 @@
     "unmuteMicrophone": "Unmute microphone",
     "muteMicrophone": "Mute microphone",
     "serverDeafenedByAdmin": "Server deafened by admin",
-    "undeafen": "Undeafen",
-    "deafen": "Deafen",
+    "undeafen": "Turn speakers on",
+    "deafen": "Turn speakers off (also stops microphone transmission)",
     "centerMyFace": "Center my face",
     "unmuteTheAudioYouReSharing": "Unmute the audio you're sharing",
     "muteTheAudioYouReSharing": "Mute the audio you're sharing",
@@ -1172,7 +1172,7 @@
     "common": "Common controls",
     "title": "Receive volume",
     "description": "Adjust teammates’ speech after automatic leveling and each person’s volume setting. 100% adds no gain; 200% doubles the amplitude. Lowering this volume is not automatically compensated.",
-    "deafened": "Listening is off. Your volume changes will take effect when listening resumes.",
+    "deafened": "Speakers are off and microphone transmission is stopped. Volume changes take effect when speakers are turned on.",
     "reset": "Restore 100%",
     "more": "More audio settings",
     "close": "Close",
@@ -1202,7 +1202,11 @@
       "unknown": "Unknown",
       "suspended": "Audio suspended"
     },
-    "degradedQuiet": "Protection failed to load or run. Fallback attenuates audio. Check diagnostics and retry before raising volume."
+    "degradedQuiet": "Protection failed to load or run. Fallback attenuates audio. Check diagnostics and retry before raising volume.",
+    "restoreMicAndSpeaker": "Restore microphone and speakers",
+    "deafenedMicrophone": "The microphone stops sending while speakers are off. Restoring the microphone also restores listening.",
+    "deafenedState": "Speakers are off; microphone transmission is also stopped",
+    "mutedState": "Microphone is muted"
   },
   "pairingFull": {
     "newDeviceWords_ts_e21a2a1635": "It was cancelled on the other device.",
