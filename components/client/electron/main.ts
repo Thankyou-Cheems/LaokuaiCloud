@@ -64,6 +64,8 @@ import {
 } from "./audioCaptureManager";
 import curatedGames from "./curated-games.json";
 import { createRpcHost, findHolder, type Holder, ipcDir, ipcPath, type RpcHostState } from "./discordIpc";
+import { registerEasyTierCommunityIpc } from "./easyTierCommunityIpc";
+import { EasyTierCommunityManager } from "./easyTierCommunityManager";
 import {
   autoStartIfNeeded,
   cleanupOnQuit,
@@ -234,6 +236,12 @@ const LEGACY_UPDATE_ARG = "--gryt-update";
 
 let pendingDeepLinkUrl: string | null = null;
 let mainWindow: BrowserWindow | null = null;
+// Native Windows ports remain behind the activation gate until target acceptance.
+// Community/server integration owns leases; voice room events never touch this manager.
+const easyTierCommunities = new EasyTierCommunityManager(null, state => {
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("et-community-state", state);
+});
+let easyTierPoll: ReturnType<typeof setInterval> | null = null;
 let tray: Tray | null = null;
 let isQuitting = false;
 let closeToTray = true;
@@ -1836,6 +1844,7 @@ function installOnQuit(): void {
     cancels the quit and hides, and Squirrel cannot swap the bundle. */
 function installDownloadedUpdate(): void {
   if (IS_I18N_TEST) return;
+  easyTierCommunities.shutdownOwned();
   isQuitting = true;
   quitHasItsOwnPlan = true;
   /* Not silent on Windows, so the installer's own window is on screen until Gryt's is
@@ -2250,7 +2259,7 @@ function createMainWindow(): BrowserWindow {
 
   // Windows may close windows for shutdown without emitting app.before-quit first.
   mainWindow.on("query-session-end", () => { isQuitting = true; });
-  mainWindow.on("session-end", () => { isQuitting = true; });
+  mainWindow.on("session-end", () => { isQuitting = true; easyTierCommunities.shutdownOwned(); });
 
   mainWindow.on("close", (event) => {
     if (
@@ -4616,6 +4625,11 @@ if (!gotSingleInstanceLock) {
         () => installNewestUpdate()
       );
 
+      registerEasyTierCommunityIpc(ipcMain, easyTierCommunities, event =>
+        !!mainWindow && !mainWindow.isDestroyed() && event.senderFrame === mainWindow.webContents.mainFrame);
+      easyTierPoll = setInterval(() => easyTierCommunities.refreshAll(), 2000);
+      easyTierPoll.unref();
+
       ipcMain.handle("squad-configure", (_event, value: SquadConfig) => {
         if (!value || typeof value.enabled !== "boolean" || typeof value.processDetection !== "boolean"
           || typeof value.processTarget !== "string" || !Array.isArray(value.keys)
@@ -4846,6 +4860,8 @@ if (!gotSingleInstanceLock) {
       flushUserStore();
       flushGlobalStore();
       closeMediaSandbox();
+      if (easyTierPoll) clearInterval(easyTierPoll);
+      easyTierCommunities.shutdownOwned();
 
       squadBroker?.stop();
       if (uiohookRunning) {

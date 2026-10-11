@@ -1,6 +1,21 @@
 import { contextBridge, ipcRenderer, webFrame } from "electron";
 
+import type { EasyTierCommunityAPI, EasyTierCommunityState } from "../src/lib/easyTierCommunity";
 import type { SquadConfig, SquadSnapshot } from "../src/lib/squadMode";
+
+const easyTierCommunity: EasyTierCommunityAPI = {
+  connect: lease => ipcRenderer.invoke("et-community-connect", lease),
+  disconnect: lease => ipcRenderer.invoke("et-community-disconnect", lease),
+  disconnectCommunity: serverId => ipcRenderer.invoke("et-community-disconnect-all", serverId),
+  setEnabled: enabled => ipcRenderer.invoke("et-community-enabled", enabled),
+  getState: serverId => ipcRenderer.invoke("et-community-state", serverId),
+  onState: callback => {
+    const listener = (_event: unknown, state: EasyTierCommunityState) => callback(state);
+    ipcRenderer.on("et-community-state", listener);
+    return () => ipcRenderer.removeListener("et-community-state", listener);
+  },
+};
+contextBridge.exposeInMainWorld("easyTierCommunity", easyTierCommunity);
 
 type EmbeddedServerConfigShape = {
   id: string;
