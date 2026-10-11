@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "id": "laokuai-cloud-receive-path-et-observation-frozen-20261011",
-  "stage": "ui-isolation-source-reviewed-frozen-build-and-actual-dom-pending-dd60-approved-preflight-failed-before-core",
+  "stage": "actual-hidden-empty-profile-bootstrap-passed-native-source-recovered-public-license-recipient-and-runtime-pending",
   "ready": false,
   "repository": {
     "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud",
@@ -9,15 +9,15 @@
     "visibility": "private",
     "branch": "release/integration-20261011",
     "soleGitWriter": "task-6",
-    "codeCommit": "12919aec27af82d7abe1387717b09a4bce2c729b",
-    "codeTree": "4481dd9ccc4686b214dd5a87cd5844981e98fb5b",
+    "codeCommit": "c62ad2e82d67a60ac1f6b1066e0023294537263c",
+    "codeTree": "de234a6730c03d097490f1d90c074eba9fb15fab",
     "newRepositoryReason": "Authenticated private-repo metadata and explicitly scoped old local core/game remotes revealed no matching existing private integration repository",
     "historyPolicy": "Original client history preserved; no force push/reset/rewrite; other components imported as licensed source snapshots"
   },
   "components": {
     "client": {
       "path": "components/client",
-      "tree": "9b1bc0da9e31fe8620ec207af895806cbc63544c",
+      "tree": "1dac144cd035614932cb64dba34957925276600d",
       "upstream": "Gryt-chat/client",
       "publicFork": "Thankyou-Cheems/gryt-client-i18n",
       "historyImportedFrom": "06ac43f51dbda3b9444c73270a126e10489110e9",
@@ -1587,6 +1587,51 @@
       "coreStarted": false,
       "nativeBeforeAfterAccepted": false,
       "actualDifferenceUnknown": true
+    },
+    "nativeLicenseFollowup": {
+      "sourceCommit": "c62ad2e82d67a60ac1f6b1066e0023294537263c",
+      "receipt": "components/client/release/licenses/native-provenance-followup/effective-followup.json",
+      "receiptSha256": "8c352990eb9543283981fb668076c12b1d53c31b58792e7a6cde268d00aeb125",
+      "sourceMaterialsManifest": "release/source-materials/native-source-materials.json",
+      "sourceMaterialsManifestSha256": "ecf096918025374070904caa19ad053a1b1752f6d7ffb95882b2f8f3f98868b1",
+      "effectiveOriginalTextCasesRecovered": 24,
+      "originalAuthorNoticeQuestionsRemaining": 1,
+      "encodingIndexSourceAndDeclarationMatched": true,
+      "authorIntentExternallyClarified": false,
+      "additionalVcLtlEplMicrosoftReviewPending": true,
+      "isolatedOfflineMetadataPackages": 886,
+      "nativeRebuildRelinkExecuted": false,
+      "recipientAccessAccepted": false,
+      "publicApproved": false,
+      "sourceArchive": {
+        "schema": 1,
+        "path": "private-native-dbaf0453-source-materials-20261011.zip",
+        "bytes": 201908868,
+        "sha256": "6656e48e28b22b231aebc99ae5c4563b25ad0ecf5e3fc47ff29943eb119eec86",
+        "files": 3134,
+        "uncompressedBytes": 225414386,
+        "allCrcAndBytesVerified": true,
+        "materialsManifestSha256": "e0aa960b68cab8fac75e8c6cc470bc047a45d9475fe787c0f0627c03d260b43e",
+        "sourceManifestSha256": "ecf096918025374070904caa19ad053a1b1752f6d7ffb95882b2f8f3f98868b1",
+        "portableRestorationPassed": true,
+        "sandboxFirstAttemptFailed": true,
+        "noBuildOrNativeExecution": true,
+        "publicApproved": false,
+        "sourceRecipientAccessAccepted": false
+      },
+      "unbuiltEncodingCandidate": "release/candidates/windows-service-manager-no-encoding.patch",
+      "candidateApplied": false
+    },
+    "uiHiddenBootstrapActual": {
+      "receipt": "release/acceptance/internal-candidate5d-bootstrap.json",
+      "receiptSha256": "18d6a7dd7e4706cf8d8836cccc8ff18a50acec873cfa219c8fe003a5378e8971",
+      "testedFreeze": "5d309524116d2276d913af6f98a79436e9dbf3ed",
+      "status": "PASS-bootstrap-only",
+      "exactArtifactSha256": "d6a1ee4023fc33cf889798cb60b9a3dbe382a6a4a9af2e2b9f34168f223d4c83",
+      "actualRuns": 2,
+      "task6RehashedFiles": 201,
+      "communityCallUiAccepted": false,
+      "productNativeEtAccepted": false
     }
   },
   "securityBoundary": {
@@ -1608,7 +1653,7 @@
     "preserved": true
   },
   "pending": [
-    "Overall design approved and compact-row/default320 source integrated; actual full-application DOM/accessibility untested",
+    "Overall design approved; actual hidden empty-profile UI bootstrap passed, real community/member/call-menu/settings/accessibility acceptance remains pending",
     "Automatic authorized community configuration without asking users for node/secret/subnet values",
     "Real Windows core/CLI/driver start/exit/game/voice, existing-private-ET coexistence and OS route cleanup acceptance",
     "Authenticated peer bindings and actual forwarding/RTT evidence; member paths remain unknown",
@@ -1617,11 +1662,11 @@
     "Historical Packet dependency preserved; final rebuilt core/CLI capture DLL absence resolved. Actual runtime/distribution/source-license acceptance still pending",
     "BOTH final core/CLI,17-feature profile,normal/delay imports and four-file schema2 hashes integrated; actual native activation/coexistence/cleanup and distribution review pending",
     "Authenticated member-to-ET-peer binding, selected forwarding/full physical path and timestamped ET RTT are absent; keep unknown",
-    "All25 native license omissions reviewed:23 original text/notice cases recovered; two MIT author-notice provenance questions and one CC0/source-notice clarification remain. Complete corresponding/relinkable source recipient delivery pending",
-    "c3a72472 production Provider seam actual P2P/retirement/fallback/sampler/null passed; complete main/preload/renderer/account/socket bootstrap, visual UI and actual capture/listening still unaccepted",
+    "Native notice follow-up:24 original text cases recovered; encoding-utils original author notice and CC0 source intent remain distinct, VC-LTL EPL/Microsoft linked-input scope requires review. Offline source restoration passed; actual rebuild/relink/source-recipient/public export remains pending",
+    "c3a72472 real Provider seam and5d hidden empty-profile main/preload/renderer bootstrap passed. Real account/socket/member/call/device listening remains unaccepted",
     "Both c737 and later approved dd60 scoped attempts are consumed. dd60 completed two23-phase snapshots but fingerprint mismatch stopped before core; exact field difference unknown. Readonly ET-owner diagnosis/repair pending; no new native retry authorized",
     "Internal83 portable artifact SHA7d430b1c/source83dd572f/static188files verified. Follow-up26 legal/FileSet changes and944 runner repair are absent from that artifact; no attribution to current code",
-    "UI isolation source12919aec is reviewed,23 pure/type checks and targeted lint passed. New frozen build/compiled asar/import-time audit and actual hidden bounded DOM/process/listener/no-focus acceptance by designated owner are pending; old83 executable lacks the mode"
+    "5d exact internal artifact d6a1ee40 / ASAR ed3ea18c passed two actual hidden offline empty-profile runs.201 final owner file hashes verified. New legal c62 bytes are absent from this old artifact; no final public release"
   ],
   "finalPackage": null,
   "frozenPreviousHybrid": {
@@ -1687,5 +1732,29 @@
     "runtimeAccepted": false,
     "publicDistributionApproved": false,
     "includesCurrentFollowupSource": false
+  },
+  "internalUiCandidate": {
+    "sourceFreeze": "5d309524116d2276d913af6f98a79436e9dbf3ed",
+    "codeCommit": "12919aec27af82d7abe1387717b09a4bce2c729b",
+    "receipt": "release/acceptance/internal-candidate5d-bootstrap.json",
+    "receiptSha256": "18d6a7dd7e4706cf8d8836cccc8ff18a50acec873cfa219c8fe003a5378e8971",
+    "artifact": {
+      "name": "LaokuaiCloud-1.13.22-laokuai.opus20.1-INTERNAL-CANDIDATE-win-x64-portable.exe",
+      "bytes": 128794705,
+      "sha256": "d6a1ee4023fc33cf889798cb60b9a3dbe382a6a4a9af2e2b9f34168f223d4c83",
+      "internalOnly": true,
+      "unsigned": true,
+      "nsisWrapperExecuted": false
+    },
+    "appAsarSha256": "ed3ea18c2a6405a138386966ca41927a5ef1a8d5582afd6bdcedd6c6756682f0",
+    "evidenceZip": {
+      "name": "exact-build-ui-evidence.zip",
+      "bytes": 1328955,
+      "sha256": "9f870321913bb83a145ea754774e5458db3c5a5a386cc4571b1a727d9ccb56ab"
+    },
+    "status": "PASS-bootstrap-only",
+    "containsCurrentLegalFollowup": false,
+    "publicApproved": false,
+    "final": false
   }
 }

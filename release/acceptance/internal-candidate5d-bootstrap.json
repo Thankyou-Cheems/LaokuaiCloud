@@ -1,0 +1,120 @@
+{
+  "schema": 1,
+  "testedFreeze": "5d309524116d2276d913af6f98a79436e9dbf3ed",
+  "testedCodeCommit": "12919aec27af82d7abe1387717b09a4bce2c729b",
+  "sourceArchiveSha256": "815975c44a7fe3c89b3fb34c6ba87fe3ca7dde796fae0054c528035e505d3d0d",
+  "ownerReportSha256": "19bcb9b41fc9ab54db2132b8aa2e34217b27d7ddba7e5a0749e37f2669466191",
+  "ownerManifestSha256": "7e3b8b3dcfd8a1f70eebcc82fe1a5a29e43188250c7ce45477486de32a57e9d3",
+  "evidenceZip": {
+    "name": "exact-build-ui-evidence.zip",
+    "bytes": 1328955,
+    "sha256": "9f870321913bb83a145ea754774e5458db3c5a5a386cc4571b1a727d9ccb56ab"
+  },
+  "task6ReadOnlyVerification": {
+    "files": 201,
+    "bytes": 565153632,
+    "allHashesMatched": true,
+    "ownerOrProfileWritten": false,
+    "productExecuted": false,
+    "currentRuntimeAndMediaSourceByteIdentical": true
+  },
+  "artifact": {
+    "name": "LaokuaiCloud-1.13.22-laokuai.opus20.1-INTERNAL-CANDIDATE-win-x64-portable.exe",
+    "bytes": 128794705,
+    "sha256": "d6a1ee4023fc33cf889798cb60b9a3dbe382a6a4a9af2e2b9f34168f223d4c83",
+    "internalOnly": true,
+    "unsigned": true,
+    "nsisWrapperExecuted": false
+  },
+  "appAsarSha256": "ed3ea18c2a6405a138386966ca41927a5ef1a8d5582afd6bdcedd6c6756682f0",
+  "compiledMainSha256": "87c7d1cb46838149d2a9c76a0b868ca25bc8bacf8a4be6b28ca3d22d35a52a35",
+  "compiledPreloadSha256": "3ce5678b060890f2bcb877d0fd60850faeb48bd8b202ab07ed032f9a4970d5da",
+  "exactPortablePayloadFiles": 108,
+  "sourceFilesUnchanged": 3440,
+  "sdkPackageSha256": "8abea479d053b6310e8c97746ae8b07f153a17d691dc20bdd5a241b6fe90caed",
+  "sdkPackedFiles": 212,
+  "freshOfflineFrozenIgnoreScripts": true,
+  "fullTypesAndTargetedLint": true,
+  "webDesktopInternalBuildPassed": true,
+  "pureUiModeChecks": 23,
+  "status": "PASS-bootstrap-only",
+  "actualApplicationExecutedByDesignatedOwner": true,
+  "actualRuns": [
+    {
+      "id": "run1",
+      "exit": 0,
+      "samples": 9,
+      "firstSampleMs": 2279,
+      "lastSampleMs": 14425,
+      "ownedProcessCountIncludingMain": 6,
+      "residual": [],
+      "explicitEndpointAndForegroundQuerySuccess": false,
+      "windowVisible": false,
+      "windowFocused": false,
+      "domSHA256": "68a9a053bda6ce74aa6c0ecee382c14f72e6fc167726ba3fed9ef55526e0103e",
+      "screenshotSHA256": "f8f79c90ad2180fd6e770171b9b4f3b207ddce1e118ccb389d4ba8c6e80f2455",
+      "tcpUdpOwnedEndpointsEmptyInSamples": true,
+      "ownedForegroundFalseInSamples": true,
+      "externalHelperCoreNotObserved": true
+    },
+    {
+      "id": "run2",
+      "exit": 0,
+      "samples": 10,
+      "firstSampleMs": 2030,
+      "lastSampleMs": 14849,
+      "ownedProcessCountIncludingMain": 6,
+      "residual": [],
+      "explicitEndpointAndForegroundQuerySuccess": true,
+      "windowVisible": false,
+      "windowFocused": false,
+      "domSHA256": "68a9a053bda6ce74aa6c0ecee382c14f72e6fc167726ba3fed9ef55526e0103e",
+      "screenshotSHA256": "ff838a81435050e6524937c9088150c84d980bb06009a98a1d3704980939ea20",
+      "tcpUdpOwnedEndpointsEmptyInSamples": true,
+      "ownedForegroundFalseInSamples": true,
+      "externalHelperCoreNotObserved": true
+    }
+  ],
+  "dom": {
+    "url": "laokuai-ui-check://app/index.html",
+    "lang": "zh-CN",
+    "rootChildren": 1,
+    "viewportCSS": [
+      1600,
+      900
+    ],
+    "screenshotPhysicalPixels": [
+      3200,
+      1800
+    ],
+    "actualPreloadNamespaces": [
+      "electronAPI",
+      "easyTierCommunity"
+    ],
+    "visibleControlsWithinViewport": 7
+  },
+  "notAccepted": {
+    "communityMemberRows": true,
+    "memberSidebarContents": true,
+    "callMenuFocusOcclusion": true,
+    "settingsDialogInteraction": true,
+    "loginSocketRecovery": true,
+    "actualDeviceListening": true,
+    "gameCapacityFec": true,
+    "etTunCoexistenceCleanup": true,
+    "physicalDirect": true,
+    "nsisWrapperExecution": true,
+    "finalLicenseAndSourceRecipient": true
+  },
+  "samplingLimit": "About1.5s samples, first around2s; not full OS/event/packet tracing or OS/WebRTC egress firewall",
+  "expectedUnavailable": [
+    "CSP denied public OIDC metadata fetch",
+    "native/hotkeys/Squad/ET/process IPC denied by mode",
+    "lan:get-servers has No handler because LAN registration is skipped; rendering continued"
+  ],
+  "old83Preserved": true,
+  "containsNewC62LegalResources": false,
+  "ready": false,
+  "finalPackage": null,
+  "publicDistributionApproved": false
+}

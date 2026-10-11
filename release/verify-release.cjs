@@ -109,6 +109,21 @@ if(m.validation.uiIsolatedStartupSource){
   for(const file of receipt.files)assert(sha(file.path)===file.sha256&&git(['rev-parse',`${receipt.sourceCommit}:${file.path}`])===file.gitBlob,'UI source/check bytes drifted');
   assert(receipt.applicationExecuted===false&&receipt.compiledPackageVerified===false&&receipt.actualDomOrScreenshot===false&&receipt.actualNoListenerOrFocusVerified===false&&receipt.old83ArtifactContainsMode===false,'UI source promoted to actual startup');
 }
+if(m.validation.uiHiddenBootstrapActual){
+  const entry=m.validation.uiHiddenBootstrapActual;
+  assert(sha(entry.receipt)===entry.receiptSha256,'Actual hidden bootstrap receipt changed');
+  const receipt=JSON.parse(fs.readFileSync(path.join(root,entry.receipt),'utf8'));
+  assert(receipt.testedFreeze==='5d309524116d2276d913af6f98a79436e9dbf3ed'&&receipt.status==='PASS-bootstrap-only'&&receipt.task6ReadOnlyVerification.files===201&&receipt.task6ReadOnlyVerification.allHashesMatched,'Actual UI source/evidence identity mismatch');
+  assert(receipt.artifact.sha256==='d6a1ee4023fc33cf889798cb60b9a3dbe382a6a4a9af2e2b9f34168f223d4c83'&&receipt.appAsarSha256==='ed3ea18c2a6405a138386966ca41927a5ef1a8d5582afd6bdcedd6c6756682f0','Actual UI exact package identity changed');
+  assert(receipt.actualRuns.length===2&&receipt.actualRuns.every(x=>x.exit===0&&x.residual.length===0&&!x.windowVisible&&!x.windowFocused)&&receipt.actualRuns[1].explicitEndpointAndForegroundQuerySuccess,'Actual UI bounded startup result changed');
+  assert(git(['diff','--name-only',receipt.testedFreeze,m.repository.codeCommit,'--','components/client/src','components/client/electron','components/voice','components/server','components/sfu','components/easytier/source'])==='','Measured UI/runtime source changed');
+  assert(receipt.notAccepted.communityMemberRows&&receipt.notAccepted.callMenuFocusOcclusion&&receipt.notAccepted.actualDeviceListening&&receipt.notAccepted.etTunCoexistenceCleanup&&receipt.ready===false&&receipt.finalPackage===null&&!receipt.publicDistributionApproved&&!receipt.task6ReadOnlyVerification.productExecuted,'Bootstrap promoted to full product/native/release acceptance');
+}
+if(m.validation.nativeLicenseFollowup){
+  const entry=m.validation.nativeLicenseFollowup;
+  assert(sha(entry.receipt)===entry.receiptSha256&&sha(entry.sourceMaterialsManifest)===entry.sourceMaterialsManifestSha256,'Native provenance follow-up changed');
+  require('./verify-source-materials.cjs');
+}
 if(m.validation.nativeLatestApprovedAttempt){
   const entry=m.validation.nativeLatestApprovedAttempt;
   assert(sha(entry.receipt)===entry.receiptSha256,'Latest approved ET attempt receipt changed');
