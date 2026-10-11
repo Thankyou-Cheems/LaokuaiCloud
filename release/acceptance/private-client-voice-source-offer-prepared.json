@@ -1,0 +1,108 @@
+{
+  "schema": 1,
+  "status": "PREPARED-private-source-review-not-distributed",
+  "sourceFreeze": "84292bfef11d3cf45987d6fa963b86e52ddbbf7a",
+  "integrationCheckpointAtPreparation": "ad219385f7510ab4615a430e26baaccf018aad72",
+  "binarySha256": "3cff0c00f1a8441e98af909424081d4b74be08e9aba44d745eaa80d0f0062619",
+  "sourceArchives": [
+    {
+      "file": "client-voice-source84292bf-private-review.zip",
+      "bytes": 15269647,
+      "sha256": "4b6e90d9cd781b864e77608533e887fdcf15c91e213a0f1e38e5b0c4aaef5f56",
+      "privateReviewOnly": true,
+      "shared": false
+    },
+    {
+      "file": "custom-ui-preferred-source-private-review.zip",
+      "bytes": 1099658,
+      "sha256": "d0933073f4915594021bad3940ac61079241546cdfeb74a347085fdc46bc69e3",
+      "privateReviewOnly": true,
+      "shared": false
+    },
+    {
+      "file": "rnnoise-preferred-source-private-review.zip",
+      "bytes": 61940085,
+      "sha256": "a79be9beb3936f652a404e3961e1915733d6e9e88498de20cbf2b15f8dc2d76d",
+      "privateReviewOnly": true,
+      "shared": false
+    }
+  ],
+  "separateNativeSourceKit": {
+    "file": "screened-recipient-source-materials-private-draft.zip",
+    "bytes": 151940089,
+    "sha256": "bad7e5e4b3a666d63876eaa5910cf6e3aaafc927330521682adb5a80267c6205",
+    "localSiblingDelivery": "modern-full-app-pack-input-delivery",
+    "preferredSourceFiles": 1262,
+    "registryArchives": 865,
+    "gitSourceSnapshots": 7,
+    "currentTargetPackages": 504,
+    "oldPrebuiltAssetsExcluded": 15,
+    "publicUploaded": false
+  },
+  "separateNativeToolsSupplement": {
+    "file": "recipient-build-tools-supplement.zip",
+    "bytes": 161269,
+    "sha256": "24879c3a920fc4a12d2b30baa2c779ff8b9ebed3e13411861b563d8372560688",
+    "localSiblingDelivery": "recipient-rebuild-followup-delivery",
+    "parentAssignedOneRelinkProofOnly": true
+  },
+  "runtimeBinaryResourceNotInSourceKit": {
+    "file": "laokuai-modern-static-runtime-input.zip",
+    "sha256": "17bdccbab2d78b42642bbf934efb4c4bf9329a97ce4ed16685c3b5659f54ca74",
+    "localSiblingDelivery": "modern-full-app-pack-input-delivery",
+    "recipientBinarySharingRequiresScope": true
+  },
+  "publicForkDefaultReferences": [
+    {
+      "repo": "Thankyou-Cheems/gryt-client-i18n",
+      "commit": "3d4072c3202ff6d5346651299c02f98210efd9e3"
+    },
+    {
+      "repo": "Thankyou-Cheems/voice",
+      "commit": "26b3bf99d92642fc2ff09d54f5b9eae7ca51d06c"
+    },
+    {
+      "repo": "Thankyou-Cheems/EasyTier",
+      "commit": "f737708f45840a54d13d5a241980fca453a44b0c"
+    }
+  ],
+  "preferredSourceClosure": {
+    "schema": 1,
+    "primaryZipEntries": 1498,
+    "mainSourceGitBlobsVerified": 1487,
+    "productionSrcElectronNativeHelperExcluded": 0,
+    "allLocalFileDependenciesPresentAndExact": true,
+    "nativeHelperRecipesPresent": true,
+    "voiceNpmLockPresent": true,
+    "uiPreferredFilesVerified": 405,
+    "uiMapSourceCoverage": 95,
+    "embeddedWebRtcRnnSha256": "21b6eb801901c5250215ff6a29b83471b13cdf45b69ba3fe438770b391a1d95b",
+    "allThreeZipCrcPassed": true,
+    "buildInstallOrRuntimeExecuted": false,
+    "sourceAvailabilityForRegistryDependenciesNotTestedInFreshRecipientEnvironment": true
+  },
+  "legalNotices": "SOURCE-DELIVERY-NOTICES.md",
+  "buildAndAcquisition": "ACQUIRE-AND-BUILD.md",
+  "humanSharingScopes": "SHARE-APPROVAL-SCOPE.md",
+  "privateRepositoryHistoryIncluded": false,
+  "realProfilesPrivateRawDiagnosticsIncluded": false,
+  "publicSourceUploaded": false,
+  "recipientTransferExecuted": false,
+  "repositoryVisibilityChanged": false,
+  "publicDownloadUrl": null,
+  "productionReady": false,
+  "finalPackage": null,
+  "stillPending": [
+    "Assigned owner one modified-library native compile/relink proof",
+    "Fresh recipient dependency acquisition/UI/RNNoise/app rebuild is not executed by this preparation",
+    "Actual permitted recipient or public source/binary transfer and access verification",
+    "Specific non-code brand assets/external distribution rights and Windows platform redistribution review",
+    "Modern native runtime and real product media acceptance remain separate"
+  ],
+  "privateReviewReportSha256": "b8378f22f1dc868e441fa17f2acbbbc17317697c39e3cb4a49f2e39e0a6b083f",
+  "privateReviewManifestSha256": "7920ca963ad59a31a4911ba32f41bf378a40fd9cec83e31a80c59e314853b9b6",
+  "privateReviewHandoffSha256": "6729bfcdd098aa296995519936cf8dab867df98e1c7189f0c20a055d7105ab47",
+  "task6PostSealFilesVerified": 28,
+  "localPrivateReviewDirectory": "source-release-private-review",
+  "sourceBytesImportedIntoIntegrationHistory": false
+}

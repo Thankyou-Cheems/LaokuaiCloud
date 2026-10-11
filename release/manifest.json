@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "id": "laokuai-cloud-receive-path-et-observation-frozen-20261011",
-  "stage": "modern-full-app-internal-candidate-built-hidden-bootstrap-passed-recipient-compile-and-release-delivery-pending",
+  "stage": "private-source-offer-prepared-dbaf-single-no-peer-udp-runtime-pass-modern-runtime-and-product-acceptance-pending",
   "ready": false,
   "repository": {
     "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud",
@@ -1891,7 +1891,9 @@
       "ownedCleanupConfirmed": true,
       "completeCoexistenceAccepted": false,
       "nativeAccepted": false,
-      "socketClassificationPending": true
+      "socketClassificationPending": true,
+      "historicalFailurePreserved": true,
+      "newerDifferentScopeReceipt": "release/acceptance/et-user-local-dbaf-udp65-pass.json"
     },
     "windowsServiceEncodingSource": {
       "sourceCommit": "fb3ae901a02f763241ff8d78f1db0b89243fba24",
@@ -1962,7 +1964,9 @@
       "nativeExecuted": false,
       "payloadStillDbaf": true,
       "physicalEgressMeasured": false,
-      "currentPayloadMatched": false
+      "currentPayloadMatched": false,
+      "originalFrozenScopeUnexecuted": true,
+      "latestDerivedLocalAttempt": "userLocalDbafUdp65Actual"
     },
     "modernStaticCrtSource": {
       "sourceCommit": "089b6182c603c8ab60044b673effe0cf614cc28a",
@@ -2060,6 +2064,88 @@
       "modifiedLibraryRelinkPassed": false,
       "realRecipientTransfer": false,
       "licensesAreSeparateFromInternalValidation": true
+    },
+    "userLocalDbafUdp65Actual": {
+      "receipt": "release/acceptance/et-user-local-dbaf-udp65-pass.json",
+      "receiptSha256": "638b2f594c3b928bbcce4c7bae61aa9ae4b9521f3abf3fe7a742fe8e3f9b8680",
+      "sourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
+      "scopeSha256": "981da5b37c3cc6d07b28dc93ccadd7c495f65a27f13e5afd1468ff0a6bb0370b",
+      "payload": [
+        {
+          "name": "easytier-core.exe",
+          "bytes": 20107264,
+          "sha256": "d4f100ace0ae50b5270af10f579a2ccf7b2991731f05b82920eefba60055d49a"
+        },
+        {
+          "name": "easytier-cli.exe",
+          "bytes": 6050816,
+          "sha256": "b84fa350b9c8036649df3cdc8ee728c364ea81075d82fd3783cdeede3b9ddccd"
+        },
+        {
+          "name": "wintun.dll",
+          "bytes": 427552,
+          "sha256": "e5da8447dc2c320edc0fc52fa01885c103de8c118481f683643cacc3220dafce"
+        },
+        {
+          "name": "WinDivert64.sys",
+          "bytes": 94144,
+          "sha256": "8da085332782708d8767bcace5327a6ec7283c17cfb85e40b03cd2323a90ddc2"
+        }
+      ],
+      "originalRunnerCommit": "f273f5a73e565611fba63840635b465bf7f71d14",
+      "scopeOneShotConsumed": true,
+      "reactivationApproved": false,
+      "status": "PASS-dbaf-no-peer-owned-NIC-UDP-scope-coexistence-and-cleanup-only",
+      "protectedConfigurationDifferences": [
+        0,
+        0,
+        0
+      ],
+      "nativeNicReadinessVerified": true,
+      "completeDuringSnapshot": true,
+      "twoPostLightAndFullClean": true,
+      "gracefulAckChildExit0": true,
+      "maximumExpectedUdpBindings": 1,
+      "physicalEgressMeasured": false,
+      "realCommunityVerified": false,
+      "appliesToModernPayload": false,
+      "task6Executed": false
+    },
+    "privateClientVoiceSourceOffer": {
+      "receipt": "release/acceptance/private-client-voice-source-offer-prepared.json",
+      "receiptSha256": "d8048e40f4dcd123b2564bec48abcc78340139b0d492ca9b9f89f1908208516e",
+      "sourceFreeze": "84292bfef11d3cf45987d6fa963b86e52ddbbf7a",
+      "sourceArchives": [
+        {
+          "file": "client-voice-source84292bf-private-review.zip",
+          "bytes": 15269647,
+          "sha256": "4b6e90d9cd781b864e77608533e887fdcf15c91e213a0f1e38e5b0c4aaef5f56",
+          "privateReviewOnly": true,
+          "shared": false
+        },
+        {
+          "file": "custom-ui-preferred-source-private-review.zip",
+          "bytes": 1099658,
+          "sha256": "d0933073f4915594021bad3940ac61079241546cdfeb74a347085fdc46bc69e3",
+          "privateReviewOnly": true,
+          "shared": false
+        },
+        {
+          "file": "rnnoise-preferred-source-private-review.zip",
+          "bytes": 61940085,
+          "sha256": "a79be9beb3936f652a404e3961e1915733d6e9e88498de20cbf2b15f8dc2d76d",
+          "privateReviewOnly": true,
+          "shared": false
+        }
+      ],
+      "privateReviewManifestSha256": "7920ca963ad59a31a4911ba32f41bf378a40fd9cec83e31a80c59e314853b9b6",
+      "productionSourceClosureVerified": true,
+      "uiPreferredSourceIncluded": true,
+      "rnnoisePreferredSourceAndFixedModelIncluded": true,
+      "independentRecipientBuildExecuted": false,
+      "publicUploaded": false,
+      "recipientTransferred": false,
+      "repositoryVisibilityChanged": false
     }
   },
   "securityBoundary": {
@@ -2092,13 +2178,14 @@
     "Authenticated member-to-ET-peer binding, selected forwarding/full physical path and timestamped ET RTT are absent; keep unknown",
     "Historical fb3ae901 encoding overlay, original504 graph, old CRT24-match/12-missing-source review and817 build-preparation materials remain immutable. Current authorized candidate089b6182 adds standard static CRT and removes the product win7 thunk feature. Its fresh recovery/target graph passed; compiler/PDB/import provenance and actual functionality remain pending. Old binaries retain their notice/source questions; actual recipient/public export remain unaccepted.",
     "c3a72472 real Provider seam and5d hidden application bootstrap passed;5d production component TEST fixture now passed33 real renderer assertions/21captures with45 unchanged production source inputs. Actual account/devices/two-way calls/listening/game/20media capacity/full-App remains unaccepted",
-    "Historical c737/dd60 approvals remain consumed. One newly approved3c/2392scope65s attempt also consumed: real NIC created, failed at first ownedForbiddenSocketCount1 before readiness/full-during, graceful ACK exit0 and two light/post-full cleanup confirmed; selected old configuration zero differences, NetworkList+1 retained. Unexpected endpoint classification pending source/read-only diagnosis; no reactivation approved Diagnostic17/schema5 now saves strict endpoint identities/details before refusal;101 pure+8 plan passed. Empty-list NAT collector is a source candidate, historical attribution unproven, new scope425b unapproved and no reactivation",
+    "Historical c737/dd60/3c2392 failures and consumed authorizations are preserved. New separately approved local pwsh schema7/981da5b3 one-shot passed exact old dbaf/d4f core no-peer owned-NIC readiness, full-during protected configuration, max-one expected UDP bind and graceful ACK/exit0/two-light/post-full cleanup; NetworkList+1 retained. This does not apply to current089b/modern pair. Callsite and UDP egress remain unmeasured; no new activation/retry approved",
     "Internal83 portable artifact SHA7d430b1c/source83dd572f/static188files verified. Follow-up26 legal/FileSet changes and944 runner repair are absent from that artifact; no attribution to current code",
     "5d exact internal artifact d6a1ee40 / ASAR ed3ea18c passed two actual hidden offline empty-profile runs.201 final owner file hashes verified. New legal c62 bytes are absent from this old artifact; no final public release",
-    "Expected UDP source f273/schema6/a071 is wired with110 pure checks and19 source pins, allowing at most one stable-owned IPv4 wildcard bind for exact old dbaf/d4f payload. Fresh human activation approval is absent; egress and socket callsite are unmeasured. New binary must receive new payload scope.",
+    "Expected UDP original f273/schema6/a071/19pins source is preserved; a separate local PowerShell7 candidate changed3 source pins and received one-shot schema7/981da5b3 approval, now consumed and PASS for old dbaf/d4f only. All19 current pins and4 payload files were readonly reverified. Modern binary must receive its own payload scope/authorization; no repeat requested for the passing old version",
     "Modern source089b6182 actual native pair is in completed full-app84292bf portable3cff0c00; internal build/static audit/run2 hidden bootstrap passed, run1 monitor anomaly preserved. Old schema6/a071/dbaf cannot execute this new payload; parent reports TUN review rejected. Actual native and real-call acceptance remain separate.",
     "Screened1262-file native source draft excludes15 prebuilt assets, including6 Packet files. Fresh source-only offline restoration uses865 registry archives/7 Git source snapshots and preserves1129 lock record versions/checksums with6 local transport changes. Actual recipient transfer/relink/platform license and distribution review remain pending; no public export.",
-    "Recipient engineering proof is one fresh offline screened-kit core/CLI compile+link using a test-only LGPL library version marker. Dedicated1262-file helper/lock guards and exact scope are prepared. Actual recipient delivery/source-access, permitted release export/notices/platform redistribution and full-app/SDK corresponding source are separate concrete release actions; do not require extra UI/audio tests as licensing proof."
+    "Assigned recipient engineering proof remains one fresh offline screened-kit core/CLI compile+link using a test-only LGPL library version marker; prepared1262-file helper/lock guards preserve exact scope. Exact Client/Voice,405-file custom UI and RNNoise wrapper/native/fixed-model source review is now prepared privately. Actual recipient transfer/access, permitted external export/platform redistribution review and independent recipient app rebuild remain separate release actions. Extra UI/audio tests are not licensing proof",
+    "Private source offer: exact842 client/Voice plus405-file custom UI source and RNNoise wrapper/native/model archives are sealed with acquisition/lock/notices/SHA and no Git history. No external transfer or public URL; absence of public URL is not an internal-test blocker. User must choose concrete recipients/channel or screened public target/brand scope before sharing; current private integration repository stays private."
   ],
   "finalPackage": null,
   "frozenPreviousHybrid": {
