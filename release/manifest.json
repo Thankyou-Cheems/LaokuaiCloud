@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "id": "laokuai-cloud-receive-path-et-observation-frozen-20261011",
-  "stage": "independent-et-observer-source-integrated-5d-bootstrap-passed-native-and-public-source-release-pending",
+  "stage": "independent-et-observer-actual65s-failed-before-readiness-owned-cleanup-confirmed-ui-bootstrap-only-public-distribution-pending",
   "ready": false,
   "repository": {
     "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud",
@@ -1471,9 +1471,9 @@
       "maximumStopRequestMs": 65000,
       "maximumExitConfirmationMs": 71000,
       "phaseBudgetMs": 219000,
-      "executed": false,
+      "executed": true,
       "currentHumanApprovalReceived": false,
-      "nativeExecuted": false,
+      "nativeExecuted": true,
       "productionActivationApproved": false,
       "sourceReceipt": "release/acceptance/et-independent-observer-integrated.json",
       "sourceReceiptSha256": "071c4c1701b3d9ec2ce646bdb67ca84bbe0cde8892cfd2bc4e9df5ab54c6d036",
@@ -1507,7 +1507,11 @@
         "executionStage": "Owner preflight only; stopped before core/TUN",
         "nativeActivationExecuted": false,
         "actualAttemptReceipt": "release/acceptance/native-dd60-preflight-failed.json"
-      }
+      },
+      "originalHumanApprovalReceivedForConsumedAttempt": true,
+      "approvalConsumed": true,
+      "reactivationApproved": false,
+      "actualAttemptReceipt": "release/acceptance/et-actual65s-failed-owned-cleanup.json"
     },
     "providerActualInstanceBinding": {
       "receipt": "release/acceptance/provider-instance-binding-real-media.json",
@@ -1671,7 +1675,25 @@
       "planningChecks": 8,
       "nativeApproved": false,
       "nativeExecuted": false,
-      "currentHumanApprovalReceived": false
+      "currentHumanApprovalReceived": false,
+      "receiptPredatesActualTrial": true,
+      "latestActualAttempt": "nativeActual65sAttempt"
+    },
+    "nativeActual65sAttempt": {
+      "receipt": "release/acceptance/et-actual65s-failed-owned-cleanup.json",
+      "receiptSha256": "e9ac672506d6bec644833a55cf71b50f5d685623f72ce2db9223f06c0c502b34",
+      "executedSourceCommit": "3c9e73fd8c6039ce8561d84058d1d7f502c6247b",
+      "ownerDocumentationCommit": "d8a2eeb6ba796fc218442dcb03abba22cf53f4ae",
+      "scopeSha256": "2392f12f7284d982a1a3b6e179c7becbe294449e519f7832a090aadbeb99bd5b",
+      "approvalConsumed": true,
+      "reactivationApproved": false,
+      "outcome": "failed-before-readiness-but-real-nic-created-and-owned-cleanup-confirmed",
+      "failure": "light-unexpected-socket",
+      "verifiedNativeNicCreated": true,
+      "ownedCleanupConfirmed": true,
+      "completeCoexistenceAccepted": false,
+      "nativeAccepted": false,
+      "socketClassificationPending": true
     }
   },
   "securityBoundary": {
@@ -1704,7 +1726,7 @@
     "Authenticated member-to-ET-peer binding, selected forwarding/full physical path and timestamped ET RTT are absent; keep unknown",
     "Native notices:24 original text cases recovered; original encoding CC0/source notice provenance resolved conservatively. encoding-utils original author notice remains or select the unbuilt Windows-only feature-removal option. Actual VC-LTL libucrt/libvcruntime/YY-Thunks link inputs confirmed; specific EPL/Microsoft scope, coordinated rebuild/relink/source-recipient/export/package inventory remain pending",
     "c3a72472 real Provider seam and5d hidden empty-profile main/preload/renderer bootstrap passed. Real account/socket/member/call/device listening remains unaccepted",
-    "Historical c737/dd60 attempts consumed; dd60 failed before native with exact difference unknown. Reviewed3c source now uses independent full/light observations and65s stop request/71s confirmation/219s phase budget; no fresh current human native approval or trial",
+    "Historical c737/dd60 approvals remain consumed. One newly approved3c/2392scope65s attempt also consumed: real NIC created, failed at first ownedForbiddenSocketCount1 before readiness/full-during, graceful ACK exit0 and two light/post-full cleanup confirmed; selected old configuration zero differences, NetworkList+1 retained. Unexpected endpoint classification pending source/read-only diagnosis; no reactivation approved",
     "Internal83 portable artifact SHA7d430b1c/source83dd572f/static188files verified. Follow-up26 legal/FileSet changes and944 runner repair are absent from that artifact; no attribution to current code",
     "5d exact internal artifact d6a1ee40 / ASAR ed3ea18c passed two actual hidden offline empty-profile runs.201 final owner file hashes verified. New legal c62 bytes are absent from this old artifact; no final public release"
   ],

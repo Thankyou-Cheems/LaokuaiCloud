@@ -161,6 +161,17 @@ if(m.validation.etIndependentObserver){
   assert(receipt.task6TrialSnapshotSemanticObserverChecks===49&&receipt.task6PlanningChecks===8&&receipt.task6MockedProductionChecks===23&&receipt.task6MockedProductionPassed,'Independent observer pure checks incomplete');
   assert(!receipt.currentHumanNativeApprovalReceived&&!receipt.task6OsSnapshotExecuted&&!receipt.task6NativeExecuted&&!receipt.nativeActivationAccepted&&!receipt.consumedApprovalsReused,'Independent observer source falsely grants activation');
 }
+if(m.validation.nativeActual65sAttempt){
+  const entry=m.validation.nativeActual65sAttempt;
+  assert(sha(entry.receipt)===entry.receiptSha256,'Actual65s receipt changed');
+  const receipt=JSON.parse(fs.readFileSync(path.join(root,entry.receipt),'utf8'));
+  assert(receipt.executedSourceCommit==='3c9e73fd8c6039ce8561d84058d1d7f502c6247b'&&receipt.scopeSha256===m.validation.etIndependentObserver.scopeSha256,'Actual65s source/scope mismatch');
+  assert(receipt.normalUacExecutedOnce&&receipt.approvalConsumed&&!receipt.reactivationApproved&&!receipt.automaticRetry,'Actual65s consumed authorization reused');
+  assert(receipt.verifiedNativeNicCreated&&receipt.ownedForbiddenSocketCount===1&&receipt.failure==='light-unexpected-socket'&&!receipt.osMatchedReadiness&&!receipt.fullDuringSnapshot,'Actual65s incomplete attempt promoted to live acceptance');
+  assert(receipt.stop==='graceful-native-ACK-child-exit-zero-no-force'&&!receipt.forceApplied&&!receipt.residualNicOrRpc&&receipt.twoCleanPostLightSamplesConfirmed&&receipt.postFullConfirmedNoNicRpcResidual,'Actual65s owned cleanup evidence changed');
+  assert(receipt.globalDiffsBeforeAfter===0&&receipt.newNetworkListRecords===1&&!receipt.newRecordDeleted,'Actual65s selected configuration facts changed');
+  assert(!receipt.completeCoexistenceAccepted&&!receipt.nativeAcceptance&&!receipt.productionActivationApproved&&!receipt.task6NativeExecuted&&!receipt.task6OsNetworkSnapshotExecuted&&!receipt.rawEvidenceImported,'Actual65s false full/production acceptance');
+}
 if(m.internalCandidate){
   const candidate=m.internalCandidate;
   assert(sha(candidate.receipt)===candidate.receiptSha256,'Internal candidate receipt changed');
