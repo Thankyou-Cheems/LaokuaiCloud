@@ -19,6 +19,13 @@ for(let pos=0;pos+512<=tar.length;){const header=tar.subarray(pos,pos+512);if(he
 assert(packed?.version===packageInfo.version&&files===205,'SDK packed version/inventory mismatch');
 assert(m.easytier.tag==='v2.7.0'&&m.easytier.prerelease&&m.easytier.tagCommit==='8b7f1f0196edb5b580829ed5f135050fb5853478','ET source target mismatch');
 assert(m.validation.clientPure.checks.every(x=>x.exit===0),'Recorded checks not green');
+if(m.validation.nativePacketDependency){
+  const dependency=m.validation.nativePacketDependency;
+  assert(sha(dependency.report)===dependency.reportSha256,'Native static import evidence changed');
+  const report=JSON.parse(fs.readFileSync(path.join(root,dependency.report),'utf8'));
+  assert(report.coreSha256===dependency.coreSha256&&report.packetDllStaticImportConfirmed===true&&report.executed===false,'Native dependency evidence identity mismatch');
+  if(m.ready)assert(dependency.resolutionVerified===true&&dependency.finalPackageBlocked===false,'Packet.dll distribution/deployment dependency unresolved');
+}
 if(m.easytier.nativePortsImplemented){
   const entries=require('../components/client/scripts/community-easytier-resources.cjs');
   const names=entries.map(e=>e.to.split('/').at(-1)).sort();

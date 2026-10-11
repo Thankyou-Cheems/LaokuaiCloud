@@ -50,6 +50,12 @@ static build inputs, with tracked normalized provenance/receipts. Input ZIP SHA2
 `4c57e56ec2973d18216afe1e896e95f33b1441c8f8f18cc1eea14a3534de68b6`.
 No core/CLI/helper/driver/TUN was run. Complete companion/driver notices and runtime
 coexistence/cleanup/activation are pending; payload approval remains false.
+Static import inspection of the exact `28248cf2` core additionally confirms
+`packet.dll`. Its redistribution permission and ordinary-user driver prerequisites
+are unresolved; this blocks final packaging. ET owner is auditing whether optional
+pcap support can be removed while preserving normal TUN/voice. Do not substitute a
+DLL or make every user install Npcap. Frozen core/build inputs remain diagnostic
+preparation, not an approved distributable payload.
 Run `node release/verify-build-inputs.cjs` for the prepared local bytes.
 
 [Path wiring owner tasks](path-wiring-owner-tasks.md) gives precise parallel SDK,
@@ -62,6 +68,9 @@ existing path scenarios pass, as do app/desktop types, targeted lint, integratio
 and Hybrid bootstrap checks. SDK observations are still absent; the new code does
 not change the `a36adcab` media test input. See
 [Provider contract](path-provider-contract.md) for precise interface requirements.
+UI connection-details candidate `8157d7fc` is hash/forward-apply verified and awaits
+the owner's provider compatibility followup before being applied; see
+[candidate receipt](acceptance/ui-connection-details-candidate.json).
 These code tasks do not wait for appearance approval; native safety confirmation
 blocks actual activation only. Member assistance settings/policies/experiments
 remain deferred; existing public ET relay configuration remains unchanged.

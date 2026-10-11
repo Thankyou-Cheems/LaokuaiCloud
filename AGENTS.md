@@ -52,6 +52,10 @@ UI work does not delay the capacity
 owner's reviewed dbaf0453 build or immutable 78513ba4 SDK3 evidence. The dbaf
 release build passed; private core28248cf2 and static product inputs are verified.
 Do not run native core/TUN or treat input preparation as activation approval.
+The exact dbaf core statically imports Packet.dll. Redistribution and ordinary
+user driver prerequisites are unresolved and block final packaging. ET owner
+audits optional pcap support without reducing normal TUN/voice; task-6 does not
+change the native patch, fabricate a DLL or require blanket Npcap installation.
 Follow release/path-wiring-owner-tasks.md for non-overlapping SDK/ET/UI follow-ups.
 
 The final user-approved deployed landing source is archived separately in

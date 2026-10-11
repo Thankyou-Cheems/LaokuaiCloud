@@ -728,7 +728,7 @@
     "portableBinaryBuilt": false,
     "staticRuntimeAssetPreparation": "five official reference files independently rehashed; not accepted as patched payload",
     "portableBuild": {
-      "status": "static-core-input-prepared-notices-authority-details-new-quality-retest-and-user-ui-approval-pending",
+      "status": "blocked-packet-dll-distribution-and-driver-prerequisite-unresolved",
       "authorization": "One candidate build/portable package only; do not launch product, helpers, core, CLI or drivers",
       "waitFor": "Current user UI approval for final package; notices/private payload completion; frozen new 48/64/bootstrap media/quality tests; native activation safety confirmation applies only to runtime steps",
       "requires": [
@@ -829,7 +829,9 @@
       "staticInputPackageSha256": "4c57e56ec2973d18216afe1e896e95f33b1441c8f8f18cc1eea14a3534de68b6",
       "staticPeTask6": "passed-AMD64-PE32+-without-execution",
       "actualRuntimeAcceptance": false,
-      "noticeCompletionVerified": false
+      "noticeCompletionVerified": false,
+      "packetDllStaticImportConfirmed": true,
+      "distributionDependencyResolved": false
     },
     "capacityOwnerHandoff": {
       "status": "prior-direct-send-rejection-historical-build-and-sdk3-retest-now-delivered-by-parent",
@@ -960,6 +962,28 @@
       "textFiles": 3194,
       "hits": [],
       "scope": "Current tracked text; prior client private-delta/history and vendor boundary audit retained separately. Pattern scan is not proof of absence of all secrets."
+    },
+    "uiConnectionDetailsDelivery": {
+      "receipt": "release/acceptance/ui-connection-details-candidate.json",
+      "receiptSha256": "4f720a6cb864637b087d7cd6519f5c94aca4f5f31a6c392c43120f9dfbcaeaee",
+      "sourceCommit": "8157d7fc2275c3697238ba791920a74d046b431f",
+      "patchSha256": "64bcafd392d17d5136677a9aacf550b5ca9a89c4c01a544f246f9c2d175eb9a3",
+      "status": "hash-and-forward-apply-verified-waiting-owner-compatibility-followup-not-applied"
+    },
+    "nativePacketDependency": {
+      "report": "release/acceptance/native-core-static-imports.json",
+      "reportSha256": "af5899bb2b8b669a6854d4182df61d5652c7297d683aa3c78ff90670367bc584",
+      "coreSha256": "28248cf281690d95afa6550769452dc803338ee016d1f52e1150d12cda661eae",
+      "packetDllStaticImportConfirmed": true,
+      "inspectedWithoutExecution": true,
+      "packetDllVersion": "Npcap 1.79 parent/ET-owner reported; task6 verified import name only",
+      "redistributionPermissionVerified": false,
+      "driverFreeDeploymentVerified": false,
+      "resolutionVerified": false,
+      "finalPackageBlocked": true,
+      "owner": "ET owner",
+      "optionalFeatureAuditPending": true,
+      "constraints": "No fabricated DLL, no blanket Npcap prerequisite for ordinary users, no silent normal TUN/voice feature reduction"
     }
   },
   "securityBoundary": {
@@ -994,7 +1018,8 @@
     "SDK owner passive receive observer supporting SFU-only and Hybrid; independent scope/decoded windows/selected pair statistics. Existing selected state is insufficient for current strict UI proof",
     "ET owner existing read-only route/peer integration and exact missing authentication binding/final forwarding/RTT time fields; no new complete-path proof protocol",
     "UI owner production connection details; task-6 consume frozen SDK/ET observer contracts in mounted provider. These code tasks do not wait for design approval",
-    "Capacity owner fresh frozen 48k SFU/64k peer and actual private-product bootstrap/sinks/prior-registry media/codec regression; previous passing 24k factory evidence is not new profile acceptance"
+    "Capacity owner fresh frozen 48k SFU/64k peer and actual private-product bootstrap/sinks/prior-registry media/codec regression; previous passing 24k factory evidence is not new profile acceptance",
+    "Exact dbaf core statically imports Packet.dll: Npcap redistribution and ordinary-user deployment unresolved; ET owner must audit optional pcap removal without reducing normal TUN/voice, then supply new exact-source build/PE evidence. No final package before resolution"
   ],
   "finalPackage": null,
   "frozenPreviousHybrid": {

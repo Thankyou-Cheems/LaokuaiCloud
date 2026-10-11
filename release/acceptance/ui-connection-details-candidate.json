@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "8157d7fc2275c3697238ba791920a74d046b431f",
+  "baseCommit": "385793c5aa0811dcbed7ec96c3b377781a2cc43f",
+  "patch": {
+    "name": "0001-feat-ui-Add-read-only-member-connection-details.patch",
+    "sha256": "64bcafd392d17d5136677a9aacf550b5ca9a89c4c01a544f246f9c2d175eb9a3"
+  },
+  "handoffSha256": "e709343d9db7789648a530dae5661a0ee230604a2a4a9977b36df0c2e7e1a343",
+  "fieldContractSha256": "737bc447b95a78eb4e6bbad01362b9a61e0e7d9023b99b7a2a64b6cc7e7ecc27",
+  "scope": "six client UI/locale/pure-test files only; no provider/SDK/ET audio or profile mutation",
+  "ownerReportedChecks": {
+    "connectionDetailsScenarios": 11,
+    "modelStrictTsc": "passed",
+    "targetedESLint": "passed",
+    "matchingLocaleKeys": 3594,
+    "existingUiScenarios": 12,
+    "existingMemberModeScenarios": 6,
+    "localizedStateRenders": 216,
+    "existingVoicePathScenarios": 17,
+    "existingLanScenarios": 13
+  },
+  "ownerReportedUnverified": [
+    "real React DOM geometry/Escape/focus restoration and screen readers",
+    "actual SDK/ET evidence/selected track RTP",
+    "full app typecheck/build/package and complete user appearance approval"
+  ],
+  "task6": {
+    "patchHashVerified": true,
+    "forwardApplyCheckPassed": true,
+    "applied": false,
+    "ownUiTestsRun": false,
+    "waitingForProviderCompatibilityFollowup": true,
+    "providerCandidate": "ca8290cfd2996d5ff41e04716e342ca0c848e96b"
+  },
+  "nextStep": "Integrate this immutable patch together with UI owner provider-contract compatibility followup; do not independently duplicate owner fixes."
+}

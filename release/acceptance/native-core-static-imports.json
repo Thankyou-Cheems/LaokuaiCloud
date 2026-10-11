@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
+  "coreSha256": "28248cf281690d95afa6550769452dc803338ee016d1f52e1150d12cda661eae",
+  "inspected": "PE32+ import directory bytes",
+  "machine": "AMD64",
+  "executed": false,
+  "imports": [
+    "kernel32.dll",
+    "advapi32.dll",
+    "ws2_32.dll",
+    "iphlpapi.dll",
+    "ntdll.dll",
+    "oleaut32.dll",
+    "rpcrt4.dll",
+    "crypt32.dll",
+    "bcrypt.dll",
+    "KERNEL32.dll",
+    "packet.dll",
+    "wintrust.dll",
+    "msvcrt.dll"
+  ],
+  "packetDllStaticImportConfirmed": true,
+  "packetDllVersionIndependentlyVerified": false,
+  "packetDllVersionParentReported": "Npcap 1.79",
+  "redistributionPermissionVerified": false,
+  "deploymentWithoutPreinstalledCaptureDriverVerified": false,
+  "finalPackageBlocked": true,
+  "owner": "ET owner",
+  "nextStep": "Audit whether optional pcap support can be disabled without reducing normal TUN/voice functionality; frozen dbaf/core remains unchanged. No substitute DLL or user-wide Npcap installation requirement accepted."
+}
