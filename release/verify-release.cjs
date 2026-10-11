@@ -22,9 +22,16 @@ assert(m.validation.clientPure.checks.every(x=>x.exit===0),'Recorded checks not 
 if(m.easytier.nativePortsImplemented){
   const entries=require('../components/client/scripts/community-easytier-resources.cjs');
   const names=entries.map(e=>e.to.split('/').at(-1)).sort();
-  assert(JSON.stringify(names)===JSON.stringify(Object.keys(m.easytier.windowsRuntimeFiles).sort()),'ET resource file set mismatch');
+  const resources=m.easytier.officialWindowsReferenceFiles||m.easytier.windowsRuntimeFiles;
+  assert(JSON.stringify(names)===JSON.stringify(Object.keys(resources).sort()),'ET resource file set mismatch');
   for(const e of entries)assert(e.from==='build/'+e.to&&e.to.startsWith('community-lan/runtime/790fd9be347b00753570ac2b65f874a591ede9427603fe34e74a86b2b084847f/'),'ET exact resource path mismatch');
   git(['merge-base','--is-ancestor',m.frozenPreviousHybrid.commit,'HEAD']);
+}
+if(m.easytier.provenancePath){
+  assert(sha(m.easytier.provenancePath)===m.easytier.provenanceSha256,'ET patch/build provenance changed');
+  const provenance=JSON.parse(fs.readFileSync(path.join(root,m.easytier.provenancePath),'utf8'));
+  assert(provenance.upstream.commit===m.easytier.tagCommit&&provenance.patchSet.baseCommit===m.easytier.tagCommit,'ET downstream base drift');
+  if(m.ready)require('../components/client/scripts/check-easytier-patched-payload.cjs').assertPrivatePayloadContract(provenance);
 }
 console.log(JSON.stringify({id:m.id,codeCommit:m.repository.codeCommit,sourceConsistent:true,components:Object.keys(m.components),sdkVersion:packed.version,ready:m.ready,easytier:m.easytier.implementationStatus,actualNetworkVerified:m.easytier.actualNetworkVerified}));
 if(process.argv.includes('--require-ready')&&!m.ready){console.error('Release blocked: '+m.pending.join('; '));process.exitCode=2;}

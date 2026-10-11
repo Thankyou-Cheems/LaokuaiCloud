@@ -1,7 +1,7 @@
 {
   "schema": 2,
-  "id": "laokuai-cloud-et-production-source-20261011",
-  "stage": "private-source-checkpoint",
+  "id": "laokuai-cloud-et-private-patch-pending-20261011",
+  "stage": "private-patched-payload-pending",
   "ready": false,
   "repository": {
     "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud",
@@ -9,15 +9,15 @@
     "visibility": "private",
     "branch": "release/integration-20261011",
     "soleGitWriter": "task-6",
-    "codeCommit": "dfd2adef8575bd8d2b7e3567afbbc837b866579a",
-    "codeTree": "77d708402a02a37c45c064232c731d74eda07010",
+    "codeCommit": "d05d0cf85aa70a433a4a228262068da42541dcd6",
+    "codeTree": "0711dcd620d376741a234438b36c100c3ff07903",
     "newRepositoryReason": "Authenticated private-repo metadata and explicitly scoped old local core/game remotes revealed no matching existing private integration repository",
     "historyPolicy": "Original client history preserved; no force push/reset/rewrite; other components imported as licensed source snapshots"
   },
   "components": {
     "client": {
       "path": "components/client",
-      "tree": "53163791dd8258ce4fa3a5b560497317af8cc9d1",
+      "tree": "26da812dfaf7386c09efffbc8c4747a20cb133f7",
       "upstream": "Gryt-chat/client",
       "publicFork": "Thankyou-Cheems/gryt-client-i18n",
       "historyImportedFrom": "06ac43f51dbda3b9444c73270a126e10489110e9",
@@ -84,6 +84,20 @@
       "sourceZipSha256": "4ae3b662d26606b7c9faf95cacebd8e8fe6dc5eeeb42d14e0f7ac600ed4ca9be",
       "sourceFiles": 90,
       "modified": false
+    },
+    "easytier": {
+      "path": "components/easytier",
+      "tree": "e5ee6038c0fb9b6fe77d239eedfc3c72856cedff",
+      "mode": "Fixed upstream provenance and pending private patch/build hash slots; native source not imported yet",
+      "upstream": "EasyTier/EasyTier",
+      "publicFork": "Thankyou-Cheems/EasyTier",
+      "upstreamCommit": "8b7f1f0196edb5b580829ed5f135050fb5853478",
+      "tag": "v2.7.0",
+      "prerelease": true,
+      "privateSourceCommit": null,
+      "patchSetSha256": null,
+      "privateBuildPackageSha256": null,
+      "status": "pending-ET-owner-immutable-patch-delivery-review-and-build"
     }
   },
   "deliveries": [
@@ -130,6 +144,12 @@
         "Subscribe member sidebar by authenticated server ID and advance idle evidence clock",
         "Import sort and Node lint context; isolated i18n remains null"
       ]
+    },
+    {
+      "kind": "et-private-patch-provenance-and-package-gate",
+      "integratedCommit": "d05d0cf85aa70a433a4a228262068da42541dcd6",
+      "downstreamPatchImplemented": false,
+      "officialPayloadRejected": true
     }
   ],
   "easytier": {
@@ -169,7 +189,7 @@
     "verification": "Owner verified official archive size/SHA256; task-6 independently rehashed all five extracted runtime files without execution",
     "networkVerified": false,
     "productionUpgrade": false,
-    "implementationStatus": "implemented-not-runtime-verified",
+    "implementationStatus": "windows-integration-implemented-compatibility-patch-pending",
     "integratedLayer": "Owned Windows core/official CLI, trusted IPC, renderer community lifetime/status and member subscription; config/permission gates remain",
     "nativePortsImplemented": true,
     "mainRuntime": "WindowsEasyTierCliRuntime via createWindowsEasyTierProduction; private Laokuai metadata injects production runtime",
@@ -184,28 +204,7 @@
     "fallback": "Ordinary SFU remains independent of LAN failure",
     "authenticatedMemberBindingsImplemented": false,
     "archiveBytesRehashedByTask6": false,
-    "windowsRuntimeFiles": {
-      "easytier-core.exe": {
-        "sha256": "6490c6f5b5b809065517bb3324ca34c0f1f367f81b7fda04a6352391508b8ff8",
-        "bytes": 20521984
-      },
-      "easytier-cli.exe": {
-        "sha256": "3afdf2e4306c3f8d65408ddd230c7e4118ffdb5d550921022aed9966693c82ba",
-        "bytes": 6255104
-      },
-      "Packet.dll": {
-        "sha256": "c7c03a87eac7243ccbe331554624b18803010b740e311fc8cfddb573096eacac",
-        "bytes": 220032
-      },
-      "WinDivert64.sys": {
-        "sha256": "8da085332782708d8767bcace5327a6ec7283c17cfb85e40b03cd2323a90ddc2",
-        "bytes": 94144
-      },
-      "wintun.dll": {
-        "sha256": "e5da8447dc2c320edc0fc52fa01885c103de8c118481f683643cacc3220dafce",
-        "bytes": 427552
-      }
-    },
+    "windowsRuntimeFiles": {},
     "rendererPreferenceDefaultOn": true,
     "activationReceiptRequired": true,
     "automaticCommunityProvisioningImplemented": false,
@@ -236,7 +235,56 @@
       "osRoutesCleanupVerified": false,
       "existingEtProcessProtected": true,
       "acceptanceRequired": true
-    }
+    },
+    "provenancePath": "components/easytier/provenance.json",
+    "provenanceSha256": "c6ff4a3fd9b12ebe8b248d29ce727c62967332fd0ef248e628f9d8578c236adf",
+    "officialWindowsReferenceFiles": {
+      "easytier-core.exe": {
+        "sha256": "6490c6f5b5b809065517bb3324ca34c0f1f367f81b7fda04a6352391508b8ff8",
+        "bytes": 20521984
+      },
+      "easytier-cli.exe": {
+        "sha256": "3afdf2e4306c3f8d65408ddd230c7e4118ffdb5d550921022aed9966693c82ba",
+        "bytes": 6255104
+      },
+      "Packet.dll": {
+        "sha256": "c7c03a87eac7243ccbe331554624b18803010b740e311fc8cfddb573096eacac",
+        "bytes": 220032
+      },
+      "WinDivert64.sys": {
+        "sha256": "8da085332782708d8767bcace5327a6ec7283c17cfb85e40b03cd2323a90ddc2",
+        "bytes": 94144
+      },
+      "wintun.dll": {
+        "sha256": "e5da8447dc2c320edc0fc52fa01885c103de8c118481f683643cacc3220dafce",
+        "bytes": 427552
+      }
+    },
+    "officialBinaryRole": "reference-only; cannot serve as private patched payload",
+    "privatePayloadApproved": false,
+    "privatePatchedPayload": "pending-fixed-2.7.0-Windows-compatibility-patch-review-and-unified-build",
+    "privatePatchRequirements": [
+      "Disable global NetworkList cleanup by default",
+      "Make automatic Windows firewall/category policy explicitly controllable",
+      "Gracefully stop only the owned instance without deleting persistent configuration",
+      "Keep fixed v2.7.0 upstream base; no Tencent Linux node changes"
+    ],
+    "privateBuild": {
+      "status": "pending-reviewed-patch-and-unified-build",
+      "sourceCommit": null,
+      "sourceTree": null,
+      "patchSetSha256": null,
+      "toolchain": null,
+      "buildReceiptSha256": null,
+      "buildReceiptPath": null,
+      "packageSha256": null,
+      "packagePath": null,
+      "windowsRuntimeFiles": {},
+      "licensesAndNoticesVerified": false
+    },
+    "finalPackGuardImplemented": true,
+    "privatePayloadLoaderIntegrationPending": true,
+    "packageGate": "beforePack rejects pending/reference payload before any build/preparation; source-only inventory remains allowed"
   },
   "validation": {
     "commit": "dfd2adef8575bd8d2b7e3567afbbc837b866579a",
@@ -356,7 +404,8 @@
       "communityEtScenarios": 36,
       "startupTrayScenarios": 18,
       "communityEtProductionScenarios": 17,
-      "privateEtIntegration": "Actual package metadata gate, five exact resources, actual snapshot hook generation/scope/idle TTL and disposal checks passed"
+      "privateEtIntegration": "Actual package metadata gate, five exact resources, actual snapshot hook generation/scope/idle TTL and disposal checks passed",
+      "lastFullSuiteCommit": "dfd2adef8575bd8d2b7e3567afbbc837b866579a"
     },
     "sourcePackageInventory": "passed; includes exact Windows sidecar resource entries; source-only does not approve executable",
     "sdkSourceAndPackage": "299 source ZIP files and 205 installed packed bytes verified; owner compile/pure evidence retained",
@@ -427,11 +476,11 @@
     "actualPeerConnections": 0,
     "networkFixtures": 0,
     "portableBinaryBuilt": false,
-    "staticRuntimeAssetPreparation": "five exact official executable/driver file SHA256 values verified; no native execution",
+    "staticRuntimeAssetPreparation": "five official reference files independently rehashed; not accepted as patched payload",
     "portableBuild": {
-      "status": "queued",
+      "status": "queued-pending-reviewed-patched-payload-and-heavy-run-slot",
       "authorization": "One candidate build/portable package only; do not launch product, helpers, core, CLI or drivers",
-      "waitFor": "Explicit capacity-owner completion/release before CPU/memory-heavy build",
+      "waitFor": "ET owner immutable downstream patch, task-6 review, exact private build hashes and capacity-owner release",
       "requires": [
         "Fresh exact-source renderer/main outputs and native-helper build receipts",
         "EasyTier and bundled driver license/notice texts in final package",
@@ -439,10 +488,21 @@
       ],
       "runtimeAcceptance": false,
       "runtimeActivationBlocked": true
-    }
+    },
+    "currentPackageGate": {
+      "sourceCommit": "d05d0cf85aa70a433a4a228262068da42541dcd6",
+      "scenarios": 5,
+      "status": "passed",
+      "lint": "all four changed CJS/MJS files passed without warnings",
+      "packageAuditRegressionScenarios": 13,
+      "actualPrivateBeforePackBlockedBeforeBuild": true,
+      "staticSourceInventory": "passed",
+      "runtimeExecution": false
+    },
+    "fullClientTypesSourceCommit": "dfd2adef8575bd8d2b7e3567afbbc837b866579a"
   },
   "securityBoundary": {
-    "currentTrackedTextScanned": 1980,
+    "currentTrackedTextScanned": 1985,
     "credentialPatternHits": 0,
     "currentMachinePathHits": 0,
     "sourceRawPrivateLogsImported": false,
@@ -460,6 +520,8 @@
     "preserved": true
   },
   "pending": [
+    "After reviewed private build delivery, repoint exact Windows resource/loader pins to private patched bytes; current official loader/archive pins remain reference-only",
+    "Fixed v2.7.0 minimal downstream Windows patch: global NetworkList cleanup default off, explicit automatic firewall/category policy, graceful owned stop preserving configuration; private build SHA slots remain empty",
     "ET owner compatibility delta and parent review: official TUN firewall/profile side effects must not interfere with existing private ET; owned forceful exit does not verify OS route cleanup",
     "Automatic authorized community configuration without asking users for node/secret/subnet values",
     "Explicit driver/local-management authorization and normal Windows administrator token; no UAC bypass",
