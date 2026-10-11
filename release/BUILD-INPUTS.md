@@ -1,6 +1,6 @@
 # Candidate application build inputs
 
-This stage pins source a1057589e0551cdfae594de9d1df3026041b0014, client version1.13.22-laokuai.opus20.1, and receive-path.1 SDK TGZ SHA2568abea479d053b6310e8c97746ae8b07f153a17d691dc20bdd5a241b6fe90caed. Root manifest component trees and dependency lock are authoritative. Existing3bed980d source archive and bundle remain the capacity owner's immutable Provider test input. The nine later UI files change no media/native component.
+This stage pins source69e35aace6f6eb0cf068634bebbc94ef1beac7f1, client version1.13.22-laokuai.opus20.1, and receive-path.1 SDK TGZ SHA2568abea479d053b6310e8c97746ae8b07f153a17d691dc20bdd5a241b6fe90caed. Root manifest component trees and dependency lock are authoritative. Existing3bed980d archive/bundle and its actual P2P Provider identity failure remain immutable. The new client candidate includes final UI and the explicit stable-server/runtime-instance binding fix; SDK/server/SFU/native source is unchanged. Capacity owner must retest this corrected Provider seam.
 
 The user authorized one unsigned Windows x64 slim portable candidate build, without launching the application or any helper/core/CLI/driver. Parent alone grants the heavy-run slot. The capacity owner currently occupies it for the final no-Npcap core and CLI. No build has started here. The local static input inventory is staged separately at task6/application-build-input-stage.local.json; it records hashes and presence, including missing generated inputs, without importing old outputs as fresh artifacts.
 

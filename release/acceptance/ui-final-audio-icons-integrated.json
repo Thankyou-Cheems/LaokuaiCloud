@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "sourceCommit": "69e35aace6f6eb0cf068634bebbc94ef1beac7f1",
+  "ownerCommit": "3023c7520198fbc0ecbdefcab3a0b750839b85f9",
+  "integratedCommit": "7019b0f23d6f191a618ff507c2b74ce24f7c919b",
+  "patchSha256": "5f918614bcaf2560c3757a7d5cb88c25747c99f78e01901be1e7173f3b154fdb",
+  "patchConflicts": [],
+  "files": [
+    {
+      "path": "components/client/scripts/check-member-row-density.mjs",
+      "sha256": "2327e81cfec51ab15e0ef142898c1b57858506c1773713f7fc30f4b0832403b0",
+      "integratedSha256": "be9f2797719ec02053dc60179243b3dc83e28e33a87701ba66bc73bc14050794",
+      "gitBlob": "138476366500654b337bdcdf08fa69cc98e5e92d"
+    },
+    {
+      "path": "components/client/scripts/check-voice-ui-experience.mjs",
+      "sha256": "c905c4014f6bba8c401ec003a074446abc9a3c9be2d5414d12c75e302a114d0c",
+      "integratedSha256": "f29e2e64d6d21e2d8a1584bfca4e508c4ea8530fda81513ec5f3a39efdc82a91",
+      "gitBlob": "3919e6cfb54c7259f916f9d72f83227a0fef60fd"
+    },
+    {
+      "path": "components/client/src/packages/i18n/locales/en.json",
+      "sha256": "8ec99047795c1eaf75aebd443ed94db44821baf857d23bd049c2aaac4796fb39",
+      "integratedSha256": "bcd3bf526b4e61330fd4dd1596150e052acb35be38e27d47a114c0483a10df48",
+      "gitBlob": "d1d92e7ca2e663b155c1d210125ed7ed23b6a116"
+    },
+    {
+      "path": "components/client/src/packages/i18n/locales/zh-CN.json",
+      "sha256": "73d21f875c34a8cbe768d95cfa74dfb1f02cce8207cd623581bb00f87603645f",
+      "integratedSha256": "f2cc57aae264114e67edae30b31ae1f3bdce0e5f9613caf1fbbb65726266087e",
+      "gitBlob": "9dad6c41ddde26d4a945bb2e16cd6af85718d625"
+    },
+    {
+      "path": "components/client/src/packages/socket/src/components/connectedUser.tsx",
+      "sha256": "7c4e4167f1b974bd77d79934726562436b8acfd74884dce4a3a36aa668067781",
+      "integratedSha256": "7c4e4167f1b974bd77d79934726562436b8acfd74884dce4a3a36aa668067781",
+      "gitBlob": "f430b7885d31b833141c26f17056b1f9f2e178d6"
+    },
+    {
+      "path": "components/client/src/packages/webRTC/src/components/VoiceAudioControls.tsx",
+      "sha256": "c573a5a168c7330e74b842a724f482f21dffcc554113f500cbbcfd8720ce3316",
+      "integratedSha256": "c573a5a168c7330e74b842a724f482f21dffcc554113f500cbbcfd8720ce3316",
+      "gitBlob": "6cf7e14ca96ed882cae709f148a297b14b54aee7"
+    }
+  ],
+  "componentFilesExact": 2,
+  "integrationAdaptation": "Two TSX components exact; each locale preserves the two existing standard48/peer64 transport labels (transport.description/shared), all other values match frozen owner source; test import ordering retained/corrected only",
+  "checks": {
+    "actualAudioControlVm": 13,
+    "actualDensityMemberVm": 7,
+    "localeKeyParity": 3598,
+    "targetedLint": "passed"
+  },
+  "overallDesignApproved": true,
+  "additionalPrototypeApprovalRequired": false,
+  "actualBrowserOrMediaRuns": 0
+}

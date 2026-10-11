@@ -35,8 +35,16 @@ if(m.validation.uiDensityDelivery){
   assert(sha(delivery.receipt)===delivery.receiptSha256,'UI density receipt changed');
   const receipt=JSON.parse(fs.readFileSync(path.join(root,delivery.receipt),'utf8'));
   assert(receipt.sourceCommit===delivery.sourceCommit&&receipt.productionFilesExact===5,'UI density source identity mismatch');
-  for(const file of receipt.files)assert(sha(file.path)===file.sha256,'UI density integrated file changed: '+file.path);
+  for(const file of receipt.files)assert(git(['rev-parse',`${receipt.sourceCommit}:${file.path}`])===file.gitBlob,'UI density frozen source changed: '+file.path);
   assert(receipt.behavior.defaultSidebarWidth===320&&receipt.behavior.storedCustomWidthsPreserved===true,'UI default/custom-width contract changed');
+}
+for(const key of ['uiFinalAudioIcons','providerInstanceBindingFix'])if(m.validation[key]){
+  const candidate=m.validation[key];
+  assert(sha(candidate.receipt)===candidate.receiptSha256,'Integrated UI/Provider receipt changed: '+key);
+  const receipt=JSON.parse(fs.readFileSync(path.join(root,candidate.receipt),'utf8'));
+  git(['merge-base','--is-ancestor',receipt.sourceCommit,'HEAD']);
+  if(receipt.files)for(const file of receipt.files)assert(git(['rev-parse',`${receipt.sourceCommit}:${file.path}`])===file.gitBlob,'Final UI frozen blob changed');
+  if(key==='providerInstanceBindingFix')assert(receipt.sdkSourceCommit===m.components.voice.sourceCommit&&receipt.sdkPackageSha256===packageInfo.sha256&&receipt.physicalDirectVerified===false,'Provider identity receipt scope mismatch');
 }
 if(m.validation.sfuMicrophone48Candidate){
   const candidate=m.validation.sfuMicrophone48Candidate;

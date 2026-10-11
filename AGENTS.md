@@ -97,3 +97,14 @@ plus18 authenticated RTP replayers; not20 completeSDKs or productE2E. Preserve
 old24k failures. Parent queues3bed observer/Provider real regression after current
 core+CLI build; UI-density delta must not delay this media test. Do not rerun pure
 checks merely to record these immutable reports.
+
+Final UI3023c752 speaker/microphone state and 扬声器 copy is integrated, with
+overall design approval retained. Actual3bed Provider trial passed ordinary
+SFU/stop/null/PC-room-auth retirement but blocked P2P because stable server_id
+and opaque runtime instance were incorrectly compared. Source69e35aac fixes
+only the client trusted-session identity binding; SDK/server/SFU/native source
+is unchanged. Preserve the old failure and give capacity owner the new frozen
+candidate for corrected P2P Provider proof. Do not bypass decoded proof or
+retest unrelated passing branches. Final no-Npcap core/CLI are delivered;
+task6 may inspect and stage bytes, never execute them. Actual TUN authorization
+and network/coexistence/cleanup acceptance remain separate.

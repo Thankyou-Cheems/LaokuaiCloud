@@ -9,15 +9,15 @@
     "visibility": "private",
     "branch": "release/integration-20261011",
     "soleGitWriter": "task-6",
-    "codeCommit": "a1057589e0551cdfae594de9d1df3026041b0014",
-    "codeTree": "36c0abad1f3d3c0f4790a07d7f463bdebb21f659",
+    "codeCommit": "69e35aace6f6eb0cf068634bebbc94ef1beac7f1",
+    "codeTree": "1a28660f1b5b5621aaacfe63795af4425f27c763",
     "newRepositoryReason": "Authenticated private-repo metadata and explicitly scoped old local core/game remotes revealed no matching existing private integration repository",
     "historyPolicy": "Original client history preserved; no force push/reset/rewrite; other components imported as licensed source snapshots"
   },
   "components": {
     "client": {
       "path": "components/client",
-      "tree": "234277846fd01f23d4b4f18d47dd858131e3e952",
+      "tree": "9762f2b830631b37e97b866addd01c52ef3bd7f1",
       "upstream": "Gryt-chat/client",
       "publicFork": "Thankyou-Cheems/gryt-client-i18n",
       "historyImportedFrom": "06ac43f51dbda3b9444c73270a126e10489110e9",
@@ -369,6 +369,18 @@
         "Three existing test scripts retain previously integrated Provider/test adaptations; only delivered delta applied",
         "New density test import ordering corrected to satisfy integration ESLint"
       ]
+    },
+    {
+      "kind": "final-approved-speaker-microphone-ui",
+      "deliveredCommit": "3023c7520198fbc0ecbdefcab3a0b750839b85f9",
+      "integratedCommit": "7019b0f23d6f191a618ff507c2b74ce24f7c919b",
+      "patchSha256": "5f918614bcaf2560c3757a7d5cb88c25747c99f78e01901be1e7173f3b154fdb",
+      "patchConflicts": []
+    },
+    {
+      "kind": "provider-stable-id-runtime-instance-binding",
+      "integratedCommit": "69e35aace6f6eb0cf068634bebbc94ef1beac7f1",
+      "finding": "RECEIVE-PROVIDER-INSTANCE-001"
     }
   ],
   "easytier": {
@@ -875,7 +887,7 @@
         "rawLogsImported": false
       },
       "receivePathRetest": {
-        "status": "parent-queued-after-current-native-core-cli-build; independent of UI-density patch",
+        "status": "3bed-ordinary-SFU-stop-null-retirement-passed-P2P-Provider-blocked-identity-fix-ready-for-new-retest",
         "inputCodeCommit": "d5fe2946485f2004f9f7705118c759c3032f58f1",
         "sdkSourceCommit": "b8f16d0eac49c2fb09a92f6298d8cbb9eaed7bc1",
         "sdkVersion": "0.6.2-laokuai.receive-path.1",
@@ -887,7 +899,12 @@
         "sourceWritesAllowed": false,
         "task6ActualPeers": 0,
         "productionAcceptance": false,
-        "inputFreezeCommit": "3bed980d6b29d6704b2be40a4e9087f45dce89a5"
+        "inputFreezeCommit": "3bed980d6b29d6704b2be40a4e9087f45dce89a5",
+        "previousInputFreeze": "3bed980d6b29d6704b2be40a4e9087f45dce89a5",
+        "previousReportSha256": "5bb574c5edeaa94646bbf96eb00228e9dc786dedb773109bf29b9f4d145a616b",
+        "previousProofSha256": "8e32ffd7189810f02aad6c5d4089ec5bfc9ca43464eb3e0c7875f6a7a7970eda",
+        "newCandidateCodeCommit": "69e35aace6f6eb0cf068634bebbc94ef1beac7f1",
+        "actualP2pProviderAccepted": false
       },
       "sfu48Sdk3Isolated": {
         "receipt": "release/acceptance/sfu48-sdk3-isolated-media.json",
@@ -965,7 +982,7 @@
       "staticSourceInventory": "pure resource contract passed",
       "runtimeExecution": false
     },
-    "fullClientTypesSourceCommit": "a1057589e0551cdfae594de9d1df3026041b0014",
+    "fullClientTypesSourceCommit": "69e35aace6f6eb0cf068634bebbc94ef1beac7f1",
     "nativeSourceContracts": {
       "sourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
       "scenarios": 10,
@@ -984,7 +1001,7 @@
     },
     "uiPreview": {
       "requiredBeforeFinalPackage": true,
-      "status": "v3-overall-user-approved-density-source-integrated",
+      "status": "final-overall-user-approved-density-speaker-microphone-source-integrated",
       "transportPresentationContract": "Distinguish member relay, server relay and physically verified direct; WebRTC peer over ET relay must not be called direct",
       "ownerCandidateCommit": "385793c5aa0811dcbed7ec96c3b377781a2cc43f",
       "prototype": {
@@ -1278,7 +1295,9 @@
       "mediaTestFreezeStillValid": "3bed980d6b29d6704b2be40a4e9087f45dce89a5",
       "finalPackageAllowed": false,
       "integratedCommit": "a1057589e0551cdfae594de9d1df3026041b0014",
-      "defaultSidebarWidth": 320
+      "defaultSidebarWidth": 320,
+      "finalSpeakerMicrophoneFollowupIntegrated": true,
+      "finalOwnerCommit": "3023c7520198fbc0ecbdefcab3a0b750839b85f9"
     },
     "profile48_64VersionedAcceptance": {
       "isolated48_64Accepted": true,
@@ -1294,6 +1313,18 @@
       "sourceChecks": 59,
       "localizedModeRenders": 216,
       "actualDomAccessibilityAcceptance": false
+    },
+    "uiFinalAudioIcons": {
+      "receipt": "release/acceptance/ui-final-audio-icons-integrated.json",
+      "receiptSha256": "ef96ea8082848e7aa21f6dee1f125c3d36ca795305132884a16909e0b7af359f",
+      "ownerCommit": "3023c7520198fbc0ecbdefcab3a0b750839b85f9",
+      "overallDesignApproved": true
+    },
+    "providerInstanceBindingFix": {
+      "receipt": "release/acceptance/provider-stable-instance-binding.json",
+      "receiptSha256": "d86cc1fb70d067fd6c609d6175a128a24c4656889e7471524c1801ed7a4eaeb5",
+      "sourceCommit": "69e35aace6f6eb0cf068634bebbc94ef1beac7f1",
+      "actualAcceptance": false
     }
   },
   "securityBoundary": {
@@ -1331,7 +1362,8 @@
     "BOTH final core/CLI with exact 17-feature no-Npcap profile; normal/delay PE imports exclude Packet.dll/wpcap.dll; four-input runtime schema and final hashes updated together",
     "Authenticated member-to-ET-peer binding, selected forwarding/full physical path and timestamped ET RTT are absent; keep unknown",
     "Active transitive licenses and corresponding/relinkable native source delivery remain pending",
-    "Mounted single Provider and connection details: actual frozen-source sampler/media/data/DOM/accessibility acceptance pending; overall design and narrow density source approved/integrated"
+    "Mounted single Provider and connection details: actual frozen-source sampler/media/data/DOM/accessibility acceptance pending; overall design and narrow density source approved/integrated",
+    "RECEIVE-PROVIDER-INSTANCE-001 corrected in source69e35aac; prior3bed real P2P Provider failure preserved, fresh actual corrected Provider proof pending"
   ],
   "finalPackage": null,
   "frozenPreviousHybrid": {
