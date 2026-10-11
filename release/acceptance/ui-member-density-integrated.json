@@ -1,0 +1,113 @@
+{
+  "schema": 1,
+  "kind": "ui-member-density-integration",
+  "sourceCommit": "a1057589e0551cdfae594de9d1df3026041b0014",
+  "ownerCommit": "f5f3e07df5163610f2a44a838e22cbf392cb270e",
+  "ownerBase": "1f400bca2a8821883b985e1ff5acc79d56b4a260",
+  "patchSha256": "61820028bbfa2efb1e922db53b66c365bcfe8c8da4dafc36462361a8cf02ac3a",
+  "patchConflicts": [],
+  "files": [
+    {
+      "path": "components/client/scripts/check-member-row-density.mjs",
+      "sha256": "7fcaa33659c6ada618d59d0295412c5ab56679d68c4f36475f5045535f271cd4",
+      "ownerSha256": "bec6e975fa3118a2f14368c4657bcfb74e87f8a0dcecda2f5d2c26dd1692e93c",
+      "ownerBytesExact": false,
+      "gitBlob": "a16422e5638eb1dab292643ac467b3920897074b"
+    },
+    {
+      "path": "components/client/scripts/check-member-voice-media-path.mjs",
+      "sha256": "0b5402957feedc52e533d8cba306dbb772bb0ca60bcbf7b49951cd6246cddff0",
+      "ownerSha256": "f61303ea280d9724b9213602c906865664c8aa945452976e3253690130b4c02f",
+      "ownerBytesExact": false,
+      "gitBlob": "2e8a25c9df1faa887f56de1312ad47b60c0d9b67"
+    },
+    {
+      "path": "components/client/scripts/check-member-voice-mode-display.mjs",
+      "sha256": "501db293abeb24ebd3131e0e5568127041f3588c2a639fe2f4f83055252a5ffe",
+      "ownerSha256": "daa632e71b8a50471391ff3014cd55d0287fc13029f422791c150c902520859d",
+      "ownerBytesExact": false,
+      "gitBlob": "21ba0aaf6da0eea4416066d5b207a6e0510fe5bc"
+    },
+    {
+      "path": "components/client/scripts/check-room-member-visibility.mjs",
+      "sha256": "380b315fedacf874e88c6220be3fc174dde99f534d8edd8ccc99538be5c7e72f",
+      "ownerSha256": "8a269b54659ab22dbdcbad6256e02bb16b877bfa2d340cdb13da04b3121b99aa",
+      "ownerBytesExact": false,
+      "gitBlob": "df3ee016e6a823b0b7c97b2b081aa25cf65fcad9"
+    },
+    {
+      "path": "components/client/src/packages/socket/src/components/MemberVoiceMediaStatus.tsx",
+      "sha256": "c47db7791aa5b814174cbdbf480c1a2ea25521beb7fdb9ca907e65c40c5467d2",
+      "ownerSha256": "c47db7791aa5b814174cbdbf480c1a2ea25521beb7fdb9ca907e65c40c5467d2",
+      "ownerBytesExact": true,
+      "gitBlob": "a420912aa849fa9f8fb09dce0df797548d5097be"
+    },
+    {
+      "path": "components/client/src/packages/socket/src/components/VoiceModeIcon.tsx",
+      "sha256": "2a276aef9194384f80b9c7f8f5aa1f702383d420b089a4874ec864de707ef884",
+      "ownerSha256": "2a276aef9194384f80b9c7f8f5aa1f702383d420b089a4874ec864de707ef884",
+      "ownerBytesExact": true,
+      "gitBlob": "d7f37f8e4da07c3af518c23157a24ffee64fb274"
+    },
+    {
+      "path": "components/client/src/packages/socket/src/components/connectedUser.tsx",
+      "sha256": "b0a121042fc1483d83e8b07e51aa04f8a03553e1989b73c239e8af1274555114",
+      "ownerSha256": "b0a121042fc1483d83e8b07e51aa04f8a03553e1989b73c239e8af1274555114",
+      "ownerBytesExact": true,
+      "gitBlob": "550457b9d3a648caeb520cac8a232908e4a4a850"
+    },
+    {
+      "path": "components/client/src/packages/socket/src/hooks/useChannelSidebarWidth.ts",
+      "sha256": "20a17524b4b61115d19d706116e4c2e328b9b235ff513c05726a5627ff898c2a",
+      "ownerSha256": "20a17524b4b61115d19d706116e4c2e328b9b235ff513c05726a5627ff898c2a",
+      "ownerBytesExact": true,
+      "gitBlob": "ec4a52bb5775f025ea1f58c1581234a0b317e68d"
+    },
+    {
+      "path": "components/client/src/style.css",
+      "sha256": "8ca0f6e5de61217fde40103ba83406eab30ec69f7759a14694949bc987249b67",
+      "ownerSha256": "8ca0f6e5de61217fde40103ba83406eab30ec69f7759a14694949bc987249b67",
+      "ownerBytesExact": true,
+      "gitBlob": "3c651c77e941a78aa0dcbbcaa1cc17738877df80"
+    }
+  ],
+  "productionFilesExact": 5,
+  "integrationAdaptations": [
+    "Three existing test scripts retain previously integrated Provider/test adaptations; only delivered delta applied",
+    "New density test import ordering corrected to satisfy integration ESLint"
+  ],
+  "behavior": {
+    "nicknameAndStateSingleRow": true,
+    "defaultSidebarWidth": 320,
+    "previousDefault": 280,
+    "storedWidthKey": "gryt.layout.channelSidebarWidth.v1",
+    "storedCustomWidthsPreserved": true,
+    "tooltipDetailsAndSpeechSemanticsPreserved": true,
+    "secondaryStateContainerBreakpoint": 230,
+    "bottomAudioControlsChanged": false
+  },
+  "validation": {
+    "sourceChecks": 59,
+    "localizedModeRenders": 216,
+    "translationKeys": 3594,
+    "sourceFilesForI18n": 703,
+    "fullAppTypes": "passed-noEmit",
+    "targetedLintFiles": 8,
+    "targetedLint": "passed-zero-warnings",
+    "browserOrMediaRuns": 0,
+    "actualDomAccessibilityAcceptance": false
+  },
+  "approval": {
+    "overallDesignApproved": true,
+    "narrowDensityIntegrationAuthorized": true,
+    "source": "Parent relays explicit user approval and immutable UI-owner handoff",
+    "previewLibraryFileId": "libfile_a7cb0472c4d48191afec01ea2167909b",
+    "task6Rendered": false
+  },
+  "independentMediaInput": {
+    "commit": "3bed980d6b29d6704b2be40a4e9087f45dce89a5",
+    "componentDeltaOnlyTheseNineUiFiles": true,
+    "sdkProviderServerSfuNativeUnchanged": true
+  },
+  "finalPackageBuilt": false
+}

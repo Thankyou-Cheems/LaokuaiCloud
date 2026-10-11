@@ -37,7 +37,7 @@ must not duplicate that native patch. Only the parent-designated capacity owner
 performs the isolated Rust build. The user approved the third-version overall design. The latest narrow scope is
 left member/status single-row density and a wider sidebar default, preserving
 stored custom widths, status icons/tooltips/details and existing bottom controls.
-Wait for the UI owner immutable density patch; do not broaden layout. Keep existing
+The immutable UI owner density patch is integrated; do not broaden layout. Keep existing
 desktop packages unchanged.
 SDK integration.3 two/four-peer factory loopback media/controller retest passed
 at24k. Private product bootstrap is now source-wired with standard SFU48/P2P64
@@ -51,7 +51,7 @@ and requires a fresh capacity-owner real negotiation/media retest. Do not alter
 P2P/DSP/cap code that already passed or relabel old24k as a48k acceptance.
 
 UI v3 is integrated at31cec3c6 and its overall design is user-approved.
-The UI owner density/default-width delta is still pending integration.
+The UI owner density/default-width delta is integrated at a1057589.
 Preserve VoiceAudioControls/HoverAudioControl
 hover/click menus and manual mute/PTT idle/Squad suppression presence semantics.
 MemberVoiceMediaPathProvider is mounted once with independent authenticated

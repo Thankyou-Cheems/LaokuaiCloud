@@ -30,6 +30,14 @@ if(m.validation.uiConnectionDetailsDelivery){
   const delivery=m.validation.uiConnectionDetailsDelivery;
   assert(sha(delivery.receipt)===delivery.receiptSha256,'UI connection-details receipt changed');
 }
+if(m.validation.uiDensityDelivery){
+  const delivery=m.validation.uiDensityDelivery;
+  assert(sha(delivery.receipt)===delivery.receiptSha256,'UI density receipt changed');
+  const receipt=JSON.parse(fs.readFileSync(path.join(root,delivery.receipt),'utf8'));
+  assert(receipt.sourceCommit===delivery.sourceCommit&&receipt.productionFilesExact===5,'UI density source identity mismatch');
+  for(const file of receipt.files)assert(sha(file.path)===file.sha256,'UI density integrated file changed: '+file.path);
+  assert(receipt.behavior.defaultSidebarWidth===320&&receipt.behavior.storedCustomWidthsPreserved===true,'UI default/custom-width contract changed');
+}
 if(m.validation.sfuMicrophone48Candidate){
   const candidate=m.validation.sfuMicrophone48Candidate;
   assert(sha(candidate.receipt)===candidate.receiptSha256,'SFU48 candidate/failure receipt changed');

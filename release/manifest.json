@@ -9,15 +9,15 @@
     "visibility": "private",
     "branch": "release/integration-20261011",
     "soleGitWriter": "task-6",
-    "codeCommit": "d5fe2946485f2004f9f7705118c759c3032f58f1",
-    "codeTree": "4f42035a405a2633bfac8fc3e1648e6a850df5e8",
+    "codeCommit": "a1057589e0551cdfae594de9d1df3026041b0014",
+    "codeTree": "36c0abad1f3d3c0f4790a07d7f463bdebb21f659",
     "newRepositoryReason": "Authenticated private-repo metadata and explicitly scoped old local core/game remotes revealed no matching existing private integration repository",
     "historyPolicy": "Original client history preserved; no force push/reset/rewrite; other components imported as licensed source snapshots"
   },
   "components": {
     "client": {
       "path": "components/client",
-      "tree": "86b3bcde8833d949838869021470f085672896a1",
+      "tree": "234277846fd01f23d4b4f18d47dd858131e3e952",
       "upstream": "Gryt-chat/client",
       "publicFork": "Thankyou-Cheems/gryt-client-i18n",
       "historyImportedFrom": "06ac43f51dbda3b9444c73270a126e10489110e9",
@@ -357,6 +357,18 @@
       "patchSha256": "8d74f256f75955a8ef9e4c1b23a7f4eee98af748cf05fdd66aa3c06b4cbafc67",
       "patchConflicts": [],
       "nativeSourceChanged": false
+    },
+    {
+      "kind": "ui-member-density-default-width",
+      "deliveredCommit": "f5f3e07df5163610f2a44a838e22cbf392cb270e",
+      "integratedCommit": "a1057589e0551cdfae594de9d1df3026041b0014",
+      "patchSha256": "61820028bbfa2efb1e922db53b66c365bcfe8c8da4dafc36462361a8cf02ac3a",
+      "patchConflicts": [],
+      "productionFilesExact": 5,
+      "integrationAdaptations": [
+        "Three existing test scripts retain previously integrated Provider/test adaptations; only delivered delta applied",
+        "New density test import ordering corrected to satisfy integration ESLint"
+      ]
     }
   ],
   "easytier": {
@@ -932,9 +944,9 @@
     "portableBinaryBuilt": false,
     "staticRuntimeAssetPreparation": "five official reference files independently rehashed; not accepted as patched payload",
     "portableBuild": {
-      "status": "blocked-ui-density-final-native-inputs-runtime-license-and-media-acceptance",
+      "status": "inputs-staged-awaiting-final-native-license-media-and-heavy-slot",
       "authorization": "One candidate build/portable package only; do not launch product, helpers, core, CLI or drivers",
-      "waitFor": "UI-owner compact-row/default-width patch; fresh frozen media acceptance and BOTH no-Npcap native PE/runtime/license gates",
+      "waitFor": "Final BOTH no-Npcap native PE/runtime/license inputs, current Provider media receipt and parent release of heavy build slot",
       "requires": [
         "Fresh exact-source renderer/main outputs and native-helper build receipts",
         "EasyTier and bundled driver license/notice texts in final package",
@@ -942,7 +954,7 @@
       ],
       "runtimeAcceptance": false,
       "runtimeActivationBlocked": true,
-      "heavySlot": "Parent reported capacity owner released all its containers; only parent coordinates the next native build"
+      "heavySlot": "Parent coordinates; capacity owner currently building core/CLI; Task6 has not acquired build slot"
     },
     "currentPackageGate": {
       "sourceCommit": "7a9ba9dd221fbf7bf5259600d39c76ccf8a43a59",
@@ -953,7 +965,7 @@
       "staticSourceInventory": "pure resource contract passed",
       "runtimeExecution": false
     },
-    "fullClientTypesSourceCommit": "d5fe2946485f2004f9f7705118c759c3032f58f1",
+    "fullClientTypesSourceCommit": "a1057589e0551cdfae594de9d1df3026041b0014",
     "nativeSourceContracts": {
       "sourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
       "scenarios": 10,
@@ -972,7 +984,7 @@
     },
     "uiPreview": {
       "requiredBeforeFinalPackage": true,
-      "status": "v3-source-integrated-user-complete-design-approval-pending",
+      "status": "v3-overall-user-approved-density-source-integrated",
       "transportPresentationContract": "Distinguish member relay, server relay and physically verified direct; WebRTC peer over ET relay must not be called direct",
       "ownerCandidateCommit": "385793c5aa0811dcbed7ec96c3b377781a2cc43f",
       "prototype": {
@@ -980,9 +992,10 @@
         "sha256": "c21946a60b4e0748ce1a587d5bbf7f6cb0a04818476c3a84cd1e068fb911db0d",
         "ownerReportedVmChecks": 14,
         "task6Rendered": false,
-        "userFinalApproval": false
+        "userFinalApproval": false,
+        "approvalScope": "Historical prototype identity retained; latest overall design approval is recorded separately"
       },
-      "parentFeedback": "User liked the second prototype overall but requested bottom expanded adjustment entry and sidebar free-mic/PTT/Squad temporary-mute indications; UI owner is preparing version 3 and a real implementation matrix",
+      "parentFeedback": "Overall design approved; compact member row and default320 width delivered and integrated",
       "existingControlsPreserved": [
         "VoiceAudioControls",
         "HoverAudioControl",
@@ -991,9 +1004,9 @@
         "manual-muted/PTT-idle/Squad-suppressed presence model"
       ],
       "preservedBehaviorEvidence": "V3 enlarges the existing trigger and presents authenticated mode text; hover/click callbacks, seq/6s TTL, protected speech and manual/PTT/Squad behavior tests pass",
-      "runtimePathProviderMounted": false,
+      "runtimePathProviderMounted": true,
       "actualSdkEtPathWiringVerified": false,
-      "productionConnectionDetailsImplemented": false,
+      "productionConnectionDetailsImplemented": true,
       "unwiredPresentation": "Path pending; no topology guessed from presence, ICE state or ET first hop",
       "task6Checks": {
         "roomRendererScenarios": 6,
@@ -1008,7 +1021,10 @@
         "memberModeScenarios": 6,
         "localizedModeRenders": 216,
         "v3ChangedCodeLintFiles": 4
-      }
+      },
+      "overallDesignApproved": true,
+      "approvedDensityPreviewLibraryFileId": "libfile_a7cb0472c4d48191afec01ea2167909b",
+      "providerMountEvidence": "Source integration only; actual runtime/DOM acceptance pending"
     },
     "nativeBuild": {
       "status": "capacity-owner-release-build-passed-exact-source-core-hash-and-static-input-verified",
@@ -1247,7 +1263,7 @@
     "uiThirdVersionReview": {
       "overallApproved": true,
       "approvalSource": "Parent relays latest explicit user approval of third-version overall design",
-      "remainingScope": "immutable UI-owner density patch integration",
+      "remainingScope": "Narrow density source integration complete; actual application DOM/accessibility remains untested",
       "leftMemberStatus": "single compact row; prior below-nickname text proposal superseded",
       "sidebarWidth": "increase default above existing280; keep stored custom width and storage key",
       "preserve": [
@@ -1257,10 +1273,12 @@
         "bottom audio hover/click controls",
         "other existing interactions"
       ],
-      "uiOwnerPatchDelivered": false,
-      "task6UiSourceModified": false,
+      "uiOwnerPatchDelivered": true,
+      "task6UiSourceModified": true,
       "mediaTestFreezeStillValid": "3bed980d6b29d6704b2be40a4e9087f45dce89a5",
-      "finalPackageAllowed": false
+      "finalPackageAllowed": false,
+      "integratedCommit": "a1057589e0551cdfae594de9d1df3026041b0014",
+      "defaultSidebarWidth": 320
     },
     "profile48_64VersionedAcceptance": {
       "isolated48_64Accepted": true,
@@ -1268,6 +1286,14 @@
       "acceptedSdkSourceCommit": "6d710f34070cbc01bb838a77dfec0963b0ce298b",
       "currentReceivePath1ProviderAccepted": false,
       "acceptanceScope": "Version-specific isolated SDK3 media fixture; full application/current receive-path Provider not accepted"
+    },
+    "uiDensityDelivery": {
+      "receipt": "release/acceptance/ui-member-density-integrated.json",
+      "receiptSha256": "4882ec906544ccfcf5daeab3bfa6b2bfe87f113dab9ccd4608f7769099288823",
+      "sourceCommit": "a1057589e0551cdfae594de9d1df3026041b0014",
+      "sourceChecks": 59,
+      "localizedModeRenders": 216,
+      "actualDomAccessibilityAcceptance": false
     }
   },
   "securityBoundary": {
@@ -1290,7 +1316,7 @@
   },
   "pending": [
     "Approved private manifest/resources/driver notices; final static payload/ASAR/PE/package hash verification",
-    "Third-version overall design approved; UI-owner compact single-row/default-width density patch still pending; preserve bottom hover/click audio controls and distinguish manual mute, PTT idle and Squad suppression",
+    "Overall design approved and compact-row/default320 source integrated; actual full-application DOM/accessibility untested",
     "Automatic authorized community configuration without asking users for node/secret/subnet values",
     "Explicit driver/local-management authorization and normal Windows administrator token; no UAC bypass",
     "Real Windows core/CLI/driver start/exit/game/voice, existing-private-ET coexistence and OS route cleanup acceptance",
@@ -1305,7 +1331,7 @@
     "BOTH final core/CLI with exact 17-feature no-Npcap profile; normal/delay PE imports exclude Packet.dll/wpcap.dll; four-input runtime schema and final hashes updated together",
     "Authenticated member-to-ET-peer binding, selected forwarding/full physical path and timestamped ET RTT are absent; keep unknown",
     "Active transitive licenses and corresponding/relinkable native source delivery remain pending",
-    "Mounted single Provider and connection details: actual frozen-source sampler/media/data/DOM/accessibility acceptance pending; third-version overall design approved, density patch pending"
+    "Mounted single Provider and connection details: actual frozen-source sampler/media/data/DOM/accessibility acceptance pending; overall design and narrow density source approved/integrated"
   ],
   "finalPackage": null,
   "frozenPreviousHybrid": {
