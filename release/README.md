@@ -1,4 +1,4 @@
-# Frozen reviewed source awaiting native/media acceptance
+# Reviewed source with intermediate UI awaiting acceptance
 
 `manifest.json` is the authority for the sole private integration branch. UI,
 packaging, member status, Hybrid client wiring, SDK/server/SFU and ET retain
@@ -29,7 +29,35 @@ the closed-PC guard remains included once. All 300 owner source ZIP hashes and
 optional-probe override. The controller now receives actual verified recovered SFU
 track/revision and avoids redundant unbound restore; scoped old pair cleanup and
 auth-generation fences are retained. Server `e84e1ca5` and SFU `a6bf86ad`
-are unchanged. Default audio/AGC/bitrate/PTT/Squad policy and UI are unchanged.
+are unchanged. Default audio/AGC/bitrate/PTT/Squad policy is unchanged.
+
+The second UI candidate `c8c08179` is integrated at `a8db5d91` as an intermediate
+checkpoint, without conflicts. The 14-file cumulative delta preserves current-room
+members, allows other-room roster expansion without joining, scopes path badges
+to actual same-room media membership and wraps narrow nicknames. Six distinct
+connection geometries retain unknown/stale states. Only four check-script import
+orders differ from the owner delivery.
+
+Task-6 passed 6 room renderer, 17 path, 13 LAN and 6 icon scenarios; all 12 changed
+code files pass lint, 3,544 translation keys match, full app/desktop types and all
+26 existing pure/type suites pass. Actual browser geometry, runtime roster
+permissions, current SDK/ET telemetry and media acceptance are not established.
+The passive path provider is deliberately unmounted: absent authenticated scoped
+selection/full-route evidence displays path pending. Connection details remain
+prototype-only; no actual transport is inferred from presence or the first ET hop.
+
+The user requested third-version omissions: bottom expanded adjustment access and
+sidebar free-mic/PTT/Squad temporary-mute indications. Existing VoiceAudioControls,
+HoverAudioControl, VoiceModeControl and manual-muted/PTT-idle/Squad-suppressed
+presence implementations are unchanged; their original pure checks pass. Preserve
+hover/click menus when implementing the approved design. The UI owner is preparing
+the third prototype and actual implementation matrix. The second prototype's seven
+VM checks are owner-reported; task-6 has not rendered it. Final design is unapproved.
+No landing candidate or final product package is included.
+
+The immutable `78513ba4` ZIP/bundle remains the capacity owner's SDK3 media test
+input. Reviewed native `dbaf0453` remains approved for isolated compilation by
+that owner. UI revision/design approval does not delay those independent checks.
 
 Task-6 independently passed 129 pure auth/media-selection assertions (1/3 simulated
 remotes), full app/desktop noEmit types and 26 client pure/strict-type suites with

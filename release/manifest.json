@@ -1,7 +1,7 @@
 {
   "schema": 2,
-  "id": "laokuai-cloud-et-owned-create-sdk3-frozen-source-20261011",
-  "stage": "native-build-and-frozen-media-retest-pending",
+  "id": "laokuai-cloud-ui-v2-intermediate-source-20261011",
+  "stage": "ui-third-version-native-build-and-sdk-media-retest-pending",
   "ready": false,
   "repository": {
     "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud",
@@ -9,15 +9,15 @@
     "visibility": "private",
     "branch": "release/integration-20261011",
     "soleGitWriter": "task-6",
-    "codeCommit": "23d6a002a6431ac15fd8b186770109721b27b236",
-    "codeTree": "60d9ff476efe72068a7a5a8df5773eb531cf5fed",
+    "codeCommit": "a8db5d9148aba13afe6cfb582e1227e571b60902",
+    "codeTree": "bbd2ce888ef2b031a6ac2884d945f56e1f28a648",
     "newRepositoryReason": "Authenticated private-repo metadata and explicitly scoped old local core/game remotes revealed no matching existing private integration repository",
     "historyPolicy": "Original client history preserved; no force push/reset/rewrite; other components imported as licensed source snapshots"
   },
   "components": {
     "client": {
       "path": "components/client",
-      "tree": "71868f532f4f84943acc504cd5ed5d44c1a4da71",
+      "tree": "3d83fc94829ab6b3bbdfca44dd1ddbf5f62556c3",
       "upstream": "Gryt-chat/client",
       "publicFork": "Thankyou-Cheems/gryt-client-i18n",
       "historyImportedFrom": "06ac43f51dbda3b9444c73270a126e10489110e9",
@@ -112,7 +112,7 @@
     "easytier": {
       "path": "components/easytier",
       "tree": "89976a4791e5e945dc0a71d06ea323b411195b5f",
-      "mode": "Exact licensed frozen native source import; immutable downstream patches; review changes required",
+      "mode": "Exact licensed frozen native source import; immutable downstream patches; create-only source review accepted",
       "upstream": "EasyTier/EasyTier",
       "publicFork": "Thankyou-Cheems/EasyTier",
       "upstreamCommit": "8b7f1f0196edb5b580829ed5f135050fb5853478",
@@ -234,6 +234,18 @@
       "patchConflicts": [],
       "clientSourceChanges": "Dependency/lock/TGZ pin only; existing UI/Hybrid host wiring retained",
       "serverAndSfuChanged": false
+    },
+    {
+      "kind": "ui-room-and-evidence-path-v2-intermediate",
+      "deliveredCommit": "c8c0817933c7b95580ec9d692d6f99852d99e074",
+      "privateBaseCommit": "fd7826de228d519b55d73d84077bd0557d63521c",
+      "patchSha256": "7445f3f37899f14b76b77d291950d8f2b06be6029c9d5ddb04710cc86cd3d52a",
+      "integratedCommit": "a8db5d9148aba13afe6cfb582e1227e571b60902",
+      "patchConflicts": [],
+      "integrationCorrections": [
+        "Import sorting only in four check scripts; functional owner source unchanged"
+      ],
+      "finalDesignAccepted": false
     }
   ],
   "easytier": {
@@ -390,7 +402,7 @@
     "bundleResourceDirectory": "community-lan/product/2.7.0-laokuai"
   },
   "validation": {
-    "commit": "23d6a002a6431ac15fd8b186770109721b27b236",
+    "commit": "a8db5d9148aba13afe6cfb582e1227e571b60902",
     "clientFullTypes": "passed: tsc -b --noEmit (app and desktop) against exact installed SDK integration.3",
     "targetedHybridAndMemberLint": "passed",
     "targetedEtLint": "passed: 11 changed TS/MJS/CJS files, zero warnings",
@@ -503,12 +515,12 @@
         }
       ],
       "registryAssertions": 13,
-      "memberLanScenarios": 12,
+      "memberLanScenarios": 13,
       "communityEtScenarios": 36,
       "startupTrayScenarios": 18,
       "communityEtProductionScenarios": 22,
       "privateEtIntegration": "Actual private metadata gate, six downstream resource paths, scoped idle clock/snapshot disposal; no runtime execution",
-      "lastFullSuiteCommit": "23d6a002a6431ac15fd8b186770109721b27b236"
+      "lastFullSuiteCommit": "a8db5d9148aba13afe6cfb582e1227e571b60902"
     },
     "sourcePackageInventory": "passed; includes exact Windows sidecar resource entries; source-only does not approve executable",
     "sdkSourceAndPackage": "300 source ZIP file hashes verified; 299 exact import plus unchanged optional portable probe override; all 205 tar/installed packed hashes match",
@@ -568,11 +580,13 @@
         "sdkSha256": "29f858d9a97ae788748c59cc023cc350d9178e645adb39c7a96b327b8aa3299b",
         "serverCommit": "e84e1ca5f7130bdc33528a9b563691267e7cb598",
         "sfuCommit": "a6bf86ada2f31da85cc644f78e307f3ef0088e82",
-        "testInputPolicy": "Use the new immutable unified source commit/ZIP only; do not mutate any owner branch",
+        "testInputPolicy": "Continue the existing frozen 78513ba4 SDK3/ET checkpoint; intermediate UI does not replace or mutate capacity inputs",
         "target": "Actual auth restore ACK + fresh RTP/PCM and truthful selected controller/track/revision; 1/3 remotes, room generation, repeated release, closed-PC checks",
         "sourceWritesAllowed": false,
         "task6DockerRuns": 0,
-        "productionAcceptance": false
+        "productionAcceptance": false,
+        "frozenIntegrationCommit": "78513ba4ad014fade0da268aeaeaa54a81ac3580",
+        "frozenSourceZipSha256": "109b712ec84609efac134688f8781b3656cf6cf6e102f3d4484e6d78f7477d30"
       },
       "task6DockerRuns": 0,
       "fullClientOrProductionCapacityAccepted": false,
@@ -626,7 +640,7 @@
       "staticSourceInventory": "pure resource contract passed",
       "runtimeExecution": false
     },
-    "fullClientTypesSourceCommit": "23d6a002a6431ac15fd8b186770109721b27b236",
+    "fullClientTypesSourceCommit": "a8db5d9148aba13afe6cfb582e1227e571b60902",
     "nativeSourceContracts": {
       "sourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
       "scenarios": 10,
@@ -645,8 +659,40 @@
     },
     "uiPreview": {
       "requiredBeforeFinalPackage": true,
-      "status": "pending-owner-static-prototype-and-user-approval",
-      "transportPresentationContract": "Distinguish member relay, server relay and physically verified direct; WebRTC peer over ET relay must not be called direct"
+      "status": "v2-intermediate-integrated-user-requested-v3-omission-review-not-final-design-acceptance",
+      "transportPresentationContract": "Distinguish member relay, server relay and physically verified direct; WebRTC peer over ET relay must not be called direct",
+      "ownerCandidateCommit": "c8c0817933c7b95580ec9d692d6f99852d99e074",
+      "prototype": {
+        "libraryFileId": "libfile_e5a0e27068a8819186fb817a5986256f",
+        "sha256": "1bf91a3950c90babea73b71e1e69273041c4783c1fe686933293f4b48adb56a4",
+        "ownerReportedVmChecks": 7,
+        "task6Rendered": false,
+        "userFinalApproval": false
+      },
+      "parentFeedback": "User liked the second prototype overall but requested bottom expanded adjustment entry and sidebar free-mic/PTT/Squad temporary-mute indications; UI owner is preparing version 3 and a real implementation matrix",
+      "existingControlsPreserved": [
+        "VoiceAudioControls",
+        "HoverAudioControl",
+        "VoiceModeControl",
+        "ConnectedUser VoiceModeIcon",
+        "manual-muted/PTT-idle/Squad-suppressed presence model"
+      ],
+      "preservedBehaviorEvidence": "Control/presence implementation blobs unchanged from frozen 78513ba4; existing UI, Squad, transmit indicator and policy pure checks passed",
+      "runtimePathProviderMounted": false,
+      "actualSdkEtPathWiringVerified": false,
+      "productionConnectionDetailsImplemented": false,
+      "unwiredPresentation": "Path pending; no topology guessed from presence, ICE state or ET first hop",
+      "task6Checks": {
+        "roomRendererScenarios": 6,
+        "voicePathScenarios": 17,
+        "lanScenarios": 13,
+        "distinctIconGeometries": 6,
+        "matchingTranslationKeys": 3544,
+        "targetedLintFiles": 12,
+        "fullAppDesktopTypes": "passed-noEmit",
+        "existingPureTypeSuites": 26,
+        "actualBrowserOrMediaRuns": 0
+      }
     },
     "nativeBuild": {
       "status": "parent-authorized-capacity-owner-isolated-build",
@@ -691,7 +737,7 @@
     }
   },
   "securityBoundary": {
-    "currentTrackedTextScanned": 3166,
+    "currentTrackedTextScanned": 3173,
     "credentialPatternHits": 0,
     "currentMachinePathHits": 0,
     "sourceRawPrivateLogsImported": false,
@@ -712,14 +758,15 @@
     "Capacity-owner isolated Rust 1.95 Windows MSVC core build of reviewed dbaf0453; retain exact lock/default features; official-registry locked fetch permitted; provide measured receipt/PE/resource hashes",
     "Approved private manifest/resources/driver notices; final static payload/ASAR/PE/package hash verification",
     "Frozen SDK integration.3 real media/controller consistency retest after ET build owner releases the heavy slot",
-    "UI owner static prototype plus user preview approval before final package; relay/direct labeling contract still pending",
+    "UI third-version omission/implementation matrix and user final design approval; preserve bottom hover/click audio controls and distinguish manual mute, PTT idle and Squad suppression",
     "Automatic authorized community configuration without asking users for node/secret/subnet values",
     "Explicit driver/local-management authorization and normal Windows administrator token; no UAC bypass",
     "Real Windows core/CLI/driver start/exit/game/voice, existing-private-ET coexistence and OS route cleanup acceptance",
     "Authenticated peer bindings and actual forwarding/RTT evidence; member paths remain unknown",
     "Dynamic non-destructive multi-community RPC transport; current production CLI path supports one community",
     "Current-version full capacity/CPU/FEC/listening and physical-direct acceptance",
-    "Final portable package mapped to exact integrated commit and measured artifact SHA256"
+    "Final portable package mapped to exact integrated commit and measured artifact SHA256",
+    "Independently scoped authenticated current SDK media/selection and complete ET underlay producer for the passive UI provider; connection details remain prototype-only"
   ],
   "finalPackage": null,
   "frozenPreviousHybrid": {
@@ -756,5 +803,12 @@
       "Member-assistance experiments"
     ],
     "publicEtRelayConfiguration": "Preserve existing configuration"
+  },
+  "frozenSdk3EtAcceptanceInput": {
+    "commit": "78513ba4ad014fade0da268aeaeaa54a81ac3580",
+    "sourceZipSha256": "109b712ec84609efac134688f8781b3656cf6cf6e102f3d4484e6d78f7477d30",
+    "bundleSha256": "19acd043ba87c2e95e4c4b59bba8a5688bd38a81527c6d0ded06a6750d30eced",
+    "preserved": true,
+    "uiCandidateDoesNotBlockNativeBuildOrMediaRetest": true
   }
 }

@@ -39,6 +39,13 @@ preview approval before final packaging. Keep existing desktop packages unchange
 SDK integration.3 controller-state repair is integrated. Await frozen-snapshot
 real media retest before final release acceptance. A WebRTC peer over ET relay is not proven physical direct.
 
+UI v2 at a8db5d91 is an intermediate candidate. The user requested v3 omissions;
+final design approval is pending. Preserve VoiceAudioControls/HoverAudioControl
+hover/click menus and manual mute/PTT idle/Squad suppression presence semantics.
+MemberVoiceMediaPathProvider is not mounted; real authenticated SDK/ET evidence
+wiring and connection details are pending. UI work does not delay the capacity
+owner's reviewed dbaf0453 native build or immutable 78513ba4 SDK3 retest inputs.
+
 Current scope defers member-assistance settings/policies/experiments. Prioritize
 existing voice P2P/SFU fallback, basic ET connectivity, truthful status and
 reliability, then user-approved UI prototype before packaging. Keep public ET
