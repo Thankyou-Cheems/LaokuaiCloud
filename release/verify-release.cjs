@@ -49,6 +49,13 @@ if(m.validation.etLocalObservation){
   const inventory=JSON.parse(fs.readFileSync(path.join(root,'components/client/release/easytier-native-input-inventory.json'),'utf8'));
   for(const license of inventory.licenseTexts)assert(sha('components/client/release/'+license.file)===license.sha256,'ET license bytes mismatch');
 }
+if(m.validation.capacity.sfu48Sdk3Isolated){
+  const candidate=m.validation.capacity.sfu48Sdk3Isolated;
+  assert(sha(candidate.receipt)===candidate.receiptSha256,'Version-pinned SFU48 real acceptance receipt changed');
+  const receipt=JSON.parse(fs.readFileSync(path.join(root,candidate.receipt),'utf8'));
+  assert(receipt.sourcePin===candidate.sourcePin&&receipt.sfuTree===m.components.sfu.tree,'SFU48 real acceptance source mismatch');
+  assert(receipt.sdkSourceCommit===candidate.sdkSourceCommit&&receipt.notAccepted.currentReceivePath1Provider===true,'SDK3 media acceptance incorrectly promoted to current Provider');
+}
 if(m.ready&&m.validation.noNpcapBuildCandidate){
   const candidate=m.validation.noNpcapBuildCandidate;
   assert(candidate.twoBinaryNormalAndDelayImportsVerified===true&&candidate.fourFileRuntimeManifestUpdated===true,'Final core/CLI no-Npcap imports and runtime schema not verified');

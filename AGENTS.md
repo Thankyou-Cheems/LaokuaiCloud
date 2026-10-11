@@ -90,3 +90,10 @@ has17 features and omits FakeTCP/pnet fallback; TCP/UDP/QUIC and broadcast remai
 in source. Wait for capacity-owner BOTH core/CLI final hashes and normal/delay
 imports without Packet.dll/wpcap.dll, four-input runtime schema, licenses and
 activation acceptance. The old five-input Packet.dll product is not final.
+
+Frozen be06217 SDK3 actual SFU48 offer/sender/RTP/PCM/fallback, peer64 andcap16
+passed in isolated two/four SDK fixtures. Light4x5/2x10 passed with2 realSDKs
+plus18 authenticated RTP replayers; not20 completeSDKs or productE2E. Preserve
+old24k failures. Parent queues3bed observer/Provider real regression after current
+core+CLI build; UI-density delta must not delay this media test. Do not rerun pure
+checks merely to record these immutable reports.

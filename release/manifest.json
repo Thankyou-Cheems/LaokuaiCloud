@@ -863,7 +863,7 @@
         "rawLogsImported": false
       },
       "receivePathRetest": {
-        "status": "pending-parent-capacity-queue-only",
+        "status": "parent-queued-after-current-native-core-cli-build; independent of UI-density patch",
         "inputCodeCommit": "d5fe2946485f2004f9f7705118c759c3032f58f1",
         "sdkSourceCommit": "b8f16d0eac49c2fb09a92f6298d8cbb9eaed7bc1",
         "sdkVersion": "0.6.2-laokuai.receive-path.1",
@@ -874,7 +874,56 @@
         "target": "fresh source snapshot actual selected receive track/PC epoch/decode/stat windows, SFU48/P2P64/cap16/auth ACK/fallback/stop forwarding + restore; no rewriting old failures",
         "sourceWritesAllowed": false,
         "task6ActualPeers": 0,
-        "productionAcceptance": false
+        "productionAcceptance": false,
+        "inputFreezeCommit": "3bed980d6b29d6704b2be40a4e9087f45dce89a5"
+      },
+      "sfu48Sdk3Isolated": {
+        "receipt": "release/acceptance/sfu48-sdk3-isolated-media.json",
+        "receiptSha256": "c983e2eecb8f49a3d7378efe822229710ace73f5833bc8ddcd4e1fdc090ba21f",
+        "sourcePin": "be06217ea3a5f3b097b2ce2ff7d1da671796c733",
+        "sfuSourceCommit": "8d4ae5aaac270d7e8e37ba5b1e7c579405a59dce",
+        "sfuTree": "24c3669c4ca13d39f8132225ae1cb4a450750729",
+        "sdkSourceCommit": "6d710f34070cbc01bb838a77dfec0963b0ce298b",
+        "sdkSha256": "29f858d9a97ae788748c59cc023cc350d9178e645adb39c7a96b327b8aa3299b",
+        "status": "isolated-media-SFU48-P2P64-and-light-matrices-passed",
+        "isolated48_64Accepted": true,
+        "currentObserverAndProductE2EAccepted": false,
+        "lightMatrices": [
+          {
+            "rooms": 4,
+            "roomSize": 5,
+            "realSDKEncoders": 2,
+            "authenticatedReplayers": 18,
+            "trainingSenderCap": 48000,
+            "actualCapturedMono20ms": true,
+            "talkerPhases": [
+              0,
+              1,
+              2
+            ],
+            "sameRoomRTPAndSDKDecodedPCM": true,
+            "not20FullSDKs": true,
+            "oomSamples": 0,
+            "underrunCount": null
+          },
+          {
+            "rooms": 2,
+            "roomSize": 10,
+            "realSDKEncoders": 2,
+            "authenticatedReplayers": 18,
+            "trainingSenderCap": 48000,
+            "actualCapturedMono20ms": true,
+            "talkerPhases": [
+              0,
+              1,
+              2
+            ],
+            "sameRoomRTPAndSDKDecodedPCM": true,
+            "not20FullSDKs": true,
+            "oomSamples": 0,
+            "underrunCount": null
+          }
+        ]
       }
     },
     "physicalDirectVerified": false,
@@ -1150,7 +1199,7 @@
       "receiptSha256": "f602aa9ab3895ff3f22418d4638b0264765ab921975b08a7b5542f3084d8c93a",
       "sourceCommit": "8d4ae5aaac270d7e8e37ba5b1e7c579405a59dce",
       "sourceTree": "24c3669c4ca13d39f8132225ae1cb4a450750729",
-      "status": "pure-cap-fix-passed-authentic-offer-and-media-retest-pending"
+      "status": "frozen-be06217-SDK3-actual-offer-sender-RTP-decode-PCM-and-fallback48-passed; current-observer-Provider-retest-pending"
     },
     "receivePathIntegration": {
       "sourceCommit": "d5fe2946485f2004f9f7705118c759c3032f58f1",
@@ -1212,6 +1261,13 @@
       "task6UiSourceModified": false,
       "mediaTestFreezeStillValid": "3bed980d6b29d6704b2be40a4e9087f45dce89a5",
       "finalPackageAllowed": false
+    },
+    "profile48_64VersionedAcceptance": {
+      "isolated48_64Accepted": true,
+      "acceptedSourcePin": "be06217ea3a5f3b097b2ce2ff7d1da671796c733",
+      "acceptedSdkSourceCommit": "6d710f34070cbc01bb838a77dfec0963b0ce298b",
+      "currentReceivePath1ProviderAccepted": false,
+      "acceptanceScope": "Version-specific isolated SDK3 media fixture; full application/current receive-path Provider not accepted"
     }
   },
   "securityBoundary": {
@@ -1244,7 +1300,7 @@
     "Final portable package mapped to exact integrated commit and measured artifact SHA256",
     "Capacity owner fresh frozen 48k SFU/64k peer and actual private-product bootstrap/sinks/prior-registry media/codec regression; previous passing 24k factory evidence is not new profile acceptance",
     "Exact dbaf core statically imports Packet.dll: Npcap redistribution and ordinary-user deployment unresolved; ET owner must audit optional pcap removal without reducing normal TUN/voice, then supply new exact-source build/PE evidence. No final package before resolution",
-    "Frozen a36 actual SFU48 failed at genuine24000 remote offer; new8d4ae5aa reserved-microphone48 cap policy passed pure checks only. Fresh authentic SDP/sender/RTP/PCM/restore retest required; previous P2P64/cap/custom-peer/DSP passes preserved",
+    "Historical a36 actual SFU48 failed24k remains unchanged; later be06217 SDK3 actual48/64 acceptance passed. Current3bed observer/Provider real regression remains pending",
     "Fresh receive-path.1 unified snapshot real media and selected-edge/clock/fence sampling acceptance by sole capacity owner",
     "BOTH final core/CLI with exact 17-feature no-Npcap profile; normal/delay PE imports exclude Packet.dll/wpcap.dll; four-input runtime schema and final hashes updated together",
     "Authenticated member-to-ET-peer binding, selected forwarding/full physical path and timestamped ET RTT are absent; keep unknown",

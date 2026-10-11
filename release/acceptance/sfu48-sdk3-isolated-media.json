@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "kind": "version-pinned-isolated-media-acceptance-not-current-observer-or-product-E2E",
+  "sourcePin": "be06217ea3a5f3b097b2ce2ff7d1da671796c733",
+  "codeCommit": "8d4ae5aaac270d7e8e37ba5b1e7c579405a59dce",
+  "sfuCommit": "8d4ae5aaac270d7e8e37ba5b1e7c579405a59dce",
+  "sfuTree": "24c3669c4ca13d39f8132225ae1cb4a450750729",
+  "sdkSourceCommit": "6d710f34070cbc01bb838a77dfec0963b0ce298b",
+  "sdkVersion": "0.6.2-laokuai.hybrid.integration.3",
+  "sdkSha256": "29f858d9a97ae788748c59cc023cc350d9178e645adb39c7a96b327b8aa3299b",
+  "serverCommit": "e84e1ca5f7130bdc33528a9b563691267e7cb598",
+  "reportSha256": "c792da408857c9768f5831986590c85c167f9033359a048a1f1e5394799e9361",
+  "proofSha256": "2a7261a05a65d76c348ae21da2f34f74c6de0183a55fb3e41467c6ec9844bf12",
+  "keyResultsSha256": "ea7aaeb736548629fc3291422aef3da748752adefda58462a3d08a9677a2e3a8",
+  "sourceArchiveSha256": "a2ad33263680ac50c2b2c610714a72a7d8d34bae23326148a9ac97e41dc8d04a",
+  "scope": "actual two/four SDKs in isolated Docker loopback; production internal bytes checked; separately declared test-wrapper overlays, not unmodified product bootstrap",
+  "passed": {
+    "sfuActualOfferAndSender48000": true,
+    "sfuRtpDecodeNonzeroPcm": true,
+    "peerActualSdpAndSender64000": true,
+    "fallbackSfuStill48000": true,
+    "bothPathsChannelCap16000": true,
+    "customPeer32000_40msDtxOff": true,
+    "reconnectCustomRequestPreserved": true,
+    "pttSquadProtectedPcmZero": true,
+    "authCachedHandshakeRestoreAckThenFreshDecode": true,
+    "selectedTrackRevisionCallbacks": true,
+    "roomGenerationAndExplicitPcReconnect": true,
+    "actualRosterOrderFourSdks6Pairs12DirectedPauseRestore": true,
+    "actualAlias20UpdatesSinglePhysicalReceivePipeline": true
+  },
+  "lightMatrices": [
+    {
+      "rooms": 4,
+      "roomSize": 5,
+      "realSDKEncoders": 2,
+      "authenticatedReplayers": 18,
+      "trainingSenderCap": 48000,
+      "actualCapturedMono20ms": true,
+      "talkerPhases": [
+        0,
+        1,
+        2
+      ],
+      "sameRoomRTPAndSDKDecodedPCM": true,
+      "not20FullSDKs": true,
+      "oomSamples": 0,
+      "underrunCount": null
+    },
+    {
+      "rooms": 2,
+      "roomSize": 10,
+      "realSDKEncoders": 2,
+      "authenticatedReplayers": 18,
+      "trainingSenderCap": 48000,
+      "actualCapturedMono20ms": true,
+      "talkerPhases": [
+        0,
+        1,
+        2
+      ],
+      "sameRoomRTPAndSDKDecodedPCM": true,
+      "not20FullSDKs": true,
+      "oomSamples": 0,
+      "underrunCount": null
+    }
+  ],
+  "notAccepted": {
+    "customSfu40msDtxOff": true,
+    "currentReceivePath1Provider": true,
+    "fullApplicationBootstrap": true,
+    "twentyFullSdksOrEncoders": true,
+    "wholeWireBytes": true,
+    "physicalDirectEtUnderlay": true,
+    "wanProduction": true,
+    "realCaptureListeningOrFecRecovery": true
+  },
+  "old24FailureUnchanged": true,
+  "ownContainersRemoved": 7,
+  "foreignContainersTouched": false,
+  "rawLogsImported": false,
+  "task6MediaOrDockerRuns": 0
+}
