@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "id": "laokuai-cloud-receive-path-et-observation-frozen-20261011",
-  "stage": "actual-hidden-empty-profile-bootstrap-passed-native-source-recovered-public-license-recipient-and-runtime-pending",
+  "stage": "independent-et-observer-source-integrated-5d-bootstrap-passed-native-and-public-source-release-pending",
   "ready": false,
   "repository": {
     "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud",
@@ -9,15 +9,15 @@
     "visibility": "private",
     "branch": "release/integration-20261011",
     "soleGitWriter": "task-6",
-    "codeCommit": "c62ad2e82d67a60ac1f6b1066e0023294537263c",
-    "codeTree": "de234a6730c03d097490f1d90c074eba9fb15fab",
+    "codeCommit": "2d766aabbacb59bf231240d7687226a77342b817",
+    "codeTree": "ade9447441ccc3737d1cd896d7424568b6579b8e",
     "newRepositoryReason": "Authenticated private-repo metadata and explicitly scoped old local core/game remotes revealed no matching existing private integration repository",
     "historyPolicy": "Original client history preserved; no force push/reset/rewrite; other components imported as licensed source snapshots"
   },
   "components": {
     "client": {
       "path": "components/client",
-      "tree": "1dac144cd035614932cb64dba34957925276600d",
+      "tree": "3811b11462e691b9d599540da742d13ff4a71ea6",
       "upstream": "Gryt-chat/client",
       "publicFork": "Thankyou-Cheems/gryt-client-i18n",
       "historyImportedFrom": "06ac43f51dbda3b9444c73270a126e10489110e9",
@@ -1460,35 +1460,54 @@
       "actualActivationAccepted": false
     },
     "etFinalTrialSource": {
-      "ownerCommit": "732ad82e6528ae1567abf31b6429dabc6ef362e0",
-      "scopeSha256": "dd60b94603ffb3e17a85450810e2f3edfba3183705e0d515f662037916692dfc",
-      "exactSourceFiles": 7,
-      "pureChecks": 30,
-      "executed": true,
-      "currentHumanApprovalReceived": true,
+      "ownerCommit": "3c9e73fd8c6039ce8561d84058d1d7f502c6247b",
+      "integrationSourceCommit": "2d766aabbacb59bf231240d7687226a77342b817",
+      "scopeSha256": "2392f12f7284d982a1a3b6e179c7becbe294449e519f7832a090aadbeb99bd5b",
+      "scopeSchema": 4,
+      "sourcePins": 15,
+      "exactSourceFiles": 20,
+      "pureChecks": 72,
+      "planningChecks": 8,
+      "maximumStopRequestMs": 65000,
+      "maximumExitConfirmationMs": 71000,
+      "phaseBudgetMs": 219000,
+      "executed": false,
+      "currentHumanApprovalReceived": false,
+      "nativeExecuted": false,
       "productionActivationApproved": false,
-      "sourceReceipt": "release/acceptance/snapshot-diagnostic-repair-integrated.json",
-      "sourceReceiptSha256": "926d7b96307b6f977d1d950897dde1e2b42e9126401300370b9ce12c73c0644d",
-      "supersededUnactivatedScope": "c44bdbae1f2839914485b8c062b739557af271f92e27120a64bbef498be320ee",
-      "priorConsumedAttempt": {
-        "ownerCommit": "15e1c4b97022912ed6f4048cf657a1cb090ce1d2",
-        "scopeSha256": "c737fd450558cd0176356dc0e1dea3a086bf34a9042ed8e60cd89a6c15b47f20",
-        "exactSourceFiles": 9,
-        "pureChecks": 18,
+      "sourceReceipt": "release/acceptance/et-independent-observer-integrated.json",
+      "sourceReceiptSha256": "071c4c1701b3d9ec2ce646bdb67ca84bbe0cde8892cfd2bc4e9df5ab54c6d036",
+      "priorConsumedDd60": {
+        "ownerCommit": "732ad82e6528ae1567abf31b6429dabc6ef362e0",
+        "scopeSha256": "dd60b94603ffb3e17a85450810e2f3edfba3183705e0d515f662037916692dfc",
+        "exactSourceFiles": 7,
+        "pureChecks": 30,
         "executed": true,
         "currentHumanApprovalReceived": true,
         "productionActivationApproved": false,
-        "executionScope": "ET-owner runner preflight only; no native activation",
-        "runnerExecutedByEtOwner": true,
-        "nativeExecuted": false,
-        "currentSingleAttemptApprovalConsumed": true,
-        "actualReceipt": "release/acceptance/tun-preflight-unavailable.json",
-        "actualReceiptSha256": "3f74f4ca077292edbb658b2e78bbbe7935bb3d298ee382673d42bbee7616b453"
-      },
-      "approvalConsumed": true,
-      "executionStage": "Owner preflight only; stopped before core/TUN",
-      "nativeActivationExecuted": false,
-      "actualAttemptReceipt": "release/acceptance/native-dd60-preflight-failed.json"
+        "sourceReceipt": "release/acceptance/snapshot-diagnostic-repair-integrated.json",
+        "sourceReceiptSha256": "926d7b96307b6f977d1d950897dde1e2b42e9126401300370b9ce12c73c0644d",
+        "supersededUnactivatedScope": "c44bdbae1f2839914485b8c062b739557af271f92e27120a64bbef498be320ee",
+        "priorConsumedAttempt": {
+          "ownerCommit": "15e1c4b97022912ed6f4048cf657a1cb090ce1d2",
+          "scopeSha256": "c737fd450558cd0176356dc0e1dea3a086bf34a9042ed8e60cd89a6c15b47f20",
+          "exactSourceFiles": 9,
+          "pureChecks": 18,
+          "executed": true,
+          "currentHumanApprovalReceived": true,
+          "productionActivationApproved": false,
+          "executionScope": "ET-owner runner preflight only; no native activation",
+          "runnerExecutedByEtOwner": true,
+          "nativeExecuted": false,
+          "currentSingleAttemptApprovalConsumed": true,
+          "actualReceipt": "release/acceptance/tun-preflight-unavailable.json",
+          "actualReceiptSha256": "3f74f4ca077292edbb658b2e78bbbe7935bb3d298ee382673d42bbee7616b453"
+        },
+        "approvalConsumed": true,
+        "executionStage": "Owner preflight only; stopped before core/TUN",
+        "nativeActivationExecuted": false,
+        "actualAttemptReceipt": "release/acceptance/native-dd60-preflight-failed.json"
+      }
     },
     "providerActualInstanceBinding": {
       "receipt": "release/acceptance/provider-instance-binding-real-media.json",
@@ -1556,7 +1575,10 @@
       "currentHumanApprovalReceived": true,
       "oldSingleAttemptApprovalConsumed": true,
       "currentApprovalConsumed": true,
-      "sourceReceiptFlagsDescribeEarlierSourceFreeze": true
+      "sourceReceiptFlagsDescribeEarlierSourceFreeze": true,
+      "frozenIntegrationCommit": "944c42880b00cf8da839bf061e8f5439f86b4304",
+      "supersededByOwnerCommit": "3c9e73fd8c6039ce8561d84058d1d7f502c6247b",
+      "currentSource": false
     },
     "nativeReadOnlyBaseline": {
       "receipt": "release/acceptance/admin-readonly-baseline.json",
@@ -1589,9 +1611,9 @@
       "actualDifferenceUnknown": true
     },
     "nativeLicenseFollowup": {
-      "sourceCommit": "c62ad2e82d67a60ac1f6b1066e0023294537263c",
+      "sourceCommit": "2d766aabbacb59bf231240d7687226a77342b817",
       "receipt": "components/client/release/licenses/native-provenance-followup/effective-followup.json",
-      "receiptSha256": "8c352990eb9543283981fb668076c12b1d53c31b58792e7a6cde268d00aeb125",
+      "receiptSha256": "0adae7e8479040532fcb09d7ca332a5c1bc67e0e630cd7b7a3df4f8794928210",
       "sourceMaterialsManifest": "release/source-materials/native-source-materials.json",
       "sourceMaterialsManifestSha256": "ecf096918025374070904caa19ad053a1b1752f6d7ffb95882b2f8f3f98868b1",
       "effectiveOriginalTextCasesRecovered": 24,
@@ -1620,7 +1642,12 @@
         "sourceRecipientAccessAccepted": false
       },
       "unbuiltEncodingCandidate": "release/candidates/windows-service-manager-no-encoding.patch",
-      "candidateApplied": false
+      "candidateApplied": false,
+      "encodingIndexProvenanceClarificationResolved": true,
+      "actualVcLtlLinkInputsConfirmed": true,
+      "linkedInputReceipt": "components/client/release/licenses/native-provenance-followup/native-linked-crt-inputs.json",
+      "linkedInputReceiptSha256": "df89453ade7f9833431071ef76f0c4998f368eadf2f54e282575527cdf1473b9",
+      "nextSteps": "release/source-materials/LEGAL-NEXT-STEPS.md"
     },
     "uiHiddenBootstrapActual": {
       "receipt": "release/acceptance/internal-candidate5d-bootstrap.json",
@@ -1632,6 +1659,19 @@
       "task6RehashedFiles": 201,
       "communityCallUiAccepted": false,
       "productNativeEtAccepted": false
+    },
+    "etIndependentObserver": {
+      "sourceCommit": "2d766aabbacb59bf231240d7687226a77342b817",
+      "receipt": "release/acceptance/et-independent-observer-integrated.json",
+      "receiptSha256": "071c4c1701b3d9ec2ce646bdb67ca84bbe0cde8892cfd2bc4e9df5ab54c6d036",
+      "ownerCommit": "3c9e73fd8c6039ce8561d84058d1d7f502c6247b",
+      "scopeSha256": "2392f12f7284d982a1a3b6e179c7becbe294449e519f7832a090aadbeb99bd5b",
+      "exactSourceFiles": 20,
+      "pureChecks": 72,
+      "planningChecks": 8,
+      "nativeApproved": false,
+      "nativeExecuted": false,
+      "currentHumanApprovalReceived": false
     }
   },
   "securityBoundary": {
@@ -1662,9 +1702,9 @@
     "Historical Packet dependency preserved; final rebuilt core/CLI capture DLL absence resolved. Actual runtime/distribution/source-license acceptance still pending",
     "BOTH final core/CLI,17-feature profile,normal/delay imports and four-file schema2 hashes integrated; actual native activation/coexistence/cleanup and distribution review pending",
     "Authenticated member-to-ET-peer binding, selected forwarding/full physical path and timestamped ET RTT are absent; keep unknown",
-    "Native notice follow-up:24 original text cases recovered; encoding-utils original author notice and CC0 source intent remain distinct, VC-LTL EPL/Microsoft linked-input scope requires review. Offline source restoration passed; actual rebuild/relink/source-recipient/public export remains pending",
+    "Native notices:24 original text cases recovered; original encoding CC0/source notice provenance resolved conservatively. encoding-utils original author notice remains or select the unbuilt Windows-only feature-removal option. Actual VC-LTL libucrt/libvcruntime/YY-Thunks link inputs confirmed; specific EPL/Microsoft scope, coordinated rebuild/relink/source-recipient/export/package inventory remain pending",
     "c3a72472 real Provider seam and5d hidden empty-profile main/preload/renderer bootstrap passed. Real account/socket/member/call/device listening remains unaccepted",
-    "Both c737 and later approved dd60 scoped attempts are consumed. dd60 completed two23-phase snapshots but fingerprint mismatch stopped before core; exact field difference unknown. Readonly ET-owner diagnosis/repair pending; no new native retry authorized",
+    "Historical c737/dd60 attempts consumed; dd60 failed before native with exact difference unknown. Reviewed3c source now uses independent full/light observations and65s stop request/71s confirmation/219s phase budget; no fresh current human native approval or trial",
     "Internal83 portable artifact SHA7d430b1c/source83dd572f/static188files verified. Follow-up26 legal/FileSet changes and944 runner repair are absent from that artifact; no attribution to current code",
     "5d exact internal artifact d6a1ee40 / ASAR ed3ea18c passed two actual hidden offline empty-profile runs.201 final owner file hashes verified. New legal c62 bytes are absent from this old artifact; no final public release"
   ],
@@ -1755,6 +1795,7 @@
     "status": "PASS-bootstrap-only",
     "containsCurrentLegalFollowup": false,
     "publicApproved": false,
-    "final": false
+    "final": false,
+    "containsIndependentObserver3cSource": false
   }
 }

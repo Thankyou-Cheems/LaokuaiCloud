@@ -35,3 +35,7 @@ Latest actual dd60: the user approved one scoped retry, now consumed. ET owner c
 Current follow-up: native original notices and private recovery materials are pinned at c62ad2e8. See source-materials/README.md and the unintegrated encoding-feature option under candidates. Original notice cases recovered advance24; no public legal/source-recipient clearance is claimed. The source-materials archive is external to Git and fully hash/CRC verified.
 
 The exact5d application internal artifact d6a1ee40/ASAR ed3ea18c passed two actual hidden offline empty-profile bootstraps;201 frozen owner file hashes verified. See acceptance/internal-candidate5d-bootstrap.json. This accepts real main/preload/renderer/empty DOM within that bounded diagnostic mode, with real member/call/settings/account/device/native scenarios still pending. Current legal additions are absent from that immutable artifact.
+
+Latest observer owner3c9e73fd/2392scope source is integrated with72 pure/mock+8 planning checks. Actual native approval is absent;65s stop-request and71s confirmation bounds are separate from219s total observation budget. Historical732/dd60 results remain pinned to their original source.
+
+Native PDB compilands confirm VC-LTL libucrt/libvcruntime and YY-Thunks actually participate. See source-materials/LEGAL-NEXT-STEPS.md for the remaining encoding-utils option, precise runtime-license scope and coordinated rebuild/relink/recipient steps. Current exact internal5d artifact is still the measured UI bootstrap, with subsequent legal/observer changes absent from its bytes.

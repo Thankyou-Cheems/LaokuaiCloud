@@ -1,0 +1,276 @@
+{
+  "schema": 1,
+  "ownerCommit": "3c9e73fd8c6039ce8561d84058d1d7f502c6247b",
+  "integratedOwnerBase": "732ad82e6528ae1567abf31b6429dabc6ef362e0",
+  "ownerHandoffSha256": "364812f87d41471ea634bcb473cb4efefa4094c41b7c821d49cb42484f7019f0",
+  "patchSha256": "3593088f7d7b5b4c64bafd405f6ad9c0976593b2e08be8260d6c50a741e6ada5",
+  "bundleSha256": "541c0453d7cf4688e1ac6a0a0bca5edd32ca30d68ff68cc375f66cbb76795241",
+  "deliveryArtifactsVerified": [
+    {
+      "file": "observer-wiring.patch",
+      "bytes": 86382,
+      "sha256": "d715a3de31e8446109705380f0e776c1f92dd32d343c33d0b8e5a3f236eeb1b8"
+    },
+    {
+      "file": "observer-wiring-with-plan.patch",
+      "bytes": 94448,
+      "sha256": "3593088f7d7b5b4c64bafd405f6ad9c0976593b2e08be8260d6c50a741e6ada5"
+    },
+    {
+      "file": "observer-wiring-with-plan.bundle",
+      "bytes": 33870,
+      "sha256": "541c0453d7cf4688e1ac6a0a0bca5edd32ca30d68ff68cc375f66cbb76795241"
+    },
+    {
+      "file": "FROZEN-SCOPE.json",
+      "bytes": 7767,
+      "sha256": "643cd7216e11d4aff1b9b989d23559bcb75936ec0666e1c4a7aa8f23918ef194"
+    },
+    {
+      "file": "ONE-SHOT-CONFIRMATION.md",
+      "bytes": 1504,
+      "sha256": "7b44b76d92bcc1b47686b1d96bb6e186d87532afd7c9b721571457998b139e80"
+    },
+    {
+      "file": "POWERSHELL-AST-AUDIT.json",
+      "bytes": 3877,
+      "sha256": "b907e5239caaafc762e86a4e940d42daab7732ff72c2fbe71c9e7b25fb2c2040"
+    },
+    {
+      "file": "readonly-final\\readonly-timing.json",
+      "bytes": 1065,
+      "sha256": "4f7c78a37a4b985aa813147479fcb89a49da46210f8d81c1f6020b7471f90848"
+    },
+    {
+      "file": "readonly-final\\snapshot-1-full-safe.json",
+      "bytes": 6888379,
+      "sha256": "c4ddfa8a94259286721fd5b38c9b053156326759b13b3e5d159953c4a6c54fd0"
+    },
+    {
+      "file": "readonly-final\\snapshot-2-full-safe.json",
+      "bytes": 6888379,
+      "sha256": "06defa05b48139d762814150bc1cb503215471fa8a4bd75f178a6de62d39ea2e"
+    },
+    {
+      "file": "readonly-final\\comparison-2.json",
+      "bytes": 131,
+      "sha256": "5ce00228aafb3cdf63fce73f7e81473896fdcef54bc5da5b242848337d0de117"
+    },
+    {
+      "file": "wrapper-final-result.json",
+      "bytes": 142,
+      "sha256": "9e944ff363debbdad8fd38be2df7a9e9da95bfc7d3a4464803bf6ff590608eae"
+    }
+  ],
+  "imports": [
+    {
+      "path": "components/client/scripts/OWNED-TUN-NEXT-TEST-PLAN.md",
+      "ownerGitBlob": "9541b12b86fe7195b36b04addabaecf9ccd5c0f4",
+      "bytes": 7925,
+      "sha256": "424448cac779ed0f7e366c6444fd6a39103dbca51f78d97d5445bcfafa73551e"
+    },
+    {
+      "path": "components/client/scripts/OWNED-TUN-TRIAL.md",
+      "ownerGitBlob": "118c3b3872264ccce642914ce00e158099b57655",
+      "bytes": 9657,
+      "sha256": "1d09f6a1592665e3217d589f2671a45be5a70049749fe9c7eb85ca559004237c"
+    },
+    {
+      "path": "components/client/scripts/benchmark-owned-tun-observer.mjs",
+      "ownerGitBlob": "d99a85446dbffa172f793bcfb8a2e283256f8202",
+      "bytes": 2345,
+      "sha256": "5e9bf752466283feef6c9f102a00bbe220a04df9bf9109918f05b33ae2b5d06e"
+    },
+    {
+      "path": "components/client/scripts/check-owned-tun-next-plan.mjs",
+      "ownerGitBlob": "b8bdc702d9f228469acc14f76c83ad9cbfdf960c",
+      "bytes": 3844,
+      "sha256": "d636275bbefe80acfe250fa347150e4663475b725b25b47a2cbda216aa17d832"
+    },
+    {
+      "path": "components/client/scripts/check-owned-tun-observer.mjs",
+      "ownerGitBlob": "6c13770beb5b9084969b15fc4c86dd8bf1377ef9",
+      "bytes": 5423,
+      "sha256": "e7fc3676781a42ea0bfc64d95e29be04aeed63a50b4674c72d157db867916ce3"
+    },
+    {
+      "path": "components/client/scripts/check-owned-tun-semantics.mjs",
+      "ownerGitBlob": "b42f2e37b73d71bb3542296fff1b30733833421b",
+      "bytes": 4488,
+      "sha256": "f3e48f559a54b9febb7f6a18557912f2858e353d0e114cd12ce6161ade69c0d9"
+    },
+    {
+      "path": "components/client/scripts/check-owned-tun-snapshot.mjs",
+      "ownerGitBlob": "f4fa6aa93aa39213d55ce831e72043e40f71d3fb",
+      "bytes": 8861,
+      "sha256": "5e8b37f93917fd33f08474c0149b154abfe27a6bed43f7e8f6dc599df4a710be"
+    },
+    {
+      "path": "components/client/scripts/check-owned-tun-trial.mjs",
+      "ownerGitBlob": "45972a38534984725bce442b634e4e1d6de08115",
+      "bytes": 16490,
+      "sha256": "e159f7c5337239bc4a7418179c1124b3cdec55f98ca2ed4a1ee094cba78cae4c"
+    },
+    {
+      "path": "components/client/scripts/owned-tun-light-policy.mjs",
+      "ownerGitBlob": "5d7c47696d5c426dcf33085c9325a07d85b68efd",
+      "bytes": 1826,
+      "sha256": "700301d74ae768f949a75450bcd9ac808e36dceb682fa614d3f536465b129837"
+    },
+    {
+      "path": "components/client/scripts/owned-tun-light-snapshot.ps1",
+      "ownerGitBlob": "426cf2549f748da37a754978cb9ae70990387852",
+      "bytes": 4636,
+      "sha256": "9e0c7efe04e067d45b4ffb987c8b7c38dd04e7cc5e049bca8c48be0c0041fba2"
+    },
+    {
+      "path": "components/client/scripts/owned-tun-next-observation-plan.mjs",
+      "ownerGitBlob": "20ca07f490ed5ef39f06f227380d9121e2e74ef3",
+      "bytes": 2867,
+      "sha256": "469491e1d6875ad4463d70985059a3a0f617037f07504679827926779bf1b530"
+    },
+    {
+      "path": "components/client/scripts/owned-tun-observation-run.mjs",
+      "ownerGitBlob": "6c35f82e11d2977ff643b4fd66ff6bcea7cdb0a3",
+      "bytes": 4349,
+      "sha256": "248591cc995b366d87d5efa7e8526d72d8c8aa1e5fcd984c3ba7752d576df032"
+    },
+    {
+      "path": "components/client/scripts/owned-tun-observer-worker.mjs",
+      "ownerGitBlob": "c1b44eefaa1eeb5a482f2ac588887971812584b4",
+      "bytes": 5918,
+      "sha256": "594d28b93d332dbefc732fbd9fb109219e1b14804d9f6a353e20e3ce15aa0586"
+    },
+    {
+      "path": "components/client/scripts/owned-tun-observer.mjs",
+      "ownerGitBlob": "900e329b9a895974a96ae8f4c3347bb747ad7241",
+      "bytes": 1356,
+      "sha256": "3f68032bdb28341be4813d5b14d8954a8a1e9739775d7444147ff4285c2abc07"
+    },
+    {
+      "path": "components/client/scripts/owned-tun-snapshot-fixture.mjs",
+      "ownerGitBlob": "0abdb3058cb3de5a279bba0fc5f98a76f2335d4f",
+      "bytes": 1364,
+      "sha256": "70c5f993dc49c1cb5a10c7dc71f38134bcc41c84d2623e8b5c90525f653b6d33"
+    },
+    {
+      "path": "components/client/scripts/owned-tun-snapshot-reader.mjs",
+      "ownerGitBlob": "57456e584cf6160b3f35a34738896c44be9425d6",
+      "bytes": 6194,
+      "sha256": "0af9c31e564cd4a8fe795c2f64d72578a61df1a3fadea20b4be0cd01c01fc0cf"
+    },
+    {
+      "path": "components/client/scripts/owned-tun-snapshot-semantics.mjs",
+      "ownerGitBlob": "6b340a6f2a69d331552b2e71b5216c9fd20a2c6b",
+      "bytes": 5317,
+      "sha256": "9e841ab28da0024481dff48c633f57c3fcbd55a830af7a222f09ce940fb6e083"
+    },
+    {
+      "path": "components/client/scripts/owned-tun-trial-policy.mjs",
+      "ownerGitBlob": "673012b9ba63838c2ba913da183c491233d67489",
+      "bytes": 15706,
+      "sha256": "dda5e183117945e79455c9ecd7c25ed9d044c82929f786715109165b87adb4e2"
+    },
+    {
+      "path": "components/client/scripts/owned-tun-trial-snapshot.ps1",
+      "ownerGitBlob": "a133a7f8e55149f01c825df3908d571ca3b0812a",
+      "bytes": 14849,
+      "sha256": "94772cb9db5f309e2c4c0db6d87a742f72088644127956092d4a93dd57911da9"
+    },
+    {
+      "path": "components/client/scripts/run-owned-tun-trial.mjs",
+      "ownerGitBlob": "7bec41a9dadfbfab5084935c482ef27801c15a8b",
+      "bytes": 10075,
+      "sha256": "e18b6d7e6a093571e19743bc735621b63aa715fc761c96aefcf30f69c4cbceb9"
+    }
+  ],
+  "adaptations": [
+    "Preserve sanitized integration diagnosis and append truthful review summary",
+    "Extend only PowerShell LF attributes; retain integration licensing attributes"
+  ],
+  "scopeSha256": "2392f12f7284d982a1a3b6e179c7becbe294449e519f7832a090aadbeb99bd5b",
+  "scopeSchema": 4,
+  "sourcePins": 15,
+  "maximumStopRequestMs": 65000,
+  "maximumExitConfirmationRelativeToStartMs": 71000,
+  "readinessMs": 10000,
+  "fullReadMs": 40000,
+  "lightMs": 5000,
+  "finalFreshLightMs": 10000,
+  "forceAfterMs": 4000,
+  "finalConfirmationAfterMs": 6000,
+  "settleMs": 15000,
+  "postFullMs": 40000,
+  "observerCloseMs": 6000,
+  "phaseBudgetMs": 219000,
+  "independentWorker": true,
+  "fullDuringCount": 1,
+  "persistentReadonlyPowerShell": true,
+  "ownerChecks": {
+    "pure": 72,
+    "priorPlanning": 8,
+    "powershellAstAuditSha256": "b907e5239caaafc762e86a4e940d42daab7732ff72c2fbe71c9e7b25fb2c2040"
+  },
+  "task6PureChecks": [
+    {
+      "file": "check-owned-tun-trial.mjs",
+      "exit": 0,
+      "summary": "20 pure trial checks passed; no candidate, driver, UAC, socket or OS snapshot executed"
+    },
+    {
+      "file": "check-owned-tun-snapshot.mjs",
+      "exit": 0,
+      "summary": "passed 14 pure snapshot checks; no OS/native activation"
+    },
+    {
+      "file": "check-owned-tun-semantics.mjs",
+      "exit": 0,
+      "summary": "10 pure semantic checks passed; no OS/native queries"
+    },
+    {
+      "file": "check-owned-tun-observer.mjs",
+      "exit": 0,
+      "summary": "5 pure observer checks passed; only fake processes and one pure JS thread"
+    },
+    {
+      "file": "check-owned-tun-next-plan.mjs",
+      "exit": 0,
+      "summary": "8 pure observation-plan checks passed; no OS query/native/TUN"
+    }
+  ],
+  "task6TrialSnapshotSemanticObserverChecks": 49,
+  "task6PlanningChecks": 8,
+  "task6MockedProductionChecks": 23,
+  "task6MockedProductionPassed": true,
+  "readonlyOwnerMeasurements": {
+    "fullMs": [
+      30105,
+      28813
+    ],
+    "coldLightMs": 3872,
+    "duringFullWarmLightMs": [
+      1511,
+      1594,
+      1648
+    ],
+    "postWarmLightMs": [
+      1442,
+      1788
+    ],
+    "totalMs": 63202,
+    "fieldDifferences": 0,
+    "normalUacReadonly": true,
+    "liveTrialNicMeasured": false,
+    "scopeMatchesFrozen": true
+  },
+  "historicalDd60DifferenceStillUnknown": true,
+  "consumedApprovalsReused": false,
+  "currentHumanNativeApprovalReceived": false,
+  "task6OsSnapshotExecuted": false,
+  "task6NativeExecuted": false,
+  "nativeActivationAccepted": false,
+  "realCommunityVoiceGamePhysicalDirectAccepted": false,
+  "rawSnapshotsHostIdsOrLogsImported": false,
+  "old83And5dArtifactsChanged": false,
+  "nextAction": "Parent obtains fresh original-human approval of this exact3c owner commit /2392 scope and65s stop-request/71s confirmation/219s phase limits before one native attempt; source integration itself grants no activation"
+}

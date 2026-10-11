@@ -143,13 +143,23 @@ if(m.validation.snapshotDiagnosticRepair){
   const actual=m.validation.snapshotDiagnosticRepair;
   assert(sha(actual.receipt)===actual.receiptSha256,'Snapshot repair receipt changed');
   const receipt=JSON.parse(fs.readFileSync(path.join(root,actual.receipt),'utf8'));
-  for(const file of receipt.imports)assert(sha(file.path)===file.sha256&&git(['rev-parse',`HEAD:${file.path}`])===file.ownerGitBlob,'Snapshot repair frozen source changed');
+  const frozen=actual.frozenIntegrationCommit||'HEAD';
+  for(const file of receipt.imports)assert(git(['rev-parse',`${frozen}:${file.path}`])===file.ownerGitBlob,'Historical snapshot repair frozen source changed');
   assert(receipt.task6PureChecks===30&&receipt.snapshotTimeoutMs===40000&&receipt.runningWatchdogMs===30000&&receipt.residualObservationMs===40000,'Snapshot repair budget/test scope changed');
   assert(receipt.consumedApprovalReused===false&&receipt.currentApprovalReceived===false&&receipt.task6OsSnapshotExecuted===false&&receipt.task6NativeExecuted===false&&receipt.nativeBeforeAfterPreservationAccepted===false,'Read-only repair promoted to native execution/acceptance');
   assert(sha(receipt.administratorBaselineReceipt)===receipt.administratorBaselineReceiptSha256,'Administrator baseline receipt changed');
   const baseline=JSON.parse(fs.readFileSync(path.join(root,receipt.administratorBaselineReceipt),'utf8'));
   assert(baseline.baselinePassed===true&&baseline.readerElapsedMs===20657&&baseline.completePhaseCount===23&&baseline.nativeOrTunExecuted===false&&baseline.authorizesNativeTrial===false,'Administrator baseline promoted to native authorization');
   assert(receipt.newScopeSha256===actual.scopeSha256&&actual.actualActivationAccepted===false,'Snapshot repair approval scope mismatch');
+}
+if(m.validation.etIndependentObserver){
+  const entry=m.validation.etIndependentObserver;
+  assert(sha(entry.receipt)===entry.receiptSha256,'Independent observer receipt changed');
+  const receipt=JSON.parse(fs.readFileSync(path.join(root,entry.receipt),'utf8'));
+  for(const file of receipt.imports)assert(sha(file.path)===file.sha256&&git(['rev-parse',`HEAD:${file.path}`])===file.ownerGitBlob,'Independent observer source changed');
+  assert(receipt.ownerCommit==='3c9e73fd8c6039ce8561d84058d1d7f502c6247b'&&receipt.maximumStopRequestMs===65000&&receipt.maximumExitConfirmationRelativeToStartMs===71000&&receipt.phaseBudgetMs===219000&&receipt.sourcePins===15&&receipt.scopeSchema===4,'Independent observer scope/budget mismatch');
+  assert(receipt.task6TrialSnapshotSemanticObserverChecks===49&&receipt.task6PlanningChecks===8&&receipt.task6MockedProductionChecks===23&&receipt.task6MockedProductionPassed,'Independent observer pure checks incomplete');
+  assert(!receipt.currentHumanNativeApprovalReceived&&!receipt.task6OsSnapshotExecuted&&!receipt.task6NativeExecuted&&!receipt.nativeActivationAccepted&&!receipt.consumedApprovalsReused,'Independent observer source falsely grants activation');
 }
 if(m.internalCandidate){
   const candidate=m.internalCandidate;
