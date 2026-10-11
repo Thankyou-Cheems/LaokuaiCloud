@@ -1,0 +1,147 @@
+{
+  "schema": 1,
+  "ownerCommit": "17f3dd1fd73b2efa4dc1042f18437799c35b20e5",
+  "base": "d8a2eeb6ba796fc218442dcb03abba22cf53f4ae",
+  "patchSha256": "3b6eedf3e52eeec35f186f6c4c63f32b3827b7e140b7ec0e7722ffc61299bbf5",
+  "scopeSha256": "425b0131d0bf016a9ee5d4000b3fec492b5c637dcfe5d30dff1300386bce022c",
+  "scopeSchema": 5,
+  "sourcePins": 17,
+  "imports": [
+    {
+      "path": "components/client/scripts/check-owned-tun-observer.mjs",
+      "ownerGitBlob": "0b71ee53c2ac16f2eeece649e21bc9a962e788a9",
+      "sha256": "ff7c600af721ba51b0e8eb32cab960a2ecdb1d12fcdb46b6fa4b320db8f90440",
+      "bytes": 5479
+    },
+    {
+      "path": "components/client/scripts/check-owned-tun-sockets.mjs",
+      "ownerGitBlob": "356f6cce79192aa8ef97d2fde40cecb86d925272",
+      "sha256": "78fcbc3e53e6f9061c249d77e42b5e949593995fcfa02208fbcde1f4801f6a81",
+      "bytes": 2465
+    },
+    {
+      "path": "components/client/scripts/check-owned-tun-sockets.ps1",
+      "ownerGitBlob": "387a2cb970518fa8ee4d48a9f2bd142443ba0719",
+      "sha256": "a36bfff6942dac794a09709d00cb8d4cc0306fcf02879f49b745d9e1aff7300a",
+      "bytes": 4121
+    },
+    {
+      "path": "components/client/scripts/check-owned-tun-trial.mjs",
+      "ownerGitBlob": "8db0e4e3369baf8b6b71886d530a49deedca8fe2",
+      "sha256": "9c19b0f4aea3c147ba2c8e2523f606d8a65e9f1db0791002da138fa398107bf0",
+      "bytes": 16906
+    },
+    {
+      "path": "components/client/scripts/observe-existing-et-sockets.ps1",
+      "ownerGitBlob": "e7208c9afe9bfd34993a40f012ed07260cedadb6",
+      "sha256": "7dc76778e6a78926fe7b549c2af1245dd1438460bde83a92fc0d688fc396ad7e",
+      "bytes": 1215
+    },
+    {
+      "path": "components/client/scripts/owned-tun-light-policy.mjs",
+      "ownerGitBlob": "94550753b1b21bbf2c82c591c946c4786a3d98e3",
+      "sha256": "ea16ed572ac71301497379b4065e292e196dab1a27fc6d4766b1b3d9889e5015",
+      "bytes": 1954
+    },
+    {
+      "path": "components/client/scripts/owned-tun-light-snapshot.ps1",
+      "ownerGitBlob": "cc42095b7e08b94ced73c002f9cc72f1cf0a07bc",
+      "sha256": "17fb3b72e6998e8c08aa677d1e3848877b090254813e19386510b15dc788fe0c",
+      "bytes": 4389
+    },
+    {
+      "path": "components/client/scripts/owned-tun-observer-worker.mjs",
+      "ownerGitBlob": "3120b73a38c522ccce229e7af21033c772bcd818",
+      "sha256": "7247150c1b99148f5715b4585e91d5f6fbb2dbf34c0be51cc9499c2aa8459cb0",
+      "bytes": 6174
+    },
+    {
+      "path": "components/client/scripts/owned-tun-socket-evidence.ps1",
+      "ownerGitBlob": "7eef6b48113d430cf7e4d1e9e1b05a92dcc245b7",
+      "sha256": "aa36f29cd1451ebaa309ab4773ff56879a4ab4614ca960d482631655d45791de",
+      "bytes": 6382
+    },
+    {
+      "path": "components/client/scripts/owned-tun-socket-fixture.mjs",
+      "ownerGitBlob": "6034c26c7ad91fb97ebeea4ffb29b007a2407f49",
+      "sha256": "8beda30f331d0bca32e56fb99a0fdba1b10af33b314fdabae8b508afb2ca41af",
+      "bytes": 1345
+    },
+    {
+      "path": "components/client/scripts/owned-tun-socket-policy.mjs",
+      "ownerGitBlob": "efebfe0872c3a56f9286f0f36b36b8815162670a",
+      "sha256": "af7814cc3ecd96c91ae921a3d3007c65dcc3cc98f574080acfbd8af18bfe2d87",
+      "bytes": 3571
+    },
+    {
+      "path": "components/client/scripts/owned-tun-trial-policy.mjs",
+      "ownerGitBlob": "af6285545d9cb8a6bdd021c9fd7a8d431c0204d5",
+      "sha256": "88354725f51ef316102b029ed6cdd897d6b383c9a585d41f0459d018300463bb",
+      "bytes": 16132
+    },
+    {
+      "path": "components/client/scripts/owned-tun-trial-snapshot.ps1",
+      "ownerGitBlob": "fa6464adc3b386b64f974603fb22a619f8d9a30c",
+      "sha256": "966bf85b2f9b7c7485808d1e2b987ebc49e13a4b9838097887899221b72d0c92",
+      "bytes": 15040
+    }
+  ],
+  "ownerPureChecks": 101,
+  "task6PureChecksPending": false,
+  "newScopeApproved": false,
+  "previous2392ApprovalConsumed": true,
+  "oldNativeBinariesUnchanged": true,
+  "historicalUnexpectedSocketCauseConfirmed": false,
+  "strongestSourceCandidate": "OSPF startup UDP NAT collector binds before empty STUN-list check; historical endpoint details absent",
+  "task6NativeExecuted": false,
+  "task6OsQueryExecuted": false,
+  "rawOwnerEndpointEvidenceImported": false,
+  "productPatch": "diagnostic source only; rejection rules preserved",
+  "task6Checks": [
+    {
+      "file": "check-owned-tun-trial.mjs",
+      "exit": 0,
+      "summary": "20 pure trial checks passed; no candidate, driver, UAC, socket or OS snapshot executed"
+    },
+    {
+      "file": "check-owned-tun-snapshot.mjs",
+      "exit": 0,
+      "summary": "passed 14 pure snapshot checks; no OS/native activation"
+    },
+    {
+      "file": "check-owned-tun-semantics.mjs",
+      "exit": 0,
+      "summary": "10 pure semantic checks passed; no OS/native queries"
+    },
+    {
+      "file": "check-owned-tun-observer.mjs",
+      "exit": 0,
+      "summary": "5 pure observer checks passed; only fake processes and one pure JS thread"
+    },
+    {
+      "file": "check-owned-tun-sockets.mjs",
+      "exit": 0,
+      "checks": 29,
+      "adaptation": "Narrow unsandboxed pure projector test after sandbox AuthorizationManager denial; no OS queries or native executed"
+    },
+    {
+      "file": "check-community-easytier-production.mjs",
+      "exit": 0,
+      "checks": 23,
+      "ports": "all native/process/filesystem/socket ports mocked"
+    },
+    {
+      "file": "check-owned-tun-next-plan.mjs",
+      "exit": 0,
+      "checks": 8
+    }
+  ],
+  "task6PureChecks": 101,
+  "task6PlanningChecks": 8,
+  "preservedSandboxFailure": {
+    "file": "check-owned-tun-sockets.mjs",
+    "exit": 1,
+    "reason": "PowerShell AuthorizationManager denied access in sandbox; fake-data test passed in narrow unsandboxed retry",
+    "productSourceChangedForRetry": false
+  }
+}

@@ -5,10 +5,11 @@ import { validateLight } from './owned-tun-light-policy.mjs';
 import { createOwnedObserver } from './owned-tun-observer.mjs';
 import { runObservedTrial } from './owned-tun-observation-run.mjs';
 import { SCOPE } from './owned-tun-trial-policy.mjs';
+import { fakeSocketSnapshot } from './owned-tun-socket-fixture.mjs';
 let count=0;async function test(name,fn){await fn();console.log(`ok ${++count} ${name}`);}
 const old={guid:SCOPE.protectedGuid,luid:'100',ifIndex:30,status:'Up',addresses:[{ip:SCOPE.protectedAddress,prefix:24,family:4}]};
 const before={guiFingerprint:'old-gui',adapters:[old]},receipt={pid:123,interfaces:[{guid:'00000000-0000-4000-8000-000000000001',luid:'200',ifIndex:77}]};
-const light=()=>({lightSchema:1,complete:true,guiAlive:true,guiFingerprint:'old-gui',driverRunning:true,ownedIdentity:'new-owned-child',adapterGuids:[old.guid,receipt.interfaces[0].guid],adapters:[old,{...receipt.interfaces[0],status:'Up',alias:SCOPE.alias,hasDefault:false,safeTrialRoutes:true,addresses:[{ip:SCOPE.virtualAddress,prefix:30,family:4}]}],portalOwnerPids:[123],nonLoopbackRpc:false,ownedForbiddenSocketCount:0});
+const light=()=>({...fakeSocketSnapshot(123),lightSchema:1,complete:true,guiAlive:true,guiFingerprint:'old-gui',driverRunning:true,ownedIdentity:'a'.repeat(64),adapterGuids:[old.guid,receipt.interfaces[0].guid],adapters:[old,{...receipt.interfaces[0],status:'Up',alias:SCOPE.alias,hasDefault:false,safeTrialRoutes:true,addresses:[{ip:SCOPE.virtualAddress,prefix:30,family:4}]}]});
 await test('light requires receipt GUID/LUID/index, exact protected identity and local sockets',()=>{
  assert.equal(validateLight(before,light(),receipt),true);
  for(const change of [{complete:false},{guiFingerprint:'reused-old-pid'},{driverRunning:false},{portalOwnerPids:[6424]},{nonLoopbackRpc:true},{ownedForbiddenSocketCount:1},{adapterGuids:[old.guid,'extra-one','extra-two']}])assert.throws(()=>validateLight(before,{...light(),...change},receipt));
@@ -21,9 +22,9 @@ await test('light checks broad routes/address/old interface changes and fails un
  assert.throws(()=>validateLight(before,{lightSchema:1,complete:true},receipt));
 });
 await test('post-stop checks GUID/any RPC owner rather than a reused former numeric PID',()=>{
- assert.equal(validateLight(before,light(),null,{settling:true}),false);
- const clean={...light(),adapterGuids:[old.guid],adapters:[old],portalOwnerPids:[],ownedIdentity:null};assert.equal(validateLight(before,clean,null,{settling:true}),true);
- assert.equal(validateLight(before,{...clean,portalOwnerPids:[999]},null,{settling:true}),false);
+ const settling={...light(),...fakeSocketSnapshot()};assert.equal(validateLight(before,settling,null,{settling:true}),false);
+ const clean={...settling,adapterGuids:[old.guid],adapters:[old],ownedIdentity:null};assert.equal(validateLight(before,clean,null,{settling:true}),true);
+ assert.throws(()=>validateLight(before,{...clean,portalOwnerPids:[999]},null,{settling:true}));
 });
 await test('worker client sends tiny observation requests and cancels only its worker',async()=>{
  let fake;class FakeWorker extends EventEmitter{constructor(){super();fake=this;this.requests=[];}postMessage(row){this.requests.push(row);if(row.id)queueMicrotask(()=>this.emit('message',{id:row.id,value:{ready:true}}));}async terminate(){this.terminated=true;}}

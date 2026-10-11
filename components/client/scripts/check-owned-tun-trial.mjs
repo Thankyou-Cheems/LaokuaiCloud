@@ -1,18 +1,19 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { fakeFacts } from './owned-tun-snapshot-fixture.mjs';
+import { fakeSocketSnapshot } from './owned-tun-socket-fixture.mjs';
 import { SCOPE, SCOPE_SHA256, TRIAL_SUSPENDED, sha256, validateApproval, validateBuildEvidence, verifyTrialPayload, verifyTrialDocuments, buildIsolatedConfig, validateBefore, validateDuring, validateAfter, runBoundedTrial } from './owned-tun-trial-policy.mjs';
 
 // Pure observations, fake clocks/children only. No execute adapter, OS reads or sockets.
 const copy = value => structuredClone(value);
-const before = () => ({ complete: true, administrator: true, guiAlive: true, guiFingerprint: 'old-gui', ownedForbiddenSocketCount: 0,
+const before = () => ({ ...fakeSocketSnapshot(), complete: true, administrator: true, guiAlive: true, guiFingerprint: 'old-gui', ownedForbiddenSocketCount: 0,
   semanticFacts:fakeFacts(SCOPE.protectedGuid),
   driverCount: 1, driverVer: SCOPE.driverVer, driverSysSha256: SCOPE.driverSysSha256, driverRunning: true,
   aliasConflict: false, addressOrRouteConflict: false, portalOwnerPids: [], firewallSha256: 'firewall', default4Sha256: 'v4', default6Sha256: 'v6', categories: [{ id: 'old-profile', category: 0 }],
   adapters: [{ guid: SCOPE.protectedGuid, ifIndex: 30, alias: 'et_7_hvb5', status: 'Up', addresses: [{ family: 4, ip: SCOPE.protectedAddress, prefix: 24 }], fingerprint: 'old-interface' }] });
 const receipt = { pid: 123, interfaces: [{ guid: '00000000-0000-4000-8000-000000000001', luid: '9999999999999999999', ifIndex: 77 }] };
 function during() {
-  const s = before(); s.portalOwnerPids = [123];
+  const s = before(); Object.assign(s,fakeSocketSnapshot(123));
   s.semanticFacts.interfaces[receipt.interfaces[0].guid]=fakeFacts(receipt.interfaces[0].guid).interfaces[receipt.interfaces[0].guid];
   s.adapters.push({ guid: receipt.interfaces[0].guid, alias: SCOPE.alias, ifIndex: 77, luid: receipt.interfaces[0].luid,
     status: 'Up', addresses: [{ family: 4, ip: SCOPE.virtualAddress, prefix: 30 }], fingerprint: 'new-interface', hasDefault: false, safeTrialRoutes: true });
@@ -146,12 +147,14 @@ await test('post-stop reads use no former numeric PID; settling/full deadlines f
 });
 await test('frozen 65s scope pins all observation/adapter sources and rejects former scope',()=>{
  assert.equal(SCOPE.maximumRunMs,65000);assert.equal(SCOPE.light.timeoutMs,5000);assert.equal(SCOPE.fullDuringCount,1);assert.equal(SCOPE.residualSettleMs,15000);assert.equal(SCOPE.residualObservationMs,40000);assert.equal(SCOPE.observationWorker.independentSupervisor,true);
- assert.equal(Object.keys(SCOPE.observationSources).length,15);
+ assert.equal(Object.keys(SCOPE.observationSources).length,17);
+ assert.equal(SCOPE.schema,5);assert.equal(SCOPE.light.socketEndpointLimit,256);assert.equal(SCOPE.light.maxOutputBytes,524288);
+ assert.throws(()=>validateApproval(['--execute','--approved-scope-sha256','2392f12f7284d982a1a3b6e179c7becbe294449e519f7832a090aadbeb99bd5b']));
  for(const [file,hash] of Object.entries(SCOPE.observationSources))assert.equal(sha256(fs.readFileSync(new URL('./'+file,import.meta.url))),hash,file);
  assert.throws(()=>validateApproval(['--execute','--approved-scope-sha256','bd107b2ae27d9e2d45c817eedec4f99b99e3030f62e66188e2ffc65942ea2c72']));
 });
 await test('entry point is opt-in; full/light collectors contain no OS mutation commands',()=>{
  const runner=fs.readFileSync(new URL('./run-owned-tun-trial.mjs',import.meta.url),'utf8');assert.ok(runner.indexOf('validateApproval(process.argv.slice(2))')<runner.indexOf('new EasyTierWindowsProcesses(15897)'));
- for(const file of ['owned-tun-trial-snapshot.ps1','owned-tun-light-snapshot.ps1'])assert.ok(!/\b(?:Start-Process|Stop-Process|New-Net\w*|Set-Net\w*|Remove-Net\w*|Enable-Net\w*|Disable-Net\w*|netsh|pnputil|WintunCreateAdapter)\b/i.test(fs.readFileSync(new URL('./'+file,import.meta.url),'utf8')));
+ for(const file of ['owned-tun-trial-snapshot.ps1','owned-tun-light-snapshot.ps1','owned-tun-socket-evidence.ps1'])assert.ok(!/\b(?:Start-Process|Stop-Process|New-Net\w*|Set-Net\w*|Remove-Net\w*|Enable-Net\w*|Disable-Net\w*|netsh|pnputil|WintunCreateAdapter)\b/i.test(fs.readFileSync(new URL('./'+file,import.meta.url),'utf8')));
 });
 console.log(`${tests} pure trial checks passed; no candidate, driver, UAC, socket or OS snapshot executed`);

@@ -10,6 +10,11 @@ let baseline,fullSequence=0,lightSequence=0,lightChild,lightFlight,lightBuffer='
 const controls=new Set();
 const save=async(name,value)=>fsp.writeFile(path.join(workerData.directory,name),JSON.stringify({...value,scopeSha256:SCOPE_SHA256},null,2),{flag:'wx'});
 const safe=error=>/^[a-z0-9-]{1,96}$/.test(error?.message??'')?error.message:'observer-unavailable';
+function bindObservedIdentity(value,request){
+ if(!request.owned?.pid||value.socketEvidence?.identityBinding!=='matched-across-query')return;
+ const identity=value.socketEvidence.identityBefore.fingerprint;
+ if(ownedIdentity&&identity!==ownedIdentity)throw new Error('owned-process-identity-changed');ownedIdentity??=identity;
+}
 function cancel(){for(const c of controls)c.abort();if(lightFlight){lightFlight.reject(new Error('light-read-cancelled'));lightChild?.kill();lightChild=null;}}
 function ensureLight(){
  if(lightChild)return;
@@ -19,7 +24,7 @@ function ensureLight(){
  child.stdout.on('data',bytes=>{
   if(lightChild!==child)return;
   lightBuffer+=bytes.toString('utf8');
-  if(Buffer.byteLength(lightBuffer)>65536){lightFlight?.reject(new Error('light-output-overflow'));child.kill();return;}
+  if(Buffer.byteLength(lightBuffer)>SCOPE.light.maxOutputBytes){lightFlight?.reject(new Error('light-output-overflow'));child.kill();return;}
   let index;while((index=lightBuffer.indexOf('\n'))>=0){
    const line=lightBuffer.slice(0,index);lightBuffer=lightBuffer.slice(index+1);
    try {const row=JSON.parse(line.replace(/^\uFEFF/,''));if(!lightFlight||String(row.id)!==lightFlight.id)throw new Error();
@@ -42,8 +47,8 @@ async function light(request){
   });
   await save(`light-${sequence}-safe.json`,{...value,stage:request.stage,wallElapsedMs:Math.round(performance.now()-started)});
   if(request.warmup){validateLight(baseline,value,null,{settling:true});return {ready:false,elapsedMs:Math.round(performance.now()-started)};}
+  bindObservedIdentity(value,request);
   const ready=validateLight(baseline,value,request.owned,{settling:request.stage==='settling'});
-  if(request.owned?.pid&&ready){if(ownedIdentity&&value.ownedIdentity!==ownedIdentity)throw new Error('owned-process-identity-changed');ownedIdentity??=value.ownedIdentity;}
   return {ready,elapsedMs:Math.round(performance.now()-started)};
  }catch(error){failure=safe(error);throw error;}
  finally {await save(`light-${sequence}-diagnostic.json`,{stage:request.stage,elapsedMs:Math.round(performance.now()-started),failure:failure??null,complete:Boolean(value?.complete)});}
@@ -53,6 +58,7 @@ async function full(request){
  try {
   const current=await readOwnedSnapshot({execFile,executable:workerData.powershell,script:path.join(workerData.scripts,'owned-tun-trial-snapshot.ps1'),ownedPid:request.owned?.pid??0,signal:control.signal,timeoutMs:SCOPE.snapshot.timeoutMs,maxBuffer:SCOPE.snapshot.maxBufferBytes,
    onDiagnostic:d=>save(`snapshot-${sequence}-diagnostic.json`,d),onSnapshot:s=>save(`snapshot-${sequence}-full-safe.json`,s)});
+  bindObservedIdentity(current,request);
   let ready=false;
   if(request.stage==='before'){validateBefore(current);baseline=current;}
   else{

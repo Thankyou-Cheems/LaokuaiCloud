@@ -1,5 +1,6 @@
 param([uint32]$OwnedPid=0)
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'owned-tun-socket-evidence.ps1')
 # Read-only observation, invoked only by the approved runner. No Wintun/driver API load.
 $clock=[Diagnostics.Stopwatch]::StartNew()
 $script:phase=$null
@@ -156,8 +157,7 @@ if($drivers.Count -eq 1) {
   finally { $stream.Dispose(); $algorithm.Dispose() }
 }
 StartPhase 'tcp-listeners'
-$listening=@(Get-NetTCPConnection -State Listen | Where-Object { $_.LocalPort -eq 15897 })
-if(@($listening | Where-Object LocalAddress -ne '127.0.0.1').Count) { throw 'non-loopback-rpc-binding' }
+$socketEvidence=ReadOwnedSocketEvidence $OwnedPid
 StartPhase 'gui-identity'
 $gui=Get-Process -Id 6424 -ErrorAction SilentlyContinue
 $guiFingerprint=$null
@@ -166,11 +166,7 @@ if($gui) {
   $guiFingerprint=Fingerprint @($gui.Id,$gui.ProcessName,$gui.StartTime.ToUniversalTime().ToString('o'))
 }
 StartPhase 'owned-sockets'
-$forbiddenSockets=0
-if($OwnedPid -gt 0) {
-  $forbiddenSockets=@(Get-NetTCPConnection | Where-Object { $_.OwningProcess -eq $OwnedPid -and ($_.LocalAddress -ne '127.0.0.1' -or $_.LocalPort -ne 15897 -or $_.RemoteAddress -notin @('0.0.0.0','127.0.0.1')) }).Count
-  $forbiddenSockets+=@(Get-NetUDPEndpoint | Where-Object OwningProcess -eq $OwnedPid).Count
-}
+$forbiddenSockets=$socketEvidence.ownedForbiddenSocketCount
 StartPhase 'driver-running'
 $driverRunning=[bool]@(Get-CimInstance Win32_SystemDriver -Filter "Name='wintun'" | Where-Object State -eq 'Running').Count
 StartPhase 'serialize'
@@ -187,10 +183,10 @@ $semanticFacts=[ordered]@{schema=1;interfaces=$interfaceFacts;tables=[ordered]@{
   default4=SemanticTable @($routes | Where-Object DestinationPrefix -eq '0.0.0.0/0' | Select-Object InterfaceIndex,NextHop,RouteMetric,InterfaceMetric) @('InterfaceIndex','NextHop','RouteMetric','InterfaceMetric');
   default6=SemanticTable @($routes | Where-Object DestinationPrefix -eq '::/0' | Select-Object InterfaceIndex,NextHop,RouteMetric,InterfaceMetric) @('InterfaceIndex','NextHop','RouteMetric','InterfaceMetric')
 }}
-$output=[ordered]@{ snapshotSchema=1;complete=$true;capturedAtUtc=[DateTime]::UtcNow.ToString('o');administrator=$identity.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator);
+$output=[ordered]@{ snapshotSchema=1;complete=$socketEvidence.complete;socketEvidence=$socketEvidence;nonLoopbackRpc=$socketEvidence.nonLoopbackRpc;capturedAtUtc=[DateTime]::UtcNow.ToString('o');administrator=$identity.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator);
   semanticEncoded=EncodeSemanticFacts $semanticFacts;
   guiAlive=[bool]($gui -and $gui.ProcessName -eq 'easytier-gui');guiFingerprint=$guiFingerprint;ownedForbiddenSocketCount=$forbiddenSockets;adapters=$adapters;aliasConflict=[bool]@($allAdapters | Where-Object {$_.Name -ieq 'lk_trial_20261011_a'}).Count;
-  addressOrRouteConflict=$conflict;portalOwnerPids=@($listening | Select-Object -ExpandProperty OwningProcess -Unique);
+  addressOrRouteConflict=$conflict;portalOwnerPids=$socketEvidence.portalOwnerPids;
   default4Sha256=Fingerprint @($routes | Where-Object DestinationPrefix -eq '0.0.0.0/0' | Sort-Object InterfaceIndex,NextHop | Select-Object InterfaceIndex,NextHop,RouteMetric,InterfaceMetric);
   default6Sha256=Fingerprint @($routes | Where-Object DestinationPrefix -eq '::/0' | Sort-Object InterfaceIndex,NextHop | Select-Object InterfaceIndex,NextHop,RouteMetric,InterfaceMetric);
   firewallSha256=Fingerprint @($rules,$profiles,$filters);categories=$categories;driverCount=$drivers.Count;driverVer=$driverVer;driverSysSha256=$sysHash;
@@ -199,6 +195,10 @@ $output=[ordered]@{ snapshotSchema=1;complete=$true;capturedAtUtc=[DateTime]::Ut
 Mark 'ok'
 $output
 } catch {
+  # Preserve collected safe endpoints even if a later full-snapshot phase fails.
+  if($null -ne $socketEvidence) {
+    [Console]::Out.WriteLine((ConvertTo-Json -InputObject ([ordered]@{snapshotSchema=1;complete=$false;capturedAtUtc=[DateTime]::UtcNow.ToString('o');failedPhase=$script:phase;socketEvidence=$socketEvidence;ownedForbiddenSocketCount=$socketEvidence.ownedForbiddenSocketCount;nonLoopbackRpc=$socketEvidence.nonLoopbackRpc;portalOwnerPids=$socketEvidence.portalOwnerPids}) -Depth 12 -Compress))
+  }
   $reason='other'
   if($_.FullyQualifiedErrorId -eq 'snapshot-requires-administrator') { $reason='requires-administrator' }
   elseif($_.CategoryInfo.Category -eq 'PermissionDenied' -or $_.Exception -is [Security.SecurityException]) { $reason='access-denied' }

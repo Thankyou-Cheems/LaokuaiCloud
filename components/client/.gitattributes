@@ -16,3 +16,8 @@ scripts/owned-tun-trial-snapshot.ps1 text eol=lf
 
 # Preserve exact pinned independent observer PowerShell source.
 scripts/owned-tun-light-snapshot.ps1 text eol=lf
+
+# Preserve exact frozen socket projector/collector source.
+scripts/owned-tun-socket-evidence.ps1 text eol=lf
+scripts/check-owned-tun-sockets.ps1 text eol=lf
+scripts/observe-existing-et-sockets.ps1 text eol=lf

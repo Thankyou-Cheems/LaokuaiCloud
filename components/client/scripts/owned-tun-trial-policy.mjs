@@ -1,23 +1,26 @@
 import { runObservedTrial } from './owned-tun-observation-run.mjs';
 import { createHash } from 'node:crypto';
 import { configurationDifferences, validateFacts } from './owned-tun-snapshot-semantics.mjs';
+import { validateSocketEvidence } from './owned-tun-socket-policy.mjs';
 
 const deepFreeze = value => { if (value && typeof value === 'object') { for (const child of Object.values(value)) deepFreeze(child); Object.freeze(value); } return value; };
 const delivery = 'C:\\Users\\cheb2\\Documents\\Codex\\2026-10-10\\task-2\\et-windows-build-no-npcap\\delivery';
 export const SCOPE = deepFreeze({
-  schema: 4, trial: 'single-no-peer-owned-tun-no-npcap', maximumRunMs: 65000,
+  schema: 5, trial: 'single-no-peer-owned-tun-no-npcap', maximumRunMs: 65000,
   prepareTimeoutMs: 5000, readinessDeadlineMs: 10000, finalFreshLightBudgetMs: 10000,
-  light: { timeoutMs:5000, pauseMs:1000, maximumInFlight:1, warmupDuringPreparedPreflight:true },
+  light: { timeoutMs:5000, pauseMs:1000, maximumInFlight:1, warmupDuringPreparedPreflight:true, maxOutputBytes:524288, socketEndpointLimit:256 },
   residualSettleMs:15000, residualCleanSamples:2, fullDuringCount:1,
   observationWorker: { independentSupervisor:true, closeTimeoutMs:6000 },
   observationSources: {
+    'owned-tun-socket-evidence.ps1': 'aa36f29cd1451ebaa309ab4773ff56879a4ab4614ca960d482631655d45791de',
+    'owned-tun-socket-policy.mjs': 'af7814cc3ecd96c91ae921a3d3007c65dcc3cc98f574080acfbd8af18bfe2d87',
     'run-owned-tun-trial.mjs': 'e18b6d7e6a093571e19743bc735621b63aa715fc761c96aefcf30f69c4cbceb9',
     'owned-tun-observation-run.mjs': '248591cc995b366d87d5efa7e8526d72d8c8aa1e5fcd984c3ba7752d576df032',
     'owned-tun-observer.mjs': '3f68032bdb28341be4813d5b14d8954a8a1e9739775d7444147ff4285c2abc07',
-    'owned-tun-observer-worker.mjs': '594d28b93d332dbefc732fbd9fb109219e1b14804d9f6a353e20e3ce15aa0586',
-    'owned-tun-light-snapshot.ps1': '9e0c7efe04e067d45b4ffb987c8b7c38dd04e7cc5e049bca8c48be0c0041fba2',
-    'owned-tun-light-policy.mjs': '700301d74ae768f949a75450bcd9ac808e36dceb682fa614d3f536465b129837',
-    'owned-tun-trial-snapshot.ps1': '94772cb9db5f309e2c4c0db6d87a742f72088644127956092d4a93dd57911da9',
+    'owned-tun-observer-worker.mjs': '7247150c1b99148f5715b4585e91d5f6fbb2dbf34c0be51cc9499c2aa8459cb0',
+    'owned-tun-light-snapshot.ps1': '17fb3b72e6998e8c08aa677d1e3848877b090254813e19386510b15dc788fe0c',
+    'owned-tun-light-policy.mjs': 'ea16ed572ac71301497379b4065e292e196dab1a27fc6d4766b1b3d9889e5015',
+    'owned-tun-trial-snapshot.ps1': '966bf85b2f9b7c7485808d1e2b987ebc49e13a4b9838097887899221b72d0c92',
     'owned-tun-snapshot-reader.mjs': '0af9c31e564cd4a8fe795c2f64d72578a61df1a3fadea20b4be0cd01c01fc0cf',
     'owned-tun-snapshot-semantics.mjs': '9e841ab28da0024481dff48c633f57c3fcbd55a830af7a222f09ce940fb6e083',
     'benchmark-owned-tun-observer.mjs': '5e9bf752466283feef6c9f102a00bbe220a04df9bf9109918f05b33ae2b5d06e',
@@ -28,7 +31,7 @@ export const SCOPE = deepFreeze({
     '../electron/easyTierCliNetwork.ts': '3cb7bd032b124ef73d368de766b6f63493a73de32e1b8d7ef97bb478b8c01b65'
   },
   snapshot: { timeoutMs: 40000, maxBufferBytes: 2097152, diagnosticProtocol: 1,
-    scriptSha256: '94772cb9db5f309e2c4c0db6d87a742f72088644127956092d4a93dd57911da9', readerSha256: '0af9c31e564cd4a8fe795c2f64d72578a61df1a3fadea20b4be0cd01c01fc0cf', semanticsSha256: '9e841ab28da0024481dff48c633f57c3fcbd55a830af7a222f09ce940fb6e083',
+    scriptSha256: '966bf85b2f9b7c7485808d1e2b987ebc49e13a4b9838097887899221b72d0c92', readerSha256: '0af9c31e564cd4a8fe795c2f64d72578a61df1a3fadea20b4be0cd01c01fc0cf', semanticsSha256: '9e841ab28da0024481dff48c633f57c3fcbd55a830af7a222f09ce940fb6e083',
     comparisonSchema: 1, persistCompleteSafeSnapshots: true },
   stopForceAfterMs: 4000, stopFinalAfterMs: 6000, residualObservationMs: 40000,
   alias: 'lk_trial_20261011_a', virtualAddress: '10.253.253.1', prefix: 30,
@@ -130,6 +133,7 @@ export function buildIsolatedConfig(instanceId) {
 }
 
 export function validateBefore(s) {
+  validateSocketEvidence(s,0);
   validateFacts(s?.semanticFacts);
   if(JSON.stringify(Object.keys(s.semanticFacts.interfaces).sort())!==JSON.stringify(s.adapters.map(n=>canonGuid(n.guid)).sort())) fail('interface-semantic-evidence-incomplete');
   if (!s?.complete || !s.administrator || !s.guiAlive || s.driverCount !== 1 || s.driverVer !== SCOPE.driverVer || s.driverSysSha256 !== SCOPE.driverSysSha256 || !s.driverRunning) fail('baseline-or-driver-unavailable');
@@ -140,13 +144,14 @@ export function validateBefore(s) {
 }
 
 export function validateDuring(before, now, owned) {
+  validateSocketEvidence(now,owned?.pid??0);
   if (!now?.complete || !now.guiAlive || !now.driverRunning || now.driverVer !== before.driverVer || now.driverSysSha256 !== before.driverSysSha256 || now.driverCount !== before.driverCount) fail('old-network-or-driver-changed');
   validateFacts(now.semanticFacts);
   if(JSON.stringify(Object.keys(now.semanticFacts.interfaces).sort())!==JSON.stringify(now.adapters.map(n=>canonGuid(n.guid)).sort())) fail('interface-semantic-evidence-incomplete');
   const differences=configurationDifferences(before,now);
   if (differences.some(d=>!d.interfaceGuid)) fail('global-network-configuration-drift');
   if (differences.some(d=>d.interfaceGuid)) fail('existing-interface-configuration-drift');
-  if (now.guiFingerprint !== before.guiFingerprint || now.ownedForbiddenSocketCount !== 0) fail('foreign-network-socket-or-gui-identity-changed');
+  if (now.guiFingerprint !== before.guiFingerprint || now.ownedForbiddenSocketCount !== 0 || now.nonLoopbackRpc) fail('foreign-network-socket-or-gui-identity-changed');
   for (const profile of before.categories) if (!now.categories.some(p => p.id === profile.id && p.category === profile.category)) fail('existing-network-category-changed');
   for (const old of before.adapters) {
     const current = now.adapters.find(n => canonGuid(n.guid) === canonGuid(old.guid));

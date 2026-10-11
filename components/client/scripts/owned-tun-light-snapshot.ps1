@@ -1,5 +1,6 @@
 param([switch]$Persistent)
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'owned-tun-socket-evidence.ps1')
 $identity=[Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent())
 if(!$identity.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) { throw 'snapshot-requires-administrator' }
 Add-Type -TypeDefinition @'
@@ -35,22 +36,17 @@ function Sample([uint32]$OwnedPid) {
    addresses=@(foreach($a in $ips){[ordered]@{family=if(IsV4 $a.AddressFamily){4}else{6};ip=if($a.IPAddress -eq '10.126.126.2' -or ($new -and $a.IPAddress -eq '10.253.253.1')){$a.IPAddress}else{'redacted'};prefix=$a.PrefixLength}});
    hasDefault=[bool]@($routes | Where-Object DestinationPrefix -in @('0.0.0.0/0','::/0')).Count;safeTrialRoutes=$safe}
  })
- $tcp=@(Get-NetTCPConnection)
- $listeners=@($tcp | Where-Object {$_.State -eq 'Listen' -and $_.LocalPort -eq 15897})
- $forbidden=0
- if($OwnedPid -gt 0){
-  $forbidden=@($tcp | Where-Object {$_.OwningProcess -eq $OwnedPid -and ($_.LocalAddress -ne '127.0.0.1' -or $_.LocalPort -ne 15897 -or $_.RemoteAddress -notin @('0.0.0.0','127.0.0.1'))}).Count
-  $forbidden+=@(Get-NetUDPEndpoint | Where-Object OwningProcess -eq $OwnedPid).Count
- }
+ $socketEvidence=ReadOwnedSocketEvidence $OwnedPid
  $gui=Get-Process -Id 6424 -ErrorAction SilentlyContinue
  $guiFingerprint=$null
- if($gui){if(!$gui.StartTime){throw 'protected-gui-start-time-unavailable'};$guiFingerprint=Fingerprint @($gui.Id,$gui.ProcessName,$gui.StartTime.ToUniversalTime().ToString('o'))}
- $ownedIdentity=$null
- if($OwnedPid -gt 0){$owned=Get-Process -Id $OwnedPid -ErrorAction SilentlyContinue;if($owned){$ownedIdentity=Fingerprint @($owned.Id,$owned.ProcessName,$owned.StartTime.ToUniversalTime().ToString('o'))}}
- [ordered]@{lightSchema=1;complete=$true;elapsedMs=$clock.ElapsedMilliseconds;guiAlive=[bool]($gui -and $gui.ProcessName -eq 'easytier-gui');guiFingerprint=$guiFingerprint;ownedIdentity=$ownedIdentity;
+ if($gui){try{if(!$gui.StartTime){throw 'protected-gui-start-time-unavailable'};$guiFingerprint=Fingerprint @($gui.Id,$gui.ProcessName,$gui.StartTime.ToUniversalTime().ToString('o'))}catch{}}
+ $driverKnown=$true;$driverRunning=$false
+ try{$driverRunning=[bool]@(Get-CimInstance Win32_SystemDriver -Filter "Name='wintun'" | Where-Object State -eq 'Running').Count}catch{$driverKnown=$false}
+ $ownedIdentity=if($socketEvidence.identityBinding -eq 'matched-across-query'){$socketEvidence.identityBefore.fingerprint}else{$null}
+ [ordered]@{lightSchema=1;complete=($socketEvidence.complete -and $driverKnown -and [bool]$guiFingerprint);socketEvidence=$socketEvidence;elapsedMs=$clock.ElapsedMilliseconds;guiAlive=[bool]($gui -and $gui.ProcessName -eq 'easytier-gui');guiFingerprint=$guiFingerprint;ownedIdentity=$ownedIdentity;
   adapterGuids=@($all | ForEach-Object {([string]$_.InterfaceGuid).Trim('{}').ToLowerInvariant()});adapters=$adapters;
-  nonLoopbackRpc=[bool]@($listeners | Where-Object LocalAddress -ne '127.0.0.1').Count;portalOwnerPids=@($listeners | Select-Object -ExpandProperty OwningProcess -Unique);ownedForbiddenSocketCount=$forbidden;
-  driverRunning=[bool]@(Get-CimInstance Win32_SystemDriver -Filter "Name='wintun'" | Where-Object State -eq 'Running').Count}
+  nonLoopbackRpc=$socketEvidence.nonLoopbackRpc;portalOwnerPids=$socketEvidence.portalOwnerPids;ownedForbiddenSocketCount=$socketEvidence.ownedForbiddenSocketCount;
+  driverRunning=$driverRunning}
 }
 do {
  $line=[Console]::ReadLine()
@@ -60,7 +56,7 @@ do {
   $request=ConvertFrom-Json -InputObject $line
   if($request.id -notmatch '^\d{1,9}$' -or $request.pid -lt 0 -or $request.pid -gt 4294967295){throw 'invalid-light-request'}
   $value=Sample ([uint32]$request.pid)
-  [Console]::Out.WriteLine((ConvertTo-Json -InputObject @{id=$request.id;value=$value} -Depth 8 -Compress))
+  [Console]::Out.WriteLine((ConvertTo-Json -InputObject @{id=$request.id;value=$value} -Depth 12 -Compress))
  } catch {
   # No provider exception text or raw endpoints.
   [Console]::Out.WriteLine((ConvertTo-Json -InputObject @{id=$request.id;failure='light-read-unavailable'} -Compress))
