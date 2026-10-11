@@ -64,7 +64,8 @@ The real Laokuai package retains `grytI18nTest` for profile/update isolation and
 also sets `grytLaokuai`. Its community manager now receives the production
 runtime; only the separate i18n test package receives null. The private packaging
 configuration restores the Windows resources replaced by the test configuration.
-Both production configurations copy the same five exact hash-directory paths.
+Both production configurations copy five runtime files plus the release-owned
+manifest from the separate `community-lan/product/2.7.0-laokuai` directory.
 The final package inventory includes Windows-specific resources, so missing or
 changed sidecar bytes cannot be silently omitted from the package receipt.
 
@@ -80,7 +81,7 @@ Run `node scripts/check-community-easytier.mjs`, `node scripts/check-community-e
 
 The injected production adapter now requires **2.7.0-laokuai** from a release-owned `laokuai-build.json`. It rejects the official core executable's measured hash and any manifest lacking the exact reviewed source-patch digest, externally-managed host policy or owned-stop protocol v1. Preparing the official archive remains a static development helper; it cannot activate production TUN. No downstream binary is built in this stage, so the product gate remains closed until Gitowner supplies its separately measured artifact.
 
-The source patch against upstream `8b7f1f0196edb5b580829ed5f135050fb5853478` disables global NetworkList cleanup, automatic firewall installation/removal and profile Category changes by default. It requests a fresh TUN GUID, rejects existing aliases, and reports actual GUID/LUID/ifIndex. These main-only resource identifiers are diagnostics; they never become saved cleanup authority.
+The source patch against upstream `8b7f1f0196edb5b580829ed5f135050fb5853478` disables global NetworkList cleanup, automatic firewall installation/removal and profile Category changes under its hardcoded externally-managed policy. It requests a fresh TUN GUID, checks aliases and reports GUID/LUID/ifIndex. Task-6 review found that the pinned TUN dependency can still open an existing adapter before the GUID check; this blocks payload approval pending the native owner's create-only fix (see `components/easytier/REVIEW.md` in the integration root). These main-only identifiers remain diagnostics, never saved cleanup authority.
 
 Production close now writes the private stdin stop request and closes that pipe. Patched core awaits `CoreInstance::stop()` without deleting persistent configuration, then sends its stop receipt. Only after 4 seconds may Electron force its exact owned child handle; after 6 seconds without exit, ownership remains pending and `cleanup-failed` is raised. Stop is idempotent. Ordinary app quit/update waits for drain. Windows session end begins stop synchronously; OS deadlines can still preempt the drain. Forced/unconfirmed exits and reported interfaces require residual review, with diagnostic-only receipts persisted to the product root on ordinary quit. No process name scans or user GUI termination occur.
 
