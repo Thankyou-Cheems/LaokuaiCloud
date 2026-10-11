@@ -37,14 +37,17 @@ assert.equal(vm.runInNewContext(renderer.match(/<VoiceProvider hybrid=\{([^\n]+)
 const bridgeCode = ts.transpileModule(read("src/packages/webRTC/src/adapters/HybridVoiceBridge.tsx"), { reportDiagnostics: true, compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } });
 assert.deepEqual(bridgeCode.diagnostics.filter(d => d.category === ts.DiagnosticCategory.Error), []);
 function fixture(policy, options = {}) {
-  const effects = [], sessions = [], microphoneArgs = [], emitted = [];
+  const effects = [], sessions = [], microphoneArgs = [], emitted = [], registrations = [];
   const noOwnership = () => { throw Error("Observer must not acquire capture, stop publication, disconnect socket or touch ET"); };
   const source = { receiveCleanup: {} }, inheritedIce = { iceServers: [{ urls: "stun:existing.invalid" }] };
   let configurationReads = 0;
   const pc = { connectionState: "connected", getConfiguration() { configurationReads++; if (options.badConfiguration) throw Error("closed"); return inheritedIce; } };
   const socket = { id: "local-session", connected: true, disconnect: noOwnership };
-  const roster = { "remote-session": { serverUserId: "remote-user", streamID: "remote-publication", voiceChannelId: "room", hasJoinedChannel: true } };
-  const sfu = { currentServerConnected: "host", currentChannelConnected: "room", isConnected: true, streamSources: { "remote-publication": source }, getPeerConnection: () => pc };
+  const roster = { "local-session": { serverUserId: "local-user", voiceChannelId: "room", hasJoinedChannel: true },
+    "remote-session": { serverUserId: "remote-user", streamID: "remote-publication", voiceChannelId: "room", hasJoinedChannel: true } };
+  if (options.missingLocal) delete roster["local-session"];
+  let epoch = options.missingEpoch ? 0 : 1;
+  const sfu = { currentServerConnected: "host", currentChannelConnected: "room", isConnected: true, streamSources: { "remote-publication": source }, getPeerConnection: () => pc, getConnectionEpoch: () => epoch };
   const microphone = { stop: noOwnership };
   class Session {
     constructor(opts) { this.options = opts; this.disposed = false; this.updates = 0; sessions.push(this); }
@@ -54,29 +57,41 @@ function fixture(policy, options = {}) {
     dispose() { this.disposed = true; }
   }
   const deps = { "@gryt/voice": { BrowserHybridVoiceSession: Session, useSFU: () => sfu, useMicrophone: value => { microphoneArgs.push(value); return microphone; } }, react: { useRef: value => ({ current: value }), useEffect: fn => effects.push(fn) }, "@/common": { useUserId: () => "account", getServerAccessToken: () => "fake-in-memory-only" }, "@/socket": { useSockets: () => ({ sockets: { host: socket }, serverDetailsList: { host: { server_info: { server_id: "server" } } }, clients: { host: roster } }) } };
-  deps["./MemberVoiceObservationAuthority"] = { useMemberVoiceObservationAuthority: () => null };
+  deps["./MemberVoiceObservationAuthority"] = { useMemberVoiceObservationAuthority: () => ({ update() {},
+    registerSession: (session, binding) => { const registration = { session, binding, released: false }; registrations.push(registration); return () => { registration.released = true; }; } }) };
   const exports = {};
   vm.runInNewContext(bridgeCode.outputText, { exports, JSON, setTimeout: noOwnership, clearTimeout() {}, require: name => { assert.ok(Object.hasOwn(deps, name), name); return deps[name]; } });
   const suppliedPolicy = policy && { ...policy, onState: state => emitted.push(state) };
   exports.HybridVoiceBridge({ policy: suppliedPolicy, config: { connection: { microphoneCodec: { codec: "opus", maxBitrateBps: 48000 }, maxBitrate: options.channelCap ?? null } }, registry: { selectTrack() {} } });
   const cleanups = effects.map(effect => effect());
-  return { sessions, pc, socket, roster, source, inheritedIce, microphoneArgs, emitted, get configurationReads() { return configurationReads; }, dispose: () => cleanups.forEach(cleanup => typeof cleanup === "function" && cleanup()) };
+  return { sessions, pc, socket, roster, source, inheritedIce, microphoneArgs, emitted, registrations,
+    setEpoch(value) { epoch = value; }, get configurationReads() { return configurationReads; }, dispose: () => cleanups.forEach(cleanup => typeof cleanup === "function" && cleanup()) };
 }
 const disabled = fixture(undefined); await Promise.resolve();
 assert.equal(disabled.sessions.length, 0); assert.equal(disabled.configurationReads, 0); disabled.dispose();
 const active = fixture(standardPeerPolicy); await Promise.resolve();
 assert.equal(active.sessions.length, 1); assert.equal(active.configurationReads, 1); assert.deepEqual(active.microphoneArgs, [false]);
 const session = active.sessions[0];
+const registration = active.registrations[0]; assert.equal(registration.session, session); assert.equal(Object.isFrozen(registration.binding), true);
+for (const [field,value] of Object.entries({ accountId: "account", host: "host", serverId: "server", roomId: "room",
+  localUserId: "local-user", localSessionId: "local-session", socket: active.socket, peerConnection: active.pc, connectionEpoch: 1 })) assert.equal(registration.binding[field], value);
 assert.equal(session.options.rtcConfiguration, active.inheritedIce); assert.equal(session.options.allowNetwork, true);
 assert.equal(session.options.microphoneCodec.maxBitrateBps, 64000);
 assert.equal(session.options.getPeerConnection(), active.pc); assert.equal(session.options.isCurrent(), true);
 const remote = { participantId: "remote-user", sessionId: "remote-session", publicationId: "remote-publication" };
 assert.equal(session.options.getSource(remote), active.source);
+active.roster["local-session"].serverUserId = "another-local-user"; assert.equal(session.options.isCurrent(), false);
+active.roster["local-session"].serverUserId = "local-user"; assert.equal(session.options.isCurrent(), true);
+active.setEpoch(2); assert.equal(session.options.isCurrent(), false); active.setEpoch(1);
 assert.equal(session.options.getSource({ ...remote, participantId: "wrong-user" }), null);
 active.roster["remote-session"].screenShareAudioStreamID = "remote-publication";
 assert.equal(session.options.getSource(remote), null); delete active.roster["remote-session"].screenShareAudioStreamID;
 active.socket.id = "new-session"; assert.equal(session.options.isCurrent(), false); assert.equal(session.options.getSource(remote), null);
-active.dispose(); assert.equal(session.disposed, true);
+active.dispose(); assert.equal(session.disposed, true); assert.equal(registration.released, true);
+for (const guard of [{ missingLocal: true }, { missingEpoch: true }]) {
+  const unavailableContext = fixture(standardPeerPolicy, guard); await Promise.resolve();
+  assert.equal(unavailableContext.sessions.length, 0); assert.equal(unavailableContext.registrations.length, 0); unavailableContext.dispose();
+}
 const capped = fixture(standardPeerPolicy, { channelCap: 16000 }); await Promise.resolve();
 assert.equal(capped.sessions[0].options.microphoneCodec.maxBitrateBps, 64000);
 assert.equal(capped.sessions[0].options.channelMaxBitrateBps, 16000); capped.dispose();

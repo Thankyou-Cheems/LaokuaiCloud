@@ -124,7 +124,7 @@ test("normalized authenticated room tokens are matched to independent roster and
   }
 });
 
-let layout, cleanup, tick, currentStore;
+let layout, cleanup, tick, currentStore, authority;
 const input = fixture();
 const sfu = { currentServerConnected: input.host, currentChannelConnected: input.roomId, isConnected: true,
   getPeerConnection: () => input.peerConnection, getConnectionEpoch: () => 1,
@@ -156,9 +156,44 @@ const bridge = load("src/packages/webRTC/src/adapters/MemberVoiceMediaBridge.tsx
 }, { Date: { now: () => 1_800_000_000_000 }, performance: { now: () => now }, setInterval: fn => { tick = fn; return 7; }, clearInterval: timer => { assert.equal(timer, 7); } });
 test("actual bridge mounts one provider above children, reconciles ordinary roster without enabling Hybrid", () => {
   const wrapped = bridge.MemberVoiceMediaBridge({ children: "room-and-sidebar" }); assert.equal(wrapped.type, "ObservationAuthority");
+  authority = wrapped.props.value;
   const rendered = wrapped.props.children; assert.equal(rendered.type, "MediaProvider");
   assert.equal(rendered.props.children, "room-and-sidebar"); layout(); assert.equal(currentStore.getSnapshot().entries.length, 1);
   assert.equal(currentStore.capture("remote-session").scope.localPublicationId, null); assert.equal(path(currentStore).receive.reason, "media-unavailable");
+});
+test("mounted bridge binds a trusted stable server context to the actual session's distinct instance", () => {
+  sockets.serverDetailsList.host = { server_info: { server_id: "stable-community" } };
+  const binding = { accountId: "account", host: "host", serverId: "stable-community", roomId: "room",
+    localUserId: "local", localSessionId: socket.id, socket, peerConnection: input.peerConnection, connectionEpoch: 1 };
+  const scope = { serverInstanceId: "stable-community:runtime-A", roomId: "room", roomGeneration: "opaque-A",
+    localParticipantId: "local", localSessionId: socket.id, canReceive: true, canPublish: false };
+  const releaseA = authority.registerSession({ getReceiveScope: () => scope }, binding);
+  assert.equal(currentStore.capture("remote-session").scope.serverInstanceId, scope.serverInstanceId);
+  assert.equal(currentStore.capture("remote-session").scope.authority, "authenticated-room");
+  const oldLease = currentStore.capture("remote-session");
+  binding.serverId = "mutated-caller-value"; tick();
+  assert.equal(currentStore.capture("remote-session").scope.connectionGeneration, oldLease.scope.connectionGeneration); // copied/frozen context
+  const scopeB = { ...scope, serverInstanceId: "different-opaque-runtime-B" };
+  const releaseB = authority.registerSession({ getReceiveScope: () => scopeB }, { ...binding, serverId: "stable-community" });
+  assert.notEqual(currentStore.capture("remote-session"), oldLease);
+  releaseA(); assert.equal(currentStore.capture("remote-session").scope.serverInstanceId, scopeB.serverInstanceId);
+  releaseB(); assert.equal(currentStore.capture("remote-session").scope.authority, "authenticated-connection");
+});
+test("mounted registration cannot survive a stable-server change, different room or local user", () => {
+  const binding = { accountId: "account", host: "host", serverId: "stable-community", roomId: "room",
+    localUserId: "local", localSessionId: socket.id, socket, peerConnection: input.peerConnection, connectionEpoch: 1 };
+  const scope = { serverInstanceId: "stable-community:runtime-A", roomId: "room", roomGeneration: "opaque-A",
+    localParticipantId: "local", localSessionId: socket.id, canReceive: true, canPublish: false };
+  const release = authority.registerSession({ getReceiveScope: () => scope }, binding);
+  sockets.serverDetailsList.host.server_info.server_id = "stable-community:runtime-A"; tick();
+  assert.equal(currentStore.getSnapshot().entries.length, 0); // even an equal/prefix-compatible string is insufficient
+  sockets.serverDetailsList.host.server_info.server_id = "stable-community"; tick();
+  sfu.currentChannelConnected = "next-room"; clients["local-session"].voiceChannelId = "next-room"; tick();
+  assert.equal(currentStore.getSnapshot().entries.length, 0);
+  sfu.currentChannelConnected = "room"; clients["local-session"].voiceChannelId = "room"; tick();
+  clients["local-session"].serverUserId = "someone-else"; tick(); assert.equal(currentStore.getSnapshot().entries.length, 0);
+  clients["local-session"].serverUserId = "local"; release();
+  assert.equal(currentStore.getSnapshot().entries.length, 1);
 });
 test("bridge rejects screen aliases, duplicate publication and cross-room/unconnected roster", () => {
   for (const mutate of [() => clients["remote-session"].screenShareAudioStreamID = "remote-pub",

@@ -3,12 +3,26 @@ import { type HybridScope, type ReceivePathBinding, ReceivePathObserver, type Re
 import type { SelectedVoiceMediaEvidence } from "./memberVoiceMediaPath";
 import { type AuthenticatedVoiceConnection, MemberVoiceMediaStore, type VoiceMediaObservationLease } from "./memberVoiceMediaStore";
 
+/** Captured by the bridge that creates the actual session on this authenticated
+ * socket/PC. Stable server ID and opaque SDK instance ID are separate namespaces. */
+export interface HybridVoiceObservationBinding {
+  readonly accountId: string;
+  readonly host: string;
+  readonly serverId: string;
+  readonly roomId: string;
+  readonly localUserId: string;
+  readonly localSessionId: string;
+  readonly socket: object;
+  readonly peerConnection: object;
+  readonly connectionEpoch: number;
+}
 export interface VoiceReceiveHost {
   connection: AuthenticatedVoiceConnection;
   bindings: readonly ReceivePathBinding[];
   connectionEpoch: number;
   /** From the current session's passive getter, never copied from an observer row. */
   hybridScope: HybridScope | null;
+  hybridBinding?: HybridVoiceObservationBinding;
 }
 const sameHybrid = (a: HybridScope | null, b: HybridScope | null) => !!a && !!b &&
   (["serverInstanceId", "roomId", "roomGeneration", "localParticipantId", "localSessionId", "canReceive", "canPublish"] as const).every(k => a[k] === b[k]);
@@ -44,16 +58,21 @@ export class MemberVoiceReceiveTranslator {
   private id(v: object) { let id = this.ids.get(v); if (!id) { id = ++this.nextId; this.ids.set(v, id); } return id; }
   private hostKey(h: VoiceReceiveHost): string {
     const c = h.connection;
-    return JSON.stringify([c.accountId, c.host, c.serverInstanceId, c.roomId, c.localUserId, c.localSessionId,
-      c.localPublicationId, this.id(c.socket), this.id(c.peerConnection), h.connectionEpoch, h.hybridScope]);
+    return JSON.stringify([c.accountId, c.host, c.serverId, c.serverInstanceId, c.roomId, c.localUserId, c.localSessionId,
+      c.localPublicationId, this.id(c.socket), this.id(c.peerConnection), h.connectionEpoch, h.hybridScope,
+      h.hybridBinding ? this.id(h.hybridBinding) : null]);
   }
   private readHost(): VoiceReceiveHost | null {
     const h = this.options.getHost(), sfu = this.options.getSfu();
     const pc = sfu.getPeerConnection?.();
     if (!h || !sfu.isConnected || !pc || pc.connectionState !== "connected" || pc !== h.connection.peerConnection ||
       sfu.getConnectionEpoch?.() !== h.connectionEpoch || !positive(h.connectionEpoch)) return null;
-    const a = h.hybridScope, c = h.connection;
-    if (a && (!a.canReceive || !a.roomGeneration || a.serverInstanceId !== c.serverInstanceId ||
+    const a = h.hybridScope, c = h.connection, b = h.hybridBinding;
+    if (b && (!b.serverId || b.serverId !== c.serverId || b.accountId !== c.accountId || b.host !== c.host ||
+      b.socket !== c.socket || b.peerConnection !== pc || b.connectionEpoch !== h.connectionEpoch ||
+      b.roomId !== c.roomId || b.localUserId !== c.localUserId || b.localSessionId !== c.localSessionId)) return null;
+    if (a && (!b || !a.canReceive || !a.roomGeneration || !a.serverInstanceId ||
+      (c.serverInstanceId !== undefined && a.serverInstanceId !== c.serverInstanceId) ||
       a.roomId !== c.roomId || a.localParticipantId !== c.localUserId || a.localSessionId !== c.localSessionId)) return null;
     return h;
   }
@@ -72,7 +91,7 @@ export class MemberVoiceReceiveTranslator {
     const c = h.connection, a = h.hybridScope;
     this.scope = { source: "host-authenticated-connection", bindingId: `client-receive-${this.ordinal}`,
       serverId: c.host, roomId: c.roomId, localSessionId: c.localSessionId, canReceive: true };
-    this.store.reconcile({ ...c, ...(a ? { roomAuthority: { serverInstanceId: a.serverInstanceId, roomId: a.roomId,
+    this.store.reconcile({ ...c, ...(a ? { serverInstanceId: a.serverInstanceId, roomAuthority: { serverInstanceId: a.serverInstanceId, roomId: a.roomId,
       localUserId: a.localParticipantId, localSessionId: a.localSessionId, roomGenerationToken: a.roomGeneration } } : {}) });
   }
   update(): void { if (!this.disposed) { this.refresh(); this.observer.update(); } }

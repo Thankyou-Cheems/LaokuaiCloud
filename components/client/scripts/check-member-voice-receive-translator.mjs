@@ -42,7 +42,7 @@ function fixture() {
     ["pair", { type: "candidate-pair", id: "pair", state: "succeeded", responsesReceived: responses, currentRoundTripTime: 0 }],
   ]);
   const pc = { connectionState: "connected", getStats: () => { reads++; return deferred ?? Promise.resolve(report()); } };
-  const c = { accountId: "account", host: "server", serverInstanceId: "instance", roomId: "room", localUserId: "self", localSessionId: "self-session",
+  const c = { accountId: "account", host: "server", serverId: "stable-server", serverInstanceId: "instance", roomId: "room", localUserId: "self", localSessionId: "self-session",
     localPublicationId: null, socket: {}, peerConnection: pc, members: [{ userId: "remote", sessionId: "remote-session", publicationId: "publication", source: control }] };
   const host = { connection: c, connectionEpoch: stats.receiveConnectionEpoch(pc), bindings: [{ participantId: "remote", sessionId: "remote-session", publicationId: "publication", role: "microphone", source }], hybridScope: null };
   const sfu = { getPeerConnection: () => c.peerConnection, getConnectionEpoch: () => host.connectionEpoch, isConnected: true,
@@ -59,6 +59,76 @@ function fixture() {
     dispose() { translator.dispose(); assert.equal(retire.size, 0); assert.equal(inputTrack.listeners, 0); },
   };
 }
+const hybridBinding = f => ({ accountId: f.host.connection.accountId, host: f.host.connection.host,
+  serverId: f.host.connection.serverId, roomId: f.host.connection.roomId, localUserId: f.host.connection.localUserId,
+  localSessionId: f.host.connection.localSessionId, socket: f.host.connection.socket,
+  peerConnection: f.host.connection.peerConnection, connectionEpoch: f.host.connectionEpoch });
+function selectedPeer(f, instance = "opaque-runtime-instance") {
+  delete f.host.connection.serverInstanceId;
+  const scope = { serverInstanceId: instance, roomId: "room", roomGeneration: "opaque-A",
+    localParticipantId: "self", localSessionId: "self-session", canReceive: true, canPublish: false };
+  f.host.hybridScope = scope; f.host.hybridBinding = hybridBinding(f);
+  let selection = { current: true, kind: "p2p", track: f.track, revision: 1, routeGeneration: 7,
+    status: "active", reason: null, hybridScope: scope,
+    remoteIdentity: { participantId: "remote", sessionId: "remote-session", publicationId: "publication" } };
+  let observation = null;
+  f.source.receivePath = { getSelection: () => selection, getObservation: () => observation, subscribe: () => () => {} };
+  f.translator.update();
+  return {
+    get selection() { return selection; }, set selection(v) { selection = v; },
+    fresh() { f.advance(); observation = { trackId: "track", observedAtMs: now, reason: null,
+      decode: { startAtMs: now - 1000, endAtMs: now, packetsDelta: 50, samplesDelta: 48000, decodedFramesDelta: 48000,
+        fresh: true, source: "rtc-inbound-rtp-totalSamplesReceived" }, metrics: null }; f.translator.update(); },
+  };
+}
+await test("trusted session context explicitly binds stable server ID to a different opaque runtime instance", async () => {
+  for (const instance of ["stable-server:random-instance", "unrelated-opaque-runtime-id"]) {
+    const f = fixture(), peer = selectedPeer(f, instance);
+    assert.equal(f.store.getSnapshot().entries.length, 1);
+    assert.equal(f.store.capture("remote-session").scope.serverInstanceId, instance);
+    assert.equal(f.path().receive.mediaAvailable, false); peer.fresh();
+    assert.equal(f.path().receive.selected, "peer"); assert.equal(f.path().receive.mediaAvailable, true);
+    assert.equal(f.path().receive.reason, "underlay-unproven"); assert.equal(f.path().send.selected, "unknown"); f.dispose();
+  }
+});
+await test("same stable server with a new runtime instance retires old leases and rejects old-instance callbacks", () => {
+  const f = fixture(), peer = selectedPeer(f, "instance-A"); peer.fresh();
+  const oldLease = f.store.capture("remote-session"), oldEvidence = f.store.getSnapshot().entries[0].evidence.receive;
+  const oldSnapshot = f.translator.observer.getSnapshot();
+  f.host.hybridScope = { ...f.host.hybridScope, serverInstanceId: "instance-B" };
+  f.host.hybridBinding = hybridBinding(f); f.translator.update();
+  assert.notEqual(f.store.capture("remote-session"), oldLease); assert.equal(f.store.acceptReceive(oldLease, oldEvidence), false);
+  f.translator.accept(oldSnapshot); assert.notEqual(f.path().receive.mediaAvailable, true);
+  peer.selection = { ...peer.selection, hybridScope: f.host.hybridScope }; f.translator.update();
+  assert.notEqual(f.path().receive.mediaAvailable, true); peer.fresh();
+  assert.equal(f.path().receive.mediaAvailable, true); assert.equal(f.store.capture("remote-session").scope.serverInstanceId, "instance-B"); f.dispose();
+});
+await test("session binding requires exact stable server, account, host, socket, PC, epoch, room and local member", () => {
+  for (const [field,value] of [["serverId", "stable-server-other"], ["accountId", "other-account"], ["host", "other-host"],
+    ["socket", {}], ["peerConnection", {}], ["connectionEpoch", 99], ["roomId", "other-room"],
+    ["localUserId", "other-user"], ["localSessionId", "other-session"]]) {
+    const f = fixture(), peer = selectedPeer(f); peer.fresh();
+    f.host.hybridBinding = { ...f.host.hybridBinding, [field]: value }; f.translator.update();
+    assert.equal(f.store.getSnapshot().entries.length, 0); f.dispose();
+  }
+  const f = fixture(); selectedPeer(f); delete f.host.hybridBinding; f.translator.update();
+  assert.equal(f.store.getSnapshot().entries.length, 0); f.dispose();
+});
+await test("room change and old connection epoch flights cannot revive a registered Hybrid proof", async () => {
+  for (const change of [f => { f.host.connection.roomId = "next-room"; }, f => { f.host.connectionEpoch++; }]) {
+    const f = fixture(), peer = selectedPeer(f); peer.fresh();
+    const old = f.translator.observer.getSnapshot(); let resolve; f.defer(new Promise(r => { resolve = r; }));
+    const flight = f.translator.observer.sample(); change(f); f.translator.update(); resolve(f.report()); await flight;
+    f.translator.accept(old); assert.equal(f.store.getSnapshot().entries.length, 0); f.dispose();
+  }
+});
+await test("remote user, session or publication substitution cannot borrow another member's valid P2P proof", () => {
+  for (const field of ["participantId", "sessionId", "publicationId"]) {
+    const f = fixture(), peer = selectedPeer(f); peer.fresh();
+    peer.selection = { ...peer.selection, remoteIdentity: { ...peer.selection.remoteIdentity, [field]: "someone-else" } };
+    f.translator.update(); assert.equal(f.store.getSnapshot().entries[0].evidence, undefined); f.dispose();
+  }
+});
 await test("ordinary SFU receive-only keeps logical selection but first report is never decoded proof", async () => {
   const f = fixture(); assert.equal(f.path().receive.selected, "sfu"); assert.equal(f.path().receive.mediaAvailable, false);
   await f.translator.observer.sample(); assert.equal(f.path().receive.mediaAvailable, false); f.dispose();
@@ -107,7 +177,7 @@ await test("zero/backward/missing counters never become fresh and signed loss re
 });
 await test("actual passive Hybrid marker maps peer and decode independently from physical path, including healthy failed fallback", async () => {
   const f = fixture(); const scope = { serverInstanceId: "instance", roomId: "room", roomGeneration: "opaque-A", localParticipantId: "self", localSessionId: "self-session", canReceive: true, canPublish: false };
-  f.host.hybridScope = scope; let selected = { current: true, kind: "p2p", track: f.track, revision: -1, routeGeneration: 7, status: "failed", reason: "fallback_failed",
+  f.host.hybridScope = scope; f.host.hybridBinding = hybridBinding(f); let selected = { current: true, kind: "p2p", track: f.track, revision: -1, routeGeneration: 7, status: "failed", reason: "fallback_failed",
     hybridScope: scope, remoteIdentity: { participantId: "remote", sessionId: "remote-session", publicationId: "publication" } };
   let observation = null; const listeners = new Set();
   f.source.receivePath = { getSelection: () => selected, getObservation: () => observation, subscribe: cb => { listeners.add(cb); return () => listeners.delete(cb); } };
@@ -134,6 +204,7 @@ await test("last unsubscribe cancels sampling/retirement and late flight writes;
 await test("authenticated scope capability changes retire a lease even when the room token and PC remain identical", async () => {
   const f = fixture(); f.host.hybridScope = { serverInstanceId: "instance", roomId: "room", roomGeneration: "same-token",
     localParticipantId: "self", localSessionId: "self-session", canReceive: true, canPublish: false };
+  f.host.hybridBinding = hybridBinding(f);
   f.translator.update(); await f.fresh(); const lease = f.store.capture("remote-session");
   const receive = f.store.getSnapshot().entries[0].evidence.receive;
   f.host.hybridScope.canPublish = true; f.translator.update();

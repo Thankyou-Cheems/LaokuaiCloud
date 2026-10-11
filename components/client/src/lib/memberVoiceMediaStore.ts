@@ -20,6 +20,8 @@ export interface AuthenticatedVoiceMember {
 export interface AuthenticatedVoiceConnection {
   accountId: string;
   host: string;
+  /** Stable community identity from current server details; never an instance ID. */
+  serverId?: string;
   serverInstanceId?: string;
   roomId: string;
   localUserId: string;
@@ -108,7 +110,7 @@ export class MemberVoiceMediaStore {
       authority.roomId !== input.roomId || authority.localUserId !== input.localUserId || authority.localSessionId !== input.localSessionId)) {
       this.clear(); return;
     }
-    const identity = JSON.stringify([input.accountId, input.host, input.serverInstanceId, input.roomId, input.localUserId, input.localSessionId,
+    const identity = JSON.stringify([input.accountId, input.host, input.serverId, input.serverInstanceId, input.roomId, input.localUserId, input.localSessionId,
       input.localPublicationId, authority?.roomGenerationToken]);
     if (identity !== this.identity || input.socket !== this.connection?.socket || input.peerConnection !== this.connection?.peerConnection) {
       this.clear(); this.generation++; this.identity = identity; this.lifecycle = {};

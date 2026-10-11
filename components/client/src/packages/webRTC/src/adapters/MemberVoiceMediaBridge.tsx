@@ -7,7 +7,7 @@ import { useSockets } from "@/socket";
 import { useEasyTierCommunityState } from "../../../../lib/communityLanState";
 import { readVoiceLocalNetwork } from "../../../../lib/memberVoiceLocalNetwork";
 import { type AuthenticatedVoiceConnection, MemberVoiceMediaStore } from "../../../../lib/memberVoiceMediaStore";
-import { MemberVoiceReceiveTranslator, type VoiceReceiveHost } from "../../../../lib/memberVoiceReceiveTranslator";
+import { type HybridVoiceObservationBinding, MemberVoiceReceiveTranslator, type VoiceReceiveHost } from "../../../../lib/memberVoiceReceiveTranslator";
 import { MemberVoiceMediaPathProvider } from "../components/MemberVoiceMediaPathAdapter";
 import { MemberVoiceObservationAuthorityProvider } from "./MemberVoiceObservationAuthority";
 
@@ -22,7 +22,7 @@ export function MemberVoiceMediaBridge({ children }: { children?: ReactNode }) {
   const community = useEasyTierCommunityState(serverId);
   const context = useRef({ account, sfu, sockets });
   context.current = { account, sfu, sockets };
-  const session = useRef<BrowserHybridVoiceSession | null>(null);
+  const session = useRef<{ value: BrowserHybridVoiceSession; binding: HybridVoiceObservationBinding } | null>(null);
   const [store] = useState(() => new MemberVoiceMediaStore(() => performance.now()));
   const getHost = useCallback((): VoiceReceiveHost | null => {
     const { account, sfu, sockets } = context.current;
@@ -49,10 +49,11 @@ export function MemberVoiceMediaBridge({ children }: { children?: ReactNode }) {
     }
     const connectionEpoch = sfu.getConnectionEpoch?.();
     if (connectionEpoch == null) return null;
-    return { connectionEpoch, bindings, hybridScope: session.current?.getReceiveScope() ?? null,
+    return { connectionEpoch, bindings, hybridScope: session.current?.value.getReceiveScope() ?? null,
+      hybridBinding: session.current?.binding,
       connection: { accountId: account, host, roomId: room, localUserId: local.serverUserId, localSessionId: socket.id,
       localPublicationId: local.streamID || null, socket, peerConnection: pc, members,
-      ...(sockets.serverDetailsList[host]?.server_info?.server_id ? { serverInstanceId: sockets.serverDetailsList[host].server_info!.server_id } : {}),
+      ...(sockets.serverDetailsList[host]?.server_info?.server_id ? { serverId: sockets.serverDetailsList[host].server_info!.server_id } : {}),
     } };
   }, []);
   const [translator] = useState(() => new MemberVoiceReceiveTranslator(store, {
@@ -60,9 +61,10 @@ export function MemberVoiceMediaBridge({ children }: { children?: ReactNode }) {
   }));
   const reconcile = useCallback(() => translator.update(), [translator]);
   const [authority] = useState(() => ({ requestDetails: () => translator.requestDetails(), update: reconcile,
-    registerSession: (value: BrowserHybridVoiceSession) => {
-      session.current = value; reconcile();
-      return () => { if (session.current === value) { session.current = null; reconcile(); } };
+    registerSession: (value: BrowserHybridVoiceSession, binding: HybridVoiceObservationBinding) => {
+      const registration = { value, binding: Object.freeze({ ...binding }) };
+      session.current = registration; reconcile();
+      return () => { if (session.current === registration) { session.current = null; reconcile(); } };
     } }));
   useLayoutEffect(() => { reconcile(); }, [reconcile, account, host, channel, socket, socket?.id, socket?.connected,
     pc, pc?.connectionState, serverId, sfu.isConnected, sfu.streamSources, sockets.clients]);

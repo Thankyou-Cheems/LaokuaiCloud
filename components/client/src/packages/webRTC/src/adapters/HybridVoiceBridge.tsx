@@ -51,9 +51,20 @@ export function HybridVoiceBridge({ policy, config, registry }: { policy?: Hybri
       const codec = context.current.policy?.microphoneCodec ?? context.current.config.connection.microphoneCodec;
       if (cancelled || !configured || !account || !serverId || !channel || !socket?.connected || !socket.id || !isConnected ||
         !pc || pc.connectionState !== "connected" || !codec) return;
+      const local = context.current.sockets.clients[host]?.[socket.id];
+      const connectionEpoch = context.current.sfu.getConnectionEpoch?.();
+      if (!local?.serverUserId || local.hasJoinedChannel !== true || local.voiceChannelId !== channel ||
+        connectionEpoch == null || !Number.isSafeInteger(connectionEpoch) || connectionEpoch <= 0) return;
+      const binding = Object.freeze({ accountId: account, host, serverId, roomId: channel,
+        localUserId: local.serverUserId, localSessionId: socket.id, socket, peerConnection: pc, connectionEpoch });
       const ice = context.current.policy?.rtcConfiguration ?? pc.getConfiguration();
-      const current = () => context.current.scopeKey === scopeKey && context.current.sfu.isConnected &&
-        context.current.sfu.getPeerConnection?.() === pc && socket.connected && socket.id === JSON.parse(scopeKey)[4];
+      const current = () => {
+        const currentLocal = context.current.sockets.clients[host]?.[binding.localSessionId];
+        return context.current.scopeKey === scopeKey && context.current.sfu.isConnected &&
+          context.current.sfu.getPeerConnection?.() === pc && context.current.sfu.getConnectionEpoch?.() === connectionEpoch &&
+          socket.connected && socket.id === binding.localSessionId && currentLocal?.serverUserId === binding.localUserId &&
+          currentLocal.hasJoinedChannel === true && currentLocal.voiceChannelId === channel;
+      };
       const sourceFor = (participant: HybridParticipant) => {
         if (!current()) return null;
         const roster = context.current.sockets.clients[host] ?? {}, member = roster[participant.sessionId];
@@ -75,7 +86,7 @@ export function HybridVoiceBridge({ policy, config, registry }: { policy?: Hybri
         onState: state => { observations?.update(); context.current.policy?.onState?.(state); },
       });
       if (cancelled) { session.dispose(); return; }
-      live.current = { scopeKey, session, releaseObservation: observations?.registerSession(session) }; await session.update();
+      live.current = { scopeKey, session, releaseObservation: observations?.registerSession(session, binding) }; await session.update();
     };
     void boot().catch(() => context.current.policy?.onState?.({status:"unsupported",reason:"hybrid_unavailable",routing:null,physicalDirectVerified:false}));
     return () => { cancelled = true; clearTimeout(retry); };
