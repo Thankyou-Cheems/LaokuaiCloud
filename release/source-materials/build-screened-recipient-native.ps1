@@ -10,7 +10,7 @@ $sourceRoot = Join-Path $restoreRoot 'source'
 & node (Join-Path $PSScriptRoot 'verify-recipient-build-input.cjs') $restoreRoot --check
 if ($LASTEXITCODE -ne 0) { throw 'Recipient exact source/lock verification failed' }
 if ($env:LIB -match '(?i)VC[-_ ]?LTL|YY[-_ ]?Thunks') { throw 'Compatibility LIB path in toolchain' }
-foreach ($name in @('CARGO_ENCODED_RUSTFLAGS','RUSTC_WRAPPER','RUSTC_WORKSPACE_WRAPPER','CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS','CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER','CL','_CL_','LINK','_LINK_','VC_LTL','YY_THUNKS')) { [Environment]::SetEnvironmentVariable($name,$null,'Process') }
+foreach ($name in @('CARGO_ENCODED_RUSTFLAGS','RUSTC_WRAPPER','RUSTC_WORKSPACE_WRAPPER','CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS','CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER','CL','_CL_','LINK','_LINK_','VC_LTL','YY_THUNKS')) { Remove-Item -LiteralPath ('Env:'+ $name) -ErrorAction SilentlyContinue }
 $env:CARGO_HOME = Join-Path $restoreRoot 'cargo-home'
 $env:CARGO_TARGET_DIR = Join-Path $restoreRoot 'recipient-build-target'
 $env:CARGO_NET_OFFLINE = 'true'

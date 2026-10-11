@@ -27,3 +27,13 @@ local investigation logs and credential material are not imported.
 See `release/manifest.json` and `release/README.md` for the exact candidate and
 the verification commands. `ready: false` is binding until outstanding acceptance
 work is completed. Simulated protocol checks do not prove real media or networks.
+
+Recipient engineering follow-up: original helper failed; the reviewed one-expression
+environment-key removal supports the corrected fresh-target offline modified-library
+core/CLI compile/link PASS (1288.6058461666s). See release/source-materials/RECIPIENT-RELINK-RESULT.md
+and release/acceptance/recipient-modified-library-relink-pass.json.81 sealed owner
+files and1262 source files reverified;33 pure environment assertions and1129 lock
+checks pass. No marker edit/test EXE/product payload change or runtime execution.
+The old tools/source-offer ZIPs stay immutable; repair is a separate supplement.
+Actual recipient/source access/export/license/platform/native/media acceptance
+remains pending; ready=false/finalPackage=null.

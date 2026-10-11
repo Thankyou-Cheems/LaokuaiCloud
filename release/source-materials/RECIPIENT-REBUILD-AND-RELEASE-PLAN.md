@@ -16,9 +16,10 @@ contains1262 unchanged native files,865 original crate archives,7 current Git
 source snapshots and944 index files. It excludes15 historical prebuilt assets,
 including6 Packet DLL/LIB files. Exact offline source restoration and the504
 target graph passed.1129 lock-record versions/checksums are unchanged; six Git
-transports relocate to verified local paths. It has not yet been compiled in
-this screened/relocated form. That is the remaining engineering proof, not a
-claim that the earlier producer build failed. The earlier producer used the
+transports relocate to verified local paths. It now passed one fresh-target offline modified-library core/CLI compile/link
+with the corrected helper described below. The original helper attempt failed;
+its failure is preserved. This engineering proof does not establish external
+recipient delivery or runtime acceptance. The earlier producer used the
 full1277-file archive/private companion and already compiled successfully.
 
 The old `build-modern-native.ps1` expects a different1277-file receipt/lock and
@@ -29,9 +30,22 @@ both beside the existing tools and modern-recipient metadata in the extracted
 kit. The verification helper rejects drift, prebuilt reinsertion, altered
 versions/checksums and an existing target.
 
-## One necessary heavy validation, compile/link only
+## Completed engineering validation and retained recipient recipe
 
-Parent assigns one builder. Use a fresh extracted kit and fresh restoration,
+The assigned builder completed the corrected run in1288.6058461666 seconds
+(exit0), after an original-helper failure in12.1583468914 seconds (exit1).
+See [the exact result](RECIPIENT-RELINK-RESULT.md). No further build is requested.
+The frozen tools ZIP24879c3a retains the original helper. Before any separately
+authorized future recipient build, supply the fixed helper supplement
+SHA25687d32e98f56009e36932593159aa181940e38839a22cba97a459e401a92e1782
+(3461 bytes), or this private commit's exact helper. Verify original helper
+SHA256d735e365db413bb2600cd5ee92a9df1d5e8c6a582721c9870a490e8e72242503
+and fixed helper
+SHA256f9e9e459e93917d392f5780e01c6ce0ca99dd0807c59ac1f8c1c94a24373c78a.
+Replace only the extracted tools/build-screened-recipient-native.ps1; do not
+reapply to fixed bytes or silently accept other versions. Retain old sealed ZIPs
+and failed/successful targets. The following is a recipient recipe, not a new
+execution authorization. Use a fresh extracted kit and fresh restoration,
 without private Git, producer Cargo cache or the old companion. Install tools
 lawfully: Windows10/11 x64, VS2022 x64 development environment with
 MSVC14.44.35207 and Windows SDK10.0.26100.0, Rust1.95.0 MSVC target,
@@ -72,12 +86,12 @@ cargo +1.95.0 build --locked --offline --release -p easytier
 ```
 
 Pass evidence: fresh kit/archive hashes; actual tool versions and licensed
-installation provenance;1261 unchanged native files plus the one recorded
-version edit; saved original lock and six transport-only changes;504 target
+installation provenance;1260 unchanged native files plus the one recorded
+version edit and one transport-only Cargo.lock; saved original lock and six transport-only changes;504 target
 packages and empty thunk/service features; exit0; both AMD64 EXE/PDB hashes and
 matching GUID/age; marker present in both binaries; normal/delay import and
-actual final linker/PDB input audit with no Packet/Npcap/pnet/encoding/VC-LTL/YY
-inputs. Preserve all failures. Do not assert byte-identical output: the version
+actual final linker/PDB input audit with no Packet/Npcap/pnet/
+encoding-utils/codepage/VC-LTL/YY inputs (encoding_rs remains retained). Preserve all failures. Do not assert byte-identical output: the version
 is deliberately changed and paths/tool details can affect reproducibility.
 No executable launch, TUN, network, driver, microphone, account, UI/package
 rebuild or deployment is part of this validation. The compile/link receipt can
@@ -94,7 +108,7 @@ by these license texts.
 
 | Item | Already held | Concrete next action / completion evidence |
 | --- | --- | --- |
-| EasyTier/native LGPL/GPL corresponding source and relink form |1262 preferred files, exact dependencies,504 BOM,324 original text units, prior24 supplemental cases | Attach the kit plus fixed build/install instructions to the intended binary delivery; choose a permitted source-delivery method. Record actual recipient-access/download test against the supplied artifact SHA, not access to our PRIVATE repo. Demonstrate the one modified-library compile/link above. Retain modification notices and GPL/LGPL texts. |
+| EasyTier/native LGPL/GPL corresponding source and relink form |1262 preferred files, exact dependencies,504 BOM,324 original text units, prior24 supplemental cases | Attach the kit plus fixed build/install instructions to the intended binary delivery; choose a permitted source-delivery method. Record actual recipient-access/download test against the supplied artifact SHA, not access to our PRIVATE repo. The corrected-helper modified-library compile/link passed; include that receipt and corrected instructions. Retain modification notices and GPL/LGPL texts. |
 | Modified binary installation information | Source and hash-pinned loader are available in PRIVATE integration checkout | Document standalone rebuilt core/CLI placement and prerequisites. Bundled app enforces exact native profile/receipt/hash identity; a drop-in changed EXE is rejected. For an app-integrated modified version, also provide permitted client loader/build source and instructions to update the local receipt/profile/asset pins and rebuild, without changing production permissions or using our secrets. Determine whether GPL6 installation-information conditions apply to the intended delivery; no bypass test/TUN is required here. |
 | Full app/Voice AGPL preferred source | Exact app/SDK/native source in private Git and build-source archive; licenses retained | Prepare an export specifically for the delivered app and SDK commit, including preferred TS/Rust/C++ source, helper and build scripts, lock/package pins, SDK preferred source, notices and required third-party source routes. Screen history/private materials. The native-only kit does not supply client/Voice source. The existing3554-file private archive includes historical Packet assets and is not the approved public export. For network use covered by AGPL13, retain the appropriate source-access offer. |
 | Source acquisition versus producer caches |865 native crates and7 Git source snapshots included | Native source kit is designed for offline build once external tools are installed. Full-app source export must specify locked Yarn/Electron/helper input acquisition or supply lawfully redistributable caches. Fully offline app rebuild is not a universal licensing requirement; accessible dependencies and working build scripts still need an executable acquisition recipe. |

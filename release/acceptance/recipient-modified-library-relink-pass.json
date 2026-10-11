@@ -1,0 +1,168 @@
+{
+  "schema": 1,
+  "status": "PASS-modified-library-recipient-compile-and-link-only",
+  "integrationInputCommit": "ad219385f7510ab4615a430e26baaccf018aad72",
+  "productAppFreeze": "84292bfef11d3cf45987d6fa963b86e52ddbbf7a",
+  "nativeSourceCommit": "089b6182c603c8ab60044b673effe0cf614cc28a",
+  "ownerEvidence": {
+    "directory": "task-2/recipient-relink-ad219385",
+    "manifestSha256": "98f8548d9c942c2688c301734c6a6dff0fceed8e0b9f980728dcf31b4d51d38a",
+    "reportSha256": "c54d428eac49a617e90b2f2bda635ee8058cd3774225bec0949feab3a5d1d875",
+    "handoffSha256": "23f3e9a5d7e1f26b56a205d39e6908aff0cdfd304a51aff89b11526a307c66c6",
+    "immutableFilesVerified": 81,
+    "immutableBytesVerified": 42422281,
+    "allHashesMatched": true,
+    "firstFailureAndLogsPreserved": true
+  },
+  "helperRepair": {
+    "path": "release/source-materials/build-screened-recipient-native.ps1",
+    "patchSha256": "74da1c070ec1705acf3b63d6fa4b7f52479838f16ba017fd97aaec86bc13a987",
+    "originalSha256": "d735e365db413bb2600cd5ee92a9df1d5e8c6a582721c9870a490e8e72242503",
+    "fixedSha256": "f9e9e459e93917d392f5780e01c6ce0ca99dd0807c59ac1f8c1c94a24373c78a",
+    "exactOneExpressionReplacement": true,
+    "originalHelperSucceededUnchanged": false,
+    "before": "[Environment]::SetEnvironmentVariable($name,$null,'Process')",
+    "after": "Remove-Item -LiteralPath ('Env:'+ $name) -ErrorAction SilentlyContinue",
+    "environmentNamesChanged": false,
+    "otherCommandsGuardsFeaturesOrPayloadChanged": false,
+    "supplement": {
+      "file": "helper-environment-repair-supplement.zip",
+      "bytes": 3461,
+      "sha256": "87d32e98f56009e36932593159aa181940e38839a22cba97a459e401a92e1782",
+      "entries": 4,
+      "zipCrcAndAllMemberBytesVerified": true,
+      "oldToolsZipUnmodified": true
+    }
+  },
+  "attempts": [
+    {
+      "helper": "original",
+      "exitCode": 1,
+      "elapsedSeconds": 12.1583468914,
+      "status": "FAIL-empty-environment-overrides"
+    },
+    {
+      "helper": "fixed",
+      "exitCode": 0,
+      "elapsedSeconds": 1288.6058461666,
+      "status": "PASS-fresh-target-offline-compile-and-link",
+      "producerCompiledCacheReused": false
+    }
+  ],
+  "testOnlyLibraryProbe": {
+    "marker": "2.7.0-laokuai-recipient-relink-probe-1",
+    "sourcePath": "easytier/src/common/constants.rs",
+    "sourceSha256": "5406a07a1969e88bf22b266a458d3e83c1ae667f75f7a45ada9af268bbc5ceba",
+    "sourceAccounting": {
+      "schema": 1,
+      "states": {
+        "unchanged": 1260,
+        "libraryMarker": 1,
+        "transportLock": 1
+      },
+      "excludedPrebuiltAbsent": 15,
+      "bothTestOnlyExeMarkerCounts": 1,
+      "sourceFilesReadOnlyVerified": 1262,
+      "productSourceModified": false,
+      "compilerOrNativeExecuted": false
+    },
+    "productSourceEditImported": false,
+    "binariesImportedIntoProduct": false,
+    "artifacts": [
+      {
+        "file": "easytier-core.exe",
+        "bytes": 20292608,
+        "sha256": "5253a67c41aa6db9a0447b18dd26628a30e444f5a914db8c74a6111a0589eda8",
+        "pdbSha256": "a51031c87fc237db352c9c4a127fd2e50dda277d68fdb1f0a3b5ed17ababa277"
+      },
+      {
+        "file": "easytier-cli.exe",
+        "bytes": 6162944,
+        "sha256": "52d6955f5e6e3d420e8b33afaa19dbc218c56cd743e62895038362909dd5f38c",
+        "pdbSha256": "bb6c750c867bd0df7d9425b79b8da4c2cec5739d4ad82c87a791a4c72db5b086"
+      }
+    ]
+  },
+  "ownerAudited": {
+    "registryArchivesVerified": 865,
+    "extractedRegistryPackagesVerified": 513,
+    "extractedRegistryMembersVerified": 23792,
+    "gitSnapshots": 7,
+    "targetPackages": 504,
+    "features": 17,
+    "staticCrt": true,
+    "thunkAndServiceFeatures": [],
+    "finalExeLinks": 2,
+    "matchingAmd64PeAndPdb": true,
+    "markerInBothBinaries": true,
+    "captureOrDynamicCrtImportsAbsent": true,
+    "compatibilityLinkInputsAbsent": true,
+    "removedEncodingUtilsAndCodepageInputsAbsent": true,
+    "encodingRsStillRetained": true,
+    "standardPlatformInputs": 17,
+    "deletedLtoTemporaryBytesClaimedEqual": false,
+    "resourceSamples": 640
+  },
+  "integratorPureChecks": {
+    "environment": {
+      "helperCargoOrNativeExecuted": false,
+      "dotnet": "10.0.12",
+      "executedOnlyCleanupExpression": true,
+      "initialStates": [
+        {
+          "targetKeys": 11,
+          "initial": "absent",
+          "allAbsentInChild": true
+        },
+        {
+          "targetKeys": 11,
+          "initial": "empty",
+          "allAbsentInChild": true
+        },
+        {
+          "targetKeys": 11,
+          "initial": "value",
+          "allAbsentInChild": true
+        }
+      ],
+      "schema": 1,
+      "childAbsenceAssertions": 33,
+      "parserPassed": true,
+      "powershell": "7.6.6"
+    },
+    "lock": {
+      "lockRecords": 1129,
+      "versionsChecksumsPreserved": true,
+      "transportOnlyChanges": [
+        "kcp-sys",
+        "service-manager",
+        "thunk-rs",
+        "tokio-websockets",
+        "windivert",
+        "windivert-sys"
+      ],
+      "nativeExecuted": false
+    },
+    "compilerNativeProductExecuted": false
+  },
+  "unchangedProduct": {
+    "coreSha256": "f716a1139d66800bbc75daa200b1c0c6eecccb97e88e13167fafb8d7d38bb81d",
+    "cliSha256": "1ad46380937aab6dd7385ebb37bb458c94f8d1a3e68baf2e6c24ea973adc6411",
+    "portableSha256": "3cff0c00f1a8441e98af909424081d4b74be08e9aba44d745eaa80d0f0062619"
+  },
+  "boundaries": {
+    "nativeExecuted": false,
+    "appRebuilt": false,
+    "externalRecipientActuallyReceived": false,
+    "licenseFulfillmentAdjudicated": false,
+    "publicApproved": false,
+    "ready": false,
+    "finalPackage": null
+  },
+  "pending": [
+    "Concrete external recipient/channel selection and verified source access/delivery",
+    "Distribution-specific installation/source/export/license/platform terms and final app inventory review",
+    "New modern payload runner scope/preflight/original human authorization before native acceptance",
+    "Real account/devices/two-way media/game/coexistence/capacity acceptance"
+  ]
+}

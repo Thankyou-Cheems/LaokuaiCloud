@@ -173,3 +173,13 @@ Full-app84292bf is now completed by sole build owner:129121178B/3cff0c00 portabl
 Task6 read-only verified the user-local pwsh7 schema7/981da5b3 consumed one-shot: old native dbaf/d4f core with b84f CLI pins, no-peer owned NIC readiness, full-during protected differences0, max-one expected UDP, graceful ACK/exit0 and two-light/post-full cleanup PASS. Source19pins, payload4files and documents9pins reverified; raw system evidence is external, not imported. This old-payload proof does not accept current089b/modern f716 core/1ad4 CLI. Preserve historical failures and rejected modern trial review; no reactivation or automatic retry. Exact842 Client/Voice plus custom UI preferred TS/CSS and separate RNNoise native/model source are prepared under private source-release-private-review, with28 sealed files verified. External recipient/public sharing remains unexecuted and needs explicit scope; public URL absence does not block authorized internal tests.
 
 Modern-runtime follow-up is preparation only: exact4 runtime files/source and producer/current-document pins reverified.624 shared Rust files/lock match old dbaf archives; only shared Cargo.toml changes service encoding defaults and Win7 thunk/standardCRT selection. Original modern BUILD schema1 differs from old trial schemaVersion2; designated owner must strictly adapt evidence validation and re-pin successful pwsh7 runner/new scope before fresh original-human activation approval. No runnable scope/native/OS query or product/runner source change by Task6. Ordinary private branch sync is authorized; never publish source or alter visibility.
+
+Recipient engineering follow-up: original helper failed; the reviewed one-expression
+environment-key removal supports the corrected fresh-target offline modified-library
+core/CLI compile/link PASS (1288.6058461666s). See release/source-materials/RECIPIENT-RELINK-RESULT.md
+and release/acceptance/recipient-modified-library-relink-pass.json.81 sealed owner
+files and1262 source files reverified;33 pure environment assertions and1129 lock
+checks pass. No marker edit/test EXE/product payload change or runtime execution.
+The old tools/source-offer ZIPs stay immutable; repair is a separate supplement.
+Actual recipient/source access/export/license/platform/native/media acceptance
+remains pending; ready=false/finalPackage=null.
