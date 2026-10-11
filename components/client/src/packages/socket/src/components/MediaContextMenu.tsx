@@ -1,0 +1,279 @@
+import { ContextMenu } from "@gryt/ui";
+import React, { type ReactNode, useCallback, useMemo } from "react";
+
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
+
+import { PiArrowBendUpLeftFill, PiArrowSquareOutFill, PiChatsFill, PiCloudArrowDownFill, PiCopyFill, PiFlagFill, PiImageFill, PiPencilSimpleFill, PiPushPinFill, PiPushPinSlashFill, PiSmileyFill, PiTrashFill } from "../../../../lib/icons";
+import { saveOpenedFile, triggerDownload } from "../utils/downloadFile";
+import { copyImageToClipboard } from "../utils/mediaClipboard";
+import { getRecentReactions } from "../utils/recentReactions";
+import { EmojiPickerContent } from "./EmojiPicker";
+import { EmojiText } from "./EmojiText";
+
+export interface MessageActions {
+  messageText?: string | null;
+  onReply?: () => void;
+  onEdit?: () => void;
+  onReport?: () => void;
+  onDelete?: () => void;
+  canEdit?: boolean;
+  canDelete?: boolean;
+  /** Start a thread from this message, when it does not have one yet. GRYT-981. */
+  onStartThread?: () => void;
+  /** Open this message's existing thread. */
+  onOpenThread?: () => void;
+  replyCount?: number;
+  /** Replies in it nobody has read, which the count in the label prefers. */
+  unreadCount?: number;
+  /** Pin or unpin; absent when this person may not. GRYT-1619. */
+  onTogglePin?: () => void;
+  pinned?: boolean;
+}
+
+type MediaProps = {
+  fileName?: string | null;
+  isImage?: boolean;
+} & (
+  | { src: string }
+  /** Here already, decrypted or not sent yet. The server copy is ciphertext or missing, so nothing links to it. */
+  | { open: () => Promise<Blob> }
+);
+
+interface MessageContextMenuProps {
+  children: ReactNode;
+  media?: MediaProps;
+  messageActions?: MessageActions;
+  onOpenChange?: (open: boolean) => void;
+  onReaction?: (src: string) => void;
+  serverHost?: string;
+}
+
+
+async function copyToClipboard(text: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+  }
+}
+
+function MediaItems({ media }: { media: MediaProps }) {
+  useSocketTranslation();
+  const copyImage = "open" in media
+    ? () => media.open().then(copyImageToClipboard)
+    : () => copyImageToClipboard(media.src);
+  const save = "open" in media
+    ? () => saveOpenedFile(media.open, media.fileName)
+    : () => triggerDownload(media.src, media.fileName);
+  const src = "src" in media ? media.src : null;
+  return (
+    <>
+      {media.isImage && (
+        <ContextMenu.Item onClick={() => void copyImage()}>
+          <div className="flex items-center gap-1">
+            <PiImageFill size={14} />{socketI18n.t("socketFull.mediaContextMenu_490f876868")}</div>
+        </ContextMenu.Item>
+      )}
+      <ContextMenu.Item onClick={() => void save()}>
+        <div className="flex items-center gap-1">
+          <PiCloudArrowDownFill size={14} />{socketI18n.t("socketFull.mediaContextMenu_26f740b872")}</div>
+      </ContextMenu.Item>
+      {src !== null && (
+        <>
+          <ContextMenu.Item onClick={() => copyToClipboard(src)}>
+            <div className="flex items-center gap-1">
+              <PiCopyFill size={14} />{socketI18n.t("socketFull.mediaContextMenu_1b29f6b986")}</div>
+          </ContextMenu.Item>
+          <ContextMenu.Separator />
+          <ContextMenu.Item onClick={() => window.open(src, "_blank", "noopener,noreferrer")}>
+            <div className="flex items-center gap-1">
+              <PiArrowSquareOutFill size={14} />{socketI18n.t("socketFull.mediaContextMenu_f8dbaee87d")}</div>
+          </ContextMenu.Item>
+        </>
+      )}
+    </>
+  );
+}
+
+function QuickReactions({
+  onReaction,
+  serverHost,
+}: {
+  onReaction: (src: string) => void;
+  serverHost?: string;
+}) {
+  useSocketTranslation();
+  const recent = useMemo(() => getRecentReactions(4, serverHost), [serverHost]);
+
+  const handleEmojiSelect = useCallback((src: string) => {
+    onReaction(src);
+    const dismiss = () => document.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }),
+    );
+    dismiss();
+    setTimeout(dismiss, 16);
+  }, [onReaction]);
+
+  return (
+    <>
+      <div className="flex gap-1 px-2 py-1 justify-center">
+        {recent.map((src) => (
+          <ContextMenu.Item
+            key={src}
+            onSelect={() => onReaction(src)}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 36,
+              height: 36,
+              minWidth: "unset",
+              borderRadius: "var(--gryt-radius-sm)",
+              padding: 0,
+              flex: "0 0 auto",
+            }}
+          >
+            <EmojiText text={src} emojiSize={22} disableTooltip />
+          </ContextMenu.Item>
+        ))}
+        <ContextMenu.SubmenuRoot>
+          <ContextMenu.SubmenuTrigger
+            className="emoji-picker-sub-trigger"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 36,
+              height: 36,
+              minWidth: "unset",
+              borderRadius: "var(--gryt-radius-sm)",
+              padding: 0,
+              flex: "0 0 auto",
+              color: "var(--gryt-neutral-10)",
+            }}
+          >
+            <PiSmileyFill size={20} />
+          </ContextMenu.SubmenuTrigger>
+          <ContextMenu.Portal>
+            <ContextMenu.Positioner sideOffset={2} alignOffset={-6}>
+              <ContextMenu.Popup
+                className="flex w-85 max-h-100 flex-col overflow-hidden p-0"
+              >
+            <EmojiPickerContent
+              onSelect={handleEmojiSelect}
+              serverHost={serverHost}
+              autoFocusSearch={false}
+            />
+          </ContextMenu.Popup>
+            </ContextMenu.Positioner>
+          </ContextMenu.Portal>
+        </ContextMenu.SubmenuRoot>
+      </div>
+      <ContextMenu.Separator />
+    </>
+  );
+}
+
+function MessageActionItems({ actions }: { actions: MessageActions }) {
+  useSocketTranslation();
+  return (
+    <>
+      {actions.messageText && (
+        <ContextMenu.Item onClick={() => copyToClipboard(actions.messageText!)}>
+          <div className="flex items-center gap-1">
+            <PiCopyFill size={14} />{socketI18n.t("socketFull.mediaContextMenu_a9c415ced8")}</div>
+        </ContextMenu.Item>
+      )}
+      {actions.onReply && (
+        <ContextMenu.Item onClick={actions.onReply}>
+          <div className="flex items-center gap-1">
+            <PiArrowBendUpLeftFill size={14} />{socketI18n.t("socketFull.mediaContextMenu_9a52802256")}</div>
+        </ContextMenu.Item>
+      )}
+      {actions.onOpenThread ? (
+        <ContextMenu.Item onClick={actions.onOpenThread}>
+          <div className="flex items-center gap-1">
+            <PiChatsFill size={14} />
+            {/* What is waiting beats how big it is. The reply count says the
+                thread is nine long, which is the same the tenth time you look
+                at it; the unread count is the reason to open it (GRYT-1026). */}{socketI18n.t("socketFull.mediaContextMenu_4d9ab74e75")}{actions.unreadCount
+              ? socketI18n.t("socketFull.mediaContextMenu_af9d128825", { p0: (actions.unreadCount) })
+              : actions.replyCount ? ` (${actions.replyCount})` : ""}
+          </div>
+        </ContextMenu.Item>
+      ) : actions.onStartThread ? (
+        <ContextMenu.Item onClick={actions.onStartThread}>
+          <div className="flex items-center gap-1">
+            <PiChatsFill size={14} />{socketI18n.t("socketFull.mediaContextMenu_aa41cfb084")}</div>
+        </ContextMenu.Item>
+      ) : null}
+      {actions.onTogglePin && (
+        <ContextMenu.Item onClick={actions.onTogglePin}>
+          <div className="flex items-center gap-1">
+            {actions.pinned ? <PiPushPinSlashFill size={14} /> : <PiPushPinFill size={14} />}
+            {actions.pinned ? socketI18n.t("socketFull.mediaContextMenu_850a5b186d") : socketI18n.t("socketFull.mediaContextMenu_e2e5441ed1")}
+          </div>
+        </ContextMenu.Item>
+      )}
+      {actions.canEdit && actions.onEdit && (
+        <ContextMenu.Item onClick={actions.onEdit}>
+          <div className="flex items-center gap-1">
+            <PiPencilSimpleFill size={14} />{socketI18n.t("socketFull.mediaContextMenu_fc25a6dc1a")}</div>
+        </ContextMenu.Item>
+      )}
+      {actions.onReport && (
+        <ContextMenu.Item onClick={actions.onReport}>
+          <div className="flex items-center gap-1">
+            <PiFlagFill size={14} />{socketI18n.t("socketFull.mediaContextMenu_654eb38dad")}</div>
+        </ContextMenu.Item>
+      )}
+      {actions.canDelete && actions.onDelete && (
+        <ContextMenu.Item onClick={actions.onDelete}>
+          <div className="flex items-center gap-1">
+            <PiTrashFill size={14} />{socketI18n.t("socketFull.mediaContextMenu_3f719800c2")}</div>
+        </ContextMenu.Item>
+      )}
+    </>
+  );
+}
+
+export function MessageContextMenu({
+  children,
+  media,
+  messageActions,
+  onOpenChange,
+  onReaction,
+  serverHost,
+}: MessageContextMenuProps) {
+  useSocketTranslation();
+  const hasMessageActions = messageActions && (
+    messageActions.onReply || messageActions.onEdit || messageActions.onReport || messageActions.onDelete || messageActions.onTogglePin
+  );
+
+  return (
+    <ContextMenu.Root onOpenChange={onOpenChange}>
+      <ContextMenu.Trigger onContextMenu={media ? ((e: React.MouseEvent) => e.stopPropagation()) : undefined}>
+        {children}
+      </ContextMenu.Trigger>
+      <ContextMenu.Portal>
+        <ContextMenu.Positioner>
+          <ContextMenu.Popup className="min-w-45">
+        {onReaction && (
+          <QuickReactions onReaction={onReaction} serverHost={serverHost} />
+        )}
+        {media && <MediaItems media={media} />}
+        {media && hasMessageActions && <ContextMenu.Separator />}
+        {hasMessageActions && <MessageActionItems actions={messageActions} />}
+      </ContextMenu.Popup>
+        </ContextMenu.Positioner>
+      </ContextMenu.Portal>
+    </ContextMenu.Root>
+  );
+}

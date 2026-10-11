@@ -1,0 +1,15 @@
+diff --git a/src/webrtc/hooks/sfuCleanup.ts b/src/webrtc/hooks/sfuCleanup.ts
+--- a/src/webrtc/hooks/sfuCleanup.ts
++++ b/src/webrtc/hooks/sfuCleanup.ts
+@@ -68,7 +68,10 @@
+   voiceLog.step("DISCONNECT", 1, `Removing ${tracksToRemove.length} registered tracks`);
+   for (const sender of tracksToRemove) {
+     try {
+-      if (peerConnectionRef.current && sender.track) {
++      // Closing a PC already stops its senders. Still release the remaining
++      // signaling/audio resources below, without removeTrack on a closed PC.
++      if (peerConnectionRef.current &&
++          peerConnectionRef.current.signalingState !== "closed" && sender.track) {
+         peerConnectionRef.current.removeTrack(sender);
+       }
+     } catch (error) {

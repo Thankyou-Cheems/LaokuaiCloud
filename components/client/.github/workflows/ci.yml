@@ -1,0 +1,413 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      # Only the web bundle is linted and built here, and the Electron binary is a
+      # ~100MB download nothing in this job runs. Packaging is release.yml's job.
+      ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+      - run: yarn install --frozen-lockfile
+      - run: yarn test:updater-bridge
+      - run: yarn test:update-feed-pin
+      # A newer release has to replace a download that is waiting or still running,
+      # so one press installs the newest. Nothing else here runs that sequence.
+      - run: yarn test:update-supersede
+      - run: yarn test:update-in-progress
+      - run: yarn test:dm-destination
+      - run: yarn test:narrow-dm-parity
+      - run: yarn test:unread-split
+      - run: yarn test:lan-server-memory
+      - run: yarn test:lan-discovery
+      - run: yarn test:voice-presence
+      - run: yarn test:output-device
+      # A call whose server is removed while it is reconnecting used to be
+      # skipped, and the microphone stayed open until somebody hung up.
+      - run: yarn test:voice-server-removed
+      - run: yarn test:reconnect-limit
+      - run: yarn test:reconnect-grace
+      - run: yarn test:identity-timeout
+      - run: yarn test:hold-until-proven
+      - run: yarn test:withdrawn-blocks
+      - run: yarn test:http-proof-gate
+      - run: yarn test:signed-file-urls
+      - run: yarn test:token-refresh-schedule
+      - run: yarn test:server-notice
+      - run: yarn test:auth-outage
+      - run: yarn test:focus-steal
+      - run: yarn test:dm-directory
+      # Which conversations this device has hidden, and what brings one back.
+      # Hiding never leaves the device, so nothing else would notice it breaking.
+      - run: yarn test:hidden-conversations
+      - run: yarn test:new-message
+      - run: yarn test:desktop-away
+      - run: yarn test:server-hover-address
+      - run: yarn test:server-voice-line
+      - run: yarn test:ui-scale
+      - run: yarn test:peer-in-clear
+      - run: yarn test:ai-toolkit
+      - run: yarn test:empty-dm-copy
+      - run: yarn test:identity-vault
+      - run: yarn test:identity-restart
+      - run: yarn test:identity-certificate
+      - run: yarn test:message-vault
+      - run: yarn test:message-vault-upgrade
+      - run: yarn test:message-vault-reseal
+      - run: yarn test:vault-upgrade-prompt
+      - run: yarn test:account-words
+      - run: yarn test:message-key
+      - run: yarn test:message-key-offer
+      - run: yarn test:reset-warning
+      - run: yarn test:guest-history
+      - run: yarn test:identity-claim
+      # Linking a device: what the new one writes, in what order, and that a wrong
+      # account or a mismatch writes nothing. Both of core's machines, one relay in memory.
+      - run: yarn test:pairing-new-device
+      # Linking a device from the side that approves: what the envelope carries, that the
+      # access token is fetched only once the new device's code is in, and the adds after.
+      - run: yarn test:pairing-approver
+      - run: yarn test:linked-devices
+
+      # Fires once per version, so a mistake is a modal nobody sees again or one
+      # that greets a fresh install. Neither shows up in a build.
+      - run: yarn test:whats-new
+      - run: yarn test:whats-new-since
+      - run: yarn test:whats-new-reachable
+      # Owners and admins of a server below a published security fix. The list ships empty,
+      # so this and the e2e test are the only places the notice is drawn at all.
+      - run: yarn test:security-notice
+      - run: yarn test:server-release-notes
+      - run: yarn test:link-underline
+
+      # The chat scroller has to give up height to anything drawn between it and
+      # the composer, and re-pin. Otherwise the newest message sits behind it.
+      - run: yarn test:chat-scroll-anchor
+      - run: yarn test:chat-retry
+      - run: yarn test:send-queue
+
+      # History and live messages share one order. Messages that reached a DM before
+      # its history loaded were drawn above all of it.
+      - run: yarn test:history-merge
+      - run: yarn test:media-sandbox
+
+      # Enter sends unless a suggestion list shows something to pick. A port in a
+      # pasted URL used to open an empty emoji list that swallowed it.
+      - run: yarn test:composer-enter
+
+      # Nothing is posted before the device agrees to the terms, and agreeing posts once.
+      - run: yarn test:terms-agreement
+
+      # A member changing group moves their row to another section, which remounts
+      # it. The open hover card has to survive that.
+      - run: yarn test:member-card-state
+      - run: yarn test:sidebar-tree
+      - run: yarn test:hide-muted
+      - run: yarn test:settings-index
+      - run: yarn test:notification-prefs
+      - run: yarn test:notification-navigation
+      # Whether a message badges, sounds and notifies is one function for the server on
+      # screen and the ones behind it. The two handlers used to disagree about focus and mentions.
+      - run: yarn test:message-notification
+      - run: yarn test:notification-text
+      - run: yarn test:mention-tokens
+      - run: yarn test:call-timeline
+      - run: yarn test:name-tags
+      - run: yarn test:edit-mentions
+      - run: yarn test:hotkeys
+      - run: yarn test:screen-audio
+      - run: yarn test:audio-mixer
+      - run: yarn test:capture-set
+      - run: yarn test:capture-health
+      - run: yarn test:screen-audio-state
+      - run: yarn test:screen-share-priority
+      - run: yarn test:drawn-video-size
+      # What the video debug overlay reads out of getStats. Chromium names an outbound track only
+      # on its media-source entry, and nothing else here reads the overlay's numbers.
+      - run: node scripts/check-video-debug-stats.mjs
+      - run: yarn test:avatar-precedence
+      - run: yarn test:mention-tracker
+      - run: yarn test:unread-tracker
+      - run: yarn test:peer-keys
+      - run: yarn test:dm-key-published
+      - run: yarn test:sealed-text
+      - run: yarn test:sealed-send
+      - run: yarn test:sealed-fallback
+      - run: yarn test:sealed-attachments
+      # Save As on an encrypted file used the server copy, which is ciphertext.
+      - run: yarn test:sealed-save
+      - run: yarn test:local-archive
+      - run: yarn test:mls-dm
+      - run: yarn test:mls-restart
+      - run: yarn test:clear-local-history
+      - run: yarn test:member-key-wording
+      - run: yarn test:owl-export
+      - run: yarn test:owl-seen
+      - run: yarn test:welcome-tour
+      - run: yarn test:windows-signature
+      - run: yarn test:builder-config
+      - run: yarn test:helper-packaging
+      - run: yarn test:server-order
+      - run: yarn test:tile-contrast
+      - run: yarn test:card-byline
+      - run: yarn test:link-preview-retry
+      - run: yarn test:stable-attachment-urls
+      - run: yarn test:group-picture-upload
+      - run: yarn test:webhook-avatar-upload
+      - run: yarn test:webhook-cards
+      # Somebody's game card. The fields come from a game on their machine, so the
+      # links are checked again before they're drawn.
+      - run: yarn test:game-card
+      - run: yarn test:member-invite
+      # A link to an open server names only the host. Pasting one, arriving on one, the
+      # address a shared one names, and what the invite dialog offers for each.
+      - run: yarn test:invite-link
+      - run: yarn test:addon-capabilities
+      - run: yarn test:actor-name
+      - run: yarn test:plugin-messaging
+      - run: yarn test:plugin-wording
+      - run: yarn test:plugin-isolation
+      - run: yarn test:plugin-panel
+      # The claim is that only the programs somebody listed leave the main
+      # process. Nothing else here would notice that stopping being true.
+      - run: yarn test:watched-programs
+      # Games talk to Gryt over Discord's Rich Presence socket. Whoever else holds it
+      # is named without connecting, since Discord takes a connection for a game.
+      - run: yarn test:discord-ipc
+      - run: yarn test:rich-presence
+      - run: yarn test:game-detect
+      - run: yarn test:now-playing
+      - run: yarn test:presence-helper
+      - run: yarn test:helper-startup
+      - run: yarn test:game-list
+      - run: yarn test:game-list-cache
+      # Sign-in leaves for the browser and comes back through gryt://. If the
+      # AppImage moved, it cannot — and nothing else here would notice.
+      - run: yarn test:appimage-location
+      # A session somebody ended has to stay ended, and recovering from one has to give up.
+      # Both are decided in one small module, and neither is visible from anywhere else.
+      - run: yarn test:session-recovery
+      # Who may be acted on, and the typing gate on the ban dialog. Both are
+      # enforced again by the server, and neither is visible from anywhere else.
+      - run: yarn test:member-moderation
+      # A device somebody signed out has to stay signed out across a restart,
+      # and the note that makes that happen is not visible from anywhere else.
+      - run: yarn test:signed-out
+      # Confirmations drift when each one is hand-rolled: Cancel drawn as the
+      # primary action, destructive confirms untoned, widths wherever.
+      - run: yarn test:dialog-primitives
+      # Which native prebuild survives packaging. Pruning too eagerly leaves an
+      # app that starts and dies on the first global hotkey.
+      - run: yarn test:prebuild-pruning
+      # The outage banner has to stay silent when nothing is wrong, and a
+      # client with no internet must not invent an outage.
+      - run: yarn test:service-status
+      # examples/ is the addon people copy. It calls the same `gryt` API the
+      # worker exposes, and nothing else here would notice it drifting.
+      - run: yarn test:examples
+      - run: yarn test:fake-participants
+      - run: yarn test:narrow-layout
+      - run: yarn test:permission-grid
+      - run: yarn test:channel-answer
+      - run: yarn test:call-controls
+      - run: yarn test:embedded-server-paths
+      - run: yarn test:embedded-version
+      - run: yarn test:embedded-starting
+      - run: yarn test:embedded-sfu-ports
+      - run: yarn test:embedded-runtime-cleanup
+      - run: yarn test:manage-server
+      - run: yarn test:hosted-server-rail
+      - run: yarn test:same-server
+      - run: yarn test:hosted-server-reconnect
+      - run: yarn test:voice-state
+      - run: yarn test:media-state
+      - run: yarn test:calls
+      - run: yarn test:contact-filter
+      - run: yarn test:friend-list
+      - run: yarn test:friend-button-steps
+      - run: yarn test:call-members
+      - run: yarn test:alone-in-call
+      - run: yarn test:held-voice-presence
+      - run: yarn test:fake-server-events
+      - run: yarn test:channel-permissions
+      - run: yarn test:report-user
+      - run: yarn test:unverified-report-copy
+
+      # No comment runs past two lines. The script carries the list of paths
+      # still to be swept, and that list only ever shrinks.
+      - run: yarn test:comment-length
+      - run: yarn test:window-buttons
+      - run: yarn test:scan-consent
+      - run: yarn test:role-pills
+      # tsc -b and eslint with --max-warnings 0. client#115 merged with three
+      # TS6133 errors and main did not compile until the next PR.
+      - run: yarn lint
+      # lint already runs tsc, so this is really vite build — it catches an import
+      # that resolves for TypeScript and not for the bundler.
+      - run: yarn build
+
+  # The capture helpers are C++ and only compile on Windows, so a mistake in them
+  # used to surface during a release. This proves they build, and runs nothing.
+  native:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the native capture helpers
+        shell: cmd
+        run: native\build.bat
+      - name: Check both binaries landed
+        shell: pwsh
+        run: |
+          foreach ($exe in "audio-capture.exe", "screen-capture.exe") {
+            $path = "build/native/$exe"
+            if (-not (Test-Path $path)) { throw "missing $path" }
+            Write-Host "$exe $((Get-Item $path).Length) bytes"
+          }
+
+  # The Rich Presence helper talks to sockets and pipes that differ on every OS, so it runs on all three.
+  helper:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: helper
+    steps:
+      - uses: actions/checkout@v4
+      # Kept in step with GO_TOOLCHAIN in scripts/build-helper.mjs. On macos-latest, dyld aborts Go 1.22 test binaries (missing LC_UUID).
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.5"
+          cache-dependency-path: helper/go.sum
+      # Windows checks the files out with CRLF, which gofmt reports.
+      - if: runner.os == 'Linux'
+        run: test -z "$(gofmt -l .)"
+      - run: go vet ./...
+      - run: go test -count=1 ./...
+
+  # Whether a pull request can change what the web client does. A skipped job still
+  # reports, so a required check doesn't wait on it. Pushes to main always run.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      web: ${{ steps.filter.outputs.web }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - id: filter
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT" != "pull_request" ]; then
+            echo "web=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # electron/ only skips while nothing in the web build imports from it.
+          electron=skip
+          if git grep -qE "(\.\./)+electron/" -- src index.html; then electron=web; fi
+          files=$(git diff --name-only HEAD^1 HEAD)
+          web=false
+          if [ -z "$files" ]; then web=true; fi
+          while IFS= read -r file; do
+            case "$file" in
+              "") continue ;;
+              src/*|public/*|e2e/*|package.json|yarn.lock|vite.config.ts|index.html|.github/workflows/ci.yml) hit=web ;;
+              electron/*) hit=$electron ;;
+              docs/*|*.md|build/*|appimagehub/*|electron-builder.yml|electron-builder.config.cjs|scripts/check-*.mjs) hit=skip ;;
+              *) hit=web ;;
+            esac
+            echo "$hit  $file"
+            if [ "$hit" = web ]; then web=true; fi
+          done <<< "$files"
+          echo "web=$web" >> "$GITHUB_OUTPUT"
+
+  # The client in a real browser against a real server, split across --shard runners.
+  # Each shard's own server containers (`gryt` fixture is worker-scoped) share no state.
+  e2e-shard:
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+      GRYT_E2E_SHARD: ${{ matrix.shard }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+      - run: yarn install --frozen-lockfile
+      - id: playwright
+        run: echo "version=$(node -p 'require("@playwright/test/package.json").version')" >> "$GITHUB_OUTPUT"
+      - id: browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium-headless-shell
+      - if: steps.browsers.outputs.cache-hit != 'true'
+        run: yarn playwright install chromium --only-shell
+      - run: docker pull --quiet ghcr.io/gryt-chat/server:latest
+      - run: yarn tsc -p e2e
+      - run: yarn vite build
+      - run: yarn playwright test --config e2e/playwright.config.ts --shard=${{ matrix.shard }}/8
+      - if: '!cancelled()'
+        uses: actions/upload-artifact@v4
+        with:
+          name: blob-report-${{ matrix.shard }}
+          path: e2e/blob-report
+          retention-days: 3
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results-${{ matrix.shard }}
+          path: |
+            e2e/playwright-report
+            e2e/test-results
+          retention-days: 14
+
+  # The required check the branch ruleset names. Waits on every shard, merges their
+  # reports, and fails if any shard did. Keep this name — renaming needs a ruleset change.
+  e2e:
+    needs: [changes, e2e-shard]
+    if: always() && needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+      - run: yarn install --frozen-lockfile
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: blob-report-*
+          path: e2e/all-blob-reports
+          merge-multiple: true
+      - run: yarn playwright merge-reports --reporter=html e2e/all-blob-reports
+        env:
+          PLAYWRIGHT_HTML_REPORT: e2e/playwright-report
+      - uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report
+          path: e2e/playwright-report
+          retention-days: 14
+      - if: needs.e2e-shard.result != 'success'
+        run: exit 1

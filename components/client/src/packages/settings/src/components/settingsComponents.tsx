@@ -1,0 +1,122 @@
+import { Slider, Switch } from "@gryt/ui";
+import React from "react";
+
+import { useTranslation } from "@/i18n";
+
+import { settingAnchorId,SETTINGS_INDEX } from "../hooks/settingsSearch";
+import { useSettings } from "../hooks/useSettings";
+
+/**
+ * The colour advanced settings are titled in. Not the accent and not the warning
+ * amber; cyan at step 11, which holds contrast in both themes.
+ */
+const ADVANCED_COLOR = "cyan" as const;
+
+// Reusable wrapper components following DRY principles
+interface SettingGroupProps {
+  anchorId?: string;
+  title: string;
+  description: string;
+  children: React.ReactNode;
+  /**
+   * Hidden unless the advanced toggle is on, and titled in a different colour
+   * when it is, so it reads as "extra" rather than as something you skipped.
+   */
+  advanced?: boolean;
+}
+
+export function SettingGroup({ title, description, children, advanced, anchorId }: SettingGroupProps) {
+  const { showAdvanced } = useSettings();
+  // Anchor for search results to scroll to. Derived from the title by the same
+  // function the index uses, and it ignores any ": value" suffix.
+  const anchor = anchorId ?? settingAnchorId(title);
+
+  if (import.meta.env.DEV) {
+    // A setting the index doesn't know about is invisible to search. Warn
+    // rather than fail: a missing entry shouldn't stop the panel rendering.
+    if (!SETTINGS_INDEX.some((entry) => entry.id === anchor)) {
+      console.warn(
+        `[settings] "${title}" (${anchor}) is not in SETTINGS_INDEX — it won't be findable by search.`,
+      );
+    }
+  }
+
+  // Rendered nowhere rather than hidden with CSS, so search cannot find a
+  // setting the panel is not currently offering.
+  if (advanced && !showAdvanced) return null;
+
+  return (
+    <div className="flex flex-col gap-2" id={anchor} data-setting={anchor} data-advanced={advanced || undefined}>
+      <span className="font-medium text-sm" color={advanced ? ADVANCED_COLOR : undefined}>{title}</span>
+      <span className="text-xs text-gryt-muted">{description}</span>
+      {children}
+    </div>
+  );
+}
+
+interface SliderSettingProps {
+  anchorId?: string;
+  title: string;
+  description: string;
+  value: number;
+  onChange: (value: number) => void;
+  min?: number;
+  max?: number;
+  step?: number;
+}
+
+export function SliderSetting({ title, description, value, onChange, anchorId, min = 0, max = 100, step = 1 }: SliderSettingProps) {
+  return (
+    <SettingGroup title={title} description={description} anchorId={anchorId}>
+      <Slider
+        value={value}
+        onValueChange={(next) => onChange(Number(next))}
+        max={max}
+        min={min}
+        step={step}
+      />
+    </SettingGroup>
+  );
+}
+
+interface ToggleSettingProps {
+  anchorId?: string;
+  title: string;
+  description: string;
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+  statusText?: string;
+}
+
+export function ToggleSetting({ title, description, checked, onCheckedChange, statusText, anchorId }: ToggleSettingProps) {
+  const { t } = useTranslation();
+  return (
+    <SettingGroup title={title} description={description} anchorId={anchorId}>
+      <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-1">
+          <span className="text-sm text-gryt-muted">{t("settings.enable", { title })}</span>
+          {statusText && (
+            <span className="text-xs text-gryt-muted">{statusText}</span>
+          )}
+        </div>
+        <Switch checked={checked} onCheckedChange={onCheckedChange} />
+      </div>
+    </SettingGroup>
+  );
+}
+
+/** How long a jumped-to setting stays highlighted. */
+export const HIGHLIGHT_MS = 1600;
+
+// Global settings container with consistent spacing
+interface SettingsContainerProps {
+  children: React.ReactNode;
+}
+
+export function SettingsContainer({ children }: SettingsContainerProps) {
+  return (
+    <div className="flex flex-col gap-8 pb-4">
+      {children}
+    </div>
+  );
+}

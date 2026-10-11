@@ -1,0 +1,140 @@
+import { AlertDialog, Button, TextField } from "@gryt/ui";
+import { type ReactNode, useEffect, useRef, useState } from "react";
+
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n";
+
+import { phraseMatches } from "../lib/confirmPhrase";
+
+/**
+ * Every confirmation in the app, optionally one somebody types their way through.
+ * `confirmPhrase` is compared case-insensitively and trimmed.
+ */
+export function ConfirmDialog({
+  open,
+  onOpenChange,
+  title,
+  description,
+  confirmLabel,
+  confirmTone = "danger",
+  confirmPhrase,
+  confirmPhraseLabel,
+  confirmDisabled = false,
+  cancelLabel,
+  secondaryLabel,
+  onSecondary,
+  focusCancel = false,
+  width,
+  onConfirm,
+  onCancel,
+  children,
+}: {
+  open: boolean;
+  /** Optional when onConfirm and onCancel both close the dialog themselves. */
+  onOpenChange?: (open: boolean) => void;
+  title: ReactNode;
+  description?: ReactNode;
+  confirmLabel: string;
+  confirmTone?: "danger" | "primary";
+  /** When set, the button stays disabled until this is typed back. */
+  confirmPhrase?: string;
+  confirmPhraseLabel?: ReactNode;
+  /** For a caller with a reason of its own -- a request already in flight. */
+  confirmDisabled?: boolean;
+  cancelLabel?: string;
+  /** A second answer that is not cancelling, drawn between Cancel and the confirm button. */
+  secondaryLabel?: string;
+  onSecondary?: () => void;
+  /** Open with Cancel focused. Otherwise the first link in `description` gets focus, and Enter follows it. */
+  focusCancel?: boolean;
+  /**
+   * Left unset, the popup keeps AlertDialog's own 32rem. GRYT-996 hardcoded
+   * 26rem here and quietly narrowed six dialogs that had never asked to be.
+   */
+  width?: string;
+  onConfirm: () => void;
+  /**
+   * Run when the dialog closes any way other than confirming. A caller whose
+   * handlers close it themselves needs this rather than `onOpenChange`.
+   */
+  onCancel?: () => void;
+  /** Extra fields -- a reason, a duration, a checkbox. */
+  children?: ReactNode;
+}) {
+  useSocketTranslation();
+  const { t } = useTranslation();
+  const [typed, setTyped] = useState("");
+  const cancelRef = useRef<HTMLButtonElement>(null);
+
+  // Cleared on open rather than on close, so a phrase typed for one person cannot
+  // still be sitting there for the next.
+  useEffect(() => {
+    if (open) setTyped("");
+  }, [open]);
+
+  const matches = phraseMatches(typed, confirmPhrase);
+
+  return (
+    <AlertDialog.Root
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onCancel?.();
+        onOpenChange?.(next);
+      }}
+    >
+      <AlertDialog.Portal>
+        <AlertDialog.Backdrop />
+        <AlertDialog.Popup style={width ? { width } : undefined} initialFocus={focusCancel ? cancelRef : undefined}>
+          <AlertDialog.Title>{title}</AlertDialog.Title>
+          {description && (
+            <AlertDialog.Description className="mt-2">{description}</AlertDialog.Description>
+          )}
+
+          {children && <div className="flex flex-col gap-3 mt-4">{children}</div>}
+
+          {confirmPhrase && (
+            <div className="mt-4">
+              <TextField
+                label={confirmPhraseLabel ?? socketI18n.t("socketFull.confirmDialog_09a70a7cac", { p0: (confirmPhrase) })}
+                value={typed}
+                onChange={(e) => setTyped(e.target.value)}
+                autoFocus
+              />
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-3 mt-4 justify-end">
+            <AlertDialog.Close ref={cancelRef} render={<Button size="small" tone="neutral">{cancelLabel ?? t("ui.cancel")}</Button>} />
+            {/* Close above routes through onOpenChange, so onCancel runs there
+                rather than on this button. */}
+            {/* Deliberately not wrapped in AlertDialog.Close: it has to be able
+                to stay disabled, and Close renders its own button. */}
+            {secondaryLabel && onSecondary && (
+              <Button
+                size="small"
+                tone="secondary"
+                onClick={() => {
+                  onSecondary();
+                  onOpenChange?.(false);
+                }}
+              >
+                {secondaryLabel}
+              </Button>
+            )}
+            <Button
+              size="small"
+              tone={confirmTone}
+              disabled={confirmDisabled || !matches}
+              onClick={() => {
+                onConfirm();
+                onOpenChange?.(false);
+              }}
+            >
+              {confirmLabel}
+            </Button>
+          </div>
+        </AlertDialog.Popup>
+      </AlertDialog.Portal>
+    </AlertDialog.Root>
+  );
+}

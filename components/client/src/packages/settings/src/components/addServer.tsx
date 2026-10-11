@@ -1,0 +1,908 @@
+import { Alert, Avatar, Button, Chip, Dialog, IconButton, Skeleton, Surface, TextField } from "@gryt/ui";
+import { AnimatePresence, motion } from "motion/react";
+import { useEffect, useMemo, useState } from "react";
+
+import {
+  GeneratedServerIcon,
+  getServerHttpBase,
+  normalizeCode,
+  parseServerInput,
+  useAccount,
+} from "@/common";
+import { i18n,useTranslation } from "@/i18n";
+
+import {
+  PiCaretRightBold,
+  PiHouseFill,
+  PiInfoFill,
+  PiLinkSimpleBold,
+  PiUsersThreeFill,
+  PiWarningFill,
+  PiX,
+} from "../../../../lib/icons";
+import { useServerManagement } from "../../../socket/src/hooks/useServerManagement";
+import { useEmbeddedServer } from "../hooks/useEmbeddedServer";
+import { useLanDiscovery } from "../hooks/useLanDiscovery";
+import {
+  type OfficialServer,
+  useOfficialServer,
+} from "../hooks/useOfficialServer";
+import {
+  type FetchInfo,
+  fetchServerInfo,
+  useServerJoin,
+} from "../hooks/useServerJoin";
+import { useSettings } from "../hooks/useSettings";
+import { sameServer } from "../serverId";
+import { CreateServerPanel } from "./createServer";
+
+export type { FetchInfo };
+
+interface AddNewServerProps {
+  showAddServer: boolean;
+  setShowAddServer: (show: boolean) => void;
+}
+
+/** The preview fetches on paste rather than a button, so it also fires on every
+    typed character. Long enough not to be one request per letter. */
+const LOOKUP_DEBOUNCE_MS = 450;
+
+/** Long enough to read one, short enough that a pause shows two. Stops once the
+    field has anything in it: text must not move under somebody typing. */
+const PLACEHOLDER_ROTATE_MS = 3000;
+
+/** The question is whether what is on the clipboard is one of these, which you
+    have while the field is empty and never after. */
+const WEB_INPUT_EXAMPLES = [
+  "gryt.chat/invite?host=…",
+  "chat.example.com",
+  "localhost:5001",
+];
+
+const DESKTOP_INPUT_EXAMPLES = [
+  ...WEB_INPUT_EXAMPLES,
+  "192.168.1.42:5001",
+];
+
+function isIpv4Host(host: string): boolean {
+  const hostname = host.replace(/:\d+$/, "");
+
+  const parts = hostname.split(".");
+  if (parts.length !== 4) return false;
+
+  return parts.every((part) => {
+    if (!/^\d+$/.test(part)) return false;
+
+    const value = Number(part);
+    return value >= 0 && value <= 255;
+  });
+}
+
+function isLocalhostHost(host: string): boolean {
+  const hostname = host.replace(/:\d+$/, "").toLowerCase();
+
+  return (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname === "::1" ||
+    hostname === "[::1]"
+  );
+}
+
+export function AddNewServer({
+  showAddServer,
+  setShowAddServer,
+}: AddNewServerProps) {
+  const { t: tr } = useTranslation();
+  const { servers, switchToServer, addServer } = useServerManagement();
+  const { isElectron } = useLanDiscovery();
+
+  const inputExamples = isElectron
+    ? DESKTOP_INPUT_EXAMPLES
+    : WEB_INPUT_EXAMPLES;
+
+  const { openSettings, officialServerHidden, setOfficialServerHidden } =
+    useSettings();
+  /* Undefined until Keycloak answers, and read as signed in, so the button does
+     not flip a beat after the dialog opens. */
+  const { isSignedIn, login } = useAccount();
+  const { isAvailable: embeddedServerAvailable, servers: hostedServers } =
+    useEmbeddedServer();
+  /** Only wording now: it used to decide whether create was reachable, back when
+      there could be one server and no more. */
+  const hasOwnServer = hostedServers.length > 0;
+  const { join, joiningHost } = useServerJoin();
+
+  /** Probed only while the dialog is open and shown once it answers: an offer
+      that fails is worse than none, and this is a new install's first sight. */
+  const officialServer = useOfficialServer(showAddServer);
+
+  /** Null means unchosen. A browser has no embedded server, so offering the
+      choice there is one real option and one dead end. */
+  const [mode, setMode] = useState<"host" | "join" | null>(null);
+  const step = embeddedServerAvailable ? mode : "join";
+
+  /** Exactly what was pasted, before anything is read out of it. */
+  const [inviteInput, setInviteInput] = useState("");
+  const parsed = useMemo(() => parseServerInput(inviteInput), [inviteInput]);
+  const serverHost = parsed.host;
+
+  const webAddressError = useMemo(() => {
+    if (isElectron || !serverHost) return "";
+
+    // localhost is the browser's one useful exception: browsers allow local
+    // development/access without a publicly trusted HTTPS domain.
+    if (isLocalhostHost(serverHost)) return "";
+
+    if (isIpv4Host(serverHost)) {
+      return tr("errors.webHttps");
+    }
+
+    return "";
+  }, [isElectron, serverHost, tr]);
+
+  const [serverInfo, setServerInfo] = useState<FetchInfo | null>(null);
+  /** Public info is switched off. A code can still get you in. */
+  const [serverPrivate, setServerPrivate] = useState(false);
+  const [lookupError, setLookupError] = useState("");
+  const [lookupErrorKey, setLookupErrorKey] = useState<string>();
+  const [isSearching, setIsSearching] = useState(false);
+
+  /** A code typed by hand, when the link carried none or carried a bad one. */
+  const [manualCode, setManualCode] = useState("");
+  const [inviteRequired, setInviteRequired] = useState(false);
+  const [joinNote, setJoinNote] = useState("");
+  const [awaitingApproval, setAwaitingApproval] = useState(false);
+  const [joinError, setJoinError] = useState("");
+  const [joinErrorSource, setJoinErrorSource] = useState<{ readonly message: string } | null>(null);
+  const [joinErrorKey, setJoinErrorKey] = useState<string>();
+
+  const isJoining = joiningHost !== null;
+  const inviteCode = manualCode || parsed.code;
+
+  const existingServer = servers[serverHost];
+  const existingById = useMemo(() => {
+    if (!serverInfo?.serverId) return null;
+    const lookup = { host: serverHost, serverId: serverInfo.serverId };
+    return (
+      Object.entries(servers).find(([storedHost, server]) =>
+        sameServer({ host: storedHost, serverId: server.serverId }, lookup),
+      ) ?? null
+    );
+  }, [serverHost, serverInfo?.serverId, servers]);
+  const alreadyMember = !!existingServer || !!existingById;
+
+  function resetJoinState() {
+    setInviteInput("");
+    setServerInfo(null);
+    setServerPrivate(false);
+    setLookupError(""); setLookupErrorKey(undefined);
+    setIsSearching(false);
+    setManualCode("");
+    setInviteRequired(false);
+    setJoinNote("");
+    setAwaitingApproval(false);
+    setJoinError(""); setJoinErrorSource(null); setJoinErrorKey(undefined);
+  }
+
+  function closeDialog() {
+    if (isJoining) return;
+
+    setMode(null);
+    resetJoinState();
+    setShowAddServer(false);
+  }
+
+  /** The lookup owns everything downstream, so this clears it too: a preview left
+      from the last address looks like an answer. */
+  useEffect(() => {
+    setServerInfo(null);
+    setServerPrivate(false);
+    setLookupError(""); setLookupErrorKey(undefined);
+    setManualCode("");
+    setInviteRequired(false);
+    setAwaitingApproval(false);
+    setJoinError(""); setJoinErrorSource(null); setJoinErrorKey(undefined);
+
+    if (!serverHost || webAddressError) {
+      setIsSearching(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setIsSearching(true);
+
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        const result = await fetchServerInfo(serverHost, controller.signal);
+        if (controller.signal.aborted) return;
+
+        if (result.kind === "info") setServerInfo(result.info);
+        else if (result.kind === "private") setServerPrivate(true);
+        else if (result.kind === "error") {
+          setLookupError(result.message);
+          setLookupErrorKey(result.messageKey);
+        }
+
+        setIsSearching(false);
+      })();
+    }, LOOKUP_DEBOUNCE_MS);
+
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [serverHost, webAddressError]);
+
+  // From the top rather than where the last visit stopped: somebody who closed
+  // this halfway is not usually coming back to finish.
+  useEffect(() => {
+    if (showAddServer) return;
+    setMode(null);
+    resetJoinState();
+  }, [showAddServer]);
+
+  useEffect(() => {
+    setJoinError(""); setJoinErrorSource(null); setJoinErrorKey(undefined);
+  }, [manualCode]);
+
+  async function handleJoin() {
+    if (!serverHost || webAddressError) return;
+    if (!serverInfo && !serverPrivate) return;
+
+    setJoinError(""); setJoinErrorSource(null); setJoinErrorKey(undefined);
+
+    const outcome = await join({
+      host: serverHost,
+      info: serverInfo,
+      inviteCode,
+      note: joinNote,
+    });
+
+    if (outcome.ok) {
+      closeDialog();
+      return;
+    }
+
+    if (outcome.kind === "approval_pending") {
+      // Not a failure and not retryable: the answer comes from a person. The
+      // server is on the list by now, so the message can send them there.
+      setAwaitingApproval(true);
+      return;
+    }
+
+    if (outcome.kind === "invite_required") setInviteRequired(true);
+    setJoinError(outcome.message); setJoinErrorSource(outcome); setJoinErrorKey(outcome.messageKey);
+  }
+
+  function openMyServers() {
+    closeDialog();
+    openSettings("my-servers");
+  }
+
+  /** Everything the join needs already hangs off the address in that field, and
+      the person still gets to read who they are joining. */
+  function pickOfficialServer(host: string) {
+    setMode("join");
+    setInviteInput(host);
+  }
+
+  /** Hidden once you are on it. It is a suggestion, not a shortcut. */
+
+  /** It answered, they are not on it, and they have not hidden it. */
+  const showOfficial =
+    !!officialServer && !servers[officialServer.host] && !officialServerHidden;
+
+  /* Cycles only while the field is empty and only while the dialog is open. */
+  const [exampleIndex, setExampleIndex] = useState(0);
+  useEffect(() => {
+    if (!showAddServer || inviteInput.length > 0) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+
+    const timer = setInterval(
+      () => setExampleIndex((i) => (i + 1) % inputExamples.length),
+      PLACEHOLDER_ROTATE_MS,
+    );
+    return () => clearInterval(timer);
+  }, [showAddServer, inviteInput.length, inputExamples.length]);
+
+  /** Only claimed when the server said which tiers it takes: silence beats
+      telling somebody to sign in for a server that would have let them in. */
+  const needsAccount =
+    isSignedIn === false &&
+    !!serverInfo?.identityTiers &&
+    !serverInfo.identityTiers.includes("local");
+
+  const canJoin =
+    !!serverHost &&
+    !alreadyMember &&
+    !isSearching &&
+    !isJoining &&
+    !awaitingApproval &&
+    !webAddressError &&
+    (!!serverInfo || serverPrivate) &&
+    (!inviteRequired || normalizeCode(inviteCode).length > 0);
+
+  /** "Sign in to join" rather than a disabled button and a tooltip, which touch
+      and the keyboard cannot reach. Disabled only when a press does nothing. */
+  const joinAction = alreadyMember
+    ? { label: tr("ui.alreadyJoined"), tone: "secondary" as const, disabled: true, run: () => {} }
+    : needsAccount
+      ? { label: tr("ui.signInToJoin"), tone: "primary" as const, disabled: false, run: () => void login() }
+      : serverInfo?.joinPolicy === "request"
+        ? { label: tr("ui.askToJoin"), tone: "primary" as const, disabled: !canJoin, run: () => void handleJoin() }
+        : { label: tr("ui.join"), tone: "primary" as const, disabled: !canJoin, run: () => void handleJoin() };
+
+  return (
+    <Dialog.Root
+      open={showAddServer}
+      /* A coach mark is not "outside" in any sense the user cares about, and
+         dismissing on a Next click closed what the tour had just opened. */
+      onOpenChange={(open, details) => {
+        if (open) return;
+
+        const target = details.event?.target as HTMLElement | null;
+        if (target?.closest?.('[data-gryt="tour"]')) {
+          details.cancel();
+          return;
+        }
+
+        closeDialog();
+      }}
+    >
+      <Dialog.Portal>
+        <Dialog.Backdrop />
+        <Dialog.Popup className="w-[30rem] max-w-[calc(100vw-2rem)] overflow-x-hidden">
+            {/* Positioned by a wrapper rather than by a class on either the
+                Close or the IconButton. Close renders *as* the IconButton, and
+                the className does not survive that clone in either position —
+                the button was dropping into normal flow at the top left of the
+                content. */}
+            <div className="absolute top-2 right-2 z-10">
+              <Dialog.Close
+                render={
+                  <IconButton aria-label={tr("ui.close")} />
+                }
+              >
+                <PiX size={16} />
+              </Dialog.Close>
+            </div>
+
+            {/* m-0 on both, and it is not tidying. Tailwind's preflight is off
+                in this app — Radix Themes ships its own reset and two resets
+                fight — and that reset only covers elements Radix renders. A
+                raw <h2>/<p> keeps the browser's 1em margins, which is where
+                the gap under the title came from. */}
+            <div className="flex flex-col gap-1 items-center">
+              <Dialog.Title className="m-0 text-xl font-bold">
+                {step === "host"
+                  ? tr("ui.createYourServer")
+                  : step === "join"
+                    ? tr("ui.joinAServer")
+                    : tr("ui.addAServer")}
+              </Dialog.Title>
+
+              <Dialog.Description className="m-0 text-center text-sm">
+                {step === "host"
+                  ? tr("ui.itRunsOnThisMachineAndYourFriends")
+                  : step === "join"
+                    ? isElectron
+                      ? tr("ui.pasteTheInviteAFriendSentYouOr")
+                      : tr("ui.pasteAnInviteOrEnterTheHttpsAddress")
+                    : tr("ui.startOneOfYourOwnOrJoinSomebody")}
+              </Dialog.Description>
+            </div>
+
+            {/* Two doors of equal weight (GRYT-894).
+                Joining used to be a label and a full-width button underneath
+                the create row, which read as an afterthought — while the
+                comment on the join step says most people arriving here have an
+                invite in their clipboard. The common path was the buried one.
+
+                Only the desktop app reaches this screen. `step` sends a browser
+                straight to Join, because there is no embedded server to create
+                with and a door onto a dead end is worse than no door. */}
+            {step === null && (
+              <div className="flex flex-col gap-4 mt-2">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <EntryCard
+                    tour="choose-host"
+                    icon={<PiHouseFill size={17} />}
+                    name={hasOwnServer ? tr("ui.createAnother") : tr("ui.createMyOwn")}
+                    hint={tr("ui.runsOnThisMachineBestForAFew")}
+                    onPick={() => setMode("host")}
+                  />
+                  <EntryCard
+                    tour="choose-join"
+                    icon={<PiLinkSimpleBold size={17} />}
+                    name={tr("ui.joinWithAnInvite")}
+                    hint={tr("ui.pasteALinkOrAnAddressYouWere")}
+                    onPick={() => setMode("join")}
+                  />
+                </div>
+
+                {/* Below a rule rather than between the two doors. The server we
+                    run is a third answer, not a step inside the first one. */}
+                {showOfficial && officialServer && (
+                  <>
+                    <OrRule />
+                    <OfficialServerOffer
+                      server={officialServer}
+                      onPick={() => pickOfficialServer(officialServer.host)}
+                      onHide={() => setOfficialServerHidden(true)}
+                    />
+                  </>
+                )}
+
+                {/* Only once there is something to manage. Creating and
+                    managing are different jobs and this dialog is for the
+                    first, but somebody who already hosts one and came here
+                    looking for the other should not have to guess. */}
+                {hasOwnServer && (
+                  <span className="text-xs text-center">
+                    {tr("ui.alreadyRunning")}{" "}
+                    {hostedServers.length === 1
+                      ? "one"
+                      : `${hostedServers.length}`}
+                    .{" "}
+                    <button
+                      type="button"
+                      onClick={openMyServers}
+                      className="cursor-pointer appearance-none border-0 bg-transparent p-0 text-inherit underline"
+                    >
+                      {tr("ui.manageInSettings")}
+                    </button>
+                  </span>
+                )}
+              </div>
+            )}
+
+            {step === "host" && embeddedServerAvailable && (
+              <CreateServerPanel
+                onBack={() => setMode(null)}
+                onServerReady={(serverUrl, serverName) => {
+                  const { host } = parseServerInput(serverUrl);
+
+                  if (servers[host]) {
+                    switchToServer(host);
+                    closeDialog();
+                    return;
+                  }
+
+                  addServer({ name: serverName, host }, true);
+                  closeDialog();
+                }}
+              />
+            )}
+
+            {step === "join" && (
+              <div className="flex flex-col gap-4">
+                {/* No label and no asterisk: it is the only field on the
+                    screen, so it is both obvious and required. The examples
+                    are the placeholder. */}
+                <div data-tour="join-address">
+                  <TextField
+                    autoFocus
+                    disabled={isJoining}
+                    aria-label={tr("ui.inviteOrServerAddress")}
+                    placeholder={inputExamples[exampleIndex]}
+                    value={inviteInput}
+                    onChange={(e) => setInviteInput(e.target.value)}
+                  />
+                </div>
+
+                {/* Only while the field is empty. Once there is an address in
+                    it the preview below answers the same question about a
+                    server the person actually chose, and two cards saying
+                    different things is one too many.
+
+                    This is the only place a browser sees the offer at all: the
+                    step above it is skipped when there is no embedded server to
+                    create with. */}
+                {showOfficial && officialServer && serverHost.length === 0 && (
+                  <OfficialServerOffer
+                    server={officialServer}
+                    onPick={() => pickOfficialServer(officialServer.host)}
+                    onHide={() => setOfficialServerHidden(true)}
+                  />
+                )}
+
+                {/* The preview, and it stays a preview. There used to be a
+                    details card between pasting and joining, which is a whole
+                    screen spent confirming something the name alone settles. */}
+                <AnimatePresence>
+                  {serverHost.length > 0 && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      style={{ overflow: "hidden" }}
+                    >
+                      <ServerPreview
+                        host={serverHost}
+                        info={serverInfo}
+                        loading={isSearching}
+                        error={webAddressError || (lookupErrorKey ? tr(lookupErrorKey) : lookupError)}
+                        privateInfo={serverPrivate}
+                        alreadyMember={alreadyMember}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <AnimatePresence>
+                  {inviteRequired && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      style={{ overflow: "hidden" }}
+                    >
+                      <div className="flex flex-col gap-2">
+                        <span className="text-sm font-bold">
+                          {tr("ui.inviteCode")}
+                        </span>
+                        <TextField
+                          disabled={isJoining}
+                          placeholder={tr("ui.pasteInviteCode")}
+                          value={inviteCode}
+                          onChange={(e) =>
+                            setManualCode(normalizeCode(e.target.value))
+                          }
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <AnimatePresence>
+                  {serverInfo?.joinPolicy === "request" && !awaitingApproval && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      style={{ overflow: "hidden" }}
+                    >
+                      {/* Only on a server that lets people in by hand, which
+                          is the only place there is anybody to read it. The
+                          label carries what the paragraph used to. */}
+                      <div className="flex flex-col gap-1">
+                        <span className="text-sm font-bold">
+                          {tr("ui.sayWhoYouAre")}
+                        </span>
+                        <TextField
+                          disabled={isJoining}
+                          placeholder={tr("ui.optional")}
+                          maxLength={300}
+                          value={joinNote}
+                          onChange={(e) => setJoinNote(e.target.value)}
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <AnimatePresence>
+                  {awaitingApproval && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      style={{ overflow: "hidden" }}
+                    >
+                      <Alert severity="info">
+                        {tr("ui.askedSomebodyWhoRunsThisServerHasTo")}
+                      </Alert>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <AnimatePresence>
+                  {joinError.length > 0 && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      style={{ overflow: "hidden" }}
+                    >
+                      <Alert severity="error" role="alert">
+                        <span className="inline-flex items-center gap-2">
+                          <PiWarningFill size={16} />
+                          {joinErrorKey ? tr(joinErrorKey) : (joinErrorSource?.message ?? joinError)}
+                        </span>
+                      </Alert>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <Dialog.Footer className="flex-wrap justify-between">
+                  {/* Only offered when there is a step behind this one. In a
+                      browser Join *is* the first step, and a Back that lands on
+                      a choice between one real option and a dead end is worse
+                      than no Back. */}
+                  {embeddedServerAvailable ? (
+                    <Button
+                      tone="ghost"
+                      disabled={isJoining}
+                      onClick={() => setMode(null)}
+                    >
+                      {tr("ui.back")}
+                    </Button>
+                  ) : (
+                    <span />
+                  )}
+
+                  <Button
+                    tone={joinAction.tone}
+                    disabled={joinAction.disabled}
+                    onClick={joinAction.run}
+                  >
+                    {isJoining ? (
+                      <>
+                        <Skeleton
+                          variant="circular"
+                          width="16px"
+                          height="16px"
+                        />{" "}
+                        {tr("ui.joining")}
+                      </>
+                    ) : (
+                      joinAction.label
+                    )}
+                  </Button>
+                </Dialog.Footer>
+              </div>
+            )}
+        </Dialog.Popup>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
+interface ServerPreviewProps {
+  host: string;
+  info: FetchInfo | null;
+  loading: boolean;
+  error: string;
+  privateInfo: boolean;
+  alreadyMember: boolean;
+}
+
+/** Shaped like the create card above it: both are ways in for somebody with
+    nothing yet. */
+
+/** One of the two doors on the first screen. */
+function EntryCard({
+  icon,
+  name,
+  hint,
+  onPick,
+  tour,
+}: {
+  icon: React.ReactNode;
+  name: string;
+  hint: string;
+  onPick: () => void;
+  tour: string;
+}) {
+  useTranslation();
+  return (
+    <button
+      type="button"
+      data-tour={tour}
+      onClick={onPick}
+      className="flex flex-col gap-2 rounded-(--gryt-radius-md) border border-gryt-border bg-gryt-surface text-gryt-text w-full cursor-pointer p-4 text-left transition-colors hover:border-(--gryt-accent-9)"
+      style={{ minWidth: 0 }}
+    >
+      <span
+        className="flex items-center justify-center"
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: "var(--gryt-radius-md)",
+          background: "var(--gryt-accent-a3)",
+          color: "var(--gryt-accent-11)",
+          flexShrink: 0,
+        }}
+      >
+        {icon}
+      </span>
+      <span className="text-sm font-bold">{name}</span>
+      <span className="text-xs" style={{ color: "var(--gryt-neutral-11)" }}>
+        {hint}
+      </span>
+    </button>
+  );
+}
+
+/** The "or" between the two doors and the server we run. */
+function OrRule() {
+  const { t: tr } = useTranslation();
+  return (
+    <div
+      className="flex items-center gap-3 text-xs uppercase"
+      style={{ color: "var(--gryt-neutral-11)", letterSpacing: "0.08em" }}
+    >
+      <span className="h-px flex-1" style={{ background: "var(--gryt-border)" }} />
+      {tr("ui.or")}
+      <span className="h-px flex-1" style={{ background: "var(--gryt-border)" }} />
+    </div>
+  );
+}
+
+function OfficialServerCard({
+  server,
+  onPick,
+}: {
+  server: OfficialServer;
+  onPick: () => void;
+}) {
+  const { t: tr } = useTranslation();
+  const { host, info } = server;
+
+  return (
+    <button
+      type="button"
+      onClick={onPick}
+      className="flex w-full cursor-pointer items-center gap-3 rounded-(--gryt-radius-md) p-3 text-left"
+      style={{
+        border: "1px solid var(--gryt-accent-9)",
+        background: "var(--gryt-accent-a3)",
+        color: "var(--gryt-text)",
+      }}
+    >
+      <span
+        className="flex items-center justify-center"
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: "var(--gryt-radius-md)",
+          background: "var(--gryt-surface)",
+          color: "var(--gryt-accent-11)",
+          flexShrink: 0,
+        }}
+      >
+        <PiUsersThreeFill size={18} />
+      </span>
+
+      <span className="flex flex-col" style={{ minWidth: 0 }}>
+        <span className="text-base font-bold">{info?.name || tr("ui.theGrytServer")}</span>
+        {/* The member count when the server gave one, and the address when it
+            did not. Both say the same thing — this is a real place — and one
+            of them is a number we did not make up. */}
+        <span className="text-sm truncate">
+          {info
+            ? i18n.t("settingsFull.m70fb48179b", { count: Number(info.members) })
+            : i18n.t("settingsFull.m998f88cd08", { value0: host })}
+        </span>
+      </span>
+
+      <span className="flex ml-auto" style={{ color: "var(--gryt-neutral-11)" }}>
+        <PiCaretRightBold size={14} />
+      </span>
+    </button>
+  );
+}
+
+/** "Hide forever" is text above the card rather than a cross inside it, which
+    would put hiding and joining a few pixels apart. */
+function OfficialServerOffer({
+  server,
+  onPick,
+  onHide,
+}: {
+  server: OfficialServer;
+  onPick: () => void;
+  onHide: () => void;
+}) {
+  const { t: tr } = useTranslation();
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={onHide}
+          className="cursor-pointer appearance-none border-0 bg-transparent p-0 text-xs underline"
+          style={{ color: "var(--gryt-neutral-11)" }}
+        >
+          {tr("ui.hideForever")}
+        </button>
+      </div>
+      <OfficialServerCard server={server} onPick={onPick} />
+    </div>
+  );
+}
+
+function ServerPreview({
+  host,
+  info,
+  loading,
+  error,
+  privateInfo,
+  alreadyMember,
+}: ServerPreviewProps) {
+  const { t: tr } = useTranslation();
+  return (
+    <Surface className="p-3">
+      {/* Top-aligned, because the description below the name can run to two
+          lines and an icon centred against three lines floats. */}
+      <div className="flex items-start gap-3">
+        {/* Seeded on the address until /info answers, and on the name from then
+            on — so the planet in the preview is the one the rail will draw once
+            you have joined, rather than a different one you never see again. */}
+        <Avatar
+          size="small"
+          className="rounded-(--gryt-radius-md) shrink-0"
+          src={info ? `${getServerHttpBase(host)}/icon` : undefined}
+          fallback={<GeneratedServerIcon seed={info?.name || host} />}
+        />
+
+        <div className="flex flex-col" style={{ minWidth: 0 }}>
+          {loading ? (
+            <Skeleton width="8rem" height="1rem" />
+          ) : (
+            <span className="text-sm font-bold truncate">
+              {info?.name || host}
+            </span>
+          )}
+
+          {/* What the place is, in the server's own words, clamped at two
+              lines. No expand control: this is a preview before a decision
+              rather than the server's profile, and the sentence saying what
+              somewhere is should not be behind a press. The address is not
+              repeated — it is in the field directly above. */}
+          {loading ? (
+            <Skeleton width="5rem" height="0.75rem" />
+          ) : error ? (
+            <span className="text-xs">
+              {error}
+            </span>
+          ) : privateInfo ? (
+            <span className="text-xs">
+              {tr("ui.publicInfoIsOffAnInviteCodeCan")}
+            </span>
+          ) : (
+            <span className="text-xs line-clamp-2">
+              {info?.description || host}
+            </span>
+          )}
+        </div>
+
+        {/* The two facts about this server, on one right edge: what it costs
+            you, then how big it is. The count wears no chrome and is a size
+            down — two badges would read as two warnings. */}
+        <div className="flex flex-col gap-1 items-end ml-auto shrink-0 pl-2">
+          {alreadyMember && (
+            <Chip>
+              <PiInfoFill size={12} />
+              {tr("ui.joined")}
+            </Chip>
+          )}
+          {/*
+            The thing people actually want to know before joining: whether this
+            costs them an account. Only claimed when the server said so — an
+            older one sends no tiers, and silence is better than a guess that
+            turns into a refusal.
+          */}
+          {info?.identityTiers && !alreadyMember && (
+            <Chip
+              color={info.identityTiers.includes("local") ? "green" : "gray"}
+            >
+              {info.identityTiers.includes("local")
+                ? tr("ui.noAccountNeeded")
+                : tr("ui.accountRequired")}
+            </Chip>
+          )}
+          {info && !loading && (
+            <span
+              className="text-xs tabular-nums"
+              style={{ color: "var(--gryt-neutral-11)" }}
+            >
+              {tr(info.members === "1" ? "shellSecond.oneMember" : "shellSecond.manyMembers", { members: info.members })}
+            </span>
+          )}
+        </div>
+      </div>
+    </Surface>
+  );
+}

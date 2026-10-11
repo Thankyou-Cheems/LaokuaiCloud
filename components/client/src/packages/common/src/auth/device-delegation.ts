@@ -1,0 +1,171 @@
+import { base64Url as encodeBase64Url } from "@gryt/crypto";
+
+/**
+ * Being yourself on a new device without moving your key to it: the saved key signs
+ * a statement that this device's key is you. Per server, as the file is.
+ */
+import { getPublicKeyJwk, parseIdentityBackup } from "./identity-keys";
+import { decodeJwt } from "./jwt";
+import { jwkThumbprint } from "./server-pins";
+
+/** Must match `DELEGATED_ISSUER` in the server's `auth/identity.ts`. */
+const DELEGATED_ISSUER = "gryt:delegated";
+
+const LOCAL_SUB_PREFIX = "key:";
+
+/**
+ * How long a delegation is good for. **Expiry is the only revocation there is** —
+ * the server keeps no list — so this is how long a stolen laptop stays you.
+ */
+const DELEGATION_LIFETIME_SECONDS = 30 * 24 * 60 * 60;
+
+const STORAGE_PREFIX = "gryt_device_delegation:";
+
+const ALGO: EcKeyImportParams = { name: "ECDSA", namedCurve: "P-256" };
+const SIGN_ALGO: EcdsaParams = { name: "ECDSA", hash: "SHA-256" };
+
+function storageKey(host: string): string {
+  return `${STORAGE_PREFIX}${host}`;
+}
+
+export function getStoredDelegation(host: string): string | null {
+  try {
+    return localStorage.getItem(storageKey(host));
+  } catch {
+    return null;
+  }
+}
+
+export function clearDelegation(host: string): void {
+  try {
+    localStorage.removeItem(storageKey(host));
+  } catch {
+    // ignore
+  }
+}
+
+/** Hosts this device has been authorised for, and when each runs out. */
+export function listDelegations(): { host: string; expiresAt: number | null }[] {
+  const out: { host: string; expiresAt: number | null }[] = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key?.startsWith(STORAGE_PREFIX)) continue;
+      const cert = localStorage.getItem(key);
+      out.push({
+        host: key.slice(STORAGE_PREFIX.length),
+        expiresAt: cert ? delegationExpiry(cert) : null,
+      });
+    }
+  } catch {
+    // localStorage not available
+  }
+  return out;
+}
+
+function decodePayload(jwt: string): Record<string, unknown> | null {
+  try {
+    const part = jwt.split(".")[1];
+    if (!part) return null;
+    return decodeJwt<Record<string, unknown>>(jwt);
+  } catch {
+    return null;
+  }
+}
+
+/** When a delegation stops being accepted, in ms, or null if unreadable. */
+export function delegationExpiry(certificate: string): number | null {
+  const exp = decodePayload(certificate)?.exp;
+  return typeof exp === "number" ? exp * 1000 : null;
+}
+
+export function isDelegationExpired(certificate: string): boolean {
+  const expiresAt = delegationExpiry(certificate);
+  // Unreadable counts as expired. A certificate we cannot reason about is not
+  // one to present.
+  return expiresAt === null || expiresAt <= Date.now();
+}
+
+/**
+ * The identity a delegation grants, which is the key that *signed* it. Derived the
+ * same way the server derives it, so no round trip is needed to learn the `sub`.
+ */
+export async function delegationSub(certificate: string): Promise<string | null> {
+  const issJwk = decodePayload(certificate)?.iss_jwk;
+  if (!issJwk || typeof issJwk !== "object") return null;
+  try {
+    return `${LOCAL_SUB_PREFIX}${await jwkThumbprint(issJwk as JsonWebKey)}`;
+  } catch {
+    return null;
+  }
+}
+
+/* Only the coercion is local; the encoding is @gryt/crypto's (GRYT-898). */
+function base64Url(buf: ArrayBuffer | Uint8Array): string {
+  return encodeBase64Url(buf instanceof Uint8Array ? buf : new Uint8Array(buf));
+}
+
+
+/**
+ * Use a saved identity to vouch for this device, once, and keep only the result.
+ * **The imported key is not put anywhere** — it signs and is dropped.
+ */
+export async function authoriseDeviceFromBackup(raw: string): Promise<string[]> {
+  const authorised: string[] = [];
+
+  for (const entry of parseIdentityBackup(raw).identities) {
+    if (!entry.privateJwk) continue;
+
+    // A delegation is filed per address. Entries from before identities carried a
+    // display label have the address as their scope.
+    const host = entry.host ?? entry.scope;
+
+    // Not extractable. Nothing here needs to read it back, and a key that
+    // cannot be exported cannot be exported by accident either.
+    const userKey = await crypto.subtle.importKey(
+      "jwk",
+      entry.privateJwk,
+      ALGO,
+      false,
+      ["sign"],
+    );
+
+    // Generated on demand if this device has never talked to that host.
+    const deviceJwk = await getPublicKeyJwk({ kind: "local", host });
+
+    const now = Math.floor(Date.now() / 1000);
+    const header = { alg: "ES256", typ: "JWT" };
+    const payload = {
+      iss: DELEGATED_ISSUER,
+      iss_jwk: entry.publicJwk,
+      jwk: deviceJwk,
+      iat: now,
+      exp: now + DELEGATION_LIFETIME_SECONDS,
+    };
+
+    const encoder = new TextEncoder();
+    const signingInput = `${base64Url(encoder.encode(JSON.stringify(header)))}.${base64Url(
+      encoder.encode(JSON.stringify(payload)),
+    )}`;
+    const signature = await crypto.subtle.sign(
+      SIGN_ALGO,
+      userKey,
+      encoder.encode(signingInput),
+    );
+
+    try {
+      localStorage.setItem(
+        storageKey(host),
+        `${signingInput}.${base64Url(signature)}`,
+      );
+      authorised.push(host);
+    } catch {
+      // Out of storage, or blocked. Skipped rather than reported as done.
+    }
+  }
+
+  if (authorised.length === 0) {
+    throw new Error("That backup contained no identities this device can use.");
+  }
+  return authorised;
+}

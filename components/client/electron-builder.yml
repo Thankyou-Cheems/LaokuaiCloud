@@ -1,0 +1,389 @@
+appId: com.gryt.chat
+# Fails the build if anything in extraResources is missing. electron-builder
+# skips a missing extraResource silently, which shipped v1.4.0-beta.5 with no
+# menu bar icon.
+beforeBuild: ./scripts/prepare-electron-build.mjs
+productName: Gryt Chat
+copyright: "Copyright © 2022-2026 Gryt Chat"
+artifactName: "Gryt-Chat-${version}-${os}-${arch}.${ext}"
+
+# Gryt's UI owns its translations. Keep the native Electron resources for
+# English and Norwegian and drop the rest.
+#
+# Top level, not under `mac`. It sat under `mac` from the day it was written,
+# and the comment there said "instead of shipping hundreds of unused .lproj
+# trees" — which is what it did, on macOS, and nowhere else. Windows and Linux
+# kept all 55 of Chromium's locale files: 46MB of `locales/*.pak` in a build
+# whose own UI ships two languages.
+#
+# electron-builder prunes both. `removeUnusedLanguagesIfNeeded` picks the
+# directory and the extension per platform — `.lproj` under Resources on macOS,
+# `locales/*.pak` everywhere else — and then reads `electronLanguages` off the
+# platform options *or* the root. Only the root reaches all three.
+#
+# For scale: this is about 44MB, where dropping the embedded server entirely
+# would save 72MB of a 643MB unpacked build.
+#
+# Both spellings of English, because the two platforms name the files
+# differently and the match is on the whole name. macOS has `en.lproj`; Windows
+# and Linux have `en-US.pak` and `en-GB.pak`. Listing only `en` — which is what
+# the `mac` block had, correctly, for years — prunes English off Windows
+# entirely and leaves a build shipping Norwegian and nothing else. That is what
+# the first attempt at this did, and `ls locales` said `nb.pak` and stopped.
+#
+# A name that matches nothing on a platform costs nothing there, so the union
+# is safe in both directions.
+electronLanguages:
+  - en
+  - en-US
+  - en-GB
+  - nb
+
+directories:
+  buildResources: build
+  output: release
+
+# No node_modules rules here on purpose. electron-builder packs the transitive
+# closure of `dependencies` on top of the globs below, and ignores
+# devDependencies entirely — so package.json is what decides, and it is a better
+# place to decide it than a list of negated globs.
+#
+# Only the main process loads anything from node_modules at runtime. Vite inlines
+# every renderer import into dist/assets, which is under 8MB for the whole app,
+# so a renderer-only package in `dependencies` is a second copy that ships,
+# gets signed and notarized, and is never read. That closure was 208 packages
+# and 218MB against the 5.4MB the main process actually needs.
+#
+# So `dependencies` holds exactly what electron/ requires and everything else is
+# a devDependency. Adding a bare import to an electron/ file means promoting that
+# package back, and forgetting shows up as MODULE_NOT_FOUND in a packaged build
+# rather than at build time.
+files:
+  - dist/**/*
+  - dist-electron/**/*
+
+extraResources:
+  - from: build/icon.png
+    to: icon.png
+  # The menu bar icon. A separate asset from icon.png because a macOS template
+  # image is alpha only and the opaque app icon renders as a black tile.
+  - from: build/trayTemplate.png
+    to: trayTemplate.png
+  - from: build/trayTemplate@2x.png
+    to: trayTemplate@2x.png
+  - from: build/trayTemplate@3x.png
+    to: trayTemplate@3x.png
+  # The Windows and Linux tray, which shows the voice state. Colour assets
+  # rather than templates, because neither platform has a template mechanism.
+  - from: build/tray-idle.png
+    to: tray-idle.png
+  - from: build/tray-idle@2x.png
+    to: tray-idle@2x.png
+  - from: build/tray-live.png
+    to: tray-live.png
+  - from: build/tray-live@2x.png
+    to: tray-live@2x.png
+  - from: build/tray-muted.png
+    to: tray-muted.png
+  - from: build/tray-muted@2x.png
+    to: tray-muted@2x.png
+  - from: build/tray-deafened.png
+    to: tray-deafened.png
+  - from: build/tray-deafened@2x.png
+    to: tray-deafened@2x.png
+  - from: build/native/
+    to: native/
+    filter:
+      - "**/*"
+  # gryt-helper (GRYT-1605), built for each arch by the beforeBuild hook.
+  - from: build/helper/${arch}/
+    to: helper/
+    filter:
+      - "**/*"
+  # Kept as one archive so Squirrel.Mac stages one signed resource instead of
+  # traversing roughly 14,000 server/worker dependency files. The client
+  # extracts it into its private app-data runtime on first launch.
+  - from: build/embedded-server.tar.gz
+    to: embedded-server.tar.gz
+  # Native files stay visible so electron-builder can sign them and Apple's
+  # notarizer can inspect them. They are overlaid onto the extracted runtime.
+  - from: build/embedded-native/
+    to: embedded-native/
+    filter:
+      - "**/*"
+
+# Releases are published to the gryt superproject, not to this repository —
+# release-client.yml lives there and builds the client from a pinned submodule
+# commit. This value is baked into app-update.yml, so pointing it at `client`
+# leaves the shipped app polling a repository with no releases.
+publish:
+  provider: github
+  owner: Gryt-chat
+  repo: gryt
+  releaseType: release
+
+afterSign: scripts/notarize.cjs
+
+# Also what puts x-scheme-handler/gryt in the Linux desktop entries. Leave
+# linux.mimeTypes unset: each Linux target adds the scheme to it again (GRYT-976).
+protocols:
+  - name: Gryt
+    schemes:
+      - gryt
+
+linux:
+  # A directory, not build/icon.png: electron-builder ships exactly what it is
+  # given, and one 1024x1024 is what the deb and snap carried before GRYT-1008.
+  icon: build/icons
+  # Only Linux. On macOS this also renames the .app bundle, which produced
+  # gryt-chat.app while CFBundleName and CFBundleDisplayName both correctly said
+  # "Gryt Chat" — and the Dock falls back to the folder name, so it showed
+  # gryt-chat. Linux genuinely wants a lowercase binary for the .desktop entry.
+  executableName: gryt-chat
+  target:
+    - AppImage
+    - deb
+    - rpm
+    - snap
+  category: Network
+  synopsis: "Real-time voice chat"
+  description: "Gryt Chat — real-time voice chat desktop client"
+  desktop:
+    entry:
+      X-AppImage-Payload-License: "AGPL-3.0-or-later"
+
+rpm:
+  # Named for Fedora, not guessed. electron-builder derives rpm dependencies
+  # from the same list it uses for the deb, which is Debian names -- libgtk-3-0,
+  # libnss3, libxss1 and the rest -- and none of those exist on Fedora, so the
+  # package installs nowhere it is meant to.
+  depends:
+    - gtk3
+    - libnotify
+    - nss
+    - libXScrnSaver
+    - libXtst
+    - xdg-utils
+    - at-spi2-atk
+    - libuuid
+    - libsecret
+
+snap:
+  confinement: strict
+  grade: stable
+  summary: "Real-time voice chat"
+  plugs:
+    - default
+    - audio-record
+    - camera
+    - screen-inhibit-control
+    - avahi-observe
+    - network-bind
+
+mac:
+  # Not build/icon.png. That one is the full-bleed square, which is right for
+  # Windows and for anything the platform masks itself; the Dock masks nothing,
+  # so it wants Apple's rounded rectangle with its margin. See generate-icons.
+  icon: build/icon-macos.png
+  # Where SMAppService finds the agent that starts gryt-helper at login, once turned on.
+  extraFiles:
+    - from: build/chat.gryt.helper.plist
+      to: Library/LaunchAgents/chat.gryt.helper.plist
+  # Both arches, from one arm64 runner. GitHub retired every Intel macOS image,
+  # so x64 is cross-compiled -- which works because Electron ships prebuilt
+  # binaries for both and uiohook-napi carries every prebuild in one package,
+  # picked at runtime by node-gyp-build rather than at install time by host arch.
+  #
+  # Separate artifacts rather than one universal binary. Universal would put
+  # both slices in every download: measured on 1.9.24, 195.7MB of the 244MB
+  # bundle is Mach-O and would double, taking the slim DMG from 105MB to about
+  # 188MB for everyone. electron-updater re-downloads the whole zip per release,
+  # so that is paid again every time.
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+    - target: zip
+      arch: [arm64, x64]
+  category: public.app-category.social-networking
+  extendInfo:
+    NSMicrophoneUsageDescription: "Gryt Chat uses your microphone for voice chat."
+    NSCameraUsageDescription: "Gryt Chat uses your camera for video chat."
+    NSAudioCaptureUsageDescription: "Gryt Chat can capture audio when you choose to share your screen."
+    NSScreenCaptureUsageDescription: "Gryt Chat lets you share your screen."
+
+# The Mac App Store build, made with GRYT_MAS=1 (GRYT-1273). Only the mas and
+# mas-dev targets read this block, so the DMG and zip are built as before.
+mas:
+  # The listing is shared with the iPhone app. The DMG stays on com.gryt.chat:
+  # moving it would cost existing installs their permissions and keychain items.
+  appId: chat.gryt.app
+  # Sandboxed, with the network both ways because the built-in server listens.
+  entitlements: build/entitlements.mas.plist
+  # Every nested executable: Electron's helpers, the SFU and the capture helper.
+  entitlementsInherit: build/entitlements.mas.inherit.plist
+
+# A development-signed build for trying the sandbox on this Mac, with no profile.
+# The application identifier needs one, and macOS kills the app at launch without it.
+masDev:
+  preAutoEntitlements: false
+
+win:
+  icon: build/icon.ico
+  target:
+    - nsis
+    - portable
+    # MSIX, alongside the installers rather than instead of them. It installs
+    # and uninstalls cleanly because Windows owns the process rather than a
+    # script, and it is the format Microsoft is moving to.
+    #
+    # It does not avoid buying a certificate. Microsoft signs MSIX packages it
+    # distributes through the Store; one hosted on gryt.chat needs the same
+    # certificate the .exe does. See GRYT-848 for that, and GRYT-850 for this.
+    #
+    # Until one of those exists, what this target produces cannot be installed
+    # by anybody. Not by double-clicking it, and not with
+    # `Add-AppxPackage -AllowUnsigned` either: that flag refuses any package
+    # activating an executable, which is every packaged Electron app. Tried
+    # against the real thing on 2026-09-02, on a machine with Developer Mode
+    # already on. The HRESULTs are written out in sign-windows.cjs.
+    #
+    # It is built anyway, because the artefact is what a Store submission
+    # uploads and a target nobody builds is a target that rots. This one shipped
+    # in v1.9.5 with electron-builder's sample tiles in it, because until then
+    # nothing had ever looked inside the package it was producing.
+    #
+    # Only builds on Windows — the target shells out to makeappx.exe from the
+    # Windows SDK — so it appears in the release build and nowhere else.
+    - appx
+  legalTrademarks: "Gryt Chat is a trademark of Gryt Chat"
+  requestedExecutionLevel: asInvoker
+  # Every PE file, not only the .exe.
+  #
+  # Store policy 10.2.9 is explicit: "The binary and all of its Portable
+  # Executable (PE) files must be digitally signed". Smart App Control cares
+  # about the installer, but the Store review reads the whole tree.
+  #
+  # Without this electron-builder signs .exe and nothing else. `shouldSignFile`
+  # in winPackager falls back to `file.endsWith(".exe")` when signExts is unset,
+  # so Electron's own ffmpeg.dll, libEGL.dll and the rest, plus every native
+  # .node, would ship unsigned inside a signed installer. The comment on
+  # `build/embedded-native/` above says those files are kept visible "so
+  # electron-builder can sign them", which has been true on macOS and quietly
+  # false here.
+  #
+  # .exe stays in the list rather than relying on the fallback, because the
+  # fallback only applies while signExts is empty.
+  #
+  # On `win`, not on `win.signtoolOptions`. It was nested there when it landed,
+  # which is not in the schema, and electron-builder validates its whole config
+  # before it looks at a target — so a Windows-only mistake failed the macOS and
+  # Linux builds too. check-builder-config.mjs exists because of that.
+  signExts:
+    - .exe
+    - .dll
+    - .node
+  signtoolOptions:
+    # One pass, not two. electron-builder calls the sign hook once per hash and
+    # defaults to ['sha1', 'sha256'], so without this the signing tool runs
+    # twice over every artefact. SHA-1 code signing has been dead for years and
+    # no CA will issue for it, so the first pass would be work for nothing.
+    signingHashAlgorithms:
+      - sha256
+    # Runs whether or not a certificate is configured, which is the point while
+    # there is not one: with a custom sign hook set, electron-builder calls it
+    # instead of skipping signing silently, so the build can say out loud that
+    # what it just produced will be blocked by Smart App Control. See the file
+    # and GRYT-848.
+    sign: scripts/sign-windows.cjs
+
+# The MSIX package.
+#
+# These three are not ours to choose. The Store assigns them when a name is
+# reserved in Partner Center, they have to match the reservation exactly, and a
+# package whose identity does not match is rejected on submission. Read off
+# Product identity for the "Gryt" product (Store ID 9PKPT1C2M95Q) on 2026-09-02.
+#
+# They were guesses until then — `identityName: GrytChat` with no publisher at
+# all, which electron-builder filled in as `CN=ms`. That built and could not be
+# installed by anyone.
+#
+# `identityName` is built from the first name reserved, which was "Gryt" — the
+# older EXE or MSI product was holding "Gryt Chat" at the time and would not let
+# go of it. That product is gone now and "Gryt Chat" is reserved here too, so
+# both names belong to this product and the identity keeps the prefix it was
+# minted with. It is not renameable and does not need to be: nobody sees it.
+#
+# What people do see is `Package/Properties/DisplayName`, which electron-builder
+# takes from `productName` — "Gryt Chat". That one is not free text. It has to be
+# a name reserved for this product, and uploading before "Gryt Chat" was reserved
+# was rejected:
+#
+#     This package's manifest (Package/Properties/DisplayName) uses a display
+#     name that you have not reserved: Gryt Chat
+#
+# So changing `productName` means reserving the new name in Partner Center first.
+# `publisherDisplayName` below is a different field again — the developer's name,
+# free text, and unrelated to any reservation.
+appx:
+  # `GrytChat.Gryt`, not `GrytChat`. The Store namespaces the reserved name under
+  # the publisher's own prefix, and the prefix is not optional.
+  identityName: GrytChat.Gryt
+  # Application.Id, which is scoped inside the package and is ours. Left as it
+  # was so the AUMID does not move.
+  applicationId: GrytChat
+  # The certificate subject Microsoft signs Store packages with. Nothing to buy:
+  # the Store signs what it distributes, which is why this route does not need
+  # GRYT-848's certificate. A package hosted on gryt.chat still does.
+  publisher: CN=AC05108C-74B5-4CF1-B408-D776FC9E7A9C
+  publisherDisplayName: "Gryt Chat"
+  # The tile background, behind assets/Square150x150Logo.png and the wide tile.
+  #
+  # #2E2D5F is the artboard's own fill, read off public/logo-square.svg, so the
+  # logo's rounded corners land on the colour they were cut out of and the tile
+  # reads as one square rather than as a rounded badge on a grey card.
+  # electron-builder's default is #464646, which is neither Gryt's colour nor
+  # anything else's.
+  backgroundColor: "#2E2D5F"
+  # Matching electronLanguages above. The first is the default.
+  languages:
+    - en-US
+    - nb-NO
+  # runFullTrust is added whether or not it is listed, and is what lets a
+  # packaged Electron app behave like an ordinary Win32 program: spawn the
+  # embedded server, write to its own userData, open sockets.
+  #
+  # The rest are not decoration. A packaged app appears in Windows privacy
+  # settings under the capabilities it declares, so an undeclared camera is a
+  # camera the user cannot grant. privateNetworkClientServer is the one most
+  # easily missed: without it "Discoverable on LAN" and finding a server on the
+  # local network stop working, and they fail quietly rather than erroring.
+  #
+  # Unverified, and not verifiable yet. An install was attempted on 2026-09-02
+  # and Windows refused the package before it got as far as reading these,
+  # because it is unsigned. So this list is still guesswork, and it is the first
+  # thing to check once a certificate or a Store submission makes an install
+  # possible. The manifest that comes out is worth reading in the meantime —
+  # `unzip -p <pkg> AppxManifest.xml` shows what these turned into.
+  capabilities:
+    - runFullTrust
+    - internetClientServer
+    - privateNetworkClientServer
+    - webcam
+    - microphone
+
+portable:
+  artifactName: "Gryt-Chat-${version}-${os}-${arch}-portable.${ext}"
+
+nsis:
+  oneClick: true
+  perMachine: false
+  include: build/installer.nsh
+  runAfterFinish: true
+  allowToChangeInstallationDirectory: false
+  deleteAppDataOnUninstall: false
+  displayLanguageSelector: false
+  uninstallDisplayName: "Gryt Chat"
+  shortcutName: "Gryt Chat"
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
+  installerHeaderIcon: build/icon.ico

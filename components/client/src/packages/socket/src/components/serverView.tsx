@@ -1,0 +1,1372 @@
+import { Button, IconButton, Tooltip } from "@gryt/ui";
+import { useSFU } from "@gryt/voice";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
+
+import { clearMentions, clearSignedOut, getOwnServerUserId, getUploadsFileUrl, markChannelRead, serverIconSrc, useAccount, useMentionTracker, useThreadMentions, useThreadUnread, useUnreadTracker } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
+import { NOTIFICATION_CHANNEL_OPEN_EVENT } from "@/lib/desktopNotification";
+import { useIsCompact, useIsMobile } from "@/mobile";
+import { useSettings } from "@/settings";
+import { useEmbeddedServer } from "@/settings/src/hooks/useEmbeddedServer";
+import { hostedServerAt, manageServerTab } from "@/settings/src/hostedServers";
+import { SidebarItem } from "@/settings/src/types/server";
+
+import { PiCaretLeftBold, PiGearSixFill } from "../../../../lib/icons";
+import { useFakeChat } from "../dev/fakeChat";
+import { useFakeChatRunning } from "../dev/fakeChatController";
+import {
+  fakeChatSendersFrom,
+  fakeParticipantOptionsFromSettings,
+  readFakeParticipantOptions,
+  withFakeMembers,
+  withFakeParticipants,
+} from "../dev/fakeParticipants";
+import { readFakeCallOptions, useFakeCallEvents } from "../dev/fakeServerEvents";
+import { useFakeSpeech } from "../dev/fakeSpeech";
+import { useDirectory } from "../hooks/dmDirectory";
+import { conversationFor, conversationOpened, leftOver, rememberConversation, requestConversation, setDmSpaceOpen, usePendingConversation, useVisitingConversation, visitConversation } from "../hooks/dmSpace";
+import { hideConversation, isHiddenConversation } from "../hooks/hiddenConversations";
+import { useOpenThread } from "../hooks/openThreadMemory";
+import { useAdminActions } from "../hooks/useAdminActions";
+import { useBlocks } from "../hooks/useBlocks";
+import { useCalls } from "../hooks/useCalls";
+import { useChannelSettings, useHandleChannelClick } from "../hooks/useChannelSettings";
+import { useChannelSidebarWidth } from "../hooks/useChannelSidebarWidth";
+import { useChat } from "../hooks/useChat";
+import { conversationTitle, type DirectConversation,useDirectMessages } from "../hooks/useDirectMessages";
+import { useIsTinyWindow, useRoomForMemberList, useRoomForThreadBeside, useRoomForVoicePanel } from "../hooks/useNarrowWindow";
+import { usePeerLatency } from "../hooks/usePeerLatency";
+import { useServerPermissions } from "../hooks/usePermissions";
+import { useReportUser } from "../hooks/useReportUser";
+import { useServerManagement } from "../hooks/useServerManagement";
+import { useServerReports } from "../hooks/useServerReports";
+import { useServerState } from "../hooks/useServerState";
+import { SIDEBAR_HOVER_PX, SIDEBAR_WIDTH_PX, useMediaAutoShow, useSidebarHover, useVoiceLayout } from "../hooks/useServerViewLayout";
+import { useSidebarEditor } from "../hooks/useSidebarEditor";
+import { useSockets } from "../hooks/useSockets";
+import { getUpdateAvailable } from "../hooks/useVersionStatus";
+import { THREAD_PANEL_WIDTH } from "../lib/narrowLayout";
+import { getCustomEmojis } from "../utils/emojiData";
+import { setOnScreenConversation } from "../utils/onScreenConversation";
+import { ChannelDescription } from "./ChannelDescription";
+import { ChatView } from "./ChatView";
+import { ConfirmDialog } from "./ConfirmDialog";
+import { ConnectionBanner } from "./ConnectionBanner";
+import { CreateChannelDialog } from "./CreateChannelDialog";
+import { DmSpaceSidebar } from "./DmSpaceSidebar";
+import { FriendButton } from "./FriendButton";
+import { GroupDialog } from "./GroupDialog";
+import { IncomingCallCard } from "./IncomingCallCard";
+import { type MemberCardActions, MemberCardActionsContext } from "./memberCard/memberCardContext";
+import { MemberSidebarPanel } from "./MemberSidebarPanel";
+import { statusConfig } from "./memberStatus";
+import { MobileServerView } from "./MobileServerView";
+import { PresenceDot } from "./PresenceDot";
+import { ReportsPanel } from "./ReportsPanel";
+import { ReportUserDialog } from "./ReportUserDialog";
+import { SecurityNoticeBanner } from "./SecurityNoticeBanner";
+import { ServerChip } from "./ServerChip";
+import { ServerConfirmDialogs } from "./ServerConfirmDialogs";
+import { ServerLoadingStates } from "./ServerLoadingStates";
+import { ServerNoticePanel } from "./ServerNoticePanel";
+import { ServerSidebar } from "./ServerSidebar";
+import { SidebarEditDialog } from "./SidebarEditDialog";
+import { type ChannelPlacement, folderOf } from "./sidebarTree";
+import { VoiceSheetButton } from "./VoiceSheetButton";
+import { VoiceView } from "./VoiceView";
+
+// Parsed once at module load. The query string overrides the Developer panel
+// while it is present, which keeps the browser workflow working.
+const fakeParticipantOptionsFromUrl = readFakeParticipantOptions(
+  window.location.search,
+);
+
+/** `?fakering=1` rings the open conversation, `?fakepeer=1` puts somebody in the
+    call, and `&fakecallmembers=0` reproduces a call that drew nobody. */
+const fakeCallOptionsFromUrl = readFakeCallOptions(window.location.search);
+
+/**
+ * `dmSpace` swaps the channel sidebar for every server's conversations and drops
+ * the member panel. The rest is the same view, keys and all (GRYT-1134).
+ */
+export const ServerView = ({ dmSpace = false }: { dmSpace?: boolean }) => {
+  const socketLanguage = useSocketTranslation().i18n.resolvedLanguage;
+  const isMobile = useIsMobile();
+  const isCompact = useIsCompact();
+  const isTiny = useIsTinyWindow();
+  const {
+    showVoiceView, setShowVoiceView, nickname, setShowSettings, setSettingsTab, openSettings,
+    inputMode, setInputMode, rnnoiseEnabled, setRnnoiseEnabled,
+    eSportsModeEnabled, setESportsModeEnabled, noiseGate, setNoiseGate,
+    pinChannelsSidebar, setPinChannelsSidebar,
+    pinMembersSidebar, setPinMembersSidebar,
+    setIsMuted, setIsDeafened,
+    devFakeParticipants, devFakeMuted, devFakeScreenShare,
+    devFakeDeafened, devFakeSpeaking, devFakeMembers, devFakeChatSeconds,
+  } = useSettings();
+  const { currentlyViewingServer, setShowRemoveServer, setLastSelectedChannelForServer, viewServerBehindDmSpace } = useServerManagement();
+  const directory = useDirectory();
+  const { connect, currentServerConnected, isConnected, isConnecting, videoStreams, streamSources } = useSFU();
+  const { serverDetailsList, clients, memberLists, serverProfiles } = useSockets();
+  const { login } = useAccount();
+  /** Servers this app hosts, for Manage server. Empty in a browser. */
+  const { servers: hostedServers } = useEmbeddedServer();
+
+  const {
+    clientsSpeaking, heldClients: heldHostClients, selfClientId, voiceWidth,
+    selectedChannelId, setSelectedChannelId,
+    selectedDmId, setSelectedDmId,
+    handleVoiceDisconnect, setPendingChannelId, currentChannelId,
+    currentConnection, accessToken, serverFailure, hasTimedOut,
+    currentConnectionStatus, currentRefusalReason, currentRefusalHelpUrl, reconnectServer,
+  } = useServerState();
+
+  const sidebarEditor = useSidebarEditor({ currentlyViewingServer, currentConnection, accessToken, serverDetailsList });
+  const {
+    editDialogOpen, setEditDialogOpen, setSelectedSidebarItemId,
+    effectiveSidebarItems, reorderSidebar, moveSidebarItem, orderResetKey, insertFromPalette,
+    pendingDeleteItem, requestDeleteSidebarItem, cancelDelete, confirmDelete,
+  } = sidebarEditor;
+
+  const peerLatency = usePeerLatency(currentConnection, heldHostClients);
+
+  const {
+    voiceFocused, setVoiceFocused, isMaximized, toggleMaximized,
+    voiceContainerRef, voiceMaxWidth, shownVoiceWidth,
+  } = useVoiceLayout({ setShowVoiceView });
+
+  const hasRoomMedia = false; // Private client never opens a media layout.
+
+  const [focusedChatHidden, setFocusedChatHidden] = useState(false);
+  const [createChannelOpen, setCreateChannelOpen] = useState(false);
+  const [createChannelType, setCreateChannelType] = useState<"chat" | "voice" | "forum" | "automated">("chat");
+  const [createChannelPlacement, setCreateChannelPlacement] = useState<ChannelPlacement>({});
+  const toggleFocusedChat = useCallback(() => setFocusedChatHidden((v) => !v), []);
+
+  /** Only means anything while a stream is focused, but it is a press either
+      way — which is the difference from what focus used to do on its own. */
+  const chatTakenOver = hasRoomMedia && voiceFocused && focusedChatHidden;
+
+  /* Whether the chat pane is drawn at all: the same condition the pane uses
+     further down, named because three other things ask it. */
+  const chatPaneHidden =
+    chatTakenOver || (hasRoomMedia && isMaximized && showVoiceView && voiceWidth !== "0px");
+
+  /* The space shows conversations and a server shows channels, never the other.
+     Deciding by "is a DM selected" put Carlo in a server and a channel in the space. */
+  const visibleChannelId = dmSpace || chatPaneHidden ? null : selectedChannelId;
+  const visibleDmId = !dmSpace || chatPaneHidden ? null : selectedDmId;
+
+  /* What the chat loads, by the same rule. The shared fallback was selectedDmId,
+     then the channel, so whichever was set last leaked into the other view. */
+  const activeConversationId = dmSpace
+    ? (selectedDmId ?? "")
+    : (selectedChannelId || currentChannelId || "");
+
+  useEffect(() => {
+    if (!currentlyViewingServer) return;
+    const opened = visibleDmId || visibleChannelId;
+    if (opened) markChannelRead(currentlyViewingServer.host, opened);
+  }, [currentlyViewingServer, visibleChannelId, visibleDmId]);
+
+  useEffect(() => {
+    setOnScreenConversation(currentlyViewingServer?.host ?? null, visibleDmId || visibleChannelId);
+    return () => setOnScreenConversation(null, null);
+  }, [currentlyViewingServer?.host, visibleChannelId, visibleDmId]);
+
+  useEffect(() => {
+    const onNotificationChannelOpen = (event: Event) => {
+      const { host, channelId } = (
+        event as CustomEvent<{ host?: string; channelId?: string }>
+      ).detail ?? {};
+      if (!host || !channelId || host !== currentlyViewingServer?.host) return;
+
+      const channel = serverDetailsList[host]?.channels?.find(
+        (candidate) => candidate.id === channelId,
+      );
+      if (!channel) return;
+
+      setSelectedDmId(null);
+      setSelectedChannelId(channelId);
+      setLastSelectedChannelForServer(host, channelId);
+    };
+
+    window.addEventListener(
+      NOTIFICATION_CHANNEL_OPEN_EVENT,
+      onNotificationChannelOpen,
+    );
+    return () =>
+      window.removeEventListener(
+        NOTIFICATION_CHANNEL_OPEN_EVENT,
+        onNotificationChannelOpen,
+      );
+  }, [
+    currentlyViewingServer?.host,
+    serverDetailsList,
+    setLastSelectedChannelForServer,
+    setSelectedChannelId,
+    setSelectedDmId,
+  ]);
+
+
+  const drawnVoicePanelWidth =
+    hasRoomMedia && showVoiceView && voiceWidth !== "0px" && !isMaximized && !chatTakenOver
+      ? shownVoiceWidth
+      : 0;
+  /* A thread beside the conversation is a third panel in the row, and the member
+     list yields to it the way it already yields to the voice panel. */
+  const sidebarSizing = useChannelSidebarWidth();
+  const threadOpen = useOpenThread();
+  const threadBeside = useRoomForThreadBeside(drawnVoicePanelWidth, sidebarSizing.width);
+  const roomForMembers = useRoomForMemberList(
+    drawnVoicePanelWidth,
+    threadBeside && threadOpen ? THREAD_PANEL_WIDTH : 0,
+    sidebarSizing.width,
+  );
+  const roomForVoice = useRoomForVoicePanel(sidebarSizing.width);
+
+  const {
+    leftSidebarOpen, rightSidebarOpen,
+    leftSidebarContentRef, rightSidebarContentRef,
+    openLeftSidebar, closeLeftSidebar, openRightSidebar, closeRightSidebar,
+  } = useSidebarHover({ pinChannelsSidebar, pinMembersSidebar, isDraggingResize: sidebarSizing.dragging, isCompact, roomForMembers });
+
+  const { mediaAutoShownRef } = useMediaAutoShow({
+    showVoiceView, setShowVoiceView, isCompact, roomForVoice, isConnected,
+    anyMediaActive: hasRoomMedia,
+  });
+
+  const { applyChannelSettings } = useChannelSettings({
+    inputMode, rnnoiseEnabled, eSportsModeEnabled, noiseGate, isConnected,
+    setInputMode, setRnnoiseEnabled, setESportsModeEnabled, setNoiseGate,
+  });
+
+  const {
+    pendingDisconnectUser, setPendingDisconnectUser,
+    pendingKickUser, setPendingKickUser,
+    pendingBanUser, setPendingBanUser,
+    handleDisconnectUser, handleKickUser, handleBanUser, fetchMemberInvite,
+    handleServerMuteUser, handleServerDeafenUser, handleToggleRole,
+    requestDisconnectUser, requestKickUser, requestBanUser,
+  } = useAdminActions({ currentConnection, currentlyViewingServer, accessToken, memberLists });
+
+  const { getUnreadCounts } = useUnreadTracker();
+  const { getConversationThreadUnreadCounts } = useThreadUnread();
+  const { conversationMentionCount, getMentionCounts } = useMentionTracker();
+  const { conversationThreadMentionCount } = useThreadMentions();
+  /* Separate from the effect above, which does not fire for a mention landing in
+     an open conversation. Timeline only: a thread reply was never on screen. */
+  const openConversation = visibleDmId || visibleChannelId || "";
+  const openConversationThreadMentions = currentlyViewingServer
+    ? conversationThreadMentionCount(currentlyViewingServer.host, openConversation)
+    : 0;
+  const openTimelineMentions = currentlyViewingServer
+    ? conversationMentionCount(currentlyViewingServer.host, openConversation) -
+      openConversationThreadMentions
+    : 0;
+
+  useEffect(() => {
+    if (!currentlyViewingServer || openTimelineMentions <= 0 || !openConversation) return;
+
+    clearMentions(currentlyViewingServer.host, openConversation, openConversationThreadMentions);
+    currentConnection?.emit("mentions:seen", { conversationId: openConversation });
+  }, [currentlyViewingServer, currentConnection, openTimelineMentions, openConversationThreadMentions, openConversation]);
+
+  const liveServerUserId = currentlyViewingServer && currentConnection?.id
+    ? clients[currentlyViewingServer.host]?.[currentConnection.id]?.serverUserId
+    : undefined;
+  /* Kept through a drop, when the socket has no id: without it a DM typed offline
+     decided it could not be sealed and went out in the clear (GRYT-1453). */
+  const lastServerUserIdRef = useRef<Record<string, string>>({});
+  if (currentlyViewingServer && liveServerUserId) lastServerUserIdRef.current[currentlyViewingServer.host] = liveServerUserId;
+  const currentServerUserId =
+    liveServerUserId ?? (currentlyViewingServer ? lastServerUserIdRef.current[currentlyViewingServer.host] : undefined);
+
+  /* Ahead of `useChat`, which needs the members to know whether the next message
+     can be encrypted. Both unconditional, so the order is free. */
+  const {
+    conversations: directConversations,
+    openDm,
+    updateGroup,
+    addToGroup,
+    leaveGroup,
+  } = useDirectMessages({
+    socket: currentConnection,
+    accessToken,
+    isConnected: currentConnectionStatus === "connected",
+  });
+
+  const { isBlocked, block, unblock } = useBlocks({
+    socket: currentConnection,
+    accessToken,
+    isConnected: currentConnectionStatus === "connected",
+  });
+
+  const { reportUser } = useReportUser({ socket: currentConnection, accessToken });
+  const [reportTarget, setReportTarget] = useState<{
+    serverUserId: string;
+    nickname: string;
+  } | null>(null);
+
+  /** So a refusal can name the person rather than printing a member id. */
+  const memberNames = useMemo(() => {
+    const names: Record<string, string> = {};
+    for (const member of memberLists[currentlyViewingServer?.host || ""] ?? []) {
+      names[member.serverUserId] = member.nickname;
+    }
+    return names;
+  }, [memberLists, currentlyViewingServer?.host]);
+
+  const activeConversation = useMemo(
+    () => directConversations.find((c) => c.conversation_id === activeConversationId),
+    [directConversations, activeConversationId],
+  );
+  const conversationMembers = activeConversation?.members ?? null;
+
+  // Existing-server messages use that server's confirmed profile, not the future-join default.
+  const serverNickname = serverProfiles[currentlyViewingServer?.host ?? ""]?.nickname || nickname;
+
+  const {
+    chatMessages, sealing, canSend, sendChat, editMessage, isLoadingMessages,
+    isRateLimited, rateLimitCountdown, isVoiceChannelTextChat,
+    canViewVoiceChannelText, activeChannelName, activeChannelType, activeChannelAutomated, activeChannelLayout, activeChannelForumTags, activeChannelDescription,
+    restoreText, clearRestoreText, fetchOlderMessages, isLoadingOlder, hasOlderMessages, historyWindow,
+    plaintextPrompt, confirmPlaintextSend, cancelPlaintextSend,
+    mlsNotice, composerHeld, deleteMlsMessage, reactMlsMessage, mlsReportsTaken, archiveFailed,
+  } = useChat({
+    currentConnection, activeConversationId, currentlyViewingServer,
+    currentChannelId, isConnected, serverDetailsList, nickname: serverNickname,
+    currentUserId: currentServerUserId,
+    conversationMembers,
+    dmPeer: activeConversation?.kind === "dm" ? activeConversation.other.server_user_id : null,
+    dmPeerName: activeConversation?.other.nickname,
+  });
+  const mlsView = useMemo(
+    () => ({
+      notice: mlsNotice,
+      held: composerHeld,
+      remove: deleteMlsMessage,
+      react: reactMlsMessage,
+      reportsTaken: mlsReportsTaken,
+      archiveFailed,
+    }),
+    [mlsNotice, composerHeld, deleteMlsMessage, reactMlsMessage, mlsReportsTaken, archiveFailed],
+  );
+
+  /** The server already withholds new messages, so this covers what was drawn
+      when Block was pressed. Filtered here, so unblocking needs no refetch. */
+  const visibleChatMessages = useMemo(
+    () => chatMessages.filter((m) => !isBlocked(m.sender_server_id)),
+    [chatMessages, isBlocked],
+  );
+
+  const handleEditItem = useCallback((item: SidebarItem) => {
+    setSelectedSidebarItemId(item.id);
+    setEditDialogOpen(true);
+  }, [setSelectedSidebarItemId, setEditDialogOpen]);
+
+  const handleMoveItem = useCallback((item: SidebarItem, direction: "up" | "down") => {
+    const ids = effectiveSidebarItems.map((i) => i.id);
+    const idx = ids.indexOf(item.id);
+    if (idx < 0) return;
+    const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= ids.length) return;
+    [ids[idx], ids[swapIdx]] = [ids[swapIdx], ids[idx]];
+    reorderSidebar(ids);
+  }, [effectiveSidebarItems, reorderSidebar]);
+
+  const handleAddItem = useCallback((kind: string, placement?: ChannelPlacement) => {
+    // "Add channel" opens the full create modal instead of dropping a default
+    // channel that has to be edited after. Folders/spacers stay immediate. GRYT-983.
+    if (kind === "channel:text" || kind === "channel:voice") {
+      setCreateChannelType(kind === "channel:voice" ? "voice" : "chat");
+      const afterItemId = placement?.afterItemId ?? null;
+      setCreateChannelPlacement({
+        afterItemId,
+        folderId: afterItemId ? folderOf(effectiveSidebarItems, afterItemId) : placement?.folderId ?? null,
+      });
+      setCreateChannelOpen(true);
+      return;
+    }
+    insertFromPalette(kind, effectiveSidebarItems.length);
+  }, [insertFromPalette, effectiveSidebarItems]);
+
+  const viewerPermissions = useServerPermissions(currentlyViewingServer?.host || "");
+
+  const { reportsOpen, setReportsOpen, pendingReportCount, memberListMap } = useServerReports({
+    currentConnection, accessToken, currentlyViewingServer, memberLists,
+    /* `has`, not `can`: this drives an automatic `reports:list` on join, before
+       `server:details` arrives, so `can` made a refusal a new member's first sight. */
+    canViewReports: viewerPermissions.has("view_reports"),
+  });
+
+  const viewingHost = currentlyViewingServer?.host;
+  const [updateAvailable, setUpdateAvailable] = useState(() =>
+    viewingHost ? getUpdateAvailable(viewingHost) : false,
+  );
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ host: string; updateAvailable: boolean }>).detail;
+      if (detail.host === viewingHost) setUpdateAvailable(detail.updateAvailable);
+    };
+    window.addEventListener("server_update_status", handler);
+    setUpdateAvailable(viewingHost ? getUpdateAvailable(viewingHost) : false);
+    return () => window.removeEventListener("server_update_status", handler);
+  }, [viewingHost]);
+
+
+  const {
+    incoming: incomingCall,
+    outgoing: outgoingCall,
+    ring: ringConversation,
+    decline: declineCall,
+    cancel: cancelCall,
+    accept: acceptCall,
+  } = useCalls({
+    socket: currentConnection,
+    accessToken,
+    isConnected: currentConnectionStatus === "connected",
+  });
+
+  /* Conversations are read in the direct messages space, so clicking somebody
+     goes there rather than opening one beside this server's channels. */
+  const goToConversation = useCallback((conversationId: string) => {
+    const host = currentlyViewingServer?.host;
+    if (!host) return;
+    requestConversation(host, conversationId);
+    // This server, so the rail's button comes back here. From inside, it's ignored.
+    setDmSpaceOpen(true, { kind: "server", host });
+  }, [currentlyViewingServer?.host]);
+
+  /** Waits for `dm:opened` rather than deriving the id, which would mean the
+      client owning a rule the server owns and opening empty when they drift. */
+  const handleOpenDm = useCallback((targetServerUserId: string) => {
+    const existing = directConversations.find(
+      (c) => c.other.server_user_id === targetServerUserId,
+    );
+    if (existing) {
+      goToConversation(existing.conversation_id);
+      return;
+    }
+    openDm(targetServerUserId);
+  }, [directConversations, openDm, goToConversation]);
+
+  // One opened from the member list was asked for, so it is read too. One the
+  // other person started is not, or the view is yanked out from under them.
+  const pendingDmTargetRef = useRef<string | null>(null);
+  useEffect(() => {
+    const target = pendingDmTargetRef.current;
+    if (!target) return;
+    const match = directConversations.find((c) => c.other.server_user_id === target);
+    if (!match) return;
+    pendingDmTargetRef.current = null;
+    goToConversation(match.conversation_id);
+  }, [directConversations, goToConversation]);
+
+  /* The space's own memory of where it was, which outlives this view unmounting
+     on the way to a server and back. The server view already has lastSelectedChannel. */
+  useEffect(() => {
+    const host = currentlyViewingServer?.host;
+    if (dmSpace && host && visibleDmId) rememberConversation(host, visibleDmId);
+  }, [dmSpace, currentlyViewingServer?.host, visibleDmId]);
+
+  /* A conversation the direct messages space asked for. Claimed on arrival,
+     because that space replaced this view and no event would have landed. */
+  const pendingConversation = usePendingConversation();
+  useEffect(() => {
+    /* The space only. A server view claiming it is how a conversation opened in
+       the space turned up in the server's own chat pane. */
+    if (!dmSpace) return;
+    const host = currentlyViewingServer?.host;
+    if (!host) return;
+    const wanted = conversationFor(host);
+    if (!wanted) return;
+    if (selectedDmId === wanted) conversationOpened(wanted);
+    else setSelectedDmId(wanted);
+  }, [dmSpace, currentlyViewingServer?.host, pendingConversation, selectedDmId, setSelectedDmId]);
+
+  /* Nothing asked for and nothing open: open the most recent conversation. An
+     empty pane under the space's header reads as a server's channel. */
+  const visiting = useVisitingConversation();
+  useEffect(() => {
+    if (!dmSpace) return;
+    const host = currentlyViewingServer?.host;
+    if (!host || conversationFor(host)) return;
+    // An empty one an earlier visit left selected counts as nothing open. GRYT-1148.
+    const selected = selectedDmId
+      ? directory.find((entry) => entry.host === host && entry.conversation.conversation_id === selectedDmId)
+      : undefined;
+    const stale = leftOver(selected?.conversation, visiting);
+    if (selectedDmId && !stale) return;
+    const recent = directory
+      /* Otherwise hiding the one being read picks it straight back up, since
+         the server still sends it and only this device is holding it back. */
+      .filter((entry) => !isHiddenConversation(entry.host, getOwnServerUserId(entry.host) ?? "", entry.conversation))
+      .filter((entry) => entry.conversation.last_message_at !== null)
+      .sort((a, b) =>
+        (b.conversation.last_message_at ?? "").localeCompare(a.conversation.last_message_at ?? ""))[0];
+    if (!recent) {
+      if (stale) setSelectedDmId(null);
+      return;
+    }
+    requestConversation(recent.host, recent.conversation.conversation_id);
+    if (recent.host !== host) viewServerBehindDmSpace(recent.host);
+  }, [dmSpace, selectedDmId, visiting, currentlyViewingServer?.host, directory, viewServerBehindDmSpace, setSelectedDmId]);
+
+  const requestOpenDm = useCallback((targetServerUserId: string) => {
+    pendingDmTargetRef.current = targetServerUserId;
+    handleOpenDm(targetServerUserId);
+  }, [handleOpenDm]);
+
+  /* `window.gryt.dm(nickname)`. The member card this normally starts from does
+     not answer a synthetic click, so there is no other way in (GRYT-1115). */
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const open = (event: Event) => {
+      const wanted = (event as CustomEvent<{ nickname?: string }>).detail?.nickname;
+      const id = Object.entries(memberNames).find(([, name]) => name === wanted)?.[0];
+      if (!id) {
+        console.warn(`[dev] nobody here is called ${wanted}. Have:`, Object.values(memberNames));
+        return;
+      }
+      requestOpenDm(id);
+    };
+    window.addEventListener("dev_open_dm", open);
+    return () => window.removeEventListener("dev_open_dm", open);
+  }, [memberNames, requestOpenDm]);
+
+  /** Answering is joining the conversation's voice room; the server ends the ring
+      when the join lands. */
+  useFakeCallEvents(currentConnection, selectedDmId, fakeCallOptionsFromUrl);
+
+  const handleAcceptCall = useCallback(() => {
+    const call = acceptCall();
+    if (!call) return;
+    if (dmSpace) visitConversation(call.conversation_id);
+    setSelectedDmId(call.conversation_id);
+    setShowVoiceView(true);
+    connect(call.conversation_id).catch((error) => {
+      console.error("Could not join the call:", error);
+      toast.error(error instanceof Error ? error.message : socketI18n.t("socketFull.serverView_611ce83569"));
+    });
+  }, [acceptCall, connect, dmSpace, setSelectedDmId, setShowVoiceView]);
+
+  const handleSelectDm = useCallback((conversation: { conversation_id: string }) => {
+    setSelectedDmId(conversation.conversation_id);
+  }, [setSelectedDmId]);
+
+  /* Hiding the one being read points the view at a conversation that has moved
+     under the Hidden group, so the selection goes back to the channels. */
+  const forgetHiddenDm = useCallback((conversationId: string) => {
+    setSelectedDmId((current) => (current === conversationId ? null : current));
+  }, [setSelectedDmId]);
+
+  /* Blocking used to take the conversation off the list on the server. It is
+     this device's own now, so the block does the same thing here. GRYT-1379. */
+  const blockAndHide = useCallback((targetServerUserId: string) => {
+    block(targetServerUserId);
+    const viewingHost = currentlyViewingServer?.host;
+    const found = directConversations.find(
+      (c) => c.kind !== "group" && c.other?.server_user_id === targetServerUserId,
+    );
+    if (!viewingHost || !found) return;
+    hideConversation(viewingHost, currentServerUserId ?? "", found.conversation_id);
+    forgetHiddenDm(found.conversation_id);
+  }, [block, currentlyViewingServer, directConversations, forgetHiddenDm, currentServerUserId]);
+
+  /** The group whose settings are open, or null. Starting one is the + next to
+      Messages, in `NewMessageDialog`. */
+  const [groupDialog, setGroupDialog] = useState<DirectConversation | null>(null);
+
+  const activeDm = useMemo(
+    () => (dmSpace && selectedDmId
+      ? directConversations.find((c) => c.conversation_id === selectedDmId)
+      : undefined),
+    [dmSpace, selectedDmId, directConversations],
+  );
+
+  /* The conversation the tiny window's list was opened over. Picking another one
+     moves the selection off it, so the list goes without being told. */
+  const [tinyListOver, setTinyListOver] = useState<string | null>(null);
+  const showTinyList = isTiny && dmSpace && (!activeDm || tinyListOver === activeDm.conversation_id);
+
+  const openFromTinyList = useCallback((conversation: { conversation_id: string }) => {
+    setTinyListOver(null);
+    handleSelectDm(conversation);
+  }, [handleSelectDm]);
+
+  /** A lookup, not a test on the id, since a channel can be named to look like
+      one. `currentChannelId` is the room joined, not the one on screen. */
+  const connectedToACall = useMemo(
+    () => Boolean(currentChannelId)
+      && directConversations.some((c) => c.conversation_id === currentChannelId),
+    [currentChannelId, directConversations],
+  );
+
+  const handleChannelClick = useHandleChannelClick({
+    currentlyViewingServer, isConnected, currentServerConnected,
+    currentChannelId, selectedChannelId, isConnecting,
+    showVoiceView, mediaAutoShownRef,
+    setSelectedChannelId, setShowVoiceView, setPendingChannelId,
+    setSettingsTab, setShowSettings, setLastSelectedChannelForServer,
+    connect, applyChannelSettings, setIsMuted, setIsDeafened,
+  });
+
+  // Without this the DM stays the active conversation and the channel looks
+  // selected while showing somebody else's messages.
+  const handleChannelClickAndCloseDm = useCallback((channel: Parameters<typeof handleChannelClick>[0]) => {
+    setSelectedDmId(null);
+    handleChannelClick(channel);
+  }, [handleChannelClick, setSelectedDmId]);
+
+  /** A ring carries a nickname and nothing else, or a person's appearance is a
+      second copy to go stale. A caller not in the list draws from the name. */
+  const caller = incomingCall ? memberListMap[incomingCall.from.server_user_id] : undefined;
+  const callerAvatarUrl =
+    caller?.avatarFileId && viewingHost
+      ? getUploadsFileUrl(viewingHost, caller.avatarFileId, { thumb: true })
+      : undefined;
+  const callerAvatarWorn = caller?.avatarWorn ?? null;
+
+  /** Built once for both layouts. Calling is offered whether or not one is
+      going, and `start_calls` is not the permission for answering. */
+  const dmHeaderActions = useMemo(() => {
+    if (!activeDm) return undefined;
+    const conversationId = activeDm.conversation_id;
+    const ringing = outgoingCall?.conversation_id === conversationId;
+    const mayCall = viewerPermissions.can("send_direct_messages") && viewerPermissions.can("start_calls");
+    const friendWith = activeDm.kind === "dm" ? activeDm.other.server_user_id : undefined;
+
+    /** The caller is in the room from the moment it rings, or answering joins a
+        room with nobody in it. Cancel is offered until somebody answers. */
+    const startCall = () => {
+      ringConversation(conversationId);
+      setShowVoiceView(true);
+      connect(conversationId).catch((error) => {
+        console.error("Could not start the call:", error);
+        // The same id as a refused ring, so their call setting is said once (GRYT-1470).
+        toast.error(error instanceof Error ? error.message : socketI18n.t("socketFull.serverView_80dbc619ae", { lng: socketLanguage }), { id: "call:start" });
+        cancelCall(conversationId);
+      });
+    };
+
+    const stopCall = () => {
+      cancelCall(conversationId);
+      handleVoiceDisconnect();
+    };
+
+    return (
+      <div className="flex items-center gap-1">
+        <FriendButton host={viewingHost} serverUserId={friendWith} compact />
+        {mayCall ? (
+          <Button
+            size="small"
+            tone={ringing ? "primary" : "ghost"}
+            onClick={() => (ringing ? stopCall() : startCall())}
+          >
+            {ringing ? socketI18n.t("ui.cancel", { lng: socketLanguage }) : socketI18n.t("socketFull.serverView_db7d3a436e", { lng: socketLanguage })}
+          </Button>
+        ) : null}
+        {/* The only way into a group's settings since its section left the channel list.
+            An icon, so a 300px window still has room for the group's name. */}
+        {activeDm.kind === "group" ? (
+          <Tooltip title={socketI18n.t("socketFull.serverView_d81e53b508", { lng: socketLanguage })}>
+            <IconButton aria-label={socketI18n.t("socketFull.serverView_d81e53b508", { lng: socketLanguage })} size="xsmall" tone="ghost" onClick={() => setGroupDialog(activeDm)}>
+              <PiGearSixFill size={16} />
+            </IconButton>
+          </Tooltip>
+        ) : null}
+      </div>
+    );
+  }, [activeDm, viewerPermissions, outgoingCall, cancelCall, ringConversation, setGroupDialog, connect, setShowVoiceView, handleVoiceDisconnect, viewingHost, socketLanguage]);
+
+  /* The same member list the sidebar reads presence off — someone it hides
+     from this viewer has no entry here either (GRYT-1467). */
+  const dmPresence = useMemo(() => {
+    if (!activeDm) return undefined;
+    if (activeDm.kind === "dm") {
+      const status = memberListMap[activeDm.other.server_user_id]?.status;
+      if (!status) return undefined;
+      const { label } = statusConfig[status];
+      return (
+        <span className="flex shrink-0 items-center gap-1.5 text-xs" style={{ color: "var(--gryt-neutral-10)" }}>
+          <PresenceDot status={status} size={8} />
+          {label}
+        </span>
+      );
+    }
+    const known = activeDm.members
+      .map((m) => memberListMap[m.server_user_id]?.status)
+      .filter((status): status is NonNullable<typeof status> => Boolean(status));
+    // Nobody in the member list at all reads as "no data" rather than "0 online".
+    if (known.length === 0) return undefined;
+    const online = known.filter((status) => status !== "offline").length;
+    return (
+      <span className="shrink-0 text-xs" style={{ color: "var(--gryt-neutral-10)" }}>
+        {online}{" "}{socketI18n.t("socketFull.serverView_54ea46a60b", { lng: socketLanguage })}</span>
+    );
+  }, [activeDm, memberListMap, socketLanguage]);
+
+  /* Memoized like the actions: ChatView is memo'd, and a fresh element every render undoes it. */
+  const dmHeaderDetail = useMemo(() => {
+    if (!activeDm || !currentlyViewingServer) return undefined;
+    const { host, name: stored } = currentlyViewingServer;
+    const name = serverDetailsList[host]?.server_info?.name || stored || host;
+    return (
+      <>
+        {dmPresence}
+        <ServerChip name={name} icon={serverIconSrc(host, stored || "", serverDetailsList)} />
+      </>
+    );
+  }, [activeDm, currentlyViewingServer, serverDetailsList, dmPresence]);
+
+  const tinyBack = useMemo(() => {
+    if (!isTiny || !dmSpace || !activeDm) return undefined;
+    const over = activeDm.conversation_id;
+    return (
+      <Tooltip title={socketI18n.t("socketFull.serverView_12a836beed", { lng: socketLanguage })}>
+        <IconButton aria-label={socketI18n.t("socketFull.serverView_12a836beed", { lng: socketLanguage })} size="xsmall" tone="ghost" onClick={() => setTinyListOver(over)}>
+          <PiCaretLeftBold size={16} />
+        </IconButton>
+      </Tooltip>
+    );
+  }, [isTiny, dmSpace, activeDm, socketLanguage]);
+
+  const currentAdminActions = useMemo(() => {
+    // One handler per permission, not a bundle per role name, which gave a role
+    // built for one of these a menu with none. Undefined, not hidden.
+    const can = viewerPermissions.can;
+    const any =
+      can("disconnect_members") ||
+      can("kick_members") ||
+      can("ban_members") ||
+      can("mute_members") ||
+      can("deafen_members") ||
+      can("manage_roles");
+    if (!any) return undefined;
+
+    return {
+      onDisconnectUser: can("disconnect_members") ? requestDisconnectUser : undefined,
+      onKickUser: can("kick_members") ? requestKickUser : undefined,
+      onBanUser: can("ban_members") ? requestBanUser : undefined,
+      onServerMuteUser: can("mute_members") ? handleServerMuteUser : undefined,
+      onServerDeafenUser: can("deafen_members") ? handleServerDeafenUser : undefined,
+      onToggleRole: can("manage_roles") ? handleToggleRole : undefined,
+    };
+  }, [viewerPermissions, requestDisconnectUser, requestKickUser, requestBanUser, handleServerMuteUser, handleServerDeafenUser, handleToggleRole]);
+
+  // Dev only, and above the early returns because the speech rig is a hook.
+  // See fakeParticipants.ts.
+  const fakeParticipantOptions = useMemo(
+    () =>
+      fakeParticipantOptionsFromUrl ??
+      fakeParticipantOptionsFromSettings(
+        devFakeParticipants,
+        devFakeMembers,
+        devFakeMuted,
+        devFakeScreenShare,
+        devFakeDeafened,
+        devFakeSpeaking,
+      ),
+    [devFakeParticipants, devFakeMembers, devFakeMuted, devFakeScreenShare, devFakeDeafened, devFakeSpeaking],
+  );
+  const fakeSpeech = useFakeSpeech(fakeParticipantOptions);
+
+  // Dev only. The same invented people the voice fixture uses, so a message and a
+  // tile belong to one person.
+  const fakeChatRunning = useFakeChatRunning();
+  const fakeChatSenders = useMemo(
+    () => fakeChatSendersFrom(fakeParticipantOptions),
+    [fakeParticipantOptions],
+  );
+
+  /* All of them: one emoji used for everything looks like a stuck key rather
+     than a server with its own. */
+  const fakeChatEmojiNames = useMemo(
+    () => getCustomEmojis().map((e) => e.name),
+    [],
+  );
+  useFakeChat({
+    running: fakeChatRunning,
+    connection: currentConnection,
+    conversationId: activeConversationId,
+    senders: fakeChatSenders,
+    selfNickname: nickname,
+    emojiNames: fakeChatEmojiNames,
+    everySeconds: devFakeChatSeconds,
+  });
+
+  /* Everything a member card can do here, for every card on this server at once. */
+  const cardRole = serverDetailsList[currentlyViewingServer?.host ?? ""]?.server_info?.role;
+  const memberCardActions = useMemo<MemberCardActions>(
+    () => ({
+      currentServerUserId,
+      currentUserRole: cardRole,
+      adminActions: currentAdminActions,
+      onOpenDm: requestOpenDm,
+      isBlocked,
+      onToggleBlock: (id: string) => (isBlocked(id) ? unblock : blockAndHide)(id),
+      onReport: setReportTarget,
+    }),
+    [currentServerUserId, cardRole, currentAdminActions, requestOpenDm, isBlocked, unblock, blockAndHide],
+  );
+
+  if (!currentlyViewingServer) return null;
+
+  const serverDetails = serverDetailsList[currentlyViewingServer.host];
+  const channelById = new Map((serverDetails?.channels || []).map((c) => [c.id, c]));
+
+  if (!serverDetails) {
+    return (
+      <ServerLoadingStates
+        serverFailure={serverFailure} hasTimedOut={hasTimedOut}
+        connectionStatus={currentConnectionStatus}
+        refusalReason={currentRefusalReason}
+        refusalHelpUrl={currentRefusalHelpUrl}
+        onReconnect={() => reconnectServer(currentlyViewingServer.host)}
+        onSignIn={() => void login()}
+        onResumeHere={() => {
+          // Clearing comes first: reconnecting triggers a challenge, and the
+          // handler refuses to answer while the note stands.
+          clearSignedOut(currentlyViewingServer.host);
+          reconnectServer(currentlyViewingServer.host);
+        }}
+      />
+    );
+  }
+
+  const host = currentlyViewingServer.host;
+  const unreadCounts = getUnreadCounts(host);
+  const threadUnreadCounts = getConversationThreadUnreadCounts(host);
+  const mentionCounts = getMentionCounts(host);
+  const isServerUnreachable = currentConnectionStatus === "disconnected" || currentConnectionStatus === "reconnecting";
+  const isVoiceOnThisServer = isConnected && currentServerConnected === host;
+  const currentUserRole = serverDetails?.server_info?.role;
+  // Editing the sidebar is `manage_channels`; pulling somebody out of voice is
+  // voice moderation. One question could not tell a role built for one.
+  const canManage = viewerPermissions.can("manage_channels");
+  const canDisconnectFromVoice = viewerPermissions.can("disconnect_members");
+  const canViewMembers = viewerPermissions.can("view_members");
+
+  const hostChannels = serverDetails.channels || [];
+
+  const { clients: hostClients, videoStreams: voiceVideoStreams } =
+    withFakeParticipants(
+      heldHostClients,
+      videoStreams,
+      currentChannelId,
+      fakeParticipantOptions,
+    );
+  // Empty unless the fakes are on, so the real values pass through untouched.
+  const voiceStreamSources = fakeParticipantOptions
+    ? { ...streamSources, ...fakeSpeech.sources }
+    : streamSources;
+  const voiceClientsSpeaking = fakeParticipantOptions
+    ? { ...clientsSpeaking, ...fakeSpeech.speaking }
+    : clientsSpeaking;
+  const hostMembers = withFakeMembers(
+    memberLists[host] || [],
+    currentChannelId,
+    fakeParticipantOptions,
+  );
+  const serverName = serverDetails.server_info?.name || currentlyViewingServer.name;
+
+  const onOpenSettings = () => {
+    window.dispatchEvent(new CustomEvent("server_settings_open", { detail: { host } }));
+  };
+
+  /* The modal drops back to overview when the permission is missing, so asking
+     for a tab here does not need to check first. */
+  const onOpenInvites = () => {
+    window.dispatchEvent(
+      new CustomEvent("server_settings_open", { detail: { host, tab: "invites" } }),
+    );
+  };
+
+  const hostedHere = hostedServerAt(host, hostedServers);
+  const onManageServer = hostedHere
+    ? () => openSettings(manageServerTab(hostedHere.id))
+    : undefined;
+
+  /** One element for two layouts: the tiny window renders this and nothing else,
+      and a second copy is thirty props to keep in step. */
+  const chatView = dmSpace && !activeDm ? (
+    /* The space with nothing open, for the moment before the most recent one is
+       picked or when there are none. A bare ChatView here was read as a channel. */
+    <div
+      className="flex grow items-center justify-center text-sm"
+      style={{ color: "var(--gryt-muted)", padding: "2rem", textAlign: "center" }}
+    >
+      {directory.some((entry) => entry.conversation.last_message_at !== null)
+        ? socketI18n.t("socketFull.serverView_f2b6b8b05d")
+        : socketI18n.t("socketFull.serverView_b3b7ec6466")}
+    </div>
+  ) : (
+      <ChatView
+        /* Wide enough for the thread to sit beside the conversation rather than
+           take the chat pane. */
+        threadBeside={threadBeside}
+        /* Under the header, not above: above is app chrome, and this is somebody
+           else's machine talking. */
+        underHeader={
+          <ServerNoticePanel
+            host={currentlyViewingServer?.host}
+            serverName={
+              currentlyViewingServer?.name || currentlyViewingServer?.host || socketI18n.t("socketFull.serverView_007b4db740")
+            }
+          />
+        }
+        chatMessages={visibleChatMessages}
+        isBlocked={isBlocked}
+        conversationKey={activeConversationId}
+        sealing={activeDm ? sealing : undefined}
+        mls={activeDm ? mlsView : undefined}
+        memberNames={memberNames}
+        canSend={canSend}
+        sendChat={sendChat}
+        editMessage={editMessage}
+        currentUserId={currentServerUserId}
+        channelName={activeDm ? conversationTitle(activeDm) : activeChannelName}
+        channelType={activeChannelType}
+        automated={!activeDm && activeChannelAutomated}
+        layout={activeDm ? "chat" : activeChannelLayout}
+forumTags={activeDm ? [] : activeChannelForumTags}
+        conversationKind={activeDm ? "dm" : "channel"}
+        headerAction={dmHeaderActions}
+        headerLead={tinyBack}
+        headerDetail={activeDm ? dmHeaderDetail : <ChannelDescription text={activeChannelDescription} />}
+        flush={isTiny}
+        serverName={serverName}
+        currentUserNickname={serverNickname}
+        socketConnection={currentConnection}
+        serverHost={host}
+        memberList={memberListMap}
+        isRateLimited={isRateLimited}
+        rateLimitCountdown={rateLimitCountdown}
+        canViewVoiceChannelText={canViewVoiceChannelText}
+        isVoiceChannelTextChat={isVoiceChannelTextChat}
+        restoreText={restoreText}
+        clearRestoreText={clearRestoreText}
+        canDeleteAny={viewerPermissions.canIn(activeConversationId, "manage_messages")}
+        maxFileSize={serverDetails.server_info?.upload_max_bytes}
+        onLoadOlder={fetchOlderMessages}
+        isLoadingOlder={isLoadingOlder}
+        hasOlderMessages={hasOlderMessages}
+        historyWindow={historyWindow}
+        {...(isLoadingMessages !== undefined && { isLoadingMessages })}
+      />
+  );
+
+  return (
+    <MemberCardActionsContext.Provider value={memberCardActions}>
+      {/* min-w-0, or a header's one-line name sets the narrowest this can get. */}
+      <div className="flex w-full h-full min-w-0 gap-2 flex-col" data-gryt="server-view" style={{ minHeight: 0, overflow: "hidden", position: "relative" }}>
+        {isServerUnreachable && (
+          <ConnectionBanner connectionStatus={currentConnectionStatus} onReconnect={() => reconnectServer(host)} />
+        )}
+        {/* Not in the direct messages space, where the server behind it isn't what's on screen. */}
+        {!dmSpace && currentConnectionStatus === "connected" && (
+          <SecurityNoticeBanner host={host} serverInfo={serverDetails.server_info} hostedHere={!!hostedHere} />
+        )}
+        {isTiny ? (
+          /* One channel and no way to change it; the way out is a bigger window.
+             A call is the exception, or the microphone has no button to close it. */
+          <div className="flex" style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+            {/* In the direct messages space, the list and a conversation take turns filling the window. */}
+            {showTinyList ? (
+              <DmSpaceSidebar host={host} selectedConversationId={visibleDmId} onOpen={openFromTinyList} onHidden={forgetHiddenDm} fill />
+            ) : chatView}
+            <VoiceSheetButton
+              connected={isVoiceOnThisServer}
+              serverHost={host}
+              currentServerConnected={currentServerConnected}
+              currentChannelId={currentChannelId}
+              clientsForHost={hostClients}
+              members={hostMembers}
+              clientsSpeaking={voiceClientsSpeaking}
+              isConnecting={isConnecting}
+              currentConnectionId={selfClientId}
+              isCall={connectedToACall}
+              onDisconnect={handleVoiceDisconnect}
+              peerLatency={peerLatency}
+              onDisconnectUser={canDisconnectFromVoice ? requestDisconnectUser : undefined}
+              currentUserRole={currentUserRole}
+              adminActions={currentAdminActions}
+              videoStreams={voiceVideoStreams}
+              streamSources={voiceStreamSources}
+            />
+          </div>
+        ) : isMobile ? (
+          <MobileServerView
+            dmSpace={dmSpace}
+            onOpenDm={requestOpenDm}
+            serverName={serverName}
+            serverRole={currentUserRole}
+            isServerUnreachable={isServerUnreachable}
+            isConnectedToVoiceOnThisServer={isVoiceOnThisServer}
+            onOpenSettings={onOpenSettings}
+            onOpenInvites={onOpenInvites}
+            onManageServer={onManageServer}
+            onOpenReports={() => setReportsOpen(true)}
+            pendingReportCount={pendingReportCount}
+            updateAvailable={updateAvailable}
+            onLeave={(mode) => setShowRemoveServer({ host, mode })}
+            channels={hostChannels}
+            sidebarItems={effectiveSidebarItems}
+            serverHost={host}
+            clients={hostClients}
+            members={hostMembers}
+            currentChannelId={currentChannelId}
+            currentServerConnected={currentServerConnected}
+            showVoiceView={showVoiceView}
+            isConnecting={isConnecting}
+            currentConnectionId={selfClientId}
+            selectedChannelId={visibleChannelId}
+            onChannelClick={handleChannelClickAndCloseDm}
+            selectedDmId={visibleDmId}
+            onSelectDm={handleSelectDm}
+            clientsSpeaking={voiceClientsSpeaking}
+            canManage={canManage}
+            onEditItem={handleEditItem}
+            onDeleteItem={requestDeleteSidebarItem}
+            onMoveItem={handleMoveItem}
+            onReorder={moveSidebarItem}
+            orderResetKey={orderResetKey}
+            onAddItem={handleAddItem}
+            onDisconnectUser={canDisconnectFromVoice ? requestDisconnectUser : undefined}
+            currentUserRole={currentUserRole}
+            adminActions={currentAdminActions}
+            unreadCounts={unreadCounts}
+            threadUnreadCounts={threadUnreadCounts}
+            mentionCounts={mentionCounts}
+            chatMessages={visibleChatMessages}
+            sealing={activeDm ? sealing : undefined}
+            mls={activeDm ? mlsView : undefined}
+            memberNames={memberNames}
+            canSend={canSend}
+            sendChat={sendChat}
+            editMessage={editMessage}
+            currentUserId={currentServerUserId}
+            channelName={activeDm ? conversationTitle(activeDm) : activeChannelName}
+            channelType={activeChannelType}
+            automated={!activeDm && activeChannelAutomated}
+            layout={activeDm ? "chat" : activeChannelLayout}
+forumTags={activeDm ? [] : activeChannelForumTags}
+            conversationKind={activeDm ? "dm" : "channel"}
+            headerAction={dmHeaderActions}
+            headerDetail={activeDm ? dmHeaderDetail : <ChannelDescription text={activeChannelDescription} />}
+            currentUserNickname={serverNickname}
+            socketConnection={currentConnection}
+            memberList={memberListMap}
+            isRateLimited={isRateLimited}
+            rateLimitCountdown={rateLimitCountdown}
+            canViewVoiceChannelText={canViewVoiceChannelText}
+            isVoiceChannelTextChat={isVoiceChannelTextChat}
+            isLoadingMessages={isLoadingMessages}
+            restoreText={restoreText}
+            clearRestoreText={clearRestoreText}
+            canDeleteAny={viewerPermissions.canIn(activeConversationId, "manage_messages")}
+            maxFileSize={serverDetails.server_info?.upload_max_bytes}
+            onLoadOlder={fetchOlderMessages}
+            isLoadingOlder={isLoadingOlder}
+            hasOlderMessages={hasOlderMessages}
+            historyWindow={historyWindow}
+            voiceWidth={voiceWidth}
+            clientsForHost={hostClients}
+            isCall={connectedToACall}
+            onVoiceDisconnect={handleVoiceDisconnect}
+            peerLatency={peerLatency}
+            videoStreams={voiceVideoStreams}
+            streamSources={voiceStreamSources}
+          />
+        ) : (
+          <div className="flex w-full gap-4" style={{
+              flex: 1, overflow: "hidden",
+              ...(isServerUnreachable && !isVoiceOnThisServer && { opacity: 0.5, pointerEvents: "none" as const }),
+              transition: "opacity 0.3s ease",
+            }}>
+            {dmSpace ? (
+              <DmSpaceSidebar
+                host={host}
+                selectedConversationId={visibleDmId}
+                onOpen={handleSelectDm}
+                onHidden={forgetHiddenDm}
+              />
+            ) : (
+            <ServerSidebar
+              sidebarOpen={leftSidebarOpen}
+              sidebarWidthPx={sidebarSizing.width}
+              resizing={sidebarSizing.dragging}
+              resizeHandle={sidebarSizing.resizeHandle}
+              hoverPx={SIDEBAR_HOVER_PX}
+              contentRef={leftSidebarContentRef}
+              isUnreachableWhileConnected={isVoiceOnThisServer && isServerUnreachable}
+              onMouseEnter={openLeftSidebar}
+              onMouseLeave={closeLeftSidebar}
+              serverName={serverName}
+              serverRole={currentUserRole}
+              pinned={pinChannelsSidebar}
+              onTogglePinned={() => setPinChannelsSidebar(!pinChannelsSidebar)}
+              onOpenSettings={onOpenSettings}
+              onOpenInvites={onOpenInvites}
+              onManageServer={onManageServer}
+              onOpenReports={() => setReportsOpen(true)}
+              pendingReportCount={pendingReportCount}
+              updateAvailable={updateAvailable}
+              onLeave={(mode) => setShowRemoveServer({ host, mode })}
+              channels={hostChannels}
+              sidebarItems={effectiveSidebarItems}
+              serverHost={host}
+              clients={hostClients}
+              members={hostMembers}
+              currentChannelId={currentChannelId}
+              currentServerConnected={currentServerConnected}
+              showVoiceView={showVoiceView}
+              isConnecting={isConnecting}
+              currentConnectionId={selfClientId}
+              selectedChannelId={visibleChannelId}
+              onChannelClick={handleChannelClickAndCloseDm}
+              clientsSpeaking={voiceClientsSpeaking}
+              canManage={canManage}
+              onEditItem={handleEditItem}
+              onDeleteItem={requestDeleteSidebarItem}
+              onMoveItem={handleMoveItem}
+              onReorder={moveSidebarItem}
+              orderResetKey={orderResetKey}
+              onAddItem={handleAddItem}
+              onDisconnectUser={canDisconnectFromVoice ? requestDisconnectUser : undefined}
+              currentUserRole={currentUserRole}
+              adminActions={currentAdminActions}
+              unreadCounts={unreadCounts}
+              threadUnreadCounts={threadUnreadCounts}
+              mentionCounts={mentionCounts}
+              streamSources={voiceStreamSources}
+            />
+            )}
+            <div className="flex grow" ref={voiceContainerRef} style={{ position: "relative", minWidth: 0 }}>
+              <VoiceView
+                showVoiceView={hasRoomMedia && showVoiceView && (!isCompact || voiceFocused)}
+                /* Focusing a stream makes it the big one inside the panel and
+                   leaves the app where it was. Hiding the chat is its own press. */
+                voiceWidth={
+                  chatTakenOver
+                    ? "100%"
+                    : voiceWidth === "0px"
+                      ? "0px"
+                      : isMaximized
+                        ? "100%"
+                        : `${shownVoiceWidth}px`
+                }
+                maxWidth={
+                  // Both of these hide the chat, so the width reserved for a
+                  // minimum chat column would otherwise cap the panel.
+                  isMaximized || chatTakenOver ? undefined : voiceMaxWidth
+                }
+                serverHost={host}
+                currentServerConnected={currentServerConnected}
+                currentChannelId={currentChannelId}
+                clientsForHost={hostClients}
+                members={hostMembers}
+                clientsSpeaking={voiceClientsSpeaking}
+                isConnecting={isConnecting}
+                currentConnectionId={selfClientId}
+                isCall={connectedToACall}
+                onDisconnect={handleVoiceDisconnect}
+                peerLatency={peerLatency}
+                onDisconnectUser={canDisconnectFromVoice ? requestDisconnectUser : undefined}
+                currentUserRole={currentUserRole}
+                adminActions={currentAdminActions}
+                videoStreams={voiceVideoStreams}
+                streamSources={voiceStreamSources}
+                onFocusChange={setVoiceFocused}
+                isMaximized={isMaximized}
+                onToggleMaximize={toggleMaximized}
+                chatHidden={focusedChatHidden}
+                onToggleChat={toggleFocusedChat}
+              />
+              <div data-gryt="conversation-pane" style={{
+                display: chatPaneHidden ? "none" : "flex",
+                flex: 1,
+                minWidth: 0,
+                ...(isVoiceOnThisServer && isServerUnreachable && { opacity: 0.5, pointerEvents: "none" as const }),
+                transition: "opacity 0.3s ease",
+              }}>
+                {chatView}
+              </div>
+            </div>
+            <MemberSidebarPanel
+              // Closed for good, not collapsed: the server stops sending the list,
+              // so an open panel would show whatever was last cached.
+              sidebarOpen={rightSidebarOpen && canViewMembers && !dmSpace}
+              sidebarWidthPx={SIDEBAR_WIDTH_PX}
+              hoverPx={SIDEBAR_HOVER_PX}
+              contentRef={rightSidebarContentRef}
+              isUnreachableWhileConnected={isVoiceOnThisServer && isServerUnreachable}
+              onMouseEnter={!canViewMembers ? undefined : openRightSidebar}
+              onMouseLeave={closeRightSidebar}
+              members={hostMembers}
+              currentConnectionId={selfClientId}
+              currentServerUserId={currentServerUserId}
+              currentUserRole={currentUserRole}
+              currentServerConnected={currentServerConnected}
+              serverHost={host}
+              adminActions={currentAdminActions}
+              onOpenDm={requestOpenDm}
+              isBlocked={isBlocked}
+              onToggleBlock={(targetServerUserId) =>
+                (isBlocked(targetServerUserId) ? unblock : blockAndHide)(targetServerUserId)
+              }
+              onReport={setReportTarget}
+              pinned={pinMembersSidebar}
+              onTogglePinned={() => setPinMembersSidebar(!pinMembersSidebar)}
+            />
+          </div>
+        )}
+        {!isTiny && !isMobile && (
+            <VoiceSheetButton
+              connected={isVoiceOnThisServer}
+              serverHost={host}
+              currentServerConnected={currentServerConnected}
+              currentChannelId={currentChannelId}
+              clientsForHost={hostClients}
+              members={hostMembers}
+              clientsSpeaking={voiceClientsSpeaking}
+              isConnecting={isConnecting}
+              currentConnectionId={selfClientId}
+              isCall={connectedToACall}
+              onDisconnect={handleVoiceDisconnect}
+              peerLatency={peerLatency}
+              onDisconnectUser={canDisconnectFromVoice ? requestDisconnectUser : undefined}
+              currentUserRole={currentUserRole}
+              adminActions={currentAdminActions}
+              videoStreams={voiceVideoStreams}
+              streamSources={voiceStreamSources}
+            />
+        )}
+      </div>
+
+      {incomingCall ? (
+        <IncomingCallCard
+          call={incomingCall}
+          title={
+            // The conversation's name when known, which for a group is not the one
+            // person ringing. A call can arrive before `dm:list` catches up.
+            directConversations.find((c) => c.conversation_id === incomingCall.conversation_id)
+              ? conversationTitle(
+                  directConversations.find((c) => c.conversation_id === incomingCall.conversation_id)!,
+                )
+              : incomingCall.from.nickname
+          }
+          avatarUrl={callerAvatarUrl}
+          avatarWorn={callerAvatarWorn}
+          onAccept={handleAcceptCall}
+          onDecline={() => declineCall(incomingCall.conversation_id)}
+        />
+      ) : null}
+
+      <GroupDialog
+        open={groupDialog !== null}
+        onOpenChange={(next) => { if (!next) setGroupDialog(null); }}
+        members={hostMembers ?? []}
+        serverHost={host}
+        currentServerUserId={currentServerUserId}
+        existing={groupDialog ?? undefined}
+        canAdd={viewerPermissions.can("create_groups")}
+        onUpdate={updateGroup}
+        onAdd={addToGroup}
+        onLeave={(id) => {
+          setSelectedDmId((current) => (current === id ? null : current));
+          leaveGroup(id);
+        }}
+      />
+
+      <SidebarEditDialog open={editDialogOpen} onOpenChange={setEditDialogOpen} editor={sidebarEditor} />
+      <CreateChannelDialog
+        open={createChannelOpen}
+        onOpenChange={setCreateChannelOpen}
+        initialType={createChannelType}
+        placement={createChannelPlacement}
+        editor={sidebarEditor}
+      />
+
+      <ReportUserDialog
+        target={reportTarget}
+        onClose={() => setReportTarget(null)}
+        isBlocked={isBlocked}
+        onSubmit={({ serverUserId, reason, alsoBlock }) => {
+          reportUser({ serverUserId, reason });
+          /* The reporter's own act, so it does not wait on the report landing:
+             on a server too old for `user:report` the block still works. */
+          if (alsoBlock) blockAndHide(serverUserId);
+        }}
+      />
+
+      <ServerConfirmDialogs
+        pendingDeleteItem={pendingDeleteItem}
+        channelById={channelById}
+        cancelDelete={cancelDelete}
+        confirmDelete={confirmDelete}
+        pendingDisconnectUser={pendingDisconnectUser}
+        setPendingDisconnectUser={setPendingDisconnectUser}
+        onDisconnectUser={handleDisconnectUser}
+        pendingKickUser={pendingKickUser}
+        setPendingKickUser={setPendingKickUser}
+        onKickUser={handleKickUser}
+        pendingBanUser={pendingBanUser}
+        setPendingBanUser={setPendingBanUser}
+        onBanUser={handleBanUser}
+        fetchMemberInvite={fetchMemberInvite}
+        pendingFolderMove={
+          sidebarEditor.pendingFolderMove
+            ? {
+                channelName: channelById.get(sidebarEditor.pendingFolderMove.channelId)?.name || socketI18n.t("socketFull.serverView_9cd7f451cf"),
+                folderName:
+                  effectiveSidebarItems.find((i) => i.id === sidebarEditor.pendingFolderMove?.folderId)?.label ?? null,
+              }
+            : null
+        }
+        answerFolderMove={sidebarEditor.answerFolderMove}
+      />
+
+      <ReportsPanel
+        isOpen={reportsOpen}
+        onClose={() => setReportsOpen(false)}
+        socket={currentConnection}
+        serverHost={host}
+        memberList={memberLists[host]}
+      />
+      {/* Asked once per conversation per blocking state, not every send. */}
+      {/* No onOpenChange: confirmPlaintextSend and cancelPlaintextSend each
+          clear the prompt, and putting the cancel in onOpenChange would fire it
+          on the way out of a confirm -- sending the message and cancelling it in
+          one click. */}
+      <ConfirmDialog
+        open={!!plaintextPrompt}
+        onConfirm={confirmPlaintextSend}
+        onCancel={cancelPlaintextSend}
+        title={socketI18n.t("socketFull.serverView_b3d9a9fc29")}
+        description={
+          <>{socketI18n.t("socketFull.serverView_9c96cdbd5f")}{plaintextPrompt?.kind === "plaintext" && plaintextPrompt.blockedBy.length > 0 && (
+              <>
+                {" "}
+                {plaintextPrompt.blockedBy
+                  .map((blocked) => {
+                    const who = memberNames[blocked.memberId]
+                      ?? socketI18n.t("socketFull.serverView_5805b28f02");
+                    if (blocked.reason === "changed") return socketI18n.t("socketFull.serverView_82e10b3941", { p0: (who) });
+                    if (blocked.reason === "unusable") return socketI18n.t("socketFull.serverView_21faf672a9", { p0: (who) });
+                    return socketI18n.t("socketFull.serverView_00aff76467", { p0: (who) });
+                  })
+                  .join(", ")}
+                .
+              </>
+            )}
+          </>
+        }
+        confirmLabel={socketI18n.t("socketFull.serverView_7dbbd4c3fb")}
+      />
+
+    </MemberCardActionsContext.Provider>
+  );
+};

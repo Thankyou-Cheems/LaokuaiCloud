@@ -1,0 +1,22 @@
+/** The card's style lives in @gryt/ui now (GRYT-1640); these names are what the app already imports. */
+export {
+  BIO_MAX,
+  type CardFill,
+  type CardProfile,
+  cardProfileOf,
+  type CardStyle,
+  cardStyleForWire,
+  cardText,
+  decodeGrytCard as decodeCardStyle,
+  DEFAULT_ANGLE,
+  DEFAULT_CARD_STYLE,
+  encodeGrytCard as encodeCardStyle,
+  hexColour,
+  normalizeCardStyle,
+  PATTERN_FADES,
+  type PatternFade,
+  PRONOUNS_MAX,
+  sameCardStyle,
+  STATUS_LINE_MAX,
+  TUNING,
+} from "@gryt/ui";

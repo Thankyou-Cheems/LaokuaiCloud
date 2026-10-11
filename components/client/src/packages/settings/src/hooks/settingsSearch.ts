@@ -1,0 +1,161 @@
+import { i18n } from "@/i18n";
+
+import { isElectron, isMacDesktop } from "../../../../lib/electron";
+import { SETTINGS_SEARCH_KEYS } from "./settingsSearchKeys";
+
+/**
+ * Search index for the settings modal. The `id` is the anchor SettingGroup
+ * renders, and titles here are the stable part before any colon.
+ */
+export interface SettingsIndexEntry {
+  id: string;
+  title: string;
+  description: string;
+  destination: string;
+  /**
+   * The sub-page inside the destination, where one has sub-pages. Absent is not
+   * wrong: a hit with no page lands on the destination, which is the whole of it.
+   */
+  page?: string;
+  section: string;
+  /** A whole panel rather than an individual control. */
+  panel?: boolean;
+}
+
+/** Stable anchor id for a setting title, ignoring any ": value" suffix. */
+export function settingAnchorId(title: string): string {
+  return title
+    .split(":")[0]
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+export const SETTINGS_INDEX: SettingsIndexEntry[] = [
+  { id: "voice-transport", title: "Voice bandwidth", description: "Mono Opus with variable bitrate. This requests encoder and server preferences; actual traffic may differ. This experimental preset has not been shown to meet the target voice quality.", destination: "sound-video", page: "voice", section: "Voice" },
+  { id: "voice-transport-bitrate", title: "Maximum bitrate (kbps)", description: "The channel may impose a lower cap. This is RTP audio payload, excluding packet and network overhead.", destination: "sound-video", page: "voice", section: "Voice" },
+  { id: "voice-transport-packet-time", title: "Packet duration preference", description: "The server must negotiate this preference. Longer packets add buffering delay.", destination: "sound-video", page: "voice", section: "Voice" },
+  { id: "voice-transport-dtx", title: "Request DTX", description: "Request fewer packets during silence. This setting alone does not prove the encoder reduces packet rate.", destination: "sound-video", page: "voice", section: "Voice" },
+  { id: "voice-transport-fec", title: "Request in-band FEC", description: "Request packet-loss protection when supported. Negotiation alone does not prove redundancy is being sent.", destination: "sound-video", page: "voice", section: "Voice" },
+
+  { id: "squad-mode", title: "Squad mode", description: "Squad game voice transmission suppression.", destination: "sound-video", page: "voice", section: "Squad"},
+  { id: "squad-process", title: "Squad foreground detection", description: "Detect the foreground game process.", destination: "sound-video", page: "voice", section: "Squad"},
+  { id: "squad-target", title: "Squad process target", description: "Choose the Squad executable name.", destination: "sound-video", page: "voice", section: "Squad"},
+  { id: "squad-keys", title: "Squad game voice keys", description: "Keys used by Squad voice chat.", destination: "sound-video", page: "voice", section: "Squad"},
+
+  { id: "receive-leveling", title: "Receive loudness leveling", description: "Gradually balance remote voices.", destination: "sound-video", page: "audio", section: "Playback"},
+  { id: "language", title: "Language", description: "Choose the interface language. 中文 语言 English", destination: "appearance", page: "display", section: "Display" },
+  { id: "updates", title: "Version and updates", description: "This custom build has no automatic update service. Install a new custom package after reviewing its release notes.", page: "updates", destination: "about", section: "About", panel: true },
+  { id: "automatic-noise-gate",title: "Automatic speech gate",description: "Learns background noise during eligible non-speech frames. The gate opening is separate from actual transmitted speech activity. Turn off for the manual threshold.",destination: "sound-video",page: "audio",section: "Voice"},
+  { id: "receive-priors",title: "Local speech-level history",description: "Keeps level statistics on this device, isolated by account, server and member. No audio is saved or uploaded. Expires after 30 days; up to 500 records. Restoring history does not count as fresh speech.",destination: "sound-video",page: "audio",section: "Voice"},
+  { id: "peer-voice-cues",title: "Other people joining or leaving",description: "Short rising and falling tones, only for other people in your current voice room.",destination: "sound-video",page: "voice",section: "Voice"},
+  { id: "peer-voice-cues-enabled", title: "Room event sounds", description: "Short rising and falling tones, only for other people in your current voice room.", destination: "sound-video", page: "voice", section: "Voice" },
+  { id: "peer-voice-cues-dnd", title: "Do not disturb: room sounds", description: "Short rising and falling tones, only for other people in your current voice room.", destination: "sound-video", page: "voice", section: "Voice" },
+  { id: "peer-voice-cues-join-volume", title: "Join cue volume", description: "Short rising and falling tones, only for other people in your current voice room.", destination: "sound-video", page: "voice", section: "Voice" },
+  { id: "peer-voice-cues-leave-volume", title: "Leave cue volume", description: "Short rising and falling tones, only for other people in your current voice room.", destination: "sound-video", page: "voice", section: "Voice" },
+  { id: "profile", title: "Profile", description: "Your display name, avatar and identity.", page: "profile", destination: "profile", section: "Profile", panel: true },
+  { id: "edit-my-card", title: "Edit my card", description: "The card people see when they hover your name: its colour or gradient, pattern and pattern tuning, built-in styles, Surprise me, card links, bio, pronouns and status line.", page: "card", destination: "profile", section: "Edit my card", panel: true },
+  { id: "pronouns", title: "Pronouns", description: "Shown under your name on your card.", page: "card", destination: "profile", section: "Edit my card" },
+  { id: "bio", title: "Bio", description: "A line or two about you on your card.", page: "card", destination: "profile", section: "Edit my card" },
+  { id: "status-line", title: "Status line", description: "Shown on your card when you aren't playing anything.", page: "card", destination: "profile", section: "Edit my card" },
+  { id: "banner", title: "Banner", description: "A picture across the top of your card, on servers that let you upload one.", page: "card", destination: "profile", section: "Edit my card" },
+  { id: "security", title: "Security", description: "Your recovery key and account passkeys.", page: "security", destination: "account", section: "Security", panel: true },
+  { id: "privacy", title: "Privacy", description: "Who can send you messages and who can call you.", page: "privacy", destination: "account", section: "Privacy", panel: true },
+  { id: "who-can-send-me-messages", title: "Who can send me messages", description: "Anyone on the server, friends, or nobody. One answer for every server, and each server can have its own.", page: "privacy", destination: "account", section: "Privacy" },
+  { id: "who-can-call-me", title: "Who can call me", description: "Anyone who can message you, friends, or nobody. Until you add a friend on a server, people you've written to there count.", page: "privacy", destination: "account", section: "Privacy" },
+  { id: "message-history-on-this-device", title: "Message history on this device", description: "Where your encrypted DM history is kept, and clearing it when it won't open.", page: "security", destination: "account", section: "Security" },
+  { id: "your-devices", title: "Your devices", description: "Each app or browser you use for encrypted DMs, on each server. Remove one you don't use anymore.", page: "security", destination: "account", section: "Security" },
+  { id: "message-key-warnings", title: "Message key warnings", description: "Warn when a server holds a message key this device didn't publish. Turn it off if your direct messages don't need to be private from the server.", page: "security", destination: "account", section: "Security" },
+  { id: "persist-server-access-tokens", title: "Persist server access tokens", description: "Keep server sign-in tokens between app sessions, or clear them when 唠蒯云 closes.", page: "security", destination: "account", section: "Security" },
+  { id: "server-identities", title: "Server identities", description: "Servers 唠蒯云 recognises by their identity key, and any it has blocked for answering with a different one. Unblock a server you rebuilt yourself.", page: "identities", destination: "servers", section: "Servers", panel: true },
+  ...(isElectron()
+    ? ([
+    { id: "my-servers", title: "My servers", description: "Servers 唠蒯云 runs on this machine. Start them, stop them, read their logs, and choose whether they start with the app.", page: "my-servers", destination: "servers", section: "Servers", panel: true }
+      ] satisfies SettingsIndexEntry[])
+    : []),
+  { id: "microphone-volume", title: "Microphone volume", description: "Your microphone input level (100% = unchanged, 200% = 2x boost)", page: "audio", destination: "sound-video", section: "Microphone" },
+  { id: "test-microphone", title: "Test microphone", description: "Hear yourself through your speakers or headphones, to check what the processing is doing.", page: "audio", destination: "sound-video", section: "Microphone" },
+  { id: "noise-reduction", title: "Noise reduction", description: "Removes background noise before your voice is sent. Runs in an AudioWorklet off the main thread, and adds about 20 ms.", page: "audio", destination: "sound-video", section: "Microphone" },
+  { id: "auto-gain", title: "Auto gain", description: "Brings your microphone to a target volume. Quiet speech is boosted, loud speech is reduced.", page: "audio", destination: "sound-video", section: "Microphone" },
+  { id: "target-level", title: "Target level", description: "The volume your voice is brought to. Lower is quieter, higher is louder.", page: "audio", destination: "sound-video", section: "Microphone" },
+  { id: "compressor", title: "Compressor", description: "Narrows the gap between your quietest and loudest, so your level stays steadier. Runs after auto gain.", page: "audio", destination: "sound-video", section: "Microphone" },
+  { id: "compression-amount", title: "Compression amount", description: "How aggressively to compress. Low = subtle leveling, high = heavy squash.", page: "audio", destination: "sound-video", section: "Microphone" },
+  { id: "output-volume", title: "Output volume", description: "Volume of all incoming audio (100% = unchanged, 200% = 2x boost)", page: "audio", destination: "sound-video", section: "Playback" },
+  { id: "input-mode", title: "Input mode", description: "Voice activity transmits whenever you speak above the noise gate. Push to talk only transmits while you hold a key, and hides the gate below.", page: "audio", destination: "sound-video", section: "Audio" },
+  { id: "afk-timeout", title: "AFK timeout", description: "You are marked AFK after this many minutes of silence, and only while you are connected to voice.", page: "voice", destination: "sound-video", section: "Voice" },
+  { id: "appearance", title: "Appearance", description: "Mode, themes and display sizes.", page: "theme", destination: "appearance", section: "Appearance", panel: true },
+  { id: "theme", title: "Theme", description: "Pick one, or open the editor and change it while you use the app. A theme is a couple of dozen hex values, so a link is the whole thing.", page: "theme", destination: "appearance", section: "Theme" },
+  { id: "the-server-we-run", title: "The server we run", description: "唠蒯云 runs one server itself, and the dialog for adding a server offers it when you have nothing to paste. Turning this off hides that row for good on this device, and turning it back on is what this is for.", page: "adding-servers", destination: "servers", section: "Adding servers" },
+  { id: "typefaces-from-google", title: "Typefaces from Google", description: "A theme can name any typeface. Letting 唠蒯云 fetch the ones you do not already have means Google sees your address and that you are running 唠蒯云. Off, a theme that names one falls back to a face you have.", page: "theme", destination: "appearance", section: "Theme" },
+  { id: "ui-scale", title: "UI scale", description: "How large 唠蒯云 draws everything. Ctrl+Plus and Ctrl+Minus do the same, and Ctrl+0 puts it back to 100%.", page: "display", destination: "appearance", section: "Display" },
+  { id: "chat-font-size", title: "Chat font size", description: "The size messages are set in, with a preview underneath.", page: "display", destination: "appearance", section: "Display" },
+  { id: "standalone-emoji-size", title: "Standalone emoji size", description: "How big an emoji is drawn when a message is nothing but emoji.", page: "display", destination: "appearance", section: "Display" },
+  { id: "smiley-conversion", title: "Smiley conversion", description: "Turns typed smileys into emoji as you write them.", page: "chat", destination: "chat-notifications", section: "Chat" },
+  { id: "blur-profanity", title: "Blur profanity", description: "Blurs profane words when the server has profanity filtering set to flag. Click a blurred word to reveal it.", page: "chat", destination: "chat-notifications", section: "Chat" },
+  { id: "load-link-embeds-automatically", title: "Load link embeds automatically", description: "Players from YouTube, Spotify, Twitch and the like, pictures and videos linked from other sites, and the pictures on link previews all load from those sites, which can see that you opened them. Off, players and files wait for you to press Load, and previews show text only.", page: "chat", destination: "chat-notifications", section: "Chat" },
+  { id: "hotkeys", title: "Hotkeys", description: "Keyboard and mouse-button shortcuts, including your push-to-talk key.", page: "hotkeys", destination: "behaviour", section: "Hotkeys", panel: true },
+  { id: "push-to-talk-key", title: "Push to Talk Key", description: "Hold this key or mouse button to transmit your microphone. Only shown while input mode is push to talk.", page: "hotkeys", destination: "behaviour", section: "Hotkeys" },
+  { id: "toggle-mute", title: "Toggle mute", description: "Toggle your microphone on or off.", page: "hotkeys", destination: "behaviour", section: "Hotkeys" },
+  { id: "toggle-deafen", title: "Toggle deafen", description: "Mute all incoming audio and your microphone.", page: "hotkeys", destination: "behaviour", section: "Hotkeys" },
+  { id: "disconnect", title: "Disconnect", description: "Disconnect from the current voice channel.", page: "hotkeys", destination: "behaviour", section: "Hotkeys" },
+  { id: "desktop-notifications", title: "Desktop notifications", description: "Show a notification when a message arrives somewhere you are not looking. Never plays its own sound — the message sound does that.", page: "notifications", destination: "chat-notifications", section: "Notifications" },
+  { id: "notification-level", title: "Notification level", description: "Applies to every server. It can only quieten one, never make one louder — a server you have already muted stays muted.", page: "notifications", destination: "chat-notifications", section: "Notifications" },
+  { id: "per-server", title: "Per server", description: "How loud each server is on its own. Set from the right-click menu too — this is the same setting, in one place.", page: "notifications", destination: "chat-notifications", section: "Notifications" },
+  { id: "unread-message-badge", title: "Unread message badge", description: "Show an unread message count on the taskbar icon when the app is not focused.", page: "notifications", destination: "chat-notifications", section: "Notifications" },
+  // Electron only, like the panel itself. Offering "Hardware acceleration" in
+  // a browser used to send you to a page that does not render it.
+  ...(isElectron()
+    ? ([
+      ...(isMacDesktop()
+        ? [{ id: "open-at-login", title: "Open at login", description: "Opens 唠蒯云 when you log in to your Mac.", page: "desktop", destination: "behaviour", section: "Desktop" }]
+        : [
+            { id: "start-with-windows", title: "Start with Windows", description: "Launches 唠蒯云 when you sign in to Windows.", page: "desktop", destination: "behaviour", section: "Desktop" },
+            { id: "start-minimized-on-login", title: "Start minimized on login", description: "Only applies when 唠蒯云 is launched automatically on sign-in. Manual launches will still show the window.", page: "desktop", destination: "behaviour", section: "Desktop" },
+          ]),
+      { id: "minimize-to-tray-on-close", title: "Minimize to tray on close", description: "Closing the window hides 唠蒯云 in the system tray instead of quitting it.", page: "desktop", destination: "behaviour", section: "Desktop" },
+      { id: "hardware-acceleration", title: "Hardware acceleration", description: "Uses your GPU for rendering. Turn it off if you see visual glitches or high GPU usage. Changing this restarts 唠蒯云.", page: "desktop", destination: "behaviour", section: "Desktop" }
+      ] satisfies SettingsIndexEntry[])
+    : []),
+  { id: "esports-mode", title: "eSports mode", description: "Legacy latency mode changes audio processing and PTT. The voice bandwidth profile below separately controls codec requests; server limits still apply.", page: "voice", destination: "sound-video", section: "Voice" },
+  { id: "warn-me-when-my-microphone-goes-silent", title: "Warn me when my microphone goes silent", description: "Says so if your microphone stops sending anything at all while you are in a voice channel. Some headsets mute their own noise floor between sentences, which looks the same from here.", page: "audio", destination: "sound-video", section: "Microphone" },
+  // Dev builds only, the same way the Developer destination is. Without the gate
+  // a release would offer results for a panel that is not in the bundle.
+  ...(import.meta.env.DEV
+    ? ([
+        { id: "fake-participants", title: "Fake participants", description: "Invents people in the voice channel you are in and in the member list around it, so both can be seen at counts a single account cannot reach. They render through the real voice view and the real member list, so this proves layout and nothing about the socket path.", destination: "developer", section: "Developer" },
+        { id: "in-the-voice-channel-with-you", title: "In the voice channel with you", description: "How many invented people to put in the channel, on top of anyone actually there.", destination: "developer", section: "Developer" },
+        { id: "in-the-server-not-in-voice", title: "In the server, not in voice", description: "How many more to put in the member list, spread across online, AFK and offline.", destination: "developer", section: "Developer" },
+        { id: "how-many-are-muted", title: "How many are muted", description: "Of the people in voice. Muted and deafened ones stay silent — nothing talks that should not be able to.", destination: "developer", section: "Developer" },
+        { id: "one-is-deafened", title: "One is deafened", description: "Deafens the last one, and mutes them with it, since that is what deafening does here. The deafened badge is a different icon from the muted one.", destination: "developer", section: "Developer" },
+        { id: "they-talk", title: "They talk", description: "Everyone not muted takes turns talking, in bursts of a few seconds with longer gaps. Each one gets a real silent audio track, so the halo and the speaking ring are driven by a level the same way a real participant's are.", destination: "developer", section: "Developer" },
+        { id: "fake-chat", title: "Fake chat", description: "Posts messages from the invented people into the channel you are looking at — mentions, custom emoji, links with previews, code blocks, replies and a wall of text. Delivered through the same handler a real message arrives on. Nothing is sent to the server.", destination: "developer", section: "Developer" },
+        { id: "a-message-every", title: "A message every", description: "How often a fake message arrives, in seconds, while it is running.", destination: "developer", section: "Developer" }
+      ] satisfies SettingsIndexEntry[])
+    : []),
+  { id: "addons", title: "Addons", description: "Extensions that add features to 唠蒯云.", destination: "extensions", section: "Addons", panel: true },
+  { id: "support-gryt", title: "Support 唠蒯云", description: "Ways to support the project.", destination: "support", section: "Support", panel: true }
+];
+
+// Search both languages while keeping catalog routing and screen order unchanged.
+export function searchSettings(query: string, translate: (key: string) => string = (key) => i18n.t(key)): SettingsIndexEntry[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+
+  return SETTINGS_INDEX.flatMap((entry) => {
+    const keys = SETTINGS_SEARCH_KEYS[entry.id];
+    const localized = keys ? {
+      ...entry,
+      title: translate(keys.title),
+      description: translate(keys.description),
+      section: translate(keys.section),
+    } : { ...entry };
+    const labels = [localized.title, localized.description, localized.section,
+      entry.title, entry.description, entry.section];
+    // Both bundled languages remain searchable, without changing the app's
+    // language, initializing another i18n instance, or loading remote resources.
+    if (keys) labels.push(...[keys.title, keys.description, keys.section]
+      .map((key) => i18n.t(key, { lng: "zh-CN" })));
+    return labels.some((label) => label.toLowerCase().includes(q)) ? [localized] : [];
+  });
+}

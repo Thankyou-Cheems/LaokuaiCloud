@@ -1,0 +1,783 @@
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
+import toast from "react-hot-toast";
+
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n";
+
+import { PiCode, PiFileAudioFill, PiFileFill, PiFileTextFill, PiFileVideoFill, PiFileZipFill, PiImageFill, PiPaperclipFill, PiPaperPlaneTiltFill, PiSmileyFill, PiX } from "../../../../lib/icons";
+import { termsGate } from "../../../../lib/termsGate";
+const FaFilePdf = PiFileTextFill;
+
+import { channelHref } from "../../../lib/mentionTokens";
+import { parseEditSegments } from "../utils/chatEditorMentions";
+import { type EmojiEntry, getCustomEmojis, recordRecentEmoji } from "../utils/emojiData";
+import { EmojiAutocomplete } from "./EmojiAutocomplete";
+import { EmojiPicker } from "./EmojiPicker";
+import { emojiQueryAt } from "./emojiQuery";
+import { MentionAutocomplete, type MentionMember } from "./MentionAutocomplete";
+
+/**
+ * The server's cap, mirrored so the counter and the send button can see it. Drift
+ * low and the composer nags early; drift high and the send is refused.
+ */
+const MESSAGE_MAX_LENGTH = 4000;
+
+/** Show the counter this far from the cap, not before. */
+const COUNTER_VISIBLE_FROM = MESSAGE_MAX_LENGTH - 500;
+
+/** A paste that cannot fit in one message becomes an ordinary text attachment. */
+const LARGE_PASTE_FILE_NAME = "pasted-text.txt";
+
+/** Said instead, where the attachment would be refused. */
+
+export interface ChatEditorHandle {
+  clear: () => void;
+  focus: () => void;
+  getMarkdown: () => string;
+  getFiles: () => File[];
+  addFiles: (files: FileList | File[]) => void;
+  setContent: (text: string) => void;
+  /** A message that did not go out: its files come back, and its text if the box is empty. */
+  restore: (draft: { text: string; files: File[] }) => void;
+}
+
+interface PendingFile {
+  id: string;
+  file: File;
+  previewUrl: string | null;
+}
+
+interface ChatEditorProps {
+  placeholder?: string;
+  disabled?: boolean;
+  /**
+   * Whether attaching is offered at all. Separate from `disabled`: a role can be
+   * allowed to talk and not to upload.
+   */
+  allowFiles?: boolean;
+  maxFileSize?: number | null;
+  onSend: (markdown: string, files: File[]) => void;
+  onArrowUpEmpty?: () => void;
+  onCancel?: () => void;
+  onTyping?: () => void;
+  onStopTyping?: () => void;
+  isEditing?: boolean;
+  memberList?: MentionMember[];
+  /** Channels a `#` offers. Only ones this member can see. */
+  channelList?: MentionMember[];
+  serverHost?: string;
+}
+
+function getFileIcon(mime: string) {
+  if (mime.startsWith("image/")) return <PiImageFill size={14} />;
+  if (mime.startsWith("audio/")) return <PiFileAudioFill size={14} />;
+  if (mime.startsWith("video/")) return <PiFileVideoFill size={14} />;
+  if (mime === "application/pdf") return <FaFilePdf size={14} />;
+  if (mime.includes("zip") || mime.includes("tar") || mime.includes("rar") || mime.includes("gzip") || mime.includes("compress")) return <PiFileZipFill size={14} />;
+  if (mime.includes("javascript") || mime.includes("json") || mime.includes("xml") || mime.includes("html") || mime.includes("css") || mime.includes("typescript")) return <PiCode size={14} />;
+  if (mime.startsWith("text/")) return <PiFileTextFill size={14} />;
+  return <PiFileFill size={14} />;
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function serializeContentEditable(el: HTMLElement): string {
+  let result = "";
+  for (const node of el.childNodes) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      result += node.textContent || "";
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      const elem = node as HTMLElement;
+      if (elem.tagName === "IMG" && elem.dataset.emojiName) {
+        // Another server's emoji goes as its image; its name only resolves on its own server.
+        result += elem.dataset.emojiSrc ? `![:${elem.dataset.emojiName}:](${elem.dataset.emojiSrc})` : `:${elem.dataset.emojiName}:`;
+      } else if (elem.dataset.roleId) {
+        result += `[${elem.dataset.mentionName || elem.textContent || ""}](role:${elem.dataset.roleId})`;
+      } else if (elem.dataset.channelId) {
+        // Never the name: a reader who can't see the channel must not get it.
+        result += `[#channel](${channelHref(elem.dataset.channelId, elem.dataset.channelHost || null)})`;
+      } else if (elem.dataset.mentionId) {
+        const id = elem.dataset.mentionId;
+        const name = elem.dataset.mentionName || elem.textContent || "";
+        result += `[${name}](mention:${id})`;
+      } else if (elem.tagName === "BR") {
+        result += "\n";
+      } else if (elem.tagName === "DIV" || elem.tagName === "P") {
+        if (result.length > 0 && !result.endsWith("\n")) result += "\n";
+        result += serializeContentEditable(elem);
+      } else {
+        result += serializeContentEditable(elem);
+      }
+    }
+  }
+  return result;
+}
+
+function autoResize(el: HTMLElement) {
+  el.style.height = "auto";
+  el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
+}
+
+function getEmojiQueryAtCursor(): string | null {
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0 || !sel.isCollapsed) return null;
+
+  const range = sel.getRangeAt(0);
+  const node = range.startContainer;
+  if (node.nodeType !== Node.TEXT_NODE) return null;
+
+  return emojiQueryAt(node.textContent || "", range.startOffset)?.name ?? null;
+}
+
+const QUERY = { "@": /(^|[\s])@([a-zA-Z0-9_ ]*)$/, "#": /(^|[\s])#([a-zA-Z0-9_-]*)$/ } as const;
+
+function getQueryAtCursor(trigger: "@" | "#"): string | null {
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0 || !sel.isCollapsed) return null;
+
+  const range = sel.getRangeAt(0);
+  const node = range.startContainer;
+  if (node.nodeType !== Node.TEXT_NODE) return null;
+
+  const text = node.textContent || "";
+  const offset = range.startOffset;
+  const before = text.slice(0, offset);
+
+  const match = before.match(QUERY[trigger]);
+  if (!match) return null;
+
+  const afterCursor = text.slice(offset);
+  if (afterCursor.length > 0 && /^[a-zA-Z0-9_]/.test(afterCursor)) return null;
+
+  return match[2];
+}
+
+/** The pill a pick turns into, or plain text for @everyone and @here. */
+function mentionNode(member: MentionMember): Node {
+  if (member.kind === "everyone" || member.kind === "here") return document.createTextNode(`@${member.kind}`);
+  const pill = document.createElement("span");
+  pill.className = "chat-editor-mention";
+  if (member.kind === "channel" && member.channelId) {
+    pill.dataset.channelId = member.channelId;
+    pill.textContent = `#${member.nickname}`;
+  } else if (member.kind === "role" && member.roleId) {
+    pill.dataset.roleId = member.roleId;
+    pill.dataset.mentionName = `@${member.nickname}`;
+    pill.textContent = `@${member.nickname}`;
+  } else {
+    pill.dataset.mentionId = member.serverUserId;
+    pill.dataset.mentionName = `@${member.nickname}`;
+    // Shown, never sent: the stored label stays the name, from `mentionName`.
+    pill.textContent = member.tag ? `@${member.nickname} ${member.tag}` : `@${member.nickname}`;
+  }
+  pill.contentEditable = "false";
+  pill.draggable = false;
+  return pill;
+}
+
+function replaceQueryAtCursor(trigger: "@" | "#", member: MentionMember): void {
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0) return;
+
+  const range = sel.getRangeAt(0);
+  const node = range.startContainer;
+  if (node.nodeType !== Node.TEXT_NODE) return;
+
+  const text = node.textContent || "";
+  const offset = range.startOffset;
+  const before = text.slice(0, offset);
+
+  const match = before.match(QUERY[trigger]);
+  if (!match) return;
+
+  const atStart = offset - match[0].length + match[1].length;
+
+  const replaceRange = document.createRange();
+  replaceRange.setStart(node, atStart);
+  replaceRange.setEnd(node, offset);
+  replaceRange.deleteContents();
+
+  const trailing = document.createTextNode(" ");
+  replaceRange.insertNode(trailing);
+  replaceRange.insertNode(mentionNode(member));
+
+  sel.removeAllRanges();
+  const newRange = document.createRange();
+  newRange.setStartAfter(trailing);
+  newRange.collapse(true);
+  sel.addRange(newRange);
+}
+
+function replaceEmojiQueryAtCursor(entry: EmojiEntry): void {
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0) return;
+
+  const range = sel.getRangeAt(0);
+  const node = range.startContainer;
+  if (node.nodeType !== Node.TEXT_NODE) return;
+
+  const offset = range.startOffset;
+  const query = emojiQueryAt(node.textContent || "", offset);
+  if (!query) return;
+
+  const replaceRange = document.createRange();
+  replaceRange.setStart(node, query.start);
+  replaceRange.setEnd(node, offset);
+  replaceRange.deleteContents();
+
+  if (entry.emoji) {
+    const textNode = document.createTextNode(entry.emoji + " ");
+    replaceRange.insertNode(textNode);
+    sel.removeAllRanges();
+    const newRange = document.createRange();
+    newRange.setStartAfter(textNode);
+    newRange.collapse(true);
+    sel.addRange(newRange);
+  } else if (entry.url) {
+    const img = document.createElement("img");
+    img.src = entry.url;
+    img.alt = `:${entry.name}:`;
+    img.dataset.emojiName = entry.name;
+    img.className = "inline-emoji";
+    img.draggable = false;
+    img.contentEditable = "false";
+    const space = document.createTextNode(" ");
+    replaceRange.insertNode(space);
+    replaceRange.insertNode(img);
+    sel.removeAllRanges();
+    const newRange = document.createRange();
+    newRange.setStartAfter(space);
+    newRange.collapse(true);
+    sel.addRange(newRange);
+  }
+}
+
+export const ChatEditor = forwardRef<ChatEditorHandle, ChatEditorProps>(
+  ({ placeholder, disabled, allowFiles, maxFileSize, onSend, onArrowUpEmpty, onCancel, onTyping, onStopTyping, isEditing, memberList, channelList, serverHost }, ref) => {
+  useSocketTranslation();
+  const { t: tr } = useTranslation();
+    const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
+    const pendingFilesRef = useRef<PendingFile[]>([]);
+    pendingFilesRef.current = pendingFiles;
+
+    const editorRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const onSendRef = useRef(onSend);
+    onSendRef.current = onSend;
+    const onTypingRef = useRef(onTyping);
+    onTypingRef.current = onTyping;
+    const onStopTypingRef = useRef(onStopTyping);
+    onStopTypingRef.current = onStopTyping;
+    const channelListRef = useRef(channelList);
+    channelListRef.current = channelList;
+
+    const [emojiQuery, setEmojiQuery] = useState<string | null>(null);
+    const [showAutocomplete, setShowAutocomplete] = useState(false);
+    const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
+
+    const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+    const [showMentionAutocomplete, setShowMentionAutocomplete] = useState(false);
+    const [channelQuery, setChannelQuery] = useState<string | null>(null);
+
+    const updateAutocompleteQueries = useCallback(() => {
+      const cq = getQueryAtCursor("#");
+      setChannelQuery(cq);
+      if (cq !== null) {
+        setShowMentionAutocomplete(false);
+        setShowAutocomplete(false);
+        return;
+      }
+      const mq = getQueryAtCursor("@");
+      if (mq !== null) {
+        setMentionQuery(mq);
+        setShowMentionAutocomplete(true);
+        setEmojiQuery(null);
+        setShowAutocomplete(false);
+        return;
+      }
+      setMentionQuery(null);
+      setShowMentionAutocomplete(false);
+
+      const eq = getEmojiQueryAtCursor();
+      setEmojiQuery(eq);
+      setShowAutocomplete(eq !== null);
+    }, []);
+
+    const [length, setLength] = useState(0);
+
+    const handleSend = useCallback(() => {
+      const el = editorRef.current;
+      if (!el) return;
+
+      const text = serializeContentEditable(el).trim();
+      const files = pendingFilesRef.current.map((p) => p.file);
+
+      if (!text && files.length === 0) return;
+      // The server refuses this too. Stopping here keeps the message in the box,
+      // where it can be edited down, rather than bounced with the text cleared.
+      if (text.length > MESSAGE_MAX_LENGTH) return;
+
+      // Until this device has agreed to the terms, the draft stays in the box while it asks.
+      termsGate.postAfterAgreeing(() => {
+        onSendRef.current(text, files);
+        el.textContent = "";
+        autoResize(el);
+        pendingFilesRef.current.forEach((p) => { if (p.previewUrl) URL.revokeObjectURL(p.previewUrl); });
+        setPendingFiles([]);
+        setShowAutocomplete(false);
+        setEmojiQuery(null);
+        setShowMentionAutocomplete(false);
+        setMentionQuery(null);
+        setChannelQuery(null);
+        onStopTypingRef.current?.();
+      });
+    }, []);
+
+    const addFiles = useCallback((files: FileList | File[]) => {
+      // Covers paste and drag-and-drop as well as the clip, which is why it is
+      // here rather than only on the button.
+      if (allowFiles === false) {
+        toast.error(tr("ui.youDoNotHavePermissionToAttachFiles"));
+        return;
+      }
+      for (const file of files) {
+        if (maxFileSize && file.size > maxFileSize) {
+          const limitMb = (maxFileSize / (1024 * 1024)).toFixed(0);
+          toast.error(socketI18n.t("socketFull.chatEditor_56c76d0477", { p0: (file.name), p1: (limitMb) }));
+          continue;
+        }
+        const previewUrl = file.type.startsWith("image/") ? URL.createObjectURL(file) : null;
+        const id = `file-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        setPendingFiles((prev) => [...prev, { id, file, previewUrl }]);
+      }
+    }, [maxFileSize, allowFiles, tr]);
+
+    const handleKeyDown = useCallback(
+      (e: React.KeyboardEvent<HTMLDivElement>) => {
+        // A suggestion list that used the key prevented it first. An empty one lets it through.
+        if (e.nativeEvent.defaultPrevented || e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229) return;
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          handleSend();
+          return;
+        }
+        if (e.key === "Escape" && isEditing && onCancel) {
+          // Calling off an edit is the innermost thing Escape can mean here.
+          e.preventDefault();
+          e.stopPropagation();
+          onCancel();
+          return;
+        }
+        if (e.key === "ArrowUp" && !isEditing && onArrowUpEmpty) {
+          const el = editorRef.current;
+          const text = el ? serializeContentEditable(el).trim() : "";
+          if (!text && pendingFilesRef.current.length === 0) {
+            e.preventDefault();
+            onArrowUpEmpty();
+          }
+        }
+      },
+      [handleSend, isEditing, onCancel, onArrowUpEmpty]
+    );
+
+    const handlePaste = useCallback(
+      (e: React.ClipboardEvent<HTMLDivElement>) => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+
+        const filesToAdd: File[] = [];
+        for (const item of items) {
+          if (item.kind === "file") {
+            const file = item.getAsFile();
+            if (file) filesToAdd.push(file);
+          }
+        }
+        if (filesToAdd.length > 0) {
+          e.preventDefault();
+          addFiles(filesToAdd);
+          return;
+        }
+
+        e.preventDefault();
+        const text = e.clipboardData.getData("text/plain");
+        if (!text) return;
+
+        // Oversized text is unsendable and can freeze contentEditable.
+        // Keep it out of the DOM and attach the exact clipboard contents instead.
+        if (text.length > MESSAGE_MAX_LENGTH) {
+          if (isEditing) {
+            toast.error(
+              socketI18n.t("socketFull.chatEditor_1fd8a6e0cc", { p0: (MESSAGE_MAX_LENGTH.toLocaleString(socketI18n.resolvedLanguage)) }),
+            );
+            return;
+          }
+          // The file below would be refused, and the paste gone with it.
+          if (allowFiles === false) {
+            toast.error(tr("chat.longPaste", { count: MESSAGE_MAX_LENGTH }));
+            return;
+          }
+
+          addFiles([
+            new File([text], LARGE_PASTE_FILE_NAME, {
+              type: "text/plain;charset=utf-8",
+            }),
+          ]);
+          return;
+        }
+
+        document.execCommand("insertText", false, text);
+      },
+      [addFiles, isEditing, allowFiles, tr]
+    );
+
+    const handleDrop = useCallback(
+      (e: React.DragEvent<HTMLDivElement>) => {
+        const files = e.dataTransfer?.files;
+        if (!files || files.length === 0) return;
+        e.preventDefault();
+        e.stopPropagation();
+        addFiles(files);
+      },
+      [addFiles]
+    );
+
+    const handleInput = useCallback(() => {
+      if (editorRef.current) autoResize(editorRef.current);
+      updateAutocompleteQueries();
+      const body = editorRef.current ? serializeContentEditable(editorRef.current).trim() : "";
+      setLength(body.length);
+      if (body.length > 0) {
+        onTypingRef.current?.();
+      } else {
+        onStopTypingRef.current?.();
+      }
+    }, [updateAutocompleteQueries]);
+
+    const handleEmojiSelect = useCallback((entry: EmojiEntry) => {
+      replaceEmojiQueryAtCursor(entry);
+      recordRecentEmoji(entry.name, entry.isCustom, serverHost);
+      setShowAutocomplete(false);
+      setEmojiQuery(null);
+      if (editorRef.current) autoResize(editorRef.current);
+    }, [serverHost]);
+
+    const handleAutocompleteClose = useCallback(() => {
+      setShowAutocomplete(false);
+      setEmojiQuery(null);
+    }, []);
+
+    const handleChannelSelect = useCallback((channel: MentionMember) => {
+      replaceQueryAtCursor("#", channel);
+      setChannelQuery(null);
+      if (editorRef.current) autoResize(editorRef.current);
+    }, []);
+
+    const handleMentionSelect = useCallback((member: MentionMember) => {
+      replaceQueryAtCursor("@", member);
+      setShowMentionAutocomplete(false);
+      setMentionQuery(null);
+      if (editorRef.current) autoResize(editorRef.current);
+    }, []);
+
+    const handleMentionAutocompleteClose = useCallback(() => {
+      setShowMentionAutocomplete(false);
+      setMentionQuery(null);
+    }, []);
+
+    const handlePickerEmojiSelect = useCallback((src: string) => {
+      const el = editorRef.current;
+      if (!el) return;
+
+      el.focus();
+      const sel = window.getSelection();
+
+      const other = /^!\[:([a-zA-Z0-9_+-]+):\]\((https?:\/\/[^)\s]+)\)$/.exec(src);
+      if (other) {
+        const img = document.createElement("img");
+        img.src = other[2];
+        img.alt = `:${other[1]}:`;
+        img.dataset.emojiName = other[1];
+        img.dataset.emojiSrc = other[2];
+        img.className = "inline-emoji";
+        img.draggable = false;
+        img.contentEditable = "false";
+        el.appendChild(img);
+      } else if (src.startsWith(":") && src.endsWith(":")) {
+        const name = src.slice(1, -1);
+        const custom = getCustomEmojis().find((e) => e.name === name);
+        if (custom?.url) {
+          const img = document.createElement("img");
+          img.src = custom.url;
+          img.alt = src;
+          img.dataset.emojiName = name;
+          img.className = "inline-emoji";
+          img.draggable = false;
+          img.contentEditable = "false";
+          el.appendChild(img);
+          recordRecentEmoji(name, true, serverHost);
+        }
+      } else {
+        el.appendChild(document.createTextNode(src));
+      }
+
+      const trailing = document.createTextNode(" ");
+      el.appendChild(trailing);
+
+      if (sel) {
+        sel.removeAllRanges();
+        const range = document.createRange();
+        range.setStartAfter(trailing);
+        range.collapse(true);
+        sel.addRange(range);
+      }
+
+      autoResize(el);
+      setEmojiPickerOpen(false);
+    }, [serverHost]);
+
+    const setContent = useCallback((text: string) => {
+      const el = editorRef.current;
+      if (!el) return;
+      el.textContent = "";
+      const channelName = (id: string) =>
+        channelListRef.current?.find((c) => c.channelId === id)?.nickname ?? null;
+      for (const segment of parseEditSegments(text, channelName)) {
+        if ("text" in segment) {
+          if (segment.text) el.appendChild(document.createTextNode(segment.text));
+          continue;
+        }
+        const pill = document.createElement("span");
+        pill.className = "chat-editor-mention";
+        for (const [key, value] of Object.entries(segment.pill.dataset)) pill.dataset[key] = value;
+        pill.textContent = segment.pill.text;
+        pill.contentEditable = "false";
+        pill.draggable = false;
+        el.appendChild(pill);
+      }
+      autoResize(el);
+      setLength(text.trim().length);
+      requestAnimationFrame(() => {
+        el.focus();
+        const sel = window.getSelection();
+        if (sel) {
+          sel.selectAllChildren(el);
+          sel.collapseToEnd();
+        }
+      });
+    }, []);
+
+    useImperativeHandle(ref, () => ({
+      clear: () => {
+        if (editorRef.current) {
+          editorRef.current.textContent = "";
+          autoResize(editorRef.current);
+        }
+        pendingFiles.forEach((p) => { if (p.previewUrl) URL.revokeObjectURL(p.previewUrl); });
+        setPendingFiles([]);
+      },
+      focus: () => editorRef.current?.focus(),
+      getMarkdown: () => editorRef.current ? serializeContentEditable(editorRef.current) : "",
+      getFiles: () => pendingFiles.map((p) => p.file),
+      addFiles,
+      setContent,
+      restore: ({ text, files }) => {
+        const el = editorRef.current;
+        if (!el) return;
+        // Whatever was typed since the send stays, and the files join it.
+        if (text && !serializeContentEditable(el).trim()) setContent(text);
+        else el.focus();
+        if (files.length > 0) addFiles(files);
+      },
+    }));
+
+    const removeFile = useCallback((id: string) => {
+      setPendingFiles((prev) => {
+        const f = prev.find((p) => p.id === id);
+        if (f?.previewUrl) URL.revokeObjectURL(f.previewUrl);
+        return prev.filter((p) => p.id !== id);
+      });
+    }, []);
+
+    useEffect(() => {
+      const onMentionUser = (e: Event) => {
+        const { serverUserId: id, nickname: name } = (e as CustomEvent<{ serverUserId: string; nickname: string }>).detail;
+        const el = editorRef.current;
+        if (!el || !id) return;
+
+        el.focus();
+
+        const mention = document.createElement("span");
+        mention.className = "chat-editor-mention";
+        mention.dataset.mentionId = id;
+        mention.dataset.mentionName = `@${name}`;
+        mention.textContent = `@${name}`;
+        mention.contentEditable = "false";
+        mention.draggable = false;
+
+        const trailing = document.createTextNode(" ");
+        el.appendChild(mention);
+        el.appendChild(trailing);
+
+        const sel = window.getSelection();
+        if (sel) {
+          sel.removeAllRanges();
+          const range = document.createRange();
+          range.setStartAfter(trailing);
+          range.collapse(true);
+          sel.addRange(range);
+        }
+        autoResize(el);
+      };
+      window.addEventListener("mention_user", onMentionUser);
+      return () => window.removeEventListener("mention_user", onMentionUser);
+    }, []);
+
+    useEffect(() => {
+      return () => {
+        pendingFilesRef.current.forEach((p) => { if (p.previewUrl) URL.revokeObjectURL(p.previewUrl); });
+      };
+    }, []);
+
+    return (
+      <div className={`chat-editor-wrapper ${disabled ? "chat-editor-disabled" : ""}`} style={{ position: "relative" }}>
+        {pendingFiles.length > 0 && (
+          <div className="chat-editor-file-preview-bar">
+            {pendingFiles.map((pf) => (
+              <div key={pf.id} className="chat-editor-file-preview">
+                {pf.previewUrl ? (
+                  <img src={pf.previewUrl} alt={socketI18n.t("socketFull.chatEditor_834e944fb9")} />
+                ) : (
+                  <div className="chat-editor-file-preview-icon">
+                    {getFileIcon(pf.file.type)}
+                  </div>
+                )}
+                <div className="chat-editor-file-preview-info">
+                  <span className="chat-editor-file-preview-name" title={pf.file.name}>{pf.file.name}</span>
+                  <span className="chat-editor-file-preview-size">{formatFileSize(pf.file.size)}</span>
+                </div>
+                <button
+                  className="chat-editor-file-delete"
+                  onClick={() => removeFile(pf.id)}
+                  type="button"
+                  aria-label={tr("ui.removeFile")}
+                >
+                  <PiX size={11} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <EmojiAutocomplete
+          query={emojiQuery || ""}
+          visible={showAutocomplete}
+          onSelect={handleEmojiSelect}
+          onClose={handleAutocompleteClose}
+          serverHost={serverHost}
+        />
+        <MentionAutocomplete
+          query={mentionQuery || ""}
+          visible={showMentionAutocomplete}
+          members={memberList || []}
+          onSelect={handleMentionSelect}
+          onClose={handleMentionAutocompleteClose}
+        />
+        <MentionAutocomplete
+          query={channelQuery || ""}
+          visible={channelQuery !== null}
+          members={channelList || []}
+          onSelect={handleChannelSelect}
+          onClose={() => setChannelQuery(null)}
+          title={tr("ui.channels")}
+        />
+        <div className="chat-editor-input-row">
+          {allowFiles !== false && (
+            <button
+              className="chat-editor-attach-btn"
+              type="button"
+              aria-label={tr("ui.attachFile")}
+              disabled={disabled}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <PiPaperclipFill size={20} />
+            </button>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            style={{ display: "none" }}
+            onChange={(e) => {
+              if (e.target.files) addFiles(e.target.files);
+              e.target.value = "";
+            }}
+          />
+          <div style={{ position: "relative" }}>
+            <button
+              className="chat-editor-emoji-btn"
+              type="button"
+              aria-label={tr("ui.insertEmoji")}
+              disabled={disabled}
+              onClick={() => setEmojiPickerOpen((v) => !v)}
+            >
+              <PiSmileyFill size={20} />
+            </button>
+            {emojiPickerOpen && (
+              <EmojiPicker
+                onSelect={handlePickerEmojiSelect}
+                onClose={() => setEmojiPickerOpen(false)}
+                serverHost={serverHost}
+                withOtherServers
+              />
+            )}
+          </div>
+          <div
+            ref={editorRef}
+            className="chat-editor-textarea"
+            contentEditable={!disabled}
+            role="textbox"
+            aria-placeholder={placeholder || tr("ui.typeAMessage")}
+            data-placeholder={placeholder || tr("ui.typeAMessage")}
+            onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
+            onDrop={handleDrop}
+            onInput={handleInput}
+            onClick={updateAutocompleteQueries}
+          />
+          {length >= COUNTER_VISIBLE_FROM && (
+            <span
+              className="chat-editor-counter"
+              data-over={length > MESSAGE_MAX_LENGTH ? "true" : undefined}
+              /* Polite: it updates on every keystroke near the cap, and an
+                 assertive live region would interrupt the typing it counts. */
+              aria-live="polite"
+            >
+              {(MESSAGE_MAX_LENGTH - length).toLocaleString("en")}
+            </span>
+          )}
+          <button
+            className="chat-editor-send-btn"
+            type="button"
+            aria-label={tr("ui.sendMessage")}
+            disabled={disabled}
+            onClick={handleSend}
+          >
+            <PiPaperPlaneTiltFill size={20} />
+          </button>
+        </div>
+      </div>
+    );
+  }
+);
+
+ChatEditor.displayName = "ChatEditor";

@@ -1,0 +1,199 @@
+import type { GrytAppearance } from "@gryt/ui";
+import { Button, encodeDraft,ThemeEditor } from "@gryt/ui";
+import { ArrowCounterClockwise, Link as LinkIcon, X } from "@phosphor-icons/react";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+import { useCustomThemes, useTheme, useThemeEditor } from "@/common";
+import { i18n, useTranslation } from "@/i18n";
+import { useSettings } from "@/settings";
+
+/**
+ * The theme editor, floating over the running app. Not a Dialog: a Dialog traps
+ * focus and dims what is behind it, which is the thing being edited.
+ */
+
+const POSITION_KEY = "theme.editor.position";
+const WIDTH = 380;
+/** Enough of the header to grab after a window resize leaves it half off. */
+const KEEP_VISIBLE = 96;
+
+interface Position {
+  x: number;
+  y: number;
+}
+
+function readPosition(): Position {
+  try {
+    const raw = localStorage.getItem(POSITION_KEY);
+    if (raw !== null) {
+      const parsed: unknown = JSON.parse(raw);
+      if (
+        typeof parsed === "object" &&
+        parsed !== null &&
+        typeof (parsed as Position).x === "number" &&
+        typeof (parsed as Position).y === "number"
+      ) {
+        return parsed as Position;
+      }
+    }
+  } catch {
+    /* A position is not worth failing over. */
+  }
+  return { x: 24, y: 72 };
+}
+
+/** Never off-screen, however the window changed since this was written down. */
+function clamp(position: Position): Position {
+  const maxX = Math.max(0, window.innerWidth - KEEP_VISIBLE);
+  const maxY = Math.max(0, window.innerHeight - KEEP_VISIBLE);
+  return {
+    x: Math.min(Math.max(0, position.x), maxX),
+    y: Math.min(Math.max(0, position.y), maxY)
+  };
+}
+
+export function ThemeEditorPanel() {
+  useTranslation();
+  const { open, draft, closeEditor, setDraft, revert, openedWith } =
+    useThemeEditor();
+  const { saveTheme } = useCustomThemes();
+  const { resolvedAppearance, setAppearancePreference } = useTheme();
+  const { googleFontsEnabled } = useSettings();
+
+  const [position, setPosition] = useState<Position>(readPosition);
+  const [copied, setCopied] = useState(false);
+  const dragging = useRef<{ dx: number; dy: number } | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    setPosition((current) => clamp(current));
+    const onResize = () => setPosition((current) => clamp(current));
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [open]);
+
+  /* Listeners on the window rather than the header, so a fast drag that leaves
+     the grab area behind keeps moving the panel instead of dropping it. */
+  useEffect(() => {
+    if (!open) return;
+
+    function onMove(event: PointerEvent) {
+      const grab = dragging.current;
+      if (grab === null) return;
+      setPosition(clamp({ x: event.clientX - grab.dx, y: event.clientY - grab.dy }));
+    }
+    function onUp() {
+      if (dragging.current === null) return;
+      dragging.current = null;
+      setPosition((current) => {
+        localStorage.setItem(POSITION_KEY, JSON.stringify(current));
+        return current;
+      });
+    }
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+  }, [open]);
+
+  const startDrag = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      // Only the header itself, so the buttons in it still work.
+      if (event.target !== event.currentTarget) return;
+      // Belt and braces with select-none above: this also stops the browser
+      // starting its own drag of whatever is under the cursor.
+      event.preventDefault();
+      dragging.current = {
+        dx: event.clientX - position.x,
+        dy: event.clientY - position.y
+      };
+    },
+    [position]
+  );
+
+  const copyLink = useCallback(() => {
+    if (draft === null) return;
+    const query = encodeDraft(draft, resolvedAppearance).toString();
+    void navigator.clipboard?.writeText(
+      `https://ui.gryt.chat/theme/generator${query === "" ? "" : `?${query}`}`
+    );
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1600);
+  }, [draft, resolvedAppearance]);
+
+  if (!open || draft === null) return null;
+
+  const dirty = draft !== openedWith;
+
+  return (
+    <div
+      className="fixed z-(--gryt-z-panel) flex flex-col overflow-hidden rounded-(--gryt-radius-lg) border border-gryt-border bg-gryt-surface shadow-2xl"
+      style={{
+        left: position.x,
+        top: position.y,
+        width: WIDTH,
+        maxHeight: "min(80vh, 46rem)"
+      }}
+    >
+      {/* select-none because a drag is a drag. Without it the pointer sweeping
+          across the panel selects every label it passes, so letting go leaves
+          the editor striped blue and the next keystroke would replace a
+          heading. */}
+      <div
+        className="flex cursor-grab touch-none select-none items-center gap-2 border-b border-gryt-border bg-gryt-surface-raised px-3 py-2 active:cursor-grabbing"
+        onPointerDown={startDrag}
+      >
+        <span className="pointer-events-none text-xs font-semibold uppercase tracking-wider text-gryt-muted">{i18n.t("settingsFull.m6836d649c8")}</span>
+        <div className="ml-auto flex items-center gap-1">
+          <Button
+            disabled={!dirty}
+            onClick={revert}
+            size="small"
+            title={i18n.t("settingsFull.mfb6ccf7161")}
+            tone="ghost"
+          >
+            <ArrowCounterClockwise aria-hidden="true" size={14} />{i18n.t("settingsFull.m272607a7bd")}</Button>
+          <Button onClick={copyLink} size="small" tone="ghost">
+            <LinkIcon aria-hidden="true" size={14} />
+            {copied ? i18n.t("settingsFull.m8e3df45a49") : i18n.t("settingsFull.md0517071aa")}
+          </Button>
+          <Button aria-label={i18n.t("settingsFull.m3adaf6db45")} onClick={closeEditor} size="small" tone="ghost">
+            <X aria-hidden="true" size={14} />
+          </Button>
+        </div>
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+        <ThemeEditor
+          appearance={resolvedAppearance}
+          onAppearanceChange={(next: GrytAppearance) =>
+            setAppearancePreference(next)
+          }
+          onChange={setDraft}
+          remoteFontsAllowed={googleFontsEnabled}
+          value={draft}
+        />
+      </div>
+
+      <div className="flex items-center gap-2 border-t border-gryt-border bg-gryt-surface-raised px-3 py-2">
+        <span className="text-xs text-gryt-muted">
+          {dirty ? i18n.t("settingsFull.m3d56409d02") : i18n.t("ui.saved")}
+        </span>
+        <div className="ml-auto flex gap-2">
+          <Button onClick={closeEditor} size="small" tone="neutral">{i18n.t("ui.close")}</Button>
+          <Button
+            disabled={!dirty}
+            onClick={() => {
+              saveTheme(draft.name ?? "Custom theme", draft);
+              closeEditor();
+            }}
+            size="small"
+          >{i18n.t("settingsFull.me1e8f0b8ce")}</Button>
+        </div>
+      </div>
+    </div>
+  );
+}

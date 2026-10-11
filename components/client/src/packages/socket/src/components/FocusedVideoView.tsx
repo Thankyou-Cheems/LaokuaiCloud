@@ -1,0 +1,272 @@
+import { Slider } from "@gryt/ui";
+import type { StreamSources } from "@gryt/voice";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
+import { gainToSlider, sliderToGain } from "@/lib/audioVolume";
+import { setReceiveAudioGain } from "@/lib/receiveAudio";
+
+import { PiArrowLineLeftFill, PiArrowSquareOutFill, PiCornersInFill, PiCornersOutFill, PiEyeSlashFill, PiSpeakerHighFill, PiSpeakerSlashFill } from "../../../../lib/icons";
+import { useDrawnVideoSize } from "../hooks/useDrawnVideoSize";
+
+const HIDE_DELAY_MS = 2500;
+
+const iconBtnStyle: React.CSSProperties = {
+  background: "none",
+  border: "none",
+  color: "#fff",
+  padding: 6,
+  cursor: "pointer",
+  borderRadius: "var(--gryt-radius-sm)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  opacity: 0.85,
+};
+
+export function FocusedVideoView({
+  stream,
+  title,
+  audioStreamId,
+  streamSources,
+  objectFit = "contain",
+  mirrored,
+  onClose,
+  onPopout,
+  onStopWatching,
+}: {
+  stream: MediaStream;
+  title: string;
+  audioStreamId?: string;
+  streamSources?: StreamSources;
+  objectFit?: "cover" | "contain";
+  mirrored?: boolean;
+  onClose: () => void;
+  onPopout?: () => void;
+  /** Someone else's screen share: stop watching it altogether (GRYT-1681). */
+  onStopWatching?: () => void;
+}) {
+  useSocketTranslation();
+  const ref = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [volume, setVolume] = useState(() => {
+    if (audioStreamId && streamSources?.[audioStreamId]) {
+      return gainToSlider(streamSources[audioStreamId].gain.gain.value, 200);
+    }
+    return 100;
+  });
+  const [controlsVisible, setControlsVisible] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (ref.current) ref.current.srcObject = stream;
+  }, [stream]);
+  useDrawnVideoSize(ref, stream, objectFit);
+
+  useEffect(() => {
+    const onChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    if (!containerRef.current) return;
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      containerRef.current.requestFullscreen();
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !document.fullscreenElement) onClose();
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onClose]);
+
+  useEffect(() => {
+    return () => {
+      if (hideTimer.current) clearTimeout(hideTimer.current);
+    };
+  }, []);
+
+  const hasAudio = !!(audioStreamId && streamSources?.[audioStreamId]);
+
+  useEffect(() => {
+    const sourceKeys = streamSources ? Object.keys(streamSources) : [];
+    console.log(
+      `[ScreenShare] FocusedVideoView: audioStreamId=${audioStreamId ?? "undefined"} inStreamSources=${!!(audioStreamId && streamSources?.[audioStreamId])} hasAudio=${hasAudio} streamSourceKeys=[${sourceKeys.join(", ")}]`,
+    );
+  }, [audioStreamId, streamSources, hasAudio]);
+
+  const handleVolumeChange = useCallback(
+    (next: number | readonly number[]) => {
+      const v = Number(next);
+      setVolume(v);
+      if (audioStreamId && streamSources?.[audioStreamId]) {
+        setReceiveAudioGain(streamSources[audioStreamId],
+          sliderToGain(v, 200),
+          0,
+        );
+      }
+    },
+    [audioStreamId, streamSources],
+  );
+
+  const toggleMute = useCallback(() => {
+    if (!hasAudio) return;
+    const next = volume > 0 ? 0 : 100;
+    setVolume(next);
+    setReceiveAudioGain(streamSources![audioStreamId!],
+      sliderToGain(next, 200),
+      0,
+    );
+  }, [hasAudio, audioStreamId, streamSources, volume]);
+
+  const showControls = useCallback(() => {
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+    setControlsVisible(true);
+    hideTimer.current = setTimeout(() => setControlsVisible(false), HIDE_DELAY_MS);
+  }, []);
+
+  const keepControls = useCallback(() => {
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+    setControlsVisible(true);
+  }, []);
+
+  const hideControls = useCallback(() => {
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+    setControlsVisible(false);
+  }, []);
+
+  return (
+    <div className="flex flex-col" style={{ flex: 1, minHeight: 0 }}>
+      <div
+        ref={containerRef}
+        onClick={isFullscreen ? toggleFullscreen : onClose}
+        onMouseMove={showControls}
+        onMouseLeave={hideControls}
+        style={{
+          flex: 1,
+          position: "relative",
+          borderRadius: isFullscreen ? 0 : "var(--gryt-radius-md)",
+          overflow: "hidden",
+          background: "#000",
+          minHeight: 0,
+          cursor: "pointer",
+        }}
+      >
+        <video
+          ref={ref}
+          autoPlay
+          playsInline
+          muted
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            objectFit,
+            pointerEvents: "none",
+            transform: mirrored ? "scaleX(-1)" : undefined,
+          }}
+        />
+
+        {/* Title overlay — top-left */}
+        <span className="text-xs font-medium truncate" style={{
+            position: "absolute",
+            top: 10,
+            left: 12,
+            color: "#fff",
+            textShadow: "0 1px 4px rgba(0,0,0,0.6)",
+            maxWidth: "60%",
+            opacity: controlsVisible ? 1 : 0,
+            transition: "opacity 0.2s",
+            pointerEvents: "none",
+          }}>
+          {title}
+        </span>
+
+        {/* Bottom-right hover controls */}
+        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()} onMouseEnter={keepControls} onMouseLeave={showControls} style={{
+            position: "absolute",
+            bottom: 12,
+            right: 12,
+            background: "rgba(0,0,0,0.65)",
+            backdropFilter: "blur(8px)",
+            borderRadius: "var(--gryt-radius-md)",
+            padding: "4px 8px",
+            opacity: controlsVisible ? 1 : 0,
+            transition: "opacity 0.2s",
+          }}>
+          {hasAudio && (
+            <div className="flex items-center gap-1" onPointerDown={(e) => e.stopPropagation()}>
+              <button
+                type="button"
+                style={iconBtnStyle}
+                onClick={toggleMute}
+                aria-label={volume > 0 ? socketI18n.t("socketFull.focusedVideoView_c19fa6f15c") : socketI18n.t("socketFull.focusedVideoView_61e2f59847")}
+              >
+                {volume > 0 ? <PiSpeakerHighFill size={16} /> : <PiSpeakerSlashFill size={16} />}
+              </button>
+              <Slider
+                value={volume}
+                onValueChange={handleVolumeChange}
+                min={0}
+                max={200}
+                step={1}
+                className="w-20"
+              />
+            </div>
+          )}
+
+          {onStopWatching && (
+            <button
+              type="button"
+              style={iconBtnStyle}
+              onClick={onStopWatching}
+              aria-label={socketI18n.t("socketFull.focusedVideoView_1676589255")}
+            >
+              <PiEyeSlashFill size={16} />
+            </button>
+          )}
+
+          {onPopout && (
+            <button
+              type="button"
+              style={iconBtnStyle}
+              onClick={onPopout}
+              aria-label={socketI18n.t("socketFull.focusedVideoView_3453cee4ca")}
+            >
+              <PiArrowSquareOutFill size={16} />
+            </button>
+          )}
+
+          <button
+            type="button"
+            style={iconBtnStyle}
+            onClick={toggleFullscreen}
+            aria-label={isFullscreen ? socketI18n.t("socketFull.focusedVideoView_7fc38c011d") : socketI18n.t("ui.fullscreen")}
+          >
+            {isFullscreen ? <PiCornersInFill size={16} /> : <PiCornersOutFill size={16} />}
+          </button>
+
+          <button
+            type="button"
+            style={iconBtnStyle}
+            onClick={onClose}
+            aria-label={socketI18n.t("socketFull.focusedVideoView_bda16a074c")}
+          >
+            <PiArrowLineLeftFill size={16} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

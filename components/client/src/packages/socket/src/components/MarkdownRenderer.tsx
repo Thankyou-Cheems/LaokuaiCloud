@@ -1,0 +1,568 @@
+import { Tooltip } from "@gryt/ui";
+import { cloneElement, isValidElement, memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { Components } from "react-markdown";
+import ReactMarkdown from "react-markdown";
+import rehypeHighlight from "rehype-highlight";
+import remarkBreaks from "remark-breaks";
+import remarkGfm from "remark-gfm";
+
+import { getServerAccessToken, getServerHttpBase, useTheme } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
+import { nameTagsFor } from "@/lib/nameTags";
+
+import { PiCheck, PiCopyFill } from "../../../../lib/icons";
+import { useExternalEmojisAllowed } from "../utils/externalEmojiPolicy";
+import { type CustomEmojiEntry, preprocessCustomEmojis, preprocessSmileys, remarkEmoji } from "../utils/remarkEmoji";
+import { createRemarkMention } from "../utils/remarkMention";
+import type { ProfanityMatchRange } from "./chatUtils";
+import { MessageContextMenu } from "./MediaContextMenu";
+import { ChannelMention, MentionPill } from "./MentionView";
+import { NameTag } from "./NameTag";
+import { BlurredWord } from "./ProfanityBlur";
+
+type MarkdownImgProps = React.ImgHTMLAttributes<HTMLImageElement> & {
+  node?: unknown;
+  "data-emoji-name"?: string;
+};
+
+const markdownImageSizeCache = new Map<string, { width: number; height: number }>();
+
+type RemoteImageMetadata = { width: number | null; height: number | null };
+
+function parseRemoteImageMetadata(raw: unknown): RemoteImageMetadata | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const rec = raw as Record<string, unknown>;
+  const width = typeof rec.width === "number" ? rec.width : null;
+  const height = typeof rec.height === "number" ? rec.height : null;
+  return { width, height };
+}
+
+const RemoteMarkdownImage = memo(({
+  src,
+  alt,
+  serverHost,
+  cacheKey,
+  cached,
+}: {
+  src: string;
+  alt: string;
+  serverHost: string | null;
+  cacheKey: string;
+  cached: { width: number; height: number } | undefined;
+}) => {
+  useSocketTranslation();
+  const [size, setSize] = useState<{ width: number; height: number } | undefined>(cached);
+
+  useEffect(() => {
+    setSize(markdownImageSizeCache.get(cacheKey));
+  }, [cacheKey]);
+
+  useEffect(() => {
+    if (size) return;
+    if (!serverHost) return;
+    const accessToken = getServerAccessToken(serverHost);
+    if (!accessToken) return;
+    const base = getServerHttpBase(serverHost);
+    let cancelled = false;
+    fetch(`${base}/api/media/metadata?url=${encodeURIComponent(src)}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("metadata_failed"))))
+      .then((j: unknown) => {
+        if (cancelled) return;
+        const meta = parseRemoteImageMetadata(j);
+        if (!meta?.width || !meta.height) return;
+        const next = { width: meta.width, height: meta.height };
+        markdownImageSizeCache.set(cacheKey, next);
+        setSize(next);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [serverHost, size, cacheKey, src]);
+
+  return (
+    <MessageContextMenu media={{ src, isImage: true }}>
+      <div className="markdown-image-wrap">
+        <img
+          src={src}
+          alt={alt}
+          className="markdown-image"
+          loading="lazy"
+          decoding="async"
+          style={size ? { aspectRatio: `${size.width} / ${size.height}` } : undefined}
+          onLoad={(e) => {
+            const img = e.currentTarget;
+            if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+              const next = { width: img.naturalWidth, height: img.naturalHeight };
+              markdownImageSizeCache.set(cacheKey, next);
+              setSize(next);
+            }
+          }}
+          onClick={() => window.open(src, "_blank")}
+        />
+      </div>
+    </MessageContextMenu>
+  );
+});
+
+RemoteMarkdownImage.displayName = "RemoteMarkdownImage";
+
+/**
+ * A message image loads only from the server it was sent on. Anything else would show every
+ * reader's address to whoever runs that host.
+ */
+function imageIsLocal(src: string, serverHost: string | null): boolean {
+  if (!serverHost) return false;
+  try {
+    // By host, since the scheme a server answers on is learned later and can differ.
+    return new URL(src).host === new URL(getServerHttpBase(serverHost)).host;
+  } catch {
+    return false;
+  }
+}
+
+/** Another Gryt server's custom emoji, which the server can let through (GRYT-1660). */
+function isGrytEmojiUrl(src: string): boolean {
+  try {
+    const url = new URL(src);
+    return /^https?:$/.test(url.protocol) && /^\/api\/emojis\/img\/[^/]+$/.test(url.pathname);
+  } catch {
+    return false;
+  }
+}
+
+const PROFANITY_START = "\uE000";
+const PROFANITY_END = "\uE001";
+const PROFANITY_RE = /\uE000([\s\S]*?)\uE001/g;
+
+function insertProfanityMarkers(
+  text: string,
+  matches: ProfanityMatchRange[],
+): string {
+  if (matches.length === 0) return text;
+  const sorted = [...matches].sort((a, b) => a.startIndex - b.startIndex);
+  let result = "";
+  let cursor = 0;
+  for (const m of sorted) {
+    const start = Math.max(0, m.startIndex);
+    const end = Math.min(text.length, m.endIndex + 1);
+    if (start < cursor) continue;
+    result += text.slice(cursor, start);
+    result += PROFANITY_START + text.slice(start, end) + PROFANITY_END;
+    cursor = end;
+  }
+  result += text.slice(cursor);
+  return result;
+}
+
+function processProfanityInChildren(node: React.ReactNode, keyPrefix = ""): React.ReactNode {
+  if (typeof node === "string") {
+    if (!node.includes(PROFANITY_START)) return node;
+    const parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+    PROFANITY_RE.lastIndex = 0;
+    while ((match = PROFANITY_RE.exec(node)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push(node.slice(lastIndex, match.index));
+      }
+      parts.push(<BlurredWord key={`${keyPrefix}b${match.index}`} word={match[1]} />);
+      lastIndex = match.index + match[0].length;
+    }
+    if (lastIndex < node.length) parts.push(node.slice(lastIndex));
+    return parts.length === 1 ? parts[0] : <>{parts}</>;
+  }
+
+  if (Array.isArray(node)) {
+    return node.map((child, i) => processProfanityInChildren(child, `${keyPrefix}${i}-`));
+  }
+
+  if (isValidElement(node) && node.props && typeof (node.props as Record<string, unknown>).children !== "undefined") {
+    const props = node.props as Record<string, unknown>;
+    return cloneElement(
+      node,
+      {},
+      processProfanityInChildren(props.children as React.ReactNode, `${keyPrefix}c-`),
+    );
+  }
+
+  return node;
+}
+
+const UNICODE_EMOJI_RE = /\p{Extended_Pictographic}/u;
+
+function isEmojiOnly(text: string): boolean {
+  const stripped = text
+    .replace(/:([a-zA-Z0-9_+-]+):/g, "")
+    .replace(/\p{Extended_Pictographic}\uFE0F?/gu, "")
+    .replace(/\u200D/g, "")
+    .trim();
+  return stripped.length === 0 && (UNICODE_EMOJI_RE.test(text) || /:([a-zA-Z0-9_+-]+):/.test(text));
+}
+
+function CodeBlockPre({ children }: { children: React.ReactNode }) {
+  useSocketTranslation();
+  const [copied, setCopied] = useState(false);
+  const preRef = useRef<HTMLPreElement>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleCopy = useCallback(() => {
+    const text = preRef.current?.textContent ?? "";
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(() => setCopied(false), 2000);
+    });
+  }, []);
+
+  return (
+    <pre
+      ref={preRef}
+      style={{
+        position: "relative",
+        background: "var(--gryt-neutral-2)",
+        border: "1px solid var(--gryt-neutral-5)",
+        borderRadius: "var(--gryt-radius-md)",
+        padding: "10px 12px",
+        overflowX: "auto",
+        fontSize: "0.85em",
+        lineHeight: 1.5,
+      }}
+    >
+      <button
+        type="button"
+        onClick={handleCopy}
+        aria-label={copied ? socketI18n.t("settingsFull.m8e3df45a49") : socketI18n.t("socketFull.markdownRenderer_417422a2b9")}
+        style={{
+          position: "absolute",
+          top: 6,
+          right: 6,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: 26,
+          height: 26,
+          border: "none",
+          borderRadius: "var(--gryt-radius-sm)",
+          background: copied ? "var(--gryt-success-4)" : "var(--gryt-neutral-4)",
+          color: copied ? "var(--gryt-success-11)" : "var(--gryt-neutral-11)",
+          cursor: "pointer",
+          transition: "background 0.15s, color 0.15s",
+        }}
+      >
+        {copied ? <PiCheck size={14} /> : <PiCopyFill size={14} />}
+      </button>
+      {children}
+    </pre>
+  );
+}
+
+const components: Components = {
+  // Real heading tags, so a screen reader can jump between the parts of a long
+  // post. Size, weight and spacing are in style.css under `.markdown-message`.
+  h1: ({ children }) => <h1>{children}</h1>,
+  h2: ({ children }) => <h2>{children}</h2>,
+  h3: ({ children }) => <h3>{children}</h3>,
+  // A span rather than a <p>: an image or a table renders a <div>, and the HTML
+  // parser closes a <p> the moment one appears inside it.
+  p: ({ children }) => (
+    <span className="md-p" style={{ display: "block", lineHeight: 1.5 }}>{children}</span>
+  ),
+  span: ({ className, children, ...props }) => {
+    const mentionId = (props as Record<string, unknown>)["data-mention-id"];
+    if (className === "chat-mention" && typeof mentionId === "string") {
+      return (
+        <span
+          style={{
+            color: "var(--gryt-accent-11)",
+            fontWeight: 600,
+            background: "var(--gryt-accent-a3)",
+            borderRadius: "var(--gryt-radius-sm)",
+            padding: "0 2px",
+            cursor: "default",
+          }}
+        >
+          {children}
+        </span>
+      );
+    }
+    return <span className={className} {...props}>{children}</span>;
+  },
+  a: ({ href, children }) => {
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{ color: "var(--gryt-accent-11)", textDecoration: "underline" }}
+      >
+        {children}
+      </a>
+    );
+  },
+  code: ({ className, children, ...props }) => {
+    const isBlock = className?.includes("language-") || className?.includes("hljs");
+    if (isBlock) {
+      return (
+        <code className={className} {...props} style={{ fontSize: "0.85em" }}>
+          {children}
+        </code>
+      );
+    }
+    return (
+      <code
+        style={{
+          background: "var(--gryt-neutral-4)",
+          padding: "1px 5px",
+          borderRadius: "var(--gryt-radius-sm)",
+          fontSize: "0.85em",
+          fontFamily: "var(--code-font-family)",
+        }}
+      >
+        {children}
+      </code>
+    );
+  },
+  pre: ({ children }) => <CodeBlockPre>{children}</CodeBlockPre>,
+  blockquote: ({ children }) => (
+    <blockquote
+      style={{
+        borderLeft: "3px solid var(--gryt-accent-9)",
+        paddingLeft: "12px",
+        color: "var(--gryt-neutral-11)",
+      }}
+    >
+      {children}
+    </blockquote>
+  ),
+  ul: ({ children }) => <ul>{children}</ul>,
+  ol: ({ children }) => <ol>{children}</ol>,
+  li: ({ children }) => (
+    <li style={{ lineHeight: 1.5 }}>{children}</li>
+  ),
+  hr: () => <hr />,
+  table: ({ children }) => (
+    <div className="md-table">
+      <table
+        style={{
+          borderCollapse: "collapse",
+          fontSize: "0.9em",
+          width: "100%",
+        }}
+      >
+        {children}
+      </table>
+    </div>
+  ),
+  th: ({ children }) => (
+    <th
+      style={{
+        border: "1px solid var(--gryt-neutral-6)",
+        padding: "4px 8px",
+        background: "var(--gryt-neutral-3)",
+        fontWeight: 600,
+        textAlign: "left",
+      }}
+    >
+      {children}
+    </th>
+  ),
+  td: ({ children }) => (
+    <td style={{ border: "1px solid var(--gryt-neutral-6)", padding: "4px 8px" }}>{children}</td>
+  ),
+};
+
+const baseRemarkPlugins = [remarkGfm, remarkBreaks, remarkEmoji];
+const rehypePlugins = [rehypeHighlight];
+
+export const MarkdownRenderer = memo(({
+  content,
+  customEmojis,
+  memberNicknames,
+  mentionMembersById,
+  serverHost,
+  allowExternalEmojis,
+  profanityMatches,
+  blurProfanity,
+  smileyConversion = true,
+  disabledSmileys,
+}: {
+  content: string | null;
+  customEmojis?: CustomEmojiEntry[];
+  memberNicknames?: string[];
+  mentionMembersById?: Record<string, { serverUserId: string; nickname: string; createdAt?: string | Date }>;
+  serverHost?: string | null;
+  /** Overrides what the server said about other servers' emoji, for previews. */
+  allowExternalEmojis?: boolean;
+  profanityMatches?: ProfanityMatchRange[];
+  blurProfanity?: boolean;
+  smileyConversion?: boolean;
+  disabledSmileys?: ReadonlySet<string>;
+}) => {
+  useSocketTranslation();
+  const { emojiSize } = useTheme();
+  const serverAllows = useExternalEmojisAllowed(serverHost);
+  const externalOk = allowExternalEmojis ?? serverAllows;
+  const emojiOnly = useMemo(() => content ? isEmojiOnly(content) : false, [content]);
+  const hasProfanity = !!(blurProfanity && profanityMatches && profanityMatches.length > 0);
+
+  const membersById = useMemo(() => {
+    const m = new Map<string, string>();
+    if (!mentionMembersById) return m;
+    for (const [id, info] of Object.entries(mentionMembersById)) {
+      if (info?.nickname) m.set(id, info.nickname);
+    }
+    return m;
+  }, [mentionMembersById]);
+  const nameTags = nameTagsFor(mentionMembersById);
+
+  const markedContent = useMemo(() => {
+    if (!content) return null;
+    if (hasProfanity) return insertProfanityMarkers(content, profanityMatches!);
+    return content;
+  }, [content, hasProfanity, profanityMatches]);
+
+  const processed = useMemo(() => {
+    if (!markedContent) return null;
+    const withSmileys = smileyConversion
+      ? preprocessSmileys(markedContent, disabledSmileys)
+      : markedContent;
+    return preprocessCustomEmojis(withSmileys, customEmojis ?? []);
+  }, [markedContent, customEmojis, smileyConversion, disabledSmileys]);
+
+  const remarkPlugins = useMemo(() => {
+    // Always on: role and channel links need it even where no member list is known.
+    if (mentionMembersById) {
+      const members = Object.entries(mentionMembersById)
+        .map(([serverUserId, m]) => ({ serverUserId, nickname: m.nickname }))
+        .filter((m) => Boolean(m.nickname));
+      return [...baseRemarkPlugins, createRemarkMention(members)];
+    }
+    return [...baseRemarkPlugins, createRemarkMention((memberNicknames ?? []).map((n) => ({ serverUserId: n, nickname: n })))];
+  }, [memberNicknames, mentionMembersById]);
+
+  const activeComponents = useMemo(() => {
+    const base: Components = {
+      ...components,
+      img: ({ src, alt, className, ...props }: MarkdownImgProps) => {
+        const isCustomEmoji = className === "inline-emoji"
+          || Boolean(props["data-emoji-name"])
+          || (alt && /^:[a-zA-Z0-9_+-]+:$/.test(alt));
+        const local = !!src && imageIsLocal(src, serverHost ?? null);
+        if (isCustomEmoji) {
+          // An emoji that may not load here reads as its name, which is what was typed.
+          if (!src || (!local && !(externalOk && isGrytEmojiUrl(src)))) return <>{alt || ""}</>;
+          const emojiId =
+            (props["data-emoji-name"] ? `:${props["data-emoji-name"]}:` : null)
+            ?? (alt && /^:[a-zA-Z0-9_+-]+:$/.test(alt) ? alt : null)
+            ?? alt
+            ?? "";
+          return (
+            <Tooltip title={emojiId}>
+              <img
+                src={src}
+                alt={alt || ""}
+                className="inline-emoji"
+                style={{
+                  height: "1.4em",
+                  width: "auto",
+                  verticalAlign: "middle",
+                  display: "inline",
+                  objectFit: "contain",
+                  margin: "0 1px",
+                  cursor: "default",
+                }}
+              />
+            </Tooltip>
+          );
+        }
+
+        if (!src) return null;
+        if (!local) {
+          return (
+            <a href={src} target="_blank" rel="noopener noreferrer" style={{ color: "var(--gryt-accent-11)", textDecoration: "underline" }}>
+              {alt || src}
+            </a>
+          );
+        }
+        const cacheKey = src;
+        const cached = markdownImageSizeCache.get(cacheKey);
+        return (
+          <RemoteMarkdownImage
+            src={src}
+            alt={alt || ""}
+            serverHost={serverHost ?? null}
+            cacheKey={cacheKey}
+            cached={cached}
+          />
+        );
+      },
+      span: ({ className, children, ...props }) => {
+        const data = props as Record<string, unknown>;
+        if (className === "chat-channel" && typeof data["data-channel-id"] === "string") {
+          const host = data["data-channel-host"];
+          return <ChannelMention channelId={data["data-channel-id"]} host={typeof host === "string" && host ? host : null} />;
+        }
+        const mentionId = data["data-mention-id"];
+        if (className === "chat-mention" && typeof mentionId === "string") {
+          const roleId = typeof data["data-role-id"] === "string" ? data["data-role-id"] : undefined;
+          const nick = mentionId ? membersById.get(mentionId) : undefined;
+          const tag = mentionId ? nameTags.get(mentionId) : undefined;
+          return (
+            <MentionPill userId={mentionId || undefined} roleId={roleId}>
+              {nick ? `@${nick}` : children}
+              {nick && tag && <> <NameTag tag={tag} /></>}
+            </MentionPill>
+          );
+        }
+        return <span className={className} {...props}>{children}</span>;
+      },
+      a: ({ href, children }) => (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: "var(--gryt-accent-11)", textDecoration: "underline" }}
+        >
+          {children}
+        </a>
+      ),
+    };
+
+    if (!hasProfanity) return base;
+    const wrap = (Component: React.FC<{ children?: React.ReactNode }>) =>
+      ({ children, ...rest }: { children?: React.ReactNode }) => (
+        <Component {...rest}>{processProfanityInChildren(children)}</Component>
+      );
+
+    return {
+      ...base,
+      p: wrap(base.p as React.FC<{ children?: React.ReactNode }>),
+      h1: wrap(base.h1 as React.FC<{ children?: React.ReactNode }>),
+      h2: wrap(base.h2 as React.FC<{ children?: React.ReactNode }>),
+      h3: wrap(base.h3 as React.FC<{ children?: React.ReactNode }>),
+      li: wrap(base.li as React.FC<{ children?: React.ReactNode }>),
+      td: wrap(base.td as React.FC<{ children?: React.ReactNode }>),
+      th: wrap(base.th as React.FC<{ children?: React.ReactNode }>),
+    } as Components;
+  }, [hasProfanity, membersById, nameTags, serverHost, externalOk]);
+
+  if (!processed) return null;
+
+  return (
+    <div
+      className={`markdown-message${emojiOnly ? " emoji-only" : ""}`}
+      style={emojiOnly ? { "--emoji-only-size": `${emojiSize}px` } as React.CSSProperties : undefined}
+    >
+      <ReactMarkdown
+        remarkPlugins={remarkPlugins}
+        rehypePlugins={rehypePlugins}
+        components={activeComponents}
+      >
+        {processed}
+      </ReactMarkdown>
+    </div>
+  );
+});
+
+MarkdownRenderer.displayName = "MarkdownRenderer";

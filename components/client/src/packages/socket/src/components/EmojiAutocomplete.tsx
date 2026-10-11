@@ -1,0 +1,183 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
+import { useTranslation } from "@/i18n";
+
+import { type EmojiEntry, getRecentEmojis, searchEmojis } from "../utils/emojiData";
+
+interface EmojiAutocompleteProps {
+  query: string;
+  visible: boolean;
+  onSelect: (entry: EmojiEntry) => void;
+  onClose: () => void;
+  serverHost?: string;
+}
+
+export const EmojiAutocomplete = ({ query, visible, onSelect, onClose, serverHost }: EmojiAutocompleteProps) => {
+  useSocketTranslation();
+  const { t: tr } = useTranslation();
+  const [results, setResults] = useState<EmojiEntry[]>([]);
+  const [isRecent, setIsRecent] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const keyboardNavRef = useRef(false);
+
+  useEffect(() => {
+    if (!visible) {
+      setResults([]);
+      setIsRecent(false);
+      setSelectedIndex(0);
+      return;
+    }
+    // Ignore hover until the user actually moves the mouse, so the popup
+    // appearing under an idle cursor doesn't steal focus from item 0.
+    keyboardNavRef.current = true;
+    if (!query) {
+      setResults(getRecentEmojis(8, serverHost));
+      setIsRecent(true);
+      setSelectedIndex(0);
+      return;
+    }
+    const matched = searchEmojis(query);
+    setResults(matched);
+    setIsRecent(false);
+    setSelectedIndex(0);
+  }, [query, visible, serverHost]);
+
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (!visible || results.length === 0 || e.isComposing || e.keyCode === 229) return;
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        keyboardNavRef.current = true;
+        setSelectedIndex((i) => (i + 1) % results.length);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        keyboardNavRef.current = true;
+        setSelectedIndex((i) => (i - 1 + results.length) % results.length);
+      } else if (e.key === "Enter" || e.key === "Tab") {
+        e.preventDefault();
+        e.stopPropagation();
+        onSelect(results[selectedIndex]);
+      } else if (e.key === "Escape") {
+        // Stopped as well as prevented, the way the emoji picker does it: the
+        // thread panel listens on window and closed with the suggestions.
+        e.preventDefault();
+        e.stopPropagation();
+        onClose();
+      }
+    },
+    [visible, results, selectedIndex, onSelect, onClose],
+  );
+
+  useEffect(() => {
+    if (!visible) return;
+    document.addEventListener("keydown", handleKeyDown, true);
+    return () => document.removeEventListener("keydown", handleKeyDown, true);
+  }, [visible, handleKeyDown]);
+
+  useEffect(() => {
+    const el = containerRef.current?.children[selectedIndex] as HTMLElement | undefined;
+    el?.scrollIntoView({ block: "nearest" });
+  }, [selectedIndex]);
+
+  if (!visible || results.length === 0) return null;
+
+  return (
+    <div
+      ref={containerRef}
+      className="emoji-autocomplete"
+      onMouseMove={() => { keyboardNavRef.current = false; }}
+      style={{
+        position: "absolute",
+        bottom: "100%",
+        left: 0,
+        right: 0,
+        marginBottom: "4px",
+        background: "var(--gryt-neutral-2)",
+        border: "1px solid var(--gryt-neutral-6)",
+        borderRadius: "var(--gryt-radius-lg)",
+        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.25)",
+        maxHeight: "280px",
+        overflowY: "auto",
+        zIndex: "var(--gryt-z-popover)",
+        padding: "4px",
+      }}
+    >
+      {isRecent && results.length > 0 && (
+        <div
+          style={{
+            padding: "4px 10px 2px",
+            fontSize: "11px",
+            fontWeight: 600,
+            color: "var(--gryt-neutral-9)",
+            textTransform: "uppercase",
+            letterSpacing: "0.5px",
+            userSelect: "none",
+          }}
+        >
+          {tr("ui.recentlyUsedVariant")}
+        </div>
+      )}
+      {results.map((entry, idx) => (
+        <div
+          key={`${entry.isCustom ? "c:" : ""}${entry.name}`}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            onSelect(entry);
+          }}
+          onMouseEnter={() => { if (!keyboardNavRef.current) setSelectedIndex(idx); }}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            padding: "6px 10px",
+            borderRadius: "var(--gryt-radius-md)",
+            cursor: "pointer",
+            background: idx === selectedIndex ? "var(--gryt-neutral-4)" : "transparent",
+            transition: "background 0.1s ease",
+            fontSize: "var(--chat-font-size, 16px)",
+          }}
+        >
+          <span
+            style={{
+              width: "24px",
+              height: "24px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+              fontSize: "20px",
+            }}
+          >
+            {entry.emoji ? (
+              entry.emoji
+            ) : entry.url ? (
+              <img
+                src={entry.url}
+                alt={entry.name}
+                style={{ width: "24px", height: "24px", objectFit: "contain" }}
+              />
+            ) : null}
+          </span>
+          <span style={{ color: "var(--gryt-neutral-12)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            :{entry.name}:
+          </span>
+          {entry.isCustom && (
+            <span
+              style={{
+                fontSize: "10px",
+                color: "var(--gryt-neutral-9)",
+                background: "var(--gryt-neutral-3)",
+                padding: "1px 5px",
+                borderRadius: "var(--gryt-radius-sm)",
+                flexShrink: 0,
+              }}
+            >{socketI18n.t("socketFull.emojiAutocomplete_9310aa8221")}</span>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+};

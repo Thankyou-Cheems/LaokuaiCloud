@@ -1,0 +1,842 @@
+import { createElement, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import toast from "react-hot-toast";
+import { Socket } from "socket.io-client";
+import useSound from "use-sound";
+
+import messageSoundMp3 from "@/audio/src/assets/universfield-computer-mouse-click-02-383961.mp3";
+import type { SealDecision } from "@/common";
+import { getServerAccessToken, getSuppressEveryone, getUploadsFileUrl, markChannelUnread, markThreadUnread, mentionsMember, shouldNotifyForMessage, useAccount, useUnreadBadge } from "@/common";
+import { i18n as socketHooksI18n, useTranslation as useSocketHooksTranslation } from "@/i18n";
+import { showDesktopNotification } from "@/lib/desktopNotification";
+import { useSettings } from "@/settings";
+import { type ForumTag,serverDetailsList as ServerDetailsList } from "@/settings/src/types/server";
+
+import { PiInfoFill } from "../../../../lib/icons";
+import type { ChatMessage } from "../components/chatUtils";
+import { heldRoleIds } from "../lib/permissions";
+import { useMlsReportsTaken } from "../mls/serverMls";
+import { dmComposer, isMlsPlaceholder, mergeTimeline, mlsNotice } from "../mls/timeline";
+import { useMlsConversation } from "../mls/useMlsConversation";
+import { mergeSenders } from "../utils/mergeSender";
+import { isOnScreen, warnUnreadOnScreen } from "../utils/onScreenConversation";
+import { openSealedAttachment } from "../utils/sealedAttachments";
+import { sealedNotificationBody } from "../utils/sealedNotification";
+import { socketHookToast } from "../utils/socketHookMessages";
+import {
+  ChatErrorPayload,
+  type ChatErrorRef,
+  handleAttachmentsSettled,
+  handleChatErrorEvent,
+  handleHistoryPayload,
+  handleMessageDeleted,
+  handleMessageEdited,
+  handleNewMessage,
+  handleReactionUpdate,
+  shouldFetchHistory,
+} from "./chatEventHandlers";
+import { parseMuteExpiry, setTextMute } from "./textMute";
+import { useChatSend } from "./useChatSend";
+import { useConversationSealing } from "./useConversationSealing";
+import { HISTORY_CAP, type HistoryWindowControls, isWindowPayload, useHistoryWindow, type WindowedHistoryPayload } from "./useHistoryWindow";
+
+interface UseChatParams {
+  currentConnection: Socket | null;
+  activeConversationId: string;
+  currentlyViewingServer: { host: string; name: string } | null;
+  currentChannelId: string;
+  isConnected: boolean;
+  serverDetailsList: ServerDetailsList;
+  nickname: string;
+  currentUserId?: string;
+  /** Everybody but you, or null for a channel: only a conversation can be
+      encrypted. */
+  conversationMembers?: { server_user_id: string }[] | null;
+  /** The other person in a one-to-one DM, the only kind that goes on MLS for now. */
+  dmPeer?: string | null;
+  /** Their name, for the line that says why a DM can't be sent to. */
+  dmPeerName?: string;
+}
+
+interface UseChatReturn {
+  /** Set when a send was held back for going out in the clear, and carries who
+      is blocking it. */
+  plaintextPrompt: SealDecision | null;
+  /** Send it unencrypted, and stop asking for this conversation. */
+  confirmPlaintextSend: () => void;
+  /** Do not send it. The text goes back in the composer. */
+  cancelPlaintextSend: () => void;
+  chatMessages: ChatMessage[];
+  sealing: SealDecision;
+  canSend: boolean;
+  sendChat: (text: string, files: File[], replyToMessageId?: string) => void;
+  editMessage: (messageId: string, conversationId: string, newText: string) => void;
+  isLoadingMessages: boolean;
+  isRateLimited: boolean;
+  rateLimitCountdown: number;
+  isVoiceChannelTextChat: boolean;
+  canViewVoiceChannelText: boolean;
+  activeChannelName: string;
+  activeChannelType: "text" | "voice";
+  activeChannelAutomated: boolean;
+  activeChannelLayout: "chat" | "forum";
+  activeChannelForumTags: ForumTag[];
+  activeChannelDescription: string | undefined;
+  restoreText: string | null;
+  clearRestoreText: () => void;
+  fetchOlderMessages: () => void;
+  isLoadingOlder: boolean;
+  hasOlderMessages: boolean;
+  historyWindow: HistoryWindowControls;
+  /** What a DM on, or held off, MLS says above the composer. */
+  mlsNotice: string | null;
+  /** The composer waits: the DM's mode isn't known, or MLS refused it. */
+  composerHeld: boolean;
+  /** Deletes an MLS message over MLS. The server has no copy to delete. */
+  deleteMlsMessage: (messageId: string) => void;
+  /** Adds or takes off this person's reaction to an MLS message, over MLS. */
+  reactMlsMessage: (messageId: string, emoji: string) => void;
+  /** The server takes the reporter's copy of an MLS message. */
+  mlsReportsTaken: boolean;
+  /** This device's history won't open, and that's what's holding the composer. */
+  archiveFailed: boolean;
+}
+
+/** What the channel keeps of the present once the rest moves to a window. */
+const PRESENT_KEPT = 50;
+
+export function useChat({
+  currentConnection,
+  activeConversationId,
+  currentlyViewingServer,
+  currentChannelId,
+  isConnected,
+  serverDetailsList,
+  nickname,
+  currentUserId,
+  conversationMembers,
+  dmPeer = null,
+  dmPeerName,
+}: UseChatParams): UseChatReturn {
+  useSocketHooksTranslation();
+  const serverHost = currentlyViewingServer?.host || "";
+  const serverDetailsListRef = useRef(serverDetailsList);
+  useEffect(() => {
+    serverDetailsListRef.current = serverDetailsList;
+  }, [serverDetailsList]);
+
+  const { incrementUnread } = useUnreadBadge();
+  const { notificationBadgeEnabled, desktopNotificationsEnabled, messageSoundEnabled, messageSoundVolume, customMessageSoundFile } = useSettings();
+  const notificationBadgeEnabledRef = useRef(notificationBadgeEnabled);
+  useEffect(() => { notificationBadgeEnabledRef.current = notificationBadgeEnabled; }, [notificationBadgeEnabled]);
+  const desktopNotificationsEnabledRef = useRef(desktopNotificationsEnabled);
+  useEffect(() => { desktopNotificationsEnabledRef.current = desktopNotificationsEnabled; }, [desktopNotificationsEnabled]);
+
+  const [playMessageSound] = useSound(customMessageSoundFile || messageSoundMp3, {
+    volume: messageSoundVolume / 100,
+    soundEnabled: messageSoundEnabled,
+  });
+  const messageSoundRef = useRef(playMessageSound);
+  const messageSoundEnabledRef = useRef(messageSoundEnabled);
+  useEffect(() => { messageSoundRef.current = playMessageSound; }, [playMessageSound]);
+  useEffect(() => { messageSoundEnabledRef.current = messageSoundEnabled; }, [messageSoundEnabled]);
+
+  const [restoreText, setRestoreText] = useState<string | null>(null);
+  const clearRestoreText = useCallback(() => setRestoreText(null), []);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [messageCache, setMessageCache] = useState<{ [conversationId: string]: ChatMessage[] }>({});
+  const [messageCacheMeta, setMessageCacheMeta] = useState<{
+    [conversationId: string]: { lastFetchedAtMs?: number; rateLimitedUntilMs?: number };
+  }>({});
+  const fetchDebounceRef = useRef<number | null>(null);
+  const inFlightFetchRef = useRef<Set<string>>(new Set());
+  /** Message ids `chat:deleted` took out. Kept for the session, so no later merge puts one back. */
+  const deletedIdsRef = useRef<Set<string>>(new Set());
+  /** socket.io reuses the same Socket across a reconnect, so nothing keyed on it
+      re-runs and a failed fetch stays failed until a reload. */
+  const [reconnectNonce, setReconnectNonce] = useState(0);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [isLoadingOlder, setIsLoadingOlder] = useState(false);
+  const [hasOlderMap, setHasOlderMap] = useState<Record<string, boolean>>({});
+  const [isRateLimited, setIsRateLimited] = useState(false);
+  const [rateLimitCountdown, setRateLimitCountdown] = useState(0);
+  const rateLimitIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const cacheKeyFor = useCallback((conversationId: string): string => {
+    if (!conversationId) return "";
+    return serverHost ? `${serverHost}::${conversationId}` : conversationId;
+  }, [serverHost]);
+
+  const activeCacheKey = cacheKeyFor(activeConversationId);
+  const hasOlderMessages = hasOlderMap[activeCacheKey] ?? true;
+
+  const historyWindow = useHistoryWindow({
+    connection: currentConnection,
+    conversationId: activeConversationId,
+    cacheKeyFor,
+    setMessageCache,
+    deletedIdsRef,
+    disabled: !!dmPeer,
+  });
+  const { returnToPresent: leaveHistoryWindow } = historyWindow;
+  const windowOpenRef = useRef(false);
+  windowOpenRef.current = historyWindow.messages !== null;
+  /** An older page of the channel itself just landed, which is the only growth that hands off. */
+  const olderPageLandedRef = useRef(false);
+
+  const getCachedMessages = useCallback(
+    (conversationId: string): ChatMessage[] => messageCache[cacheKeyFor(conversationId)] || [],
+    [messageCache, cacheKeyFor]
+  );
+
+  // Voice channel text chat permission checks
+  const isVoiceChannelTextChat = activeConversationId === currentChannelId;
+  const activeVoiceChannel = isVoiceChannelTextChat && currentlyViewingServer
+    ? serverDetailsList[currentlyViewingServer.host]?.channels?.find((c) => c.id === currentChannelId)
+    : undefined;
+  const textInVoiceEnabled = activeVoiceChannel?.textInVoice === true;
+  const activeChannel = useMemo(() => {
+    if (!currentlyViewingServer) return undefined;
+    const channels = serverDetailsList[currentlyViewingServer.host]?.channels || [];
+    return channels.find((c) => c.id === activeConversationId);
+  }, [currentlyViewingServer, serverDetailsList, activeConversationId]);
+
+  const canSendToVoiceChannel = !isVoiceChannelTextChat || (isConnected && textInVoiceEnabled);
+  const canViewVoiceChannelText = !isVoiceChannelTextChat || (isConnected && textInVoiceEnabled);
+
+  /*
+   * A channel scope can take `send_messages` away, and only `manage_channels` can
+   * read those rules. `undefined` reads as yes, or an older server looks locked.
+   */
+  const canSendHere = activeChannel?.canSend !== false;
+
+  const canSend = !!currentConnection &&
+                  !!activeConversationId &&
+                  !!getServerAccessToken(currentlyViewingServer?.host || "") &&
+                  canSendToVoiceChannel &&
+                  canSendHere &&
+                  !isRateLimited;
+
+  const sealing = useConversationSealing({
+    serverHost,
+    conversationId: activeConversationId,
+    myServerUserId: currentUserId,
+    members: conversationMembers ?? null,
+  });
+
+  /* A one-to-one DM goes on MLS once the other person has an MLS device (decision 4).
+     Old messages still open through `sealing`, and MLS ones come from the archive. */
+  const { isSignedIn } = useAccount();
+  const mls = useMlsConversation({
+    host: serverHost,
+    conversationId: activeConversationId,
+    peer: dmPeer,
+    me: { serverUserId: currentUserId, nickname },
+    nameFor: (id) => (id === currentUserId ? nickname : undefined),
+  });
+  const mlsMode = mls.mode?.kind ?? null;
+  const mlsReportsTaken = useMlsReportsTaken(serverHost);
+  /** Blob URLs made for decrypted attachments, revoked on unmount. */
+  const objectUrlsRef = useRef<Set<string>>(new Set());
+
+  const { sendChat, editMessage, retryQueueRef, performRetry, markLatestPendingFailed, holdSend, forgetSend, plaintextPrompt, confirmPlaintextSend, cancelPlaintextSend } = useChatSend({
+    seal: sealing.seal,
+    sealDecision: sealing.decision,
+    sealFile: sealing.sealFile,
+    currentConnection,
+    activeConversationId,
+    serverHost,
+    currentlyViewingServer,
+    cacheKeyFor,
+    setChatMessages,
+    setMessageCache,
+    setRestoreText,
+    canSend,
+    isRateLimited,
+    isVoiceChannelTextChat,
+    textInVoiceEnabled,
+    isConnected,
+    nickname,
+    currentUserId,
+  });
+
+  /* A ref, not state: this effect depends on `chatMessages` and marking them
+     writes to it, so guarding on state tore down the run that was decrypting. */
+  const openingRef = useRef<Set<string>>(new Set());
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    // Not yet: a message opened without our member id would be marked locked for good.
+    if (!sealing.canOpen) return;
+    const pending = chatMessages.filter(
+      (m) => m.sealed && !m.sealedState && !openingRef.current.has(m.message_id),
+    );
+    if (pending.length === 0) return;
+
+    const ids = new Set(pending.map((m) => m.message_id));
+    for (const id of ids) openingRef.current.add(id);
+    setChatMessages((prev) =>
+      prev.map((m) => (ids.has(m.message_id) ? { ...m, sealedState: "opening" } : m)),
+    );
+
+    void Promise.all(
+      pending.map(async (message) => {
+        try {
+          const opened = await sealing.open(message.sealed!);
+          // Null is no wrapped key for us: a message from before we joined the
+          // conversation. Permanent, ordinary, and not an error.
+          if (!opened) {
+            return { id: message.message_id, text: null, state: "locked", enriched: null } as const;
+          }
+
+          /* Here rather than in the row: the key only exists once the message has
+             opened, and a fetch on render repeats on every re-render. */
+          const fileIds = message.attachments ?? [];
+          const settled = await Promise.allSettled(
+            fileIds.map(async (fileId) => {
+              const key = opened.attachments[fileId];
+              // No key means it went up in the clear, which is every attachment
+              // sent before this shipped.
+              if (!key) return null;
+
+              return openSealedAttachment({
+                fileId,
+                key,
+                fileUrl: () => getUploadsFileUrl(serverHost, fileId),
+                openFile: sealing.openFile,
+                keepUrl: (url) => objectUrlsRef.current.add(url),
+              });
+            }),
+          );
+
+          const enriched = fileIds.map((fileId, i) => {
+            const result = settled[i];
+            if (result.status === "fulfilled" && result.value) return result.value;
+            // Never sealed, or it would not open. The server's answer for a sealed
+            // file is an unnamed octet-stream: visibly broken, not absent.
+            return (
+              message.enriched_attachments?.[i] ?? {
+                file_id: fileId,
+                mime: null,
+                size: null,
+                original_name: null,
+                width: null,
+                height: null,
+                has_thumbnail: false,
+              }
+            );
+          });
+
+          return {
+            id: message.message_id,
+            text: opened.text,
+            state: "open",
+            enriched: enriched.length > 0 ? enriched : null,
+          } as const;
+        } catch {
+          // A key that is there and does not open. Tampering, or the wrong
+          // conversation. Drawn as broken rather than as an empty message.
+          return { id: message.message_id, text: null, state: "broken", enriched: null } as const;
+        }
+      }),
+    ).then((opened) => {
+      // Released whether or not this component is still here, so a message that
+      // comes back on a later fetch is not blocked by an entry nobody clears.
+      for (const o of opened) openingRef.current.delete(o.id);
+      if (!mountedRef.current) return;
+      const byId = new Map(opened.map((o) => [o.id, o]));
+      const apply = (list: ChatMessage[]) =>
+        list.map((m) => {
+          const result = byId.get(m.message_id);
+          if (!result) return m;
+          return {
+            ...m,
+            text: result.text,
+            sealedState: result.state,
+            ...(result.enriched ? { enriched_attachments: result.enriched } : null),
+          };
+        });
+
+      setChatMessages(apply);
+      /* The cache too: the effect that replays it runs on every new message, so
+         without this the conversation re-decrypted on each keystroke (GRYT-1114). */
+      const key = cacheKeyFor(activeConversationId);
+      if (key) {
+        setMessageCache((prev) => (prev[key] ? { ...prev, [key]: apply(prev[key]) } : prev));
+      }
+    });
+
+  }, [chatMessages, sealing, setChatMessages, serverHost, activeConversationId, cacheKeyFor, setMessageCache]);
+
+  /** A blob URL pins its bytes for the document's life, and on the desktop the
+      document is the session. */
+  useEffect(() => {
+    const urls = objectUrlsRef.current;
+    return () => {
+      for (const url of urls) URL.revokeObjectURL(url);
+      urls.clear();
+    };
+  }, []);
+
+  // Handle chat errors (including rate limiting)
+  useEffect(() => {
+    if (!currentConnection) return;
+
+    const onError = (error: ChatErrorPayload, ref?: ChatErrorRef) => {
+      // The key comes out of the in-flight set only on `chat:history`, which a
+      // failed fetch never produces — so left behind, the guard is permanent.
+      inFlightFetchRef.current.delete(cacheKeyFor(activeConversationId));
+
+      handleChatErrorEvent(error, activeConversationId, cacheKeyFor(activeConversationId), {
+        onMuted: (expiresAt) => setTextMute(serverHost, { until: parseMuteExpiry(expiresAt) }),
+        setIsRateLimited,
+        setMessageCacheMeta,
+        rateLimitIntervalRef,
+        setRateLimitCountdown,
+        onRetry: performRetry,
+        onHold: holdSend,
+        onFail: markLatestPendingFailed,
+        retryQueueRef,
+      }, ref);
+    };
+
+    currentConnection.on("chat:error", onError);
+
+    return () => {
+      currentConnection.off("chat:error", onError);
+    };
+  }, [currentConnection, activeConversationId, cacheKeyFor, performRetry, holdSend, markLatestPendingFailed, retryQueueRef, serverHost]);
+
+  /* The countdown belongs to the rate limit, not to the listener above, whose
+     cleanup ran on the next render and left the composer locked (GRYT-1393). */
+  useEffect(() => () => {
+    if (rateLimitIntervalRef.current) {
+      clearInterval(rateLimitIntervalRef.current);
+      rateLimitIntervalRef.current = null;
+    }
+  }, []);
+
+  // Clear rate limiting state and retry queue when switching servers
+  useEffect(() => {
+    setIsRateLimited(false);
+    setRateLimitCountdown(0);
+    setRestoreText(null);
+
+    if (rateLimitIntervalRef.current) {
+      clearInterval(rateLimitIntervalRef.current);
+      rateLimitIntervalRef.current = null;
+    }
+
+    for (const entry of retryQueueRef.current.values()) {
+      if (entry.timeoutId) clearTimeout(entry.timeoutId);
+    }
+    retryQueueRef.current.clear();
+  }, [currentlyViewingServer?.host, retryQueueRef]);
+
+  useEffect(() => {
+    setRestoreText(null);
+  }, [activeConversationId]);
+
+  const activeChannelName = activeChannel?.name || "";
+  const activeChannelType: "text" | "voice" = activeChannel?.type || "text";
+  // Automated is enforced by the server in the send path; the client reads it
+  // only to lock the composer and draw the robot icon. GRYT-982.
+  const activeChannelAutomated = activeChannel?.automated === true;
+  const activeChannelLayout: "chat" | "forum" = activeChannel?.layout === "forum" ? "forum" : "chat";
+  const activeChannelForumTags: ForumTag[] = activeChannel?.forumTags ?? [];
+  const activeChannelDescription = activeChannel?.description?.trim() || undefined;
+
+  // Chat event listeners
+  useEffect(() => {
+    if (!currentConnection) return;
+
+    const onNew = (msg: ChatMessage) => {
+      for (const [pendingId, entry] of retryQueueRef.current) {
+        const matchByNonce = msg.nonce && entry.nonce === msg.nonce;
+        const matchByText = msg.text && entry.text === msg.text.trim();
+        if (matchByNonce || matchByText) {
+          forgetSend(pendingId);
+          break;
+        }
+      }
+      handleNewMessage(msg, activeConversationId, cacheKeyFor, setMessageCache, setChatMessages, deletedIdsRef.current);
+      // Counted from `mls:message` instead: it's a system line standing in for one (GRYT-1517).
+      if (isMlsPlaceholder(msg)) return;
+
+      /* A thread reply is news about the thread. The store refuses to count the
+         open thread rather than this clearing it: handler order is arbitrary. */
+      if (msg.thread_id) {
+        if (msg.sender_server_id !== currentUserId) markThreadUnread(serverHost, msg.conversation_id, msg.thread_id);
+      } else if (msg.conversation_id !== activeConversationId && msg.sender_server_id !== currentUserId) {
+        if (isOnScreen(serverHost, msg.conversation_id)) {
+          warnUnreadOnScreen("useChat chat:new", { serverHost, activeConversationId });
+        }
+        markChannelUnread(serverHost, msg.conversation_id);
+      }
+      /* The same question `useSocketEvents` asks for a background server, so the
+         two cannot disagree about focus, a mention, the channel default or a mute. */
+      const notify = shouldNotifyForMessage(serverHost, msg, {
+        myId: currentUserId,
+        viewingThisServer: true,
+        windowFocused: document.hasFocus(),
+        mentionsMe: mentionsMember(msg, {
+          serverUserId: currentUserId,
+          nickname,
+          roleIds: heldRoleIds(serverDetailsListRef.current[serverHost]?.server_info),
+          suppressEveryone: getSuppressEveryone(serverHost),
+        }),
+      });
+      if (!notify) return;
+
+      if (notificationBadgeEnabledRef.current) incrementUnread();
+      if (desktopNotificationsEnabledRef.current) {
+        /* Opened here rather than waited for: the row's own decrypt is a
+           separate effect, and a notification cannot hold for it. */
+        void sealedNotificationBody(msg, { host: serverHost, memberId: currentUserId }).then(
+          (body) => {
+            const isChannel =
+              serverDetailsListRef.current[serverHost]?.channels?.some(
+                (channel) => channel.id === msg.conversation_id,
+              ) === true;
+            showDesktopNotification(
+              msg.sender_nickname || socketHooksI18n.t("socketHooksFull.useChat_1ed2e7b50f"),
+              body,
+              isChannel ? { host: serverHost, channelId: msg.conversation_id } : undefined,
+            );
+          },
+        );
+      }
+      if (messageSoundEnabledRef.current) {
+        try { messageSoundRef.current(); } catch { /* ignore playback errors */ }
+      }
+    };
+
+    const onHistory = (payload: WindowedHistoryPayload) => {
+      // A page of the window, which has a gap and must not be merged into the channel's list.
+      if (isWindowPayload(payload, windowOpenRef.current)) return;
+      const setHasOlder = (v: boolean) => {
+        const key = cacheKeyFor(payload.conversation_id);
+        if (key) setHasOlderMap((prev) => ({ ...prev, [key]: v }));
+      };
+      handleHistoryPayload(payload, activeConversationId, cacheKeyFor, inFlightFetchRef, setMessageCache, setChatMessages, setIsLoadingMessages, setHasOlder, setIsLoadingOlder, deletedIdsRef.current);
+      if (payload.before && payload.conversation_id === activeConversationId) olderPageLandedRef.current = true;
+    };
+
+    const onReaction = (updatedMessage: ChatMessage) =>
+      handleReactionUpdate(updatedMessage, activeConversationId, cacheKeyFor, setMessageCache, setChatMessages);
+
+    const onDeleted = (payload: { conversation_id: string; message_id: string }) =>
+      handleMessageDeleted(payload, activeConversationId, cacheKeyFor, setMessageCache, setChatMessages, deletedIdsRef.current);
+
+    const onEdited = (updatedMessage: ChatMessage) =>
+      handleMessageEdited(updatedMessage, activeConversationId, cacheKeyFor, setMessageCache, setChatMessages);
+    const onAttachments = (payload: Parameters<typeof handleAttachmentsSettled>[0]) =>
+      handleAttachmentsSettled(payload, activeConversationId, cacheKeyFor, setMessageCache, setChatMessages);
+
+    const onReportSubmitted = () => {
+      toast.success(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useChat_5e324011f2")));
+    };
+
+    const onAlreadyReported = () => {
+      toast(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useChat_b48e4d9e04")), { icon: createElement(PiInfoFill, { size: 18 }) });
+    };
+
+    const onPurgeUser = (payload: { sender_server_user_id: string; affected_conversations: string[] }) => {
+      const gone = payload.sender_server_user_id;
+
+      /** The server removed these and says nothing per message, since a few
+          hundred reactions would be a few hundred broadcasts. */
+      const stripReactions = (list: ChatMessage[]): ChatMessage[] =>
+        list.map((m) => {
+          if (!m.reactions?.some((r) => r.users?.includes(gone))) return m;
+          const reactions = m.reactions
+            .map((r) =>
+              r.users?.includes(gone)
+                ? { ...r, users: r.users.filter((u) => u !== gone), amount: r.users.filter((u) => u !== gone).length }
+                : r,
+            )
+            .filter((r) => r.users.length > 0);
+          return { ...m, reactions: reactions.length > 0 ? reactions : null };
+        });
+
+      setChatMessages((prev) =>
+        stripReactions(prev.filter((m) => m.sender_server_id !== gone)),
+      );
+      setMessageCache((prev) => {
+        const next = { ...prev };
+        // Their messages only exist in the conversations named, but their
+        // reactions can be anywhere, so every cached conversation is swept.
+        for (const key of Object.keys(next)) {
+          next[key] = stripReactions(next[key].filter((m) => m.sender_server_id !== gone));
+        }
+        return next;
+      });
+    };
+
+    const onMergeUser = (payload: { from_server_user_id?: string; to_server_user_id?: string }) => {
+      const from = payload?.from_server_user_id;
+      const to = payload?.to_server_user_id;
+      if (!from || !to) return;
+      setChatMessages((prev) => mergeSenders(prev, from, to));
+      setMessageCache((prev) => {
+        let changed = false;
+        const next = { ...prev };
+        for (const key of Object.keys(next)) {
+          const merged = mergeSenders(next[key], from, to);
+          if (merged === next[key]) continue;
+          next[key] = merged;
+          changed = true;
+        }
+        return changed ? next : prev;
+      });
+    };
+
+    // socket.io reuses the same Socket, so neither effect re-runs on a reconnect.
+    // Clearing the guard and bumping the nonce sends the fetch round again.
+    const onConnect = () => {
+      inFlightFetchRef.current.clear();
+      setReconnectNonce((n) => n + 1);
+    };
+
+    const onMlsEntry = (entry: { kind?: string; conversationId?: string; senderServerUserId?: string }) => {
+      if (entry?.kind !== "application" || !entry.conversationId || entry.senderServerUserId === currentUserId) return;
+      if (entry.conversationId !== activeConversationId) markChannelUnread(serverHost, entry.conversationId);
+    };
+
+    currentConnection.on("connect", onConnect);
+    currentConnection.on("chat:new", onNew);
+    currentConnection.on("mls:message", onMlsEntry);
+    currentConnection.on("chat:history", onHistory);
+    currentConnection.on("chat:reaction", onReaction);
+    currentConnection.on("chat:deleted", onDeleted);
+    currentConnection.on("chat:edited", onEdited);
+    currentConnection.on("chat:attachments", onAttachments);
+    currentConnection.on("report:submitted", onReportSubmitted);
+    currentConnection.on("report:already_reported", onAlreadyReported);
+    currentConnection.on("chat:purge_user", onPurgeUser);
+    currentConnection.on("chat:merge_user", onMergeUser);
+    return () => {
+      currentConnection.off("connect", onConnect);
+      currentConnection.off("chat:new", onNew);
+      currentConnection.off("mls:message", onMlsEntry);
+      currentConnection.off("chat:history", onHistory);
+      currentConnection.off("chat:reaction", onReaction);
+      currentConnection.off("chat:deleted", onDeleted);
+      currentConnection.off("chat:edited", onEdited);
+      currentConnection.off("chat:attachments", onAttachments);
+      currentConnection.off("report:submitted", onReportSubmitted);
+      currentConnection.off("report:already_reported", onAlreadyReported);
+      currentConnection.off("chat:purge_user", onPurgeUser);
+      currentConnection.off("chat:merge_user", onMergeUser);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentConnection, activeConversationId, cacheKeyFor]);
+
+  // Reset chat list when conversation changes and load history
+  useEffect(() => {
+    setIsLoadingOlder(false);
+
+    const cachedMessages = getCachedMessages(activeConversationId);
+    if (cachedMessages.length > 0) {
+      setChatMessages(cachedMessages);
+      setIsLoadingMessages(false);
+    } else if (cachedMessages.length === 0 && messageCache[cacheKeyFor(activeConversationId)]) {
+      setChatMessages([]);
+      setIsLoadingMessages(false);
+    } else {
+      setChatMessages([]);
+      setIsLoadingMessages(true);
+    }
+
+    if (!currentConnection || !activeConversationId) return;
+
+    const isVoiceChat = activeConversationId === currentChannelId;
+    const canViewVoice = !isVoiceChat || isConnected;
+
+    if (isVoiceChat && !canViewVoice) {
+      if (currentlyViewingServer) {
+        const channels = serverDetailsList[currentlyViewingServer.host]?.channels || [];
+        const textChannels = channels.filter((channel) => channel.type === 'text');
+        if (textChannels.length > 0) {
+          return;
+        } else {
+          return;
+        }
+      }
+    }
+
+    const scopedKey = cacheKeyFor(activeConversationId);
+    if (!shouldFetchHistory(scopedKey, activeConversationId, currentConnection, messageCache, messageCacheMeta)) {
+      setIsLoadingMessages(false);
+      return;
+    }
+
+    if (inFlightFetchRef.current.has(scopedKey)) {
+      return;
+    }
+
+    if (fetchDebounceRef.current) {
+      window.clearTimeout(fetchDebounceRef.current);
+      fetchDebounceRef.current = null;
+    }
+
+    fetchDebounceRef.current = window.setTimeout(() => {
+      if (!currentConnection || !activeConversationId) return;
+      const scopedKey = cacheKeyFor(activeConversationId);
+      if (!scopedKey) return;
+      if (inFlightFetchRef.current.has(scopedKey)) return;
+
+      inFlightFetchRef.current.add(scopedKey);
+      setMessageCacheMeta((prev) => ({
+        ...prev,
+        [scopedKey]: {
+          ...(prev[scopedKey] || {}),
+          lastFetchedAtMs: Date.now(),
+        },
+      }));
+
+      currentConnection.emit("chat:fetch", { conversationId: activeConversationId, limit: 50 });
+    }, 250);
+
+    return () => {
+      if (fetchDebounceRef.current) {
+        window.clearTimeout(fetchDebounceRef.current);
+        fetchDebounceRef.current = null;
+      }
+    };
+  }, [
+    activeConversationId,
+    currentConnection,
+    currentChannelId,
+    isConnected,
+    currentlyViewingServer,
+    serverDetailsList,
+    getCachedMessages,
+    cacheKeyFor,
+    messageCache,
+    messageCacheMeta,
+    reconnectNonce,
+  ]);
+
+  /* Scrolled up past the cap: what's being read becomes a window, and the channel keeps its
+     newest page, so Jump to present needs no fetch (GRYT-1691). Not DMs, whose archive merges in. */
+  const { detach: detachToWindow } = historyWindow;
+  useEffect(() => {
+    if (!olderPageLandedRef.current) return;
+    olderPageLandedRef.current = false;
+    if (dmPeer || windowOpenRef.current || chatMessages.length <= HISTORY_CAP) return;
+    detachToWindow(chatMessages, hasOlderMessages);
+    const key = cacheKeyFor(activeConversationId);
+    if (!key) return;
+    setMessageCache((prev) => ({ ...prev, [key]: (prev[key] || []).slice(-PRESENT_KEPT) }));
+    setChatMessages((prev) => prev.slice(-PRESENT_KEPT));
+    setHasOlderMap((prev) => ({ ...prev, [key]: true }));
+  }, [chatMessages, dmPeer, hasOlderMessages, detachToWindow, cacheKeyFor, activeConversationId, setMessageCache]);
+
+  const { loadOlder: loadOlderFromArchive, send: sendOverMls, edit: editOverMls } = mls;
+  const fetchOlderMessages = useCallback(() => {
+    loadOlderFromArchive();
+    if (!currentConnection || !activeConversationId || isLoadingOlder || !hasOlderMessages) {
+      return;
+    }
+    const oldest = chatMessages[0];
+    if (!oldest) return;
+    const before = new Date(oldest.created_at).toISOString();
+    setIsLoadingOlder(true);
+    const scopedKey = cacheKeyFor(activeConversationId);
+    inFlightFetchRef.current.add(scopedKey);
+    currentConnection.emit("chat:fetch", { conversationId: activeConversationId, limit: 50, before });
+  }, [currentConnection, activeConversationId, isLoadingOlder, hasOlderMessages, chatMessages, cacheKeyFor, loadOlderFromArchive]);
+
+  const shownMessages = useMemo(
+    () =>
+      dmPeer
+        ? mergeTimeline({ server: chatMessages, serverHasMore: hasOlderMessages, archived: mls.rows, archiveHasMore: mls.hasMore })
+        : (historyWindow.messages ?? chatMessages).filter((m) => !isMlsPlaceholder(m)),
+    [dmPeer, chatMessages, hasOlderMessages, mls.rows, mls.hasMore, historyWindow.messages],
+  );
+
+  /* On MLS, or refused by it, nothing goes through the version 1 path. It reads as
+     encrypted, which it is, and the composer line says why it can't send. */
+  const onMlsPath = !!dmPeer && (mlsMode === "mls" || mlsMode === "refused");
+  const shownSealing = useMemo<SealDecision>(
+    () => (onMlsPath ? { kind: "seal", recipients: [] } : sealing.decision),
+    [onMlsPath, sealing.decision],
+  );
+
+  const composer = dmComposer({ dmPeer, mode: mls.mode, waiting: mls.waiting, archiveFailed: mls.archiveFailed });
+  const sendPath = composer.path;
+  const sendOnEitherPath = useCallback(
+    (text: string, files: File[], replyToMessageId?: string) => {
+      // Sending from an old window returns to the present, where the message will appear.
+      leaveHistoryWindow();
+      // Waiting or refused sends nothing: version 1 to somebody on MLS is what decision 4 rules out.
+      if (sendPath === "mls") sendOverMls(text, files, replyToMessageId);
+      else if (sendPath === "server") sendChat(text, files, replyToMessageId);
+    },
+    [sendPath, sendOverMls, sendChat, leaveHistoryWindow],
+  );
+
+  const editOnEitherPath = useCallback(
+    (messageId: string, conversationId: string, newText: string) => {
+      if (shownMessages.find((m) => m.message_id === messageId)?.mls) editOverMls(messageId, newText);
+      else editMessage(messageId, conversationId, newText);
+    },
+    [shownMessages, editOverMls, editMessage],
+  );
+
+  return {
+    plaintextPrompt,
+    confirmPlaintextSend,
+    cancelPlaintextSend,
+    chatMessages: shownMessages,
+    /** Whether the next message is encrypted and who is stopping it: a composer
+        that does not draw this sends in the clear without saying so. */
+    sealing: shownSealing,
+    canSend,
+    sendChat: sendOnEitherPath,
+    editMessage: editOnEitherPath,
+    isLoadingMessages,
+    isRateLimited,
+    rateLimitCountdown,
+    isVoiceChannelTextChat,
+    canViewVoiceChannelText,
+    activeChannelName,
+    activeChannelType,
+    activeChannelAutomated,
+    activeChannelLayout,
+    activeChannelForumTags,
+    activeChannelDescription,
+    restoreText,
+    clearRestoreText,
+    fetchOlderMessages: historyWindow.messages ? historyWindow.loadOlder : fetchOlderMessages,
+    isLoadingOlder: historyWindow.messages ? historyWindow.loadingOlder : isLoadingOlder,
+    hasOlderMessages: historyWindow.messages ? historyWindow.hasOlder : hasOlderMessages || mls.hasMore,
+    historyWindow: {
+      open: historyWindow.messages !== null,
+      hasNewer: historyWindow.hasNewer,
+      loadingNewer: historyWindow.loadingNewer,
+      loadNewer: historyWindow.loadNewer,
+      openAt: historyWindow.openAt,
+      returnToPresent: historyWindow.returnToPresent,
+    },
+    mlsNotice: dmPeer
+      ? mlsNotice(mls.mode, mls.problems, {
+          lostHistory: mls.lostHistory,
+          home: mls.home,
+          peerName: dmPeerName ?? socketHooksI18n.t("socketHooksFull.useChat_530d82b181"),
+          signedIn: isSignedIn,
+        })
+      : null,
+    composerHeld: composer.held,
+    deleteMlsMessage: mls.remove,
+    reactMlsMessage: mls.react,
+    mlsReportsTaken,
+    archiveFailed: composer.archiveProblem,
+  };
+}

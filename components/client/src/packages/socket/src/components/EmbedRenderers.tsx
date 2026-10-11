@@ -1,0 +1,372 @@
+import { Skeleton, VideoPlayer } from "@gryt/ui";
+import { useEffect, useState } from "react";
+
+import { getServerAccessToken, getServerHttpBase, useTheme } from "@/common";
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
+import { useSettings } from "@/settings/src/hooks/useSettings";
+
+import { PiX } from "../../../../lib/icons";
+import {
+  getInstagramEmbedSrc,
+  getSpotifyEmbed,
+  getTikTokVideoId,
+  getTwitchEmbed,
+  getVimeoVideoId,
+  getYouTubeVideoId,
+  imageEmbedSizeCache,
+  parseRemoteImageMetadata,
+  safeJsonParseOEmbed,
+} from "./embedUtils";
+import { nextPreviewStep, type PreviewFailure } from "./linkPreviewRetry";
+
+export const DismissButton = ({ onDismiss }: { onDismiss: () => void }) => { useSocketTranslation(); return (
+  <button
+    className="link-embed-dismiss"
+    onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDismiss(); }}
+    title={socketI18n.t("socketFull.embedRenderers_45f694f91c")}
+  >
+    <PiX size={14} />
+  </button>
+); };
+
+export const ImageEmbed = ({ url, serverHost, onDismiss }: { url: string; serverHost: string; onDismiss: () => void }) => {
+  useSocketTranslation();
+  const [cached, setCached] = useState(() => imageEmbedSizeCache.get(url));
+
+  useEffect(() => {
+    setCached(imageEmbedSizeCache.get(url));
+  }, [url]);
+
+  useEffect(() => {
+    if (cached) return;
+    const accessToken = getServerAccessToken(serverHost);
+    if (!accessToken) return;
+    const base = getServerHttpBase(serverHost);
+    let cancelled = false;
+    fetch(`${base}/api/media/metadata?url=${encodeURIComponent(url)}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("metadata_failed"))))
+      .then((j: unknown) => {
+        if (cancelled) return;
+        const meta = parseRemoteImageMetadata(j);
+        if (!meta?.width || !meta.height) return;
+        imageEmbedSizeCache.set(url, { width: meta.width, height: meta.height });
+        setCached({ width: meta.width, height: meta.height });
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [cached, serverHost, url]);
+
+  return (
+    <div className="link-embed-container">
+      <DismissButton onDismiss={onDismiss} />
+      <img
+        src={url}
+        alt={socketI18n.t("socketFull.embedRenderers_302cd94183")}
+        className="link-embed-image"
+        width={cached?.width}
+        height={cached?.height}
+        loading="lazy"
+        decoding="async"
+        onLoad={(e) => {
+          const img = e.currentTarget;
+          if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+            imageEmbedSizeCache.set(url, { width: img.naturalWidth, height: img.naturalHeight });
+          }
+        }}
+        onClick={() => window.open(url, "_blank")}
+      />
+    </div>
+  );
+};
+
+export const VideoEmbed = ({ url, onDismiss }: { url: string; onDismiss: () => void }) => {
+  useSocketTranslation();
+  const { chatMediaVolume, setChatMediaVolume } = useSettings();
+  return (
+    <div className="link-embed-container link-embed-video">
+      <DismissButton onDismiss={onDismiss} />
+      <VideoPlayer src={url} volume={chatMediaVolume} onVolumeChange={setChatMediaVolume} />
+    </div>
+  );
+};
+
+export const TwitchEmbed = ({ url, onDismiss }: { url: string; onDismiss: () => void }) => {
+  useSocketTranslation();
+  const embed = getTwitchEmbed(url);
+  if (!embed) return null;
+  const parent = (() => {
+    try {
+      const h = window.location.hostname;
+      if (h === "127.0.0.1" || h === "localhost") return "localhost";
+      return h || "localhost";
+    } catch { return "localhost"; }
+  })();
+
+  const src = (() => {
+    if (embed.kind === "clip") {
+      const u = new URL("https://clips.twitch.tv/embed");
+      u.searchParams.set("clip", embed.value);
+      u.searchParams.set("parent", parent);
+      u.searchParams.set("autoplay", "false");
+      u.searchParams.set("muted", "true");
+      return u.toString();
+    }
+    const u = new URL("https://player.twitch.tv/");
+    if (embed.kind === "video") {
+      u.searchParams.set("video", embed.value);
+    } else {
+      u.searchParams.set("channel", embed.value);
+    }
+    u.searchParams.set("parent", parent);
+    u.searchParams.set("autoplay", "false");
+    u.searchParams.set("muted", "true");
+    return u.toString();
+  })();
+
+  return (
+    <div className="link-embed-container">
+      <DismissButton onDismiss={onDismiss} />
+      <iframe
+        className="link-embed-iframe"
+        src={src}
+        title="Twitch"
+        loading="lazy"
+        allow="autoplay; fullscreen"
+        allowFullScreen
+        referrerPolicy="strict-origin-when-cross-origin"
+      />
+    </div>
+  );
+};
+
+export const SoundCloudEmbed = ({ url, onDismiss }: { url: string; onDismiss: () => void }) => {
+  useSocketTranslation();
+  const src = `https://w.soundcloud.com/player/?url=${encodeURIComponent(url)}&auto_play=false&hide_related=true&show_comments=false&show_reposts=false&visual=false`;
+  return (
+    <div className="link-embed-container">
+      <DismissButton onDismiss={onDismiss} />
+      <iframe
+        className="link-embed-iframe-soundcloud"
+        src={src}
+        title="SoundCloud"
+        loading="lazy"
+        allow="autoplay"
+        referrerPolicy="strict-origin-when-cross-origin"
+      />
+    </div>
+  );
+};
+
+export const SpotifyEmbed = ({ url, onDismiss }: { url: string; onDismiss: () => void }) => {
+  useSocketTranslation();
+  const info = getSpotifyEmbed(url);
+  if (!info) return null;
+  return (
+    <div className="link-embed-container">
+      <DismissButton onDismiss={onDismiss} />
+      <iframe
+        className="link-embed-iframe-spotify"
+        src={info.embedSrc}
+        title="Spotify"
+        height={info.height}
+        loading="lazy"
+        allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+        referrerPolicy="strict-origin-when-cross-origin"
+      />
+    </div>
+  );
+};
+
+export const TikTokEmbed = ({ url, onDismiss }: { url: string; onDismiss: () => void }) => {
+  useSocketTranslation();
+  const id = getTikTokVideoId(url);
+  if (!id) return null;
+  const src = `https://www.tiktok.com/player/v1/${encodeURIComponent(id)}`;
+  return (
+    <div className="link-embed-container">
+      <DismissButton onDismiss={onDismiss} />
+      <iframe
+        className="link-embed-iframe-tiktok"
+        src={src}
+        title="TikTok"
+        loading="lazy"
+        allow="autoplay; fullscreen"
+        allowFullScreen
+        referrerPolicy="strict-origin-when-cross-origin"
+      />
+    </div>
+  );
+};
+
+export const InstagramEmbed = ({ url, onDismiss }: { url: string; onDismiss: () => void }) => {
+  useSocketTranslation();
+  const src = getInstagramEmbedSrc(url);
+  if (!src) return null;
+  return (
+    <div className="link-embed-container">
+      <DismissButton onDismiss={onDismiss} />
+      <iframe
+        className="link-embed-iframe-instagram"
+        src={src}
+        title="Instagram"
+        loading="lazy"
+        allow="autoplay; fullscreen"
+        allowFullScreen
+        referrerPolicy="strict-origin-when-cross-origin"
+      />
+    </div>
+  );
+};
+
+export const YouTubeEmbed = ({ url, onDismiss }: { url: string; onDismiss: () => void }) => {
+  useSocketTranslation();
+  const videoId = getYouTubeVideoId(url);
+  if (!videoId) return null;
+  const embedUrl = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(videoId)}`;
+  return (
+    <div className="link-embed-container">
+      <DismissButton onDismiss={onDismiss} />
+      <iframe
+        className="link-embed-iframe"
+        src={embedUrl}
+        title={socketI18n.t("socketFull.embedRenderers_6dff939f55")}
+        loading="lazy"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowFullScreen
+        referrerPolicy="strict-origin-when-cross-origin"
+      />
+    </div>
+  );
+};
+
+export const VimeoEmbed = ({ url, onDismiss }: { url: string; onDismiss: () => void }) => {
+  useSocketTranslation();
+  const videoId = getVimeoVideoId(url);
+  if (!videoId) return null;
+  const embedUrl = `https://player.vimeo.com/video/${encodeURIComponent(videoId)}`;
+  return (
+    <div className="link-embed-container">
+      <DismissButton onDismiss={onDismiss} />
+      <iframe
+        className="link-embed-iframe"
+        src={embedUrl}
+        title={socketI18n.t("socketFull.embedRenderers_17be88d1f4")}
+        loading="lazy"
+        allow="autoplay; fullscreen; picture-in-picture"
+        allowFullScreen
+        referrerPolicy="strict-origin-when-cross-origin"
+      />
+    </div>
+  );
+};
+
+export const XEmbed = ({ url, serverHost, onDismiss }: { url: string; serverHost: string; onDismiss: () => void }) => {
+  useSocketTranslation();
+  const { resolvedAppearance } = useTheme();
+  const [html, setHtml] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setHtml(null);
+    setFailed(false);
+  }, [url, resolvedAppearance]);
+
+  useEffect(() => {
+    if (html || failed) return;
+    const accessToken = getServerAccessToken(serverHost);
+    if (!accessToken) { setFailed(true); return; }
+    const base = getServerHttpBase(serverHost);
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    // No refused set here: a refusal and giving up both hide the embed for this mount.
+    const settle = (attempt: number, failure: PreviewFailure) => {
+      const step = nextPreviewStep(failure, attempt);
+      if (step.action === "retry") {
+        timer = setTimeout(() => void request(attempt + 1), step.delayMs);
+        return;
+      }
+      setFailed(true);
+    };
+
+    const request = async (attempt: number) => {
+      let res: Response;
+      try {
+        res = await fetch(`${base}/api/oembed?url=${encodeURIComponent(url)}&theme=${resolvedAppearance}`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+      } catch {
+        if (!cancelled) settle(attempt, { kind: "network" });
+        return;
+      }
+      if (cancelled) return;
+
+      if (!res.ok) {
+        const body = res.status === 429 ? await res.json().catch(() => null) : null;
+        if (cancelled) return;
+        settle(attempt, {
+          kind: "status",
+          status: res.status,
+          retryAfter: res.headers.get("Retry-After"),
+          retryAfterMs: (body as { retryAfterMs?: unknown } | null)?.retryAfterMs,
+        });
+        return;
+      }
+
+      try {
+        const parsed = safeJsonParseOEmbed(await res.json());
+        if (cancelled) return;
+        if (!parsed) { setFailed(true); return; }
+        setHtml(parsed.html);
+      } catch {
+        if (!cancelled) setFailed(true);
+      }
+    };
+
+    void request(0);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [url, serverHost, html, failed, resolvedAppearance]);
+
+  if (failed) return null;
+  if (!html) {
+    return (
+      <div className="link-embed-container">
+        <DismissButton onDismiss={onDismiss} />
+        <div className="link-embed-twitter-skeleton">
+          <Skeleton className="rounded-(--gryt-radius-md)" width="100%" height="100%" />
+        </div>
+      </div>
+    );
+  }
+
+  const themedHtml = html.replace(
+    /class="twitter-tweet"/,
+    `class="twitter-tweet" data-theme="${resolvedAppearance}"`,
+  );
+  const srcDoc = `<!doctype html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><style>html,body{margin:0;padding:0;background:transparent;}body{display:flex;justify-content:center;}blockquote{margin:0!important;}</style></head><body>${themedHtml}<script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script></body></html>`;
+
+  return (
+    <div className="link-embed-container">
+      <DismissButton onDismiss={onDismiss} />
+      <iframe
+        className="link-embed-iframe-twitter"
+        title="X"
+        sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"
+        srcDoc={srcDoc}
+      />
+    </div>
+  );
+};
+
+export const AudioEmbed = ({ url, onDismiss }: { url: string; onDismiss: () => void }) => { useSocketTranslation(); return (
+  <div className="link-embed-container link-embed-audio-wrap">
+    <DismissButton onDismiss={onDismiss} />
+    <audio src={url} controls className="link-embed-audio" preload="metadata" />
+  </div>
+); };

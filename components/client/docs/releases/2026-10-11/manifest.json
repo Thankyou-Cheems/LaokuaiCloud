@@ -1,0 +1,237 @@
+{
+  "schema": 1,
+  "id": "laokuai-integration-20261011",
+  "stage": "local-frozen-source",
+  "ready": false,
+  "remoteSynchronization": "pending-parent-destination-and-public-scope",
+  "integrationBranch": "codex/laokuai-integration-20261011",
+  "soleGitWriter": "task-6",
+  "testPolicy": "immutable-source-snapshot-only",
+  "repositories": {
+    "client": {
+      "fork": "Thankyou-Cheems/gryt-client-i18n",
+      "upstream": "Gryt-chat/client",
+      "visibility": "public",
+      "commit": "b3456983698d2fdfe2e87391f1a48bfb4654b42d",
+      "tree": "b71f0d2a7d5abec8ebd00c0611750e59fc41c738",
+      "originalHead": "552dc88f3413b83ee29bdb4ab350286e7c9ad2d0",
+      "completeSnapshot": "2b9f02076051e3a445bfa99e79d1fc7ac421e19f",
+      "preserved": {
+        "trackedModifications": 24,
+        "untrackedFiles": 6,
+        "allMatchedSnapshot": true
+      },
+      "version": "1.13.22-laokuai.opus20.1"
+    },
+    "voice": {
+      "fork": "Thankyou-Cheems/voice",
+      "upstream": "Gryt-chat/voice",
+      "visibility": "public",
+      "committedHybridCheckpoint": "8a39c5783d8c50c7a95be873a3033b8b8ca2ed1a",
+      "hybridDelivery": "pending-owner-immutable-commit",
+      "activePackage": {
+        "path": "vendor/gryt-voice-0.6.2-laokuai.opus20.alias.1.tgz",
+        "version": "0.6.2-laokuai.opus20.alias.1",
+        "sha256": "b47b268005f1d34b9aa4e7eea2468f4a045559a90bc25882a7e6d09e4ed2949c",
+        "reportedSourceCommit": "ed7cd1e767ac788caefe98b83c1a255b2dc46e50",
+        "sourceCorrespondence": "owner-reported-frozen-source; package-version-corroborated; not-rebuilt-here"
+      }
+    },
+    "server": {
+      "fork": null,
+      "upstream": "Gryt-chat/server",
+      "upstreamVisibility": "public",
+      "committedHybridCheckpoint": "68c936817b280c6e963aac0aa9ce0fcd7f7459d0",
+      "delivery": "pending-final-owner-confirmation",
+      "remoteDestination": "unconfirmed"
+    },
+    "sfu": {
+      "fork": null,
+      "upstream": "Gryt-chat/sfu",
+      "upstreamVisibility": "public",
+      "committedHybridCheckpoint": "a6bf86ada2f31da85cc644f78e307f3ef0088e82",
+      "hybridCheckoutRemote": null,
+      "delivery": "pending-final-owner-confirmation",
+      "remoteDestination": "unconfirmed"
+    },
+    "easytier": {
+      "fork": "Thankyou-Cheems/EasyTier",
+      "upstream": "EasyTier/EasyTier",
+      "visibility": "public",
+      "observedRemoteMain": "f737708f45840a54d13d5a241980fca453a44b0c",
+      "selectedApplicationCommit": null,
+      "packageSha256": null,
+      "status": "pending-application-provenance; remote-main-is-not-a-release-pin"
+    }
+  },
+  "integratedDeliveries": [
+    {
+      "component": "client",
+      "kind": "ui",
+      "deliveredCommit": "f4680c9e7eacc050b96f4e5419be53484d52622c",
+      "integratedCommit": "d16ce70e17d991e4384aa8262397a4ea96725ba6",
+      "patchSha256": "dc8f096cfb81c6dcf3e6cf73a097b44e3721dd62a172ae6dc96ff200c5e0060a",
+      "conflicts": []
+    },
+    {
+      "component": "client",
+      "kind": "packaging",
+      "deliveredCommit": "7882fc40a6fb498e7861677aac21a1ca32da4f84",
+      "integratedCommit": "b3456983698d2fdfe2e87391f1a48bfb4654b42d",
+      "patchSha256": "cbdf0d9d06b9019b43112f3752ad2f053dd98e2c49b96f2ef3227eef834a777e",
+      "conflicts": []
+    }
+  ],
+  "cleanupReview": {
+    "component": "voice",
+    "state": "reviewed-pending-sdk-owner-compatibility",
+    "activated": false,
+    "baseSourceCommit": "ed7cd1e767ac788caefe98b83c1a255b2dc46e50",
+    "sameFileAtHybridCheckpoint": true,
+    "baseFileBlob": "cabdbddf284435fb6bc3396439eae9c82ec2e369",
+    "originalPatchSha256": "4d75a63c150d019271f2768945dd1b2936d77b369a2070d4c384836ddd43f49a",
+    "reviewedPatch": "docs/releases/2026-10-11/review/closed-pc-cleanup.patch",
+    "reviewedPatchSha256": "cb08edca152506295608c507e5a358b74a2b595e9a18f1b6e80883aa425d4ddc",
+    "patchCheck": "passed-on-exported-frozen-hybrid-file",
+    "pureScenarios": 5,
+    "pureStatus": "passed",
+    "ownerReportedCandidateTypecheck": "passed-noEmit; not-rerun-here",
+    "candidatePackage": {
+      "version": "0.6.2-laokuai.opus20.cleanup.candidate.1",
+      "sha256": "6317f1d89e1382460dbce0740a2bff4f34c74b94e5fc9f5d7e01b06a196cb6c1"
+    },
+    "candidateSourceZipSha256": "9320570705d7b2eef4b2bef123d49537090afc5f6b8e7753570741b30864f4b2",
+    "capacityArchiveSha256": "d8635610bd114a0c3ac90e06ec69611fd0809ab04d2a2a637831a8a05a361396",
+    "formatRepair": "Original missing file-boundary newline; reviewed patch contains source guard only, no package version change."
+  },
+  "validation": {
+    "clientPure": {
+      "status": "passed",
+      "commit": "b3456983698d2fdfe2e87391f1a48bfb4654b42d",
+      "node": "v22.23.2",
+      "typescript": "5.9.3",
+      "checks": [
+        {
+          "name": "check-voice-ui-experience",
+          "exit": 0
+        },
+        {
+          "name": "check-squad-key-list-ui",
+          "exit": 0
+        },
+        {
+          "name": "check-receive-volume-shortcut",
+          "exit": 0
+        },
+        {
+          "name": "check-i18n-completion",
+          "exit": 0
+        },
+        {
+          "name": "check-settings-search-i18n",
+          "exit": 0
+        },
+        {
+          "name": "check-nickname-scope",
+          "exit": 0
+        },
+        {
+          "name": "check-nickname-display-scope",
+          "exit": 0
+        },
+        {
+          "name": "check-transmit-speech-indicator",
+          "exit": 0
+        },
+        {
+          "name": "check-receive-leveling",
+          "exit": 0
+        },
+        {
+          "name": "check-pure-voice-policy",
+          "exit": 0
+        },
+        {
+          "name": "check-laokuai-package-audit",
+          "exit": 0
+        },
+        {
+          "name": "check-private-profile-upgrade",
+          "exit": 0
+        },
+        {
+          "name": "check-private-profile",
+          "exit": 0
+        },
+        {
+          "name": "check-private-defaults",
+          "exit": 0
+        },
+        {
+          "name": "check-squad-broker",
+          "exit": 0
+        },
+        {
+          "name": "check-voice-transport-preset",
+          "exit": 0
+        },
+        {
+          "name": "check-i18n",
+          "exit": 0
+        },
+        {
+          "name": "check-private-startup",
+          "exit": 0
+        },
+        {
+          "name": "check-laokuai-integration",
+          "exit": 0
+        }
+      ]
+    },
+    "sourceOnlyPackageInventory": "passed",
+    "fullClientTypecheck": "not-run",
+    "finalBuild": "not-run",
+    "capacity": {
+      "status": "blocked-not-passed",
+      "stableTwentyClientWindow": false,
+      "twoByTen": "not-run",
+      "lighterPionFixture": "not-run",
+      "limits": "Browser WebAudio / 512 PID fixture initialization; no server capacity conclusion."
+    },
+    "hybridRuntime": "pending",
+    "prohibitedRuntimeActionsPerformed": false
+  },
+  "plannedNetworkMembership": {
+    "status": "design-requirements-recorded",
+    "implemented": false,
+    "pureSimulationEvidence": "none-confirmed-for-these-requirements",
+    "realIntegrationEvidence": "not-verified",
+    "requirements": [
+      "Joining server/community joins its EasyTier network",
+      "Voice rooms control audio subscriptions only",
+      "Switching rooms or leaving voice must not reconnect or leave EasyTier",
+      "Do not add multiple server process sets",
+      "Right member list shows EasyTier membership and local-to-member direct/relay/unknown",
+      "Voice media path is displayed separately from EasyTier transport path",
+      "A peer unbound to auth user must not be shown as trusted"
+    ],
+    "ownership": "Native owner is verifying official EasyTier concepts; SDK owner is aware of layering; this task records the plan only."
+  },
+  "finalArtifact": {
+    "built": false,
+    "sha256": null,
+    "sourceCommit": null,
+    "required": "Build exact frozen source and locked SDK; fresh helper receipt; verified final payload/package SHA256 and source correspondence."
+  },
+  "pending": [
+    "SDK Hybrid immutable delivery and cleanup compatibility confirmation",
+    "Exact SDK source/package build receipt",
+    "Server/SFU final delivered commits and approved fork destinations",
+    "EasyTier application source/package pin",
+    "EasyTier community membership/member UI implementation and distinct simulation/real evidence",
+    "Final native helper receipt and binary build/verification",
+    "Hybrid runtime and capacity acceptance",
+    "Parent approval of remote target and public disclosure scope"
+  ]
+}

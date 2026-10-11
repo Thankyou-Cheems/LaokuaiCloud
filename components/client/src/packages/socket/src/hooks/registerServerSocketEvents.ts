@@ -1,0 +1,874 @@
+import { warmSfuSelection } from "@gryt/voice";
+import { createElement, Dispatch, MutableRefObject, SetStateAction } from "react";
+import toast from "react-hot-toast";
+import { Socket } from "socket.io-client";
+
+import { setAnnouncedPlugins } from "@/addons";
+import {
+  addMention,
+  addThreadMention,
+  getServerAccessToken,
+  getServerRefreshToken,
+  getStoredWorn,
+  getSuppressEveryone,
+  getUploadsFileUrl,
+  rememberPlacements,
+  removeServerAccessToken,
+  removeServerFileToken,
+  removeServerRefreshToken,
+  setMentionCounts,
+  setServerAccessToken,
+  setServerFileAccess,
+  setServerNotice,
+  setServerRefreshToken,
+  setThreadMentionCounts,
+  subscribeToPrefs,
+} from "@/common";
+import {
+  evaluateMemberKeys,
+  forgetGuestScope,
+  identityScopeFor,
+  localPeerPinStore,
+  type MemberKeyState,
+  ownDmPublicKey,
+  ownPersonPublicKey,
+  readSealedVault,
+} from "@/common";
+import { i18n as socketHooksI18n } from "@/i18n";
+import { rememberChannelNames } from "@/lib/channelDirectory";
+import { claimOutcomeToast, guestIsGone, takeClaimOutcome } from "@/lib/identityClaimOutcome";
+import {
+  Server,
+  serverDetails,
+  serverDetailsList,
+  Servers,
+} from "@/settings/src/types/server";
+
+import { PiArrowsClockwiseFill, PiClockFill, PiInfoFill } from "../../../../lib/icons";
+import { type DmKeyFix, dmKeyWarningsOff, showDmKeyWarning } from "../components/dmKeyWarningToast";
+import { MemberInfo } from "../components/MemberSidebar";
+import {
+  applyCallMemberships,
+  type CallMemberships,
+  rememberCallMembers,
+} from "../lib/callMembers";
+import { cardToOffer, cardUpdatePayload, hasCardFields } from "../lib/memberCard/cardStore";
+import { cardProfileFor } from "../lib/memberCard/generatedCard";
+import { attachServerMls, serverMlsPinned, serverMlsReady } from "../mls/serverMls";
+import { Clients, ServerProfile } from "../types/clients";
+import { publishDmKey } from "../utils/dmKeys";
+import { fetchCustomEmojis, setCustomEmojis } from "../utils/emojiData";
+import { setExternalEmojisAllowed } from "../utils/externalEmojiPolicy";
+import { firstTimeOnThisSocket } from "../utils/publishedOnce";
+import { handleRateLimitError } from "../utils/rateLimitHandler";
+import { socketHookToast } from "../utils/socketHookMessages";
+import { syncAvatarToHost } from "../utils/syncAvatarToHost";
+import { noteServerMute } from "./textMute";
+import { setServerJoinPolicy } from "./useServerJoinPolicy";
+
+const TOKEN_HEAL_COOLDOWN_MS = 10_000;
+const tokenHealLastAttempt = new Map<string, number>();
+
+/** The member list identifies people by serverUserId but says nothing about
+    which entry is you, so this is how the two are joined up. */
+const myServerUserIdByHost = new Map<string, string>();
+
+/** `server:joined` fires only from `server:verify`, which a client holding a
+    token never reaches, so `server:details` is the signal both routes produce. */
+const DM_KEY = "dm-key";
+
+function canAttemptTokenHeal(host: string): boolean {
+  const last = tokenHealLastAttempt.get(host) ?? 0;
+  if (Date.now() - last < TOKEN_HEAL_COOLDOWN_MS) return false;
+  tokenHealLastAttempt.set(host, Date.now());
+  return true;
+}
+
+export interface ServerEventContext {
+  nickname: string;
+  userIdRef: MutableRefObject<string | null>;
+  servers: Servers;
+  serversRef: MutableRefObject<Servers>;
+  lastInviteJoinAttemptRef: MutableRefObject<Record<string, string | undefined>>;
+  myVoiceStateByHostRef: MutableRefObject<Record<string, { hasJoinedChannel: boolean; voiceChannelId: string }>>;
+  setServers: (servers: Servers) => void;
+  setNewServerInfo: Dispatch<SetStateAction<Server[]>>;
+  setServerDetailsList: Dispatch<SetStateAction<serverDetailsList>>;
+  setFailedServerDetails: Dispatch<SetStateAction<Record<string, { error: string; message: string; timestamp: number }>>>;
+  setClients: Dispatch<SetStateAction<{ [host: string]: Clients }>>;
+  setMemberLists: Dispatch<SetStateAction<{ [host: string]: MemberInfo[] }>>;
+  /** What to do about each member's DM key here, by member id (GRYT-727). */
+  setMemberKeyStates: Dispatch<
+    SetStateAction<{ [host: string]: Record<string, MemberKeyState> }>
+  >;
+  setServerProfiles: Dispatch<SetStateAction<Record<string, ServerProfile>>>;
+  setIsServerMuted: (value: boolean) => void;
+  setIsServerDeafened: (value: boolean) => void;
+}
+
+/** Long enough for our publish and the member list after it to land, short
+    enough that a genuine mismatch is not hidden. */
+const DM_KEY_WARNING_DELAY_MS = 5000;
+
+/** Pending warnings, per host, so a resolution can cancel one before it shows. */
+const dmKeyWarningTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+/* One toast for every server with the mismatch: a second device mismatches on all of them,
+   and one toast each stacked up into a wall of the same warning. */
+const DM_KEY_TOAST_ID = "dm-key-rewritten";
+const dmKeyWarnedHosts = new Map<string, string>();
+let dmKeyLastFix: DmKeyFix = "none";
+
+function renderDmKeyWarning(): void {
+  if (dmKeyWarnedHosts.size === 0 || dmKeyWarningsOff()) {
+    toast.dismiss(DM_KEY_TOAST_ID);
+    return;
+  }
+  showDmKeyWarning({
+    id: DM_KEY_TOAST_ID,
+    serverNames: [...dmKeyWarnedHosts.values()],
+    fix: dmKeyLastFix,
+    onDismiss: () => {
+      for (const host of dmKeyWarnedHosts.keys()) rememberDmKeyWarningDismissed(host);
+      dmKeyWarnedHosts.clear();
+    },
+  });
+}
+
+/**
+ * A dismissal that holds. The warning is re-armed from every `members:list`, so
+ * dismissing it bought seconds. Per device: the key it is about is this device's.
+ */
+const DM_KEY_DISMISSED_PREFIX = "gryt_dm_key_warning_dismissed:";
+
+function dmKeyWarningDismissed(host: string): boolean {
+  try {
+    return localStorage.getItem(`${DM_KEY_DISMISSED_PREFIX}${host}`) === "1";
+  } catch {
+    // No storage. Showing it is the safe direction for a warning.
+    return false;
+  }
+}
+
+function rememberDmKeyWarningDismissed(host: string): void {
+  try {
+    localStorage.setItem(`${DM_KEY_DISMISSED_PREFIX}${host}`, "1");
+  } catch {
+    /* Then it comes back next launch, which is a nuisance and not a bug. */
+  }
+}
+
+function forgetDmKeyWarningDismissed(host: string): void {
+  try {
+    localStorage.removeItem(`${DM_KEY_DISMISSED_PREFIX}${host}`);
+  } catch {
+    /* as above */
+  }
+}
+
+/** What this device can do about a mismatch, asked of the account. */
+async function dmKeyFix(): Promise<DmKeyFix> {
+  try {
+    return (await readSealedVault()) ? "unlock" : "set-up";
+  } catch {
+    // Not signed in, or the account would not answer. Neither button would
+    // work, so neither is offered.
+    return "none";
+  }
+}
+
+type MentionRow = { conversation_id?: string; thread_id?: string | null; kind?: string };
+
+/** Dropped from badges while the server's "Suppress @everyone and @here" is on. */
+function suppressed(host: string, kind: string | undefined): boolean {
+  return (kind === "everyone" || kind === "here") && getSuppressEveryone(host);
+}
+
+/* The latest socket per server, so flipping Suppress asks again for the list
+   rather than leaving the badges on the old answer. */
+const mentionSockets = new Map<string, Socket>();
+const suppressSeen = new Map<string, boolean>();
+subscribeToPrefs(() => {
+  for (const [host, socket] of mentionSockets) {
+    const now = getSuppressEveryone(host);
+    if (suppressSeen.get(host) === now) continue;
+    suppressSeen.set(host, now);
+    if (socket.connected) socket.emit("mentions:list");
+  }
+});
+
+export function registerServerSocketEvents(socket: Socket, host: string, ctx: ServerEventContext) {
+  mentionSockets.set(host, socket);
+  suppressSeen.set(host, getSuppressEveryone(host));
+  attachServerMls(socket, host);
+
+  /** Remembered rather than applied once: the next `server:clients` arrives with
+      the conversation id blanked again, so this is re-applied to each. */
+  let callMemberships: CallMemberships = {};
+
+  /* Asked once per connection rather than once per socket: a reload, a reconnect
+     and a rejoin are each a moment the list has gone stale (GRYT-1388). */
+  let askedForMentions = false;
+  socket.on("disconnect", () => { askedForMentions = false; });
+
+  function askForMentions() {
+    askedForMentions = true;
+    socket.emit("mentions:list");
+  }
+
+  const { nickname, userIdRef, servers, serversRef, lastInviteJoinAttemptRef, myVoiceStateByHostRef } = ctx;
+  const { setServers, setNewServerInfo, setServerDetailsList, setFailedServerDetails } = ctx;
+  const { setClients, setMemberLists, setMemberKeyStates, setServerProfiles, setIsServerMuted, setIsServerDeafened } = ctx;
+
+  socket.on("server:info", (data: { name?: string; joinPolicy?: unknown }) => {
+    setServerJoinPolicy(host, data?.joinPolicy);
+    const current = serversRef.current[host];
+    const updatedServer = {
+      ...current,
+      host,
+      name: data.name || current?.name || host,
+    };
+
+    if (current && current.name === updatedServer.name) return;
+
+    setNewServerInfo((old) => {
+      if (old.some(server => server.host === updatedServer.host)) return old;
+      return [...old, updatedServer];
+    });
+  });
+
+  /* One event name for both the question and the answer, so one handler covers
+     both and two windows cannot disagree about what is left. */
+  socket.on(
+    "mentions:list",
+    (payload: {
+      counts?: Record<string, number>;
+      mentions?: MentionRow[];
+    }) => {
+      const rows = (payload?.mentions ?? []).filter((m) => !suppressed(host, m?.kind));
+      let counts = payload?.counts ?? {};
+      if (getSuppressEveryone(host)) {
+        counts = {};
+        for (const m of rows) {
+          if (m?.conversation_id) counts[m.conversation_id] = (counts[m.conversation_id] ?? 0) + 1;
+        }
+      }
+      setMentionCounts(host, counts);
+      /* Built from the rows rather than the counts beside them, which are keyed by
+         thread alone and cannot say how much of a channel's count they hold. */
+      setThreadMentionCounts(host, rows);
+    },
+  );
+
+  socket.on("mention:new", (payload: { conversationId?: string; threadId?: string | null; kind?: string }) => {
+    if (!payload?.conversationId || suppressed(host, payload.kind)) return;
+    addMention(host, payload.conversationId);
+    if (payload.threadId) addThreadMention(host, payload.conversationId, payload.threadId);
+  });
+
+  socket.on("server:details", (data: serverDetails) => {
+    // An older server says nothing, which reads as off.
+    setExternalEmojisAllowed(host, data.server_info?.external_emojis === true);
+    /* Where the sidebar arrives, and the layer deciding whether a message makes a
+       noise has no other way to know a channel's folder. Before the join check. */
+    if (Array.isArray(data.sidebar_items)) {
+      rememberPlacements(host, data.sidebar_items, Array.isArray(data.channels) ? data.channels : []);
+    }
+    if (Array.isArray(data.channels)) rememberChannelNames(host, data.channels);
+
+    /* Replaced rather than merged, so a removed plugin stops being listed on the
+       next details. A server too old to say sends nothing. */
+    setAnnouncedPlugins(
+      host,
+      Array.isArray(data.server_info?.plugins)
+        ? data.server_info.plugins
+            .filter((p) => typeof p?.id === "string")
+            .map((p) => ({
+              id: p.id,
+              /* A server that named it without a name is old rather than shy,
+                 and the id is what it called itself. */
+              name: typeof p.name === "string" ? p.name : p.id,
+              author: typeof p.author === "string" ? p.author : undefined,
+              description: typeof p.description === "string" ? p.description : undefined,
+              /* Checked again on the way in: a link somebody clicks is not worth
+                 taking on trust from a server they joined by accident. */
+              homepage:
+                typeof p.homepage === "string" && /^https?:\/\//i.test(p.homepage)
+                  ? p.homepage
+                  : undefined,
+              capabilities: Array.isArray(p.capabilities)
+                ? p.capabilities.filter((c): c is string => typeof c === "string")
+                : [],
+            }))
+        : [],
+    );
+
+    if (data.error === "join_required") {
+      const existingAccessToken = getServerAccessToken(host);
+      if (existingAccessToken) {
+        const refreshToken = getServerRefreshToken(host);
+        if (refreshToken) {
+          socket.emit("token:refresh", { refreshToken });
+        } else {
+          socket.emit("token:refresh", { accessToken: existingAccessToken });
+        }
+        return;
+      }
+      setTimeout(() => {
+        socket.emit("server:join", {
+          nickname,
+          inviteCode: servers[host]?.token || undefined,
+        });
+      }, 500);
+      return;
+    }
+
+    if (data.error && data.message) {
+      console.error(`Server details denied for ${host}:`, data.error, data.message);
+
+      setFailedServerDetails(prev => ({
+        ...prev,
+        [host]: {
+          error: data.error || 'unknown_error',
+          get message() { return data.message || socketHooksI18n.t("socketHooksFull.unknownServerError"); },
+          timestamp: Date.now()
+        }
+      }));
+
+      if (data.error === 'rate_limited') {
+        handleRateLimitError({ error: data.error, message: data.message }, "Server details");
+      } else {
+        toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_1ad4e8ff6d", { p0: data.message })));
+      }
+      return;
+    }
+
+    setServerDetailsList((old) => ({ ...old, [host]: data }));
+
+    /* A reload never gets `server:joined`, so this was the only event left that
+       says the session is back and the member is known (GRYT-1388). */
+    if (!askedForMentions) askForMentions();
+
+    // Not awaited: a key that never arrives means no encrypted messages rather
+    // than a connection that failed.
+    if (firstTimeOnThisSocket(socket, DM_KEY)) void publishDmKey(socket, host);
+    serverMlsReady(host);
+
+    if (data.sfu_hosts?.length) {
+      warmSfuSelection(host, data.sfu_hosts);
+    }
+
+    setFailedServerDetails(prev => {
+      const updated = { ...prev };
+      delete updated[host];
+      return updated;
+    });
+  });
+
+  socket.on("server:emojis:updated", () => {
+    fetchCustomEmojis(host).then((list) => {
+      // Null is a refused read, not an empty server: this fires once per emoji an
+      // import stages, when the read is most likely rate-limited.
+      if (list) setCustomEmojis(list, host);
+    });
+  });
+
+  socket.on("server:joined", (joinInfo: { accessToken: string; fileToken?: string; fileKey?: unknown; refreshToken?: string; nickname: string; avatarFileId?: string | null; avatarWorn?: string | null; identityClaim?: unknown; cardStyle?: unknown; bio?: string | null; pronouns?: string | null; statusLine?: string | null }) => {
+    setServerAccessToken(host, joinInfo.accessToken);
+    // Before anything renders. Every avatar and every picture reaches for this,
+    // so storing it late means a screen of broken images on the first join.
+    setServerFileAccess(host, joinInfo);
+
+    // The earlier of the two publishes, so the key is on the server before the
+    // first member list goes out and nobody sees them appear without one.
+    if (firstTimeOnThisSocket(socket, DM_KEY)) void publishDmKey(socket, host);
+    if (joinInfo.refreshToken) {
+      setServerRefreshToken(host, joinInfo.refreshToken);
+    }
+
+    // No guest left there now, so stop offering to move one. Sign-out clears the answers, not this list.
+    if (guestIsGone(joinInfo.identityClaim)) forgetGuestScope(identityScopeFor(host));
+    const claimed = takeClaimOutcome(host) ? claimOutcomeToast(joinInfo.identityClaim) : null;
+    if (claimed?.tone === "success") toast.success(socketHookToast(() => claimed.message), { duration: 6000 });
+    else if (claimed?.tone === "error") toast.error(socketHookToast(() => claimed.message), { duration: 8000 });
+    else if (claimed) toast(socketHookToast(() => claimed.message), { duration: 6000, icon: createElement(PiInfoFill, { size: 18 }) });
+
+    // Said out loud, because the request was made in a dialog that has long since
+    // closed and grey going to normal is a change nobody is watching for.
+    if (serversRef.current[host]?.approvalRequestedAt) {
+      const rest = { ...serversRef.current[host] };
+      delete rest.approvalRequestedAt;
+      const updated = { ...serversRef.current, [host]: rest };
+      serversRef.current = updated;
+      setServers(updated);
+      toast.success(socketHookToast(() => socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_c45d37ef7d", { p0: rest.name || host })), { duration: 8000 });
+    }
+
+    setServerProfiles(prev => ({
+      ...prev,
+      [host]: {
+        nickname: joinInfo.nickname,
+        avatarFileId: joinInfo.avatarFileId || null,
+        avatarUrl: joinInfo.avatarFileId
+          ? getUploadsFileUrl(host, joinInfo.avatarFileId)
+          : null,
+        // Undefined from a server older than the field, which reads as no
+        // designed look — and that is what such a server has.
+        avatarWorn: joinInfo.avatarWorn ?? null,
+        card: cardProfileFor(joinInfo, joinInfo.nickname),
+      },
+    }));
+
+    // Only when the server has no card for you, since `server:joined` fires on reconnects too.
+    if (!hasCardFields(joinInfo)) {
+      const offer = cardToOffer(joinInfo.nickname);
+      if (offer) socket.emit("profile:update", cardUpdatePayload(offer));
+    }
+
+    // Only when the server has none: the look is per-server once set, and
+    // `server:joined` fires on reconnects, so pushing would undo that choice.
+    const storedWorn = getStoredWorn();
+    if (storedWorn && !joinInfo.avatarWorn) {
+      socket.emit("profile:update", { avatarWorn: storedWorn });
+    }
+
+    socket.emit("server:details");
+    socket.emit("members:fetch");
+    // Every join, not just the first: being away is when this accumulates, and it
+    // is how a mention read on a phone stops showing here.
+    askForMentions();
+
+    // Read when the event fires, not at registration: the socket exists before
+    // `useUserId` resolves, so a captured value was usually null.
+    const userId = userIdRef.current;
+    if (joinInfo.accessToken && userId) {
+      syncAvatarToHost(host, joinInfo.accessToken, joinInfo.avatarFileId, socket, setServerProfiles, userId)
+        .catch(() => {});
+    }
+  });
+
+  socket.on("profile:updated", (data: { nickname: string; avatarFileId: string | null; avatarWorn?: string | null; cardStyle?: unknown; bio?: string | null; pronouns?: string | null; statusLine?: string | null }) => {
+    setServerProfiles(prev => {
+      // This event doesn't say whether the avatar is a video; the member list does, for this file id.
+      const avatarVideo = !!data.avatarFileId && prev[host]?.avatarFileId === data.avatarFileId && !!prev[host]?.avatarVideo;
+      return {
+        ...prev,
+        [host]: {
+          nickname: data.nickname,
+          avatarFileId: data.avatarFileId,
+          avatarUrl: data.avatarFileId
+            ? getUploadsFileUrl(host, data.avatarFileId, avatarVideo ? { thumb: true } : undefined)
+            : null,
+          avatarVideo,
+          // Optional on the wire, since an older server does not send it. Undefined
+          // reads as no designed look, and the uploaded PNG shows instead.
+          avatarWorn: data.avatarWorn ?? null,
+          card: cardProfileFor(data, data.nickname),
+        },
+      };
+    });
+  });
+
+  /* The worker could not process an avatar or banner this person uploaded, so they keep
+     the old one (GRYT-1667). Asking for the profile again puts it back in settings. */
+  socket.on("profile:media-refused", (data: { purpose?: unknown }) => {
+    const what = () => data?.purpose === "banner" ? socketHooksI18n.t("socketHooksFull.banner") : socketHooksI18n.t("socketHooksFull.avatar");
+    toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.profileMediaRefused", { kind: what() })));
+    socket.emit("avatar:updated");
+  });
+
+  socket.on(
+    "server:setup_required",
+    (payload: {
+      serverId?: string;
+      settings?: {
+        displayName?: string;
+        description?: string;
+        iconUrl?: string | null;
+        isConfigured?: boolean;
+      };
+    }) => {
+      // A reconnect must not reopen setup for a configured server. Kept as
+      // protection against older server versions.
+      if (payload?.settings?.isConfigured === true) {
+        return;
+      }
+
+      window.dispatchEvent(
+        new CustomEvent("server_setup_required", {
+          detail: {
+            host,
+            ...(payload || {}),
+          },
+        })
+      );
+    }
+  );
+
+  /* A kind plus values, never text; everything on screen ships in
+     `ServerNoticePanel`. Re-checked here, because that is somebody else's machine. */
+  socket.on("server:notice", (payload: unknown) => {
+    setServerNotice(host, payload);
+  });
+
+  socket.on("server:kicked", (data: { reason?: string; action?: "kick" | "ban" }) => {
+    const serverName = serversRef.current[host]?.name || host;
+    toast.error(socketHookToast(() => data?.reason ? `${serverName}: ${data.reason}` : socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_1596d72efc", { p0: serverName })));
+
+    // Both, not just the access token: keeping the refresh token let a kicked
+    // client mint a new one and walk straight back in.
+    removeServerAccessToken(host);
+    removeServerFileToken(host);
+    removeServerRefreshToken(host);
+
+    window.dispatchEvent(new CustomEvent("server_voice_disconnect", {
+      detail: { host, reason: data?.action === "ban" ? "banned_from_server" : "kicked_from_server" },
+    }));
+
+    // A kick is not permanent and rejoining still works, but leaving a server you
+    // were removed from in the sidebar is worse than adding it back.
+    window.dispatchEvent(new CustomEvent("server_force_remove", { detail: { host } }));
+  });
+
+  socket.on("server:session:replaced", (data: { message?: string }) => {
+    toast(socketHookToast(() => data?.message || socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_2c29d65b8c")), {
+      icon: createElement(PiArrowsClockwiseFill, { size: 18 }),
+      duration: 8000,
+    });
+    removeServerAccessToken(host);
+    removeServerRefreshToken(host);
+    window.dispatchEvent(new CustomEvent("server_voice_disconnect", {
+      detail: { host, reason: "session_replaced" },
+    }));
+  });
+
+  socket.on("server:error", (errorInfo: { error: string; message?: string; retryAfterMs?: number; currentScore?: number; maxScore?: number; canReapply?: boolean }) => {
+    console.error(`Server join failed for ${host}:`, errorInfo);
+
+    if (errorInfo.error === 'rate_limited' && errorInfo.message) {
+      handleRateLimitError(errorInfo, "Server connection");
+      return;
+    }
+
+    if (errorInfo.error === "join_required") {
+      setTimeout(() => {
+        socket.emit("server:join", {
+          nickname,
+          inviteCode: serversRef.current[host]?.token || undefined,
+        });
+      }, 500);
+      return;
+    }
+
+    if (errorInfo.error === 'invalid_invite') {
+      const message = () => errorInfo.message || socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_7a1b164d17");
+      toast.error(socketHookToast(() => message()), { duration: 6000 });
+
+      const currentServers = serversRef.current;
+      const existing = currentServers[host];
+      if (existing?.token) {
+        const nextServers = { ...currentServers, [host]: { ...existing, token: undefined } };
+        setServers(nextServers);
+        lastInviteJoinAttemptRef.current[host] = undefined;
+      }
+
+      toast(socketHookToast(() => socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_01c6db6f09", { p0: host })), { duration: 8000 });
+      return;
+    }
+
+    if (errorInfo.error === "invite_rate_limited") {
+      const message = () => errorInfo.message || socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_d60bcdd44a");
+      toast.error(socketHookToast(() => message()), { duration: 6000 });
+      return;
+    }
+
+    // Not an error toast: nothing went wrong and there is nothing to retry. A
+    // denial reads the same, because the server will not say which it is.
+    if (errorInfo.error === "approval_pending") {
+      const message = () => errorInfo.message || socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_6b141328a3");
+      toast(socketHookToast(() => message()), { duration: 8000, icon: createElement(PiClockFill, { size: 18 }) });
+      return;
+    }
+
+    if (errorInfo.error === "invite_required") {
+      const message = () => errorInfo.message || socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_b18eb7e797");
+      toast.error(socketHookToast(() => message()), { duration: 6000 });
+      toast(socketHookToast(() => socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_b4d2c36516", { p0: host })), { duration: 8000 });
+      return;
+    }
+
+    if (errorInfo.error === 'user_not_authorized' || errorInfo.error === 'join_token_invalid' || errorInfo.error === 'join_verification_failed') {
+      const message = () => errorInfo.message || socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_70f4e4d8d7");
+      toast.error(socketHookToast(() => message()), { duration: 6000 });
+      setTimeout(() => {
+        if (errorInfo.canReapply) {
+          toast(
+            socketHookToast(() => socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_df93b0cca6")),
+            { duration: 8000, icon: createElement(PiInfoFill, { size: 18 }) }
+          );
+        } else {
+          toast(
+            socketHookToast(() => socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_2186aa54e4")),
+            { duration: 6000, icon: createElement(PiInfoFill, { size: 18 }) }
+          );
+        }
+      }, 2000);
+      return;
+    }
+
+    // Passed straight through: the generic branch calls everything a join
+    // failure, and somebody leaving is already in.
+    if (
+      errorInfo.error === "owner_cannot_leave" ||
+      errorInfo.error === "leave_failed" ||
+      errorInfo.error === "not_registered"
+    ) {
+      toast.error(socketHookToast(() => errorInfo.message || socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_2441d2438e")), { duration: 8000 });
+      return;
+    }
+
+    // Not join problems: the generic branch renders every one of these as
+    // "Failed to join server <host>: forbidden", which is wrong in both halves.
+    const MODERATION_ERRORS = [
+      "forbidden",
+      "not_found",
+      "kick_failed",
+      "ban_failed",
+      "unban_failed",
+      "mute_failed",
+      "deafen_failed",
+      "bans_failed",
+    ];
+    if (MODERATION_ERRORS.includes(errorInfo.error)) {
+      toast.error(socketHookToast(() => errorInfo.message || socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_a0504ccbc6")));
+      return;
+    }
+
+    // Recorded like the refusals below, or the panel sits on a skeleton blaming
+    // the network. Tokens are left alone: the identity was rejected, not them.
+    if (errorInfo.error === "identity_tier_refused") {
+      const message = () => errorInfo.message || socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_a0f422eec7");
+      toast.error(socketHookToast(() => message()), { duration: 6000 });
+
+      setFailedServerDetails((prev) => ({
+        ...prev,
+        [host]: {
+          error: errorInfo.error,
+          get message() { return message(); },
+          timestamp: Date.now(),
+        },
+      }));
+      return;
+    }
+
+    // The server will not say why, so the client cannot tell a ban from any other
+    // refusal and must not guess: no force-remove, which is not recoverable.
+    if (
+      errorInfo.error === 'join_refused' ||
+      errorInfo.error === 'banned' ||
+      errorInfo.error === 'membership_required'
+    ) {
+      removeServerAccessToken(host);
+      removeServerRefreshToken(host);
+      toast.error(socketHookToast(() => errorInfo.message || socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_06cbac9094", { p0: host })));
+
+      // Recording it here is what stops the retry loops asking again every few
+      // seconds; without it the refusal repeats for as long as the app is open.
+      setFailedServerDetails((prev) => ({
+        ...prev,
+        [host]: {
+          error: errorInfo.error,
+          get message() { return errorInfo.message || socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_4fe6fa978c"); },
+          timestamp: Date.now(),
+        },
+      }));
+      return;
+    }
+
+    if (errorInfo.error === 'token_invalid') {
+      removeServerAccessToken(host);
+
+      if (!canAttemptTokenHeal(host)) return;
+
+      const refreshToken = getServerRefreshToken(host);
+      if (refreshToken) {
+        socket.emit("token:refresh", { refreshToken });
+      } else {
+        removeServerRefreshToken(host);
+        socket.emit("server:join", {
+          nickname,
+          inviteCode: serversRef.current[host]?.token || undefined,
+        });
+      }
+      return;
+    } else {
+      toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_2221663033", { p0: host, p1: errorInfo.error })));
+    }
+  });
+
+  /** Sent into that call's own room and nowhere else, so receiving it is the
+      proof of being allowed to know. */
+  socket.on(
+    "voice:call:members",
+    (payload: { conversation_id?: string; server_user_ids?: string[] }) => {
+      if (!payload?.conversation_id || !Array.isArray(payload.server_user_ids)) return;
+      callMemberships = rememberCallMembers(
+        callMemberships,
+        payload.conversation_id,
+        payload.server_user_ids,
+      );
+      setClients((old) => {
+        const patched = applyCallMemberships(old[host] ?? {}, callMemberships);
+        if (patched === old[host]) return old;
+        return { ...old, [host]: patched };
+      });
+    },
+  );
+
+  socket.on("server:clients", (data: Clients) => {
+    setClients((old) => {
+      const prev = old[host] ?? {};
+      for (const [cid, client] of Object.entries(data)) {
+        const prevClient = prev[cid];
+        if (
+          client.screenShareEnabled !== prevClient?.screenShareEnabled ||
+          client.screenShareVideoStreamID !== prevClient?.screenShareVideoStreamID
+        ) {
+          console.log(
+            `[ScreenShare] server:clients update cid=${cid} nick=${client.nickname} screenEnabled=${client.screenShareEnabled} videoStreamID=${client.screenShareVideoStreamID ?? ""}` +
+            ` (was enabled=${prevClient?.screenShareEnabled} streamID=${prevClient?.screenShareVideoStreamID ?? ""})`,
+          );
+        }
+      }
+      return { ...old, [host]: applyCallMemberships(data, callMemberships) };
+    });
+
+    const myEntry = socket.id ? data[socket.id] : undefined;
+    myVoiceStateByHostRef.current[host] = {
+      hasJoinedChannel: !!myEntry?.hasJoinedChannel,
+      voiceChannelId: myEntry?.voiceChannelId || "",
+    };
+    if (myEntry) {
+      setIsServerMuted(!!myEntry.isServerMuted);
+      // How a member already muted before this session learns they are (GRYT-1400).
+      noteServerMute(host, !!myEntry.isServerMuted);
+      setIsServerDeafened(!!myEntry.isServerDeafened);
+      if (myEntry.serverUserId) {
+        myServerUserIdByHost.set(host, myEntry.serverUserId);
+      }
+    }
+  });
+
+  socket.on("members:list", (data: MemberInfo[]) => {
+    const membersWithGrayColor = data.map(member => ({
+      ...member,
+      color: "var(--gryt-neutral-6)"
+    }));
+    setMemberLists((old) => ({ ...old, [host]: membersWithGrayColor }));
+
+    // Separate from the list above, so a slow evaluation never holds up the
+    // sidebar: a key decision changes what can be encrypted, not who is online.
+    const myId = myServerUserIdByHost.get(host) ?? null;
+    // The person keys are pinned here too, before the MLS driver ever meets their devices.
+    const own = (key: (host: string) => Promise<Uint8Array>) => (myId ? key(host).catch(() => null) : Promise.resolve(null));
+    void Promise.all([own(ownDmPublicKey), own(ownPersonPublicKey)])
+      .then(([ownKey, ownPersonKey]) =>
+        evaluateMemberKeys({
+          store: localPeerPinStore,
+          scope: identityScopeFor(host),
+          ownKey,
+          ownPersonKey,
+          members: data,
+          myServerUserId: myId,
+        }),
+      )
+      .then((states) => {
+        setMemberKeyStates((old) => ({ ...old, [host]: states }));
+        serverMlsPinned(host);
+
+        /* Held back before it is shown, since our own publish races the first
+           member list. A second device really does mismatch, so it is named first. */
+        const myId = myServerUserIdByHost.get(host);
+        const pending = dmKeyWarningTimers.get(host);
+
+        if (myId && states[myId]?.ownKeyRewritten) {
+          if (pending === undefined && !dmKeyWarningDismissed(host)) {
+            dmKeyWarningTimers.set(
+              host,
+              setTimeout(() => {
+                dmKeyWarningTimers.delete(host);
+                /* Which repair to offer depends on the account, so it is asked
+                   here rather than guessed. A guest gets no button at all. */
+                void dmKeyFix().then((fix) => {
+                  if (dmKeyWarningDismissed(host)) return;
+                  dmKeyLastFix = fix;
+                  dmKeyWarnedHosts.set(host, serversRef.current[host]?.name || host);
+                  renderDmKeyWarning();
+                });
+              }, DM_KEY_WARNING_DELAY_MS),
+            );
+          }
+        } else {
+          if (pending !== undefined) {
+            clearTimeout(pending);
+            dmKeyWarningTimers.delete(host);
+          }
+          /* The mismatch is gone, so an earlier dismissal has done its job. If
+             it ever comes back it is news again, and should say so. */
+          forgetDmKeyWarningDismissed(host);
+          if (dmKeyWarnedHosts.delete(host)) renderDmKeyWarning();
+        }
+      })
+      .catch(() => {
+        // Storage that will not read, most likely. Leaving the previous states
+        // alone is right: dropping them would make every peer look new.
+      });
+
+    // Written on a plain join, not only on a change: Settings fell back to the
+    // local nickname under a caption saying it was what others see.
+    const myServerUserId = myServerUserIdByHost.get(host);
+    if (!myServerUserId) return;
+
+    const me = data.find((member) => member.serverUserId === myServerUserId);
+    if (!me) return;
+
+    // A first join goes through its own socket, so the card is offered here too, once.
+    if (!hasCardFields(me) && firstTimeOnThisSocket(socket, "member-card")) {
+      const offer = cardToOffer(me.nickname);
+      if (offer) socket.emit("profile:update", cardUpdatePayload(offer));
+    }
+
+    setServerProfiles((prev) => {
+      const existing = prev[host];
+      if (
+        existing?.nickname === me.nickname &&
+        existing?.avatarFileId === (me.avatarFileId ?? null) &&
+        existing?.avatarWorn === (me.avatarWorn ?? null) &&
+        !!existing?.avatarVideo === !!me.avatarVideo &&
+        JSON.stringify(existing?.card) === JSON.stringify(cardProfileFor(me, me.nickname))
+      ) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        [host]: {
+          nickname: me.nickname,
+          avatarFileId: me.avatarFileId ?? null,
+          // A video avatar's still poster, since this one is drawn with <img>.
+          avatarUrl: me.avatarFileId
+            ? getUploadsFileUrl(host, me.avatarFileId, me.avatarVideo ? { thumb: true } : undefined)
+            : null,
+          avatarWorn: me.avatarWorn ?? null,
+          avatarVideo: !!me.avatarVideo,
+          card: cardProfileFor(me, me.nickname),
+        },
+      };
+    });
+  });
+
+  socket.on("error", (msg: unknown) => {
+    const text = () => typeof msg === "string" ? msg : ((msg as Record<string, unknown>)?.message || socketHooksI18n.t("socketHooksFull.registerServerSocketEvents_73274743c3"));
+    toast.error(socketHookToast(() => `[${host}] ${text()}`));
+  });
+}

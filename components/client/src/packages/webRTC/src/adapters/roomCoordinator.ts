@@ -1,0 +1,124 @@
+import type { RoomAccess, RoomCoordinator } from "@gryt/voice";
+import type { Socket } from "socket.io-client";
+
+import { handleRateLimitError } from "@/socket/src/utils/rateLimitHandler";
+
+
+/**
+ * What the server sends back on `voice:room:granted`. Declared here rather than
+ * imported: it is Gryt's socket payload, not anything `@gryt/voice` knows.
+ */
+interface RoomAccessData {
+  room_id: string;
+  join_token: unknown;
+  sfu_url: string;
+  sfu_urls?: string[];
+  timestamp: number;
+}
+
+/** How long to wait for the server to answer a room request. */
+const ACCESS_TIMEOUT_MS = 15_000;
+
+/* The engine only asks again after a refusal that carries retryAfterMs. The server's
+   bare-string answers and our own timeout are failures rather than decisions. */
+const RETRY_SOON_MS = 2_000;
+
+/**
+ * Gryt's half of joining a channel, over the socket the client already has. The
+ * rate-limit toast is here because saying it out loud is the app's job.
+ */
+type ClientAuthority=NonNullable<RoomCoordinator["moveAuthority"]> & {invalidate?:(reason:string)=>void};
+export function createRoomCoordinator(socketSource: Socket|(()=>Socket|undefined), host: string, moveAuthority?:ClientAuthority|(()=>ClientAuthority|undefined)): RoomCoordinator {
+  const currentSocket=()=>typeof socketSource==="function" ? socketSource() : socketSource;
+  const authority=()=>typeof moveAuthority==="function" ? moveAuthority() : moveAuthority;
+  return {
+    get moveAuthority(){return authority();},
+    requestAccess(channelId: string): Promise<RoomAccess> {
+      // Capture the current authenticated socket for this request's listener cleanup.
+      const socket=currentSocket();
+      if(!socket?.connected)return Promise.resolve({granted:false,reason:"Server socket disconnected",retryAfterMs:RETRY_SOON_MS});
+      return new Promise((resolve) => {
+        const timeout = setTimeout(() => {
+          cleanup();
+          resolve({ granted: false, reason: "Room access request timed out", retryAfterMs: RETRY_SOON_MS });
+        }, ACCESS_TIMEOUT_MS);
+
+        const cleanup = () => {
+          clearTimeout(timeout);
+          socket.off("voice:room:granted", onGranted);
+          socket.off("voice:room:error", onError);
+        };
+
+        const onGranted = (data: RoomAccessData) => {
+          cleanup();
+          resolve({
+            granted: true,
+            roomId: data.room_id,
+            joinToken: data.join_token,
+            sfuUrls: data.sfu_urls?.length ? data.sfu_urls : [data.sfu_url],
+            // The engine caches its chosen SFU against this and never reads it.
+            // The host is what the old code keyed the cache on.
+            cacheKey: host,
+          });
+        };
+
+        const onError = (
+          error:
+            | string
+            | { error: string; message?: string; retryAfterMs?: number },
+        ) => {
+          cleanup();
+
+          if (typeof error === "object" && error.error === "rate_limited" && error.message) {
+            handleRateLimitError(error, "Voice connection");
+            resolve({
+              granted: false,
+              reason: error.message,
+              retryAfterMs: error.retryAfterMs,
+            });
+            return;
+          }
+
+          if (typeof error === "string") {
+            resolve({ granted: false, reason: error, retryAfterMs: RETRY_SOON_MS });
+            return;
+          }
+
+          // The engine hands `reason` back as connectionError, which is what gets shown.
+          resolve({
+            granted: false,
+            reason: error.message || error.error || "Unknown error",
+            retryAfterMs: error.retryAfterMs,
+          });
+        };
+
+        socket.once("voice:room:granted", onGranted);
+        socket.once("voice:room:error", onError);
+        socket.emit("voice:room:request", channelId);
+      });
+    },
+
+    leave: () => {authority()?.invalidate?.("voice:room:leave");currentSocket()?.emit("voice:room:leave");},
+    announceJoined: (joined) => currentSocket()?.emit("voice:channel:joined", joined),
+    setLocalStream: (streamId) => currentSocket()?.emit("voice:stream:set", streamId ?? ""),
+    peerChanged: (streamId, present) =>
+      currentSocket()?.emit(present ? "voice:peer:connected" : "voice:peer:disconnected", streamId),
+
+    get connected() {
+      return currentSocket()?.connected===true;
+    },
+
+    onReconnected(handler: () => void) {
+      // The client raises a `server_socket_reconnected` window event with the host
+      // in its detail. It stays a window event here, filtered to this server.
+      const listener = (event: Event) => {
+        const detail = (event as CustomEvent<{ host?: string }>).detail;
+        if (detail?.host && detail.host !== host) return;
+        if(!currentSocket()?.connected)return;
+        handler();
+      };
+      window.addEventListener("server_socket_reconnected", listener);
+      return () => window.removeEventListener("server_socket_reconnected", listener);
+    },
+  };
+}

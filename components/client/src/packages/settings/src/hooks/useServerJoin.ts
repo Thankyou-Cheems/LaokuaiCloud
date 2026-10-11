@@ -1,0 +1,336 @@
+import { useCallback, useState } from "react";
+
+import {
+  getServerHttpBase,
+  normalizeCode,
+  normalizeHost,
+  otherScheme,
+  rememberScheme,
+  type Scheme,
+  schemeFor,
+  schemeOfUrl,
+  setServerAccessToken,
+  setServerFileAccess,
+  setServerRefreshToken,
+} from "@/common";
+import { joinServerOnce } from "@/socket";
+
+import { useServerManagement } from "../../../socket/src/hooks/useServerManagement";
+import { sameServer } from "../serverId";
+import { useSettings } from "./useSettings";
+
+/**
+ * What a server says about itself before anybody has joined it. An absent field
+ * is not a false one — an older server sends no `identityTiers` at all.
+ */
+export type FetchInfo = {
+  serverId?: string;
+  name: string;
+  description?: string;
+  members: string;
+  lanOpen?: boolean;
+  identityTiers?: ("account" | "local")[];
+  joinPolicy?: "invite" | "request" | "open";
+};
+
+/**
+ * Give up on /info after this long. Without a deadline the fetch runs until the
+ * OS gives up on the TCP connect, which is over a minute on macOS.
+ */
+export const INFO_TIMEOUT_MS = 8000;
+
+export type InfoResult =
+  /** The server answered. */
+  | { kind: "info"; info: FetchInfo }
+  /** Public info is switched off. Joining may still work with a code. */
+  | { kind: "private" }
+  /** Superseded by a newer lookup — the newer one owns the UI now. */
+  | { kind: "superseded" }
+  | { kind: "error"; message: string; messageKey?: string };
+
+/**
+ * Ask a server to describe itself. Separate from the hook below because Discovery
+ * and the join modal each fetch it and neither wants the other's state.
+ */
+export async function fetchServerInfo(
+  host: string,
+  signal?: AbortSignal,
+): Promise<InfoResult> {
+  const normalizedHost = normalizeHost(host);
+  if (!normalizedHost) return { kind: "error", messageKey: "errors.noAddress", message: "No address" };
+
+  const controller = new AbortController();
+  const abortOuter = () => controller.abort();
+  signal?.addEventListener("abort", abortOuter);
+
+  // Distinguishes "we gave up" from "a newer request replaced this one", which
+  // the abort alone cannot tell apart.
+  let timedOut = false;
+  const timeout = window.setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, INFO_TIMEOUT_MS);
+
+  try {
+    // Plain is the default, so the first attempt at an unknown server is http. No token: the
+    // server ignores it, and carrying one made this wait on the identity proof (GRYT-1547).
+    const first: Scheme = schemeFor(normalizedHost);
+
+    let res: Response;
+    try {
+      res = await fetch(`${getServerHttpBase(normalizedHost, first)}/info`, {
+        signal: controller.signal,
+      });
+    } catch (reachErr) {
+      // Nothing answered, which says nothing about the scheme, so try the other.
+      // Only a transport failure retries: an error means the server was reached.
+      if (controller.signal.aborted) throw reachErr;
+      res = await fetch(
+        `${getServerHttpBase(normalizedHost, otherScheme(first))}/info`,
+        { signal: controller.signal },
+      );
+    }
+
+    // Recorded from the reply rather than from what was asked for: a proxy on
+    // port 80 redirects to https and `fetch` follows, but a WebSocket cannot.
+    const served = schemeOfUrl(res.url);
+    if (served) rememberScheme(normalizedHost, served);
+
+    if (res.status === 404) return { kind: "private" };
+    if (!res.ok) {
+      return { kind: "error", message: `Server responded with ${res.status}` };
+    }
+
+    return { kind: "info", info: (await res.json()) as FetchInfo };
+  } catch (err: unknown) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      if (!timedOut) return { kind: "superseded" };
+      return {
+        kind: "error",
+        message:
+          "No response from this server. It may be advertising an address it is not reachable on.",
+        messageKey: "errors.timeout",
+      };
+    }
+    // A network-layer failure gives "Failed to fetch", which describes the call
+    // rather than the situation. What is known is that nothing answered.
+    const message = err instanceof Error ? err.message : "";
+    if (
+      err instanceof TypeError ||
+      message === "Failed to fetch" ||
+      message === "Load failed"
+    ) {
+      return { kind: "error", messageKey: "errors.noAnswer", message: "Nothing answered at this address." };
+    }
+
+    return { kind: "error", message: message || "Server is not responding" };
+  } finally {
+    window.clearTimeout(timeout);
+    signal?.removeEventListener("abort", abortOuter);
+  }
+}
+
+export type JoinOutcome = (
+  | { ok: true }
+  /** Somebody has to let you in by hand. Not a failure and not worth retrying. */
+  | { ok: false; kind: "approval_pending"; message: string }
+  /** The server wants a code, or the one given was wrong. */
+  | { ok: false; kind: "invite_required"; message: string }
+  /** The server takes accounts only, and this join went without one. */
+  | { ok: false; kind: "account_required"; message: string }
+  /** Already a member. The caller has been switched to it. */
+  | { ok: false; kind: "already_member"; message: string }
+  | { ok: false; kind: "error"; message: string }) & { messageKey?: string };
+
+/**
+ * Turn a join failure into a line somebody can act on. The generic branch is last
+ * on purpose: every case above it otherwise reads as somebody's fault.
+ */
+function describeJoinErrorRaw(error: { error: string; message?: string }): JoinOutcome {
+  switch (error.error) {
+    case "approval_pending":
+      return {
+        ok: false,
+        kind: "approval_pending",
+        message:
+          "Asked. Somebody who runs this server has to let you in. It is in your server list now and will open on its own once they do.",
+      };
+    case "invite_required":
+      return {
+        ok: false,
+        kind: "invite_required",
+        message:
+          error.message || "This server is invite-only. Paste an invite code to join.",
+      };
+    case "invalid_invite":
+      return {
+        ok: false,
+        kind: "invite_required",
+        message: error.message || "Invalid invite code.",
+      };
+    case "identity_tier_refused":
+      return {
+        ok: false,
+        kind: "account_required",
+        message:
+          "This server requires a Gryt account. Sign in from the menu at the bottom left, then try again.",
+      };
+    case "invite_rate_limited":
+    case "rate_limited":
+      return {
+        ok: false,
+        kind: "error",
+        message: error.message || "Too many attempts. Please wait and try again.",
+      };
+    case "connect_error":
+      return {
+        ok: false,
+        kind: "error",
+        message:
+          error.message ||
+          "Could not connect to the server. Check the address and your network.",
+      };
+    case "timeout":
+      return {
+        ok: false,
+        kind: "error",
+        message:
+          error.message ||
+          "Connection timed out. The server may be down or unreachable.",
+      };
+    default:
+      return {
+        ok: false,
+        kind: "error",
+        message: error.message || `Failed to join server: ${error.error}`,
+      };
+  }
+}
+
+const JOIN_ERROR_KEYS: Record<string, string> = {
+  approval_pending: "ui.askedSomebodyWhoRunsThisServerHasTo", invite_required: "errors.inviteRequired",
+  invalid_invite: "errors.invalidInvite", identity_tier_refused: "errors.accountRequired",
+  invite_rate_limited: "errors.rateLimited", rate_limited: "errors.rateLimited",
+  connect_error: "errors.connect", timeout: "errors.joinTimeout",
+};
+
+function describeJoinError(error: { error: string; message?: string }): JoinOutcome {
+  const outcome = describeJoinErrorRaw(error);
+  const clientCopy = !error.message || error.error === "identity_tier_refused" || error.error === "approval_pending";
+  if (outcome.ok) return outcome;
+  return {
+    ...outcome,
+    // The socket's local diagnostic may be a current-language getter. Keep it
+    // through the UI instead of flattening it while this async request settles.
+    get message() { return !clientCopy && error.message ? error.message : outcome.message; },
+    messageKey: clientCopy ? JOIN_ERROR_KEYS[error.error] : undefined,
+  };
+}
+
+export interface JoinRequest {
+  host: string;
+  /** From /info, when it answered. Supplies the name and the id we store. */
+  info?: FetchInfo | null;
+  inviteCode?: string;
+  note?: string;
+}
+
+/**
+ * Joining a server, in one place. Both the join modal and Discovery do exactly
+ * this, and the error mapping above is the part worth not having twice.
+ */
+export function useServerJoin() {
+  const { addServer, servers, switchToServer } = useServerManagement();
+  const { nickname } = useSettings();
+  /** The host currently being joined, so a list can mark only its own row. */
+  const [joiningHost, setJoiningHost] = useState<string | null>(null);
+
+  const join = useCallback(
+    async ({ host, info, inviteCode, note }: JoinRequest): Promise<JoinOutcome> => {
+      const normalizedHost = normalizeHost(host);
+      if (!normalizedHost) {
+        return { ok: false, kind: "error", message: "No address" };
+      }
+
+      const existingByHost = servers[normalizedHost];
+      if (existingByHost) {
+        switchToServer(existingByHost.host);
+        return {
+          ok: false,
+          kind: "already_member",
+          message: "You are already a member of this server.",
+        };
+      }
+
+      if (info?.serverId) {
+        const joining = { host: normalizedHost, serverId: info.serverId };
+        const existingById = Object.entries(servers).find(([storedHost, server]) =>
+          sameServer({ host: storedHost, serverId: server.serverId }, joining),
+        );
+        if (existingById) {
+          switchToServer(existingById[0]);
+          return {
+            ok: false,
+            kind: "already_member",
+            message: "You are already connected to this server.",
+          };
+        }
+      }
+
+      const code = normalizeCode(inviteCode || "");
+
+      setJoiningHost(normalizedHost);
+      try {
+        const result = await joinServerOnce({
+          host: normalizedHost,
+          nickname,
+          inviteCode: code.length > 0 ? code : undefined,
+          note: note && note.trim().length > 0 ? note.trim() : undefined,
+        });
+
+        if (!result.ok) {
+          // A request with the moderators is not a failed join. The server goes
+          // on the list marked as waiting and rejoins itself (GRYT-289).
+          if (result.error.error === "approval_pending") {
+            addServer(
+              {
+                name: info?.name || normalizedHost,
+                host: normalizedHost,
+                serverId: info?.serverId,
+                approvalRequestedAt: Date.now(),
+              },
+              false,
+            );
+          }
+          return describeJoinError(result.error);
+        }
+
+        setServerAccessToken(normalizedHost, result.joinInfo.accessToken);
+        // Held here like the invite path does, or every picture on the server is broken until a rejoin.
+        setServerFileAccess(normalizedHost, result.joinInfo);
+        if (result.joinInfo.refreshToken) {
+          setServerRefreshToken(normalizedHost, result.joinInfo.refreshToken);
+        }
+
+        addServer(
+          {
+            name: info?.name || normalizedHost,
+            host: normalizedHost,
+            serverId: info?.serverId,
+            // Explicitly absent rather than left alone: getting in is what ends
+            // the wait, and a stale mark would keep the rail saying otherwise.
+            approvalRequestedAt: undefined,
+          },
+          true,
+        );
+
+        return { ok: true };
+      } finally {
+        setJoiningHost(null);
+      }
+    },
+    [addServer, nickname, servers, switchToServer],
+  );
+
+  return { join, joiningHost };
+}

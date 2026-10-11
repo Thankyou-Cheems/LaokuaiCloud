@@ -1,0 +1,101 @@
+import type { StreamSources } from "@gryt/voice";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+import { gainToSlider, sliderToGain } from "@/lib/audioVolume";
+import { setReceiveAudioGain } from "@/lib/receiveAudio";
+
+import type { PopoutHandle } from "../utils/popoutVideo";
+import { popoutStream } from "../utils/popoutVideo";
+
+export function usePopoutStreams(
+  gridItems: string[],
+  streamSources?: StreamSources,
+) {
+  const handles = useRef(new Map<string, PopoutHandle>());
+  const [poppedOutItems, setPoppedOutItems] = useState<Set<string>>(new Set());
+  const streamSourcesRef = useRef(streamSources);
+  streamSourcesRef.current = streamSources;
+
+  const popout = useCallback(
+    (
+      itemId: string,
+      stream: MediaStream,
+      title: string,
+      audioStreamId?: string,
+    ) => {
+      const existing = handles.current.get(itemId);
+      if (existing?.isOpen()) {
+        existing.close();
+        return;
+      }
+
+      // A handle whose window has gone but whose close has not been noticed is
+      // retired here, or it would take the entry we are about to create.
+      if (existing) {
+        handles.current.delete(itemId);
+        existing.close();
+      }
+
+      const gainNode =
+        audioStreamId && streamSourcesRef.current?.[audioStreamId]?.gain;
+
+      let handle: PopoutHandle | null = null;
+
+      const forget = () => {
+        if (handles.current.get(itemId) !== handle) return;
+        handles.current.delete(itemId);
+        setPoppedOutItems((prev) => {
+          const next = new Set(prev);
+          next.delete(itemId);
+          return next;
+        });
+      };
+
+      handle = popoutStream(stream, title, {
+        onClose: forget,
+        audio: gainNode
+          ? {
+              initialVolume: gainToSlider(gainNode.gain.value, 200),
+              onVolumeChange: (v: number) => {
+                setReceiveAudioGain(streamSourcesRef.current?.[audioStreamId!], sliderToGain(v, 200), 0);
+              },
+            }
+          : undefined,
+      });
+
+      if (handle) {
+        handles.current.set(itemId, handle);
+        setPoppedOutItems((prev) => new Set(prev).add(itemId));
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    const gridSet = new Set(gridItems);
+    const stale = [...handles.current.entries()].filter(
+      ([id]) => !gridSet.has(id),
+    );
+    for (const [, handle] of stale) {
+      handle.close();
+    }
+  }, [gridItems]);
+
+  useEffect(() => {
+    const h = handles;
+    return () => {
+      for (const handle of h.current.values()) {
+        handle.close();
+      }
+    };
+  }, []);
+
+  const updatePopoutStream = useCallback(
+    (itemId: string, stream: MediaStream) => {
+      handles.current.get(itemId)?.updateStream(stream);
+    },
+    [],
+  );
+
+  return { poppedOutItems, popout, updatePopoutStream };
+}

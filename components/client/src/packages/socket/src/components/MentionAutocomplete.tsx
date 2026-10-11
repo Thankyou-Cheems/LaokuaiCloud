@@ -1,0 +1,209 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import { useTranslation } from "@/i18n";
+
+import { NameTag } from "./NameTag";
+
+export interface MentionMember {
+  nickname: string;
+  /** Unique within the list. For anything but a member it is only a key. */
+  serverUserId: string;
+  avatarUrl?: string | null;
+  /** Absent is a member. */
+  kind?: "member" | "everyone" | "here" | "role" | "channel";
+  roleId?: string;
+  channelId?: string;
+  color?: string | null;
+  /** A second line saying what picking it does. */
+  hint?: string;
+  /** Set when another member shares the name (GRYT-1674). */
+  tag?: string;
+}
+
+interface MentionAutocompleteProps {
+  query: string;
+  visible: boolean;
+  members: MentionMember[];
+  onSelect: (member: MentionMember) => void;
+  onClose: () => void;
+  /** Shown over the list before anything is typed. */
+  title?: string;
+}
+
+function glyph(member: MentionMember): string {
+  if (member.kind === "channel") return "#";
+  if (member.kind === "everyone" || member.kind === "here" || member.kind === "role") return "@";
+  return member.nickname[0]?.toUpperCase() ?? "";
+}
+
+function filterMembers(members: MentionMember[], query: string): MentionMember[] {
+  if (!query) return members.slice(0, 15);
+  const q = query.toLowerCase();
+
+  const prefixMatches: MentionMember[] = [];
+  const substringMatches: MentionMember[] = [];
+
+  for (const m of members) {
+    const name = m.nickname.toLowerCase();
+    if (name.startsWith(q)) {
+      prefixMatches.push(m);
+    } else if (name.includes(q)) {
+      substringMatches.push(m);
+    }
+  }
+
+  return [...prefixMatches, ...substringMatches].slice(0, 15);
+}
+
+export const MentionAutocomplete = ({ query, visible, members, onSelect, onClose, title }: MentionAutocompleteProps) => {
+  const { t: tr } = useTranslation();
+  const [results, setResults] = useState<MentionMember[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!visible) {
+      setResults([]);
+      setSelectedIndex(0);
+      return;
+    }
+    setResults(filterMembers(members, query));
+    setSelectedIndex(0);
+  }, [query, visible, members]);
+
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (!visible || results.length === 0 || e.isComposing || e.keyCode === 229) return;
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setSelectedIndex((i) => (i + 1) % results.length);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setSelectedIndex((i) => (i - 1 + results.length) % results.length);
+      } else if (e.key === "Enter" || e.key === "Tab") {
+        e.preventDefault();
+        e.stopPropagation();
+        onSelect(results[selectedIndex]);
+      } else if (e.key === "Escape") {
+        // Stopped as well as prevented, the way the emoji picker does it: the
+        // thread panel listens on window and closed with the suggestions.
+        e.preventDefault();
+        e.stopPropagation();
+        onClose();
+      }
+    },
+    [visible, results, selectedIndex, onSelect, onClose],
+  );
+
+  useEffect(() => {
+    if (!visible) return;
+    document.addEventListener("keydown", handleKeyDown, true);
+    return () => document.removeEventListener("keydown", handleKeyDown, true);
+  }, [visible, handleKeyDown]);
+
+  useEffect(() => {
+    const el = containerRef.current?.children[selectedIndex] as HTMLElement | undefined;
+    el?.scrollIntoView({ block: "nearest" });
+  }, [selectedIndex]);
+
+  const header = useMemo(() => {
+    if (!query) return title ?? tr("chat.membersTitle");
+    return null;
+  }, [query, title, tr]);
+
+  if (!visible || results.length === 0) return null;
+
+  return (
+    <div
+      ref={containerRef}
+      className="mention-autocomplete"
+      style={{
+        position: "absolute",
+        bottom: "100%",
+        left: 0,
+        right: 0,
+        marginBottom: "4px",
+        background: "var(--gryt-neutral-2)",
+        border: "1px solid var(--gryt-neutral-6)",
+        borderRadius: "var(--gryt-radius-lg)",
+        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.25)",
+        maxHeight: "280px",
+        overflowY: "auto",
+        zIndex: "var(--gryt-z-popover)",
+        padding: "4px",
+      }}
+    >
+      {header && (
+        <div
+          style={{
+            padding: "4px 10px 2px",
+            fontSize: "11px",
+            fontWeight: 600,
+            color: "var(--gryt-neutral-9)",
+            textTransform: "uppercase",
+            letterSpacing: "0.5px",
+            userSelect: "none",
+          }}
+        >
+          {header}
+        </div>
+      )}
+      {results.map((member, idx) => (
+        <div
+          key={member.serverUserId}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            onSelect(member);
+          }}
+          onMouseEnter={() => setSelectedIndex(idx)}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            padding: "6px 10px",
+            borderRadius: "var(--gryt-radius-md)",
+            cursor: "pointer",
+            background: idx === selectedIndex ? "var(--gryt-neutral-4)" : "transparent",
+            transition: "background 0.1s ease",
+            fontSize: "var(--chat-font-size, 16px)",
+          }}
+        >
+          <span
+            style={{
+              width: "24px",
+              height: "24px",
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+              overflow: "hidden",
+              background: member.kind === "role" && member.color ? member.color : "var(--gryt-accent-5)",
+              color: member.kind === "role" && member.color ? "var(--gryt-neutral-1)" : "var(--gryt-accent-11)",
+              fontSize: "12px",
+              fontWeight: 600,
+            }}
+          >
+            {member.avatarUrl ? (
+              <img
+                src={member.avatarUrl}
+                alt={member.nickname}
+                style={{ width: "24px", height: "24px", objectFit: "cover" }}
+              />
+            ) : (
+              glyph(member)
+            )}
+          </span>
+          <span style={{ color: "var(--gryt-neutral-12)", flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {member.kind && member.kind !== "member" && member.kind !== "channel" ? `@${member.nickname}` : member.nickname}
+            {member.tag && <> <NameTag tag={member.tag} tooltip={false} /></>}
+          </span>
+          {member.hint && (
+            <span style={{ color: "var(--gryt-neutral-9)", fontSize: "12px", flexShrink: 0 }}>{member.hint}</span>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+};

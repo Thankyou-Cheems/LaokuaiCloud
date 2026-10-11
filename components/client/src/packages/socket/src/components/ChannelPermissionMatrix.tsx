@@ -1,0 +1,111 @@
+import { Tooltip } from "@gryt/ui";
+
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
+import {
+  type CellState,
+  cellState,
+  type ChannelRule,
+  indexRules,
+  nextCellState,
+  withCell,
+} from "@/settings/src/channelPermissionRules";
+
+import { PiCheckBold, PiMinusBold, PiProhibitBold } from "../../../../lib/icons";
+import { describePermission } from "../lib/permissions";
+
+/**
+ * What one channel changes, per role. Not `RolePermissionGrid`: three states
+ * rather than two, and the middle one has to say what it is inheriting.
+ */
+
+const CELL_LABEL: Record<CellState, string> = {
+  get inherit() { return socketI18n.t("socketFull.channelPermissionMatrix_8b8a4b2777"); },
+  get allow() { return socketI18n.t("socketFull.channelPermissionMatrix_30e8debbf3"); },
+  get deny() { return socketI18n.t("socketFull.channelPermissionMatrix_fbf0c0b0d5"); },
+};
+
+function CellIcon({ state, inherited }: { state: CellState; inherited: boolean }) {
+  useSocketTranslation();
+  if (state === "allow") return <PiCheckBold size={13} aria-hidden />;
+  if (state === "deny") return <PiProhibitBold size={13} aria-hidden />;
+  // Inheriting. The icon shows what it inherits rather than nothing, so a
+  // column of grey ticks reads as "this role can already do all of these".
+  return (
+    <span className="opacity-40">
+      {inherited ? <PiCheckBold size={13} aria-hidden /> : <PiMinusBold size={13} aria-hidden />}
+    </span>
+  );
+}
+
+export function ChannelPermissionMatrix({
+  roles,
+  permissions,
+  rules,
+  onChange,
+  disabled,
+}: {
+  roles: { id: string; name: string; rank: number; permissions: string[] }[];
+  /** The permissions this server will scope, in the server's order. */
+  permissions: string[];
+  rules: ChannelRule[];
+  onChange: (next: ChannelRule[]) => void;
+  disabled?: boolean;
+}) {
+  useSocketTranslation();
+  const index = indexRules(rules);
+  // Low rank first, so the columns run from the people a channel is usually
+  // being closed to towards the people it is being kept open for.
+  const ordered = [...roles].sort((a, b) => a.rank - b.rank);
+
+  if (ordered.length === 0 || permissions.length === 0) {
+    return <span className="text-xs">{socketI18n.t("socketFull.channelPermissionMatrix_9343077f9b")}</span>;
+  }
+
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse text-xs">
+        <thead>
+          <tr>
+            <th className="sticky left-0 z-10 bg-inherit p-1 text-left font-medium">{socketI18n.t("socketFull.channelPermissionMatrix_bd1c797edd")}</th>
+            {ordered.map((role) => (
+              <th key={role.id} className="p-1 text-center font-medium">
+                {role.name}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {permissions.map((permission) => (
+            <tr key={permission}>
+              <td className="sticky left-0 z-10 bg-inherit p-1 whitespace-nowrap">
+                {describePermission(permission).label}
+              </td>
+              {ordered.map((role) => {
+                const state = cellState(index, role.id, permission);
+                const inherited = role.permissions.includes(permission);
+                return (
+                  <td key={role.id} className="p-1 text-center">
+                    <Tooltip title={CELL_LABEL[state]}>
+                      <button
+                        type="button"
+                        disabled={disabled}
+                        aria-label={socketI18n.t("socketFull.channelPermissionMatrix_3252c425bf", { p0: (describePermission(permission).label), p1: (role.name), p2: (CELL_LABEL[state]) })}
+                        data-state={state}
+                        className="inline-flex h-6 w-6 items-center justify-center rounded"
+                        onClick={() =>
+                          onChange(withCell(rules, role.id, permission, nextCellState(state)))
+                        }
+                      >
+                        <CellIcon state={state} inherited={inherited} />
+                      </button>
+                    </Tooltip>
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}

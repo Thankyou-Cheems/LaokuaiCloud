@@ -1,0 +1,237 @@
+import type { StreamSources } from "@gryt/voice";
+import { motion } from "motion/react";
+import { HTMLAttributes, RefObject } from "react";
+
+import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
+import type { Channel, SidebarItem, SidebarReorderEntry } from "@/settings/src/types/server";
+
+import type { Client } from "../types/clients";
+import { ChannelList } from "./ChannelList";
+import type { AdminActions, MemberInfo } from "./MemberSidebar";
+import { ServerHeader } from "./ServerHeader";
+import type { ChannelPlacement } from "./sidebarTree";
+
+/** A role id. The server defines its own; these only pass one along. */
+type Role = string;
+
+const SIDEBAR_SPRING = { type: "spring" as const, stiffness: 380, damping: 34 };
+
+interface ServerSidebarProps {
+  sidebarOpen: boolean;
+  sidebarWidthPx: number;
+  resizing?: boolean;
+  resizeHandle?: HTMLAttributes<HTMLDivElement>;
+  hoverPx: number;
+  contentRef: RefObject<HTMLDivElement | null>;
+  isUnreachableWhileConnected: boolean;
+  onMouseEnter?: () => void;
+  onMouseLeave: () => void;
+  serverName: string | undefined;
+  serverRole: Role | undefined;
+  pinned: boolean;
+  onTogglePinned: () => void;
+  onOpenSettings: () => void;
+  /** Settings, opened straight on the invites tab. */
+  onOpenInvites: () => void;
+  /** This app's controls for the server. Absent unless this app hosts it. */
+  onManageServer?: () => void;
+  onOpenReports: () => void;
+  pendingReportCount: number;
+  updateAvailable: boolean;
+  /**
+   * One of the two ways out. Removing is local and keeps the membership;
+   * leaving ends it. GRYT-988.
+   */
+  onLeave: (mode: "remove" | "leave") => void;
+  channels: Channel[];
+  sidebarItems: SidebarItem[];
+  serverHost: string;
+  clients: Record<string, Client>;
+  members: MemberInfo[];
+  currentChannelId: string;
+  currentServerConnected: string | null;
+  showVoiceView: boolean;
+  isConnecting: boolean;
+  currentConnectionId: string | undefined;
+  selectedChannelId: string | null;
+  onChannelClick: (channel: Channel) => void;
+  clientsSpeaking: Record<string, boolean>;
+  streamSources?: StreamSources;
+  canManage: boolean;
+  onEditItem: (item: SidebarItem) => void;
+  onDeleteItem: (item: SidebarItem) => void;
+  onMoveItem: (item: SidebarItem, direction: "up" | "down") => void;
+  onReorder: (entries: SidebarReorderEntry[], moved?: { itemId: string; parentItemId: string | null }) => void;
+  orderResetKey?: number;
+  onAddItem: (kind: string, placement?: ChannelPlacement) => void;
+  onDisconnectUser: ((id: string) => void) | undefined;
+  currentUserRole: Role | undefined;
+  adminActions: AdminActions | undefined;
+  /** Unread messages per conversation id. Absent means none. */
+  unreadCounts?: Map<string, number>;
+  /** Unread thread replies per conversation id. Absent means none. */
+  threadUnreadCounts?: Map<string, number>;
+  mentionCounts?: Map<string, number>;
+}
+
+export const ServerSidebar = ({
+  sidebarOpen, sidebarWidthPx, hoverPx, contentRef, resizing, resizeHandle,
+  isUnreachableWhileConnected,
+  onMouseEnter, onMouseLeave,
+  serverName, serverRole, pinned, onTogglePinned,
+  onOpenSettings, onOpenInvites, onManageServer, onOpenReports, pendingReportCount, updateAvailable, onLeave,
+  channels, sidebarItems, serverHost, clients, members,
+  currentChannelId, currentServerConnected, showVoiceView,
+  isConnecting, currentConnectionId, selectedChannelId,
+  onChannelClick, clientsSpeaking, streamSources,
+  canManage, onEditItem, onDeleteItem, onMoveItem, onReorder, orderResetKey, onAddItem,
+  onDisconnectUser, currentUserRole, adminActions, unreadCounts, threadUnreadCounts, mentionCounts,
+}: ServerSidebarProps) => { useSocketTranslation(); return (
+  <div
+    role="navigation"
+    data-gryt="channels-sidebar"
+    aria-label={socketI18n.t("ui.channels")}
+    onMouseLeave={onMouseLeave}
+    onMouseEnter={onMouseEnter}
+    style={{ flexShrink: 0, display: "flex", position: "relative", minHeight: 0 }}
+  >
+    <motion.div
+      animate={{ width: sidebarOpen ? sidebarWidthPx : 0 }}
+      initial={false}
+      transition={resizing ? { duration: 0 } : SIDEBAR_SPRING}
+      style={{
+        overflow: "hidden",
+        display: "flex",
+        justifyContent: "flex-start",
+        ...(isUnreachableWhileConnected && {
+          opacity: 0.5,
+          pointerEvents: "none" as const,
+        }),
+        transition: "opacity 0.3s ease",
+      }}
+    >
+      <div
+        ref={contentRef}
+        aria-hidden={!sidebarOpen}
+        style={{
+          width: sidebarWidthPx,
+          // Hold this width while the parent animates to 0, or the flex default
+          // lets it shrink and everything wraps on the way out.
+          flexShrink: 0,
+          height: "100%",
+          display: "flex",
+          pointerEvents: sidebarOpen ? "auto" : "none",
+        }}
+      >
+        <div style={{ position: "relative", width: "100%", height: "100%" }}>
+          <div className="flex flex-col h-full w-full items-center gap-4">
+            <ServerHeader
+              serverName={serverName}
+              role={serverRole}
+              canManageChannels={canManage}
+              pinned={pinned}
+              onTogglePinned={onTogglePinned}
+              serverHost={serverHost}
+              onCreateChannel={() => onAddItem("channel:text")}
+              onCreateFolder={() => onAddItem("folder")}
+              onOpenInvites={onOpenInvites}
+              onOpenSettings={onOpenSettings}
+              onManageServer={onManageServer}
+              onOpenReports={onOpenReports}
+              pendingReportCount={pendingReportCount}
+              updateAvailable={updateAvailable}
+              onLeave={onLeave}
+            />
+            {/*
+              Room for the rows to grow into.
+
+              Buttons scale to 1.03 on hover, and authoring only overflowY is
+              not the same as leaving the other axis alone: when one axis is not
+              visible, CSS computes the other from visible to auto. So this was
+              a horizontal scrollport too, and a 240px row grew 3.6px past each
+              edge and was cut off. The first row lost 0.5px off its top for the
+              same reason.
+
+              Padding, and no negative margin to claw the width back. The
+              obvious version of this fix bleeds outward with margin-inline and
+              a calc width, which keeps the rows at their old width, but the
+              motion.div above animates the sidebar open with overflow hidden,
+              so the bleed is clipped by the thing that makes that animation
+              work. The rows are 12px narrower now, sitting in a 6px gutter,
+              and that is the trade.
+            */}
+            <div style={{
+              flex: 1,
+              width: "100%",
+              minHeight: 0,
+              display: "flex",
+              flexDirection: "column",
+              overflowY: "auto",
+              padding: "2px 6px",
+            }}>
+              <ChannelList
+                channels={channels}
+                items={sidebarItems}
+                serverHost={serverHost}
+                clients={clients}
+                members={members}
+                currentChannelId={currentChannelId}
+                currentServerConnected={currentServerConnected}
+                showVoiceView={showVoiceView}
+                isConnecting={isConnecting}
+                currentConnectionId={currentConnectionId}
+                selectedChannelId={selectedChannelId}
+                onChannelClick={onChannelClick}
+                clientsSpeaking={clientsSpeaking}
+                streamSources={streamSources}
+                canManage={canManage}
+                onEditItem={onEditItem}
+                onDeleteItem={onDeleteItem}
+                onMoveItem={onMoveItem}
+                onReorder={onReorder}
+                orderResetKey={orderResetKey}
+                onAddItem={onAddItem}
+                onDisconnectUser={onDisconnectUser}
+                currentUserRole={currentUserRole}
+                adminActions={adminActions}
+                unreadCounts={unreadCounts}
+                threadUnreadCounts={threadUnreadCounts}
+                mentionCounts={mentionCounts}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+
+    {sidebarOpen && resizeHandle && <div {...resizeHandle} role="separator" tabIndex={0}
+      aria-orientation="vertical" aria-label={socketI18n.t("layout.resizeChannels")}
+      data-gryt="channel-resize-handle"
+      style={{ position: "absolute", top: 0, bottom: 0, right: -4, width: 8, cursor: "col-resize",
+        touchAction: "none", zIndex: 2, borderRight: resizing ? "2px solid var(--gryt-accent-9)" : undefined }} />}
+
+    <motion.div
+      animate={{ width: sidebarOpen ? 0 : hoverPx }}
+      initial={false}
+      transition={SIDEBAR_SPRING}
+      style={{
+        flexShrink: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          width: 4,
+          height: "33%",
+          borderRadius: 9999,
+          background: "var(--gryt-neutral-a4)",
+          opacity: 0.5,
+          transition: "background 0.15s",
+        }}
+      />
+    </motion.div>
+  </div>
+); };

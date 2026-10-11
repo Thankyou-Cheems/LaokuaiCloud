@@ -1,0 +1,333 @@
+import type { GrytTheme } from "@gryt/ui";
+import { Accordion, Button, encodeGrytTheme, grytPresetsByCollection } from "@gryt/ui";
+import { useMemo, useState } from "react";
+import toast from "react-hot-toast";
+
+import type { SavedTheme } from "@/common";
+import { presetThemeId, useCustomThemes, useTheme } from "@/common";
+import { i18n, useTranslation } from "@/i18n";
+
+import {
+  PiCheckBold,
+  PiLinkSimpleBold,
+  PiPencilSimpleBold,
+  PiTrashBold,
+} from "../../../../../lib/icons";
+import { ConfirmDialog } from "../../../../socket/src/components/ConfirmDialog";
+import { ImportThemeDialog } from "./importThemeDialog";
+import { ThemePreview } from "./themePreview";
+
+const GENERATOR = "https://ui.gryt.chat/theme/generator";
+
+/** Wide enough that the four panels still read as four panels. */
+const PREVIEW_WIDTH = 208;
+
+/** Imported themes are not a collection in the library, so they get a name here. */
+const YOURS = "Yours";
+
+const PRESET_PREFIX = "preset:";
+
+/**
+ * The themes on this machine, and the one in use. The built-in half comes from
+ * @gryt/ui. Only the collection holding the theme in use starts open.
+ */
+export function ThemeLibrary() {
+  useTranslation();
+  const { themes, activeId, setActiveTheme, deleteTheme } = useCustomThemes();
+  const { resolvedAppearance } = useTheme();
+  const [importing, setImporting] = useState(false);
+
+  // Whichever collection holds the theme in use, so opening Appearance shows
+  // where you are rather than the top of the list.
+  const openCollection = useMemo(() => {
+    if (activeId === null) return "Gryt";
+    if (!activeId.startsWith(PRESET_PREFIX)) return YOURS;
+    const id = activeId.slice(PRESET_PREFIX.length);
+    return (
+      grytPresetsByCollection.find((group) =>
+        group.presets.some((preset) => preset.id === id),
+      )?.collection ?? "Gryt"
+    );
+  }, [activeId]);
+
+  const [open, setOpen] = useState<string[]>([openCollection]);
+
+  return (
+    <div className="flex flex-col gap-2">
+      <Accordion
+        className="gap-1 p-1"
+        multiple
+        value={open}
+        onValueChange={(value) => setOpen(value as string[])}
+      >
+        {grytPresetsByCollection.map((group) => (
+          <Accordion.Item key={group.collection} value={group.collection}>
+            <CollectionTrigger
+              accents={group.presets.map((preset) => preset.theme.hue.accent)}
+              count={group.presets.length}
+              name={group.collection}
+              note={group.note}
+            />
+            <Accordion.Panel>
+              <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
+                {group.presets.map((preset) => (
+                  <li key={preset.id}>
+                    <ThemeRow
+                      active={
+                        preset.id === "gryt"
+                          ? activeId === null
+                          : activeId === presetThemeId(preset.id)
+                      }
+                      appearance={resolvedAppearance}
+                      name={preset.name}
+                      note={preset.note}
+                      source={preset.source}
+                      theme={preset.theme}
+                      onOpenInGenerator={() => openInGenerator(preset.theme)}
+                      onSelect={() =>
+                        setActiveTheme(
+                          // Gryt's own is the absence of a theme rather than a
+                          // theme: nothing on the root, the stylesheet as shipped.
+                          preset.id === "gryt" ? null : presetThemeId(preset.id),
+                        )
+                      }
+                    />
+                  </li>
+                ))}
+              </ul>
+            </Accordion.Panel>
+          </Accordion.Item>
+        ))}
+
+        {themes.length > 0 && (
+          <Accordion.Item value={YOURS}>
+            <CollectionTrigger
+              accents={themes.map((entry) => entry.theme.hue.accent)}
+              count={themes.length}
+              name={i18n.t("settingsFull.m755844bc39")}
+              note={i18n.t("settingsFull.mb3e3edffc0")}
+            />
+            <Accordion.Panel>
+              <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
+                {themes.map((entry) => (
+                  <li key={entry.id}>
+                    <ThemeRow
+                      active={activeId === entry.id}
+                      appearance={resolvedAppearance}
+                      name={entry.name}
+                      note={i18n.t("settingsFull.m434eb26f48")}
+                      theme={entry.theme}
+                      onCopyLink={() => copyLink(entry)}
+                      onDelete={() => deleteTheme(entry.id)}
+                      onOpenInGenerator={() => openInGenerator(entry.theme)}
+                      onSelect={() => setActiveTheme(entry.id)}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </Accordion.Panel>
+          </Accordion.Item>
+        )}
+      </Accordion>
+
+      <div className="flex flex-wrap items-center gap-3 pt-1">
+        <Button size="small" onClick={() => setImporting(true)}>{i18n.t("settingsFull.mbeb1a9c2f4")}</Button>
+        <a
+          className="gryt-link text-xs"
+          href={GENERATOR}
+          rel="noreferrer"
+          target="_blank"
+        >{i18n.t("settingsFull.ma30f68113d")}</a>
+      </div>
+
+      <ImportThemeDialog open={importing} onOpenChange={setImporting} />
+    </div>
+  );
+}
+
+function CollectionTrigger({
+  accents,
+  count,
+  name,
+  note,
+}: {
+  accents: string[];
+  count: number;
+  name: string;
+  note: string;
+}) {
+  useTranslation();
+  return (
+    <Accordion.Trigger>
+      <span className="flex min-w-0 flex-1 items-center gap-3">
+        <span className="shrink-0">{name}</span>
+        <span className="truncate text-xs font-normal text-gryt-muted">{note}</span>
+      </span>
+      {/* Four accents is enough to tell Winter from Autumn with the panel shut. */}
+      <span aria-hidden="true" className="flex shrink-0 gap-1">
+        {accents.slice(0, 4).map((accent, index) => (
+          <span
+            key={index}
+            className="block h-2.5 w-2.5 rounded-full border border-gryt-border"
+            style={{ backgroundColor: accent }}
+          />
+        ))}
+      </span>
+      <span className="shrink-0 text-xs font-normal tabular-nums text-gryt-muted">
+        {count}
+      </span>
+    </Accordion.Trigger>
+  );
+}
+
+/** The theme, loaded into the generator, ready to be argued with. */
+function openInGenerator(theme: GrytTheme) {
+  window.open(
+    `${GENERATOR}?${encodeGrytTheme(theme).toString()}`,
+    "_blank",
+    "noreferrer",
+  );
+}
+
+function copyLink(entry: SavedTheme) {
+  const url = `${GENERATOR}?${encodeGrytTheme(entry.theme).toString()}`;
+  void navigator.clipboard
+    ?.writeText(url)
+    // The link opens the generator with the theme loaded, so "copied" is only
+    // half of what happened and the other half is the useful half.
+    .then(() => toast.success(i18n.t("settingsFull.m996ab16b8d")))
+    .catch(() => toast.error(i18n.t("settingsFull.m7a456d6f43")));
+}
+
+/**
+ * The corner radius, drawn as a corner. The preview shows it truthfully and so
+ * almost invisibly; this is the same ratio at a size you can see.
+ */
+function RadiusGlyph({ radius }: { radius: GrytTheme["radius"] }) {
+  useTranslation();
+  return (
+    <span
+      className="flex shrink-0 items-center gap-1.5 text-gryt-muted"
+      title={`radius.lg ${radius.lg}px`}
+    >
+      <span
+        aria-hidden="true"
+        className="block h-5 w-5 border-t-2 border-l-2 border-current opacity-80"
+        style={{ borderTopLeftRadius: Math.min(11, radius.lg * 0.5) }}
+      />
+      <span className="text-xs tabular-nums">{radius.lg}</span>
+    </span>
+  );
+}
+
+function ThemeRow({
+  active,
+  appearance,
+  name,
+  note,
+  source,
+  theme,
+  onSelect,
+  onCopyLink,
+  onOpenInGenerator,
+  onDelete,
+}: {
+  active: boolean;
+  appearance: "dark" | "light";
+  name: string;
+  note: string;
+  source?: string;
+  theme: GrytTheme;
+  onSelect: () => void;
+  onCopyLink?: () => void;
+  onOpenInGenerator?: () => void;
+  onDelete?: () => void;
+}) {
+  useTranslation();
+  const [confirming, setConfirming] = useState(false);
+
+  return (
+    <div
+      className={[
+        "flex items-center gap-3 rounded-(--gryt-radius-lg) border p-2 transition-colors",
+        active
+          ? "border-gryt-accent bg-gryt-neutral-3"
+          : "border-gryt-border hover:bg-gryt-neutral-3",
+      ].join(" ")}
+    >
+      {/* The whole row selects, so the target is the row rather than a 16px
+          radio. It is a button for the same reason: this is one control. */}
+      <button
+        aria-pressed={active}
+        className="flex min-w-0 flex-1 items-center gap-3 bg-transparent text-left"
+        type="button"
+        onClick={onSelect}
+      >
+        <span className="block shrink-0 overflow-hidden rounded-(--gryt-radius-md) border border-gryt-border leading-none">
+          <ThemePreview appearance={appearance} theme={theme} width={PREVIEW_WIDTH} />
+        </span>
+
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="truncate text-sm font-medium">{name}</span>
+          <span className="text-xs text-gryt-muted">{note}</span>
+          {source ? (
+            <span className="truncate pt-0.5 text-[10px] text-gryt-muted opacity-75">
+              {source}
+            </span>
+          ) : null}
+        </span>
+
+        <RadiusGlyph radius={theme.radius} />
+
+        {active ? (
+          <PiCheckBold aria-label={i18n.t("settingsFull.m20716e9262")} className="shrink-0 text-gryt-accent-11" />
+        ) : null}
+      </button>
+
+      {onOpenInGenerator ? (
+        <Button
+          aria-label={i18n.t("settingsFull.ma70e43913d", { value0: name })}
+          size="xsmall"
+          tone="ghost"
+          onClick={onOpenInGenerator}
+        >
+          <PiPencilSimpleBold />
+        </Button>
+      ) : null}
+
+      {onCopyLink ? (
+        <Button
+          aria-label={i18n.t("settingsFull.mcb6486a17f", { value0: name })}
+          size="xsmall"
+          tone="ghost"
+          onClick={onCopyLink}
+        >
+          <PiLinkSimpleBold />
+        </Button>
+      ) : null}
+
+      {onDelete ? (
+        <>
+          <Button
+            aria-label={i18n.t("settingsFull.mea5388f12a", { value0: name })}
+            size="xsmall"
+            tone="ghost"
+            onClick={() => setConfirming(true)}
+          >
+            <PiTrashBold />
+          </Button>
+          <ConfirmDialog
+            open={confirming}
+            onOpenChange={setConfirming}
+            title={i18n.t("settingsFull.m9b216b8c0c", { value0: name })}
+            description={i18n.t("settingsFull.mb56d54bcd8")}
+            confirmLabel={i18n.t("ui.delete")}
+            cancelLabel={i18n.t("settingsFull.md9f3692497")}
+            width="420px"
+            onConfirm={onDelete}
+          />
+        </>
+      ) : null}
+    </div>
+  );
+}

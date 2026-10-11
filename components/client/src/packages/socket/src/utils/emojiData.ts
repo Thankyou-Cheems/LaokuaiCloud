@@ -1,0 +1,264 @@
+import { gemoji } from "gemoji";
+
+import { getServerHttpBase } from "@/common";
+
+export interface EmojiEntry {
+  name: string;
+  emoji: string | null;
+  isCustom: boolean;
+  url?: string;
+  tags: string[];
+  aliases: string[];
+}
+
+export interface EmojiEntryWithCategory extends EmojiEntry {
+  category: string;
+}
+
+let standardEmojis: EmojiEntry[] | null = null;
+let standardEmojisByCategory: Map<string, EmojiEntryWithCategory[]> | null = null;
+
+export function getStandardEmojis(): EmojiEntry[] {
+  if (!standardEmojis) {
+    standardEmojis = [];
+    for (const g of gemoji) {
+      for (const name of g.names) {
+        standardEmojis.push({
+          name,
+          emoji: g.emoji,
+          isCustom: false,
+          tags: g.tags,
+          aliases: g.names.filter((n) => n !== name),
+        });
+      }
+    }
+  }
+  return standardEmojis;
+}
+
+export function getStandardEmojisByCategory(): Map<string, EmojiEntryWithCategory[]> {
+  if (!standardEmojisByCategory) {
+    standardEmojisByCategory = new Map();
+    const seen = new Set<string>();
+    for (const g of gemoji) {
+      if (seen.has(g.emoji)) continue;
+      seen.add(g.emoji);
+      const entry: EmojiEntryWithCategory = {
+        name: g.names[0],
+        emoji: g.emoji,
+        isCustom: false,
+        tags: g.tags,
+        aliases: g.names.slice(1),
+        category: g.category,
+      };
+      let list = standardEmojisByCategory.get(g.category);
+      if (!list) {
+        list = [];
+        standardEmojisByCategory.set(g.category, list);
+      }
+      list.push(entry);
+    }
+  }
+  return standardEmojisByCategory;
+}
+
+const EMPTY_CUSTOM_EMOJIS: EmojiEntry[] = [];
+let customEmojisCache: EmojiEntry[] = EMPTY_CUSTOM_EMOJIS;
+const customEmojisByServer = new Map<string, EmojiEntry[]>();
+
+type EmojiChangeListener = () => void;
+const emojiChangeListeners = new Set<EmojiChangeListener>();
+
+export function onCustomEmojisChange(fn: EmojiChangeListener): () => void {
+  emojiChangeListeners.add(fn);
+  return () => { emojiChangeListeners.delete(fn); };
+}
+
+export function getCustomEmojiUrl(serverHost: string, name: string): string {
+  return `${getServerHttpBase(serverHost)}/api/emojis/img/${encodeURIComponent(name)}`;
+}
+
+export function setCustomEmojis(emojis: { name: string; file_id: string }[], serverHost: string): void {
+  const next = emojis.map((e) => ({
+    name: e.name,
+    emoji: null,
+    isCustom: true,
+    url: getCustomEmojiUrl(serverHost, e.name),
+    tags: [],
+    aliases: [],
+  }));
+  customEmojisByServer.set(serverHost, next);
+  customEmojisCache = next;
+  emojiChangeListeners.forEach((fn) => fn());
+}
+
+export function getCustomEmojis(serverHost?: string): EmojiEntry[] {
+  return serverHost ? (customEmojisByServer.get(serverHost) ?? EMPTY_CUSTOM_EMOJIS) : customEmojisCache;
+}
+
+/** Custom emoji from every other server this device has loaded, by host. */
+export function getOtherServersEmojis(serverHost: string | undefined): [string, EmojiEntry[]][] {
+  return [...customEmojisByServer].filter(([host, list]) => host !== serverHost && list.length > 0);
+}
+
+/** How a message carries another server's emoji: the image itself, since the name means nothing here. */
+export function externalEmojiMarkdown(entry: EmojiEntry): string {
+  return `![:${entry.name}:](${entry.url})`;
+}
+
+export function getAllEmojis(serverHost?: string): EmojiEntry[] {
+  return [...getStandardEmojis(), ...getCustomEmojis(serverHost)];
+}
+
+const enum MatchTier {
+  ExactPrefix = 0,
+  WordBoundary = 1,
+  Substring = 2,
+  TagOrAlias = 3,
+}
+
+interface ScoredEntry {
+  entry: EmojiEntry;
+  tier: MatchTier;
+}
+
+export function searchEmojis(query: string, limit = 0, serverHost?: string): EmojiEntry[] {
+  if (!query) return [];
+  const q = query.toLowerCase();
+  const all = getAllEmojis(serverHost);
+  const scored: ScoredEntry[] = [];
+
+  for (const entry of all) {
+    const name = entry.name.toLowerCase();
+
+    if (name.startsWith(q)) {
+      scored.push({ entry, tier: MatchTier.ExactPrefix });
+      continue;
+    }
+
+    const parts = name.split(/[_-]/);
+    if (parts.some((p) => p.startsWith(q))) {
+      scored.push({ entry, tier: MatchTier.WordBoundary });
+      continue;
+    }
+
+    if (name.includes(q)) {
+      scored.push({ entry, tier: MatchTier.Substring });
+      continue;
+    }
+
+    const matchesTag = entry.tags.some((t) => t.toLowerCase().startsWith(q));
+    const matchesAlias = entry.aliases.some((a) => a.toLowerCase().startsWith(q));
+    if (matchesTag || matchesAlias) {
+      scored.push({ entry, tier: MatchTier.TagOrAlias });
+    }
+  }
+
+  scored.sort((a, b) => {
+    if (a.tier !== b.tier) return a.tier - b.tier;
+    if (a.entry.isCustom !== b.entry.isCustom) return a.entry.isCustom ? -1 : 1;
+    return a.entry.name.localeCompare(b.entry.name);
+  });
+
+  const seen = new Set<string>();
+  const results: EmojiEntry[] = [];
+  for (const s of scored) {
+    const key = s.entry.isCustom ? `custom:${s.entry.name}` : s.entry.name;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    results.push(s.entry);
+    if (limit > 0 && results.length >= limit) break;
+  }
+
+  return results;
+}
+
+const RECENT_PREFIX = "gryt:recentEmojis";
+const MAX_RECENT = 30;
+const DEFAULT_RECENT = ["thumbsup", "heart", "joy", "open_mouth", "cry", "thumbsdown", "fire", "100"];
+
+interface StoredRecent {
+  name: string;
+  custom: boolean;
+}
+
+function recentStorageKey(serverHost: string | undefined): string {
+  return serverHost ? `${RECENT_PREFIX}:${serverHost}` : RECENT_PREFIX;
+}
+
+function readRecentStorage(serverHost: string | undefined): StoredRecent[] {
+  try {
+    const raw = localStorage.getItem(recentStorageKey(serverHost));
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed;
+  } catch { /* ignore */ }
+  return [];
+}
+
+function writeRecentStorage(serverHost: string | undefined, list: StoredRecent[]): void {
+  try {
+    localStorage.setItem(recentStorageKey(serverHost), JSON.stringify(list));
+  } catch { /* storage full */ }
+}
+
+export function recordRecentEmoji(name: string, isCustom: boolean, serverHost?: string): void {
+  const stored = readRecentStorage(serverHost);
+  const entry: StoredRecent = { name, custom: isCustom };
+  const updated = [entry, ...stored.filter((s) => !(s.name === name && s.custom === isCustom))].slice(0, MAX_RECENT);
+  writeRecentStorage(serverHost, updated);
+}
+
+export function getRecentEmojis(limit = 8, serverHost?: string): EmojiEntry[] {
+  const stored = readRecentStorage(serverHost);
+  const all = getAllEmojis();
+  const byKey = new Map<string, EmojiEntry>();
+  for (const e of all) {
+    byKey.set(e.isCustom ? `custom:${e.name}` : e.name, e);
+  }
+
+  const results: EmojiEntry[] = [];
+  for (const s of stored) {
+    const key = s.custom ? `custom:${s.name}` : s.name;
+    const entry = byKey.get(key);
+    if (entry) {
+      results.push(entry);
+      if (results.length >= limit) return results;
+    }
+  }
+
+  for (const fallback of DEFAULT_RECENT) {
+    if (results.length >= limit) break;
+    const entry = byKey.get(fallback);
+    if (entry && !results.some((r) => r.name === fallback && !r.isCustom)) {
+      results.push(entry);
+    }
+  }
+
+  return results.slice(0, limit);
+}
+
+/**
+ * The server's emoji list, or null when it could not be read. `[]` is the server
+ * saying it has none; null is not knowing, and conflating them erased the set.
+ */
+export async function fetchCustomEmojis(serverHost: string): Promise<{ name: string; file_id: string }[] | null> {
+  const base = getServerHttpBase(serverHost);
+  const url = `${base}/api/emojis?t=${Date.now()}`;
+  console.log("[EmojiData] fetchCustomEmojis:", { serverHost, url });
+  try {
+    const res = await fetch(url, { cache: "no-store" });
+    console.log("[EmojiData] fetchCustomEmojis response:", { status: res.status, ok: res.ok });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      console.warn("[EmojiData] fetchCustomEmojis failed, keeping the list we have:", { status: res.status, body: text });
+      return null;
+    }
+    const data = await res.json();
+    console.log("[EmojiData] fetchCustomEmojis got", data.length, "emojis");
+    return data;
+  } catch (err) {
+    console.error("[EmojiData] fetchCustomEmojis error, keeping the list we have:", err);
+    return null;
+  }
+}

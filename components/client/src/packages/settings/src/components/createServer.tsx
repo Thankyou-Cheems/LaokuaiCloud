@@ -1,0 +1,226 @@
+import { Alert, Avatar, Button, Checkbox, Dialog, Spinner, TextField } from "@gryt/ui";
+import { AnimatePresence, motion } from "motion/react";
+import { useEffect, useRef, useState } from "react";
+
+import { GeneratedServerIcon } from "@/common";
+import { i18n, useTranslation } from "@/i18n";
+
+import { PiCheckCircleFill, PiWarningFill, PiX } from "../../../../lib/icons";
+import { useEmbeddedServer } from "../hooks/useEmbeddedServer";
+import { settingsMessage } from "./settingsMessage";
+
+interface CreateServerPanelProps {
+  /** Called once the new server is up and reachable. */
+  onServerReady: (serverUrl: string, serverName: string) => void;
+  /** Back out to the step that chose this. */
+  onBack: () => void;
+}
+
+/**
+ * Making a server, and nothing else — the manager lives in Settings → My servers.
+ * Create writes the config, starts the process and hands the address back.
+ */
+export function CreateServerPanel({ onServerReady, onBack }: CreateServerPanelProps) {
+  useTranslation();
+  const { isAvailable, creating, createServer, suggestPort, checkPort } =
+    useEmbeddedServer();
+
+  const [serverName, setServerName] = useState("My Server");
+  const [lanDiscoverable, setLanDiscoverable] = useState(true);
+  const [error, setError] = useState("");
+
+  /**
+   * The port, offered rather than demanded. Prefilled with one that is free, so
+   * anybody who cares about a forwarded port can say so before creating.
+   */
+  const [port, setPort] = useState("");
+  const [portState, setPortState] = useState<
+    "loading" | "free" | "taken" | "invalid"
+  >("loading");
+  /** Distinguishes the offered port from one they typed, for the wording. */
+  const touched = useRef(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void suggestPort().then((p) => {
+      if (cancelled || touched.current) return;
+      if (p) {
+        setPort(String(p));
+        setPortState("free");
+      } else {
+        setPortState("invalid");
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [suggestPort]);
+
+  // Debounced, because this binds a socket to find out and they are still
+  // typing. 1000 is a prefix of 10000.
+  useEffect(() => {
+    if (!touched.current) return;
+
+    const n = Number(port);
+    if (!port.trim() || !Number.isInteger(n) || n < 1 || n > 65535) {
+      setPortState("invalid");
+      return;
+    }
+
+    setPortState("loading");
+    const timer = window.setTimeout(() => {
+      void checkPort(n).then((free) => setPortState(free ? "free" : "taken"));
+    }, 400);
+
+    return () => window.clearTimeout(timer);
+  }, [port, checkPort]);
+
+  if (!isAvailable) return null;
+
+  /**
+   * Create, and hand back the server that was created. Keyed off the returned
+   * state: watching for "a server went running" joins you to somebody else's.
+   */
+  async function handleCreate() {
+    setError("");
+    const created = await createServer(
+      serverName.trim() || "My Server",
+      lanDiscoverable,
+      Number(port) || undefined,
+    );
+
+    if (!created?.serverUrl || !created.config) {
+      setError("settingsFull.m822c95d555");
+      return;
+    }
+
+    onServerReady(created.serverUrl, created.config.serverName);
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* The icon sits beside the name it is drawn from rather than centred
+          above it. It is a preview, so watching it change while you type is
+          the point — and at 80px in the middle it pushed the rest of the form
+          out of view to show something that is not the subject of the step.
+
+          Seeded on the name rather than the address, because a server being
+          created has no address yet and every new one drew the same planet
+          until it started.
+
+          No caption underneath: it changes as you type, which says it. */}
+      <div className="flex flex-col gap-1">
+        <span className="text-sm font-bold">{i18n.t("settingsFull.m709a23220f")}</span>
+        <div className="flex items-end gap-3">
+          <Avatar
+            size="medium"
+            className="rounded-(--gryt-radius-md) shrink-0"
+            fallback={<GeneratedServerIcon seed={serverName || "My Server"} />}
+          />
+          <TextField
+            autoFocus
+            className="flex-1"
+            placeholder={i18n.t("settingsFull.m5ddbad1831")}
+            value={serverName}
+            onChange={(e) => setServerName(e.target.value)}
+            disabled={creating}
+            maxLength={64}
+          />
+        </div>
+      </div>
+
+      {/* A port is four characters, so the field is short and its status sits
+          beside it on the same line — a status about a value belongs next to
+          the value rather than up beside the label. Tabular digits so the
+          number does not jiggle while it is typed.
+
+          "Available" rather than "Free": on a product surface Free reads as a
+          price, and nothing here costs money. */}
+      <div className="flex flex-col gap-1">
+        <span className="text-sm font-bold">{i18n.t("settingsFull.mfe035157cd")}</span>
+        <div className="flex items-center gap-3">
+          {/* The width goes on a wrapper, not on TextField: the class lands on
+              the input and its wrapper stays full-width, which pushed the
+              status a quarter of the dialog away from the value it is about. */}
+          <div className="w-28 shrink-0">
+          <TextField
+            inputMode="numeric"
+            className="tabular-nums"
+            placeholder="5000"
+            value={port}
+            onChange={(e) => {
+              touched.current = true;
+              setPort(e.target.value.replace(/[^0-9]/g, ""));
+            }}
+            disabled={creating}
+            maxLength={5}
+          />
+          </div>
+          {portState === "free" && (
+            <span
+              className="inline-flex items-center gap-1 text-xs"
+              style={{ color: "var(--gryt-success-11)" }}
+            >
+              <PiCheckCircleFill size={13} />{i18n.t("settingsFull.m7c62a14244")}</span>
+          )}
+          {portState === "taken" && (
+            <span className="text-xs" style={{ color: "var(--gryt-danger-11)" }}>{i18n.t("settingsFull.m0040153595")}</span>
+          )}
+          {portState === "invalid" && (
+            <span className="text-xs" style={{ color: "var(--gryt-danger-11)" }}>{i18n.t("settingsFull.m2ebc6db117")}</span>
+          )}
+          {portState === "loading" && (
+            <span className="text-xs" style={{ color: "var(--gryt-neutral-11)" }}>{i18n.t("settingsFull.m820d6004b0")}</span>
+          )}
+        </div>
+      </div>
+
+      {/* The one setting that survived the trim. It is not cosmetic: it decides
+          whether anybody else on the network can find this server at all, and
+          there is nowhere else to say so before it starts. */}
+      <label className="flex gap-2 items-center">
+          <Checkbox
+            checked={lanDiscoverable}
+            onCheckedChange={(c) => setLanDiscoverable(c === true)}
+            disabled={creating}
+          />
+          <span className="text-sm">{i18n.t("settingsFull.m6f7901eb02")}</span>
+        </label>
+
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            style={{ overflow: "hidden" }}
+          >
+            <Alert severity="info" role="alert"><span className="inline-flex items-start gap-2"><PiWarningFill size={16} />{settingsMessage(error)}</span></Alert>
+            <div className="flex mt-2 justify-end">
+              <Button tone="ghost" size="xsmall"
+                onClick={() => setError("")}
+              >
+                <PiX size={14} />{i18n.t("settingsFull.m70afe9eff3")}</Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <Dialog.Footer className="justify-between">
+        <Button tone="ghost" size="small" onClick={onBack} disabled={creating}>{i18n.t("ui.back")}</Button>
+
+        <Button size="small"
+          onClick={() => {
+            void handleCreate();
+          }}
+          disabled={
+            creating || !serverName.trim() || portState !== "free"
+          }
+        >
+          {creating ? <Spinner size={16} /> : null}
+          {creating ? i18n.t("settingsFull.m94d7d8ee47") : i18n.t("settingsFull.m6e157c5da4")}
+        </Button>
+      </Dialog.Footer>
+    </div>
+  );
+}

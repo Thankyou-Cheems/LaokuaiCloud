@@ -1,0 +1,18 @@
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const esbuild=require('esbuild');
+const out=path.resolve('.hybrid-check/registry.cjs');fs.mkdirSync(path.dirname(out),{recursive:true});
+esbuild.buildSync({entryPoints:['src/lib/receiveCorrectionRegistry.ts'],outfile:out,bundle:true,platform:'node',format:'cjs'});
+const {ReceiveCorrectionRegistry}=require(out);let count=0;const eq=(a,b)=>{assert.deepEqual(a,b);count++};
+let identity;const bound=[],unbound=[];const control={setIdentity:value=>identity=value,setRole(){},setPrior(){}};
+const registry=new ReceiveCorrectionRegistry({bound:(_,id)=>bound.push(id),unbound:id=>unbound.push(id)});
+const sfu={id:'actual-sfu-track',readyState:'live'},peer={id:'actual-peer-track',readyState:'live'};
+const source={receiveCleanup:control,stream:{mediaStream:{getAudioTracks:()=>[sfu]}}};
+const input={host:'host',channel:'room',connected:true,sources:{pub:source,alias:source},clients:[{serverUserId:'real-server-user',streamID:'pub'}]};
+registry.reconcile(input);const first=identity;eq(first.trackId,sfu.id);registry.selectTrack(control,peer);const second=identity;
+eq(second.receiverId,first.receiverId);eq(second.participantId,first.participantId);eq(second.trackId,peer.id);eq(second.generation>first.generation,true);
+registry.reconcile(input);eq(bound.length,2);registry.selectTrack(control,null);eq(identity,undefined);eq(unbound.length,2);
+registry.selectTrack(control,sfu);const third=identity;eq(third.receiverId,first.receiverId);eq(third.generation>second.generation,true);
+registry.acceptBatch({kind:'receive-auto-levels',schemaVersion:1,snapshots:[{...second,sequence:999}]});eq(registry.getSnapshot().size,0);
+registry.reconcile({...input,clients:[...input.clients,{serverUserId:'screen-owner',screenShareAudioStreamID:'alias'}]});eq(identity,undefined);
+registry.clear();eq(registry.getSnapshot().size,0);
+console.log(JSON.stringify({result:'pass',kind:'pure-registry-boundaries',assertions:count,actualCapture:false,realNetwork:false,cacheClearedBySelection:false},null,2));

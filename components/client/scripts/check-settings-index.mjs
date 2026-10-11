@@ -1,0 +1,168 @@
+/* eslint-env node */
+
+/**
+ * The settings search index against the settings that exist. SettingGroup logs
+ * this in dev and four settings were failing it unseen (GRYT-1009).
+ */
+
+import assert from "node:assert/strict";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import ts from "typescript";
+
+const COMPONENTS = "src/packages/settings/src/components";
+const INDEX = "src/packages/settings/src/hooks/settingsSearch.ts";
+const SETTINGS = "src/packages/settings/src/components/settings.tsx";
+const english = JSON.parse(readFileSync("src/packages/i18n/locales/en.json", "utf8"));
+
+/** The same derivation SettingGroup uses, so the two cannot disagree. */
+function settingAnchorId(title) {
+  return title
+    .split(":")[0]
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function sources(dir) {
+  const out = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) out.push(...sources(path));
+    else if (entry.name.endsWith(".tsx")) out.push(path);
+  }
+  return out;
+}
+
+/* ── what the panels render ──────────────────────────────────────────────── */
+
+const controls = [];
+for (const file of sources(COMPONENTS)) {
+  // settingsComponents.tsx defines the wrappers; its `title` is the prop, not
+  // a setting anybody can search for.
+  if (file.endsWith("settingsComponents.tsx")) continue;
+  // Retained upstream sources are not mounted by the private audio-only settings router.
+  if (/[/\\](cameraSettings|screenShareSettings)\.tsx$/.test(file)) continue;
+  const source = readFileSync(file, "utf8");
+  for (const match of source.matchAll(
+    /<(?:SettingGroup|ToggleSetting|SliderSetting)\b[^>]*?\btitle=(?:"([^"]+)"|\{`([^`${]+))/gs
+  )) {
+    controls.push({ file, title: (match[1] ?? match[2]).trim() });
+  }
+  const tree = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  function visit(node) {
+    if ((ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) && /^(SettingGroup|ToggleSetting|SliderSetting)$/.test(node.tagName.getText(tree))) {
+      const props = node.attributes.properties;
+      const title = props.find((prop) => ts.isJsxAttribute(prop) && prop.name.getText(tree) === "title")?.initializer;
+      if (title && ts.isJsxExpression(title) && title.expression && ts.isCallExpression(title.expression) && /^(t|tr|i18n\.t)$/.test(title.expression.expression.getText(tree))) {
+        const key = title.expression.arguments[0];
+        const anchor = props.find((prop) => ts.isJsxAttribute(prop) && prop.name.getText(tree) === "anchorId")?.initializer;
+        const anchors=anchor && ts.isStringLiteral(anchor) ? [anchor.text] :
+          anchor && ts.isJsxExpression(anchor) && anchor.expression && ts.isConditionalExpression(anchor.expression) &&
+          ts.isStringLiteral(anchor.expression.whenTrue) && ts.isStringLiteral(anchor.expression.whenFalse) ?
+          [anchor.expression.whenTrue.text,anchor.expression.whenFalse.text] : [];
+        assert.ok(anchors.length, `${file}: a translated setting must have stable literal anchorIds`);
+        const label = ts.isStringLiteral(key) ? key.text.split(".").reduce((value, part) => value?.[part], english) : undefined;
+        for(const id of anchors)controls.push({file,title:label??id,anchor:id});
+      }
+    }
+    ts.forEachChild(node, visit);
+  }
+  visit(tree);
+}
+
+assert.ok(controls.length > 20, `only found ${controls.length} settings — the scrape is broken`);
+
+/* ── what the index claims ───────────────────────────────────────────────── */
+
+const indexSource = readFileSync(INDEX, "utf8");
+const entries = [...indexSource.matchAll(/\{ id: "([a-z0-9-]+)"[^\n]*?\}/g)].map((m) => {
+  const line = m[0];
+  const field = (name) => line.match(new RegExp(`${name}: "([^"]+)"`))?.[1];
+  return {
+    id: m[1],
+    destination: field("destination"),
+    page: field("page"),
+    panel: /panel: true/.test(line),
+  };
+});
+
+assert.ok(entries.length > 30, `only parsed ${entries.length} index entries — the scrape is broken`);
+
+const ids = new Set(entries.map((entry) => entry.id));
+
+/* ── every setting is findable ───────────────────────────────────────────── */
+
+const unfindable = controls
+  .map((control) => ({ ...control, anchor: control.anchor ?? settingAnchorId(control.title) }))
+  .filter((control) => !ids.has(control.anchor));
+
+assert.deepEqual(
+  unfindable.map((c) => `${c.title} (${c.anchor}) in ${c.file}`),
+  [],
+  "settings with no entry in SETTINGS_INDEX — search cannot reach them",
+);
+
+/* ── every entry points at a setting that exists ─────────────────────────── */
+
+/* An anchor can arrive three ways and only the first is a literal title, so this
+   direction reads generously: a missed anchor would fail CI over a reachable one. */
+const anchors = new Set(controls.map((control) => control.anchor ?? settingAnchorId(control.title)));
+const explicitAnchors = new Map();
+for (const file of sources(COMPONENTS)) {
+  const source = readFileSync(file, "utf8");
+  for (const match of source.matchAll(/\blabel="([^"]+)"/g)) anchors.add(settingAnchorId(match[1]));
+  for (const match of source.matchAll(/data-setting="([a-z0-9-]+)"/g)) anchors.add(match[1]);
+  for (const match of source.matchAll(/\banchorId="([^"]*)"/g)) {
+    const anchor = match[1];
+    assert.match(anchor, /^[a-z0-9]+(?:-[a-z0-9]+)*$/, `${file}: empty or invalid stable setting anchor`);
+    assert.ok(!explicitAnchors.has(anchor), `duplicate setting anchor ${anchor} in ${file} and ${explicitAnchors.get(anchor)}`);
+    explicitAnchors.set(anchor, file);
+    anchors.add(anchor);
+  }
+}
+const dangling = entries
+  .filter((entry) => !entry.panel && !anchors.has(entry.id))
+  .map((entry) => entry.id);
+
+assert.deepEqual(
+  dangling,
+  [],
+  "index entries whose setting is gone or renamed — a hit scrolls to nothing",
+);
+
+/* ── every entry points at a destination and page that exist ─────────────── */
+
+/* A destination carries an icon and a page does not, which is the only thing
+   telling them apart. Collapsing the two would let `destination: "audio"` pass. */
+const settings = readFileSync(SETTINGS, "utf8");
+const destinations = new Set();
+const pages = new Set();
+const declarations = [...settings.matchAll(/value: "([a-z-]+)"/g)];
+for (const [i, match] of declarations.entries()) {
+  const until = declarations[i + 1]?.index ?? settings.length;
+  (/\bicon:/.test(settings.slice(match.index, until)) ? destinations : pages).add(match[1]);
+}
+
+assert.ok(destinations.size > 5, `only found ${destinations.size} destinations — the scrape is broken`);
+assert.ok(pages.size > 5, `only found ${pages.size} pages — the scrape is broken`);
+
+const lost = entries.filter((entry) => !destinations.has(entry.destination));
+assert.deepEqual(
+  lost.map((entry) => `${entry.id} -> ${entry.destination}`),
+  [],
+  "index entries naming a destination that does not exist",
+);
+
+const strayPages = entries.filter((entry) => entry.page && !pages.has(entry.page));
+assert.deepEqual(
+  strayPages.map((entry) => `${entry.id} -> ${entry.page}`),
+  [],
+  "index entries naming a page that does not exist",
+);
+
+console.log(
+  `settings index: ${controls.length} settings, ${entries.length} entries, ` +
+    `${destinations.size} destinations, ${pages.size} pages, ${explicitAnchors.size} nonempty unique stable anchors — all agree`,
+);

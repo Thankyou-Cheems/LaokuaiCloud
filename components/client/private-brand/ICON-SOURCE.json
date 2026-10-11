@@ -1,0 +1,9 @@
+{
+  "sourceName": "CheemsBurger_transparent.png",
+  "sourceSha256": "4352e18f092dd34ebb33e5e6a2c354d749a338244ed36c06cf6e5073da878123",
+  "width": 1000,
+  "height": 1000,
+  "hasAlpha": true,
+  "conversion": "sharp contain resize only; alpha preserved; ICO sizes 16, 32, 48, 256",
+  "distribution": "Private self-use asset. Do not upload to upstream i18n PR."
+}

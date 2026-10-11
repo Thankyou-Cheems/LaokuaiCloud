@@ -1,0 +1,359 @@
+import { useCallback, useMemo, useState } from "react";
+import toast from "react-hot-toast";
+
+import { getServerAccessToken, getServerHttpBase } from "@/common";
+import { i18n as socketHooksI18n, useTranslation as useSocketHooksTranslation } from "@/i18n";
+
+import { sourceForUrl } from "../utils/emoteImportSources";
+import {
+  downloadAsFileWithProgress,
+  type ImportEmoteWithMeta,
+  preferredOfDuplicates,
+  sanitizeName,
+  validateName,
+} from "../utils/emoteImportUtils";
+import { socketDisplayText, socketHookToast } from "../utils/socketHookMessages";
+import { stageEmojiViaXhr } from "../utils/stageEmojiViaXhr";
+import { getFreshServerAccessToken, type TokenRefreshSocketLike } from "../utils/tokenManager";
+
+interface UseEmoteImportParams {
+  host: string;
+  accessToken: string | null;
+  socket: TokenRefreshSocketLike | null;
+  existingNames: Set<string>;
+}
+
+export function useEmoteImport({
+  host,
+  accessToken,
+  socket,
+  existingNames,
+}: UseEmoteImportParams) {
+  useSocketHooksTranslation();
+  const [url, setUrl] = useState("");
+  const [fetching, setFetching] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [username, setUsername] = useState<string | null>(null);
+  const [usernameKey, setUsernameKey] = useState<string | null>(null);
+  const [emotes, setEmotes] = useState<ImportEmoteWithMeta[]>([]);
+  const [filterText, setFilterText] = useState("");
+
+  const effectiveAccessToken = useMemo(
+    () => accessToken || getServerAccessToken(host),
+    [accessToken, host],
+  );
+  const base = useMemo(() => getServerHttpBase(host), [host]);
+
+  const selectedEmotes = useMemo(
+    () => emotes.filter((e) => e.selected),
+    [emotes],
+  );
+
+  const validSelectedCount = useMemo(
+    () => selectedEmotes.filter((e) => !e.nameError).length,
+    [selectedEmotes],
+  );
+
+  const filteredEmotes = useMemo(() => {
+    if (!filterText) return emotes;
+    const lower = filterText.toLowerCase();
+    return emotes.filter(
+      (e) =>
+        e.code.toLowerCase().includes(lower) ||
+        e.name.toLowerCase().includes(lower),
+    );
+  }, [emotes, filterText]);
+
+  const revalidateAll = useCallback(
+    (items: ImportEmoteWithMeta[]): ImportEmoteWithMeta[] => {
+      const selectedNames = items
+        .filter((e) => e.selected)
+        .map((e) => e.name);
+      return items.map((e) => {
+        if (!e.selected) return { ...e, nameError: null, nameWarning: null };
+        const idx = selectedNames.indexOf(e.name);
+        const { error, warning } = validateName(e.name, existingNames, selectedNames, idx);
+        return { ...e, nameError: error, nameWarning: warning };
+      });
+    },
+    [existingNames],
+  );
+
+  const handleFetch = useCallback(async () => {
+    const trimmed = url.trim();
+    const source = sourceForUrl(trimmed);
+    if (!source) {
+      toast.error(
+        socketHookToast(() => socketHooksI18n.t("socketHooksFull.useEmoteImport_a1918769c1")),
+      );
+      return;
+    }
+
+    setFetching(true);
+    try {
+      const listing = await source.fetchListing(trimmed, base);
+      if (listing.emotes.length === 0) {
+        toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useEmoteImport_fed748a6bc", { p0: source.label })));
+        return;
+      }
+
+      const withMeta: ImportEmoteWithMeta[] = listing.emotes.map((e) => ({
+        ...e,
+        selected: true,
+        name: sanitizeName(e.code),
+        nameError: null,
+        nameWarning: null,
+        status: "idle",
+        progress: 0,
+        lastError: null,
+      }));
+
+      // Where a source offers the same shortcode twice, only the animated one
+      // starts selected. Both rows stay visible so the other can be picked.
+      const winners = new Map<string, ImportEmoteWithMeta>();
+      for (const e of withMeta) {
+        winners.set(e.name, preferredOfDuplicates(winners.get(e.name), e));
+      }
+      const deduped = withMeta.map((e) => ({
+        ...e,
+        selected: winners.get(e.name) === e,
+      }));
+
+      setEmotes(revalidateAll(deduped));
+      setUsername(listing.title);
+      setUsernameKey(listing.titleKey ?? null);
+      /* Emptied once the fetch has produced something, so the box is ready for
+         the next link. Not on a failure: a bad link is worth correcting. */
+      setUrl("");
+      toast.success(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useEmoteImport_1cc4cb31e3", { p0: listing.emotes.length, count: listing.emotes.length })));
+      if (listing.note) toast(socketHookToast(() => listing.note));
+    } catch (err) {
+      toast.error(
+        socketHookToast(() => err instanceof Error ? err.message : socketHooksI18n.t("socketHooksFull.useEmoteImport_e722279920", { p0: source.label })),
+      );
+    } finally {
+      setFetching(false);
+    }
+  }, [url, base, revalidateAll]);
+
+  const toggleSelect = useCallback(
+    (id: string) => {
+      setEmotes((prev) => {
+        const updated = prev.map((e) =>
+          e.id === id ? { ...e, selected: !e.selected } : e,
+        );
+        return revalidateAll(updated);
+      });
+    },
+    [revalidateAll],
+  );
+
+  const toggleAll = useCallback(
+    (selected: boolean) => {
+      setEmotes((prev) => {
+        const updated = prev.map((e) => ({ ...e, selected }));
+        return revalidateAll(updated);
+      });
+    },
+    [revalidateAll],
+  );
+
+  const updateName = useCallback(
+    (id: string, newName: string) => {
+      const sanitized = newName.replace(/[^A-Za-z0-9_]/g, "");
+      setEmotes((prev) => {
+        const updated = prev.map((e) =>
+          e.id === id ? { ...e, name: sanitized } : e,
+        );
+        return revalidateAll(updated);
+      });
+    },
+    [revalidateAll],
+  );
+
+  const handleImport = useCallback(async () => {
+    const toImportRaw = selectedEmotes.filter((e) => !e.nameError);
+    if (toImportRaw.length === 0) return;
+    if (!effectiveAccessToken) {
+      toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useEmoteImport_853cdb4018")));
+      return;
+    }
+
+    // One import per shortcode, and the animated one wins — see
+    // preferredOfDuplicates. A pack used to import whichever came last.
+    const byName = new Map<string, ImportEmoteWithMeta>();
+    for (const e of toImportRaw) {
+      byName.set(e.name, preferredOfDuplicates(byName.get(e.name), e));
+    }
+    const toImport = Array.from(byName.values());
+    if (toImport.length !== toImportRaw.length) {
+      toast(
+        socketHookToast(() => socketHooksI18n.t("socketHooksFull.useEmoteImport_8a0c81bdec", { p0: toImportRaw.length - toImport.length, p1: toImport.length, count: toImportRaw.length - toImport.length })),
+      );
+    }
+
+    setImporting(true);
+    try {
+      let successCount = 0;
+
+      const importOne = async (emote: ImportEmoteWithMeta) => {
+        setEmotes((prev) => prev.map((e) => (
+          e.id === emote.id
+            ? { ...e, status: "downloading", progress: 0, lastError: null }
+            : e
+        )));
+
+        try {
+          const fallbackMime =
+            emote.imageType === "gif" ? "image/gif"
+              : emote.imageType === "webp" ? "image/webp"
+              : "image/png";
+          const file = await downloadAsFileWithProgress({
+            url: emote.fileUrl,
+            name: emote.name,
+            fallbackMime,
+            onProgress: (pct) => {
+              setEmotes((prev) => prev.map((e) => (
+                e.id === emote.id
+                  ? { ...e, status: "downloading", progress: pct, lastError: null }
+                  : e
+              )));
+            },
+          });
+
+          setEmotes((prev) => prev.map((e) => (
+            e.id === emote.id
+              ? { ...e, status: "uploading", progress: 0, lastError: null }
+              : e
+          )));
+
+          const token = await getFreshServerAccessToken(host, socket);
+          if (!token) throw new Error("Not authenticated. Join the server first.");
+
+          let result = await stageEmojiViaXhr({
+            base,
+            accessToken: token,
+            file,
+            name: emote.name,
+            onProgress: (pct) => {
+              setEmotes((prev) => prev.map((e) => (
+                e.id === emote.id
+                  ? { ...e, status: "uploading", progress: pct }
+                  : e
+              )));
+            },
+            onUploadFinished: () => {
+              setEmotes((prev) => prev.map((e) => (
+                e.id === emote.id && e.status === "uploading"
+                  ? { ...e, status: "processing", progress: 100 }
+                  : e
+              )));
+            },
+          });
+
+          if (!result.ok && result.status === 401 && (result.error === "token_invalid" || result.error === "token_stale")) {
+            const refreshed = await getFreshServerAccessToken(host, socket, { force: true });
+            if (refreshed) {
+              result = await stageEmojiViaXhr({
+                base,
+                accessToken: refreshed,
+                file,
+                name: emote.name,
+                onProgress: (pct) => {
+                  setEmotes((prev) => prev.map((e) => (
+                    e.id === emote.id
+                      ? { ...e, status: "uploading", progress: pct }
+                      : e
+                  )));
+                },
+                onUploadFinished: () => {
+                  setEmotes((prev) => prev.map((e) => (
+                    e.id === emote.id && e.status === "uploading"
+                      ? { ...e, status: "processing", progress: 100 }
+                      : e
+                  )));
+                },
+              });
+            }
+          }
+
+          if (result.ok) {
+            successCount++;
+            toast.success(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useEmoteImport_57dc7dcbd8", { p0: emote.name })));
+            setEmotes((prev) => prev.filter((e) => e.id !== emote.id));
+          } else {
+          toast.error(socketHookToast(() => `:${emote.name}: — ${result.message}`));
+            setEmotes((prev) => prev.map((e) => (
+              e.id === emote.id
+                ? { ...e, status: "error", progress: 0, lastError: result.message }
+                : e
+            )));
+          }
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : "Import failed.";
+          toast.error(socketHookToast(() => `:${emote.name}: — ${msg}`));
+          setEmotes((prev) => prev.map((e) => (
+            e.id === emote.id
+              ? { ...e, status: "error", progress: 0, lastError: msg }
+              : e
+          )));
+        }
+      };
+
+      const concurrencyLimit = Math.min(3, toImport.length);
+      let nextIndex = 0;
+      const worker = async () => {
+        while (nextIndex < toImport.length) {
+          const i = nextIndex;
+          nextIndex++;
+          const emote = toImport[i];
+          if (!emote) break;
+          await importOne(emote);
+        }
+      };
+
+      await Promise.all(Array.from({ length: concurrencyLimit }, worker));
+
+      if (successCount > 0) {
+        toast.success(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useEmoteImport_bf9701665d", { p0: successCount, count: successCount })));
+      }
+    } catch (err) {
+      toast.error(
+        socketHookToast(() => err instanceof Error ? err.message : "Import failed."),
+      );
+    } finally {
+      setImporting(false);
+    }
+  }, [selectedEmotes, base, effectiveAccessToken, host, socket]);
+
+  const handleClear = useCallback(() => {
+    setEmotes([]);
+    setUsername(null);
+    setUsernameKey(null);
+    setUrl("");
+    setFilterText("");
+  }, []);
+
+  return {
+    url,
+    setUrl,
+    fetching,
+    importing,
+    username: usernameKey ? socketHooksI18n.t(usernameKey) : username,
+    emotes: emotes.map((item) => ({ ...item, nameError: socketDisplayText(item.nameError), nameWarning: socketDisplayText(item.nameWarning), lastError: socketDisplayText(item.lastError) })),
+
+    filterText,
+    setFilterText,
+    selectedEmotes: selectedEmotes.map((item) => ({ ...item, nameError: socketDisplayText(item.nameError), nameWarning: socketDisplayText(item.nameWarning), lastError: socketDisplayText(item.lastError) })),
+
+    validSelectedCount,
+    filteredEmotes: filteredEmotes.map((item) => ({ ...item, nameError: socketDisplayText(item.nameError), nameWarning: socketDisplayText(item.nameWarning), lastError: socketDisplayText(item.lastError) })),
+
+    handleFetch,
+    toggleSelect,
+    toggleAll,
+    updateName,
+    handleImport,
+    handleClear,
+  };
+}

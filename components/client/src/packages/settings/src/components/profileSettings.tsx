@@ -1,0 +1,1166 @@
+import { Avatar, Button, IconButton, Select, Tabs, TextField, Tooltip } from "@gryt/ui";
+import { AvatarChoiceDialog, OwlDesignerDialog } from "@gryt/ui";
+import { useCallback,useEffect, useRef, useState } from "react";
+import toast from "react-hot-toast";
+
+import { compressStaticAvatarToLimit, freshUploadsFileUrl, getAvatarHash, getServerAccessToken, getServerHttpBase, getStoredAvatar, getStoredWorn, getUploadsFileUrl, resolveAvatarSrc, setStoredWorn, useUserId } from "@/common";
+import { i18n, LocalizedText, useTranslation } from "@/i18n";
+import { useSettings } from "@/settings";
+import { useServerManagement, useSockets } from "@/socket";
+
+import { PiArrowsClockwiseFill, PiCameraFill, PiCheck, PiCopyFill } from "../../../../lib/icons";
+import { takeSharedLook, useSharedLook } from "../../../../lib/sharedLook";
+import { ConfirmDialog } from "../../../socket/src/components/ConfirmDialog";
+import { nicknameFailureKey, type NicknameScope, planNicknameUpdate, requestNicknameUpdate } from "../utils/nicknameScope";
+import { RichPresenceSettings } from "./richPresence";
+import { SettingsContainer } from "./settingsComponents";
+import { WatchedPrograms } from "./watchedPrograms";
+
+/** Counts servers, not tabs, so All Servers is the sixth on screen. Five is
+    where the row filled the panel at its normal width. */
+const SERVERS_BEFORE_DROPDOWN = 5;
+
+function extForMime(mime: string): string {
+  switch ((mime || "").toLowerCase()) {
+    case "image/gif": return "gif";
+    case "image/png": return "png";
+    case "image/jpeg": return "jpg";
+    case "image/webp": return "webp";
+    case "video/mp4": return "mp4";
+    case "video/webm": return "webm";
+    case "video/quicktime": return "mov";
+    default: return "bin";
+  }
+}
+
+/**
+ * A server stores what its worker produced and the upload endpoint does not accept
+ * all of it, so this re-encodes. Animation passes through: a canvas keeps frame one.
+ */
+async function asUploadableAvatar(blob: Blob): Promise<File> {
+  const type = (blob.type || "").toLowerCase();
+
+  if (type === "image/gif" || type === "image/webp") {
+    return new File([blob], `avatar.${extForMime(type)}`, { type });
+  }
+
+  const bitmap = await createImageBitmap(blob);
+  const canvas = document.createElement("canvas");
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error(i18n.t("crossProfile.mb145578f29"));
+  context.drawImage(bitmap, 0, 0);
+  bitmap.close();
+
+  const png = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, "image/png"),
+  );
+  if (!png) throw new Error(i18n.t("crossProfile.m2241fcd226"));
+
+  return new File([png], "avatar.png", { type: "image/png" });
+}
+
+const VIDEO_AVATAR_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
+
+/** A still from a video avatar, kept on this device where a picture would be. */
+async function posterOfVideo(file: File): Promise<File> {
+  const url = URL.createObjectURL(file);
+  const video = document.createElement("video");
+  video.muted = true;
+  video.preload = "auto";
+  try {
+    await new Promise<void>((resolve, reject) => {
+      video.onloadeddata = () => resolve();
+      video.onerror = () => reject(new Error(i18n.t("ui.thatVideoCanTBePlayedHere")));
+      video.src = url;
+    });
+    const side = 256;
+    const scale = Math.max(side / video.videoWidth, side / video.videoHeight);
+    const sw = side / scale;
+    const sh = side / scale;
+    const canvas = document.createElement("canvas");
+    canvas.width = side;
+    canvas.height = side;
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error(i18n.t("crossProfile.ma42c1243c4"));
+    context.drawImage(video, (video.videoWidth - sw) / 2, (video.videoHeight - sh) / 2, sw, sh, 0, 0, side, side);
+    const png = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+    if (!png) throw new Error(i18n.t("crossProfile.m6b3f668db0"));
+    return new File([png], "avatar.png", { type: "image/png" });
+  } finally {
+    video.removeAttribute("src");
+    URL.revokeObjectURL(url);
+  }
+}
+
+/** A converted video avatar, fetched whole from a server that has it. */
+async function fetchVideoAvatar(host: string, fileId: string): Promise<File> {
+  const response = await fetch(freshUploadsFileUrl(getUploadsFileUrl(host, fileId)));
+  if (!response.ok) throw new Error(i18n.t("crossProfile.mc7ed9482db", { value0: response.status }));
+  const blob = await response.blob();
+  const type = blob.type.startsWith("video/") ? blob.type : "video/mp4";
+  return new File([blob], `avatar.${extForMime(type)}`, { type });
+}
+
+async function uploadAvatarToHost(host: string, file: Blob): Promise<{ avatarFileId?: string; processing?: boolean }> {
+  const token = getServerAccessToken(host);
+  if (!token) throw new Error(i18n.t("crossProfile.m4493750247"));
+  const form = new FormData();
+  const ext = extForMime(file.type || "");
+  form.append("file", file, `avatar.${ext}`);
+  const base = getServerHttpBase(host);
+  const r = await fetch(`${base}/api/uploads/avatar`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: form,
+  });
+  const raw = await r.text().catch(() => "");
+  let data: Record<string, unknown> = {};
+  try {
+    data = raw ? JSON.parse(raw) : {};
+  } catch {
+    data = {};
+  }
+  if (!r.ok) {
+    const msg =
+      (typeof data?.message === "string" && data.message.trim().length > 0)
+        ? data.message
+        : (typeof data?.error === "string" && data.error.trim().length > 0)
+          ? data.error
+          : (raw && raw.trim().length > 0)
+            ? raw.trim()
+            : `HTTP ${r.status} ${r.statusText || ""}`.trim();
+    throw new Error(msg);
+  }
+  return (data || {}) as { avatarFileId?: string; processing?: boolean };
+}
+
+async function removeAvatarFromHost(host: string): Promise<void> {
+  const token = getServerAccessToken(host);
+  if (!token) throw new Error(i18n.t("crossProfile.m4493750247"));
+  const base = getServerHttpBase(host);
+  const r = await fetch(`${base}/api/uploads/avatar`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const raw = await r.text().catch(() => "");
+  let data: Record<string, unknown> = {};
+  try {
+    data = raw ? JSON.parse(raw) : {};
+  } catch {
+    data = {};
+  }
+  if (!r.ok) {
+    const msg =
+      (typeof data?.message === "string" && data.message.trim().length > 0)
+        ? data.message
+        : (typeof data?.error === "string" && data.error.trim().length > 0)
+          ? data.error
+          : (raw && raw.trim().length > 0)
+            ? raw.trim()
+            : `HTTP ${r.status} ${r.statusText || ""}`.trim();
+    throw new Error(msg);
+  }
+}
+
+interface ProfileEditorProps {
+  nickname: string;
+  avatarUrl: string | null;
+  /** Separate from avatarUrl, so "Remove avatar" keys off whether one was
+      uploaded: a generated face is not something to remove. */
+  generatedAvatarUrl?: string;
+  /** The designed look, if there is one. Outranks `avatarUrl` — see `resolveAvatarSrc`. */
+  worn?: string | null;
+  initial: string;
+  uploading: boolean;
+  removing: boolean;
+  onSaveNickname: (name: string) => Promise<void>;
+  onPickAvatar: () => void;
+  onRemoveAvatar: () => void;
+  serverLabel?: string;
+  /** Set only on a per-server tab. Distinct from serverLabel, which the All
+   *  Servers tab also uses for its own heading. */
+  scopedToServer?: string;
+}
+
+export function ProfileEditor({
+  nickname,
+  avatarUrl,
+  generatedAvatarUrl,
+  worn,
+  initial,
+  uploading,
+  removing,
+  onSaveNickname,
+  onPickAvatar,
+  onRemoveAvatar,
+  serverLabel,
+  scopedToServer,
+}: ProfileEditorProps) {
+  const { t: tr } = useTranslation();
+  const [draft, setDraft] = useState(nickname);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+  const [savingNickname, setSavingNickname] = useState(false);
+  const savingNicknameRef = useRef(false);
+  const previousNicknameRef = useRef(nickname);
+
+  // From the box, not what is saved: the nickname is the seed, so this is the
+  // only way to see what you are about to look like.
+  const previewSrc = resolveAvatarSrc(avatarUrl, draft, worn) || generatedAvatarUrl;
+
+  useEffect(() => {
+    const previous = previousNicknameRef.current;
+    previousNicknameRef.current = nickname;
+    // Remote refreshes must not overwrite an unsaved or failed draft.
+    setDraft((current) => current === previous ? nickname : current);
+  }, [nickname]);
+
+  const handleSave = useCallback(async () => {
+    const trimmed = draft.trim().substring(0, 20);
+    if (!trimmed || trimmed === nickname || savingNicknameRef.current) return;
+    savingNicknameRef.current = true;
+    setSavingNickname(true);
+    try {
+      await onSaveNickname(trimmed);
+      setDraft(trimmed);
+    } catch (error) {
+      toast.error(tr(nicknameFailureKey(error)));
+    } finally {
+      savingNicknameRef.current = false;
+      setSavingNickname(false);
+    }
+  }, [draft, nickname, onSaveNickname, tr]);
+
+  return (
+    <div className="flex flex-col gap-6 items-center" style={{ paddingTop: 8 }} data-tour="profile-editor">
+      {serverLabel && (
+        <span className="text-sm font-medium">
+          {serverLabel}
+        </span>
+      )}
+
+      <div className="flex items-center justify-center" style={{ width: "100%" }} data-setting="profile.nickname">
+        <div className="flex flex-col gap-2" style={{ maxWidth: 400, width: "100%" }}>
+          <span className="font-medium text-sm">
+            {scopedToServer ? tr("ui.nickname") : tr("nicknameScope.defaultNickname")}
+          </span>
+          {/*
+            On a server tab this is a statement of fact — the value comes from
+            that server's member list, so it is literally what everyone there
+            sees. On the All Servers tab it is not: that is the local default
+            applied to servers you join next, and it only reaches the servers
+            you are already on when you press Sync. Saying "will see you" in
+            both places is what let a local name of "Sivert" sit next to a
+            server holding "Unknown" without anything looking wrong.
+          */}
+          <span className="text-xs">
+            {scopedToServer
+              ? tr("profile.scopedName", { server: scopedToServer })
+              : tr("ui.usedOnServersYouJoinFromNowOn")}
+          </span>
+          <TextField
+            aria-label={scopedToServer ? tr("ui.nickname") : tr("nicknameScope.defaultNickname")}
+            placeholder={tr("ui.enterANickname")}
+            maxLength={20}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            disabled={savingNickname}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") { e.preventDefault(); setDraft(nickname); }
+              if (e.key === "Enter" && !e.nativeEvent.isComposing && e.nativeEvent.keyCode !== 229) {
+                void handleSave();
+              }
+            }}
+          />
+          {(draft !== nickname || savingNickname) && (
+            <span className="text-xs text-gryt-muted">{tr("nicknameScope.unsavedHint")}</span>
+          )}
+          <div className="flex gap-2">
+            <Button size="small" disabled={savingNickname || !draft.trim() || draft.trim() === nickname}
+              onClick={() => void handleSave()}>
+              {savingNickname ? tr("nicknameScope.saving") : tr("nicknameScope.save")}
+            </Button>
+            <Button size="small" disabled={savingNickname || draft === nickname}
+              onClick={() => setDraft(nickname)}>
+              {tr("nicknameScope.cancel")}
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-col items-center gap-2" style={{ cursor: "default", opacity: uploading || removing ? 0.6 : 1, transition: "opacity 200ms" }}>
+        <button
+          type="button"
+          disabled={uploading || removing}
+          onClick={onPickAvatar}
+          aria-label={tr("ui.changeAvatar")}
+          style={{
+            all: "unset",
+            cursor: uploading || removing ? "default" : "pointer",
+            borderRadius: 9999,
+          }}
+        >
+          <div style={{ position: "relative" }}>
+            <Avatar
+              size="large"
+              className="h-24 w-24 text-3xl"
+              src={previewSrc}
+              fallback={initial}
+            />
+            <div className="flex items-center justify-center" style={{
+                position: "absolute",
+                bottom: 0,
+                right: 0,
+                width: 28,
+                height: 28,
+                borderRadius: "50%",
+                background: "var(--gryt-accent-9)",
+                color: "var(--gryt-on-accent)",
+                boxShadow: "0 1px 4px var(--gryt-neutral-a5)",
+              }}>
+              <PiCameraFill size={14} />
+            </div>
+          </div>
+        </button>
+        <span className="text-xs">
+          {uploading ? tr("ui.uploading") : removing ? tr("ui.removing") : tr("ui.clickToChangeAvatar")}
+        </span>
+      </div>
+
+      {avatarUrl ? (
+        <>
+          <Button size="small"
+            disabled={uploading || removing}
+            onClick={() => setShowRemoveConfirm(true)}
+          >
+            {tr("ui.removeAvatar")}
+          </Button>
+          <ConfirmDialog
+            open={showRemoveConfirm}
+            onOpenChange={(open) => { if (!open) setShowRemoveConfirm(false); }}
+            title={tr("ui.removeAvatarVariant")}
+            description={serverLabel ? tr("profile.avatarRemoveServer", { server: serverLabel }) : tr("profile.avatarRemove")}
+            confirmLabel={tr("ui.remove")}
+            onConfirm={onRemoveAvatar}
+          />
+        </>
+      ) : null}
+
+
+    </div>
+  );
+}
+
+/**
+ * Outside the server tabs, because the nickname and picture are per server and
+ * this is not. A server whose role refuses it simply does not show the line.
+ */
+function ActivityField() {
+  const { t: tr } = useTranslation();
+  const { activity, setActivity } = useSettings();
+  const [draft, setDraft] = useState(activity);
+
+  // Follow the stored value when something else changes it — a plugin setting
+  // it, or another window of the same account.
+  useEffect(() => setDraft(activity), [activity]);
+
+  const save = () => {
+    const trimmed = draft.trim();
+    if (trimmed !== activity) setActivity(trimmed);
+  };
+
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-sm font-bold">{tr("ui.whatYouAreDoing")}</span>
+      <span className="text-xs text-gryt-muted">
+        {tr("ui.shownUnderYourNameOnEveryServerYou")}
+      </span>
+      <TextField
+        placeholder={tr("ui.whatAreYouUpTo")}
+        /* The server caps at 96 and truncates, so this says the same number
+           earlier: a box that stops is clearer than one that loses the end. */
+        maxLength={96}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={save}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !e.nativeEvent.isComposing && e.nativeEvent.keyCode !== 229) {
+            save();
+            (e.target as HTMLInputElement).blur();
+          }
+        }}
+      />
+    </div>
+  );
+}
+
+export function ProfileSettings() {
+  const { t: tr } = useTranslation();
+  const userId = useUserId();
+  const { nickname, setNickname, avatarDataUrl, setAvatarDataUrl, setAvatarFile } =
+    useSettings();
+  const { servers } = useServerManagement();
+  const { sockets, serverDetailsList, serverProfiles, setServerProfiles } = useSockets();
+  const [uploading, setUploading] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const nicknameOperationRef = useRef(false);
+
+  const serverHosts = Object.keys(servers);
+  const connectedHosts = serverHosts.filter(h => sockets[h]?.connected);
+  const [selectedTab, setSelectedTab] = useState("all");
+  const pendingActionRef = useRef<{ type: "pick" | "remove"; host: string | null }>({ type: "pick", host: null });
+
+  const getAvatarMaxBytes = (hosts: string[]) => {
+    const defaultMax = 5 * 1024 * 1024;
+    return hosts.reduce((min, h) => {
+      const v = serverDetailsList?.[h]?.server_info?.avatar_max_bytes;
+      if (typeof v === "number" && Number.isFinite(v) && v > 0) return Math.min(min, v);
+      return min;
+    }, defaultMax);
+  };
+
+  /**
+   * Per host, because a profile change goes to several at once and they will not
+   * agree. The catalogue separates an old server from a withheld permission.
+   */
+  const mayUploadPicture = (host: string): boolean => {
+    const info = serverDetailsList[host]?.server_info;
+    const catalogue = info?.permission_catalogue;
+    if (Array.isArray(catalogue) && !catalogue.includes("upload_avatar_image")) return true;
+    if (!Array.isArray(info?.permissions)) return true;
+    return info.permissions.includes("upload_avatar_image");
+  };
+
+  const processAndUpload = async (file: File, hosts: string[], worn: string | null) => {
+    const minAvatarMaxBytes = getAvatarMaxBytes(hosts);
+
+    if (file.size > 25 * 1024 * 1024) {
+      toast.error(i18n.t("crossProfile.m8d4ee54e75"));
+      return;
+    }
+
+    let uploadFile: File = file;
+    const isVideo = VIDEO_AVATAR_TYPES.includes((file.type || "").toLowerCase());
+    // The server turns a video into a short silent clip; this device keeps a still of it.
+    let localFile: File = file;
+    if (isVideo) {
+      if (hosts.length === 0) {
+        toast.error(i18n.t("crossProfile.m5988cc5e7c"));
+        return;
+      }
+      try {
+        localFile = await posterOfVideo(file);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : tr("ui.thatVideoCanTBePlayedHere"));
+        return;
+      }
+    }
+
+    const isAnimatedFormat = ["image/gif", "image/webp"].includes((file.type || "").toLowerCase());
+    if (!isAnimatedFormat && !isVideo) {
+      try {
+        const blob = await compressStaticAvatarToLimit(file, { maxBytes: minAvatarMaxBytes, sizePx: 256 });
+        if (blob instanceof Blob) {
+          const ext = extForMime(blob.type || file.type || "");
+          uploadFile = new File([blob], `avatar.${ext}`, { type: blob.type || file.type });
+        }
+      } catch {
+        uploadFile = file;
+      }
+    }
+
+    /* An owl is a string every client draws, so it arrives without the PNG:
+       `upload_avatar_image` restricts files, not having an avatar. */
+    const permitted = hosts.filter(mayUploadPicture);
+    const refused = hosts.filter((h) => !permitted.includes(h));
+
+    if (refused.length > 0) {
+      if (worn) {
+        refused.forEach((host) => {
+          sockets[host]?.emit("profile:update", { avatarWorn: worn });
+          sockets[host]?.emit("members:fetch");
+          setServerProfiles((prev) => ({
+            ...prev,
+            [host]: { ...prev[host], avatarWorn: worn },
+          }));
+        });
+      } else if (permitted.length === 0) {
+        toast.error(
+          hosts.length === 1
+            ? tr("ui.thisServerDoesNotLetYouUploadA")
+            : tr("ui.noneOfTheseServersLetYouUploadA"),
+        );
+        return;
+      }
+    }
+
+    hosts = permitted;
+
+    // A video only goes to servers that take one; the rest keep the avatar they have.
+    if (isVideo) {
+      const takesVideo = hosts.filter((h) => serverDetailsList?.[h]?.server_info?.video_profiles === true);
+      if (takesVideo.length === 0) {
+        toast.error(hosts.length === 1 ? tr("ui.thisServerDoesnTTakeVideoAvatarsPick") : tr("ui.noneOfTheseServersTakeVideoAvatarsPick"));
+        return;
+      }
+      if (takesVideo.length < hosts.length) {
+        toast(i18n.t("crossProfile.m9255ac6fa7", { value0: takesVideo.length, value1: hosts.length }));
+      }
+      hosts = takesVideo;
+    }
+
+    setUploading(true);
+    try {
+      if (hosts.length === 0) {
+        await setAvatarFile(uploadFile);
+        setStoredWorn(worn);
+        toast(tr("ui.avatarUpdatedLocallyNoServersConnected"));
+        return;
+      }
+
+      const [results, uploadHash] = await Promise.all([
+        Promise.allSettled(hosts.map((h) => uploadAvatarToHost(h, uploadFile))),
+        getAvatarHash(isVideo ? localFile : uploadFile).catch(() => null),
+      ]);
+
+      const failed: Array<{ host: string; reason: string }> = [];
+      let anySuccess = false;
+      let anyProcessing = false;
+
+      results.forEach((r, idx) => {
+        const host = hosts[idx];
+        if (r.status !== "fulfilled") {
+          const reason =
+            r.reason instanceof Error
+              ? r.reason.message
+              : (typeof r.reason === "string" ? r.reason : tr("ui.uploadFailed"));
+          failed.push({ host, reason });
+          return;
+        }
+
+        anySuccess = true;
+        if (r.value.processing) anyProcessing = true;
+        if (r.value.avatarFileId) {
+          localStorage.setItem(`avatarFileId:${host}`, r.value.avatarFileId);
+          if (uploadHash) localStorage.setItem(`avatarHash:${host}`, uploadHash);
+          setServerProfiles(prev => ({
+            ...prev,
+            [host]: {
+              ...prev[host],
+              avatarFileId: r.value.avatarFileId!,
+              avatarUrl: getUploadsFileUrl(host, r.value.avatarFileId!, isVideo ? { thumb: true } : undefined),
+              avatarWorn: worn,
+              avatarVideo: isVideo,
+            },
+          }));
+        }
+        // An explicit null for a photograph: somebody who had a designed owl needs
+        // the old string cleared, or it draws over the picture they chose.
+        sockets[host]?.emit("profile:update", { avatarWorn: worn });
+        sockets[host]?.emit("avatar:updated");
+        sockets[host]?.emit("members:fetch");
+      });
+
+      if (anySuccess) {
+        await setAvatarFile(isVideo ? localFile : uploadFile);
+        setStoredWorn(worn);
+      }
+
+      if (failed.length > 0) {
+        if (hosts.length === 1) {
+          toast.error(i18n.t("crossProfile.mb016c16034", { value0: failed[0].reason }));
+        } else {
+          toast.error(i18n.t("crossProfile.m0461286d56", { value0: failed.length, value1: hosts.length }));
+        }
+      } else if (anySuccess && isVideo) {
+        toast(tr("ui.yourVideoIsUploadedItShowsOnYour"));
+      } else if (anySuccess && anyProcessing) {
+        toast(i18n.t("crossProfile.mcbb040ea46"));
+      } else if (anySuccess) {
+        toast.success(tr("ui.avatarUpdated"));
+      }
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRemoveAvatar = async (hosts: string[]) => {
+    if (uploading || removing) return;
+
+    setRemoving(true);
+    try {
+      if (hosts.length === 0) {
+        await setAvatarFile(null);
+        setAvatarDataUrl(null);
+        toast(tr("ui.avatarRemovedLocally"));
+        return;
+      }
+
+      const results = await Promise.allSettled(hosts.map((h) => removeAvatarFromHost(h)));
+
+      const failed: Array<{ host: string; reason: string }> = [];
+      let anySuccess = false;
+
+      results.forEach((r, idx) => {
+        const host = hosts[idx];
+        if (r.status !== "fulfilled") {
+          const reason =
+            r.reason instanceof Error
+              ? r.reason.message
+              : (typeof r.reason === "string" ? r.reason : tr("ui.removeFailed"));
+          failed.push({ host, reason });
+          return;
+        }
+        anySuccess = true;
+        localStorage.removeItem(`avatarHash:${host}`);
+        localStorage.removeItem(`avatarFileId:${host}`);
+        setServerProfiles(prev => ({
+          ...prev,
+          [host]: {
+            ...prev[host],
+            avatarFileId: null,
+            avatarUrl: null,
+            avatarWorn: null,
+          },
+        }));
+        // Removing means going back to the owl the nickname draws, so a designed
+        // look left behind would survive it.
+        sockets[host]?.emit("profile:update", { avatarWorn: null });
+        sockets[host]?.emit("avatar:updated");
+        sockets[host]?.emit("members:fetch");
+      });
+
+      if (!anySuccess) {
+        toast.error(failed.length === 1 ? i18n.t("crossProfile.me36158e55f", { value0: failed[0].reason }) : tr("ui.removeAvatarFailed"));
+        return;
+      }
+
+      if (hosts.length === serverHosts.length) {
+        await setAvatarFile(null);
+        setAvatarDataUrl(null);
+      }
+
+      if (failed.length > 0) {
+        toast.error(i18n.t("crossProfile.m63d14411b8", { value0: failed.length, value1: hosts.length }));
+      } else {
+        toast.success(tr("ui.avatarRemoved"));
+      }
+    } finally {
+      setRemoving(false);
+    }
+  };
+
+  const handleSaveNickname = async (name: string, scope: NicknameScope) => {
+    if (nicknameOperationRef.current) throw new Error("nickname-operation-pending");
+    nicknameOperationRef.current = true;
+    try {
+      const plan = planNicknameUpdate(name, scope, serverHosts);
+      if (plan.updateDefault) {
+        setNickname(plan.nickname);
+        return;
+      }
+      // Check the whole batch before sending; never queue an offline nickname
+      // silently for reconnect, or quietly turn "all" into "connected only".
+      if (plan.hosts.some((host) => !sockets[host]?.connected)) {
+        throw new Error("server-offline");
+      }
+      const results = await Promise.allSettled(plan.hosts.map((host) =>
+        requestNicknameUpdate(sockets[host], plan.nickname),
+      ));
+      // Existing profile:updated listeners own serverProfiles. No optimistic write.
+      const failures = results.filter((result) => result.status === "rejected");
+      if (failures.length > 0) {
+        // A batch can mix applied, explicitly refused and unconfirmed writes.
+        // Only a wholly refused batch can truthfully say nothing was applied.
+        if (failures.length === results.length && failures.every((result) =>
+          result.reason instanceof Error && result.reason.message === "nickname-rejected")) {
+          throw new Error("nickname-rejected");
+        }
+        throw new Error("nickname-unconfirmed");
+      }
+
+    } finally {
+      nicknameOperationRef.current = false;
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !(file.type.startsWith("image/") || VIDEO_AVATAR_TYPES.includes(file.type))) {
+      e.target.value = "";
+      return;
+    }
+
+    const action = pendingActionRef.current;
+    const hosts = action.host ? [action.host] : serverHosts;
+    // A picture somebody picked, so any designed look is being replaced.
+    await processAndUpload(file, hosts, null);
+    e.target.value = "";
+  };
+
+  const triggerFilePick = (host: string | null) => {
+    pendingActionRef.current = { type: "pick", host };
+    fileInputRef.current?.click();
+  };
+
+  /* Asks first, since a picture is no longer the only kind of avatar. The host is
+     remembered across both dialogs, decided by whichever avatar was clicked. */
+  const [choosingFor, setChoosingFor] = useState<string | null | undefined>(undefined);
+  const [designingFor, setDesigningFor] = useState<string | null | undefined>(undefined);
+  /* An owl from a gryt://owl link opens in the designer, and is only worn on "Use this owl". */
+  const [sharedWorn, setSharedWorn] = useState<string | undefined>(undefined);
+  const sharedOwl = useSharedLook().owl;
+  useEffect(() => {
+    if (!sharedOwl) return;
+    setSharedWorn(takeSharedLook("owl"));
+    setDesigningFor(null);
+  }, [sharedOwl]);
+
+  const handleUseOwl = async (png: Blob, worn: string, host: string | null) => {
+    setDesigningFor(undefined);
+    setSharedWorn(undefined);
+    setChoosingFor(undefined);
+    const file = new File([png], "avatar.png", { type: "image/png" });
+    await processAndUpload(file, host ? [host] : serverHosts, worn);
+  };
+
+  /* The video goes to servers that take one and its still to the rest. The server it came from already has it. */
+  const copyVideoAvatar = async (sourceHost: string, fileId: string, hosts: string[]) => {
+    const video = await fetchVideoAvatar(sourceHost, fileId);
+    const targets = hosts.filter((h) => h !== sourceHost);
+    const takes = targets.filter((h) => serverDetailsList?.[h]?.server_info?.video_profiles === true);
+    const rest = targets.filter((h) => !takes.includes(h));
+    if (takes.length) await processAndUpload(video, takes, null);
+    if (rest.length) await processAndUpload(await posterOfVideo(video), rest, null);
+    if (!targets.length) toast(tr("ui.thatServerIsTheOnlyOneYouRe"));
+  };
+
+/**
+   * Owls and pictures are one job: a designed owl is a PNG plus the string that
+   * draws it. The nickname is left alone, being per-server for a reason.
+   */
+  const handleSyncFromServer = async (sourceHost: string) => {
+    if (syncing || uploading || removing) return;
+    if (connectedHosts.length === 0) return;
+
+    const profile = serverProfiles[sourceHost];
+    const worn = profile?.avatarWorn ?? null;
+    const source = profile?.avatarUrl;
+
+    if (!source) {
+      toast.error(tr("ui.nothingToCopyThisServerHasNoAvatar"));
+      return;
+    }
+
+    setSyncing(true);
+    try {
+      if (profile.avatarVideo && profile.avatarFileId && !worn) {
+        await copyVideoAvatar(sourceHost, profile.avatarFileId, connectedHosts);
+        return;
+      }
+      const response = await fetch(freshUploadsFileUrl(source));
+      if (!response.ok) {
+        throw new Error(i18n.t("crossProfile.mc7ed9482db", { value0: response.status }));
+      }
+
+      const file = await asUploadableAvatar(await response.blob());
+
+      // Including the server it came from: one path rather than two, and it
+      // settles a copy that is out of date with its own worn string.
+      await processAndUpload(file, connectedHosts, worn);
+    } catch (error) {
+      toast.error(
+        i18n.t("crossProfile.m79d5dd4e1f", { value0: error instanceof Error ? error.message : i18n.t("crossProfile.maf6321ca7a") }),
+      );
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleSyncAvatarToAll = async () => {
+    if (syncing || connectedHosts.length === 0) return;
+    setSyncing(true);
+
+    try {
+      const hosts = connectedHosts;
+
+      // Sent even when null: a server still holding a look this account dropped
+      // is exactly the disagreement the button exists to settle.
+      const worn = getStoredWorn();
+      hosts.forEach(host => {
+        sockets[host]?.emit("profile:update", { avatarWorn: worn });
+        setServerProfiles(prev => ({
+          ...prev,
+          [host]: { ...prev[host], avatarWorn: worn },
+        }));
+      });
+
+      // This device only keeps a video avatar's still; a server holding the video sends the real thing.
+      const videoSource = worn ? undefined : hosts.find((h) => {
+        const p = serverProfiles[h];
+        return p?.avatarVideo && p.avatarFileId && p.avatarFileId === localStorage.getItem(`avatarFileId:${h}`);
+      });
+      const stored = userId ? await getStoredAvatar(userId).catch(() => null) : null;
+      if (videoSource) {
+        await copyVideoAvatar(videoSource, serverProfiles[videoSource]!.avatarFileId!, hosts);
+      } else if (stored?.blob) {
+        const minMax = getAvatarMaxBytes(hosts);
+        let uploadFile: Blob = stored.blob;
+
+        if ((stored.mime || "").toLowerCase() !== "image/gif") {
+          try {
+            const compressed = await compressStaticAvatarToLimit(stored.blob as File, { maxBytes: minMax, sizePx: 256 });
+            if (compressed instanceof Blob) uploadFile = compressed;
+          } catch { /* use original */ }
+        }
+
+        const [results, uploadHash] = await Promise.all([
+          Promise.allSettled(hosts.map(h => uploadAvatarToHost(h, uploadFile))),
+          getAvatarHash(uploadFile).catch(() => null),
+        ]);
+
+        let avatarFailed = 0;
+        results.forEach((r, idx) => {
+          const host = hosts[idx];
+          if (r.status !== "fulfilled") {
+            avatarFailed++;
+            return;
+          }
+          if (r.value.avatarFileId) {
+            localStorage.setItem(`avatarFileId:${host}`, r.value.avatarFileId);
+            if (uploadHash) localStorage.setItem(`avatarHash:${host}`, uploadHash);
+            setServerProfiles(prev => ({
+              ...prev,
+              [host]: {
+                ...prev[host],
+                avatarFileId: r.value.avatarFileId!,
+                avatarUrl: getUploadsFileUrl(host, r.value.avatarFileId!),
+              },
+            }));
+          }
+          sockets[host]?.emit("avatar:updated");
+          sockets[host]?.emit("members:fetch");
+        });
+
+        if (avatarFailed > 0) {
+          toast.error(i18n.t("crossProfile.m2d372e718c", { failed: avatarFailed, total: hosts.length, count: hosts.length }));
+        } else {
+          toast.success(<LocalizedText translationKey="shellFull.avatarSynced" values={{ count: hosts.length }} />);
+        }
+      } else {
+        // Preserve the existing explicit avatar-sync contract: no default
+        // avatar clears uploaded avatars on the connected target servers.
+        const results = await Promise.allSettled(hosts.map(h => removeAvatarFromHost(h)));
+
+        let removeFailed = 0;
+        results.forEach((r, idx) => {
+          const host = hosts[idx];
+          if (r.status !== "fulfilled") {
+            removeFailed++;
+            return;
+          }
+          localStorage.removeItem(`avatarFileId:${host}`);
+          localStorage.removeItem(`avatarHash:${host}`);
+          setServerProfiles(prev => ({
+            ...prev,
+            [host]: { ...prev[host], avatarFileId: null, avatarUrl: null },
+          }));
+          sockets[host]?.emit("avatar:updated");
+          sockets[host]?.emit("members:fetch");
+        });
+
+        if (removeFailed > 0) {
+          toast.error(i18n.t("crossProfile.m121ecba0de", { failed: removeFailed, total: hosts.length, count: hosts.length }));
+        } else {
+          toast.success(<LocalizedText translationKey="shellFull.avatarSynced" values={{ count: hosts.length }} />);
+        }
+      }
+    } catch {
+      toast.error(tr("ui.syncFailed"));
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+
+  const [showAvatarSyncConfirm, setShowAvatarSyncConfirm] = useState(false);
+  const [showNicknameSyncConfirm, setShowNicknameSyncConfirm] = useState(false);
+  const nicknameSyncRef = useRef(false);
+  const handleApplyNicknameToAll = async () => {
+    if (nicknameSyncRef.current || !serverHosts.length) return;
+    nicknameSyncRef.current = true;
+    setSyncing(true);
+    setShowNicknameSyncConfirm(false);
+    try {
+      await handleSaveNickname(nickname, { kind: "all-servers" });
+      toast.success(tr("nicknameScope.applied"));
+    } catch (error) {
+      toast.error(tr(nicknameFailureKey(error)));
+    } finally {
+      nicknameSyncRef.current = false;
+      setSyncing(false);
+    }
+  };
+
+  const initial = nickname?.[0]?.toUpperCase() || "?";
+
+  const allServerAvatarUrl = avatarDataUrl;
+
+  // Re-read rather than held: every path that changes it already re-renders this
+  // screen through `uploading` or `removing`.
+  const storedWorn = getStoredWorn();
+
+  // One list, rendered two ways. Built here rather than inline so the tabs and
+  // the select cannot drift apart on what a server is called.
+  const serverTabs = [
+    { label: tr("ui.allServers"), value: "all" },
+    ...serverHosts.map((host) => ({
+      label:
+        serverDetailsList?.[host]?.server_info?.name ||
+        servers[host]?.name ||
+        host,
+      value: host,
+    })),
+  ];
+
+  return (
+    <SettingsContainer>
+      <h2 className="text-lg">
+        {tr("ui.profile")}
+      </h2>
+
+
+      {serverHosts.length > 0 && (
+        <div className="flex justify-center" style={{ paddingTop: 4, paddingBottom: 4 }}>
+          {/* The tab row does not wrap or scroll, so past a handful of servers
+              the names on the end run off the edge of the panel and cannot be
+              reached at all. A select holds any number of them in the width of
+              one control, so the tabs stay for the case they suit and hand over
+              once they stop fitting. */}
+          {serverHosts.length >= SERVERS_BEFORE_DROPDOWN ? (
+            <Select
+              value={selectedTab}
+              onValueChange={(v) => setSelectedTab(String(v))}
+              placeholder={tr("ui.whichServer")}
+              options={serverTabs}
+            />
+          ) : (
+            <Tabs value={selectedTab} onValueChange={(v) => setSelectedTab(String(v))}>
+              <Tabs.List aria-label={tr("ui.whichServer")}>
+                {serverTabs.map((tab) => (
+                  <Tabs.Tab key={tab.value} value={tab.value}>
+                    {tab.label}
+                  </Tabs.Tab>
+                ))}
+                <Tabs.Indicator />
+              </Tabs.List>
+            </Tabs>
+          )}
+        </div>
+      )}
+
+      {selectedTab === "all" ? (
+        <>
+          <ProfileEditor
+            key="default"
+            nickname={nickname}
+            avatarUrl={allServerAvatarUrl}
+            generatedAvatarUrl={resolveAvatarSrc(undefined, nickname)}
+            worn={storedWorn}
+            initial={initial}
+            uploading={uploading}
+            removing={removing}
+            onSaveNickname={(name) => handleSaveNickname(name, { kind: "default" })}
+            onPickAvatar={() => setChoosingFor(null)}
+            onRemoveAvatar={() => handleRemoveAvatar(serverHosts)}
+          />
+          {connectedHosts.length > 0 && (
+            <div className="flex justify-center" style={{ paddingTop: 4 }}>
+              <Button size="small" disabled={syncing || uploading || removing}
+                onClick={() => setShowAvatarSyncConfirm(true)}>
+                {tr("nicknameScope.applyAvatar")}
+              </Button>
+            </div>
+          )}
+          {serverHosts.length > 0 && (
+            <div className="flex flex-col items-center gap-1" style={{ paddingTop: 4 }}>
+              <Button size="small"
+                disabled={syncing || uploading || removing || connectedHosts.length !== serverHosts.length}
+                onClick={() => setShowNicknameSyncConfirm(true)}
+              >
+                <PiArrowsClockwiseFill size={16} style={syncing ? { animation: "spin 1s linear infinite" } : undefined} />
+                {syncing ? tr("ui.syncing") : tr("nicknameScope.applyAll")}
+              </Button>
+              {connectedHosts.length !== serverHosts.length && (
+                <span className="text-xs">{tr("nicknameScope.connectAll")}</span>
+              )}
+            </div>
+          )}
+        </>
+      ) : (
+        (() => {
+          const host = selectedTab;
+          const profile = serverProfiles[host];
+          const serverNickname = profile?.nickname || nickname;
+          // Signed again, since the profile keeps the link from when it was set.
+          const serverAvatarUrl = (profile?.avatarUrl && freshUploadsFileUrl(profile.avatarUrl)) || allServerAvatarUrl;
+          const serverInitial = serverNickname?.[0]?.toUpperCase() || "?";
+          const serverName = serverDetailsList?.[host]?.server_info?.name || servers[host]?.name || host;
+
+          /* `avatarUrl` is null on a server never given one of its own, where the
+             button would copy the account default onto itself. */
+          const canCopyOutward =
+            connectedHosts.length > 1 && Boolean(profile?.avatarUrl);
+
+          return (
+            <>
+              <ProfileEditor
+                key={host}
+                nickname={serverNickname}
+                avatarUrl={serverAvatarUrl}
+                generatedAvatarUrl={resolveAvatarSrc(undefined, serverNickname)}
+                worn={profile?.avatarWorn ?? storedWorn}
+                initial={serverInitial}
+                uploading={uploading}
+                removing={removing}
+                onSaveNickname={(name) => handleSaveNickname(name, { kind: "server", host })}
+                onPickAvatar={() => setChoosingFor(host)}
+                onRemoveAvatar={() => handleRemoveAvatar([host])}
+                serverLabel={serverName}
+                scopedToServer={serverName}
+              />
+              {canCopyOutward && (
+                <div className="flex flex-col items-center gap-1" style={{ paddingTop: 4 }}>
+                  <Button
+                    size="small"
+                    disabled={syncing || uploading || removing}
+                    onClick={() => void handleSyncFromServer(host)}
+                  >
+                    <PiArrowsClockwiseFill
+                      size={16}
+                      style={syncing ? { animation: "spin 1s linear infinite" } : undefined}
+                    />
+                    {syncing ? tr("ui.copying") : tr("ui.useThisAvatarEverywhere")}
+                  </Button>
+                  <span className="text-xs text-gryt-muted">
+                    {tr("ui.yourNameOnEachServerStaysAsIt")}
+                  </span>
+                </div>
+              )}
+            </>
+          );
+        })()
+      )}
+
+      <ActivityField />
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1">
+          <span className="text-base font-bold">{tr("ui.whatYouRePlaying")}</span>
+          <span className="text-xs text-gryt-muted">
+            {tr("ui.twoWaysToShowItGamesThatReport")}
+          </span>
+        </div>
+        <RichPresenceSettings />
+        <WatchedPrograms />
+      </div>
+
+
+      <ConfirmDialog
+        open={showAvatarSyncConfirm}
+        onOpenChange={setShowAvatarSyncConfirm}
+        title={tr("nicknameScope.applyAvatar")}
+        description={tr("nicknameScope.confirmAvatar", { count: connectedHosts.length })}
+        confirmLabel={tr("nicknameScope.applyAvatar")}
+        onConfirm={() => {
+          setShowAvatarSyncConfirm(false);
+          void handleSyncAvatarToAll();
+        }}
+      />
+
+      <ConfirmDialog
+        open={showNicknameSyncConfirm}
+        onOpenChange={setShowNicknameSyncConfirm}
+        title={tr("nicknameScope.applyAll")}
+        description={tr("nicknameScope.confirmAll", { nickname, count: serverHosts.length })}
+        confirmLabel={tr("nicknameScope.applyAll")}
+        onConfirm={() => void handleApplyNicknameToAll()}
+      />
+
+      {userId && (
+        <div className="flex items-center justify-center gap-1" style={{ marginTop: "auto", paddingTop: 16 }}>
+          <span className="text-xs" style={{ fontFamily: "var(--code-font-family)", userSelect: "all" }}>
+            {userId}
+          </span>
+          <Tooltip title={copied ? tr("ui.copied") : tr("ui.copyUserId")}>
+            <IconButton tone="ghost" size="xsmall"
+              style={{ flexShrink: 0 }}
+              onClick={() => {
+                navigator.clipboard.writeText(userId).then(() => {
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }, () => toast.error(tr("ui.failedToCopy")));
+              }}
+            >
+              {copied ? <PiCheck size={12} /> : <PiCopyFill size={12} />}
+            </IconButton>
+          </Tooltip>
+        </div>
+      )}
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept={serverHosts.some((h) => serverDetailsList?.[h]?.server_info?.video_profiles === true)
+          ? "image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,video/quicktime"
+          : "image/png,image/jpeg,image/webp,image/gif"}
+        style={{ display: "none" }}
+        onChange={handleFileChange}
+      />
+
+      <AvatarChoiceDialog
+        nickname={nickname}
+        onDesign={() => setDesigningFor(choosingFor)}
+        onOpenChange={(next) => {
+          if (!next) setChoosingFor(undefined);
+        }}
+        /* Said rather than hidden: an option that is gone reads as a broken build
+           where a refusal with a reason reads as a rule. */
+        onUpload={() => {
+          const target = choosingFor ?? null;
+          const hosts = target ? [target] : serverHosts;
+          if (hosts.length > 0 && !hosts.some(mayUploadPicture)) {
+            toast.error(
+              hosts.length === 1
+                ? tr("ui.thisServerDoesNotLetYouUploadA")
+                : tr("ui.noneOfYourServersLetYouUploadA"),
+            );
+            return;
+          }
+          triggerFilePick(target);
+        }}
+        open={choosingFor !== undefined}
+      />
+
+      <OwlDesignerDialog
+        initialWorn={sharedWorn}
+        nickname={nickname}
+        onOpenChange={(next) => {
+          if (!next) {
+            setDesigningFor(undefined);
+            setSharedWorn(undefined);
+          }
+        }}
+        onSave={(png, worn) => void handleUseOwl(png, worn, designingFor ?? null)}
+        open={designingFor !== undefined}
+        // A link that shows this owl, and previews as it when pasted somewhere (GRYT-1673).
+        shareLink={(worn) => `https://ui.gryt.chat/avatars?${new URLSearchParams({ name: nickname, worn })}`}
+        saving={uploading}
+      />
+    </SettingsContainer>
+  );
+}

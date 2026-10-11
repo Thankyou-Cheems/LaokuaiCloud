@@ -1,0 +1,540 @@
+import Keycloak from 'keycloak-js';
+
+import { getGrytConfig } from '../../../../config';
+import { isElectron } from '../../../../lib/electron';
+import { retryDelayMs, type SignInAttempt } from '../../../../lib/signInRetry';
+import { consumePreLoginUrl } from '../utils/preLoginUrl';
+import {
+  electronLogin,
+  electronLogout,
+  electronRegister,
+  electronRequiredAction,
+  getStoredTokens,
+  getValidElectronToken,
+  RefreshRejectedError,
+  refreshTokens,
+  storeTokens,
+} from './electron-auth';
+import { decodeJwt } from "./jwt";
+import { SessionExpiredError } from './session-expired';
+
+type KeycloakInitResult = {
+  keycloak: Keycloak;
+  authenticated: boolean;
+  /** Browser only: the silent check failed or timed out, rather than finding no session. */
+  unreachable?: boolean;
+};
+
+function deriveKeycloakBaseUrl(issuer: string): string {
+  const i = issuer.replace(/\/+$/, '');
+  const idx = i.indexOf('/realms/');
+  return idx === -1 ? i : i.slice(0, idx);
+}
+
+/* Set in a browser signed in by linking a device (GRYT-1484). It has no Keycloak cookie,
+   so it keeps its own tokens the way Electron does. */
+const LINKED_SESSION_KEY = 'gryt_linked_session';
+
+function keepsOwnTokens(): boolean {
+  if (isElectron()) return true;
+  try {
+    return localStorage.getItem(LINKED_SESSION_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+let keycloakInstance: Keycloak | null = null;
+let initPromise: Promise<KeycloakInitResult> | null = null;
+let handlersInstalled = false;
+let refreshTimerHandle: ReturnType<typeof setTimeout> | null = null;
+let cachedPromiseLogCount = 0;
+/* Bumped by resetKeycloakInit, so an init that outlived its reset can't touch the new one. */
+let initGeneration = 0;
+
+function clearRefreshTimer(): void {
+  if (refreshTimerHandle) {
+    clearTimeout(refreshTimerHandle);
+    refreshTimerHandle = null;
+  }
+}
+
+function parseJwtPayload(token: string): Record<string, unknown> {
+  return decodeJwt<Record<string, unknown>>(token) ?? {};
+}
+
+async function refreshElectronKeycloakToken(keycloak: Keycloak): Promise<void> {
+  const stored = await getStoredTokens();
+  if (!stored) throw new Error("No stored tokens for Electron refresh");
+  const newTokens = await refreshTokens(stored.refresh_token);
+  keycloak.token = newTokens.access_token;
+  keycloak.refreshToken = newTokens.refresh_token;
+  keycloak.idToken = newTokens.id_token;
+  keycloak.tokenParsed = parseJwtPayload(newTokens.access_token) as typeof keycloak.tokenParsed;
+  console.log("[Auth:KC] Electron token refresh succeeded — new exp:", keycloak.tokenParsed?.exp);
+}
+
+function scheduleProactiveRefresh(keycloak: Keycloak): void {
+  clearRefreshTimer();
+
+  const exp = keycloak.tokenParsed?.exp;
+  if (!exp) return;
+
+  const now = Math.floor(Date.now() / 1000);
+  const ttl = exp - now;
+
+  if (ttl <= 0) {
+    doProactiveRefresh(keycloak);
+    return;
+  }
+
+  const refreshIn = Math.max(10, Math.min(ttl * 0.75, ttl - 30));
+  console.log(`[Auth:KC] Scheduling proactive token refresh in ${Math.round(refreshIn)}s (token TTL: ${ttl}s)`);
+
+  refreshTimerHandle = setTimeout(() => doProactiveRefresh(keycloak), refreshIn * 1000);
+}
+
+let refreshFailures = 0;
+
+async function doProactiveRefresh(keycloak: Keycloak): Promise<void> {
+  console.log("[Auth:KC] Proactive token refresh triggered");
+  try {
+    if (keepsOwnTokens()) {
+      await refreshElectronKeycloakToken(keycloak);
+    } else {
+      await keycloak.updateToken(70);
+      console.log("[Auth:KC] Proactive refresh (browser) succeeded — new exp:", keycloak.tokenParsed?.exp);
+    }
+    refreshFailures = 0;
+    scheduleProactiveRefresh(keycloak);
+  } catch (e) {
+    console.error("[Auth:KC] Proactive refresh failed:", e);
+
+    /* A rejected grant is gone and already cleared. Anything else ends, so
+       back off and keep the session (GRYT-1104). */
+    if (e instanceof RefreshRejectedError) {
+      console.error("[Auth:KC] Refresh token rejected — this session is over");
+      refreshFailures = 0;
+      return;
+    }
+
+    refreshFailures += 1;
+    const wait = retryDelayMs(refreshFailures);
+    console.warn(
+      `[Auth:KC] Provider unreachable (attempt ${refreshFailures}) — retrying in ${Math.round(wait / 1000)}s`,
+    );
+    refreshTimerHandle = setTimeout(() => doProactiveRefresh(keycloak), wait);
+  }
+}
+
+export function getKeycloak(): Keycloak {
+  if (keycloakInstance) return keycloakInstance;
+
+  const cfg = getGrytConfig();
+  const url = deriveKeycloakBaseUrl(cfg.GRYT_OIDC_ISSUER);
+
+  keycloakInstance = new Keycloak({
+    url,
+    realm: cfg.GRYT_OIDC_REALM,
+    clientId: cfg.GRYT_OIDC_CLIENT_ID,
+  });
+
+  return keycloakInstance;
+}
+
+// ── Electron-specific init ───────────────────────────────────────────────
+
+function installKeycloakEventHandlers(keycloak: Keycloak, context: string): void {
+  if (handlersInstalled) return;
+  handlersInstalled = true;
+
+  keycloak.onTokenExpired = async () => {
+    console.warn("[Auth:KC] onTokenExpired fired — attempting refresh");
+    try {
+      if (keepsOwnTokens()) {
+        await refreshElectronKeycloakToken(keycloak);
+        scheduleProactiveRefresh(keycloak);
+      } else {
+        await keycloak.updateToken(30);
+        console.log("[Auth:KC] updateToken succeeded — authenticated:", keycloak.authenticated);
+        if (keycloak.token && keycloak.refreshToken && keycloak.idToken) {
+          await storeTokens({
+            access_token: keycloak.token,
+            refresh_token: keycloak.refreshToken,
+            id_token: keycloak.idToken,
+            expires_at: (keycloak.tokenParsed?.exp ?? 0) * 1000,
+          });
+        }
+      }
+    } catch (e) {
+      console.error("[Auth:KC] Token refresh FAILED — user needs to re-login", e);
+    }
+  };
+
+  keycloak.onAuthRefreshSuccess = () => {
+    console.log("[Auth:KC] onAuthRefreshSuccess — authenticated:", keycloak.authenticated);
+  };
+
+  keycloak.onAuthRefreshError = () => {
+    console.error("[Auth:KC] onAuthRefreshError — authenticated:", keycloak.authenticated,
+      "token present:", !!keycloak.token);
+  };
+
+  keycloak.onAuthLogout = () => {
+    console.error("[Auth:KC] onAuthLogout fired! This is likely causing the random sign-out.",
+      "context:", context);
+  };
+
+  keycloak.onAuthSuccess = () => {
+    console.log("[Auth:KC] onAuthSuccess");
+  };
+
+  keycloak.onAuthError = (errorData) => {
+    console.error("[Auth:KC] onAuthError:", errorData);
+  };
+
+  keycloak.onReady = (authenticated) => {
+    console.log("[Auth:KC] onReady — authenticated:", authenticated);
+  };
+
+  scheduleProactiveRefresh(keycloak);
+}
+
+async function initKeycloakForElectron(): Promise<KeycloakInitResult> {
+  console.log("[Auth:KC] initKeycloakForElectron starting…");
+  const generation = initGeneration;
+  const keycloak = getKeycloak();
+  const stored = await getStoredTokens();
+
+  if (stored) {
+    const ttl = stored.expires_at - Date.now();
+    console.log("[Auth:KC] Found stored tokens — TTL:", Math.round(ttl / 1000), "s");
+    try {
+      let tokens = stored;
+      if (ttl < 30_000) {
+        console.log("[Auth:KC] Tokens near expiry, attempting refresh…");
+        try {
+          tokens = await refreshTokens(stored.refresh_token);
+          console.log("[Auth:KC] Pre-init refresh succeeded");
+        } catch (e) {
+          console.warn("[Auth:KC] Pre-init refresh failed, using existing tokens:", e);
+        }
+      }
+
+      console.log("[Auth:KC] Calling keycloak.init() with tokens…");
+      await keycloak.init({
+        token: tokens.access_token,
+        refreshToken: tokens.refresh_token,
+        idToken: tokens.id_token,
+        pkceMethod: 'S256',
+        checkLoginIframe: false,
+      });
+      console.log("[Auth:KC] keycloak.init() done — authenticated:", keycloak.authenticated,
+        "tokenParsed.exp:", keycloak.tokenParsed?.exp,
+        "now:", Math.floor(Date.now() / 1000));
+
+      if (generation !== initGeneration) return { keycloak, authenticated: !!keycloak.authenticated };
+      installKeycloakEventHandlers(keycloak, 'electron');
+      return { keycloak, authenticated: !!keycloak.authenticated };
+    } catch (e) {
+      console.warn("[Auth:KC] Init with stored tokens failed, falling through to unauthenticated:", e);
+      if (generation !== initGeneration) throw e;
+      keycloakInstance = null;
+    }
+  } else {
+    console.log("[Auth:KC] No stored tokens — will init unauthenticated");
+  }
+
+  const freshKc = getKeycloak();
+  await freshKc.init({
+    pkceMethod: 'S256',
+    checkLoginIframe: false,
+  });
+  console.log("[Auth:KC] Unauthenticated init done");
+
+  installKeycloakEventHandlers(freshKc, 'electron-unauthed');
+  return { keycloak: freshKc, authenticated: false };
+}
+
+// ── Standard browser init ────────────────────────────────────────────────
+
+/** `silentOnly` keeps a browser that blocks third-party cookies from redirecting the page to check. */
+async function initKeycloakForBrowser(silentOnly = false): Promise<KeycloakInitResult> {
+  console.log("[Auth:KC] initKeycloakForBrowser starting…");
+  const keycloak = getKeycloak();
+
+  const SSO_TIMEOUT_MS = 8_000;
+  let unreachable = false;
+
+  const authenticated = await Promise.race([
+    keycloak.init({
+      onLoad: 'check-sso',
+      pkceMethod: 'S256',
+      checkLoginIframe: false,
+      silentCheckSsoRedirectUri: `${window.location.origin}/silent-check-sso.html`,
+      ...(silentOnly ? { silentCheckSsoFallback: false } : {}),
+    }),
+    new Promise<boolean>((_, reject) =>
+      setTimeout(() => reject(new Error('SSO check timed out')), SSO_TIMEOUT_MS),
+    ),
+  ]).catch((err) => {
+    console.warn('[Auth:KC] Silent SSO check failed, continuing as unauthenticated:', err);
+    unreachable = true;
+    return false;
+  });
+
+  console.log("[Auth:KC] Browser init result — authenticated:", authenticated,
+    "tokenParsed.exp:", keycloak.tokenParsed?.exp,
+    "now:", Math.floor(Date.now() / 1000));
+
+  installKeycloakEventHandlers(keycloak, 'browser');
+  return { keycloak, authenticated, unreachable };
+}
+
+// ── Public API ───────────────────────────────────────────────────────────
+
+export async function initKeycloak(): Promise<KeycloakInitResult> {
+  if (initPromise) {
+    if (cachedPromiseLogCount < 3) {
+      cachedPromiseLogCount++;
+      console.log("[Auth:KC] initKeycloak: returning cached promise");
+    }
+    return initPromise;
+  }
+
+  const env = isElectron() ? 'electron' : keepsOwnTokens() ? 'browser, linked' : 'browser';
+  console.log("[Auth:KC] initKeycloak: first call, env:", env);
+  initPromise = keepsOwnTokens() ? initKeycloakForElectron() : initKeycloakForBrowser();
+
+  return initPromise;
+}
+
+/**
+ * Reset the init promise so the next call to initKeycloak() re-initializes.
+ * Used after Electron login/logout to pick up new tokens.
+ */
+export function resetKeycloakInit(): void {
+  console.log("[Auth:KC] resetKeycloakInit — clearing instance and handlers");
+  clearRefreshTimer();
+  initGeneration += 1;
+  initPromise = null;
+  handlersInstalled = false;
+  keycloakInstance = null;
+  cachedPromiseLogCount = 0;
+}
+
+/**
+ * One quiet try at the session launch couldn't restore (GRYT-1178). Never opens a
+ * login page, and only a rejected grant clears the tokens.
+ */
+export async function retrySignIn(): Promise<SignInAttempt> {
+  if (keepsOwnTokens()) {
+    const stored = await getStoredTokens();
+    if (!stored) return "signed-out";
+    try {
+      await refreshTokens(stored.refresh_token);
+    } catch (e) {
+      console.warn("[Auth:KC] Sign-in retry: refresh failed:", e);
+      return e instanceof RefreshRejectedError ? "signed-out" : "unavailable";
+    }
+    resetKeycloakInit();
+    const { keycloak, authenticated } = await initKeycloak();
+    return authenticated && keycloak.token ? "signed-in" : "unavailable";
+  }
+
+  resetKeycloakInit();
+  initPromise = initKeycloakForBrowser(true);
+  const { keycloak, authenticated, unreachable } = await initPromise;
+  if (authenticated && keycloak.token) return "signed-in";
+  return unreachable ? "unavailable" : "signed-out";
+}
+
+export async function startLogin(redirectUri?: string): Promise<void> {
+  if (isElectron()) {
+    await electronLogin();
+    // After successful login, re-init keycloak with the new tokens
+    resetKeycloakInit();
+    await initKeycloak();
+    return;
+  }
+
+  const { keycloak } = await initKeycloak();
+  const target = redirectUri || consumePreLoginUrl() || window.location.href;
+  await keycloak.login({ redirectUri: target });
+}
+
+export async function startRegister(redirectUri?: string): Promise<void> {
+  if (isElectron()) {
+    await electronRegister();
+    resetKeycloakInit();
+    await initKeycloak();
+    return;
+  }
+
+  const { keycloak } = await initKeycloak();
+  const target = redirectUri || consumePreLoginUrl() || window.location.href;
+  await keycloak.login({
+    action: 'register',
+    redirectUri: target,
+  });
+}
+
+/**
+ * Hand somebody to Keycloak to do one thing to their own account, then bring them
+ * back. **A disabled action fails quietly** — check the realm's required actions.
+ */
+export async function startRequiredAction(
+  action: string,
+  redirectUri?: string,
+): Promise<void> {
+  if (isElectron()) {
+    await electronRequiredAction(action);
+    resetKeycloakInit();
+    await initKeycloak();
+    return;
+  }
+
+  const { keycloak } = await initKeycloak();
+  await keycloak.login({
+    action,
+    redirectUri: redirectUri || window.location.href,
+  });
+}
+
+export async function startPasskeySetup(redirectUri?: string): Promise<void> {
+  return startRequiredAction('webauthn-register-passwordless', redirectUri);
+}
+
+/** Change the password. Enabled on the realm as UPDATE_PASSWORD. */
+export async function startPasswordChange(redirectUri?: string): Promise<void> {
+  return startRequiredAction('UPDATE_PASSWORD', redirectUri);
+}
+
+/**
+ * Change the address on the account. The realm sets `registrationEmailAsUsername`,
+ * so this changes what somebody signs in with. Needs the `update-email` flag.
+ */
+export async function startEmailChange(redirectUri?: string): Promise<void> {
+  return startRequiredAction('UPDATE_EMAIL', redirectUri);
+}
+
+/** Set up one-time recovery codes. Needs the `recovery-codes` feature flag. */
+export async function startRecoveryCodesSetup(redirectUri?: string): Promise<void> {
+  return startRequiredAction('CONFIGURE_RECOVERY_AUTHN_CODES', redirectUri);
+}
+
+/** Set up an authenticator app. Enabled on the realm as CONFIGURE_TOTP. */
+export async function startTotpSetup(redirectUri?: string): Promise<void> {
+  return startRequiredAction('CONFIGURE_TOTP', redirectUri);
+}
+
+/**
+ * Delete the account, permanently. This deletes the gryt.chat account; it does not
+ * delete anything on servers other people run.
+ */
+export async function startAccountDeletion(redirectUri?: string): Promise<void> {
+  return startRequiredAction('delete_account', redirectUri);
+}
+
+export async function doLogout(): Promise<void> {
+  if (keepsOwnTokens()) {
+    await electronLogout();
+    try {
+      localStorage.removeItem(LINKED_SESSION_KEY);
+    } catch {
+      // Nothing to clear.
+    }
+    resetKeycloakInit();
+    return;
+  }
+
+  const { keycloak } = await initKeycloak();
+  await keycloak.logout({ redirectUri: window.location.origin });
+}
+
+/**
+ * Sign in with the tokens a device grant returned while linking (GRYT-1484). The caller
+ * has checked the ID token is for the account the other device named.
+ */
+export async function adoptLinkedSession(tokens: {
+  accessToken: string;
+  idToken: string;
+  refreshToken?: string;
+  expiresIn?: number;
+}): Promise<void> {
+  if (!tokens.refreshToken) throw new Error('The sign-in came back without a refresh token.');
+  await storeTokens({
+    access_token: tokens.accessToken,
+    refresh_token: tokens.refreshToken,
+    id_token: tokens.idToken,
+    expires_at: Date.now() + (tokens.expiresIn ?? 60) * 1000,
+  });
+  if (!isElectron()) localStorage.setItem(LINKED_SESSION_KEY, '1');
+
+  resetKeycloakInit();
+  const { authenticated } = await initKeycloak();
+  if (!authenticated) throw new Error("Signing in with the linked session didn't work.");
+}
+
+/**
+ * An access token refreshed just now, for approving a linked device's sign-in (GRYT-1484).
+ * The Keycloak extension refuses one older than 60 seconds.
+ */
+export async function freshAccessToken(): Promise<string> {
+  // A browser signed in by linking keeps its own tokens too, so the refresh gets stored.
+  if (keepsOwnTokens()) {
+    const stored = await getStoredTokens();
+    if (!stored) throw new SessionExpiredError();
+    return (await refreshTokens(stored.refresh_token)).access_token;
+  }
+  const { keycloak, authenticated } = await initKeycloak();
+  if (!authenticated) throw new SessionExpiredError();
+  try {
+    await keycloak.updateToken(-1);
+  } catch {
+    throw new SessionExpiredError();
+  }
+  if (!keycloak.token) throw new SessionExpiredError();
+  return keycloak.token;
+}
+
+export async function fetchRegistrationAllowed(): Promise<boolean> {
+  const cfg = getGrytConfig();
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 6_000);
+    const res = await fetch(cfg.GRYT_OIDC_ISSUER, {
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timer));
+    if (!res.ok) return false;
+    const data = await res.json();
+    return !!data.registrationAllowed;
+  } catch {
+    return false;
+  }
+}
+
+export async function getValidIdentityToken(minValiditySeconds: number = 30): Promise<string | undefined> {
+  if (keepsOwnTokens()) {
+    return getValidElectronToken();
+  }
+
+  const { keycloak, authenticated } = await initKeycloak();
+  if (!authenticated) {
+    console.log("[Auth:KC] getValidIdentityToken: not authenticated");
+    return undefined;
+  }
+  try {
+    // This is the refresh. updateToken resolves false when the token is fresh
+    // enough and only rejects when it could not get a new one.
+    await keycloak.updateToken(minValiditySeconds);
+  } catch (e) {
+    // Returning keycloak.token here handed the caller the expired token it had
+    // just failed to renew, and every request with it came back 401 (GRYT-10).
+    console.warn("[Auth:KC] getValidIdentityToken: updateToken failed — session expired", e);
+    throw new SessionExpiredError();
+  }
+  const hasToken = !!keycloak.token;
+  if (!hasToken) console.warn("[Auth:KC] getValidIdentityToken: no token after updateToken");
+  return keycloak.token || undefined;
+}

@@ -1,0 +1,55 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import { stripTypeScriptTypes } from "node:module";
+
+const source = fs.readFileSync(new URL("../src/lib/receivePriorCache.ts", import.meta.url), "utf8");
+const { ReceivePriorCache, decodeReceivePrior } = await import(`data:text/javascript;base64,${Buffer.from(stripTypeScriptTypes(source, { mode: "transform" })).toString("base64")}`);
+let time = 2_000_000_000_000;
+const storage = () => ({ raw: null, getItem() { return this.raw; }, setItem(_key, raw) { this.raw = raw; } });
+const scope = { accountId: "account-a", serverInstanceId: "instance-a", remoteUserId: "person-a" };
+const prior = () => ({ schemaVersion: 1, processorSchema: "gryt-receive-level-v2", learnedGainDb: 8, speechLevelDbfs: -32, effectiveSpeechSeconds: 8, lastVerifiedUnixMs: time });
+let checks = 0;
+const backing = storage(); const cache = new ReceivePriorCache(backing, () => time);
+cache.setAccount(scope.accountId);
+assert.equal(cache.save(scope, prior(), cache.begin(scope)), true); checks++;
+assert.equal(cache.get({ ...scope }).learnedGainDb, 8); checks++;
+assert.equal(cache.get({ ...scope, serverInstanceId: "instance-b" }), undefined); checks++;
+cache.setAccount("account-b");
+assert.equal(cache.get(scope), undefined); checks++;
+cache.setAccount(scope.accountId);
+const stale = cache.begin(scope); cache.clear(scope);
+assert.equal(cache.save(scope, prior(), stale), false, "late export cannot resurrect single clear"); checks++;
+const staleAll = cache.begin(scope); cache.clearAccount();
+assert.equal(cache.save(scope, prior(), staleAll), false, "late export cannot resurrect all clear"); checks++;
+const staleAccount = cache.begin(scope); cache.setAccount("account-b"); cache.setAccount(scope.accountId);
+assert.equal(cache.save(scope, prior(), staleAccount), false, "switch away and back still invalidates old async work"); checks++;
+assert.equal(cache.save(scope, prior(), cache.begin(scope)), true);
+const saved = new ReceivePriorCache(backing, () => time); saved.setAccount(scope.accountId);
+assert.equal(saved.get(scope).speechLevelDbfs, -32); checks++;
+const lastVerified = saved.get(scope).lastVerifiedUnixMs;
+time += 29 * 86400000;
+assert.equal(saved.get(scope).lastVerifiedUnixMs, lastVerified, "lookups and silence never renew TTL"); checks++;
+time += 86400000;
+assert.equal(saved.get(scope), undefined, "expires at 30 days"); checks++;
+for (const value of [NaN, Infinity, -Infinity]) {
+  assert.equal(decodeReceivePrior({ ...prior(), learnedGainDb: value }, time), undefined); checks++;
+}
+assert.equal(decodeReceivePrior({ ...prior(), processorSchema: "other" }, time), undefined); checks++;
+assert.equal(decodeReceivePrior({ ...prior(), lastVerifiedUnixMs: time + 1 }, time), undefined); checks++;
+assert.equal(decodeReceivePrior({...prior(),learnedGainDb:-13},time),undefined);checks++;
+assert.equal(decodeReceivePrior({...prior(),speechLevelDbfs:24},time)?.speechLevelDbfs,24);checks++;
+const broken = storage(); broken.raw = "{broken JSON";
+const recovering = new ReceivePriorCache(broken, () => time); recovering.setAccount(scope.accountId);
+assert.equal(recovering.get(scope), undefined);
+assert.equal(recovering.save(scope, prior(), recovering.begin(scope)), true, "corrupt statistics cold-start then fresh verified learning can repair storage"); checks++;
+const failed = new ReceivePriorCache({ getItem() { throw new Error("denied"); }, setItem() { throw new Error("denied"); } }, () => time);
+failed.setAccount(scope.accountId); assert.equal(failed.get(scope), undefined); assert.equal(failed.available, false); checks++;
+const lru = new ReceivePriorCache(storage(), () => time); lru.setAccount(scope.accountId);
+for (let n = 0; n < 500; n++) { const user = { ...scope, remoteUserId: `person-${n}` }; lru.save(user, prior(), lru.begin(user)); time++; }
+const kept = { ...scope, remoteUserId: "person-0" }; lru.get(kept); time++;
+const extra = { ...scope, remoteUserId: "person-500" }; lru.save(extra, prior(), lru.begin(extra));
+assert.equal(lru.count(), 500); assert.ok(lru.get(kept)); assert.equal(lru.get({ ...scope, remoteUserId: "person-1" }), undefined); checks++;
+const serialized = JSON.parse(backing.raw);
+assert.deepEqual(Object.keys(serialized.rows[0].scope).sort(), ["accountId", "remoteUserId", "serverInstanceId"]);
+assert.equal(serialized.rows[0].prior.processorSchema, "gryt-receive-level-v2"); checks++;
+console.log(`${checks} local prior-cache checks passed; synthetic statistics only, no real storage/profile or DSP`);

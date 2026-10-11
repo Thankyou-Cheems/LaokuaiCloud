@@ -1,0 +1,13 @@
+# 唠蒯 private integration work order
+
+Baseline client e69ecd7b24f453d7b6db9293b7ef0ddb466c2f09, separate branch/tree. Apply cloud full English/Simplified Chinese UI, native dialogs, dynamic messages and nickname scope corrections semantically; preserve existing private Squad behavior, explicit administrator profile route, Cheems icons, tray close, media opt-in and private defaults. Use frozen Voice 0.6.2-laokuai.squad.1 with SHA256 93cbb84281c8c60e63a442c75fbe84f69bfb288e186d5fba47d1ed8cdcf19387. No DSP parameter or algorithm edits, no stage1 candidate, no production server operations or public pushes.
+
+Rename product display to 唠蒯, including renderer/window/tray/native notifications/new executable and shortcut display. Keep appId, persistent data/storage keys, dependency names, protocol and service addresses. Explicit administrator shortcut argument must remain identical; do not copy or export credentials. Do not launch/debug actual profile for validation.
+
+Both audio locations share persisted micVolume/outputVolume and guarded mute/deafen actions, with pointer/keyboard reachable popup and narrow layout. Only show real boolean leveling control plus actual runtime status/reason/latency; enabled is not active. Degraded fallback can attenuate sound; expose diagnostics. Roles aggregate by physical receiveCleanup before one setter, screen takes precedence, aliases/rebuild/removal covered. No fake DSP parameter sliders.
+
+Nickname default D is independent of servers A/B. Saving only the chosen server waits existing value confirmation, never sends avatar; all-server sync is explicit/confirmed and reports partial/inconclusive failure. Failed drafts stay visible, blur does not save, scope switch/cancel/Esc discard draft, IME Enter never sends. No translation of user text or protocol discriminators/error codes.
+
+Show legible microphone/PTT/Squad text/icons; suppress icon only after actual zero-PCM ACK semantic state. Receiver correction ring is read-only: real engine has no learned/applied telemetry, hence both null/unknown. Known fixtures prove two values remain independent, including applied zero with learned unchanged. See RECEIVE-CORRECTION.md for future identity/generation/sequence/5Hz contract, not implemented protocol.
+
+Deliver exact corresponding client/UI/Voice source, patches, lock/vendor packages/licenses/build materials and hashes, test evidence and an unsigned slim portable EXE. Run full typecheck/lint, relevant tests, locale/fallback/storage/language/dynamic UI/IME and hidden native/synthetic profile tests. Tests/build stay background, low priority, sequential/one worker. Package success is not real-call, real-device, game-load or acoustic acceptance.

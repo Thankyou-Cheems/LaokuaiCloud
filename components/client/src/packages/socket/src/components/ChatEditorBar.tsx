@@ -1,0 +1,123 @@
+import { Button } from "@gryt/ui";
+import type { RefObject } from "react";
+
+import { useTranslation } from "@/i18n";
+
+import { PiX } from "../../../../lib/icons";
+import { ChatEditor, type ChatEditorHandle } from "./ChatEditor";
+import type { ChatMessage } from "./chatUtils";
+import { getReplyPreview } from "./chatViewHelpers";
+import type { MentionMember } from "./MentionAutocomplete";
+
+interface ChatEditorBarProps {
+  replyingTo: ChatMessage | null;
+  editingMessage: ChatMessage | null;
+  editorRef: RefObject<ChatEditorHandle | null>;
+  placeholder: string;
+  disabled: boolean;
+  allowFiles?: boolean;
+  maxFileSize?: number | null;
+  memberList: MentionMember[];
+  channelList?: MentionMember[];
+  getSenderName: (msg: ChatMessage) => string;
+  onCancelReply: () => void;
+  onCancelEditing: () => void;
+  onSend: (markdown: string, files: File[]) => void;
+  onArrowUpEmpty: () => void;
+  onTyping?: () => void;
+  onStopTyping?: () => void;
+  serverHost?: string;
+}
+
+export function ChatEditorBar({
+  replyingTo,
+  editingMessage,
+  editorRef,
+  placeholder,
+  disabled,
+  allowFiles,
+  maxFileSize,
+  memberList,
+  channelList,
+  getSenderName,
+  onCancelReply,
+  onCancelEditing,
+  onSend,
+  onArrowUpEmpty,
+  onTyping,
+  onStopTyping,
+  serverHost,
+}: ChatEditorBarProps) {
+  const { t: tr } = useTranslation();
+  return (
+    <>
+      {replyingTo && (
+        <div className="flex items-center gap-2" style={{
+            padding: "6px 12px",
+            marginBottom: "4px",
+            borderLeft: "3px solid var(--gryt-accent-9)",
+            background: "var(--gryt-neutral-4)",
+            borderRadius: "0 var(--gryt-radius-md) var(--gryt-radius-md) 0",
+            fontSize: "13px",
+          }}>
+          <div className="flex items-center gap-1" style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+            <span className="text-sm text-gryt-muted">{tr("ui.replyingTo")}</span>
+            <span className="text-sm font-bold">{getSenderName(replyingTo)}</span>
+            <span className="text-xs text-gryt-muted" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {getReplyPreview(replyingTo, 80)}
+            </span>
+          </div>
+          <Button tone="ghost" size="xsmall"
+            onClick={onCancelReply}
+            aria-label={tr("ui.cancelReply")}
+            style={{ padding: "2px 6px", minWidth: "auto", cursor: "pointer" }}
+          >
+            <PiX size={14} />
+          </Button>
+        </div>
+      )}
+
+      {editingMessage && (
+        <div className="flex items-center gap-2" style={{
+            padding: "6px 12px",
+            marginBottom: "4px",
+            borderLeft: "3px solid var(--gryt-warning-9)",
+            background: "var(--gryt-neutral-4)",
+            borderRadius: "0 var(--gryt-radius-md) var(--gryt-radius-md) 0",
+            fontSize: "13px",
+          }}>
+          <div className="flex items-center gap-1" style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+            <span className="text-sm text-gryt-muted">{tr("ui.editingMessage")}</span>
+            <span className="text-xs text-gryt-muted" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginLeft: 4 }}>
+              {tr("ui.pressEscapeToCancel")}
+            </span>
+          </div>
+          <Button tone="ghost" size="xsmall"
+            onClick={onCancelEditing}
+            aria-label={tr("ui.cancelEditing")}
+            style={{ padding: "2px 6px", minWidth: "auto", cursor: "pointer" }}
+          >
+            <PiX size={14} />
+          </Button>
+        </div>
+      )}
+
+      <ChatEditor
+        ref={editorRef}
+        placeholder={placeholder}
+        disabled={disabled}
+        allowFiles={allowFiles}
+        maxFileSize={maxFileSize}
+        onSend={onSend}
+        onArrowUpEmpty={onArrowUpEmpty}
+        onCancel={editingMessage ? onCancelEditing : undefined}
+        onTyping={onTyping}
+        onStopTyping={onStopTyping}
+        isEditing={!!editingMessage}
+        memberList={memberList}
+        channelList={channelList}
+        serverHost={serverHost}
+      />
+    </>
+  );
+}

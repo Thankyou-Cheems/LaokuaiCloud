@@ -1,0 +1,31 @@
+import { defineConfig, devices } from "@playwright/test";
+
+const CI = !!process.env.CI;
+
+export default defineConfig({
+  testDir: "./tests",
+  outputDir: "./test-results",
+  globalSetup: "./global-setup.ts",
+  forbidOnly: CI,
+  retries: CI ? 1 : 0,
+  // Each worker starts its own server. CI runners on this public repo have four cores, so four workers.
+  workers: process.env.GRYT_E2E_SERVER ? 1 : CI ? 4 : 3,
+  timeout: 60_000,
+  expect: { timeout: 15_000 },
+  // CI shards the suite across several runners (see ci.yml); each writes its own blob file,
+  // which the e2e gate job downloads from every shard and merges into one HTML report.
+  reporter: CI
+    ? [["list"], ["github"], ["blob", { outputFile: `blob-report/report-${process.env.GRYT_E2E_SHARD ?? "0"}.zip` }]]
+    : [["list"], ["html", { outputFolder: "playwright-report", open: "never" }]],
+  use: {
+    ...devices["Desktop Chrome"],
+    // A public-looking address for the test servers, for the links that refuse loopback and LAN ones.
+    launchOptions: { args: ["--host-resolver-rules=MAP e2e.gryt.chat 127.0.0.1"] },
+    baseURL: process.env.GRYT_E2E_APP_URL,
+    viewport: { width: 1280, height: 800 },
+    trace: "retain-on-failure",
+    screenshot: "only-on-failure",
+    video: "retain-on-failure",
+  },
+  projects: [{ name: "chromium" }],
+});

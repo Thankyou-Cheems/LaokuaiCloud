@@ -1,0 +1,112 @@
+import { i18n as socketI18n } from "@/i18n";
+import { toPlainNotificationText } from "@/lib/desktopNotification";
+import type { ChannelName } from "@/lib/mentionTokens";
+
+import { nameTagsFor } from "../../../lib/nameTags.ts";
+import type { ChatMessage } from "./chatUtils";
+import { toDate } from "./chatUtils";
+import type { MemberInfo } from "./MemberSidebar";
+import type { MessageMeta } from "./MessageRow";
+
+export const GROUP_GAP_MS = 5 * 60 * 1000;
+export const SYSTEM_SENDER_ID = "system";
+export const WEBHOOK_PREFIX = "webhook:";
+
+export function getAttachmentPreview(msg: ChatMessage): string {
+  const enriched = msg.enriched_attachments;
+  if (enriched && enriched.length > 0) {
+    const names = enriched.map((a) => a.original_name).filter(Boolean) as string[];
+    if (names.length > 0) return names.join(", ");
+  }
+  return socketI18n.t("socketFull.chatViewHelpers_6f6cfef69c");
+}
+
+/** One line of what a reply answers, as words: mentions read as @name, and markdown is gone. */
+export function getReplyPreview(msg: ChatMessage | null | undefined, maxLen: number, channelName?: ChannelName): string {
+  if (!msg) return socketI18n.t("socketFull.chatViewHelpers_13384da832");
+  const text = msg.text ? toPlainNotificationText(msg.text, channelName) : "";
+  if (text) return text.length > maxLen ? text.slice(0, maxLen) + "..." : text;
+  return getAttachmentPreview(msg);
+}
+
+export function buildMessageMetadata(
+  chatMessages: ChatMessage[],
+  newMessageMarkerId: string | null,
+  currentUserId: string | undefined,
+  getSenderName: (msg: ChatMessage) => string,
+  getSenderAvatarUrl: (msg: ChatMessage) => string | undefined,
+  memberList?: Record<string, MemberInfo>,
+  /**
+   * Role id to the colour its members' names are drawn in. Passed in because the
+   * member sidebar draws from the same map and the two must not drift.
+   */
+  roleColors?: Map<string, string | undefined>,
+  language?: string,
+): MessageMeta[] {
+  /* Members whose name somebody else here also uses, with the tag that tells them apart. */
+  const tags = nameTagsFor(memberList);
+
+  let lastDay: string | null = null;
+  return chatMessages.map((m, i): MessageMeta => {
+    const prev = i > 0 ? chatMessages[i - 1] : null;
+    const d = toDate(m.created_at);
+    const dayKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    const needsDayBreak = dayKey !== lastDay;
+    lastDay = dayKey;
+
+    const isSystem = m.sender_server_id === SYSTEM_SENDER_ID;
+    const isWebhook = m.sender_server_id.startsWith(WEBHOOK_PREFIX);
+
+    const timeSincePrev = prev ? d.getTime() - toDate(prev.created_at).getTime() : Infinity;
+    // A webhook can post under a different name or picture each time, and each one gets its own header.
+    const webhookIdentityChanged = isWebhook && !!prev &&
+      (prev.sender_nickname !== m.sender_nickname || prev.sender_avatar_file_id !== m.sender_avatar_file_id);
+    const isFirstInGroup = isSystem || webhookIdentityChanged ||
+      !prev || prev.sender_server_id !== m.sender_server_id || timeSincePrev > GROUP_GAP_MS || needsDayBreak;
+
+    const showNewMessageDivider = !!(newMessageMarkerId && prev && prev.message_id === newMessageMarkerId);
+
+    const isSelf = !isSystem && !isWebhook && !!currentUserId && m.sender_server_id === currentUserId;
+
+    // Your own messages resolve their author exactly like everyone else's. Local
+    // settings meant you read "Sivert" while everybody else had "Unknown" (GRYT-58).
+
+    /* Which arrow the event row draws, read off the text rather than a field:
+       the server sends these as ordinary message rows. */
+    const systemEvent: "joined" | "left" | undefined = isSystem
+      ? (/\bleft the server\b/.test(m.text ?? "") ? "left" : "joined")
+      : undefined;
+
+    const senderName = isSystem ? socketI18n.t("settingsFull.mbc0792d8dc", { lng: language }) : getSenderName(m);
+    const avatarUrl = isSystem ? undefined : getSenderAvatarUrl(m);
+    const isFirstEdited = isFirstInGroup && !!m.edited_at;
+
+    const sender =
+      isSystem || isWebhook ? undefined : memberList?.[m.sender_server_id];
+
+    return {
+      isFirstInGroup,
+      dayBreak: needsDayBreak ? d : null,
+      showNewMessageDivider,
+      senderName,
+      avatarUrl,
+      isSelf,
+      isFirstEdited,
+      isSystem,
+      systemEvent,
+      isWebhook,
+      isBot: !isSystem && !isWebhook && m.sender_is_bot === true,
+      sender,
+      /* Undefined for a role with no colour set, and for System and webhooks,
+         which hold no role. The row falls back to what it drew before. */
+      roleColor: sender?.role ? roleColors?.get(sender.role) : undefined,
+      nameTag: sender ? tags.get(sender.serverUserId) : undefined,
+    };
+  });
+}
+
+export function buildMessageMap(chatMessages: ChatMessage[]): Map<string, ChatMessage> {
+  const map = new Map<string, ChatMessage>();
+  for (const m of chatMessages) map.set(m.message_id, m);
+  return map;
+}

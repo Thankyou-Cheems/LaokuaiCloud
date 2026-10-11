@@ -1,0 +1,186 @@
+import type { RefObject } from "react";
+import { useCallback, useState } from "react";
+import toast from "react-hot-toast";
+
+import { getServerAccessToken } from "@/common";
+import { i18n as socketHooksI18n } from "@/i18n";
+
+import type { ChatEditorHandle } from "../components/ChatEditor";
+import type { ChatMessage } from "../components/chatUtils";
+import { mlsReportCopy } from "../mls/timeline";
+import { recordReaction } from "../utils/recentReactions";
+import { socketHookToast } from "../utils/socketHookMessages";
+import { useServerPermissions } from "./usePermissions";
+
+interface UseChatActionsParams {
+  chatMessages: ChatMessage[];
+  socketConnection?: unknown;
+  currentUserId?: string;
+  serverHost?: string;
+  canDeleteAny?: boolean;
+  canSend: boolean;
+  isRateLimited?: boolean;
+  sendChat: (text: string, files: File[], replyToMessageId?: string) => void;
+  editMessage?: (messageId: string, conversationId: string, newText: string) => void;
+  /** An MLS message is deleted over MLS: the server has no copy to delete. */
+  deleteMls?: (messageId: string) => void;
+  /** Reactions on an MLS message go over MLS too. */
+  reactMls?: (messageId: string, emoji: string) => void;
+  editorRef: RefObject<ChatEditorHandle | null>;
+  forceScrollToBottomRef: { current: boolean };
+}
+
+export function useChatActions({
+  chatMessages,
+  socketConnection,
+  currentUserId,
+  serverHost,
+  canDeleteAny,
+  canSend,
+  isRateLimited,
+  sendChat,
+  editMessage,
+  deleteMls,
+  reactMls,
+  editorRef,
+  forceScrollToBottomRef,
+}: UseChatActionsParams) {
+  const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
+  const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(null);
+  const [pendingDeleteMessage, setPendingDeleteMessage] = useState<ChatMessage | null>(null);
+
+  const { canIn } = useServerPermissions(serverHost || "");
+
+  const handleReaction = useCallback((reactionSrc: string, message: ChatMessage) => {
+    if (!socketConnection || !currentUserId) return;
+    const accessToken = getServerAccessToken(serverHost || "");
+    if (!accessToken) return;
+    // Refused here as well as by the server. The picker is left in place: it is
+    // reached from three menus, and one that says why beats three that vanish.
+    if (!canIn(message.conversation_id, "add_reactions")) {
+      toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useChatActions_1fe147b299")));
+      return;
+    }
+    recordReaction(reactionSrc, serverHost);
+    if (message.mls) {
+      reactMls?.(message.message_id, reactionSrc);
+      return;
+    }
+    (socketConnection as { emit: (event: string, data: unknown) => void }).emit("chat:react", {
+      conversationId: message.conversation_id,
+      messageId: message.message_id,
+      reactionSrc,
+      accessToken,
+    });
+  }, [socketConnection, currentUserId, serverHost, canIn, reactMls]);
+
+  const handleReply = useCallback((message: ChatMessage) => {
+    setReplyingTo(message);
+    requestAnimationFrame(() => { editorRef.current?.focus(); });
+  }, [editorRef]);
+
+  const handleReport = useCallback((message: ChatMessage) => {
+    if (!socketConnection || !currentUserId) return;
+    const accessToken = getServerAccessToken(serverHost || "");
+    if (!accessToken) return;
+    (socketConnection as { emit: (event: string, data: unknown) => void }).emit("chat:report", {
+      conversationId: message.conversation_id,
+      messageId: message.message_id,
+      accessToken,
+      // The server has no copy, so this device sends its own, and it's shown as unverified.
+      ...(message.mls ? { mls: mlsReportCopy(message) } : {}),
+    });
+  }, [socketConnection, currentUserId, serverHost]);
+
+  const requestDelete = useCallback((message: ChatMessage) => {
+    if (!socketConnection || !currentUserId) return;
+    if (message.sender_server_id !== currentUserId && !canDeleteAny) return;
+    setPendingDeleteMessage(message);
+  }, [socketConnection, currentUserId, canDeleteAny]);
+
+  const confirmDelete = useCallback(() => {
+    if (!pendingDeleteMessage || !socketConnection) return;
+    if (pendingDeleteMessage.mls) {
+      deleteMls?.(pendingDeleteMessage.message_id);
+      setPendingDeleteMessage(null);
+      return;
+    }
+    const accessToken = getServerAccessToken(serverHost || "");
+    if (!accessToken) return;
+    (socketConnection as { emit: (event: string, data: unknown) => void }).emit("chat:delete", {
+      conversationId: pendingDeleteMessage.conversation_id,
+      messageId: pendingDeleteMessage.message_id,
+      accessToken,
+    });
+    setPendingDeleteMessage(null);
+  }, [pendingDeleteMessage, socketConnection, serverHost, deleteMls]);
+
+  const startEditing = useCallback((message: ChatMessage) => {
+    if (!message.text) return;
+    setEditingMessage(message);
+    setReplyingTo(null);
+    requestAnimationFrame(() => { editorRef.current?.setContent(message.text!); });
+  }, [editorRef]);
+
+  const cancelEditing = useCallback(() => {
+    setEditingMessage(null);
+    editorRef.current?.clear();
+  }, [editorRef]);
+
+  const handleArrowUpEmpty = useCallback(() => {
+    if (!currentUserId) return;
+    for (let i = chatMessages.length - 1; i >= 0; i--) {
+      const msg = chatMessages[i];
+      if (msg.sender_server_id === currentUserId && msg.text && !msg.pending && !msg.failed) {
+        startEditing(msg);
+        return;
+      }
+    }
+  }, [chatMessages, currentUserId, startEditing]);
+
+  const handleEditorSend = useCallback((markdown: string, files: File[]) => {
+    if (editingMessage) {
+      const trimmed = markdown.trim();
+      if (trimmed && trimmed !== editingMessage.text?.trim() && editMessage) {
+        editMessage(editingMessage.message_id, editingMessage.conversation_id, trimmed);
+      }
+      setEditingMessage(null);
+      editorRef.current?.clear();
+      return;
+    }
+    if (!canSend && !isRateLimited) return;
+    forceScrollToBottomRef.current = true;
+    sendChat(markdown, files, replyingTo?.message_id);
+    setReplyingTo(null);
+  }, [canSend, isRateLimited, sendChat, replyingTo, editingMessage, editMessage, editorRef, forceScrollToBottomRef]);
+
+  const scrollToMessage = useCallback((messageId: string) => {
+    const el = document.querySelector<HTMLElement>(`[data-message-id="${messageId}"]`);
+    if (!el) return;
+    el.scrollIntoView({ block: "center", behavior: "smooth" });
+    setTimeout(() => {
+      el.style.background = "var(--gryt-accent-4)";
+      setTimeout(() => { el.style.background = "transparent"; }, 1500);
+    }, 300);
+  }, []);
+
+  const cancelReply = useCallback(() => setReplyingTo(null), []);
+
+  return {
+    replyingTo,
+    editingMessage,
+    pendingDeleteMessage,
+    setPendingDeleteMessage,
+    cancelReply,
+    handleReaction,
+    handleReply,
+    handleReport,
+    requestDelete,
+    confirmDelete,
+    startEditing,
+    cancelEditing,
+    handleArrowUpEmpty,
+    handleEditorSend,
+    scrollToMessage,
+  };
+}

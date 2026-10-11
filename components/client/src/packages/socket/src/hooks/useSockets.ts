@@ -1,0 +1,829 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import toast from "react-hot-toast";
+import { io, Socket } from "socket.io-client";
+
+import { deliverPluginMessage, setPluginApiMessageSender } from "@/addons";
+import messageSoundMp3 from "@/audio/src/assets/universfield-computer-mouse-click-02-383961.mp3";
+import type { MemberKeyState } from "@/common";
+import { singletonHook } from "@/common";
+import { effectiveContactPrefs, ensureSchemeKnown, getOwnServerUserId, getServerAccessToken, getServerRefreshToken, getServerWsBase, removeServerAccessToken, removeServerRefreshToken, useUnreadBadge, useUserId } from "@/common";
+import { initKeycloak } from "@/common/src/auth/keycloak";
+import { i18n as socketHooksI18n, useTranslation as useSocketHooksTranslation } from "@/i18n";
+import { useSettings } from "@/settings";
+import { useServerSettings } from "@/settings/src/hooks/useServerSettings";
+import { railEntriesJustStarted } from "@/settings/src/hostedServerRail";
+import {
+  Server,
+  serverDetailsList,
+  Servers,
+} from "@/settings/src/types/server";
+
+import { type EmbeddedServerState, getElectronAPI } from "../../../../lib/electron";
+import { showReconnectGaveUpToast, showReconnectingToast } from "../components/connectionToasts";
+import { MemberInfo } from "../components/MemberSidebar";
+import { Clients, ServerProfile } from "../types/clients";
+import { installContactGuard } from "../utils/contactFilter";
+import { browserAwayDeps, watchAway } from "../utils/desktopAway";
+import { watchFriendTraffic } from "../utils/friendList";
+import { RECONNECT_GRACE_MS, watchReconnects } from "../utils/reconnectGrace";
+import { replayReconnect, retryNow } from "../utils/retryNow";
+import { guardSocket, serverProofErrorMessage, serverProofHelpUrl } from "../utils/serverAuth";
+import { socketHookToast } from "../utils/socketHookMessages";
+import { syncAvatarToHost } from "../utils/syncAvatarToHost";
+import { getTokenExpiryTime } from "../utils/tokenManager";
+import { refreshDelayMs, RETRY_DELAY_MS } from "../utils/tokenRefreshSchedule";
+import { knowledgeFor, persistKnowledge, recordFiltered } from "./contactFilterStore";
+import { friendBookFor, friendGateFor, persistFriendBook } from "./friendsStore";
+import { useSocketEvents } from "./useSocketEvents";
+
+/* About two minutes of trying before a server is left alone. Getting back to it
+   is the network returning, the window coming forward, or the Reconnect button. */
+const RECONNECT_ATTEMPTS = 15;
+const RECONNECT_DELAY_MAX_MS = 10_000;
+
+type Sockets = { [host: string]: Socket };
+
+function useSocketsHook() {
+  const userId = useUserId();
+  useSocketHooksTranslation();
+  const [sockets, setSockets] = useState<Sockets>({});
+  const [tokenRevision, setTokenRevision] = useState(0);
+  const [identityReady, setIdentityReady] = useState(false);
+  const lastInviteJoinAttemptRef = useRef<Record<string, string | undefined>>({});
+  const serversRef = useRef<Servers>({});
+  
+  const { 
+    nickname,
+    isMuted,
+    isDeafened,
+    isAFK,
+    /* `activity` is the typed line the settings field edits; this is the one
+       servers are told. */
+    effectiveActivity: activity,
+    /* Beside the line while a game's card is what the line comes from. */
+    gameCard,
+    messageSoundEnabled,
+    messageSoundVolume,
+    customMessageSoundFile,
+    notificationBadgeEnabled,
+    desktopNotificationsEnabled,
+    setIsServerMuted,
+    setIsServerDeafened,
+  } = useSettings();
+  
+  const { 
+    servers, 
+    setServers,
+    currentlyViewingServer,
+    setCurrentlyViewingServer,
+  } = useServerSettings();
+  const [newServerInfo, setNewServerInfo] = useState<Server[]>([]);
+  const [serverDetailsList, setServerDetailsList] = useState<serverDetailsList>(
+    {}
+  );
+  const [failedServerDetails, setFailedServerDetails] = useState<Record<string, { error: string; message: string; timestamp: number }>>({});
+  const [clients, setClients] = useState<{ [host: string]: Clients }>({});
+  const [memberLists, setMemberLists] = useState<{ [host: string]: MemberInfo[] }>({});
+  /** Beside the member list rather than inside it: the list arrives from the
+      server and this is worked out locally against pins, after it lands. */
+  const [memberKeyStates, setMemberKeyStates] = useState<{
+    [host: string]: Record<string, MemberKeyState>;
+  }>({});
+  const [serverProfiles, setServerProfiles] = useState<Record<string, ServerProfile>>({});
+  const [serverConnectionStatus, setServerConnectionStatus] = useState<Record<string, 'connected' | 'disconnected' | 'connecting' | 'reconnecting' | 'refused'>>({});
+  // Why a server was refused, so the UI can say it rather than guessing.
+  const [refusalReason, setRefusalReason] = useState<Record<string, () => string>>({});
+  // Kept beside the sentence rather than baked into it, so the card can render
+  // a real link and the toast can stay plain text.
+  const [refusalHelpUrl, setRefusalHelpUrl] = useState<Record<string, string>>({});
+  const wasEverConnectedRef = useRef<Record<string, boolean>>({});
+  /* Hosts whose socket has used up its attempts. socket.io keeps `active` true
+     afterwards, so `reconnect_failed` is the only word that it has stopped. */
+  const gaveUpRef = useRef<Set<string>>(new Set());
+  const serverDetailsListRef = useRef(serverDetailsList);
+  const socketsRef = useRef<Sockets>({});
+
+  useEffect(() => {
+    serversRef.current = servers;
+  }, [servers]);
+
+  useEffect(() => {
+    socketsRef.current = sockets;
+  }, [sockets]);
+
+  useEffect(() => {
+    serverDetailsListRef.current = serverDetailsList;
+  }, [serverDetailsList]);
+
+  const { incrementUnread } = useUnreadBadge();
+
+  const messageSoundFile = customMessageSoundFile || messageSoundMp3;
+
+  const clientsRef = useRef(clients);
+  useEffect(() => { clientsRef.current = clients; }, [clients]);
+
+  const currentlyViewingServerRef = useRef(currentlyViewingServer);
+  useEffect(() => { currentlyViewingServerRef.current = currentlyViewingServer; }, [currentlyViewingServer]);
+
+  // A socket usually exists before there is a userId, so everything that needs
+  // one reads it here when it runs rather than at socket creation.
+  const userIdRef = useRef(userId);
+  useEffect(() => { userIdRef.current = userId; }, [userId]);
+
+  function getChannelDetails(host: string, channel: string) {
+    return serverDetailsList[host]?.channels.find((c) => c.id === channel);
+  }
+
+  const requestMemberList = useCallback((host: string) => {
+    const socket = sockets[host];
+    if (socket && socket.connected) {
+      socket.emit('members:fetch');
+    }
+  }, [sockets]);
+
+  /* Readable from a socket handler that was wired once and would otherwise close
+     over whatever these were at the time. */
+  const voiceSelfStateRef = useRef({ isMuted, isDeafened, isAFK });
+
+  /* The server keeps the status on the connection, so every reconnect starts
+     with nothing and this is what puts it back. */
+  const activityRef = useRef({ activity, rich: gameCard ?? undefined });
+
+  useEffect(() => {
+    voiceSelfStateRef.current = { isMuted, isDeafened, isAFK };
+
+    Object.keys(sockets).forEach((host) => {
+      sockets[host]?.emit("voice:state:update", {
+        isMuted,
+        isDeafened,
+        isAFK,
+      });
+    });
+  }, [isMuted, isDeafened, isAFK, sockets]);
+
+  /* Every server, since it is one line about you rather than per room. A refusal
+     surfaces in settings, so this loop does not have to know. */
+  useEffect(() => {
+    const presence = { activity, rich: gameCard ?? undefined };
+    activityRef.current = presence;
+    Object.keys(sockets).forEach((host) => {
+      sockets[host]?.emit("presence:activity", presence);
+    });
+  }, [activity, gameCard, sockets]);
+
+  /* Here because this is where the sockets and tokens are. A server running no
+     plugin with this id drops it, so every server is the right default. */
+  useEffect(() => {
+    setPluginApiMessageSender((pluginId, topic, data, host) => {
+      const hosts = host ? [host] : Object.keys(sockets);
+      for (const target of hosts) {
+        const socket = sockets[target];
+        if (!socket?.connected) continue;
+        const accessToken = getServerAccessToken(target);
+        /* No token means not joined. The server would refuse it, and refusing
+           here saves a round trip and the log line it would write. */
+        if (!accessToken) continue;
+        socket.emit("plugin:message", { accessToken, pluginId, topic, data });
+      }
+    });
+    return () => setPluginApiMessageSender(null);
+  }, [sockets]);
+
+  // One write: spreading the same stale closure per iteration meant only the
+  // last server's update survived.
+  useEffect(() => {
+    if (newServerInfo.length === 0) return;
+
+    let updated = { ...servers };
+    let changed = false;
+
+    for (const server of newServerInfo) {
+      const existing = updated[server.host];
+      if (existing && existing.name === server.name) continue;
+      updated = { ...updated, [server.host]: server };
+      changed = true;
+    }
+
+    if (changed) setServers(updated);
+
+    if (!currentlyViewingServer && Object.keys(updated).length > 0) {
+      const first = newServerInfo[0];
+      if (first) {
+        setTimeout(() => setCurrentlyViewingServer(first.host), 100);
+      }
+    }
+
+    setNewServerInfo([]);
+  }, [newServerInfo, servers, setServers, currentlyViewingServer, setCurrentlyViewingServer]);
+
+  const bumpTokenRevision = useCallback(() => setTokenRevision((n) => n + 1), []);
+
+  // Wait for Keycloak to initialise before opening any server sockets.
+  // This prevents racing with stale/missing identity tokens on cold start.
+  useEffect(() => {
+    let cancelled = false;
+    initKeycloak()
+      .then(() => { if (!cancelled) setIdentityReady(true); })
+      .catch(() => { if (!cancelled) setIdentityReady(true); });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Both avatar syncs can run before there is a userId, so this runs again when
+  // one arrives. A host already in sync costs one hash and no upload.
+  useEffect(() => {
+    if (!userId) return;
+
+    for (const host of Object.keys(sockets)) {
+      const accessToken = getServerAccessToken(host);
+      if (!accessToken) continue;
+
+      syncAvatarToHost(
+        host,
+        accessToken,
+        localStorage.getItem(`avatarFileId:${host}`),
+        sockets[host],
+        setServerProfiles,
+        userId,
+      ).catch(() => {});
+    }
+  }, [userId, sockets]);
+
+  // Register all socket event handlers via the extracted hook
+  useSocketEvents(sockets, {
+    servers,
+    nickname,
+    userIdRef,
+    messageSoundEnabled,
+    messageSoundVolume,
+    messageSoundFile,
+    notificationBadgeEnabled,
+    desktopNotificationsEnabled,
+    incrementUnread,
+    currentlyViewingServerRef,
+    clientsRef,
+    serversRef,
+    serverDetailsListRef,
+    lastInviteJoinAttemptRef,
+    setServers,
+    setNewServerInfo,
+    setServerDetailsList,
+    setFailedServerDetails,
+    setClients,
+    setMemberLists,
+    setMemberKeyStates,
+    setServerProfiles,
+    setIsServerMuted,
+    setIsServerDeafened,
+    onTokenRefreshed: bumpTokenRevision,
+  });
+
+  // Create sockets for all servers (only after Keycloak is ready)
+  useEffect(() => {
+    if (!identityReady) return;
+
+    const newSockets = { ...sockets };
+    let changed = false;
+
+    Object.keys(servers).forEach((host) => {
+      if (!newSockets[host]) {
+        const serverToken = servers[host].token;
+
+        const socket = io(`${getServerWsBase(host)}`, {
+          transports: ["websocket"],
+          /* socket.io retries forever unless told otherwise, which on a server
+             that is gone is an attempt every five seconds all day. */
+          reconnectionAttempts: RECONNECT_ATTEMPTS,
+          reconnectionDelayMax: RECONNECT_DELAY_MAX_MS,
+          auth: (cb: (data: Record<string, unknown>) => void) => {
+            // Not the access token: handshake auth arrives before the server has
+            // proved itself, so an impostor would collect a working one.
+            cb({ token: serverToken });
+          },
+        });
+
+        newSockets[host] = socket;
+        changed = true;
+
+        setServerConnectionStatus(prev => ({ ...prev, [host]: 'connecting' }));
+        const serverName = servers[host]?.name || host;
+        const toastId = `conn-${host}`;
+
+        /* Before guardSocket, whose wrapper calls through to these. Your settings,
+           checked again here against a server that ignores them (GRYT-1470). */
+        installContactGuard(socket, {
+          host,
+          selfId: () => getOwnServerUserId(host),
+          prefs: () => effectiveContactPrefs(host),
+          knowledge: knowledgeFor(host),
+          persist: () => persistKnowledge(host),
+          onFiltered: recordFiltered,
+          friends: friendGateFor(host),
+        });
+        // Your friends as this device knows them, which the guard above asks (GRYT-1471).
+        watchFriendTraffic(socket, {
+          book: friendBookFor(host),
+          prefs: () => effectiveContactPrefs(host),
+          persist: () => persistFriendBook(host),
+        });
+
+        // Holds everything below until the server proves itself.
+        guardSocket(socket, host, (decision) => {
+          // Not 'disconnected': saying a server "may be offline" when we refused
+          // it on purpose sends somebody debugging the wrong thing.
+          setServerConnectionStatus(prev => ({ ...prev, [host]: 'refused' }));
+          setRefusalReason(prev => ({ ...prev, [host]: () => serverProofErrorMessage(decision) }));
+          const helpUrl = serverProofHelpUrl(decision);
+          if (helpUrl) setRefusalHelpUrl(prev => ({ ...prev, [host]: helpUrl }));
+          toast.error(socketHookToast(() => serverProofErrorMessage(decision)), { id: toastId, duration: 12000 });
+        });
+
+        socket.on("connect", () => {
+          wasEverConnectedRef.current[host] = true;
+          setServerConnectionStatus(prev => ({ ...prev, [host]: 'connected' }));
+          const accessToken = getServerAccessToken(host);
+          if (accessToken) socket.emit("session:restore", { accessToken });
+          socket.emit("server:info");
+        });
+        
+        socket.on("connect_error", (error) => {
+          const msg = error instanceof Error ? error.message : String(error);
+          console.error(`[Socket] connect_error for ${host}:`, msg);
+          console.debug(`[Socket] connect_error diagnostics:`, {
+            host,
+            transport: socket.io.engine?.transport?.name ?? "unknown",
+            wasEverConnected: wasEverConnectedRef.current[host] ?? false,
+            online: navigator.onLine,
+          });
+          if (!wasEverConnectedRef.current[host]) {
+            setServerConnectionStatus(prev => ({ ...prev, [host]: 'disconnected' }));
+          }
+        });
+
+        /* Routed by the id the server stamped, so one server's plugin cannot
+           reach another's listeners. `data` is unvalidated and typed `unknown`. */
+        socket.on("plugin:message", (payload: { pluginId?: unknown; topic?: unknown; data?: unknown }) => {
+          const pluginId = typeof payload?.pluginId === "string" ? payload.pluginId : "";
+          const topic = typeof payload?.topic === "string" ? payload.topic : "";
+          if (!pluginId || !topic) return;
+          deliverPluginMessage(pluginId, { host, topic, data: payload?.data });
+        });
+
+        /* The restored flags are only as new as the moment the connection broke.
+           Here rather than on `connect`: this event says the stash was applied. */
+        socket.on("voice:state:restored", () => {
+          socket.emit("voice:state:update", voiceSelfStateRef.current);
+          if (activityRef.current.activity) {
+            socket.emit("presence:activity", activityRef.current);
+          }
+        });
+
+        /* A drop that is back within the grace shows nothing. A one-second blip
+           used to grey the server, spin the ring and raise two toasts (GRYT-1301). */
+        watchReconnects(socket, RECONNECT_GRACE_MS, {
+          onReconnecting: () => {
+            setServerConnectionStatus(prev => ({ ...prev, [host]: 'reconnecting' }));
+            showReconnectingToast(toastId, serverName);
+          },
+          onReconnected: (wasShown) => {
+            setServerConnectionStatus(prev => ({ ...prev, [host]: 'connected' }));
+            if (wasShown) toast.success(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useSockets_bf0324b600", { p0: serverName })), { id: toastId });
+            socket.emit("server:details");
+            socket.emit("members:fetch");
+            /* Unconditionally too, for a reconnect with no stash to restore, where
+               `voice:state:restored` never arrives at all. */
+            socket.emit("voice:state:update", voiceSelfStateRef.current);
+            /* The status lives on the connection, so a reconnect is blank until
+               this. Only when there is one, or it is a round trip for nothing. */
+            if (activityRef.current.activity) {
+              socket.emit("presence:activity", activityRef.current);
+            }
+            window.dispatchEvent(new CustomEvent("server_socket_reconnected", {
+              detail: { host },
+            }));
+          },
+          // Nothing is retrying, so "reconnecting" would be untrue. Whoever closed it says why.
+          onClosed: () => {
+            setServerConnectionStatus(prev => ({ ...prev, [host]: 'disconnected' }));
+          },
+        });
+
+        /* Reachable now that the attempts are capped. It never fired before, so
+           the rail sat on "reconnecting" for a server that was never coming back. */
+        socket.io.on("reconnect_failed", () => {
+          gaveUpRef.current.add(host);
+          setServerConnectionStatus(prev => ({ ...prev, [host]: 'disconnected' }));
+          showReconnectGaveUpToast(toastId, serverName);
+        });
+
+        // Only the add-server flow recorded the scheme, so an existing entry still
+        // has the default. The socket does not wait: the upgrade usually works.
+        const schemeKnown = ensureSchemeKnown(host).catch(() => undefined);
+
+        // Initial join / details fetch
+        const existingAccessToken = getServerAccessToken(host);
+        
+        if (existingAccessToken && nickname) {
+          setTimeout(() => {
+            socket.emit("server:details");
+            socket.emit("members:fetch");
+            const existingAvatarFileId = localStorage.getItem(`avatarFileId:${host}`);
+            const currentUserId = userIdRef.current;
+            if (currentUserId) {
+              schemeKnown
+                .then(() => syncAvatarToHost(host, existingAccessToken, existingAvatarFileId, socket, setServerProfiles, currentUserId))
+                .catch(() => {});
+            }
+          }, 1000);
+        } else {
+          socket.emit("server:join", {
+            nickname,
+            inviteCode: servers[host]?.token || undefined,
+          });
+        }
+      }
+    });
+
+    // This loop only ever added them, so a removed server kept a socket that
+    // reconnected and re-emitted `server:join`, undoing the removal.
+    Object.keys(newSockets).forEach((host) => {
+      if (servers[host]) return;
+      try {
+        newSockets[host].removeAllListeners();
+        newSockets[host].disconnect();
+      } catch {
+        // Already gone. Dropping the reference below is what matters.
+      }
+      delete newSockets[host];
+      changed = true;
+      setServerConnectionStatus((prev) => {
+        const next = { ...prev };
+        delete next[host];
+        return next;
+      });
+    });
+
+    if (changed) {
+      setSockets(newSockets);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [servers, identityReady]);
+
+  /* The decision goes back to whoever clicked it, and the person waiting is not
+     connected to be told. A minute, because approval is a human action. */
+  useEffect(() => {
+    const waiting = Object.keys(serversRef.current).filter(
+      (host) => serversRef.current[host]?.approvalRequestedAt,
+    );
+    if (waiting.length === 0) return;
+
+    const timer = setInterval(() => {
+      for (const host of waiting) {
+        // Cleared by `server:joined` the moment one of these works.
+        if (!serversRef.current[host]?.approvalRequestedAt) continue;
+        const socket = sockets[host];
+        if (!socket?.connected) continue;
+        socket.emit("server:join", {
+          nickname,
+          inviteCode: serversRef.current[host]?.token || undefined,
+        });
+      }
+    }, 60_000);
+
+    return () => clearInterval(timer);
+  }, [sockets, servers, nickname]);
+
+  // For sockets connected without details. Three seconds after a status change,
+  // so it does not race the normal first-connect flow.
+  useEffect(() => {
+    const timers: ReturnType<typeof setTimeout>[] = [];
+
+    Object.keys(sockets).forEach((host) => {
+      const socket = sockets[host];
+      if (!socket?.connected) return;
+      if (serverDetailsList[host]) return; // already have details
+
+      timers.push(setTimeout(() => {
+        if (serverDetailsListRef.current[host]) return;
+        const accessToken = getServerAccessToken(host);
+        if (accessToken) {
+          socket.emit("server:details");
+        } else {
+          const inviteCode = serversRef.current[host]?.token || undefined;
+          socket.emit("server:join", { nickname, inviteCode });
+        }
+      }, 3_000));
+    });
+
+    return () => timers.forEach(clearTimeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sockets, serverConnectionStatus, serverDetailsList]);
+
+  /* Away from this desktop, your phone gets the push instead (GRYT-1699). The same flag the phone
+     sends when it goes to the background; servers too old to know it ignore it. */
+  const [awayFromDesktop, setAwayFromDesktop] = useState(false);
+  useEffect(
+    () => watchAway(setAwayFromDesktop, browserAwayDeps(window.electronAPI?.onWindowFocusChange?.bind(window.electronAPI))),
+    [],
+  );
+  useEffect(() => {
+    for (const host of Object.keys(sockets)) {
+      const socket = sockets[host];
+      if (socket?.connected) socket.emit("push:presence", { background: awayFromDesktop });
+    }
+  }, [sockets, serverConnectionStatus, awayFromDesktop]);
+
+  // Presence heartbeat: confirm online status to each server every 5 minutes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      Object.keys(sockets).forEach((host) => {
+        const socket = sockets[host];
+        if (socket?.connected) {
+          socket.emit("presence:heartbeat");
+        }
+      });
+    }, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [sockets]);
+
+  // Each server on its own timer, planned from its token's expiry. A new token on
+  // any server re-plans them all, which moves nothing that is not yet due.
+  useEffect(() => {
+    const timers: Record<string, ReturnType<typeof setTimeout>> = {};
+    const plan = (host: string, delayMs: number) => {
+      timers[host] = setTimeout(() => refreshServerToken(host), delayMs);
+    };
+
+    const refreshServerToken = (host: string) => {
+      const socket = sockets[host];
+      if (!socket) return;
+      // Answered or not, look again later. An answer re-plans before this is due.
+      plan(host, RETRY_DELAY_MS);
+      if (!socket.connected) return;
+      const accessToken = getServerAccessToken(host);
+      const refreshToken = getServerRefreshToken(host);
+
+      if (refreshToken) {
+        socket.emit("token:refresh", { refreshToken });
+      } else if (accessToken) {
+        socket.emit("token:refresh", { accessToken });
+      } else {
+        const inviteCode = serversRef.current[host]?.token || undefined;
+        socket.emit("server:join", { nickname, inviteCode });
+      }
+    };
+
+    const now = Date.now();
+    for (const host of Object.keys(sockets)) {
+      const accessToken = getServerAccessToken(host);
+      plan(host, refreshDelayMs(host, accessToken ? getTokenExpiryTime(accessToken) : null, now));
+    }
+    return () => Object.values(timers).forEach(clearTimeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sockets, tokenRevision]);
+
+  // Retry join when an invite token is updated or a socket reconnects
+  useEffect(() => {
+    Object.keys(servers).forEach((host) => {
+      const token = servers[host]?.token;
+      if (!token) return;
+      if (!nickname) return;
+
+      if (serverConnectionStatus[host] !== "connected") return;
+
+      const socket = sockets[host];
+      if (!socket || !socket.connected) return;
+
+      const existingAccessToken = getServerAccessToken(host);
+      if (existingAccessToken) return;
+
+      const lastAttemptToken = lastInviteJoinAttemptRef.current[host];
+      if (lastAttemptToken === token) return;
+      lastInviteJoinAttemptRef.current[host] = token;
+
+      socket.emit("server:join", {
+        nickname,
+        inviteCode: token,
+      });
+    });
+  }, [servers, sockets, nickname, serverConnectionStatus]);
+
+  /** A token, and the details it fetched: what a socket coming back picks up again. */
+  const hasSession = useCallback(
+    (host: string) => Boolean(getServerAccessToken(host) && serverDetailsListRef.current[host]),
+    [],
+  );
+
+  const reconnectServer = useCallback((host: string) => {
+    const socket = sockets[host];
+    if (!socket) return;
+
+    const requestServerState = async () => {
+      const accessToken = getServerAccessToken(host);
+
+      if (accessToken && serverDetailsListRef.current[host]) {
+        socket.emit("server:details");
+        socket.emit("members:fetch");
+        return;
+      }
+
+      removeServerAccessToken(host);
+      const inviteCode = serversRef.current[host]?.token || undefined;
+      socket.emit("server:join", { nickname, inviteCode });
+    };
+
+    if (socket.connected) {
+      void requestServerState();
+      return;
+    }
+
+    setServerConnectionStatus((prev) => ({ ...prev, [host]: "connecting" }));
+    retryNow(socket, (reconnectRan) => {
+      /* With a session, this is what socket.io's reconnect handles, and voice recovery
+         waits on that event. Without one, requestServerState joins again. */
+      if (!hasSession(host)) void requestServerState();
+      else if (!reconnectRan) replayReconnect(socket);
+    });
+  }, [sockets, nickname, hasSession]);
+
+  /* The same retry as the Reconnect button, minus joining again: a socket that never
+     connected already has its first requests queued. */
+  const retryHostedServer = useCallback((host: string) => {
+    const socket = socketsRef.current[host];
+    // Connected needs nothing, and a server refused on purpose stays refused.
+    if (!socket || socket.connected || socket.io.opts.reconnection === false) return;
+
+    setServerConnectionStatus((prev) => ({ ...prev, [host]: "connecting" }));
+    retryNow(socket, (reconnectRan) => {
+      if (!reconnectRan && hasSession(host)) replayReconnect(socket);
+    });
+  }, [hasSession]);
+
+  /* A server this app hosts has just come up, and its socket may be ten seconds from
+     trying again, or have given up while it was stopped. GRYT-1207. */
+  useEffect(() => {
+    const api = getElectronAPI();
+    if (!api) return;
+
+    let lastSeen: Map<string, string> | null = null;
+    const see = (states: EmbeddedServerState[]) => {
+      lastSeen = new Map(states.map((server) => [server.id, server.status]));
+    };
+
+    api.getEmbeddedServerStatus().then((states) => {
+      if (!lastSeen) see(states);
+    }).catch(() => {});
+
+    return api.onEmbeddedServerStatusChanged((states) => {
+      const hosts = railEntriesJustStarted(lastSeen ?? new Map(), states, serversRef.current);
+      see(states);
+      for (const host of hosts) retryHostedServer(host);
+    });
+  }, [retryHostedServer]);
+
+  // When returning to the app after being idle, re-request server details if we are connected
+  // but never received details (prevents being stuck on the skeleton forever).
+  useEffect(() => {
+    const refreshIfStuck = () => {
+      Object.keys(sockets).forEach((host) => {
+        const socket = sockets[host];
+        if (!socket?.connected) return;
+        if (serverDetailsListRef.current[host]) return;
+        if (failedServerDetails[host]) return;
+
+        const accessToken = getServerAccessToken(host);
+        if (accessToken) {
+          socket.emit("server:details");
+          socket.emit("members:fetch");
+          return;
+        }
+
+        const inviteCode = serversRef.current[host]?.token || undefined;
+        socket.emit("server:join", { nickname, inviteCode });
+      });
+    };
+
+    /* A socket that ran out of attempts stays down until something asks it to
+       try again. Coming back to the app, or the network returning, both count. */
+    const gaveUp = gaveUpRef.current;
+    const retryGaveUp = () => {
+      Object.entries(sockets).forEach(([host, socket]) => {
+        if (!socket || socket.connected) return;
+        /* A socket stays `active` after its attempts run out, so that flag cannot
+           tell one that gave up from one still trying. GRYT-1254. */
+        if (!gaveUp.has(host)) return;
+        // A server that failed to prove itself was put down on purpose, and
+        // serverAuth turns reconnection off to keep it there.
+        if (socket.io.opts.reconnection === false) return;
+        /* Cleared before the attempt: socket.io fires `reconnect_failed` again
+           if this round runs out too, and until then the socket is trying. */
+        gaveUp.delete(host);
+        setServerConnectionStatus((prev) => ({ ...prev, [host]: "connecting" }));
+        socket.connect();
+      });
+    };
+
+    const wakeUp = () => {
+      retryGaveUp();
+      refreshIfStuck();
+    };
+
+    const onVisibilityChange = () => {
+      if (!document.hidden) wakeUp();
+    };
+
+    window.addEventListener("focus", wakeUp);
+    window.addEventListener("online", retryGaveUp);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.removeEventListener("focus", wakeUp);
+      window.removeEventListener("online", retryGaveUp);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [sockets, nickname, failedServerDetails]);
+
+/**
+   * Removed on `server:left`, because removing it first closes the socket and the
+   * emit goes nowhere. A server that does not answer keeps its entry.
+   */
+  const leaveServer = (host: string) => {
+    const socket = sockets[host];
+    if (!socket) {
+      toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useSockets_a5d949d2aa", { p0: host })));
+      return;
+    }
+
+    const toastId = `leave-${host}`;
+    toast.loading(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useSockets_38308a98c6", { p0: host })), { id: toastId });
+
+    let settled = false;
+    const finish = () => {
+      settled = true;
+      socket.off("server:left", onLeft);
+      socket.off("server:error", onError);
+      clearTimeout(timer);
+    };
+
+    const onLeft = () => {
+      if (settled) return;
+      finish();
+      removeServerAccessToken(host);
+      removeServerRefreshToken(host);
+      toast.success(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useSockets_e23f476dbd", { p0: host })), { id: toastId });
+      // The sidebar entry lives in useServerManagement, which this layer cannot
+      // reach. Same event a kick uses, and it does the same job.
+      window.dispatchEvent(new CustomEvent("server_force_remove", { detail: { host } }));
+    };
+
+    // The global handler reports everything as a join problem, and this person is
+    // already in. An older server sends a bare string, so one is taken as this.
+    const LEAVE_ERRORS = ["owner_cannot_leave", "leave_failed", "not_registered"];
+    const onError = (info: { error?: string; message?: string } | string) => {
+      if (settled) return;
+      if (typeof info !== "string" && !LEAVE_ERRORS.includes(info?.error ?? "")) {
+        socket.once("server:error", onError);
+        return;
+      }
+      const message =
+        typeof info === "string" ? info : info?.message || "The server refused.";
+      finish();
+      toast.error(socketHookToast(() => message), { id: toastId, duration: 8000 });
+    };
+
+    const timer = setTimeout(() => {
+      if (settled) return;
+      finish();
+      toast.error(
+        socketHookToast(() => socketHooksI18n.t("socketHooksFull.useSockets_5f1d4601f3", { p0: host })),
+        { id: toastId, duration: 8000 },
+      );
+    }, 8000);
+
+    socket.once("server:left", onLeft);
+    socket.once("server:error", onError);
+    socket.emit("server:leave");
+  };
+
+  return { sockets, serverDetailsList, clients, memberLists, memberKeyStates, serverProfiles, setServerProfiles, getChannelDetails, requestMemberList, failedServerDetails, serverConnectionStatus, refusalReason: Object.fromEntries(Object.entries(refusalReason).map(([host, read]) => [host, read()])), refusalHelpUrl, reconnectServer, leaveServer, tokenRevision };
+}
+
+export const useSockets = singletonHook(
+  {
+    sockets: {},
+    serverDetailsList: {},
+    clients: {},
+    memberLists: {},
+    memberKeyStates: {},
+    serverProfiles: {},
+    setServerProfiles: () => {},
+    getChannelDetails: () => undefined,
+    requestMemberList: () => {},
+    failedServerDetails: {},
+    serverConnectionStatus: {},
+    refusalReason: {},
+    refusalHelpUrl: {},
+    reconnectServer: () => {},
+    leaveServer: () => {},
+    tokenRevision: 0,
+  },
+  useSocketsHook
+);

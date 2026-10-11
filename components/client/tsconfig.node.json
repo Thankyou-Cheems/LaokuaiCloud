@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+    "target": "ES2020",
+    "lib": ["ES2020"],
+    "skipLibCheck": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "noEmit": true,
+    "types": ["node"]
+  },
+  // The hotkey grammar is shared with the renderer, which is why one src
+  // file is listed here. Both projects are noEmit, so compiling it twice costs
+  // nothing and keeps the main process from re-implementing the parsing.
+  "include": ["vite.config.ts", "electron/**/*.ts", "src/lib/hotkeys.ts", "src/lib/squadMode.ts"]
+}

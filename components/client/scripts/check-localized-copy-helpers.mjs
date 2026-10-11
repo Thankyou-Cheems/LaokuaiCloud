@@ -1,0 +1,22 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { historyLines, newDeviceEndText } from '../src/lib/pairing/newDeviceWords.ts';
+import { approverEndText, sendingHistoryText, sentHistoryText } from '../src/lib/pairing/approverWords.ts';
+import { deviceCapLine } from '../src/lib/pairing/deviceCap.ts';
+const zh = JSON.parse(readFileSync(new URL('../src/packages/i18n/locales/zh-CN.json', import.meta.url), 'utf8'));
+const translator = { resolvedLanguage: 'zh-CN', t(key, values = {}) {
+  const [namespace, entry] = key.split('.');
+  const variant = typeof values.count === 'number' ? entry + '_other' : entry;
+  return (zh[namespace][variant] ?? zh[namespace][entry]).replace(/\{\{(\w+)\}\}/g, (_, name) => String(values[name]));
+}};
+assert.deepEqual(historyLines(null), []);
+assert.equal(sendingHistoryText(null), 'Sending your message history…');
+assert.equal(sendingHistoryText({ messages: 12, total: 10 }), 'Sending your message history: 10 of 10');
+assert.equal(sentHistoryText({ messages: 1 }), '1 message of history came across.');
+assert.equal(sentHistoryText({ messages: 250 }), '250 messages of history came across.');
+assert.equal(deviceCapLine('Chat'), "Chat already has 5 of your devices, so the new one won't get your DMs there. Remove one first.");
+assert.match(deviceCapLine('名字 <untouched>', translator), /名字 <untouched>/);
+assert.notEqual(approverEndText('mismatch', translator), approverEndText('mismatch'));
+assert.notEqual(newDeviceEndText('mismatch', translator), newDeviceEndText('mismatch'));
+assert.match(sendingHistoryText({ messages: 12, total: 10 }, translator), /10/);
+console.log('PASS: pure pairing copy keeps legacy English defaults, supports injected Chinese, and preserves names');

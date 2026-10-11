@@ -1,0 +1,189 @@
+import { i18n, useTranslation } from "@/i18n";
+import {
+  computeGridLayout,
+  GRID_GAP,
+  PIP_HEIGHT,
+  PIP_INSET,
+  PIP_WIDTH,
+} from "@/socket/src/lib/voiceLayout";
+
+import type { VoiceTileLayout, VoiceTwoPersonLayout } from "../hooks/settingsStorage";
+
+/**
+ * Maximised proportions, which is where the two arrangements differ most. The
+ * side-by-side is the thing somebody is choosing between.
+ */
+const REFERENCE = { width: 880, height: 495 };
+
+const SWATCH = { width: 132, height: 74 };
+
+const PADDING = 12;
+
+/**
+ * The arrangement, drawn from the layout code rather than by hand, so the picture
+ * cannot drift away from what you get on screen.
+ */
+function TwoPersonSwatch({
+  layout,
+  rule,
+}: {
+  layout: VoiceTwoPersonLayout;
+  rule: VoiceTileLayout;
+}) {
+  useTranslation();
+  const inner = {
+    width: SWATCH.width - PADDING,
+    height: SWATCH.height - PADDING,
+  };
+
+  const frame = {
+    width: SWATCH.width,
+    height: SWATCH.height,
+    background: "var(--gryt-neutral-3)",
+    borderRadius: "var(--gryt-radius-sm)",
+  } as const;
+
+  const tile = {
+    background: "var(--gryt-accent-9)",
+    borderRadius: 2,
+  } as const;
+
+  if (layout === "hero") {
+    const hero = computeGridLayout(
+      REFERENCE.width,
+      REFERENCE.height,
+      1,
+      rule,
+    ).rows[0];
+
+    if (!hero) return <div style={frame} />;
+
+    const scale = Math.min(inner.width / hero.width, inner.height / hero.height);
+
+    return (
+      <div className="flex items-center justify-center" style={frame}>
+        <div
+          style={{
+            position: "relative",
+            width: hero.width * scale,
+            height: hero.height * scale,
+            ...tile,
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              right: PIP_INSET * scale,
+              bottom: PIP_INSET * scale,
+              width: Math.max(2, PIP_WIDTH * scale),
+              height: Math.max(2, PIP_HEIGHT * scale),
+              ...tile,
+              // Against the hero rather than the panel, and ringed in the swatch
+              // background, which is the only way to see it at this size.
+              background: "var(--gryt-accent-11)",
+              boxShadow: "0 0 0 1px var(--gryt-neutral-3)",
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  const row = computeGridLayout(REFERENCE.width, REFERENCE.height, 2, rule)
+    .rows[0];
+
+  if (!row) return <div style={frame} />;
+
+  const naturalWidth = row.count * row.width + (row.count - 1) * GRID_GAP;
+  const scale = Math.min(inner.width / naturalWidth, inner.height / row.height);
+
+  return (
+    <div className="flex items-center justify-center" style={frame}>
+      <div className="flex" style={{ gap: Math.max(1, GRID_GAP * scale) }}>
+        {Array.from({ length: row.count }, (_, i) => (
+          <div
+            key={i}
+            style={{
+              width: Math.max(2, row.width * scale),
+              height: Math.max(2, row.height * scale),
+              ...tile,
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const OPTIONS: Array<{
+  value: VoiceTwoPersonLayout;
+  label: string;
+  hint: string;
+}> = [
+  {
+    value: "hero",
+    get label() { return i18n.t("settingsFull.m3ec17c555b"); },
+    get hint() { return i18n.t("settingsFull.md9bb622e9c"); },
+  },
+  {
+    value: "equal",
+    get label() { return i18n.t("settingsFull.m3e3579a133"); },
+    get hint() { return i18n.t("settingsFull.med57592e94"); },
+  },
+];
+
+/**
+ * Which of the two arrangements a one-to-one call uses. Both are defensible,
+ * which is the argument for a choice rather than a hardcoded answer.
+ */
+export function TwoPersonLayoutPicker({
+  value,
+  onChange,
+  rule,
+}: {
+  value: VoiceTwoPersonLayout;
+  onChange: (layout: VoiceTwoPersonLayout) => void;
+  rule: VoiceTileLayout;
+}) {
+  useTranslation();
+  return (
+    <div
+      className="flex gap-3 flex-wrap"
+      role="radiogroup"
+      aria-label={i18n.t("settingsFull.m46aeff4962")}
+    >
+      {OPTIONS.map((option) => {
+        const selected = value === option.value;
+        return (
+          <button
+            className="flex flex-col gap-2 items-center"
+            key={option.value}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            onClick={() => onChange(option.value)}
+            style={{
+              cursor: "pointer",
+              padding: 8,
+              borderRadius: "var(--gryt-radius-md)",
+              background: selected ? "var(--gryt-accent-a3)" : "transparent",
+              border: selected
+                ? "1px solid var(--gryt-accent-8)"
+                : "1px solid var(--gryt-neutral-6)",
+              font: "inherit",
+              color: "inherit",
+              textAlign: "center",
+              maxWidth: 160,
+            }}
+          >
+            <TwoPersonSwatch layout={option.value} rule={rule} />
+            <span className={`text-xs ${selected ? "font-bold" : "font-normal"}`}>
+              {option.label}
+            </span>
+            <span className="text-xs text-gryt-muted">{option.hint}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}

@@ -1,0 +1,541 @@
+import { createElement, Dispatch, MutableRefObject, SetStateAction, useEffect, useRef } from "react";
+import toast from "react-hot-toast";
+import { Socket } from "socket.io-client";
+
+import type { MemberKeyState } from "@/common";
+import {
+  answerChallenge,
+  getOwnServerUserId,
+  getServerRefreshToken,
+  getSuppressEveryone,
+  isSessionExpired,
+  isSignedOut,
+  markChannelUnread,
+  markSignedOut,
+  markThreadUnread,
+  mentionsMember,
+  removeServerAccessToken,
+  removeServerRefreshToken,
+  setServerAccessToken,
+  setServerFileAccess,
+  shouldNotifyForMessage,
+} from "@/common";
+import { i18n as socketHooksI18n } from "@/i18n";
+import { channelNamesFor } from "@/lib/channelDirectory";
+import { notificationBody, showDesktopNotification } from "@/lib/desktopNotification";
+import { playNotificationSound, preloadNotificationSound } from "@/lib/notificationSound";
+import {
+  Server,
+  serverDetailsList,
+  Servers,
+} from "@/settings/src/types/server";
+
+import { PiMicrophoneFill, PiMicrophoneSlashFill, PiSpeakerHighFill, PiSpeakerSlashFill } from "../../../../lib/icons";
+import { MemberInfo } from "../components/MemberSidebar";
+import { heldRoleIds } from "../lib/permissions";
+import { onMlsDelivered } from "../mls/serverMls";
+import { Clients, ServerProfile } from "../types/clients";
+import { challengeHostMatches } from "../utils/challengeHost";
+import { isOnScreen, warnUnreadOnScreen } from "../utils/onScreenConversation";
+import { sealedNotificationBody } from "../utils/sealedNotification";
+import { idleRecovery, planRecovery, type RecoveryState } from "../utils/sessionRecovery";
+import { socketHookToast } from "../utils/socketHookMessages";
+import { getDirectorySnapshot } from "./dmDirectory";
+import { registerServerSocketEvents } from "./registerServerSocketEvents";
+import { muteLiftsAt, parseMuteExpiry, setTextMute } from "./textMute";
+
+type Sockets = { [host: string]: Socket };
+
+
+/** The server sends the whole enriched message; this names what the file uses,
+    rather than casting at the call site. */
+type BackgroundMessage = {
+  sender_server_id: string;
+  conversation_id?: string;
+  sender_nickname?: string;
+  text?: string | null;
+  sealed?: string | null;
+  attachments?: string[] | null;
+  /* The server always sent this; the type never named it, so a thread reply and
+     a channel message were badged the same. */
+  thread_id?: string | null;
+  mls_placeholder?: unknown;
+};
+
+export interface SocketEventDeps {
+  servers: Servers;
+  nickname: string;
+  userIdRef: MutableRefObject<string | null>;
+  messageSoundEnabled: boolean;
+  messageSoundVolume: number;
+  messageSoundFile: string;
+  notificationBadgeEnabled: boolean;
+  desktopNotificationsEnabled: boolean;
+  incrementUnread: () => void;
+  currentlyViewingServerRef: MutableRefObject<{ host: string; name: string } | null>;
+  clientsRef: MutableRefObject<{ [host: string]: Clients }>;
+  serversRef: MutableRefObject<Servers>;
+  serverDetailsListRef: MutableRefObject<serverDetailsList>;
+  lastInviteJoinAttemptRef: MutableRefObject<Record<string, string | undefined>>;
+  setServers: (servers: Servers) => void;
+  setNewServerInfo: Dispatch<SetStateAction<Server[]>>;
+  setServerDetailsList: Dispatch<SetStateAction<serverDetailsList>>;
+  setFailedServerDetails: Dispatch<SetStateAction<Record<string, { error: string; message: string; timestamp: number }>>>;
+  setClients: Dispatch<SetStateAction<{ [host: string]: Clients }>>;
+  setMemberLists: Dispatch<SetStateAction<{ [host: string]: MemberInfo[] }>>;
+  setMemberKeyStates: Dispatch<
+    SetStateAction<{ [host: string]: Record<string, MemberKeyState> }>
+  >;
+  setServerProfiles: Dispatch<SetStateAction<Record<string, ServerProfile>>>;
+  setIsServerMuted: (value: boolean) => void;
+  setIsServerDeafened: (value: boolean) => void;
+  onTokenRefreshed: () => void;
+}
+
+export function useSocketEvents(sockets: Sockets, deps: SocketEventDeps) {
+  const registeredRef = useRef<Set<string>>(new Set());
+  const myVoiceStateByHostRef = useRef<Record<string, { hasJoinedChannel: boolean; voiceChannelId: string }>>({});
+  // Refs rather than state: the handlers below are registered once per host, so
+  // anything they read has to survive renders without moving.
+  const revokedRecoveryRef = useRef<Record<string, RecoveryState>>({});
+  const revokedTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  const {
+    servers,
+    nickname,
+    userIdRef,
+    messageSoundEnabled,
+    messageSoundVolume,
+    messageSoundFile,
+    notificationBadgeEnabled,
+    desktopNotificationsEnabled,
+    incrementUnread,
+    currentlyViewingServerRef,
+    clientsRef,
+    serversRef,
+    serverDetailsListRef,
+    lastInviteJoinAttemptRef,
+    setServers,
+    setNewServerInfo,
+    setServerDetailsList,
+    setFailedServerDetails,
+    setClients,
+    setMemberLists,
+    setMemberKeyStates,
+    setServerProfiles,
+    setIsServerMuted,
+    setIsServerDeafened,
+    onTokenRefreshed,
+  } = deps;
+
+  const messageSoundEnabledRef = useRef(messageSoundEnabled);
+  const messageSoundVolumeRef = useRef(messageSoundVolume);
+  const messageSoundFileRef = useRef(messageSoundFile);
+  const notificationBadgeEnabledRef = useRef(notificationBadgeEnabled);
+  const desktopNotificationsEnabledRef = useRef(desktopNotificationsEnabled);
+  const incrementUnreadRef = useRef(incrementUnread);
+  const onTokenRefreshedRef = useRef(onTokenRefreshed);
+
+  useEffect(() => { messageSoundEnabledRef.current = messageSoundEnabled; }, [messageSoundEnabled]);
+  useEffect(() => { messageSoundVolumeRef.current = messageSoundVolume; }, [messageSoundVolume]);
+  useEffect(() => { messageSoundFileRef.current = messageSoundFile; preloadNotificationSound(messageSoundFile); }, [messageSoundFile]);
+  useEffect(() => { notificationBadgeEnabledRef.current = notificationBadgeEnabled; }, [notificationBadgeEnabled]);
+  useEffect(() => { desktopNotificationsEnabledRef.current = desktopNotificationsEnabled; }, [desktopNotificationsEnabled]);
+  useEffect(() => { incrementUnreadRef.current = incrementUnread; }, [incrementUnread]);
+  useEffect(() => { onTokenRefreshedRef.current = onTokenRefreshed; }, [onTokenRefreshed]);
+
+  /* An MLS message says nothing until it's decrypted, so it notifies from here rather
+     than from `chat:new`, whose line only stands in for it (GRYT-1517). */
+  useEffect(() => onMlsDelivered(({ host, conversationId, senderId, content }) => {
+    if (content.type !== "message") return;
+    const msg = { sender_server_id: senderId, conversation_id: conversationId, text: content.text, attachments: Object.keys(content.attachments ?? {}) };
+    const notify = shouldNotifyForMessage(host, msg, {
+      myId: getOwnServerUserId(host),
+      viewingThisServer: host === currentlyViewingServerRef.current?.host,
+      windowFocused: document.hasFocus(),
+      mentionsMe: false,
+    });
+    if (!notify) return;
+    if (messageSoundEnabledRef.current) playNotificationSound(messageSoundFileRef.current, messageSoundVolumeRef.current);
+    if (notificationBadgeEnabledRef.current) incrementUnreadRef.current();
+    if (!desktopNotificationsEnabledRef.current) return;
+    const sender = getDirectorySnapshot()
+      .find((e) => e.host === host && e.conversation.conversation_id === conversationId)
+      ?.conversation.members.find((m) => m.server_user_id === senderId)?.nickname;
+    showDesktopNotification(sender || socketHooksI18n.t("socketHooksFull.useSocketEvents_1ed2e7b50f"), notificationBody(msg, channelNamesFor(host)));
+  }), [currentlyViewingServerRef]);
+
+  useEffect(() => {
+    Object.entries(sockets).forEach(([host, socket]) => {
+      if (registeredRef.current.has(host)) return;
+      registeredRef.current.add(host);
+
+      // ---- Voice / stream events ----
+
+      socket.on("voice:error", (error: { type: string; message: string; existingConnection?: unknown }) => {
+        if (error.type === "duplicate_connection") {
+          toast.error(socketHookToast(() => error.message));
+          window.dispatchEvent(new CustomEvent("server_voice_disconnect", {
+            detail: { host, reason: "duplicate_connection" },
+          }));
+        }
+      });
+
+      socket.on("voice:device:disconnect", (data: { type: string; message: string; newDevice?: unknown }) => {
+        if (data.type === "device_switch") {
+          window.dispatchEvent(new CustomEvent("voice:device:disconnect", {
+            detail: { message: data.message, newDevice: data.newDevice },
+          }));
+        }
+      });
+
+      socket.on("voice:channel:joined", (hasJoined: boolean) => {
+        if (!hasJoined) {
+          window.dispatchEvent(new CustomEvent("server_voice_disconnect", {
+            detail: { host, reason: "server_initiated" },
+          }));
+        }
+      });
+
+      socket.on("voice:stream:set", (streamID: string) => {
+        if (!streamID) {
+          window.dispatchEvent(new CustomEvent("server_voice_disconnect", {
+            detail: { host, reason: "stream_cleared" },
+          }));
+        }
+      });
+
+      socket.on("voice:room:leave", () => {
+        window.dispatchEvent(new CustomEvent("server_voice_disconnect", {
+          detail: { host, reason: "room_leave" },
+        }));
+      });
+
+      socket.on("voice:kicked", (data: { reason?: string }) => {
+        toast.error(socketHookToast(() => data?.reason || socketHooksI18n.t("socketHooksFull.useSocketEvents_1148cf41b8")));
+        window.dispatchEvent(new CustomEvent("server_voice_disconnect", {
+          detail: { host, reason: "kicked" },
+        }));
+      });
+
+      // Nothing listened, so every moderation action was fire-and-forget. Quiet
+      // and short, since the member list is what shows the result.
+      type ModerationResult = { muted?: boolean; deafened?: boolean };
+      const moderationResult = (event: string, message: (p: ModerationResult) => string) => {
+        socket.on(event, (payload: ModerationResult) => toast.success(socketHookToast(() => message(payload ?? {}))));
+      };
+
+      moderationResult("server:kick:success", () => socketHooksI18n.t("socketHooksFull.useSocketEvents_c1b57bad90"));
+      moderationResult("server:ban:success", () => socketHooksI18n.t("socketHooksFull.useSocketEvents_27b295edd1"));
+      moderationResult("server:unban:success", () => socketHooksI18n.t("socketHooksFull.useSocketEvents_d6c60fe25d"));
+      moderationResult("server:mute:success", (p) => (p.muted ? socketHooksI18n.t("socketHooksFull.useSocketEvents_68023e3dc6") : socketHooksI18n.t("socketHooksFull.useSocketEvents_68bc7ff4fb")));
+      moderationResult("server:deafen:success", (p) => (p.deafened ? socketHooksI18n.t("socketHooksFull.useSocketEvents_24fef09e05") : socketHooksI18n.t("socketHooksFull.useSocketEvents_0164c663a5")));
+
+      socket.on("server:muted", (data: { muted: boolean; expiresAt?: string | null; reason?: string }) => {
+        setIsServerMuted(data.muted);
+        // The mute covers text too, so the composer needs it the moment it lands.
+        const until = parseMuteExpiry(data.expiresAt);
+        setTextMute(host, data.muted ? { until } : null);
+        // Nobody pressed a button for a spam timeout, so "by an admin" would be wrong.
+        const mutedText = () => data.reason === "spam" && until
+          ? socketHooksI18n.t("socketHooksFull.useSocketEvents_f7cf039793", { p0: muteLiftsAt(until) })
+          : socketHooksI18n.t("socketHooksFull.useSocketEvents_094d21820b");
+        toast(socketHookToast(() => data.muted ? mutedText() : socketHooksI18n.t("socketHooksFull.useSocketEvents_d8d05326a1")), {
+          icon: createElement(data.muted ? PiMicrophoneSlashFill : PiMicrophoneFill, { size: 18 }),
+        });
+      });
+
+      socket.on("server:deafened", (data: { deafened: boolean }) => {
+        setIsServerDeafened(data.deafened);
+        toast(socketHookToast(() => data.deafened ? socketHooksI18n.t("socketHooksFull.useSocketEvents_a8f9a75432") : socketHooksI18n.t("socketHooksFull.useSocketEvents_f8e374ce0c")), {
+          icon: createElement(data.deafened ? PiSpeakerSlashFill : PiSpeakerHighFill, { size: 18 }),
+        });
+      });
+
+      // ---- Challenge-response identity authentication ----
+
+      socket.on("server:challenge", async (challenge: { nonce: string; serverHost: string }) => {
+        // Bound to this host: signing whatever the other end names lets a server
+        // we did not dial collect an assertion valid elsewhere.
+        if (!challengeHostMatches(host, challenge.serverHost)) {
+          console.error(
+            `[Auth:Socket] Refusing to sign for ${host}: challenge claims to be ` +
+              `"${challenge.serverHost}"`
+          );
+          return;
+        }
+
+        // Here rather than at each caller, since a dozen places emit
+        // `server:join`. The keypair is still on disk, so answering signs them in.
+        if (isSignedOut(host)) {
+          console.log(`[Auth:Socket] Not answering for ${host}: signed out on this device`);
+          setFailedServerDetails(prev => ({
+            ...prev,
+            [host]: {
+              error: "session_ended",
+              get message() { return socketHooksI18n.t("socketHooksFull.socketSession_47"); },
+              timestamp: Date.now(),
+            },
+          }));
+          return;
+        }
+
+        try {
+          const { certificate, assertion, tier, link } = await answerChallenge(host, challenge);
+          console.log(`[Auth:Socket] Answering as ${tier} identity`);
+          socket.emit("server:verify", { certificate, assertion, link });
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : String(e);
+          console.error(`[Auth:Socket] Failed to answer challenge for ${host}:`, msg);
+
+          // Not answering ends the join and the server never asks again, which the
+          // UI renders as a skeleton only a reload gets out of.
+          setFailedServerDetails(prev => ({
+            ...prev,
+            [host]: isSessionExpired(e)
+              ? {
+                  error: "session_expired",
+                  // The card's heading already says the session expired, so
+                  // this says what to do about it rather than repeating it.
+                  get message() { return socketHooksI18n.t("socketHooksFull.socketSession_48"); },
+                  timestamp: Date.now(),
+                }
+              : {
+                  error: "identity_failed",
+                  get message() { return socketHooksI18n.t("socketHooksFull.socketSession_49", { p0: msg }); },
+                  timestamp: Date.now(),
+                },
+          }));
+        }
+      });
+
+      // ---- Token lifecycle ----
+
+      // Back to full, or a server rotating its counter twice in an afternoon eats
+      // retries that never come back. Handled elsewhere too, which is fine.
+      const recoveryWorked = () => { delete revokedRecoveryRef.current[host]; };
+      socket.on("server:joined", recoveryWorked);
+
+      // A restored session gets no `token:refreshed`, so the key for its upload URLs comes alone.
+      socket.on("file:key", (fileKey: unknown) => setServerFileAccess(host, { fileKey }));
+
+      socket.on("token:refreshed", (refreshInfo: { accessToken: string; fileToken?: string; fileKey?: unknown }) => {
+        recoveryWorked();
+        setServerAccessToken(host, refreshInfo.accessToken);
+        // With the access token, so a session that keeps refreshing always has
+        // something current to sign its pictures with.
+        setServerFileAccess(host, refreshInfo);
+        onTokenRefreshedRef.current();
+
+        setServerDetailsList(prev => {
+          if (!prev[host]) {
+            socket.emit("server:details");
+            socket.emit("members:fetch");
+          }
+          return prev;
+        });
+      });
+
+      socket.on("token:revoked", (info: { reason?: string; message?: string }) => {
+        removeServerAccessToken(host);
+        // Another tab moved this guest into the account. Its refresh token names a
+        // membership that is gone, so the retry below has to be a fresh join.
+        if (info?.reason === "identity_merged") removeServerRefreshToken(host);
+
+        const pending = revokedTimersRef.current[host];
+        if (pending) {
+          clearTimeout(pending);
+          delete revokedTimersRef.current[host];
+        }
+
+        const { plan, state } = planRecovery(
+          revokedRecoveryRef.current[host] ?? idleRecovery(),
+          info?.reason,
+          Date.now(),
+        );
+        revokedRecoveryRef.current[host] = state;
+
+        if (plan.act === "stop") {
+          // `failedServerDetails` is what stops `refreshIfStuck` rejoining on the
+          // next window focus, not only what shows the user something.
+          removeServerRefreshToken(host);
+
+          if (plan.because === "deliberate") {
+            // Written down, or the refusal lives only in memory and the next launch
+            // rejoins with the keypair as if nothing happened.
+            markSignedOut(host);
+            toast.error(socketHookToast(() => info?.message || socketHooksI18n.t("socketHooksFull.useSocketEvents_b391a06584", { p0: host })));
+            setFailedServerDetails(prev => ({
+              ...prev,
+              [host]: {
+                error: "session_ended",
+                get message() { return socketHooksI18n.t("socketHooksFull.socketSession_48"); },
+                timestamp: Date.now(),
+              },
+            }));
+            return;
+          }
+
+          const givenUp = () => socketHooksI18n.t("socketHooksFull.socketSession_52", { p0: host });
+          toast.error(socketHookToast(() => givenUp()));
+          setFailedServerDetails(prev => ({
+            ...prev,
+            [host]: { error: "revocation_loop", get message() { return givenUp(); }, timestamp: Date.now() },
+          }));
+          return;
+        }
+
+        // Once, on the first try: the message is about a session being replaced,
+        // and five toasts saying so is worse than none.
+        if (plan.retry === 1 && info?.message) toast.error(socketHookToast(() => info.message));
+
+        const refreshToken = getServerRefreshToken(host);
+        revokedTimersRef.current[host] = setTimeout(() => {
+          delete revokedTimersRef.current[host];
+          if (refreshToken) {
+            socket.emit("token:refresh", { refreshToken });
+          } else {
+            socket.emit("server:join", { nickname, inviteCode: servers[host]?.token || undefined });
+          }
+        }, plan.delayMs);
+      });
+
+      socket.on("token:invalid", (message: string) => {
+        removeServerAccessToken(host);
+        removeServerRefreshToken(host);
+        toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useSocketEvents_534771bde5", { p0: message })));
+        setTimeout(() => window.location.reload(), 2000);
+      });
+
+      socket.on("token:error", (errorInfo: { error: string; message?: string }) => {
+        console.error(`Token error for server ${host}:`, errorInfo);
+        removeServerAccessToken(host);
+
+        // What the refresh token cannot fix: retrying with it is an infinite loop
+        // of sending the same dead token back.
+        const TERMINAL = [
+          "refresh_token_invalid",
+          "refresh_token_expired",
+          "membership_required",
+          "banned",
+        ];
+
+        if (TERMINAL.includes(errorInfo.error)) {
+          removeServerRefreshToken(host);
+          toast.error(socketHookToast(() => errorInfo.message || socketHooksI18n.t("socketHooksFull.useSocketEvents_1304ef85e2", { p0: host })));
+          return;
+        }
+
+        const refreshToken = getServerRefreshToken(host);
+        if (refreshToken) {
+          console.log(`[Auth:Socket] token:error for ${host} — attempting refresh with refresh token`);
+          socket.emit("token:refresh", { refreshToken });
+        } else {
+          removeServerRefreshToken(host);
+          const msg = errorInfo.message || errorInfo.error;
+          toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useSocketEvents_c29992462c", { p0: host, p1: msg })));
+        }
+      });
+
+      // ---- Background chat notification (non-focused servers) ----
+
+      /* Unread for an MLS message counts from the log entry. Its `chat:new` is a
+         system line for older apps, dropped below (GRYT-1517). */
+      socket.on("mls:message", (entry: { kind?: string; conversationId?: string; senderServerUserId?: string }) => {
+        if (host === currentlyViewingServerRef.current?.host) return;
+        if (entry?.kind !== "application" || !entry.conversationId) return;
+        if (entry.senderServerUserId === getOwnServerUserId(host)) return;
+        markChannelUnread(host, entry.conversationId);
+      });
+
+      socket.on("chat:new", (msg: BackgroundMessage) => {
+        if (host === currentlyViewingServerRef.current?.host) return;
+        if (msg.mls_placeholder) return;
+        const myId = socket.id ? clientsRef.current[host]?.[socket.id]?.serverUserId : undefined;
+        if (myId && msg.sender_server_id === myId) return;
+        // Counted against the thread rather than the channel: both trackers were
+        // keyed by conversation, and this one is keyed by thread.
+        if (msg.thread_id) {
+          if (msg.conversation_id) markThreadUnread(host, msg.conversation_id, msg.thread_id);
+        } else if (msg.conversation_id) {
+          if (isOnScreen(host, msg.conversation_id)) {
+            warnUnreadOnScreen("background chat:new", { host, viewingRef: currentlyViewingServerRef.current?.host ?? null });
+          }
+          /* Unread whatever the level says: muting is about not being interrupted,
+             not about pretending nothing happened. */
+          markChannelUnread(host, msg.conversation_id);
+        }
+
+        /* The same question `useChat` asks for the server on screen. Not viewing
+           this one is settled by the return above; the window's focus is not. */
+        const notify = shouldNotifyForMessage(host, msg, {
+          myId,
+          viewingThisServer: false,
+          windowFocused: document.hasFocus(),
+          mentionsMe: mentionsMember(msg, {
+          serverUserId: myId,
+          nickname,
+          roleIds: heldRoleIds(serverDetailsListRef.current[host]?.server_info),
+          suppressEveryone: getSuppressEveryone(host),
+        }),
+        });
+        if (!notify) return;
+
+        if (messageSoundEnabledRef.current) {
+          playNotificationSound(messageSoundFileRef.current, messageSoundVolumeRef.current);
+        }
+        if (notificationBadgeEnabledRef.current) {
+          incrementUnreadRef.current();
+        }
+        if (desktopNotificationsEnabledRef.current) {
+          void sealedNotificationBody(msg, { host, memberId: myId }).then((body) => {
+            const isChannel =
+              !!msg.conversation_id &&
+              serverDetailsListRef.current[host]?.channels?.some(
+                (channel) => channel.id === msg.conversation_id,
+              ) === true;
+            showDesktopNotification(
+              msg.sender_nickname || socketHooksI18n.t("socketHooksFull.useSocketEvents_1ed2e7b50f"),
+              body,
+              isChannel && msg.conversation_id
+                ? { host, channelId: msg.conversation_id }
+                : undefined,
+            );
+          });
+        }
+      });
+
+      // ---- Server management events (delegated) ----
+
+      registerServerSocketEvents(socket, host, {
+        nickname,
+        userIdRef,
+        servers,
+        serversRef,
+        lastInviteJoinAttemptRef,
+        myVoiceStateByHostRef,
+        setServers,
+        setNewServerInfo,
+        setServerDetailsList,
+        setFailedServerDetails,
+        setClients,
+        setMemberLists,
+        setMemberKeyStates,
+        setServerProfiles,
+        setIsServerMuted,
+        setIsServerDeafened,
+      });
+
+      // After the handler above has stored it. A join mints a new token too, and a
+      // hook still holding the old one acts as whoever this socket used to be.
+      socket.on("server:joined", () => onTokenRefreshedRef.current());
+    });
+
+    for (const host of registeredRef.current) {
+      if (!sockets[host]) {
+        registeredRef.current.delete(host);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sockets]);
+}

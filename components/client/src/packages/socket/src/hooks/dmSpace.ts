@@ -1,0 +1,179 @@
+import { useSyncExternalStore } from "react";
+
+/**
+ * Whether the direct messages space is the thing on screen. A store rather than
+ * a field on useServerManagement, which is already the largest hook here.
+ */
+
+let open = false;
+/* Which conversation the space asked for. Read by the server view when it
+   mounts: the space replaces that view, so an event has nobody to hear it. */
+let pending: { host: string; conversationId: string } | null = null;
+const listeners = new Set<() => void>();
+
+function emit() {
+  for (const listener of listeners) listener();
+}
+
+/* The conversation this visit asked for. A conversation nobody has written in is
+   listed only while it is this one, so clicking through people leaves no rows. */
+let visiting: string | null = null;
+
+/* Where the space was, kept here rather than in the view: leaving unmounts the
+   view, so state inside it is gone on the way back. GRYT-1146. */
+let last: { host: string; conversationId: string } | null = null;
+
+/** What was on screen before the space, so the button can go back to it. */
+export type DmSpaceOrigin = { kind: "server"; host: string } | { kind: "discovery" };
+
+/* Kept from the moment you went in. The server underneath moves to whichever one a
+   conversation lives on, so it can't be read back off the view. GRYT-1148. */
+let origin: DmSpaceOrigin | null = null;
+
+export function dmSpaceOrigin(): DmSpaceOrigin | null {
+  return origin;
+}
+
+/**
+ * Where the button goes from inside. A server removed while you were in here, and a
+ * launch straight into the space, both fall back to the server underneath.
+ */
+export function wayBack(servers: Record<string, unknown>, underneath: string | null): DmSpaceOrigin | null {
+  if (origin?.kind === "discovery") return origin;
+  if (origin && servers[origin.host]) return origin;
+  return underneath ? { kind: "server", host: underneath } : null;
+}
+
+/** The space showed this one, so it is where to come back to. */
+export function rememberConversation(host: string, conversationId: string): void {
+  // The same place again is not news, and a fresh object would re-render readers.
+  if (last && last.host === host && last.conversationId === conversationId) return;
+  last = { host, conversationId };
+  emit();
+}
+
+export function lastConversation(): { host: string; conversationId: string } | null {
+  return last;
+}
+
+/** Re-renders when the space moves, which the plain read above cannot. */
+export function useLastConversation(): { host: string; conversationId: string } | null {
+  return useSyncExternalStore(
+    (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    lastConversation,
+    lastConversation,
+  );
+}
+
+/** `from` is kept only on the way in. Asking again from inside changes nothing. */
+export function setDmSpaceOpen(next: boolean, from: DmSpaceOrigin | null = null): void {
+  if (open === next) return;
+  open = next;
+  origin = next ? from : null;
+  /* Leaving forgets it. Coming back through the rail is a fresh visit and shows
+     the overview, which is what "click it and you see the dms overview" means. */
+  if (!next) visiting = null;
+  emit();
+}
+
+/** Which conversation is worth listing even with nothing in it. */
+export function visitingConversation(): string | null {
+  return visiting;
+}
+
+/**
+ * An empty conversation an earlier visit left selected, which the list dropped on the way
+ * out. The space counts it as nothing open. A group is never dropped, so never left over.
+ */
+export function leftOver(
+  conversation: { conversation_id: string; last_message_at: string | null; kind?: string } | undefined,
+  visitingNow: string | null,
+): boolean {
+  return conversation !== undefined
+    && conversation.kind !== "group"
+    && conversation.last_message_at === null
+    && conversation.conversation_id !== visitingNow;
+}
+
+export function useVisitingConversation(): string | null {
+  return useSyncExternalStore(
+    (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    visitingConversation,
+    visitingConversation,
+  );
+}
+
+export function isDmSpaceOpen(): boolean {
+  return open;
+}
+
+/**
+ * The conversation now open in the space. Every way of opening one comes through
+ * here, so an empty conversation you moved away from drops out of the list.
+ */
+export function visitConversation(conversationId: string): void {
+  if (visiting === conversationId) return;
+  visiting = conversationId;
+  emit();
+}
+
+/** Ask for a conversation, then leave. The view claims it once it is there. */
+export function requestConversation(host: string, conversationId: string): void {
+  pending = { host, conversationId };
+  visiting = conversationId;
+  emit();
+}
+
+/**
+ * What this host was asked to open, without consuming it. Effects run twice
+ * under StrictMode, and a one-shot read loses the race with the reset beside it.
+ */
+export function conversationFor(host: string): string | null {
+  return pending && pending.host === host ? pending.conversationId : null;
+}
+
+/** Cleared once the view is actually showing it, so it opens once. */
+export function conversationOpened(conversationId: string): void {
+  if (pending?.conversationId !== conversationId) return;
+  pending = null;
+  emit();
+}
+
+/** What the space asked for, so a view re-renders when it is set. */
+export function usePendingConversation(): { host: string; conversationId: string } | null {
+  return useSyncExternalStore(
+    (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    () => pending,
+    () => pending,
+  );
+}
+
+/** For a test, so one case cannot leak into the next. */
+export function resetDmSpace(): void {
+  open = false;
+  visiting = null;
+  last = null;
+  origin = null;
+  pending = null;
+  emit();
+}
+
+export function useDmSpaceOpen(): boolean {
+  return useSyncExternalStore(
+    (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    () => open,
+    () => open,
+  );
+}

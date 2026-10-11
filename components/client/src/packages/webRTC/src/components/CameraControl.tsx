@@ -1,0 +1,115 @@
+import { Menu } from "@gryt/ui";
+import { useCamera } from "@gryt/voice";
+import { useState } from "react";
+
+import { i18n } from "@/i18n";
+import { useTranslation } from "@/i18n";
+import { useSettings } from "@/settings";
+
+import { PiVideoCameraFill, PiVideoCameraSlashFill } from "../../../../lib/icons";
+import { CAMERA_PRESETS, presetHint,presetKey, presetLabel } from "../utils/streamQuality";
+import { CallControlButton } from "./CallControlButton";
+import { CameraPreviewModal } from "./CameraPreviewModal";
+
+interface CameraControlProps {
+  iconSize?: number;
+  /** Whether the room lets you start one. A camera already on keeps its button either way. */
+  allowed?: boolean;
+  side?: "top" | "right";
+}
+
+/** Off, it opens the preview. Live, a menu: the engine reopens the camera on a new setting. */
+export function CameraControl({ iconSize = 16, allowed = true, side = "top" }: CameraControlProps) {
+  const { t: tr } = useTranslation();
+  const { cameraEnabled, setCameraEnabled, devices } = useCamera();
+  const {
+    cameraID, setCameraID, cameraQuality, setCameraQuality,
+    cameraFps, setCameraFps,
+    cameraMirrored, setCameraMirrored,
+    cameraFlipped, setCameraFlipped,
+  } = useSettings();
+  const [showPreview, setShowPreview] = useState(false);
+
+  const current = presetKey(cameraQuality, cameraFps);
+  const matchesPreset = CAMERA_PRESETS.some((p) => presetKey(p.quality, p.fps) === current);
+  const pickPreset = (key: string) => {
+    const [quality, fps] = key.split("@");
+    setCameraQuality(quality);
+    setCameraFps(Number(fps));
+  };
+  const cameras = devices.filter((d) => d.deviceId);
+
+  if (!allowed && !cameraEnabled) return null;
+
+  return (
+    <>
+      {cameraEnabled ? (
+        <Menu.Root>
+          <Menu.Trigger render={<CallControlButton state="live" aria-label={tr("ui.cameraIsOn")} />}>
+            <PiVideoCameraFill size={iconSize} />
+          </Menu.Trigger>
+          <Menu.Portal>
+            <Menu.Positioner side={side}>
+              <Menu.Popup aria-label={tr("ui.camera")}>
+                <Menu.Group>
+                  <Menu.GroupLabel>{tr("ui.quality")}</Menu.GroupLabel>
+                  <Menu.RadioGroup value={current} onValueChange={(v) => pickPreset(String(v))}>
+                    {!matchesPreset && (
+                      <Menu.RadioItem value={current}>{presetLabel(cameraQuality, cameraFps, (key, values) => tr(key, values))}</Menu.RadioItem>
+                    )}
+                    {CAMERA_PRESETS.map((p) => (
+                      <Menu.RadioItem key={presetKey(p.quality, p.fps)} value={presetKey(p.quality, p.fps)}>
+                        <span>{presetLabel(p.quality, p.fps, (key, values) => tr(key, values))}</span>
+                        <span className="text-xs text-gryt-muted">{presetHint(p.hint, tr)}</span>
+                      </Menu.RadioItem>
+                    ))}
+                  </Menu.RadioGroup>
+                </Menu.Group>
+                {/* Only with a second camera to switch to. */}
+                {cameras.length > 1 && (
+                  <>
+                    <Menu.Separator />
+                    <Menu.Group>
+                      <Menu.GroupLabel>{tr("ui.camera")}</Menu.GroupLabel>
+                      <Menu.RadioGroup value={cameraID} onValueChange={(v) => setCameraID(String(v))}>
+                        {cameras.map((d, i) => (
+                          <Menu.RadioItem key={d.deviceId} value={d.deviceId}>
+                            <span className="truncate">{d.label || i18n.t("shellFull.CameraControl_tsx_d935c2ee86", { value0: i + 1 })}</span>
+                          </Menu.RadioItem>
+                        ))}
+                      </Menu.RadioGroup>
+                    </Menu.Group>
+                  </>
+                )}
+                <Menu.Separator />
+                <Menu.Item className="text-gryt-danger" onClick={() => setCameraEnabled(false)}>
+                  {tr("ui.turnCameraOff")}
+                </Menu.Item>
+              </Menu.Popup>
+            </Menu.Positioner>
+          </Menu.Portal>
+        </Menu.Root>
+      ) : (
+        <CallControlButton state="idle" aria-label={tr("ui.turnCameraOn")} onClick={() => setShowPreview(true)}>
+          <PiVideoCameraSlashFill size={iconSize} />
+        </CallControlButton>
+      )}
+
+      <CameraPreviewModal
+        open={showPreview}
+        onOpenChange={setShowPreview}
+        cameraID={cameraID}
+        onCameraIDChange={setCameraID}
+        quality={cameraQuality}
+        onQualityChange={setCameraQuality}
+        fps={cameraFps}
+        onFpsChange={setCameraFps}
+        mirrored={cameraMirrored}
+        onMirroredChange={setCameraMirrored}
+        flipped={cameraFlipped}
+        onFlippedChange={setCameraFlipped}
+        onStart={() => setCameraEnabled(true)}
+      />
+    </>
+  );
+}

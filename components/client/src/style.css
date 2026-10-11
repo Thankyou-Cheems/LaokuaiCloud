@@ -1,0 +1,2216 @@
+/* Tailwind, preflight included.
+ *
+ * This used to import theme and utilities separately to keep preflight out,
+ * because Radix Themes shipped a reset of its own and stacking two of them
+ * changes margins, borders and form-control defaults across every screen at
+ * once. Radix Themes is gone, so the note that said "preflight comes back when
+ * Radix Themes goes" is now this line.
+ *
+ * @gryt/ui deliberately ships no reset — that is the consuming app's decision,
+ * made once — so this is the only one in the app.
+ */
+@import "tailwindcss" source(none);
+
+@source "./**/*.{ts,tsx}";
+
+/* @gryt/ui's markup, scanned here instead of importing its prebuilt CSS.
+ *
+ * The library ships a full Tailwind utilities layer, and main.tsx used to
+ * import it alongside this app's own. Two utilities layers means two copies of
+ * every base utility, and the second copy wins: `.flex-col` from the library
+ * landed after `.md\:flex-row` from here, so the owl designer stayed a column
+ * at any width while `md:w-48`, which had no competing rule, applied — a
+ * 192px rail on top of a full-width grid, which is exactly what it looked
+ * like. Measured in the built bundle: `.flex-col` twice in @layer utilities,
+ * the variant rule between them.
+ *
+ * One pass over both sets of sources gives one layer, in Tailwind's own
+ * order, where a variant beats the base utility it is meant to. */
+@source "../node_modules/@gryt/ui/dist";
+
+/* Fullscreen includes the persistent controls. Media actions occupy a separate row. */
+[data-gryt="server-view"]:fullscreen {
+  width: 100%; height: 100%; padding: 12px; background: var(--gryt-neutral-2);
+}
+[data-gryt="server-view"]:fullscreen [data-gryt="channels-sidebar"],
+[data-gryt="server-view"]:fullscreen [data-gryt="member-sidebar"],
+[data-gryt="server-view"]:fullscreen [data-gryt="conversation-pane"] { display: none !important; }
+[data-gryt="server-view"]:fullscreen [data-gryt="voice-view"][aria-hidden="false"] { width: 100% !important; max-width: none !important; }
+
+/* The tokens come from the library now, not a copy of them. @gryt/ui ships
+   theme.css unprocessed for exactly this — importing dist/styles.css would give
+   us the resolved :root variables, which Tailwind cannot read back as theme
+   config. One source of truth for the palette (GRYT-150). */
+@import "@gryt/ui/theme.css";
+
+/* The library's stylesheet-shaped rules: the message bubble, the composer, the
+   conversation item, the indeterminate progress bar, and the hover that makes a
+   label act like the control it wraps.
+ *
+ * Not dist/styles.css, for the reason above — that carries a utilities layer
+ * and importing it here is what GRYT-858 removed. Dropping it also dropped
+ * these, which are not utilities and so are not recovered by @source scanning:
+ * the welcome bubble lost its radius and padding and rendered as a square, and
+ * nothing failed. components.css is the same rules with no utilities layer
+ * attached. */
+@import "@gryt/ui/components.css";
+@import "@gryt/ui/member-card.css";
+
+@font-face {
+  font-family: "Atkinson Hyperlegible Next";
+  src: url("./assets/fonts/AtkinsonHyperlegibleNextVF-Variable.woff2") format("woff2");
+  font-weight: 200 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Atkinson Hyperlegible Mono";
+  src: url("./assets/fonts/AtkinsonHyperlegibleMonoVF-Variable.woff2") format("woff2");
+  font-weight: 200 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --titlebar-inset: 0px;
+
+  /* ── Stacking scale ───────────────────────────────────────
+   *
+   * Every layer that competes across the whole window lives here, ten apart,
+   * lowest first. Before this the app had 999, 1000, 1001, 9000, 9999, 10000,
+   * 99999 and 999999, because each overlay picked a number big enough to win
+   * whatever argument it was having at the time. Ten is plenty of room; if two
+   * things need to sit between two rungs, the scale is wrong, not the gap.
+   *
+   * Only add a token for something that has to stack against the rest of the
+   * app. Stacking inside one component (a badge over an avatar, a drag lift in
+   * a reorder list) stays local and small, and does not belong here.
+   *
+   * @gryt/ui sets no z-index at all: its Dialog and Drawer portal to body and
+   * win on DOM order, which means they lose to anything positive. That is why
+   * a backdrop could cover the titlebar (GRYT-188) and why a dialog opened
+   * from a mobile sheet rendered underneath it. Both are placed by class
+   * further down this file rather than left to whoever renders last.
+   */
+  --gryt-z-popover: 10; /* autocompletes, emoji picker, anchored menus */
+  --gryt-z-sheet: 20; /* mobile server view and sheet */
+  --gryt-z-modal: 30; /* @gryt/ui Dialog and Drawer */
+  /* A panel the app floats over a dialog and leaves open — the theme editor.
+     Wedged between the two rungs above because it has to be on both sides of
+     them: over the settings dialog it opens from, and under the dropdowns
+     inside itself. It carried a bare z-50 until GRYT-785, which is the
+     lightbox rung, so every Select in it opened behind it. */
+  --gryt-z-panel: 32;
+  --gryt-z-menu: 35; /* @gryt/ui popups, which open from any of the above */
+  --gryt-z-tour: 40; /* onboarding coach marks */
+  --gryt-z-lightbox: 50; /* image lightbox and its controls */
+  --gryt-z-debug: 60; /* debug overlay */
+  --gryt-z-chrome: 70; /* Electron titlebar; window controls stay reachable */
+  --gryt-z-toast: 80; /* transient notifications */
+  --gryt-z-splash: 90; /* auth loading overlay */
+
+  /* The tour's cursor.
+   *
+   * Not from the palette on purpose. The spotlight ring, the buttons it
+   * presses and half the chrome are all accent purple, so a cursor drawn from
+   * the same family disappeared into what it was pointing at. This is the one
+   * thing on screen whose whole job is to be followed. */
+  --gryt-tour-cursor: #ff4d4f;
+}
+
+/* The library's portaled overlays, given a home on the scale above. Without
+   this they sit at z-index auto and depend entirely on being rendered last. */
+.gryt-dialog-backdrop,
+.gryt-dialog,
+.gryt-drawer-backdrop,
+.gryt-drawer {
+  z-index: var(--gryt-z-modal);
+}
+
+/* The library's popups, one rung above.
+ *
+ * "Depend entirely on being rendered last" was the assumption above, and it is
+ * wrong once anything on the page has a real z-index: auto loses to a positive
+ * value whatever the DOM order. Giving the dialogs a rung and leaving the
+ * popups at auto is what made a dropdown inside a modal invisible rather than
+ * merely misplaced. Measured in a browser, the dialog covered the popup in both
+ * orderings. GRYT-305.
+ *
+ * Above --gryt-z-modal rather than at --gryt-z-popover, because a popup is
+ * always opened from something and has to sit over whatever opened it. That
+ * includes the mobile sheet at 20 and a dialog at 30. It stays under the tour,
+ * the lightbox and the window chrome, which should cover a stray open menu.
+ *
+ * --gryt-z-popover is still the right token for popups the app positions
+ * itself, like the emoji autocomplete, which belong in the page rather than
+ * over it.
+ */
+.gryt-select-positioner,
+.gryt-menu-positioner,
+.gryt-context-menu-positioner,
+.gryt-navigation-menu-positioner,
+.gryt-popover-positioner,
+.gryt-combobox-positioner,
+.gryt-autocomplete-positioner,
+.gryt-preview-card-positioner,
+.gryt-tooltip-positioner {
+  z-index: var(--gryt-z-menu);
+}
+
+/* Keep every full-screen overlay clear of the window chrome.
+ *
+ * --gryt-z-chrome on the titlebar was not enough, and could never have been.
+ * The titlebar renders inside Radix Themes' <Theme>, which is position:
+ * relative with z-index: 0 — a stacking context — so the titlebar is sealed
+ * under level zero of the root however high its own z-index goes, while every
+ * dialog portals to body as a sibling. Measured in the real Electron build: an
+ * open dialog owned the point at the centre of the titlebar, and the element
+ * that owned it reported -webkit-app-region: none. That is the window's drag
+ * region and its back/forward buttons, gone for as long as a modal is up.
+ *
+ * Insetting is what the splash and the lightbox already do, and unlike a
+ * z-index it works from inside a sealed stacking context. --titlebar-inset is
+ * 0 everywhere but Electron, so this costs the browser build nothing.
+ */
+.gryt-dialog-backdrop,
+.gryt-drawer-backdrop {
+  top: var(--titlebar-inset, 0px);
+}
+
+/* And give it back its clicks.
+ *
+ * A modal dialog puts pointer-events: none on the body to make the rest of the
+ * app inert, which is right for the app and wrong for the window: measured in
+ * Electron with a dialog open, the titlebar computed pointer-events: none, so
+ * back, forward and the window buttons were dead until the dialog closed.
+ * Moving the overlay out of the way does not help with that — inertness is
+ * inherited, not painted.
+ *
+ * The drag region survives regardless, since -webkit-app-region is read off
+ * layout rather than hit-testing. This is about the controls.
+ */
+[data-gryt="titlebar"] {
+  pointer-events: auto;
+}
+
+/* Base typography on the document.
+ *
+ * @gryt/ui portals its overlays to document.body — Dialog, Drawer, Menu, Select
+ * and Tooltip all do — so a font set on any wrapper inside the app misses them
+ * and portaled content falls back to the browser's serif. This is the element
+ * everything inherits from, which is where it belonged all along.
+ */
+/* The page's own colours.
+ *
+ * Radix's <Theme hasBackground> painted these, and taking it out left nothing
+ * doing it: html and body were transparent and the text colour fell back to
+ * the browser's black, which is invisible on a dark app and was only hidden by
+ * the UA canvas happening to match. On html rather than body so the canvas is
+ * painted too — overscroll and the area behind a short page both show it. */
+html {
+  background: var(--gryt-bg);
+  color: var(--gryt-text);
+  /* Through the theme's variable first, then the face that ships with the app.
+     Stated here as well as in @gryt/ui's stylesheet, and this one wins because
+     it is a plain declaration on html rather than a Tailwind token — so a
+     theme that named a typeface set a variable nothing read and the app stayed
+     on Atkinson. That is the third file this has caught out; the docs site had
+     it twice. If a font stops following the theme, this is the shape to look
+     for: a face written down somewhere that does not fall through. */
+  font-family: var(
+    --gryt-font-body,
+    "Atkinson Hyperlegible Next",
+    ui-sans-serif,
+    system-ui,
+    sans-serif
+  );
+}
+
+/* Two things the .radix-themes wrapper used to carry and the app still wants.
+   Everything else in that block — the cursor variables, the scaling — was
+   Radix's own plumbing and went with it. */
+:root {
+  --code-font-family: var(
+    --gryt-font-mono,
+    "Atkinson Hyperlegible Mono",
+    monospace
+  );
+}
+
+/* Gryt light theme — gray background, white panels */
+.light, .light-theme {
+  --color-background: #eef0f4;
+  --color-panel-solid: #ffffff;
+  --color-panel-translucent: rgba(255, 255, 255, 0.88);
+  --color-surface: #ffffff;
+  --color-overlay: rgba(0, 0, 0, 0.25);
+}
+
+/* Gryt dark theme — matches the site/splash palette */
+.dark, .dark-theme {
+  --color-background: #111318;
+  --color-panel-solid: #1a1d24;
+  --color-panel-translucent: rgba(26, 29, 36, 0.85);
+  --color-surface: #1e2028;
+  --color-overlay: rgba(0, 0, 0, 0.5);
+}
+
+/* Divided by the UI scale, because the zoom that scales the app sits on the
+   root and viewport units do not go through it. At 150% on a 1440x900 window
+   the body laid out 2160x1350 and 720px of the app was off-screen. Keep dvh
+   rather than swapping to 100%: dvh is what tracks a mobile browser's toolbar
+   sliding in and out, and 100% would follow the large viewport instead. */
+body {
+  margin: 0;
+  padding: 0;
+  width: calc(100dvw / var(--gryt-ui-scale, 1));
+  height: calc(100dvh / var(--gryt-ui-scale, 1));
+}
+
+#root {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+* {
+  image-rendering: auto;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--gray-a5, rgba(255, 255, 255, 0.1));
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gray-a7, rgba(255, 255, 255, 0.2));
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+@keyframes pulse-reconnect {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.7; }
+}
+
+/* ── Server status ring (GRYT-314) ──────────────────────────────
+ *
+ * Two motions, because the two situations mean different things. A travelling
+ * arc says "working, no deadline". A depleting ring says "there is a budget
+ * and it is running out".
+ *
+ * Both animate `stroke-dashoffset` rather than a transform, which is the
+ * deliberate exception to the transform-and-opacity rule. Rotating the ring
+ * was the obvious cheaper version and it is wrong: the icon is a rounded
+ * square, so a rotated stroke tilts the silhouette away from the artwork it is
+ * drawn around instead of travelling along it. Moving the dash keeps the ring
+ * registered to the icon at every frame. It is one 2.5px stroke on a 38px box.
+ *
+ * `linear` throughout — a progress indicator that eases is lying about the
+ * rate.
+ */
+.gryt-server-ring rect {
+  animation: gryt-ring-sweep 1.6s linear infinite;
+}
+
+.gryt-server-ring[data-depleting] rect {
+  animation: gryt-ring-deplete var(--gryt-ring-duration, 10s) linear forwards;
+}
+
+@keyframes gryt-ring-sweep {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: -100; }
+}
+
+@keyframes gryt-ring-deplete {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: 100; }
+}
+
+/* Functional motion keeps running under reduced motion — it is carrying
+ * information, not flourish. The travelling arc stops, because an endless loop
+ * is exactly what reduced motion is asking us not to do; the depleting ring
+ * keeps going, because its whole job is to show a clock running down and a
+ * frozen one would say the opposite. */
+@media (prefers-reduced-motion: reduce) {
+  .gryt-server-ring rect {
+    animation: none;
+  }
+  .gryt-server-ring[data-depleting] rect {
+    animation: gryt-ring-deplete var(--gryt-ring-duration, 10s) linear forwards;
+  }
+}
+
+/* ── Chat Editor ───────────────────────────────────────────── */
+
+.chat-editor-wrapper {
+  display: flex;
+  flex-direction: column;
+  background: var(--gryt-neutral-2);
+  border: 1px solid var(--gryt-neutral-6);
+  border-radius: var(--gryt-radius-lg);
+  transition: border-color 0.15s ease;
+}
+
+.chat-editor-wrapper:focus-within {
+  border-color: var(--gryt-accent-8);
+}
+
+.chat-editor-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.chat-editor-textarea {
+  padding: 10px 14px;
+  min-height: 21px;
+  max-height: 200px;
+  overflow-y: auto;
+  outline: none;
+  border: none;
+  background: transparent;
+  font-size: var(--chat-font-size, 16px);
+  line-height: 1.5;
+  color: var(--gryt-neutral-12);
+  font-family: inherit;
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.chat-editor-textarea:empty::before {
+  content: attr(data-placeholder);
+  color: var(--gryt-neutral-9);
+  pointer-events: none;
+}
+
+.chat-editor-textarea img.inline-emoji {
+  height: 1.4em;
+  width: auto;
+  vertical-align: middle;
+  display: inline;
+  object-fit: contain;
+  margin: 0 1px;
+}
+
+.chat-editor-mention {
+  display: inline-flex;
+  align-items: center;
+  color: var(--gryt-accent-11);
+  font-weight: 600;
+  background: var(--gryt-accent-a3);
+  border-radius: var(--gryt-radius-sm);
+  padding: 0 2px;
+  user-select: none;
+  white-space: nowrap;
+}
+
+/* ── Emoji Upload (per-emoji progress overlay) ─────────────── */
+
+.emoji-upload-preview-wrap {
+  width: 32px;
+  height: 32px;
+  position: relative;
+  flex-shrink: 0;
+  border-radius: var(--gryt-radius-sm);
+  overflow: hidden;
+  background: var(--gryt-neutral-3);
+}
+
+.emoji-upload-preview-img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  display: block;
+}
+
+.emoji-upload-preview-wrap[data-status="uploading"] .emoji-upload-preview-img {
+  filter: grayscale(1);
+  opacity: 0.45;
+}
+
+.emoji-upload-preview-wrap[data-status="processing"] .emoji-upload-preview-img {
+  filter: grayscale(1);
+  opacity: 0.45;
+}
+
+.emoji-upload-preview-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: stretch;
+  pointer-events: none;
+  padding: 0;
+}
+
+.emoji-upload-preview-label {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75);
+  letter-spacing: 0.2px;
+}
+
+.emoji-upload-preview-bar {
+  width: 100%;
+  height: 7px;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.emoji-upload-preview-bar-inner {
+  height: 100%;
+  background: var(--gryt-accent-9);
+  transition: width 150ms ease;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25) inset;
+}
+
+.emoji-upload-preview-wrap[data-status="processing"] .emoji-upload-preview-bar-inner {
+  background: var(--gryt-warning-9);
+}
+
+/* ── File Preview Bar (editor) ─────────────────────────────── */
+
+.chat-editor-file-preview-bar {
+  display: flex;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--gryt-neutral-5);
+  overflow-x: auto;
+  flex-wrap: nowrap;
+}
+
+.chat-editor-file-preview {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100px;
+  border-radius: var(--gryt-radius-md);
+  overflow: hidden;
+  border: 1px solid var(--gryt-neutral-5);
+  background: var(--gryt-neutral-3);
+}
+
+.chat-editor-file-preview img {
+  width: 100px;
+  height: 70px;
+  object-fit: cover;
+  display: block;
+}
+
+.chat-editor-file-preview-icon {
+  width: 100px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gryt-neutral-9);
+  font-size: 28px;
+}
+
+.chat-editor-file-preview-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2px 4px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.chat-editor-file-preview-name {
+  font-size: 10px;
+  color: var(--gryt-neutral-11);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  text-align: center;
+}
+
+.chat-editor-file-preview-size {
+  font-size: 9px;
+  color: var(--gryt-neutral-9);
+}
+
+.chat-editor-file-delete {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: none;
+  background: var(--color-overlay);
+  color: var(--gryt-neutral-1);
+  font-size: 10px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.chat-editor-file-preview:hover .chat-editor-file-delete {
+  opacity: 1;
+}
+
+.chat-editor-file-delete:hover {
+  background: var(--gryt-danger-9);
+}
+
+/* ── Editor Input Row ──────────────────────────────────────── */
+
+.chat-editor-input-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0;
+}
+
+.chat-editor-attach-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin: 2px 0 2px 4px;
+  background: none;
+  border: none;
+  color: var(--gryt-neutral-9);
+  cursor: pointer;
+  border-radius: var(--gryt-radius-md);
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+/* No fill at rest, so names sit on the rail. Clickable rows get one on hover
+   and focus to show they open a conversation (GRYT-1168). */
+.member-row {
+  border-radius: var(--gryt-radius-xl);
+  padding: 8px 12px;
+  cursor: default;
+  transition: background 0.15s ease;
+}
+
+.member-row-clickable {
+  cursor: pointer;
+}
+
+.member-row-clickable:hover,
+.member-row-clickable:focus-visible,
+.member-row[data-card-open] {
+  background: var(--gryt-neutral-4);
+}
+
+.member-row-clickable:focus-visible {
+  outline: 2px solid var(--gryt-accent-8);
+  outline-offset: -2px;
+}
+
+.chat-editor-attach-btn:hover {
+  color: var(--gryt-neutral-12);
+  background: var(--gryt-neutral-4);
+}
+
+.chat-editor-attach-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.chat-editor-emoji-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin: 2px 0;
+  background: none;
+  border: none;
+  color: var(--gryt-neutral-9);
+  cursor: pointer;
+  border-radius: var(--gryt-radius-md);
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.chat-editor-emoji-btn:hover {
+  color: var(--gryt-neutral-12);
+  background: var(--gryt-neutral-4);
+}
+
+.chat-editor-emoji-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.chat-editor-send-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin: 2px 4px 2px 0;
+  background: none;
+  border: none;
+  color: var(--gryt-neutral-9);
+  cursor: pointer;
+  border-radius: var(--gryt-radius-md);
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.chat-editor-send-btn:hover {
+  color: var(--gryt-accent-9);
+  background: var(--gryt-neutral-4);
+}
+
+.chat-editor-send-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Chat View Drop Overlay ───────────────────────────────── */
+
+.chat-view-drop-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--gryt-accent-3) 85%, transparent);
+  backdrop-filter: blur(2px);
+  border: 2px dashed var(--gryt-accent-9);
+  border-radius: var(--gryt-radius-lg);
+  pointer-events: none;
+}
+
+.chat-view-drop-overlay-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--gryt-accent-11);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* ── Chat scroll container ────────────────────────────────── */
+
+.chat-scroll-container {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin-bottom: 12px;
+}
+
+/* A new message fades in while the list glides up to make room (useChatScroll's glide). Opacity
+   only, so the row is its full height at once and nothing re-lays out while it plays. */
+.gryt-message-enter {
+  animation: gryt-message-enter 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes gryt-message-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gryt-message-enter {
+    animation: none;
+  }
+}
+
+/* ── Attachment images in messages ─────────────────────────── */
+
+.chat-attachment-image-wrapper {
+  position: relative;
+  max-width: min(var(--img-w, 480px), 480px, 100%);
+  max-height: 480px;
+  width: fit-content;
+  border-radius: var(--gryt-radius-md);
+  overflow: hidden;
+}
+
+/* An attachment the server could not read dimensions for. Without this the
+   wrapper is fit-content around an image that has not arrived, so it is zero
+   tall, the skeleton inside it has nothing to fill, and the row jumps when the
+   file lands. Dropped the moment the image loads, so the real picture is never
+   held to a guessed box. */
+.chat-attachment-image-wrapper[data-unsized] {
+  width: min(320px, 100%);
+  aspect-ratio: 4 / 3;
+}
+
+.chat-attachment-image {
+  display: block;
+  max-width: 100%;
+  max-height: 480px;
+  width: auto;
+  height: auto;
+  border-radius: var(--gryt-radius-md);
+  cursor: pointer;
+}
+
+.chat-attachment-image:hover {
+  opacity: 0.85;
+}
+
+/* ── Image Lightbox ───────────────────────────────────────── */
+
+.lightbox-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--gryt-z-lightbox);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(4px);
+  overflow: hidden;
+}
+
+.lightbox-image {
+  user-select: none;
+  border-radius: var(--gryt-radius-sm);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+  transition: transform 0.05s linear;
+}
+
+.lightbox-toolbar-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--gryt-radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+
+.lightbox-toolbar-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.lightbox-hint {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 13px;
+  pointer-events: none;
+  white-space: nowrap;
+  user-select: none;
+}
+
+/* ── File Card (generic file attachment) ──────────────────── */
+
+.chat-file-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--gryt-neutral-2);
+  border: 1px solid var(--gryt-neutral-5);
+  border-radius: var(--gryt-radius-md);
+  max-width: 340px;
+  min-width: 220px;
+}
+
+.chat-file-card-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--gryt-radius-md);
+  background: var(--gryt-neutral-4);
+  color: var(--gryt-accent-9);
+}
+
+.chat-file-card-download {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--gryt-radius-md);
+  background: var(--gryt-neutral-4);
+  color: var(--gryt-neutral-11);
+  transition: background 0.15s ease, color 0.15s ease;
+  text-decoration: none;
+}
+
+.chat-file-card-download:hover {
+  background: var(--gryt-accent-4);
+  color: var(--gryt-accent-11);
+}
+
+/* ── Link Embeds ─────────────────────────────────────────── */
+
+.link-embed-container {
+  position: relative;
+  max-width: 420px;
+  overflow: hidden;
+  border-radius: var(--gryt-radius-md);
+}
+
+.link-embed-dismiss {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--gryt-radius-md);
+  border: none;
+  background: rgba(0, 0, 0, 0.55);
+  color: white;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.link-embed-container:hover .link-embed-dismiss {
+  opacity: 1;
+}
+
+.link-embed-dismiss:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.link-embed-image {
+  width: 100%;
+  max-height: 350px;
+  height: auto;
+  object-fit: cover;
+  border-radius: var(--gryt-radius-md);
+  cursor: pointer;
+  display: block;
+  background: var(--gryt-neutral-3);
+  transition: opacity 0.15s ease;
+}
+
+.link-embed-image:hover {
+  opacity: 0.9;
+}
+
+.link-embed-video {
+  width: 480px;
+  max-width: 100%;
+}
+
+.link-embed-video .link-embed-dismiss {
+  right: auto;
+  left: 6px;
+}
+
+.link-embed-video .gryt-video-player:not([data-fullscreen]) > video {
+  max-height: 400px;
+}
+
+.link-embed-iframe {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: none;
+  border-radius: var(--gryt-radius-md);
+  display: block;
+  background: var(--gryt-neutral-3);
+}
+
+.link-embed-iframe-soundcloud {
+  width: 100%;
+  height: 166px;
+  border: none;
+  border-radius: var(--gryt-radius-md);
+  display: block;
+  background: var(--gryt-neutral-3);
+}
+
+.link-embed-iframe-spotify {
+  width: 100%;
+  border: none;
+  border-radius: var(--gryt-radius-md);
+  display: block;
+  background: var(--gryt-neutral-3);
+}
+
+.link-embed-iframe-tiktok {
+  width: 100%;
+  max-width: 325px;
+  aspect-ratio: 9 / 16;
+  max-height: 600px;
+  border: none;
+  border-radius: var(--gryt-radius-md);
+  display: block;
+  background: var(--gryt-neutral-3);
+}
+
+.link-embed-iframe-instagram {
+  width: 100%;
+  height: 480px;
+  border: none;
+  border-radius: var(--gryt-radius-md);
+  display: block;
+  background: var(--gryt-neutral-3);
+}
+
+.link-embed-iframe-twitter {
+  width: 100%;
+  height: 460px;
+  border: none;
+  border-radius: var(--gryt-radius-md);
+  display: block;
+  background: var(--gryt-neutral-3);
+}
+
+.link-embed-twitter-skeleton {
+  width: 100%;
+  height: 460px;
+}
+
+.link-embed-audio-wrap {
+  padding: 8px 12px;
+  background: var(--gryt-neutral-2);
+  border: 1px solid var(--gryt-neutral-5);
+  border-radius: var(--gryt-radius-md);
+}
+
+.link-embed-audio {
+  width: 100%;
+  height: 36px;
+}
+
+.link-embed-card {
+  display: flex;
+  text-decoration: none;
+  color: inherit;
+  border-radius: var(--gryt-radius-md);
+  overflow: hidden;
+  background: var(--gryt-neutral-2);
+  border: 1px solid var(--gryt-neutral-5);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.link-embed-card:hover {
+  border-color: var(--gryt-neutral-7);
+  background: var(--gryt-neutral-3);
+}
+
+/* The site's own colour where there is one to use, and the app's accent
+   otherwise. LinkPreviewCard sets --link-embed-accent from the brand it knows
+   or the theme-color the page declared. */
+.link-embed-card-accent {
+  width: 4px;
+  flex-shrink: 0;
+  background: var(--link-embed-accent, var(--gryt-accent-9));
+}
+
+.link-embed-card-inner {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Text and thumbnail sit side by side; a large image goes underneath both. */
+.link-embed-card-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.link-embed-card-body {
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* A square or portrait image beside the text rather than under it. Cropping it
+   to a square keeps a column of cards aligned when the images are not. */
+.link-embed-card-thumb {
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+  margin: 10px 14px 10px 0;
+  border-radius: var(--gryt-radius-sm);
+  overflow: hidden;
+  background: var(--gryt-neutral-3);
+}
+
+.link-embed-card-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Read out of the path rather than the page: `owner/repo`, `r/programming`.
+   It is the title when the page gave us none, and a subtitle when it did. */
+.link-embed-card-detail {
+  font-size: 12.5px;
+  color: var(--gryt-neutral-11);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Attribution, under the description. Smaller and dimmer than the detail line
+   above the title, because that one is what the card is about and this one is
+   who to credit for it. */
+.link-embed-card-byline {
+  font-size: 11.5px;
+  color: var(--gryt-neutral-10);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.link-embed-card-failure {
+  font-size: 12.5px;
+  color: var(--gryt-neutral-10);
+  font-style: italic;
+}
+
+/* No picture, so no room set aside for one. The card is as tall as its words. */
+.link-embed-card-text .link-embed-card-inner,
+.link-embed-card-bare .link-embed-card-inner {
+  min-height: 0;
+}
+
+.link-embed-card-bare .link-embed-card-body {
+  padding: 8px 14px;
+}
+
+.link-embed-card-site {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.link-embed-card-favicon {
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* A real logo, tinted to the site's colour, for the sites we know by name. It
+   replaces the favicon rather than sitting next to it: a 16px .ico scaled up
+   is the blurry thing this is here to avoid. */
+.link-embed-card-brand {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  color: var(--link-embed-accent, var(--gryt-neutral-9));
+}
+
+.link-embed-card-hostname {
+  font-size: 12px;
+  color: var(--gryt-neutral-9);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.link-embed-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gryt-accent-11);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.35;
+}
+
+.link-embed-card-description {
+  font-size: 13px;
+  color: var(--gryt-neutral-11);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
+}
+
+.link-embed-card-image-wrap {
+  width: 100%;
+  max-height: 200px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gryt-neutral-3);
+}
+
+.link-embed-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* There was a .link-embed-card-image-placeholder here: a grey rectangle drawn
+   at the picture's size whenever a page had no picture. The card now picks a
+   layout without one instead, so nothing needs a stand-in. */
+
+/* ── Media Players ────────────────────────────────────────── */
+
+.chat-audio-player {
+  max-width: 420px;
+  min-width: 260px;
+}
+
+.chat-audio-player audio {
+  width: 100%;
+  height: 36px;
+  border-radius: var(--gryt-radius-md);
+}
+
+.chat-video-player {
+  width: 480px;
+  max-width: 100%;
+}
+
+.chat-video-player .gryt-video-player:not([data-fullscreen]) > video,
+.chat-video-player .gryt-video-player > img {
+  max-height: 480px;
+  object-fit: contain;
+}
+
+/* Without a poster the idle player is the same grey as the message behind it. */
+.chat-video-player .gryt-video-player[data-state="idle"]:not(:focus-visible),
+.link-embed-video .gryt-video-player[data-state="idle"]:not(:focus-visible) {
+  outline: 1px solid var(--gryt-neutral-5);
+  outline-offset: -1px;
+}
+
+/* A poster that failed to load has no size of its own, and the player would collapse to nothing. */
+.chat-video-player .gryt-video-player > img {
+  aspect-ratio: auto 16 / 9;
+}
+
+/* The size stored with the attachment. Every stage of the player takes it, so the box
+   is the video's shape from first paint and pressing play moves nothing (GRYT-1309). */
+.chat-video-player[data-sized] .gryt-video-player:not([data-fullscreen]) > video,
+.chat-video-player[data-sized] .gryt-video-player > img,
+.chat-video-player[data-sized] .gryt-video-player > .aspect-video {
+  aspect-ratio: var(--chat-video-ratio);
+}
+
+/* The placeholder shown when there is no poster, capped like the video it stands in for. */
+.chat-video-player[data-sized] .gryt-video-player > .aspect-video {
+  max-height: 480px;
+}
+
+.chat-media-filename {
+  display: block;
+  font-size: 12px;
+  /* gray-10 is a solid step for backgrounds and borders; against the message
+     surface it measures 3.74, under the 4.5 AA needs for 12px text. gray-11 is
+     the low-contrast text step and measures 7.58. */
+  color: var(--gryt-neutral-11);
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Markdown message rendering ────────────────────────────── */
+
+.markdown-message {
+  font-size: var(--chat-font-size, 16px);
+  line-height: 1.5;
+  /* Every gap below is a multiple of this, so the rhythm follows the chat
+     font-size slider rather than staying 8px at 10px text and at 24px text. */
+  --md-unit: var(--chat-font-size, 16px);
+}
+
+.markdown-message :is(.md-p, ul, ol, pre, blockquote, .md-table, .markdown-image-wrap) {
+  margin-block: calc(var(--md-unit) * 0.5);
+}
+
+/* A heading belongs to the block under it, so it gets more room above than
+   below. Without that, nine bold lines and nine sentences read as one wall. */
+.markdown-message :is(h1, h2, h3) {
+  margin-bottom: calc(var(--md-unit) * 0.25);
+  line-height: 1.3;
+}
+
+.markdown-message h1 {
+  margin-top: calc(var(--md-unit) * 1.25);
+  font-size: 1.4em;
+  font-weight: 700;
+}
+
+.markdown-message h2 {
+  margin-top: var(--md-unit);
+  font-size: 1.2em;
+  font-weight: 700;
+}
+
+.markdown-message h3 {
+  margin-top: calc(var(--md-unit) * 0.75);
+  font-size: 1.1em;
+  font-weight: 600;
+}
+
+.markdown-message hr {
+  margin-block: var(--md-unit);
+  border: none;
+  border-top: 1px solid var(--gryt-neutral-6);
+}
+
+/* The 20px was always there to make room for a marker, but Tailwind's reset
+   takes `list-style` off every list, so nothing was ever drawn in it. */
+.markdown-message :is(ul, ol) {
+  padding-left: 20px;
+}
+
+.markdown-message ul { list-style: disc outside; }
+.markdown-message ul ul { list-style-type: circle; }
+.markdown-message ul ul ul { list-style-type: square; }
+.markdown-message ol { list-style: decimal outside; }
+
+.markdown-message li + li {
+  margin-top: calc(var(--md-unit) * 0.25);
+}
+
+.markdown-message li :is(ul, ol) {
+  margin-block: calc(var(--md-unit) * 0.25) 0;
+}
+
+/* The quote rule and the bullet have to start level with their own text, which
+   a child's margin would otherwise push down and leave the mark hanging. */
+.markdown-message :is(blockquote, li) > :first-child {
+  margin-top: 0;
+}
+
+.markdown-message :is(blockquote, li) > :last-child {
+  margin-bottom: 0;
+}
+
+.markdown-message .md-table {
+  overflow-x: auto;
+}
+
+.markdown-image-wrap {
+  display: block;
+  max-width: min(420px, 100%);
+}
+
+.markdown-image {
+  max-width: 100%;
+  max-height: 300px;
+  width: auto;
+  height: auto;
+  border-radius: var(--gryt-radius-md);
+  display: block;
+  cursor: pointer;
+}
+
+.markdown-message > :first-child {
+  margin-top: 0;
+}
+
+.markdown-message > :last-child {
+  margin-bottom: 0;
+}
+
+.markdown-message.emoji-only {
+  font-size: var(--emoji-only-size, 64px);
+  line-height: 1.25;
+}
+
+.markdown-message.emoji-only .inline-emoji {
+  height: var(--emoji-only-size, 64px) !important;
+  width: auto !important;
+}
+
+/* A card sets its own type scale, and remark-breaks already turns newlines into <br>,
+   so the card's pre-line would draw each one twice. */
+.gryt-webhook-card .markdown-message,
+.gryt-webhook-card .markdown-message.emoji-only {
+  font-size: inherit;
+  line-height: inherit;
+  white-space: normal;
+  /* Half the chat unit. A card is a summary in a fixed box, so it stays tight
+     while a message in the log gets the room. */
+  --md-unit: 8px;
+}
+
+.gryt-webhook-card .markdown-message.emoji-only .inline-emoji {
+  height: 1.4em !important;
+}
+
+/* ── Code highlighting (highlight.js compatible) ───────────── */
+
+.hljs {
+  color: var(--gryt-neutral-12);
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-section,
+.hljs-link {
+  color: var(--gryt-secondary-11);
+}
+
+.hljs-string,
+.hljs-title,
+.hljs-name,
+.hljs-type,
+.hljs-attribute,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition,
+.hljs-variable,
+.hljs-template-tag,
+.hljs-template-variable {
+  color: var(--gryt-success-11);
+}
+
+.hljs-comment,
+.hljs-quote,
+.hljs-deletion,
+.hljs-meta {
+  color: var(--gryt-neutral-9);
+}
+
+.hljs-number,
+.hljs-regexp,
+.hljs-literal,
+.hljs-params {
+  color: var(--gryt-warning-11);
+}
+
+.hljs-built_in {
+  color: var(--gryt-secondary-11);
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: bold;
+}
+
+/* Hide the submenu arrow on the emoji picker trigger in context menus */
+.emoji-picker-sub-trigger > .gryt-menu-shortcut {
+  display: none;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ── Large-screen scaling for embeds & media ────────────── */
+
+@media (min-width: 1800px) {
+  .chat-attachment-image-wrapper {
+    max-width: min(var(--img-w, 620px), 620px, 100%);
+    max-height: 620px;
+  }
+
+  .chat-attachment-image {
+    max-height: 620px;
+  }
+
+  .link-embed-container {
+    max-width: 620px;
+  }
+
+  .link-embed-image {
+    max-height: 500px;
+  }
+
+  .link-embed-video .gryt-video-player:not([data-fullscreen]) > video {
+    max-height: 560px;
+  }
+
+  .link-embed-iframe-tiktok {
+    max-width: 400px;
+    max-height: 720px;
+  }
+
+  .link-embed-iframe-instagram {
+    height: 620px;
+  }
+
+  .link-embed-iframe-twitter {
+    height: 580px;
+  }
+
+  .link-embed-twitter-skeleton {
+    height: 580px;
+  }
+
+  .link-embed-card-image-wrap {
+    max-height: 300px;
+  }
+
+  .chat-audio-player {
+    max-width: 620px;
+    min-width: 320px;
+  }
+
+  .chat-video-player {
+    width: 700px;
+  }
+
+  .chat-video-player .gryt-video-player:not([data-fullscreen]) > video,
+  .chat-video-player .gryt-video-player > img,
+  .chat-video-player[data-sized] .gryt-video-player > .aspect-video {
+    max-height: 620px;
+  }
+
+  .chat-file-card {
+    max-width: 480px;
+    min-width: 280px;
+  }
+
+  .markdown-image-wrap {
+    max-width: min(620px, 100%);
+  }
+
+  .markdown-image {
+    max-height: 480px;
+  }
+}
+
+/* ── Server error toast ─────────────────────────────────────────────────────
+   An error toast that says which server it is about, and which channel.
+
+   Classes rather than inline styles, because that is what the rest of this
+   sheet is and because a toast has to read at a glance: the weights and the
+   two greys below are the whole design, and they are easier to keep honest in
+   one place than spread across a JSX tree.
+
+   react-hot-toast already draws its own error mark to the left of this, so
+   there is no second red thing here. The only colour is the server's own icon.
+*/
+/* A toast you can get rid of before its time is up. The close button sits on the
+   text's baseline row rather than the toast's, so one line or three both look right. */
+.dismissible-toast {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  max-width: min(20rem, 68vw);
+}
+
+.dismissible-toast-message {
+  flex: 1;
+  min-width: 0;
+}
+
+.dismissible-toast-close {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin: -2px -4px 0 0;
+  padding: 0;
+  border: none;
+  border-radius: var(--gryt-radius-sm);
+  background: transparent;
+  color: var(--gryt-neutral-10);
+  cursor: pointer;
+}
+
+.dismissible-toast-close:hover {
+  background: var(--gryt-neutral-a3);
+  color: var(--gryt-neutral-12);
+}
+
+.dismissible-toast-close:focus-visible {
+  outline: 2px solid var(--gryt-accent-8);
+  outline-offset: 1px;
+}
+
+.server-toast {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  /* Bounded here rather than left to the toast: main.tsx gives the Toaster a
+     `style`, which react-hot-toast merges over its own defaults — including the
+     max-width that keeps a toast on screen. Without a cap, a long server name
+     pushes the toast past the edge of the window instead of ellipsising. */
+  max-width: min(20rem, 68vw);
+}
+
+.server-toast-icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  overflow: hidden;
+  /* The rail's corner, from the theme, so the icon in a toast is the same
+     object as the icon you clicked. */
+  border-radius: var(--gryt-radius-md);
+  background: var(--gryt-neutral-3);
+  /* Inset rather than a border, so the 32px box stays 32px and lines up with
+     the first line of text rather than sitting a pixel low. */
+  box-shadow: inset 0 0 0 1px var(--gryt-neutral-6);
+}
+
+.server-toast-icon img,
+.server-toast-icon > div {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.server-toast-body {
+  /* Without this the flex child refuses to shrink and the ellipsis never
+     triggers, however narrow the toast gets. */
+  min-width: 0;
+}
+
+.server-toast-where {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  min-width: 0;
+}
+
+.server-toast-server {
+  font-weight: 600;
+  color: var(--gryt-neutral-12);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The channel gives way first. Which server it is narrows the problem more
+   than which channel, so the name keeps the room when there is not enough. */
+.server-toast-channel {
+  flex-shrink: 0;
+  max-width: 45%;
+  color: var(--gryt-neutral-11);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.server-toast-channel::before {
+  content: "#";
+  color: var(--gryt-neutral-9);
+}
+
+.server-toast-message {
+  margin-top: 3px;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--gryt-neutral-11);
+}
+
+/* ── Folded messages ────────────────────────────────────────────────────────
+   A tall message is folded to twenty lines with a control to open it.
+   The height, not the character count, is what decides — see CollapsibleText.
+
+   The server refuses anything past 4,000 characters, so this is not a defence
+   against a big message; it is about how much room one is allowed to take
+   before you have to scroll past it.
+*/
+.message-fold {
+  position: relative;
+}
+
+/* The clip lives on an inline style rather than here, because the same element
+   is measured — a class that sets max-height would make scrollHeight and the
+   cap the same number and the message would never look like it overflowed. */
+.message-fold-inner {
+  min-width: 0;
+}
+
+.message-fold-fade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  /* Sits above the toggle rather than behind it, so the last line goes under
+     the fade instead of colliding with the control. */
+  bottom: 1.6rem;
+  height: 3rem;
+  pointer-events: none;
+  background: linear-gradient(to bottom, transparent, var(--gryt-neutral-1));
+}
+
+/* Hallmark · component: expand-control · genre: atmospheric · theme: Gryt (project tokens)
+ * states: default · hover · focus-visible · active
+ *   disabled/loading/error/success do not apply — the control toggles a clip on
+ *   content that is already in the DOM. It cannot fail, cannot wait, and is
+ *   never unavailable, so styling those four would be inventing states.
+ * contrast: label neutral-11 on neutral-3 at rest, neutral-12 on hover
+ */
+.message-fold-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+  padding: 3px 9px 3px 8px;
+  border: 0;
+  border-radius: var(--gryt-radius-sm);
+  background: var(--gryt-neutral-3);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  /* Neutral at rest, not accent. An accent-coloured control sitting under a
+     message reads as a link inside it, competing with the real links and
+     mentions in the text. This is chrome — it should be findable and quiet. */
+  color: var(--gryt-neutral-11);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.message-fold-toggle:hover {
+  background: var(--gryt-neutral-4);
+  color: var(--gryt-neutral-12);
+}
+
+.message-fold-toggle:active {
+  background: var(--gryt-neutral-5);
+}
+
+.message-fold-toggle:focus-visible {
+  outline: 2px solid var(--gryt-accent-8);
+  outline-offset: 2px;
+}
+
+/* The count is the point of the control — "there is more" is already obvious
+   from the fade above it, and how much more is what decides whether to click. */
+.message-fold-count {
+  color: var(--gryt-neutral-12);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The mark is drawn either way up rather than rotated — see Chevron in
+   CollapsibleText.tsx for why. Nothing here animates, so there is nothing for
+   prefers-reduced-motion to switch off beyond the colour transitions above. */
+.message-fold-chevron {
+  flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .message-fold-toggle {
+    transition: none;
+  }
+}
+
+/* The characters left, once there are few enough to care about. Absent until
+   500 from the cap, so it is a warning rather than a permanent gauge. */
+.chat-editor-counter {
+  align-self: center;
+  padding: 0 6px;
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--gryt-neutral-11);
+  user-select: none;
+}
+
+.chat-editor-counter[data-over="true"] {
+  color: var(--gryt-danger-11);
+  font-weight: 600;
+}
+
+/* ── What's new, the first launch after an update (GRYT-1088) ───────────────
+   One row per change, each with its own pill. The pills share a column and
+   the text sits beside them, one hairline per change (GRYT-1214). */
+
+/* Scrolls, and shrinks before the footer does. `min-height: 0` because a flex
+   child refuses to shrink below its content without it, and then nothing scrolls. */
+.whats-new-pad {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 1.375rem 0.25rem;
+}
+
+/* The greeting carries the top padding rather than the scroll area. A sticky heading stops
+   below a scroll area's own padding, so the rows would show above it on their way out. */
+.whats-new-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-top: 1.25rem;
+}
+
+.whats-new-mark {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 2.375rem;
+  height: 2.375rem;
+  border: 1px solid var(--gryt-accent-a5);
+  border-radius: var(--gryt-radius-md);
+  background: var(--gryt-accent-a3);
+}
+
+.whats-new-mark svg {
+  display: block;
+  border-radius: 7px;
+}
+
+.whats-new-greet {
+  margin: 0;
+  font-size: 0.97rem;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
+}
+
+.whats-new-meta {
+  margin: 0.1875rem 0 0;
+  font-family: var(--gryt-font-mono);
+  font-size: 0.72rem;
+  color: var(--gryt-muted);
+}
+
+/* The pill column is as wide as the widest Chip and no wider, so "Security" fits
+   without a number here that has to be kept in step with the Chip's padding. */
+.whats-new-changes {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  column-gap: 0.875rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Each row takes the list's columns, so a long change wraps under its own text
+   rather than under the pill, and the pill sits on the first line's baseline. */
+.whats-new-change {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: baseline;
+  padding: 0.6875rem 0;
+  border-top: 1px solid var(--gryt-border);
+}
+
+/* Stretched to the column, so Fixed and Changed are one width down the list. */
+.whats-new-kind {
+  justify-content: center;
+}
+
+.whats-new-change p,
+.whats-new-plain,
+.whats-new-line {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.52;
+}
+
+/* A release with changes: its line, its security fixes in a block of their own, then
+   the rest by area. One pill column runs through all of it, so the text lines up. */
+.whats-new-body {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  column-gap: 0.875rem;
+  margin: 1rem 0 0;
+}
+
+.whats-new-body > *,
+.whats-new-group > * {
+  grid-column: 1 / -1;
+}
+
+.whats-new-body > .whats-new-changes,
+.whats-new-group > .whats-new-changes {
+  grid-template-columns: subgrid;
+  margin: 0.75rem 0 0;
+}
+
+/* An area, and the security block: the heading and the rows share one grid row. A sticky
+   box travels inside its own grid area, and a row holding nothing but the heading is
+   exactly as tall as it is, which leaves it nowhere to go (GRYT-1402). */
+.whats-new-group {
+  /* Where the heading is pinned, and the room the rows leave for it. One value for
+     both, because the pinned heading lies over its rows rather than above them. */
+  --whats-new-area-height: 1.5rem;
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  margin-top: 1.125rem;
+}
+
+.whats-new-group > .whats-new-area,
+.whats-new-group > .whats-new-changes {
+  grid-row: 1;
+}
+
+.whats-new-group > .whats-new-changes {
+  margin: 0;
+  padding-top: var(--whats-new-area-height);
+}
+
+.whats-new-area {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  gap: 0.4375rem;
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gryt-muted);
+}
+
+/* Pinned at the top of the list for as long as its own rows are on screen, and pushed
+   off by the next area's. The card's own colour, so the rows pass behind it. */
+.whats-new-group > .whats-new-area {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  align-self: start;
+  height: var(--whats-new-area-height);
+  background: var(--gryt-surface);
+}
+
+.whats-new-area-icon {
+  flex: none;
+  color: var(--gryt-accent-11);
+}
+
+/* Clipped rather than wrapped: the rows keep one line's worth of room clear, and an area
+   name this build has never seen is whatever the site called it. */
+.whats-new-area-name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* The app's error red as a tint rather than a fill. The negative margin and matching
+   padding keep its pills in the same column as the rows below it. */
+.whats-new-security {
+  display: grid;
+  grid-template-columns: subgrid;
+  margin: 0.875rem -0.75rem 0;
+  padding: 0.75rem 0.75rem 0;
+  border-radius: var(--gryt-radius-md);
+  background: var(--gryt-danger-2);
+  box-shadow: inset 0 0 0 1px var(--gryt-danger-6);
+}
+
+/* The block's own tint rather than the card's, for the same reason: its rows scroll
+   behind its heading too, and they do it on red. */
+.whats-new-security > .whats-new-area {
+  color: var(--gryt-danger-11);
+  background: var(--gryt-danger-2);
+}
+
+.whats-new-security .whats-new-area-icon {
+  color: inherit;
+}
+
+.whats-new-security .whats-new-change {
+  border-top-color: var(--gryt-danger-6);
+}
+
+/* A release nobody split into kinds. Everything before 1.10 is this. */
+.whats-new-plain {
+  margin-top: 1rem;
+  padding-top: 0.6875rem;
+  border-top: 1px solid var(--gryt-border);
+}
+
+/* Several releases share one pill column through subgrid, so each release's text
+   starts at the same place whichever chips it happens to have. */
+.whats-new-releases {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  column-gap: 0.875rem;
+}
+
+.whats-new-release,
+.whats-new-release > .whats-new-body {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+}
+
+.whats-new-release > * {
+  grid-column: 1 / -1;
+}
+
+.whats-new-release + .whats-new-release {
+  margin-top: 0.5rem;
+}
+
+.whats-new-version {
+  margin: 1.25rem 0 0;
+  font-family: var(--gryt-font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--gryt-muted);
+}
+
+.whats-new-version + .whats-new-body,
+.whats-new-version + .whats-new-plain {
+  margin-top: 0.5rem;
+}
+
+/* Narrow enough that the pill column stops leaving room for a sentence beside it:
+   each pill goes above its own change instead. On the card's own width rather than
+   the window's — the card is what has to hold the sentence, and on a phone the
+   two do not agree by the 3rem the popup keeps clear of the edges. */
+@container (max-width: 380px) {
+  .whats-new-releases,
+  .whats-new-body,
+  .whats-new-changes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .whats-new-change {
+    row-gap: 0.4375rem;
+  }
+
+  .whats-new-kind {
+    justify-self: start;
+  }
+}
+
+.whats-new-foot {
+  /* Never shrinks. It holds the way out, so it is the last thing that gives. */
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding: 0.875rem 1.375rem 1.125rem;
+  border-top: 1px solid var(--gryt-border);
+  background: var(--gryt-surface-raised);
+}
+
+.whats-new-link {
+  font-size: 0.84rem;
+}
+
+/* ── A server's release notes, from its version chip (GRYT-1413) ────────────
+   The same dialog, listing releases the server doesn't run yet, then how to update. */
+
+.server-version-chip {
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  cursor: pointer;
+}
+
+.server-version-chip:focus-visible {
+  outline: 2px solid var(--gryt-accent-8);
+  outline-offset: 1px;
+}
+
+.whats-new-lead {
+  margin: 1rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.52;
+}
+
+.whats-new-ahead {
+  margin-top: 1.25rem;
+}
+
+/* How to update: set off from the notes by a rule, one route per item. */
+.whats-new-update {
+  margin-top: 1.5rem;
+  padding: 1.125rem 0 0.75rem;
+  border-top: 1px solid var(--gryt-border);
+}
+
+.whats-new-update > .whats-new-line {
+  margin-top: 0.625rem;
+}
+
+.whats-new-routes {
+  display: grid;
+  gap: 1rem;
+  margin: 0.875rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.whats-new-routes h4 {
+  margin: 0;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.whats-new-routes p {
+  margin: 0.25rem 0 0;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--gryt-muted);
+}
+
+.whats-new-update code {
+  font-family: var(--code-font-family);
+  font-size: 0.8rem;
+}
+
+/* Selected whole on a click, since the only thing anybody does with it is copy it. */
+.whats-new-command {
+  display: block;
+  margin-top: 0.4375rem;
+  padding: 0.5rem 0.625rem;
+  border-radius: var(--gryt-radius-md);
+  background: var(--gryt-surface-raised);
+  box-shadow: inset 0 0 0 1px var(--gryt-border);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+/* ── Every link in running text (GRYT-1093) ─────────────────────────────────
+   Underlined at rest, tinted, solid on hover. Underlining only on hover leaves
+   a link that reads as coloured text, and on a touch screen never resolves.
+
+   Not for a nav item, a card or a button that happens to be an `a` — those are
+   read by their position and shape, and an underline makes them worse.
+
+   accent-11 rather than the accent itself: #968ff8 lands around 2.8:1 on the
+   light theme's white, which is fine as a fill behind dark text and not as text.
+
+   The decoration is mixed from currentColor, so a link that sets its own colour
+   — the status banner takes the tone it is warning in — keeps a matching rule. */
+.gryt-link {
+  border-radius: 4px;
+  color: var(--gryt-accent-11);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentColor 42%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.18s ease;
+}
+
+.gryt-link:hover {
+  text-decoration-color: currentColor;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gryt-link {
+    transition: none;
+  }
+}
+
+/*
+ * Link embeds ask before they load (GRYT-1128).
+ *
+ * Sized to sit where the embed itself will, so pressing Load does not shove
+ * the rest of the conversation down the screen.
+ */
+.embed-consent {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--gryt-neutral-6);
+  border-radius: var(--gryt-radius-md);
+  background: var(--gryt-neutral-2);
+}
+
+.embed-consent-icon {
+  flex-shrink: 0;
+  color: var(--gryt-neutral-11);
+}
+
+.embed-consent-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.embed-consent-title {
+  font-size: 13.5px;
+  font-weight: 550;
+}
+
+.embed-consent-host {
+  color: var(--gryt-neutral-11);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+@keyframes gryt-speaking-breathe {
+  from { transform: scale(1.05); opacity: .22; }
+  to { transform: scale(1.3); opacity: .4; }
+}
+.gryt-speaking-halo { animation: gryt-speaking-breathe 850ms ease-in-out infinite alternate; }
+@media (prefers-reduced-motion: reduce) {
+  .gryt-speaking-halo { animation: none; transform: none; background: transparent !important; border: 2px solid var(--gryt-accent-9); opacity: 1 !important; }
+}
+/* Portals use the document overlay plane; CSS zoom changes its logical viewport. */
+:root {
+  --gryt-overlay-width: calc(100vw / var(--gryt-ui-scale, 1) - 16px);
+  --gryt-overlay-height: calc(100dvh / var(--gryt-ui-scale, 1) - 16px);
+}
+.gryt-dialog, .gryt-alert-dialog, .gryt-popover, .gryt-preview-card,
+.gryt-menu, .gryt-tooltip {
+  max-width: var(--gryt-overlay-width) !important;
+  max-height: var(--gryt-overlay-height) !important;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+[data-gryt="audio-control-popup"] {
+  max-height: min(var(--available-height, var(--gryt-overlay-height)), var(--gryt-overlay-height)) !important;
+}

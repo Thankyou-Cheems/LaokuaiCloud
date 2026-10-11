@@ -1,0 +1,812 @@
+import { contextBridge, ipcRenderer, webFrame } from "electron";
+
+import type { SquadConfig, SquadSnapshot } from "../src/lib/squadMode";
+
+type EmbeddedServerConfigShape = {
+  id: string;
+  serverName: string;
+  serverPort: number;
+  sfuPort: number;
+  /** The UDP port voice travels on, which is not the same port as sfuPort. */
+  mediaPort: number;
+  lanDiscoverable: boolean;
+  externalHost: string;
+  advertisedAddresses: string[];
+  customAdvertisedAddresses: string[];
+};
+
+type EmbeddedServerState = {
+  id: string;
+  status: string;
+  config: EmbeddedServerConfigShape | null;
+  error: string | null;
+  serverUrl: string | null;
+};
+
+type EmbeddedLogLine = {
+  /** The server this came from, or null for the SFU, which is shared. */
+  serverId: string | null;
+  source: "sfu" | "server" | "worker";
+  level: "error" | "warn" | "info" | "debug";
+  text: string;
+  at: number;
+};
+
+// The same for a shared card or owl (gryt://card, gryt://owl).
+let bufferedLook: { card?: string; owl?: string } | null = null;
+ipcRenderer.on("deep-link-look", (_event, data: { card?: string; owl?: string }) => {
+  bufferedLook = data;
+});
+
+// Buffer invite deep links that arrive before React mounts a listener
+// (happens when the app is cold-launched via gryt://invite?...).
+let bufferedInvite: { host: string; code: string } | null = null;
+ipcRenderer.on(
+  "deep-link-invite",
+  (_event, data: { host: string; code: string }) => {
+    bufferedInvite = data;
+  }
+);
+
+contextBridge.exposeInMainWorld("electronAPI", {
+  isElectron: true,
+
+  // False where the compositor manages windows itself, so the app draws no
+  // titlebar either. Set by main from --gryt-no-window-chrome. GRYT-1062.
+  drawsWindowChrome: !process.argv.includes("--gryt-no-window-chrome"),
+
+  // The Mac App Store build: sandboxed, and updated by the store rather than by Gryt.
+  macAppStore: process.mas === true,
+  // The Microsoft Store (MSIX) build, which the Store updates; Gryt's own updater stays off there.
+  windowsStore: process.windowsStore === true,
+
+  /* Chromium's own zoom, which keeps rects and the viewport in one coordinate
+     space. CSS zoom does not, and put every menu off screen (GRYT-1127). */
+  setZoomFactor(factor: number): void {
+    webFrame.setZoomFactor(factor);
+  },
+
+  getAppVersion(): Promise<string> {
+    return ipcRenderer.invoke("get-app-version");
+  },
+
+  onHotkeyDown(callback: (action: string) => void) {
+    const listener = (_event: unknown, action: string) => callback(action);
+    ipcRenderer.on("hotkey-down", listener);
+    return () => ipcRenderer.removeListener("hotkey-down", listener);
+  },
+
+  onHotkeyUp(callback: (action: string) => void) {
+    const listener = (_event: unknown, action: string) => callback(action);
+    ipcRenderer.on("hotkey-up", listener);
+    return () => ipcRenderer.removeListener("hotkey-up", listener);
+  },
+
+  /** Resolves to whether the bindings are captured globally. */
+  setHotkeys(bindings: Record<string, string>): Promise<boolean> {
+    return ipcRenderer.invoke("hotkeys-set", bindings);
+  },
+
+  configureSquad(config: SquadConfig): Promise<SquadSnapshot> {
+    return ipcRenderer.invoke("squad-configure", config);
+  },
+  onSquadState(callback: (state: SquadSnapshot) => void) {
+    const listener = (_event: unknown, state: SquadSnapshot) => callback(state);
+    ipcRenderer.on("squad-state", listener);
+    return () => ipcRenderer.removeListener("squad-state", listener);
+  },
+  setSquadInputExcluded(excluded: boolean): void { ipcRenderer.send("squad-input-excluded", excluded); },
+  validateSquadProcess(target: string): Promise<{ valid: boolean; reason?: string }> {
+    return ipcRenderer.invoke("squad-validate-process", target);
+  },
+
+  checkForUpdates() {
+    ipcRenderer.send("check-for-updates");
+  },
+
+  restartForUpdate() {
+    ipcRenderer.send("restart-for-update");
+  },
+
+  downloadUpdate() {
+    ipcRenderer.send("download-update");
+  },
+
+  /** Ask the main process to re-send whatever update state it is holding. */
+  replayUpdateStatus() {
+    ipcRenderer.send("replay-update-status");
+  },
+
+  getAutoUpdate(): Promise<boolean> {
+    return ipcRenderer.invoke("get-auto-update");
+  },
+
+  setAutoUpdate(enabled: boolean) {
+    ipcRenderer.send("set-auto-update", enabled);
+  },
+
+  getSlimVariant(): Promise<{ preferred: boolean; installed: boolean; pending: boolean }> {
+    return ipcRenderer.invoke("get-slim-variant");
+  },
+
+  setSlimVariant(slim: boolean) {
+    ipcRenderer.send("set-slim-variant", slim);
+  },
+
+  getBetaChannel(): Promise<boolean> {
+    return ipcRenderer.invoke("get-beta-channel");
+  },
+
+  setBetaChannel(enabled: boolean) {
+    ipcRenderer.send("set-beta-channel", enabled);
+  },
+
+  switchUpdateChannel(enabled: boolean) {
+    ipcRenderer.send("switch-update-channel", enabled);
+  },
+
+  /*
+   * Watching for programs somebody listed. `listRunningPrograms` hands over what
+   * is open, to the settings screen; a plugin gets matches only (GRYT-931).
+   */
+  listRunningPrograms(): Promise<string[]> {
+    return ipcRenderer.invoke("processes-list-running");
+  },
+
+  /** When reading the process list was allowed, or null if it was not. */
+  getProcessScanConsent(): Promise<string | null> {
+    return ipcRenderer.invoke("processes-get-consent");
+  },
+
+  setProcessScanConsent(allow: boolean): Promise<string | null> {
+    return ipcRenderer.invoke("processes-set-consent", allow);
+  },
+
+  getWatchedPrograms(): Promise<{ match: string; name: string }[]> {
+    return ipcRenderer.invoke("processes-get-watched");
+  },
+
+  /** Returns the list as stored, which may be shorter than what was sent. */
+  setWatchedPrograms(
+    programs: { match: string; name: string }[],
+  ): Promise<{ match: string; name: string }[]> {
+    return ipcRenderer.invoke("processes-set-watched", programs);
+  },
+
+  getRunningWatched(): Promise<string[]> {
+    return ipcRenderer.invoke("processes-running");
+  },
+
+  onWatchedProgramsChanged(callback: (running: string[]) => void) {
+    const handler = (_event: unknown, running: string[]) => callback(running);
+    ipcRenderer.on("processes-changed", handler);
+    return () => ipcRenderer.removeListener("processes-changed", handler);
+  },
+
+  /* Rich Presence: games talking to the Discord socket, which Gryt holds while this is on. */
+  getRichPresence(): Promise<unknown> {
+    return ipcRenderer.invoke("rich-presence-get");
+  },
+
+  /* For addons: what the media controls say is playing, and an addon's own card (GRYT-1637). */
+  getNowPlaying(): Promise<unknown> {
+    return ipcRenderer.invoke("now-playing-get");
+  },
+
+  setAddonActivity(addonId: string, card: unknown): Promise<void> {
+    return ipcRenderer.invoke("addon-activity-set", addonId, card);
+  },
+
+  /* Known games spotted by their program, each asked about once (GRYT-1636). */
+  getGameDetection(): Promise<unknown> {
+    return ipcRenderer.invoke("game-detect-get");
+  },
+
+  setGameDetection(allow: boolean): Promise<unknown> {
+    return ipcRenderer.invoke("game-detect-set-enabled", allow);
+  },
+
+  answerGameDetection(appId: string, answer: "show" | "hide" | null): Promise<unknown> {
+    return ipcRenderer.invoke("game-detect-answer", appId, answer);
+  },
+
+  onGameDetectionChanged(callback: (status: unknown) => void): () => void {
+    const handler = (_event: unknown, status: unknown) => callback(status);
+    ipcRenderer.on("game-detect-changed", handler);
+    return () => ipcRenderer.removeListener("game-detect-changed", handler);
+  },
+
+  setRichPresenceConsent(allow: boolean): Promise<string | null> {
+    return ipcRenderer.invoke("rich-presence-set-consent", allow);
+  },
+
+  setRichPresenceName(appId: string, name: string | null): Promise<void> {
+    return ipcRenderer.invoke("rich-presence-set-name", appId, name);
+  },
+
+  setRichPresenceHidden(apps: { id: string; name: string | null }[]): Promise<unknown> {
+    return ipcRenderer.invoke("rich-presence-set-hidden", apps);
+  },
+
+  getPresenceHelper(): Promise<unknown> {
+    return ipcRenderer.invoke("presence-helper-get");
+  },
+
+  setPresenceHelper(on: boolean): Promise<unknown> {
+    return ipcRenderer.invoke("presence-helper-set", on);
+  },
+
+  onRichPresenceChanged(callback: (card: unknown) => void) {
+    const handler = (_event: unknown, card: unknown) => callback(card);
+    ipcRenderer.on("rich-presence-changed", handler);
+    return () => ipcRenderer.removeListener("rich-presence-changed", handler);
+  },
+
+  onRichPresenceState(callback: (state: unknown) => void) {
+    const handler = (_event: unknown, state: unknown) => callback(state);
+    ipcRenderer.on("rich-presence-state", handler);
+    return () => ipcRenderer.removeListener("rich-presence-state", handler);
+  },
+
+  getCloseToTray(): Promise<boolean> {
+    return ipcRenderer.invoke("get-close-to-tray");
+  },
+
+  setCloseToTray(enabled: boolean) {
+    ipcRenderer.send("set-close-to-tray", enabled);
+  },
+
+  setSignedIn(signedIn: boolean) {
+    ipcRenderer.send("set-signed-in", signedIn);
+  },
+
+  setVoiceState(state: {
+    inVoice: boolean;
+    muted: boolean;
+    deafened: boolean;
+    serverName: string | null;
+  }) {
+    ipcRenderer.send("set-voice-state", state);
+  },
+
+  onTrayVoiceCommand(
+    callback: (command: "toggle-mute" | "toggle-deafen") => void,
+  ) {
+    const handler = (
+      _event: unknown,
+      command: "toggle-mute" | "toggle-deafen",
+    ) => callback(command);
+    ipcRenderer.on("tray-voice-command", handler);
+    return () => ipcRenderer.removeListener("tray-voice-command", handler);
+  },
+
+  getStartWithWindowsSupported(): Promise<boolean> {
+    return ipcRenderer.invoke("get-start-with-windows-supported");
+  },
+
+  getStartWithWindows(): Promise<boolean> {
+    return ipcRenderer.invoke("get-start-with-windows");
+  },
+
+  setStartWithWindows(enabled: boolean) {
+    ipcRenderer.send("set-start-with-windows", enabled);
+  },
+
+  getStartMinimizedOnLogin(): Promise<boolean> {
+    return ipcRenderer.invoke("get-start-minimized-on-login");
+  },
+
+  setStartMinimizedOnLogin(enabled: boolean) {
+    ipcRenderer.send("set-start-minimized-on-login", enabled);
+  },
+
+  getHardwareAcceleration(): Promise<boolean> {
+    return ipcRenderer.invoke("get-hardware-acceleration");
+  },
+
+  setHardwareAcceleration(enabled: boolean) {
+    ipcRenderer.send("set-hardware-acceleration", enabled);
+  },
+
+  onUpdateStatus(
+    callback: (status: {
+      status: string;
+      version?: string;
+      percent?: number;
+      message?: string;
+    }) => void
+  ) {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      data: {
+        status: string;
+        version?: string;
+        percent?: number;
+        message?: string;
+      }
+    ) => callback(data);
+    ipcRenderer.on("update-status", handler);
+    return () => ipcRenderer.removeListener("update-status", handler);
+  },
+
+  showNotification(payload: {
+    title: string;
+    body?: string;
+    destination?: { host: string; channelId: string };
+  }) {
+    ipcRenderer.send("show-notification", payload);
+  },
+
+  onNotificationClick(
+    callback: (destination: { host: string; channelId: string }) => void,
+  ) {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      destination: { host: string; channelId: string },
+    ) => callback(destination);
+    ipcRenderer.on("notification-click", handler);
+    return () => ipcRenderer.removeListener("notification-click", handler);
+  },
+
+  setBadgeCount(count: number) {
+    ipcRenderer.send("set-badge-count", count);
+  },
+
+  /**
+   * Repaint the native minimise/maximise/close buttons. Colours rather than a
+   * theme name: only the renderer knows what the variables evaluate to.
+   */
+  setTitlebarOverlay(colors: { color: string; symbolColor: string }) {
+    ipcRenderer.send("set-titlebar-overlay", colors);
+  },
+
+  toggleAlwaysOnTop(pinned: boolean, windowTitle?: string) {
+    ipcRenderer.send("toggle-always-on-top", pinned, windowTitle);
+  },
+
+  getScreenCaptureAccess(): Promise<string> {
+    return ipcRenderer.invoke("get-screen-capture-access");
+  },
+
+  getDesktopSources(): Promise<
+    Array<{
+      id: string;
+      name: string;
+      thumbnail: string;
+      appIcon: string;
+      sourceType: "screen" | "window";
+      width?: number;
+      height?: number;
+    }>
+  > {
+    return ipcRenderer.invoke("get-desktop-sources");
+  },
+
+  isNativeAudioCaptureAvailable(): Promise<boolean> {
+    return ipcRenderer.invoke("native-audio-capture-available");
+  },
+
+  startNativeAudioCapture(sourceId?: string): Promise<boolean> {
+    return ipcRenderer.invoke("start-native-audio-capture", sourceId);
+  },
+
+  stopNativeAudioCapture() {
+    ipcRenderer.send("stop-native-audio-capture");
+  },
+
+  isPerApplicationAudioSupported(): Promise<boolean> {
+    return ipcRenderer.invoke("per-application-audio-supported");
+  },
+
+  setAudioCaptureApplications(sourceIds: string[]) {
+    return ipcRenderer.invoke("set-audio-capture-applications", sourceIds);
+  },
+
+  listAudioCaptureSources() {
+    return ipcRenderer.invoke("list-audio-capture-sources");
+  },
+
+  onNativeAudioData(callback: (pcm: ArrayBuffer) => void) {
+    const handler = (_event: Electron.IpcRendererEvent, data: ArrayBuffer) =>
+      callback(data);
+    ipcRenderer.on("native-audio-data", handler);
+    return () => ipcRenderer.removeListener("native-audio-data", handler);
+  },
+
+  onNativeAudioStopped(callback: () => void) {
+    const handler = () => callback();
+    ipcRenderer.on("native-audio-stopped", handler);
+    return () => ipcRenderer.removeListener("native-audio-stopped", handler);
+  },
+
+  onNativeAudioProblem(callback: (problem: string) => void) {
+    const handler = (_event: Electron.IpcRendererEvent, problem: string) =>
+      callback(problem);
+    ipcRenderer.on("native-audio-problem", handler);
+    return () => ipcRenderer.removeListener("native-audio-problem", handler);
+  },
+
+  onNativeAudioDiagnostic(callback: (msg: string) => void) {
+    const handler = (_event: Electron.IpcRendererEvent, msg: string) =>
+      callback(msg);
+    ipcRenderer.on("native-audio-diagnostic", handler);
+    return () => ipcRenderer.removeListener("native-audio-diagnostic", handler);
+  },
+
+  isNativeScreenCaptureAvailable(): Promise<boolean> {
+    return ipcRenderer.invoke("native-screen-capture:available");
+  },
+
+  startNativeScreenCapture(
+    monitorIndex: number,
+    fps: number,
+    maxWidth?: number,
+    maxHeight?: number,
+    bitrate?: number,
+    codec?: string
+  ): Promise<{ success: boolean; wsPort?: number }> {
+    return ipcRenderer.invoke(
+      "native-screen-capture:start",
+      monitorIndex,
+      fps,
+      maxWidth,
+      maxHeight,
+      bitrate,
+      codec
+    );
+  },
+
+  stopNativeScreenCapture() {
+    ipcRenderer.send("native-screen-capture:stop");
+  },
+
+  onNativeScreenFrame(
+    callback: (frame: {
+      width: number;
+      height: number;
+      timestampUs: number;
+      data: ArrayBuffer;
+    }) => void
+  ) {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      frame: {
+        width: number;
+        height: number;
+        timestampUs: number;
+        data: ArrayBuffer;
+      }
+    ) => callback(frame);
+    ipcRenderer.on("native-screen-capture:frame", handler);
+    return () =>
+      ipcRenderer.removeListener("native-screen-capture:frame", handler);
+  },
+
+  onNativeScreenCaptureStopped(callback: () => void) {
+    const handler = () => callback();
+    ipcRenderer.on("native-screen-capture:stopped", handler);
+    return () =>
+      ipcRenderer.removeListener("native-screen-capture:stopped", handler);
+  },
+
+  onWindowFocusChange(callback: (focused: boolean) => void) {
+    const handler = (_event: Electron.IpcRendererEvent, focused: boolean) =>
+      callback(focused);
+    ipcRenderer.on("window-focus-change", handler);
+    return () => ipcRenderer.removeListener("window-focus-change", handler);
+  },
+
+  openExternal(url: string) {
+    ipcRenderer.send("auth:open-external", url);
+  },
+
+  onAuthCallback(callback: (url: string) => void) {
+    const handler = (_event: Electron.IpcRendererEvent, url: string) =>
+      callback(url);
+    ipcRenderer.on("auth-callback", handler);
+    return () => ipcRenderer.removeListener("auth-callback", handler);
+  },
+
+  loadUserData(userId: string): Promise<Record<string, unknown>> {
+    return ipcRenderer.invoke("user-store:load", userId);
+  },
+
+  saveUserData(userId: string, data: Record<string, unknown>) {
+    ipcRenderer.send("user-store:save", userId, data);
+  },
+
+  setUserData(userId: string, key: string, value: unknown) {
+    ipcRenderer.send("user-store:set", userId, key, value);
+  },
+
+  // ── Secrets at rest (GRYT-256) ────────────────────────────────
+  secretsAvailable(): Promise<boolean> {
+    return ipcRenderer.invoke("secret:available");
+  },
+
+  sealSecret(plain: string): Promise<string> {
+    return ipcRenderer.invoke("secret:seal", plain);
+  },
+
+  unsealSecret(sealed: string): Promise<string> {
+    return ipcRenderer.invoke("secret:unseal", sealed);
+  },
+
+  // ── Global file store (backs localStorage) ─────────────────────
+  loadGlobalStore(): Promise<Record<string, unknown>> {
+    return ipcRenderer.invoke("global-store:load");
+  },
+
+  setGlobalData(key: string, value: unknown) {
+    ipcRenderer.send("global-store:set", key, value);
+  },
+
+  deleteGlobalData(key: string) {
+    ipcRenderer.send("global-store:delete", key);
+  },
+
+  saveGlobalStore(data: Record<string, unknown>) {
+    ipcRenderer.send("global-store:save", data);
+  },
+
+  // ── Addons ────────────────────────────────────────────────────
+  listAddons(): Promise<
+    Array<{
+      id: string;
+      name: string;
+      version: string;
+      type: "plugin" | "theme";
+      description?: string;
+      author?: string;
+      banner?: string;
+      styles?: string[];
+      main?: string;
+    }>
+  > {
+    return ipcRenderer.invoke("addons:list");
+  },
+
+  openAddonsFolder(): Promise<string> {
+    return ipcRenderer.invoke("addons:open-folder");
+  },
+
+  checkAddonUpdates(): Promise<
+    Array<{
+      addonId: string;
+      installed: string;
+      latest: string;
+      releaseUrl: string;
+    }>
+  > {
+    return ipcRenderer.invoke("addons:check-updates");
+  },
+
+  resolveAddonAsset(addonId: string, relativePath: string): Promise<string> {
+    return ipcRenderer.invoke("addons:resolve-asset", addonId, relativePath);
+  },
+
+  onAddonsChanged(
+    callback: (
+      addons: Array<{
+        id: string;
+        name: string;
+        version: string;
+        type: "plugin" | "theme";
+        description?: string;
+        author?: string;
+        banner?: string;
+        styles?: string[];
+        main?: string;
+      }>
+    ) => void
+  ) {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      addons: Array<{
+        id: string;
+        name: string;
+        version: string;
+        type: "plugin" | "theme";
+        description?: string;
+        author?: string;
+        banner?: string;
+        styles?: string[];
+        main?: string;
+      }>
+    ) => callback(addons);
+    ipcRenderer.on("addons-changed", handler);
+    return () => ipcRenderer.removeListener("addons-changed", handler);
+  },
+
+  getLanServers(): Promise<unknown[]> {
+    return ipcRenderer.invoke("lan:get-servers");
+  },
+  rescanLanServers(): void {
+    ipcRenderer.send("lan:rescan");
+  },
+  onLanServerDiscovered(
+    callback: (server: {
+      name: string;
+      host: string;
+      port: number;
+      version: string | null;
+    }) => void
+  ) {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      data: { name: string; host: string; port: number; version: string | null }
+    ) => callback(data);
+    ipcRenderer.on("lan-server-discovered", handler);
+    return () => ipcRenderer.removeListener("lan-server-discovered", handler);
+  },
+
+  onLanServerRemoved(
+    callback: (server: { host: string; port: number }) => void
+  ) {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      data: { host: string; port: number }
+    ) => callback(data);
+    ipcRenderer.on("lan-server-removed", handler);
+    return () => ipcRenderer.removeListener("lan-server-removed", handler);
+  },
+
+  onDeepLinkInvite(callback: (data: { host: string; code: string }) => void) {
+    if (bufferedInvite) {
+      const data = bufferedInvite;
+      bufferedInvite = null;
+      queueMicrotask(() => callback(data));
+    }
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      data: { host: string; code: string }
+    ) => {
+      bufferedInvite = null;
+      callback(data);
+    };
+    ipcRenderer.on("deep-link-invite", handler);
+    return () => ipcRenderer.removeListener("deep-link-invite", handler);
+  },
+
+  onDeepLinkLook(callback: (data: { card?: string; owl?: string }) => void) {
+    if (bufferedLook) {
+      const data = bufferedLook;
+      bufferedLook = null;
+      queueMicrotask(() => callback(data));
+    }
+    const handler = (_event: Electron.IpcRendererEvent, data: { card?: string; owl?: string }) => {
+      bufferedLook = null;
+      callback(data);
+    };
+    ipcRenderer.on("deep-link-look", handler);
+    return () => ipcRenderer.removeListener("deep-link-look", handler);
+  },
+
+  // ── Embedded server ─────────────────────────────────────────────
+  isEmbeddedServerAvailable(): Promise<boolean> {
+    return ipcRenderer.invoke("embedded-server:available");
+  },
+
+  getEmbeddedServerInfo(): Promise<{
+    available: boolean;
+    hasExisting: boolean;
+    lanIp: string;
+    servers: EmbeddedServerState[];
+    bundled: { server?: string; sfu?: string; worker?: string };
+  }> {
+    return ipcRenderer.invoke("embedded-server:info");
+  },
+
+  createEmbeddedServer(
+    serverName: string,
+    lanDiscoverable: boolean,
+    port?: number
+  ): Promise<EmbeddedServerState | null> {
+    return ipcRenderer.invoke(
+      "embedded-server:create",
+      serverName,
+      lanDiscoverable,
+      port
+    );
+  },
+
+  /** A free port to offer in the create form. */
+  suggestEmbeddedServerPort(): Promise<number> {
+    return ipcRenderer.invoke("embedded-server:suggest-port");
+  },
+
+  /** Whether a port somebody typed can actually be bound. */
+  checkEmbeddedServerPort(port: number): Promise<boolean> {
+    return ipcRenderer.invoke("embedded-server:check-port", port);
+  },
+
+  startEmbeddedServer(id: string): Promise<EmbeddedServerState | null> {
+    return ipcRenderer.invoke("embedded-server:start", id);
+  },
+
+  stopEmbeddedServer(id: string): Promise<EmbeddedServerState | null> {
+    return ipcRenderer.invoke("embedded-server:stop", id);
+  },
+
+  dismissEmbeddedServerError(
+    id: string
+  ): Promise<EmbeddedServerState | null> {
+    return ipcRenderer.invoke("embedded-server:dismiss-error", id);
+  },
+
+  /** Stop a server and delete its files. There is no undo. */
+  deleteEmbeddedServer(id: string): Promise<EmbeddedServerState[]> {
+    return ipcRenderer.invoke("embedded-server:delete", id);
+  },
+
+  /** Every server this machine has, running or not. */
+  getEmbeddedServerStatus(): Promise<EmbeddedServerState[]> {
+    return ipcRenderer.invoke("embedded-server:status");
+  },
+
+  updateEmbeddedServerAdvertisedAddresses(
+    id: string,
+    addresses: string[]
+  ): Promise<EmbeddedServerState | null> {
+    return ipcRenderer.invoke(
+      "embedded-server:update-advertised-addresses",
+      id,
+      addresses
+    );
+  },
+
+  updateEmbeddedServerPorts(
+    id: string,
+    ports: { serverPort?: number; sfuPort?: number; mediaPort?: number }
+  ): Promise<EmbeddedServerState | null> {
+    return ipcRenderer.invoke(
+      "embedded-server:update-ports",
+      id,
+      ports
+    );
+  },
+
+  onEmbeddedServerStatusChanged(
+    callback: (states: EmbeddedServerState[]) => void
+  ) {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      data: EmbeddedServerState[]
+    ) => callback(data);
+    ipcRenderer.on("embedded-server:status-changed", handler);
+    return () =>
+      ipcRenderer.removeListener("embedded-server:status-changed", handler);
+  },
+
+  /** One server's history, plus the shared SFU's. */
+  getEmbeddedServerLogs(id?: string): Promise<EmbeddedLogLine[]> {
+    return ipcRenderer.invoke("embedded-server:logs", id);
+  },
+
+  clearEmbeddedServerLogs(id?: string): Promise<void> {
+    return ipcRenderer.invoke("embedded-server:clear-logs", id);
+  },
+
+  onEmbeddedServerLog(
+    callback: (log: {
+      source: string;
+      data: string;
+      lines?: EmbeddedLogLine[];
+    }) => void
+  ) {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      data: { source: string; data: string; lines?: EmbeddedLogLine[] }
+    ) => callback(data);
+    ipcRenderer.on("embedded-server:log", handler);
+    return () => ipcRenderer.removeListener("embedded-server:log", handler);
+  },
+
+  getEmbeddedServerAutoStart(id: string): Promise<boolean> {
+    return ipcRenderer.invoke("embedded-server:get-auto-start", id);
+  },
+
+  setEmbeddedServerAutoStart(id: string, enabled: boolean) {
+    ipcRenderer.send("embedded-server:set-auto-start", id, enabled);
+  },
+});

@@ -1,0 +1,472 @@
+import { AddonManifest, AddonUpdate } from "@/addons";
+
+import type { HotkeyAction, HotkeyBindings } from "./hotkeys";
+import type { RichActivity } from "./richActivity";
+import type { ScreenAudioProblem } from "./screenShareAudio";
+import type { SquadConfig, SquadSnapshot } from "./squadMode";
+
+/** One thing a screen share is taking audio from. */
+export interface AudioCaptureSource {
+  /** "system" for everything except Gryt, otherwise a window source id. */
+  id: string;
+}
+
+export interface UpdateStatus {
+  status:
+    | "checking"
+    | "available"
+    | "not-available"
+    | "downloading"
+    | "downloaded"
+    // An install is already with the installer. Checking again starts a second
+    // update cycle, which destroys the first, so this is reported instead.
+    | "pending"
+    // A background check found a release. Distinct from "available", which
+    // answers a check somebody asked for. Nobody asked, so this raises a toast.
+    | "announced"
+    // A check somebody pressed found nothing. Only ever sent for a forced
+    // check, because it is an answer to a question rather than news.
+    | "up-to-date"
+    // A press on a Store build (MSIX, the Mac App Store): the Store checks and
+    // installs on its own, so there is nothing here to look for or download.
+    | "store-managed"
+    // The main process is handing this version to the installer, and the
+    // window goes with it.
+    | "installing"
+    | "error";
+  version?: string;
+  /** On "announced", the version being run right now. */
+  from?: string;
+  /**
+   * On "announced", whether Gryt is fetching this release on its own. False when
+   * automatic updates are off: a bar to watch, or a button to start.
+   */
+  autoDownload?: boolean;
+  /**
+   * On "announced", that this was asked for rather than discovered. A dismissed
+   * toast stays dismissed for news; a later ask redraws it.
+   */
+  reannounce?: boolean;
+  /** On "announced", that install was pressed and this newer release installs once it lands. */
+  installWhenReady?: boolean;
+  percent?: number;
+  message?: string;
+}
+
+export interface DesktopSource {
+  id: string;
+  name: string;
+  thumbnail: string;
+  appIcon: string;
+  sourceType: "screen" | "window";
+  width?: number;
+  height?: number;
+}
+
+export type TrayVoiceState = {
+  inVoice: boolean;
+  muted: boolean;
+  deafened: boolean;
+  /** For the tray menu's header and the tooltip. */
+  serverName: string | null;
+};
+
+export type TrayVoiceCommand = "toggle-mute" | "toggle-deafen";
+
+export type EmbeddedLogSource = "sfu" | "server" | "worker";
+
+export type EmbeddedLogLine = {
+  /** The server this came from, or null for the SFU, which every server shares. */
+  serverId: string | null;
+  source: EmbeddedLogSource;
+  level: "error" | "warn" | "info" | "debug";
+  text: string;
+  /** Epoch millis, stamped in the main process when the line arrived. */
+  at: number;
+};
+
+export type LanServer = {
+  host: string;
+  port: number;
+  name: string;
+  version?: string;
+  serverId?: string;
+};
+
+export interface NativeScreenFrame {
+  width: number;
+  height: number;
+  timestampUs: number;
+  data: ArrayBuffer;
+}
+
+export interface EmbeddedServerConfig {
+  /** Stable handle for this server, and the name of its directory on disk. */
+  id: string;
+  serverName: string;
+  serverPort: number;
+  sfuPort: number;
+  /** The UDP port voice travels on, which is not the same port as sfuPort. */
+  mediaPort: number;
+  lanDiscoverable: boolean;
+  externalHost: string;
+  advertisedAddresses: string[];
+  customAdvertisedAddresses: string[];
+}
+
+export interface EmbeddedServerState {
+  id: string;
+  status: string;
+  config: EmbeddedServerConfig | null;
+  error: string | null;
+  serverUrl: string | null;
+}
+
+export interface EmbeddedServerInfo {
+  available: boolean;
+  hasExisting: boolean;
+  lanIp: string;
+  servers: EmbeddedServerState[];
+  /**
+   * The server, SFU and worker versions this app ships, from the bundle's own
+   * versions.json. Absent on builds older than this field.
+   */
+  bundled?: { server?: string; sfu?: string; worker?: string };
+}
+
+/** An app that has talked to the Rich Presence socket. Named when it is in the games list. */
+export interface RichPresenceApp {
+  id: string;
+  name: string | null;
+}
+
+export type RichPresenceCard = RichActivity;
+
+/** Off, holding the socket, or leaving it to whatever got there first. */
+export interface RichPresenceSocketStatus {
+  state: "off" | "holding" | "yielded";
+  /** Who has the socket while Gryt yields it, when that could be found out. */
+  holder: { name: string; isDiscord: boolean } | null;
+  /** True while gryt-helper holds the socket for the app, rather than the app itself. */
+  helper?: boolean;
+}
+
+export interface PresenceHelperStatus {
+  /** False in the store builds, Flatpak and Snap, and in a build without the helper. */
+  offered: boolean;
+  enabledAt: string | null;
+  /** Whether the OS has the startup entry right now. */
+  registered: boolean;
+  /** macOS wants the login item allowed in System Settings. */
+  needsApproval: boolean;
+  error: string | null;
+}
+
+export interface RichPresenceStatus extends RichPresenceSocketStatus {
+  supported: boolean;
+  consentedAt: string | null;
+  hidden: RichPresenceApp[];
+  seen: RichPresenceApp[];
+  current: RichPresenceCard | null;
+  /** What came in, newest last. Older builds of the main process don't send it. */
+  log?: RichPresenceLogEntry[];
+  /** Names you gave games no list knows. */
+  names?: Record<string, string>;
+}
+
+/** What the OS media controls say is playing. */
+export interface NowPlaying {
+  key: string;
+  player: string;
+  title: string;
+  artist?: string;
+  album?: string;
+}
+
+/** The card an addon may put on your profile. */
+export interface AddonActivityCard {
+  type?: "playing" | "listening" | "watching" | "using";
+  name: string;
+  details?: string;
+  state?: string;
+  startedAt?: number;
+}
+
+export interface GameDetectionStatus {
+  enabled: boolean;
+  answers: { id: string; name: string | null; answer: "show" | "hide" }[];
+  pending: { id: string; name: string | null }[];
+}
+
+export interface RichPresenceLogEntry {
+  at: number;
+  appId: string | null;
+  name: string | null;
+  text: string;
+  /** Display metadata for app-generated events only; raw text remains diagnostic truth. */
+  appEventKey?: "cleared" | "detected" | "empty" | "emptyHidden" | "hidden" | "connection";
+  appEventValues?: Record<string, string>;
+}
+
+/** One entry in the watch list: an executable, and what to call it. */
+export interface WatchedProgram {
+  match: string;
+  name: string;
+}
+
+export interface ElectronAPI {
+  isElectron: true;
+  /** False where the compositor draws and places windows itself. */
+  drawsWindowChrome: boolean;
+  /** The Mac App Store build. Absent on builds from before it existed. */
+  macAppStore?: boolean;
+  windowsStore?: boolean;
+  /** Chromium's zoom, rather than CSS zoom. See setNativeZoom below. */
+  setZoomFactor(factor: number): void;
+  getAppVersion(): Promise<string>;
+  onHotkeyDown(callback: (action: HotkeyAction) => void): () => void;
+  onHotkeyUp(callback: (action: HotkeyAction) => void): () => void;
+  setHotkeys(bindings: HotkeyBindings): Promise<boolean>;
+  configureSquad(config: SquadConfig): Promise<SquadSnapshot>;
+  onSquadState(callback: (state: SquadSnapshot) => void): () => void;
+  setSquadInputExcluded(excluded: boolean): void;
+  validateSquadProcess(target: string): Promise<{ valid: boolean; reason?: string }>;
+  checkForUpdates(): void;
+  /** Install the newest release. Looks once more first, and fetches a newer one before restarting. */
+  restartForUpdate(): void;
+  /** Fetch the announced release now. No-op while one is already downloading. */
+  downloadUpdate(): void;
+  /** Ask the main process to re-send whatever update state it is holding. */
+  replayUpdateStatus(): void;
+  getAutoUpdate(): Promise<boolean>;
+  setAutoUpdate(enabled: boolean): void;
+  getBetaChannel(): Promise<boolean>;
+  setBetaChannel(enabled: boolean): void;
+  /**
+   * Whether this install follows the build without the embedded server, what is
+   * installed, and whether the two disagree. Absent on older builds.
+   */
+  getSlimVariant?(): Promise<{ preferred: boolean; installed: boolean; pending: boolean }>;
+  /** Ask for a variant and start a check for the installer that matches. */
+  setSlimVariant?(slim: boolean): void;
+  switchUpdateChannel(enabled: boolean): void;
+  /**
+   * Watching for programs somebody listed. `listRunningPrograms` is the one that
+   * hands over what is open, and it is for the settings screen (GRYT-931).
+   */
+  listRunningPrograms?(): Promise<string[]>;
+  /** When reading the process list was allowed, or null. */
+  getProcessScanConsent?(): Promise<string | null>;
+  setProcessScanConsent?(allow: boolean): Promise<string | null>;
+  getWatchedPrograms?(): Promise<WatchedProgram[]>;
+  setWatchedPrograms?(programs: WatchedProgram[]): Promise<WatchedProgram[]>;
+  getRunningWatched?(): Promise<string[]>;
+  onWatchedProgramsChanged?(callback: (running: string[]) => void): () => void;
+  /** Games reporting through the Discord Rich Presence socket (GRYT-1310). Desktop only. */
+  getRichPresence?(): Promise<RichPresenceStatus>;
+  setRichPresenceConsent?(allow: boolean): Promise<string | null>;
+  setRichPresenceHidden?(apps: RichPresenceApp[]): Promise<RichPresenceApp[]>;
+  /** A name for a game no list knows, kept on this device (GRYT-1638). */
+  setRichPresenceName?(appId: string, name: string | null): Promise<void>;
+  onRichPresenceChanged?(callback: (card: RichPresenceCard | null) => void): () => void;
+  onRichPresenceState?(callback: (status: RichPresenceSocketStatus) => void): () => void;
+  /** For addons with `media` and `activity` (GRYT-1637). Desktop only. */
+  getNowPlaying?(): Promise<NowPlaying | null>;
+  setAddonActivity?(addonId: string, card: AddonActivityCard | null): Promise<void>;
+  /** Known games spotted by their program, each asked about once (GRYT-1636). */
+  getGameDetection?(): Promise<GameDetectionStatus>;
+  setGameDetection?(allow: boolean): Promise<GameDetectionStatus>;
+  answerGameDetection?(appId: string, answer: "show" | "hide" | null): Promise<GameDetectionStatus>;
+  onGameDetectionChanged?(callback: (status: GameDetectionStatus) => void): () => void;
+  /** gryt-helper, which starts at login once turned on (GRYT-1605). */
+  getPresenceHelper?(): Promise<PresenceHelperStatus>;
+  setPresenceHelper?(on: boolean): Promise<PresenceHelperStatus>;
+
+  getCloseToTray(): Promise<boolean>;
+  setCloseToTray(enabled: boolean): void;
+  setSignedIn(signedIn: boolean): void;
+  /**
+   * Tell the tray what voice is doing. The main process has no other route: mute
+   * and deafen are renderer settings and the SFU connection is a renderer concern.
+   */
+  setVoiceState(state: TrayVoiceState): void;
+  /** Mute and deafen, driven from the tray menu. Returns an unsubscribe. */
+  onTrayVoiceCommand(
+    callback: (command: TrayVoiceCommand) => void,
+  ): () => void;
+  getStartWithWindowsSupported(): Promise<boolean>;
+  getStartWithWindows(): Promise<boolean>;
+  setStartWithWindows(enabled: boolean): void;
+  getStartMinimizedOnLogin(): Promise<boolean>;
+  setStartMinimizedOnLogin(enabled: boolean): void;
+  getHardwareAcceleration(): Promise<boolean>;
+  setHardwareAcceleration(enabled: boolean): void;
+  setBadgeCount(count: number): void;
+  /**
+   * Raise an OS notification. Absent on builds older than the one that added
+   * it, which is why the renderer falls back to the web Notification API.
+   */
+  showNotification?(payload: {
+    title: string;
+    body?: string;
+    destination?: { host: string; channelId: string };
+  }): void;
+  /** A native notification was clicked and named where it came from. */
+  onNotificationClick?(
+    callback: (destination: { host: string; channelId: string }) => void,
+  ): () => void;
+  /**
+   * Repaint the native window controls on Windows and Linux (GRYT-288).
+   * Both colours must be `#rrggbb`. Absent on builds older than 1.6.16.
+   */
+  setTitlebarOverlay?(colors: { color: string; symbolColor: string }): void;
+  toggleAlwaysOnTop(pinned: boolean, windowTitle?: string): void;
+  getScreenCaptureAccess(): Promise<
+    "not-determined" | "granted" | "denied" | "restricted"
+  >;
+  getDesktopSources(): Promise<DesktopSource[]>;
+  isNativeAudioCaptureAvailable(): Promise<boolean>;
+  startNativeAudioCapture(sourceId?: string): Promise<boolean>;
+  stopNativeAudioCapture(): void;
+  /** Whether audio can be taken from named applications. Windows only. */
+  isPerApplicationAudioSupported(): Promise<boolean>;
+  /** An empty list puts the share back on everything except Gryt. */
+  setAudioCaptureApplications(sourceIds: string[]): Promise<AudioCaptureSource[]>;
+  listAudioCaptureSources(): Promise<AudioCaptureSource[]>;
+  onNativeAudioData(callback: (pcm: ArrayBuffer) => void): () => void;
+  onNativeAudioStopped(callback: () => void): () => void;
+  onNativeAudioDiagnostic(callback: (msg: string) => void): () => void;
+  /** A macOS share whose audio is not getting through. Absent on builds before it was added. */
+  onNativeAudioProblem?(callback: (problem: ScreenAudioProblem) => void): () => void;
+  isNativeScreenCaptureAvailable(): Promise<boolean>;
+  startNativeScreenCapture(
+    monitorIndex: number,
+    fps: number,
+    maxWidth?: number,
+    maxHeight?: number,
+    bitrate?: number,
+    codec?: string
+  ): Promise<{ success: boolean; wsPort?: number }>;
+  stopNativeScreenCapture(): void;
+  onNativeScreenFrame(callback: (frame: NativeScreenFrame) => void): () => void;
+  onNativeScreenCaptureStopped(callback: () => void): () => void;
+  onWindowFocusChange(callback: (focused: boolean) => void): () => void;
+  onUpdateStatus(callback: (status: UpdateStatus) => void): () => void;
+  openExternal(url: string): void;
+  loadUserData(userId: string): Promise<Record<string, unknown>>;
+  saveUserData(userId: string, data: Record<string, unknown>): void;
+  setUserData(userId: string, key: string, value: unknown): void;
+  /**
+   * Encrypt and decrypt with the OS keychain. Not a store. `secretsAvailable` is
+   * false on a Linux box with no keyring, so every caller needs a path for it.
+   */
+  secretsAvailable(): Promise<boolean>;
+  sealSecret(plain: string): Promise<string>;
+  unsealSecret(sealed: string): Promise<string>;
+  loadGlobalStore(): Promise<Record<string, unknown>>;
+  setGlobalData(key: string, value: unknown): void;
+  deleteGlobalData(key: string): void;
+  saveGlobalStore(data: Record<string, unknown>): void;
+  onAuthCallback(callback: (url: string) => void): () => void;
+  listAddons(): Promise<AddonManifest[]>;
+  openAddonsFolder(): Promise<string>;
+  checkAddonUpdates(): Promise<AddonUpdate[]>;
+  resolveAddonAsset(addonId: string, relativePath: string): Promise<string>;
+  onAddonsChanged(callback: (addons: AddonManifest[]) => void): () => void;
+  /** Servers already discovered, for a renderer that mounted after the fact. */
+  getLanServers(): Promise<LanServer[]>;
+  /** Restart the browse so everything on the network re-announces itself. */
+  rescanLanServers(): void;
+  onLanServerDiscovered(callback: (server: LanServer) => void): () => void;
+  onLanServerRemoved(
+    callback: (server: { host: string; port: number }) => void
+  ): () => void;
+  onDeepLinkInvite(
+    callback: (data: { host: string; code: string }) => void
+  ): () => void;
+  onDeepLinkLook(
+    callback: (data: { card?: string; owl?: string }) => void
+  ): () => void;
+  isEmbeddedServerAvailable(): Promise<boolean>;
+  getEmbeddedServerInfo(): Promise<EmbeddedServerInfo>;
+  createEmbeddedServer(
+    serverName: string,
+    lanDiscoverable: boolean,
+    port?: number
+  ): Promise<EmbeddedServerState | null>;
+  suggestEmbeddedServerPort(): Promise<number>;
+  checkEmbeddedServerPort(port: number): Promise<boolean>;
+  startEmbeddedServer(id: string): Promise<EmbeddedServerState | null>;
+  stopEmbeddedServer(id: string): Promise<EmbeddedServerState | null>;
+  dismissEmbeddedServerError(id: string): Promise<EmbeddedServerState | null>;
+  deleteEmbeddedServer(id: string): Promise<EmbeddedServerState[]>;
+  getEmbeddedServerStatus(): Promise<EmbeddedServerState[]>;
+  updateEmbeddedServerAdvertisedAddresses(
+    id: string,
+    addresses: string[],
+  ): Promise<EmbeddedServerState | null>;
+  updateEmbeddedServerPorts(
+    id: string,
+    ports: { serverPort?: number; sfuPort?: number; mediaPort?: number },
+  ): Promise<EmbeddedServerState | null>;
+  onEmbeddedServerStatusChanged(
+    callback: (states: EmbeddedServerState[]) => void
+  ): () => void;
+  onEmbeddedServerLog(
+    callback: (log: {
+      source: string;
+      data: string;
+      lines?: EmbeddedLogLine[];
+    }) => void
+  ): () => void;
+  /** Everything retained so far, so an opening pane is not blank. */
+  getEmbeddedServerLogs(id?: string): Promise<EmbeddedLogLine[]>;
+  clearEmbeddedServerLogs(id?: string): Promise<void>;
+  getEmbeddedServerAutoStart(id: string): Promise<boolean>;
+  setEmbeddedServerAutoStart(id: string, enabled: boolean): void;
+}
+
+declare global {
+  interface Window {
+    electronAPI?: ElectronAPI;
+  }
+}
+
+export function isElectron(): boolean {
+  return !!window.electronAPI?.isElectron;
+}
+
+/**
+ * Scale the whole window the way Ctrl and plus does, and say whether it could.
+ * False in a browser, where the app has to fall back to CSS zoom (GRYT-1127).
+ */
+export function setNativeZoom(factor: number): boolean {
+  const api = getElectronAPI();
+  if (!api?.setZoomFactor) return false;
+  api.setZoomFactor(factor);
+  return true;
+}
+
+/** The desktop app on a Mac. Electron's user agent names the OS. */
+export function isMacDesktop(): boolean {
+  return isElectron() && typeof navigator !== "undefined" && /Macintosh/.test(navigator.userAgent);
+}
+
+/** The Mac App Store build, where the store installs updates and the sandbox hides other apps. */
+export function isMacAppStoreBuild(): boolean {
+  return window.electronAPI?.macAppStore === true;
+}
+
+/** The Microsoft Store build, where the Store installs updates and there is no beta to switch to. */
+export function isMicrosoftStoreBuild(): boolean {
+  return window.electronAPI?.windowsStore === true;
+}
+
+/** False on a desktop that places windows itself, where Gryt draws no chrome. */
+export function drawsWindowChrome(): boolean {
+  return window.electronAPI?.drawsWindowChrome !== false;
+}
+
+export function getElectronAPI(): ElectronAPI | null {
+  return window.electronAPI ?? null;
+}

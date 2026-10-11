@@ -1,0 +1,213 @@
+import { MutableRefObject, useCallback, useEffect, useRef } from "react";
+import toast from "react-hot-toast";
+
+import { ServerErrorToast, serverIconSrc } from "@/common";
+import { i18n as socketHooksI18n } from "@/i18n";
+import type { Channel } from "@/settings/src/types/server";
+
+import { PiClockClockwiseFill, PiFadersHorizontalFill } from "../../../../lib/icons";
+import { canInChannel } from "../lib/permissions";
+import { socketDisplayText, socketHookToast } from "../utils/socketHookMessages";
+import { useServerPermissions } from "./usePermissions";
+import { useSockets } from "./useSockets";
+
+interface UseChannelSettingsParams {
+  inputMode: string;
+  rnnoiseEnabled: boolean;
+  eSportsModeEnabled: boolean;
+  noiseGate: number;
+  isConnected: boolean;
+  setInputMode: (v: "voice_activity" | "push_to_talk") => void;
+  setRnnoiseEnabled: (v: boolean) => void;
+  setESportsModeEnabled: (v: boolean) => void;
+  setNoiseGate: (v: number) => void;
+}
+
+function useChannelSettings({
+  inputMode, rnnoiseEnabled, eSportsModeEnabled, noiseGate, isConnected,
+  setInputMode, setRnnoiseEnabled, setESportsModeEnabled, setNoiseGate,
+}: UseChannelSettingsParams) {
+  const prevSettingsRef = useRef<{
+    inputMode: string;
+    rnnoiseEnabled: boolean;
+    eSportsModeEnabled: boolean;
+    noiseGate: number;
+  } | null>(null);
+
+  const applyChannelSettings = useCallback((channel: Channel) => {
+    const needsPtt = channel.requirePushToTalk && inputMode !== "push_to_talk";
+    const needsNoRnnoise = channel.disableRnnoise && rnnoiseEnabled;
+    const needsEsports = channel.eSportsMode && !eSportsModeEnabled;
+    if (!needsPtt && !needsNoRnnoise && !needsEsports) return;
+
+    prevSettingsRef.current = { inputMode, rnnoiseEnabled, eSportsModeEnabled, noiseGate };
+    const messages: string[] = [];
+    if (needsEsports) {
+      setESportsModeEnabled(true);
+      messages.push("eSports mode activated");
+    } else {
+      if (needsPtt) {
+        setInputMode("push_to_talk");
+        messages.push("Push to Talk enabled");
+      }
+      if (needsNoRnnoise) {
+        setRnnoiseEnabled(false);
+        messages.push("RNNoise disabled");
+      }
+    }
+    toast(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useChannelSettings_5a17c0b687", { p0: messages.map((message) => socketDisplayText(message)).join(socketHooksI18n.t("socketHooksFull.listSeparator")) })), { icon: <PiFadersHorizontalFill size={18} /> });
+  }, [inputMode, rnnoiseEnabled, eSportsModeEnabled, noiseGate, setInputMode, setRnnoiseEnabled, setESportsModeEnabled]);
+
+  const restoreChannelSettings = useCallback(() => {
+    if (!prevSettingsRef.current) return;
+    const prev = prevSettingsRef.current;
+    setESportsModeEnabled(prev.eSportsModeEnabled);
+    setInputMode(prev.inputMode as "voice_activity" | "push_to_talk");
+    setRnnoiseEnabled(prev.rnnoiseEnabled);
+    setNoiseGate(prev.noiseGate);
+    prevSettingsRef.current = null;
+    toast(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useChannelSettings_b7c9e82750")), { icon: <PiClockClockwiseFill size={18} /> });
+  }, [setInputMode, setRnnoiseEnabled, setESportsModeEnabled, setNoiseGate]);
+
+  useEffect(() => {
+    if (!isConnected) restoreChannelSettings();
+  }, [isConnected, restoreChannelSettings]);
+
+  return { applyChannelSettings };
+}
+
+interface UseHandleChannelClickParams {
+  currentlyViewingServer: { host: string; name: string } | null;
+  isConnected: boolean;
+  currentServerConnected: string | null;
+  currentChannelId: string;
+  selectedChannelId: string | null;
+  isConnecting: boolean;
+  showVoiceView: boolean;
+  mediaAutoShownRef: MutableRefObject<boolean>;
+  setSelectedChannelId: (id: string) => void;
+  setShowVoiceView: (v: boolean) => void;
+  setPendingChannelId: (id: string | null) => void;
+  setSettingsTab: (tab: string) => void;
+  setShowSettings: (v: boolean) => void;
+  setLastSelectedChannelForServer: (host: string, channelId: string) => void;
+  connect: (channelId: string, eSportsMode?: boolean, maxBitrate?: number | null) => Promise<void>;
+  applyChannelSettings: (channel: Channel) => void;
+  setIsMuted: (v: boolean) => void;
+  setIsDeafened: (v: boolean) => void;
+}
+
+function useHandleChannelClick({
+  currentlyViewingServer, isConnected, currentServerConnected,
+  currentChannelId, selectedChannelId, isConnecting,
+  showVoiceView, mediaAutoShownRef,
+  setSelectedChannelId, setShowVoiceView, setPendingChannelId,
+  setSettingsTab, setShowSettings, setLastSelectedChannelForServer,
+  connect, applyChannelSettings, setIsMuted, setIsDeafened,
+}: UseHandleChannelClickParams) {
+  const { can } = useServerPermissions(currentlyViewingServer?.host || "");
+  const { serverDetailsList } = useSockets();
+
+  return useCallback((channel: Channel) => {
+    if (!currentlyViewingServer) return;
+    switch (channel.type) {
+      case "voice": {
+        // The server refuses this too, but stopping here makes the answer read as
+        // "you are not allowed in". The room's answer, so an allow here counts.
+        if (!canInChannel(channel, can, "join_voice")) {
+          const host = currentlyViewingServer.host;
+          const name = currentlyViewingServer.name || host;
+          toast.error(
+            socketHookToast(() => <ServerErrorToast
+                iconSrc={serverIconSrc(host, name, serverDetailsList)}
+                seed={name}
+                serverName={name}
+                channelName={channel.name}
+                message={socketHooksI18n.t("socketHooksFull.useChannelSettings_b5ba3edce1")}
+              />),
+          );
+          return;
+        }
+
+        const isAlreadyConnectedToThis =
+          isConnected && currentServerConnected === currentlyViewingServer.host && currentChannelId === channel.id;
+
+        if (isAlreadyConnectedToThis) {
+          mediaAutoShownRef.current = false;
+          if (selectedChannelId !== channel.id && channel.textInVoice) {
+            setSelectedChannelId(channel.id);
+          }
+          setShowVoiceView(!showVoiceView);
+          return;
+        }
+
+        if (isConnecting && currentChannelId === channel.id) {
+          mediaAutoShownRef.current = false;
+          if (channel.textInVoice) {
+            setSelectedChannelId(channel.id);
+          }
+          setShowVoiceView(!showVoiceView);
+          return;
+        }
+
+        setPendingChannelId(null);
+        applyChannelSettings(channel);
+        mediaAutoShownRef.current = false;
+        setShowVoiceView(false);
+        // Retrying the current destination after a committed move must retain
+        // user mute/deafen rather than restoring permission on a recovery click.
+        if(currentServerConnected!==currentlyViewingServer.host || currentChannelId!==channel.id) {
+          setIsMuted(false);
+          setIsDeafened(false);
+        }
+        connect(channel.id, channel.eSportsMode, channel.maxBitrate).catch((error) => {
+          console.error("SFU connection failed:", error);
+
+          // The microphone one is about this device rather than about the
+          // server, so it stays a plain string and sends you where the fix is.
+          if (error instanceof Error && error.message.includes("Microphone not available")) {
+            setPendingChannelId(channel.id);
+            setSettingsTab("audio");
+            setShowSettings(true);
+            toast.error(socketHookToast(() => socketHooksI18n.t("socketHooksFull.useChannelSettings_4672bf18d1")));
+            return;
+          }
+
+          // Everything else is about a channel on a server, and saying which is
+          // the difference between an actionable report and "voice broke".
+          const host = currentlyViewingServer.host;
+          const name = currentlyViewingServer.name || host;
+          toast.error(
+            socketHookToast(() => <ServerErrorToast
+                iconSrc={serverIconSrc(host, name, serverDetailsList)}
+                seed={name}
+                serverName={name}
+                channelName={channel.name}
+                message={
+                  error instanceof Error ? socketDisplayText(error.message) : socketHooksI18n.t("socketHooksFull.useChannelSettings_969202a429")
+                }
+              />),
+              // useVoiceLifecycle's id: a refusal is reported there as well, and shows once.
+              { id: "voice-connection" },
+          );
+        });
+        break;
+      }
+      case "text":
+        setSelectedChannelId(channel.id);
+        if (currentlyViewingServer) {
+          setLastSelectedChannelForServer(currentlyViewingServer.host, channel.id);
+        }
+        break;
+    }
+  }, [
+    currentlyViewingServer, isConnected, currentServerConnected,
+    currentChannelId, selectedChannelId, isConnecting,
+    showVoiceView, mediaAutoShownRef,
+    setSelectedChannelId, setShowVoiceView, setPendingChannelId,
+    setSettingsTab, setShowSettings, setLastSelectedChannelForServer,
+    connect, applyChannelSettings, setIsMuted, setIsDeafened, can, serverDetailsList,
+  ]);
+}
+
+export { useChannelSettings, useHandleChannelClick };
