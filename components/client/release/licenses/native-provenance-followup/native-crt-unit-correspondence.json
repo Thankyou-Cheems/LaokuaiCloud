@@ -1,0 +1,1962 @@
+{
+  "schema": 1,
+  "sourceCommit": "19f302fcf2b4dfb05f86405dbf58437b0ee4166a",
+  "sourceZipSha256": "557f4647faf5498fdbba8ae0d3d321182717a65f97a5b5aaa1ec87d4a1e42337",
+  "matchingPePdbProof": "encoding-utils-build-evidence.json",
+  "firstContributionReceiptPreserved": "native-linked-crt-inputs.json",
+  "method": "DBI section-contribution records plus C13 SHA256 implementation-source checksums; original source archive matches after CRLF-only checkout conversion",
+  "sourceChecksumFilesMatched": 24,
+  "missingExactPositiveSourceFiles": [
+    "_fenvutils.cpp",
+    "_norm.c",
+    "_scale.c",
+    "_test.cpp",
+    "_unscale.c",
+    "_values.c",
+    "cbrt.c",
+    "fegetenv.cpp",
+    "feholdexcept.c",
+    "fesetenv.cpp",
+    "round.c",
+    "softmemtag.cpp"
+  ],
+  "originalSourceBytesAreRetained": true,
+  "noRawPdbOrLocalSourcePathsImported": true,
+  "noBuildNoNativeExecution": true,
+  "objects": [
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 114,
+      "object": "ehhelpers.obj",
+      "library": "libvcruntime.lib",
+      "positiveContributions": 8,
+      "codeContributions": 5,
+      "positiveBytes": 379,
+      "sourceChecksums": [
+        {
+          "file": "ehhelpers.cpp",
+          "kind": "SHA256",
+          "checksum": "ec2b326df699a0a8829b59c661b9d5e6235bb55d580fbcea7c285c8793b87708",
+          "matches": [
+            {
+              "path": "Sources/crt/vcruntime/ehhelpers.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "a490d9ea0713cf92261de36bd9127c6e23a7a9aaebea69f573e96209d3f03445"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 115,
+      "object": "std_type_info.obj",
+      "library": "libvcruntime.lib",
+      "positiveContributions": 0,
+      "codeContributions": 0,
+      "positiveBytes": 0,
+      "sourceChecksums": [
+        {
+          "file": "std_type_info.cpp",
+          "kind": "SHA256",
+          "checksum": "eb46bc98a02681300f0a624ed8f10f6d61a4111d9c978055b815ebb759913fad",
+          "matches": [
+            {
+              "path": "Sources/crt/vcruntime/std_type_info.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "b727b478884a833a3bb5abf9219fab99e73e1f643a05e88b424eb30f16e26e56"
+            }
+          ]
+        }
+      ],
+      "kind": "no-positive-contribution-observed"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 116,
+      "object": "msvcrt.dll",
+      "library": "libvcruntime.lib",
+      "positiveContributions": 4,
+      "codeContributions": 0,
+      "positiveBytes": 48,
+      "sourceChecksums": [],
+      "kind": "system-import-metadata-or-thunk"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 117,
+      "object": "round.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 2,
+      "codeContributions": 1,
+      "positiveBytes": 109,
+      "sourceChecksums": [
+        {
+          "file": "round.c",
+          "kind": "SHA256",
+          "checksum": "f35a54f1f394a249cd058ca8ac79e5aa8a89e6251d8af2be643b17b2b020db9d",
+          "matches": []
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 118,
+      "object": "cbrt.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 7,
+      "codeContributions": 1,
+      "positiveBytes": 435,
+      "sourceChecksums": [
+        {
+          "file": "cbrt.c",
+          "kind": "SHA256",
+          "checksum": "84043898a84dc6e00de029c585bcfd86f4719d7a5887385186f8524dba6fcbf2",
+          "matches": []
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 119,
+      "object": "output.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 40,
+      "codeContributions": 9,
+      "positiveBytes": 6412,
+      "sourceChecksums": [
+        {
+          "file": "output.cpp",
+          "kind": "SHA256",
+          "checksum": "f7f0e91db5478f04099db856ddc5f687b94c196429f9f7ba19195b12d175f3ec",
+          "matches": [
+            {
+              "path": "Sources/ucrt/stdio/output.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "3ff1fecae0b8de62e4b0208d172fb003166d9d3c5363a651168d54cacdb3060d"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 120,
+      "object": "_seh_filter_dll.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 0,
+      "codeContributions": 0,
+      "positiveBytes": 0,
+      "sourceChecksums": [],
+      "kind": "no-positive-contribution-observed"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 121,
+      "object": "exit.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 23,
+      "codeContributions": 13,
+      "positiveBytes": 1307,
+      "sourceChecksums": [
+        {
+          "file": "exit.cpp",
+          "kind": "SHA256",
+          "checksum": "ca1baf5875143f7aacf22672d34d08ed7a3150a5e01032d7a1f0f7b291d06f00",
+          "matches": [
+            {
+              "path": "Sources/ucrt/startup/exit.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "d4c20f94adc236a446e1319ed80e4ab514ff3d5c7c8b2adf8ff0e364e42844a9"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 122,
+      "object": "argv_parsing.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 1,
+      "codeContributions": 1,
+      "positiveBytes": 64,
+      "sourceChecksums": [
+        {
+          "file": "argv_parsing.cpp",
+          "kind": "SHA256",
+          "checksum": "14c51849a84f583be74c4503dacb3ed00351a73ceba7fc44676b7e534d770613",
+          "matches": [
+            {
+              "path": "ucrtbase.msvcrt/argv_parsing.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "5b03fc0299fde2563ef0f78555d4bcb495357c02856f04b2f4af4cf0b66e3f25"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 123,
+      "object": "environment_initialization.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 1,
+      "codeContributions": 1,
+      "positiveBytes": 11,
+      "sourceChecksums": [
+        {
+          "file": "environment_initialization.cpp",
+          "kind": "SHA256",
+          "checksum": "4b1f3b8596cb795c04f0253535bc36f6dd316204a6cd371cd31132d890d4c220",
+          "matches": [
+            {
+              "path": "ucrtbase.msvcrt/environment_initialization.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "f8b9634a287f6609673e79cc2b7ae79ca5e9d7d6a30cc2adfd4e0232f1cd16fc"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 124,
+      "object": "onexit.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 15,
+      "codeContributions": 8,
+      "positiveBytes": 1424,
+      "sourceChecksums": [
+        {
+          "file": "onexit.cpp",
+          "kind": "SHA256",
+          "checksum": "f69758a11162df7d57a297ac9b1b99ea43e7a092ce349e6d4b5d7e0d101fa92a",
+          "matches": [
+            {
+              "path": "Sources/ucrt/startup/onexit.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "5cd39872a080340b5db2c5014870aac3934a98796821406705faf0b3c8b1e2e0"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 125,
+      "object": "initialization.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 7,
+      "codeContributions": 6,
+      "positiveBytes": 263,
+      "sourceChecksums": [
+        {
+          "file": "initialization.cpp",
+          "kind": "SHA256",
+          "checksum": "2b1ef9bcd3fb5528e77d4eea78d17d1126d17b5ee84256e228895725fe15aab4",
+          "matches": [
+            {
+              "path": "Sources/ucrt/internal/initialization.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "070a517bfa3a819dbbf8455767b948f86fb7228e3c5c114621e9b28e870af262"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 126,
+      "object": "_seh_filter_exe.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 0,
+      "codeContributions": 0,
+      "positiveBytes": 0,
+      "sourceChecksums": [],
+      "kind": "no-positive-contribution-observed"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 127,
+      "object": "report_runtime_error.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 2,
+      "codeContributions": 1,
+      "positiveBytes": 25,
+      "sourceChecksums": [
+        {
+          "file": "report_runtime_error.cpp",
+          "kind": "SHA256",
+          "checksum": "8d59db07d3c9c5f0273ed1489d02db5c48ff29b15c43d1e9b1c641b1de723d26",
+          "matches": [
+            {
+              "path": "Sources/ucrt/internal/report_runtime_error.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "312eb51c484e266cddcc7610860a3388e701b9f2c244698843b023bc2006edf2"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 128,
+      "object": "matherr.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 6,
+      "codeContributions": 2,
+      "positiveBytes": 152,
+      "sourceChecksums": [
+        {
+          "file": "matherr.cpp",
+          "kind": "SHA256",
+          "checksum": "87d84ec40d6dda9206e20da657566cb16d70857547c1f878a527558b38e0a3a8",
+          "matches": [
+            {
+              "path": "ucrtbase.msvcrt/matherr.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "58fe46353c2137acbfe496f9b594d58d5dc46dc4b53452cb5fdaa88fe3b76032"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 129,
+      "object": "argv_data.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 2,
+      "codeContributions": 2,
+      "positiveBytes": 16,
+      "sourceChecksums": [
+        {
+          "file": "argv_data.cpp",
+          "kind": "SHA256",
+          "checksum": "e782be09f0ace213d649d4e475af0d35fd84213db8b9ccf616cb81b8f48e7a20",
+          "matches": [
+            {
+              "path": "Sources/ucrt/startup/argv_data.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "c9d603b53dc2229f97cce7a5da25b9e432fb39e1e12f50f068ad7676e9e1f817"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 130,
+      "object": "setlocal_thunks.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 1,
+      "codeContributions": 1,
+      "positiveBytes": 158,
+      "sourceChecksums": [
+        {
+          "file": "setlocal_thunks.cpp",
+          "kind": "SHA256",
+          "checksum": "a7861e4bf602f5a0a9e4ede864492c5039aa224749c4d1354ca78cce8449888f",
+          "matches": [
+            {
+              "path": "ucrtbase.msvcrt/setlocal_thunks.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "85214e5381b68d69c81470e87270af2d8abc7b5fa9da56ba79cd979bfdc5db70"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 131,
+      "object": "_set_new_mode.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 0,
+      "codeContributions": 0,
+      "positiveBytes": 0,
+      "sourceChecksums": [],
+      "kind": "no-positive-contribution-observed"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 132,
+      "object": "ncommode.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 1,
+      "codeContributions": 1,
+      "positiveBytes": 8,
+      "sourceChecksums": [
+        {
+          "file": "ncommode.cpp",
+          "kind": "SHA256",
+          "checksum": "24778abf1e542b2796d91ea0a162b5f1176249fc49e283057909e1299eff5a69",
+          "matches": [
+            {
+              "path": "Sources/ucrt/stdio/ncommode.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "40e5b74976c890a1870a89ddc59fd91ff3c387fea894a8aee146310e9a378e47"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 133,
+      "object": "terminate.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 0,
+      "codeContributions": 0,
+      "positiveBytes": 0,
+      "sourceChecksums": [],
+      "kind": "no-positive-contribution-observed"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 134,
+      "object": "_test.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 3,
+      "codeContributions": 1,
+      "positiveBytes": 342,
+      "sourceChecksums": [
+        {
+          "file": "_test.cpp",
+          "kind": "SHA256",
+          "checksum": "5bac521dda21d59a00d69f81909fca71bdc16755a68cbb70b881d83eda9b4283",
+          "matches": []
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 135,
+      "object": "_scale.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 1,
+      "codeContributions": 1,
+      "positiveBytes": 635,
+      "sourceChecksums": [
+        {
+          "file": "_scale.c",
+          "kind": "SHA256",
+          "checksum": "dc2807b8ffa107c16803aa6ad17415b73fd7c24dd90dfa73c0c0ed6214cb233f",
+          "matches": []
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 136,
+      "object": "_unscale.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 1,
+      "codeContributions": 1,
+      "positiveBytes": 154,
+      "sourceChecksums": [
+        {
+          "file": "_unscale.c",
+          "kind": "SHA256",
+          "checksum": "1bcc9dfb58999803e2b2cf7405a1a988d81444857a2e19bc0cf70c44e5a0b9dc",
+          "matches": []
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 137,
+      "object": "invalid_parameter.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 6,
+      "codeContributions": 3,
+      "positiveBytes": 578,
+      "sourceChecksums": [
+        {
+          "file": "invalid_parameter.cpp",
+          "kind": "SHA256",
+          "checksum": "5df4b07c98249d5c1f672f916a351abca5465a2dcdf637a6c630e73ed42d4e43",
+          "matches": [
+            {
+              "path": "Sources/ucrt/misc/invalid_parameter.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "795391479727f50e438183b414403ec212f36b442fa4aa2534b85ec57851e6ed"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 138,
+      "object": "cvt.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 30,
+      "codeContributions": 6,
+      "positiveBytes": 3651,
+      "sourceChecksums": [
+        {
+          "file": "cvt.cpp",
+          "kind": "SHA256",
+          "checksum": "edc1003f3681638aaba0c6e8e8a960650a41a9b7e91c39a5bc034f9facb3a31b",
+          "matches": [
+            {
+              "path": "Sources/ucrt/convert/cvt.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "4795d190bb326b3e1716060849f6f9da10c81eeddcb2bd2a38d53d838fbfd2f4"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 139,
+      "object": "localeconv.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 11,
+      "codeContributions": 2,
+      "positiveBytes": 2648,
+      "sourceChecksums": [
+        {
+          "file": "localeconv.cpp",
+          "kind": "SHA256",
+          "checksum": "a0c116864fb481d00d6954c64353c15a0a4e180b4412e323cca7f3acdad1ec3d",
+          "matches": [
+            {
+              "path": "ucrtbase.msvcrt/localeconv.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "0cbad7539553f587e7aca7f77596a09d375456b9290ebfd5230fcd0d387087ac"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 140,
+      "object": "fputwc_thunks.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 0,
+      "codeContributions": 0,
+      "positiveBytes": 0,
+      "sourceChecksums": [
+        {
+          "file": "fputwc_thunks.cpp",
+          "kind": "SHA256",
+          "checksum": "0528184924138f89818df5d64485ec49eabcaec6ff6e790fc5acecee40b9b002",
+          "matches": [
+            {
+              "path": "ucrtbase.msvcrt/fputwc_thunks.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "56b6a115a4c6cbe6255c0b58b7fe2c8262ce0febc230d627790989d0a1a01ee7"
+            }
+          ]
+        }
+      ],
+      "kind": "no-positive-contribution-observed"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 141,
+      "object": "_file.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 0,
+      "codeContributions": 0,
+      "positiveBytes": 0,
+      "sourceChecksums": [
+        {
+          "file": "_file.cpp",
+          "kind": "SHA256",
+          "checksum": "e8dd29275c9bb42287ae53f272b1507b0dfe28265a359b5121a4f7a2745683c1",
+          "matches": [
+            {
+              "path": "ucrtbase.msvcrt/_file.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "18b99c4144621b2b68ba29ffde4e85cc1a5f05044f3d00a07d305d9021d9ce21"
+            }
+          ]
+        }
+      ],
+      "kind": "no-positive-contribution-observed"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 142,
+      "object": "printf_count_output.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 2,
+      "codeContributions": 1,
+      "positiveBytes": 32,
+      "sourceChecksums": [
+        {
+          "file": "printf_count_output.cpp",
+          "kind": "SHA256",
+          "checksum": "f7d3c1f4549fa7407c2005495763acbf0aed16501558b22e143259de96460f0b",
+          "matches": [
+            {
+              "path": "Sources/ucrt/stdio/printf_count_output.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "25d195a669a4c96197063cdedcfe7a6c8da4cc3896d8124a1c91fc5c299e8aef"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 143,
+      "object": "sftbuf_thunks.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 1,
+      "codeContributions": 0,
+      "positiveBytes": 16,
+      "sourceChecksums": [
+        {
+          "file": "sftbuf_thunks.cpp",
+          "kind": "SHA256",
+          "checksum": "72ba28a86c6b7aa0ed3627e8ab336e7f0d8429fdbafb293fd9b9a10d448d5b38",
+          "matches": [
+            {
+              "path": "ucrtbase.msvcrt/sftbuf_thunks.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "8c25d7c5428a63cc39997dc6753cb9e6f9f3c37b9d1abc561880622487a7bdc2"
+            }
+          ]
+        }
+      ],
+      "kind": "positive-data-only"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 144,
+      "object": "recalloc.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 3,
+      "codeContributions": 2,
+      "positiveBytes": 191,
+      "sourceChecksums": [
+        {
+          "file": "recalloc.cpp",
+          "kind": "SHA256",
+          "checksum": "ca117b0b302ec358270d7cb127960af2f4fd8cd4b8691f3f5a1fc66525258bac",
+          "matches": [
+            {
+              "path": "Sources/ucrt/heap/recalloc.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "a084f56bab23b1e85cc8f659ad15f1ede6547af1f9cadf50844fd2bf41a51147"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 145,
+      "object": "msvcrt_loadhelper.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 9,
+      "codeContributions": 2,
+      "positiveBytes": 412,
+      "sourceChecksums": [
+        {
+          "file": "msvcrt_loadhelper.cpp",
+          "kind": "SHA256",
+          "checksum": "a8dfe1bc4f10a44374f0190536bc1411160cc854ce371e3a881b12f05daac8a4",
+          "matches": [
+            {
+              "path": "ucrtbase.msvcrt/msvcrt_loadhelper.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "7ca1148cf67f6fae14f71c3bf26d45505d0d15fd1700a87ec0af5e7149d0fa35"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 146,
+      "object": "winapi_thunks.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 6,
+      "codeContributions": 2,
+      "positiveBytes": 308,
+      "sourceChecksums": [
+        {
+          "file": "winapi_thunks.cpp",
+          "kind": "SHA256",
+          "checksum": "fba31f5da88438b5e67bb5e204370f47e423e045d809cd23745f95bd2e485753",
+          "matches": [
+            {
+              "path": "Sources/ucrt/internal/winapi_thunks.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "a2443ab3fbc49b931aafb53b8bfad484bac7e33163ab7447e913d14ac40fa852"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 147,
+      "object": "shared_initialization.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 2,
+      "codeContributions": 2,
+      "positiveBytes": 188,
+      "sourceChecksums": [
+        {
+          "file": "shared_initialization.cpp",
+          "kind": "SHA256",
+          "checksum": "9fd1c607efdaf492f1254379f0a7a7e18b806cb32ce3748b9d868c04dc821520",
+          "matches": [
+            {
+              "path": "Sources/ucrt/internal/shared_initialization.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "cdfafa1fb92f61e7e609b3da4fbd82f06a749684917c1682bc9bb39d85cc4db9"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 148,
+      "object": "fegetexceptflag.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 0,
+      "codeContributions": 0,
+      "positiveBytes": 0,
+      "sourceChecksums": [
+        {
+          "file": "fegetexceptflag.cpp",
+          "kind": "SHA256",
+          "checksum": "36be8196709b5359ea4058046bac2187defcf11e44f170905f7806e9cdb567ca",
+          "matches": []
+        }
+      ],
+      "kind": "no-positive-contribution-observed"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 149,
+      "object": "fesetexceptflag.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 0,
+      "codeContributions": 0,
+      "positiveBytes": 0,
+      "sourceChecksums": [
+        {
+          "file": "fesetexceptflag.cpp",
+          "kind": "SHA256",
+          "checksum": "af120a2fd9b156b64ac4d57bfaf939a99bf02f007aca6a090b41f2f03806f521",
+          "matches": []
+        }
+      ],
+      "kind": "no-positive-contribution-observed"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 150,
+      "object": "_fenvutils.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 4,
+      "codeContributions": 4,
+      "positiveBytes": 782,
+      "sourceChecksums": [
+        {
+          "file": "_fenvutils.cpp",
+          "kind": "SHA256",
+          "checksum": "03ea3a95abe50a8e5f358a37cc8c3de0cd14b8767cb6b9b72fab1e3b2c71a57a",
+          "matches": []
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 151,
+      "object": "_norm.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 1,
+      "codeContributions": 1,
+      "positiveBytes": 381,
+      "sourceChecksums": [
+        {
+          "file": "_norm.c",
+          "kind": "SHA256",
+          "checksum": "465a0d4a2b761d9e82fe63d86a34238305dc9c25179f2ed3caf82021e9a1e617",
+          "matches": []
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 152,
+      "object": "_values.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 1,
+      "codeContributions": 0,
+      "positiveBytes": 8,
+      "sourceChecksums": [
+        {
+          "file": "_values.c",
+          "kind": "SHA256",
+          "checksum": "aa5b3d6097597dc0f90f128145a6bad09b41689f4e14234d782c1ed75b5df238",
+          "matches": []
+        }
+      ],
+      "kind": "positive-data-only"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 153,
+      "object": "_fptostr.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 3,
+      "codeContributions": 1,
+      "positiveBytes": 294,
+      "sourceChecksums": [
+        {
+          "file": "_fptostr.cpp",
+          "kind": "SHA256",
+          "checksum": "7caea7f79be8507fdb17ca33e24f8d688b9fbebb18addde32e4d2fd6454023a0",
+          "matches": [
+            {
+              "path": "Sources/ucrt/convert/_fptostr.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "89cc24e6b8feb642899e8f68f8f116b261485998d7190f98ecb1c326def93b70"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 154,
+      "object": "cfout.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 14,
+      "codeContributions": 1,
+      "positiveBytes": 9374,
+      "sourceChecksums": [
+        {
+          "file": "cfout.cpp",
+          "kind": "SHA256",
+          "checksum": "4b34dee0a3af377f95dd9822edf524aeeadfe35d0b449a88d2eb495dc3d7464f",
+          "matches": [
+            {
+              "path": "Sources/ucrt/convert/cfout.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "f95626422b6b50d59e13e1a724a7ea455be94b4f11463bb70bfdc79c3385b370"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 155,
+      "object": "fwrite.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 0,
+      "codeContributions": 0,
+      "positiveBytes": 0,
+      "sourceChecksums": [
+        {
+          "file": "fwrite.cpp",
+          "kind": "SHA256",
+          "checksum": "5ac08fdfed4f40b7aacf6ac5e04ca86ba97991dd20371d5d3c3f95a49510f45b",
+          "matches": [
+            {
+              "path": "ucrtbase.msvcrt/fwrite.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "74824abc9b7e90b3b55abc42b840818aa307bbb9f9be703df4f747031969bdc8"
+            }
+          ]
+        }
+      ],
+      "kind": "no-positive-contribution-observed"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 156,
+      "object": "_msize_base.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 0,
+      "codeContributions": 0,
+      "positiveBytes": 0,
+      "sourceChecksums": [],
+      "kind": "no-positive-contribution-observed"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 157,
+      "object": "_realloc_base.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 0,
+      "codeContributions": 0,
+      "positiveBytes": 0,
+      "sourceChecksums": [],
+      "kind": "no-positive-contribution-observed"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 158,
+      "object": "fetestexcept.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 0,
+      "codeContributions": 0,
+      "positiveBytes": 0,
+      "sourceChecksums": [
+        {
+          "file": "fetestexcept.c",
+          "kind": "SHA256",
+          "checksum": "f2b5cedff1089cb2c14909e7e4c7f7a4deddce3c5f08cff92fb05080ea1604ad",
+          "matches": []
+        }
+      ],
+      "kind": "no-positive-contribution-observed"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 159,
+      "object": "fegetenv.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 1,
+      "codeContributions": 1,
+      "positiveBytes": 32,
+      "sourceChecksums": [
+        {
+          "file": "fegetenv.cpp",
+          "kind": "SHA256",
+          "checksum": "2d37427dc1277d338ed65ec37ee2a6d1ab85316544a7a0766bfdd5cc7e65469c",
+          "matches": []
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 160,
+      "object": "fesetenv.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 1,
+      "codeContributions": 1,
+      "positiveBytes": 76,
+      "sourceChecksums": [
+        {
+          "file": "fesetenv.cpp",
+          "kind": "SHA256",
+          "checksum": "0e6f595be2ff7b4453ab3ae932166a251a876ef6001223bfa81d2eaacabef952",
+          "matches": []
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 161,
+      "object": "feholdexcept.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 1,
+      "codeContributions": 1,
+      "positiveBytes": 80,
+      "sourceChecksums": [
+        {
+          "file": "feholdexcept.c",
+          "kind": "SHA256",
+          "checksum": "810c8e4ad1adaac82274d54f29f0617ebd367897779c92e811b38e7b8a47aae6",
+          "matches": []
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 162,
+      "object": "chandler_noexcept.obj",
+      "library": "libvcruntime.lib",
+      "positiveContributions": 1,
+      "codeContributions": 1,
+      "positiveBytes": 45,
+      "sourceChecksums": [
+        {
+          "file": "chandler_noexcept.cpp",
+          "kind": "SHA256",
+          "checksum": "afc4d3e5c951300996432bf4317dfa2fdb2241c6b7e880138313c474f1b978a7",
+          "matches": [
+            {
+              "path": "Sources/crt/vcruntime/chandler_noexcept.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "548b07d4a03d8d87a2c62db1c03f012172fba43fa267ab905bedd5274b988ac1"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 165,
+      "object": "softmemtag.obj",
+      "library": "libvcruntime.lib",
+      "positiveContributions": 1,
+      "codeContributions": 0,
+      "positiveBytes": 8,
+      "sourceChecksums": [
+        {
+          "file": "softmemtag.cpp",
+          "kind": "SHA256",
+          "checksum": "1631f25a1f920010d55004770520591320c4cf62307e534fb6bef390379e3508",
+          "matches": []
+        }
+      ],
+      "kind": "positive-data-only"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 195,
+      "object": "Import:msvcrt.dll",
+      "library": "libvcruntime.lib",
+      "positiveContributions": 31,
+      "codeContributions": 7,
+      "positiveBytes": 280,
+      "sourceChecksums": [],
+      "kind": "system-import-metadata-or-thunk"
+    },
+    {
+      "binary": "easytier_core.exe",
+      "pdbSha256": "d09c6a73da800e33cbc4aab34b914ebb6be06f002be8a8767463166630869b66",
+      "moduleIndex": 196,
+      "object": "Import:msvcrt.dll",
+      "library": "libucrt.lib",
+      "positiveContributions": 134,
+      "codeContributions": 29,
+      "positiveBytes": 1150,
+      "sourceChecksums": [],
+      "kind": "system-import-metadata-or-thunk"
+    },
+    {
+      "binary": "easytier_cli.exe",
+      "pdbSha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "moduleIndex": 85,
+      "object": "ehhelpers.obj",
+      "library": "libvcruntime.lib",
+      "positiveContributions": 8,
+      "codeContributions": 5,
+      "positiveBytes": 379,
+      "sourceChecksums": [
+        {
+          "file": "ehhelpers.cpp",
+          "kind": "SHA256",
+          "checksum": "ec2b326df699a0a8829b59c661b9d5e6235bb55d580fbcea7c285c8793b87708",
+          "matches": [
+            {
+              "path": "Sources/crt/vcruntime/ehhelpers.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "a490d9ea0713cf92261de36bd9127c6e23a7a9aaebea69f573e96209d3f03445"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_cli.exe",
+      "pdbSha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "moduleIndex": 86,
+      "object": "std_type_info.obj",
+      "library": "libvcruntime.lib",
+      "positiveContributions": 0,
+      "codeContributions": 0,
+      "positiveBytes": 0,
+      "sourceChecksums": [
+        {
+          "file": "std_type_info.cpp",
+          "kind": "SHA256",
+          "checksum": "eb46bc98a02681300f0a624ed8f10f6d61a4111d9c978055b815ebb759913fad",
+          "matches": [
+            {
+              "path": "Sources/crt/vcruntime/std_type_info.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "b727b478884a833a3bb5abf9219fab99e73e1f643a05e88b424eb30f16e26e56"
+            }
+          ]
+        }
+      ],
+      "kind": "no-positive-contribution-observed"
+    },
+    {
+      "binary": "easytier_cli.exe",
+      "pdbSha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "moduleIndex": 87,
+      "object": "msvcrt.dll",
+      "library": "libvcruntime.lib",
+      "positiveContributions": 4,
+      "codeContributions": 0,
+      "positiveBytes": 48,
+      "sourceChecksums": [],
+      "kind": "system-import-metadata-or-thunk"
+    },
+    {
+      "binary": "easytier_cli.exe",
+      "pdbSha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "moduleIndex": 88,
+      "object": "round.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 2,
+      "codeContributions": 1,
+      "positiveBytes": 109,
+      "sourceChecksums": [
+        {
+          "file": "round.c",
+          "kind": "SHA256",
+          "checksum": "f35a54f1f394a249cd058ca8ac79e5aa8a89e6251d8af2be643b17b2b020db9d",
+          "matches": []
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_cli.exe",
+      "pdbSha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "moduleIndex": 89,
+      "object": "_seh_filter_dll.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 0,
+      "codeContributions": 0,
+      "positiveBytes": 0,
+      "sourceChecksums": [],
+      "kind": "no-positive-contribution-observed"
+    },
+    {
+      "binary": "easytier_cli.exe",
+      "pdbSha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "moduleIndex": 90,
+      "object": "exit.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 24,
+      "codeContributions": 13,
+      "positiveBytes": 1315,
+      "sourceChecksums": [
+        {
+          "file": "exit.cpp",
+          "kind": "SHA256",
+          "checksum": "ca1baf5875143f7aacf22672d34d08ed7a3150a5e01032d7a1f0f7b291d06f00",
+          "matches": [
+            {
+              "path": "Sources/ucrt/startup/exit.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "d4c20f94adc236a446e1319ed80e4ab514ff3d5c7c8b2adf8ff0e364e42844a9"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_cli.exe",
+      "pdbSha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "moduleIndex": 91,
+      "object": "argv_parsing.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 1,
+      "codeContributions": 1,
+      "positiveBytes": 64,
+      "sourceChecksums": [
+        {
+          "file": "argv_parsing.cpp",
+          "kind": "SHA256",
+          "checksum": "14c51849a84f583be74c4503dacb3ed00351a73ceba7fc44676b7e534d770613",
+          "matches": [
+            {
+              "path": "ucrtbase.msvcrt/argv_parsing.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "5b03fc0299fde2563ef0f78555d4bcb495357c02856f04b2f4af4cf0b66e3f25"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_cli.exe",
+      "pdbSha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "moduleIndex": 92,
+      "object": "environment_initialization.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 1,
+      "codeContributions": 1,
+      "positiveBytes": 11,
+      "sourceChecksums": [
+        {
+          "file": "environment_initialization.cpp",
+          "kind": "SHA256",
+          "checksum": "4b1f3b8596cb795c04f0253535bc36f6dd316204a6cd371cd31132d890d4c220",
+          "matches": [
+            {
+              "path": "ucrtbase.msvcrt/environment_initialization.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "f8b9634a287f6609673e79cc2b7ae79ca5e9d7d6a30cc2adfd4e0232f1cd16fc"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_cli.exe",
+      "pdbSha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "moduleIndex": 93,
+      "object": "onexit.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 15,
+      "codeContributions": 8,
+      "positiveBytes": 1424,
+      "sourceChecksums": [
+        {
+          "file": "onexit.cpp",
+          "kind": "SHA256",
+          "checksum": "f69758a11162df7d57a297ac9b1b99ea43e7a092ce349e6d4b5d7e0d101fa92a",
+          "matches": [
+            {
+              "path": "Sources/ucrt/startup/onexit.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "5cd39872a080340b5db2c5014870aac3934a98796821406705faf0b3c8b1e2e0"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_cli.exe",
+      "pdbSha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "moduleIndex": 94,
+      "object": "initialization.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 7,
+      "codeContributions": 6,
+      "positiveBytes": 263,
+      "sourceChecksums": [
+        {
+          "file": "initialization.cpp",
+          "kind": "SHA256",
+          "checksum": "2b1ef9bcd3fb5528e77d4eea78d17d1126d17b5ee84256e228895725fe15aab4",
+          "matches": [
+            {
+              "path": "Sources/ucrt/internal/initialization.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "070a517bfa3a819dbbf8455767b948f86fb7228e3c5c114621e9b28e870af262"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_cli.exe",
+      "pdbSha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "moduleIndex": 95,
+      "object": "_seh_filter_exe.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 0,
+      "codeContributions": 0,
+      "positiveBytes": 0,
+      "sourceChecksums": [],
+      "kind": "no-positive-contribution-observed"
+    },
+    {
+      "binary": "easytier_cli.exe",
+      "pdbSha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "moduleIndex": 96,
+      "object": "report_runtime_error.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 2,
+      "codeContributions": 1,
+      "positiveBytes": 25,
+      "sourceChecksums": [
+        {
+          "file": "report_runtime_error.cpp",
+          "kind": "SHA256",
+          "checksum": "8d59db07d3c9c5f0273ed1489d02db5c48ff29b15c43d1e9b1c641b1de723d26",
+          "matches": [
+            {
+              "path": "Sources/ucrt/internal/report_runtime_error.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "312eb51c484e266cddcc7610860a3388e701b9f2c244698843b023bc2006edf2"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_cli.exe",
+      "pdbSha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "moduleIndex": 97,
+      "object": "matherr.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 6,
+      "codeContributions": 2,
+      "positiveBytes": 152,
+      "sourceChecksums": [
+        {
+          "file": "matherr.cpp",
+          "kind": "SHA256",
+          "checksum": "87d84ec40d6dda9206e20da657566cb16d70857547c1f878a527558b38e0a3a8",
+          "matches": [
+            {
+              "path": "ucrtbase.msvcrt/matherr.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "58fe46353c2137acbfe496f9b594d58d5dc46dc4b53452cb5fdaa88fe3b76032"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_cli.exe",
+      "pdbSha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "moduleIndex": 98,
+      "object": "argv_data.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 2,
+      "codeContributions": 2,
+      "positiveBytes": 16,
+      "sourceChecksums": [
+        {
+          "file": "argv_data.cpp",
+          "kind": "SHA256",
+          "checksum": "e782be09f0ace213d649d4e475af0d35fd84213db8b9ccf616cb81b8f48e7a20",
+          "matches": [
+            {
+              "path": "Sources/ucrt/startup/argv_data.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "c9d603b53dc2229f97cce7a5da25b9e432fb39e1e12f50f068ad7676e9e1f817"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_cli.exe",
+      "pdbSha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "moduleIndex": 99,
+      "object": "setlocal_thunks.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 1,
+      "codeContributions": 1,
+      "positiveBytes": 158,
+      "sourceChecksums": [
+        {
+          "file": "setlocal_thunks.cpp",
+          "kind": "SHA256",
+          "checksum": "a7861e4bf602f5a0a9e4ede864492c5039aa224749c4d1354ca78cce8449888f",
+          "matches": [
+            {
+              "path": "ucrtbase.msvcrt/setlocal_thunks.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "85214e5381b68d69c81470e87270af2d8abc7b5fa9da56ba79cd979bfdc5db70"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_cli.exe",
+      "pdbSha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "moduleIndex": 100,
+      "object": "_set_new_mode.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 0,
+      "codeContributions": 0,
+      "positiveBytes": 0,
+      "sourceChecksums": [],
+      "kind": "no-positive-contribution-observed"
+    },
+    {
+      "binary": "easytier_cli.exe",
+      "pdbSha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "moduleIndex": 101,
+      "object": "ncommode.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 1,
+      "codeContributions": 1,
+      "positiveBytes": 8,
+      "sourceChecksums": [
+        {
+          "file": "ncommode.cpp",
+          "kind": "SHA256",
+          "checksum": "24778abf1e542b2796d91ea0a162b5f1176249fc49e283057909e1299eff5a69",
+          "matches": [
+            {
+              "path": "Sources/ucrt/stdio/ncommode.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "40e5b74976c890a1870a89ddc59fd91ff3c387fea894a8aee146310e9a378e47"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_cli.exe",
+      "pdbSha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "moduleIndex": 102,
+      "object": "terminate.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 0,
+      "codeContributions": 0,
+      "positiveBytes": 0,
+      "sourceChecksums": [],
+      "kind": "no-positive-contribution-observed"
+    },
+    {
+      "binary": "easytier_cli.exe",
+      "pdbSha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "moduleIndex": 103,
+      "object": "_test.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 3,
+      "codeContributions": 1,
+      "positiveBytes": 342,
+      "sourceChecksums": [
+        {
+          "file": "_test.cpp",
+          "kind": "SHA256",
+          "checksum": "5bac521dda21d59a00d69f81909fca71bdc16755a68cbb70b881d83eda9b4283",
+          "matches": []
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_cli.exe",
+      "pdbSha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "moduleIndex": 104,
+      "object": "recalloc.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 3,
+      "codeContributions": 2,
+      "positiveBytes": 191,
+      "sourceChecksums": [
+        {
+          "file": "recalloc.cpp",
+          "kind": "SHA256",
+          "checksum": "ca117b0b302ec358270d7cb127960af2f4fd8cd4b8691f3f5a1fc66525258bac",
+          "matches": [
+            {
+              "path": "Sources/ucrt/heap/recalloc.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "a084f56bab23b1e85cc8f659ad15f1ede6547af1f9cadf50844fd2bf41a51147"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_cli.exe",
+      "pdbSha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "moduleIndex": 105,
+      "object": "msvcrt_loadhelper.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 9,
+      "codeContributions": 2,
+      "positiveBytes": 412,
+      "sourceChecksums": [
+        {
+          "file": "msvcrt_loadhelper.cpp",
+          "kind": "SHA256",
+          "checksum": "a8dfe1bc4f10a44374f0190536bc1411160cc854ce371e3a881b12f05daac8a4",
+          "matches": [
+            {
+              "path": "ucrtbase.msvcrt/msvcrt_loadhelper.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "7ca1148cf67f6fae14f71c3bf26d45505d0d15fd1700a87ec0af5e7149d0fa35"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_cli.exe",
+      "pdbSha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "moduleIndex": 106,
+      "object": "sftbuf_thunks.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 1,
+      "codeContributions": 0,
+      "positiveBytes": 16,
+      "sourceChecksums": [
+        {
+          "file": "sftbuf_thunks.cpp",
+          "kind": "SHA256",
+          "checksum": "72ba28a86c6b7aa0ed3627e8ab336e7f0d8429fdbafb293fd9b9a10d448d5b38",
+          "matches": [
+            {
+              "path": "ucrtbase.msvcrt/sftbuf_thunks.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "8c25d7c5428a63cc39997dc6753cb9e6f9f3c37b9d1abc561880622487a7bdc2"
+            }
+          ]
+        }
+      ],
+      "kind": "positive-data-only"
+    },
+    {
+      "binary": "easytier_cli.exe",
+      "pdbSha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "moduleIndex": 107,
+      "object": "winapi_thunks.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 6,
+      "codeContributions": 2,
+      "positiveBytes": 308,
+      "sourceChecksums": [
+        {
+          "file": "winapi_thunks.cpp",
+          "kind": "SHA256",
+          "checksum": "fba31f5da88438b5e67bb5e204370f47e423e045d809cd23745f95bd2e485753",
+          "matches": [
+            {
+              "path": "Sources/ucrt/internal/winapi_thunks.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "a2443ab3fbc49b931aafb53b8bfad484bac7e33163ab7447e913d14ac40fa852"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_cli.exe",
+      "pdbSha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "moduleIndex": 108,
+      "object": "shared_initialization.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 2,
+      "codeContributions": 2,
+      "positiveBytes": 188,
+      "sourceChecksums": [
+        {
+          "file": "shared_initialization.cpp",
+          "kind": "SHA256",
+          "checksum": "9fd1c607efdaf492f1254379f0a7a7e18b806cb32ce3748b9d868c04dc821520",
+          "matches": [
+            {
+              "path": "Sources/ucrt/internal/shared_initialization.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "cdfafa1fb92f61e7e609b3da4fbd82f06a749684917c1682bc9bb39d85cc4db9"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_cli.exe",
+      "pdbSha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "moduleIndex": 109,
+      "object": "invalid_parameter.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 6,
+      "codeContributions": 3,
+      "positiveBytes": 578,
+      "sourceChecksums": [
+        {
+          "file": "invalid_parameter.cpp",
+          "kind": "SHA256",
+          "checksum": "5df4b07c98249d5c1f672f916a351abca5465a2dcdf637a6c630e73ed42d4e43",
+          "matches": [
+            {
+              "path": "Sources/ucrt/misc/invalid_parameter.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "795391479727f50e438183b414403ec212f36b442fa4aa2534b85ec57851e6ed"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_cli.exe",
+      "pdbSha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "moduleIndex": 110,
+      "object": "fegetexceptflag.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 0,
+      "codeContributions": 0,
+      "positiveBytes": 0,
+      "sourceChecksums": [
+        {
+          "file": "fegetexceptflag.cpp",
+          "kind": "SHA256",
+          "checksum": "36be8196709b5359ea4058046bac2187defcf11e44f170905f7806e9cdb567ca",
+          "matches": []
+        }
+      ],
+      "kind": "no-positive-contribution-observed"
+    },
+    {
+      "binary": "easytier_cli.exe",
+      "pdbSha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "moduleIndex": 111,
+      "object": "fesetexceptflag.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 0,
+      "codeContributions": 0,
+      "positiveBytes": 0,
+      "sourceChecksums": [
+        {
+          "file": "fesetexceptflag.cpp",
+          "kind": "SHA256",
+          "checksum": "af120a2fd9b156b64ac4d57bfaf939a99bf02f007aca6a090b41f2f03806f521",
+          "matches": []
+        }
+      ],
+      "kind": "no-positive-contribution-observed"
+    },
+    {
+      "binary": "easytier_cli.exe",
+      "pdbSha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "moduleIndex": 112,
+      "object": "_fenvutils.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 0,
+      "codeContributions": 0,
+      "positiveBytes": 0,
+      "sourceChecksums": [
+        {
+          "file": "_fenvutils.cpp",
+          "kind": "SHA256",
+          "checksum": "03ea3a95abe50a8e5f358a37cc8c3de0cd14b8767cb6b9b72fab1e3b2c71a57a",
+          "matches": []
+        }
+      ],
+      "kind": "no-positive-contribution-observed"
+    },
+    {
+      "binary": "easytier_cli.exe",
+      "pdbSha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "moduleIndex": 113,
+      "object": "_msize_base.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 0,
+      "codeContributions": 0,
+      "positiveBytes": 0,
+      "sourceChecksums": [],
+      "kind": "no-positive-contribution-observed"
+    },
+    {
+      "binary": "easytier_cli.exe",
+      "pdbSha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "moduleIndex": 114,
+      "object": "_realloc_base.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 0,
+      "codeContributions": 0,
+      "positiveBytes": 0,
+      "sourceChecksums": [],
+      "kind": "no-positive-contribution-observed"
+    },
+    {
+      "binary": "easytier_cli.exe",
+      "pdbSha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "moduleIndex": 115,
+      "object": "fetestexcept.obj",
+      "library": "libucrt.lib",
+      "positiveContributions": 0,
+      "codeContributions": 0,
+      "positiveBytes": 0,
+      "sourceChecksums": [
+        {
+          "file": "fetestexcept.c",
+          "kind": "SHA256",
+          "checksum": "f2b5cedff1089cb2c14909e7e4c7f7a4deddce3c5f08cff92fb05080ea1604ad",
+          "matches": []
+        }
+      ],
+      "kind": "no-positive-contribution-observed"
+    },
+    {
+      "binary": "easytier_cli.exe",
+      "pdbSha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "moduleIndex": 116,
+      "object": "chandler_noexcept.obj",
+      "library": "libvcruntime.lib",
+      "positiveContributions": 1,
+      "codeContributions": 1,
+      "positiveBytes": 45,
+      "sourceChecksums": [
+        {
+          "file": "chandler_noexcept.cpp",
+          "kind": "SHA256",
+          "checksum": "afc4d3e5c951300996432bf4317dfa2fdb2241c6b7e880138313c474f1b978a7",
+          "matches": [
+            {
+              "path": "Sources/crt/vcruntime/chandler_noexcept.cpp",
+              "byteCorrespondence": "CRLF",
+              "originalSha256": "548b07d4a03d8d87a2c62db1c03f012172fba43fa267ab905bedd5274b988ac1"
+            }
+          ]
+        }
+      ],
+      "kind": "machine-code"
+    },
+    {
+      "binary": "easytier_cli.exe",
+      "pdbSha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "moduleIndex": 119,
+      "object": "softmemtag.obj",
+      "library": "libvcruntime.lib",
+      "positiveContributions": 1,
+      "codeContributions": 0,
+      "positiveBytes": 8,
+      "sourceChecksums": [
+        {
+          "file": "softmemtag.cpp",
+          "kind": "SHA256",
+          "checksum": "1631f25a1f920010d55004770520591320c4cf62307e534fb6bef390379e3508",
+          "matches": []
+        }
+      ],
+      "kind": "positive-data-only"
+    },
+    {
+      "binary": "easytier_cli.exe",
+      "pdbSha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "moduleIndex": 146,
+      "object": "Import:msvcrt.dll",
+      "library": "libvcruntime.lib",
+      "positiveContributions": 27,
+      "codeContributions": 6,
+      "positiveBytes": 248,
+      "sourceChecksums": [],
+      "kind": "system-import-metadata-or-thunk"
+    },
+    {
+      "binary": "easytier_cli.exe",
+      "pdbSha256": "88d0ec511c13ccd27d22e8d7ba4470219d00f8bef6a2f56b9f5655017a47310b",
+      "moduleIndex": 147,
+      "object": "Import:msvcrt.dll",
+      "library": "libucrt.lib",
+      "positiveContributions": 78,
+      "codeContributions": 15,
+      "positiveBytes": 684,
+      "sourceChecksums": [],
+      "kind": "system-import-metadata-or-thunk"
+    }
+  ],
+  "binarySummary": [
+    {
+      "binary": "easytier_core.exe",
+      "vcLtlModuleEntries": 52,
+      "allPositiveContributionEntries": 39,
+      "implementationCodeEntriesExcludingSystemImportThunks": 33,
+      "dataOnlyEntriesExcludingSystemImportRecords": 3,
+      "noPositiveContributionEntries": 13,
+      "systemImportRecords": 3
+    },
+    {
+      "binary": "easytier_cli.exe",
+      "vcLtlModuleEntries": 35,
+      "allPositiveContributionEntries": 24,
+      "implementationCodeEntriesExcludingSystemImportThunks": 19,
+      "dataOnlyEntriesExcludingSystemImportRecords": 2,
+      "noPositiveContributionEntries": 11,
+      "systemImportRecords": 3
+    }
+  ],
+  "notices": {
+    "rootEpl2File": "vc-ltl5-LICENSE.txt",
+    "rootEpl2Sha256": "84c677edb6b15ac6485a5352128787771ebbf740cf4b232987c99b9048931ff9",
+    "microsoftSdkTerms": "vc-ltl5-sdk_license.rtf",
+    "microsoftSdkTermsSha256": "7e28c7527acda5b1a140ce26902ca3e4fb2e5b12759c0d6b98929450b6eb3a1d",
+    "sdkThirdPartyNotices": "vc-ltl5-sdk_third_party_notices.rtf",
+    "sdkThirdPartyNoticesSha256": "ebb6640a8246b39b70322c5cec9aad7a71e86ea7b86c9c604d3a7f3ff1b30e89",
+    "sdkThirdPartyNoticeListDoesNotProveAllListedLibrariesLinked": true
+  },
+  "officialRecipes": [
+    {
+      "entry": "Tools/6.0.6000.0/x64/Build_libucrt_shared.cmd",
+      "sha256": "8169c7c59362b6d495c42b48e8eeddb042c134f1185397b7888b7a4aa6e071b4",
+      "fact": "copies Windows SDK10.0.19041.0 x64 libucrt.lib then removes selected members; retained math/FENV objects therefore have Microsoft SDK origin"
+    },
+    {
+      "entry": "Tools/VCRuntime/x64/LibInfo.props",
+      "sha256": "8c2bbe32a43e8c8cab2bba12276824cc8f8256aa8d7e4bf086c4723c38de346c",
+      "fact": "extracts softmemtag.obj from MSVC vcruntime.lib; handlers/notify selection is configuration-dependent"
+    }
+  ],
+  "installedSdkProbe": {
+    "schema": 1,
+    "boundedOfficialSdkAndVcSourceDirectoriesOnly": true,
+    "rootsChecked": [
+      "WindowsSDK-10.0.22621.0-ucrt",
+      "WindowsSDK-10.0.26100.0-ucrt",
+      "MSVC-14.44.35207-crt-src"
+    ],
+    "onlyTwelveNamedMissingSourcesProbed": true,
+    "sourceCopied": false,
+    "matches": [],
+    "missingExactSourcesNotRecovered": [
+      "_fenvutils.cpp",
+      "_norm.c",
+      "_scale.c",
+      "_test.cpp",
+      "_unscale.c",
+      "_values.c",
+      "cbrt.c",
+      "fegetenv.cpp",
+      "feholdexcept.c",
+      "fesetenv.cpp",
+      "round.c",
+      "softmemtag.cpp"
+    ],
+    "nativeToolchainExecuted": false,
+    "boundedFileProbeExecuted": true
+  },
+  "buildOnlyInputs": [
+    "thunk-rs build-script implementation itself",
+    "VC-LTL helper props/targets/CMD and library assembly tools",
+    "curl/7-Zip downloader fallback, not invoked in explicit-path rebuild",
+    "MSVC compiler, linker, Windows SDK tools, CMake and protoc executables"
+  ],
+  "runtimeInputs": [
+    "positive libucrt/libvcruntime implementation code/data and generated msvcrt import metadata/thunks listed per exact EXE",
+    "YY_Thunks_for_Win7.obj (original MIT notice retained)",
+    "Windows-provided msvcrt.dll/API libraries are imports and are not copied into product package"
+  ],
+  "officialSdkRedist": {
+    "url": "https://learn.microsoft.com/en-us/legal/windows-sdk/redist",
+    "chain": [
+      {
+        "url": "https://go.microsoft.com/fwlink/?LinkId=524842",
+        "status": 302
+      },
+      {
+        "url": "https://learn.microsoft.com/en-us/legal/windows-sdk/redist",
+        "status": 200
+      }
+    ],
+    "status": 200,
+    "contentType": "text/html",
+    "bytes": 38643,
+    "sha256": "b68b0992d384930e19530cf4a61dc25c8d7f61b231cb5762a91546af467b36c9",
+    "noPrivatePayloadSent": true,
+    "authoritativeHistoricalSdkCoverageNotAssumed": true,
+    "fetchReceipt": "official-sdk-redist-fetch.json",
+    "originalResponseRetainedOutsideGit": true,
+    "staticLibraryDirectoryCoverageConfirmed": true,
+    "coveredX64Directory": "Program Files/Windows Kits/10/Lib/<version>/ucrt/x64",
+    "condition": "Static LIBs from the publicly released licensed SDK are listed for unmodified distribution when built as part of a program, subject to the SDK terms",
+    "modifiedVcLtlLibraryOrMicrosoftSourceRedistributionCleared": false,
+    "historicalProducerSdkVcGrantIdentityConfirmed": false
+  },
+  "legalScope": {
+    "projectEpl2NoticeRetained": true,
+    "originalMicrosoftHeadersAndTermsRetained": true,
+    "secondaryGrantFoundOutsideGenericTemplate": false,
+    "microsoftSdkSection2aRequiresDistributableCodeListAndLinkedLibResults": true,
+    "excludedLicenseRestrictionPresent": true,
+    "rootEplAloneDoesNotProveMicrosoftGrant": true,
+    "compilerLicenseNotRedistributedAsOpenSource": true,
+    "currentProductPublicDistributionApproved": false
+  },
+  "remainingSpecificMaterials": [
+    "Exact source and producing SDK/VC release identity for twelve checksum-named Microsoft implementation units; the official SDK static-LIB directory list is now verified",
+    "Explicit permitted source/object distribution scope for Microsoft-origin units retained or modified in the EPL project; listed unmodified SDK static LIB coverage is not modified-CRT/source clearance",
+    "An intended-recipient relink result using lawfully supplied platform SDK/runtime inputs; private custody archive is not a distribution permission grant"
+  ],
+  "decisionOptions": [
+    "Keep existing Windows7 VC-LTL compatibility target and resolve the listed original grant/source scope before distribution",
+    "Choose a reviewed modern-Windows standard-runtime build configuration; it changes compatibility/deployment and requires parent choice plus coordinated build/regression, not an automatic legal fix"
+  ]
+}

@@ -1,0 +1,20 @@
+# Next native build input
+
+The native code delta is frozen in integration commit `fb3ae901a02f763241ff8d78f1db0b89243fba24`: only `components/easytier/source/easytier/Cargo.toml` changes. Windows service-manager keeps fixed Git commit `5eb28f7a686858eea4f4933534ed989d3b71dc2a` with no default encoding feature; non-Windows keeps its previous default declaration. No dependency version or lock upgrade, Rust implementation or 17-feature profile change is included. This is authorized ordinary source development, not a new runtime/TUN approval.
+
+The exact one-file overlay and its manifest are under `overlays/windows-service-no-encoding`. `restore-next-native-source.cjs` verifies/restores the immutable dbaf companion into a fresh destination, checks the original file, copies only the reviewed Cargo.toml and verifies the unchanged lock. `--metadata` then verifies all 886 normalized metadata nodes/865 registry packages and the actual Windows normal/build graph of 504 packages with service-manager features `[]`. Cargo workspace metadata's union features are not used as target-build evidence. Linux tree remains unverified: the original frozen custody lacks `iana-time-zone-0.1.65.crate`.
+
+The immutable companion is `native-source-followup-delivery/private-native-dbaf0453-source-materials-20261011.zip`, 201,908,868 bytes, SHA256 `6656e48e28b22b231aebc99ae5c4563b25ad0ecf5e3fc47ff29943eb119eec86`. Preserve it unchanged. Unpack it into a dedicated material directory, or use the already verified `corresponding-source-preparation` custody. These are private reproducibility materials; recipient/public distribution of raw Microsoft link libraries is not cleared.
+
+```powershell
+# Run from the exact integration checkout. Use fresh owner-only directories.
+node release/source-materials/restore-next-native-source.cjs C:/dedicated/materials C:/dedicated/next-native --metadata
+# Only after the parent assigns the heavy build slot, in VS2022 x64 developer shell:
+./release/source-materials/build-next-native.ps1 -RestoredDirectory C:/dedicated/next-native -VcLtlDirectory C:/dedicated/VC-LTL-5.2.2 -YyThunksDirectory C:/dedicated/YY-Thunks-1.1.7 -ProtocExecutable C:/dedicated/protoc.exe
+```
+
+Select link inputs from these verified original archives: VC-LTL 5.2.2 7z SHA256 `04aa46a7d2af655bcf42c4937504525eb7e66a75910ed42fd25a1cdcec587df0`, YY-Thunks 1.1.7 object ZIP `c3066f3f074ebc2a89b2def5f427bdea238dee17349d2bab579af519781691ab`. Set explicit directories as above; Cargo offline does not disable thunk-rs's external download fallback if paths are omitted. Compiler/SDK/CMake/protoc must be already installed and lawfully obtained. Record actual tool versions; the old receipt does not prove bit-identical output. The command uses Rust 1.95.0, x86_64-pc-windows-msvc, static CRT and the same 17 features, one build job, and builds both core and CLI.
+
+The designated owner must freeze fresh core/CLI/PDB hashes and build logs, verify normal and delay imports of both binaries, confirm only the intended encoding/codepage target dependencies disappeared, retain four-file runtime identity and pin new source/package correspondence. Do not replace existing frozen inputs or change production resources until that delivery is reviewed. Build-only success does not authorize executing either binary, starting TUN or reusing consumed scope approvals.
+
+For recipient relink preparation, use this same restored source and lawfully supplied platform SDK/runtime inputs, retain original WinDivert/Wintun/YY-Thunks and dependency notices, and document modification/relink/install information. Actual recipient access/relink acceptance is pending. See `VC-LTL-UNIT-SCOPE-REVIEW.md`: 24 compiled source identities match; 12 Microsoft implementation sources and modified-CRT/source grant scope remain specific blockers. The old binaries' encoding notice question remains historical; new build success cannot retroactively clear them. No compiler installations or raw host logs belong in a public source export.

@@ -1,0 +1,19 @@
+{
+  "url": "https://learn.microsoft.com/en-us/legal/windows-sdk/redist",
+  "chain": [
+    {
+      "url": "https://go.microsoft.com/fwlink/?LinkId=524842",
+      "status": 302
+    },
+    {
+      "url": "https://learn.microsoft.com/en-us/legal/windows-sdk/redist",
+      "status": 200
+    }
+  ],
+  "status": 200,
+  "contentType": "text/html",
+  "bytes": 38643,
+  "sha256": "b68b0992d384930e19530cf4a61dc25c8d7f61b231cb5762a91546af467b36c9",
+  "noPrivatePayloadSent": true,
+  "authoritativeHistoricalSdkCoverageNotAssumed": true
+}

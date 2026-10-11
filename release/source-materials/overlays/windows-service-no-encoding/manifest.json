@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "sourceCommit": "fb3ae901a02f763241ff8d78f1db0b89243fba24",
+  "nativeBaselineSourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
+  "changedPath": "easytier/Cargo.toml",
+  "baselineSha256": "fc86d2cd78da0642586293c144ed18d94ae0702a141aab0af9c3cff738bf482d",
+  "integratedSha256": "3c2acac6245433e4058a6bc9f8fa2e48a767d316e67e7cb60838ffefc10b28bb",
+  "cargoLockSha256": "e3ee41507e7a8ef94470b70f4639140e67aadae646ada82dfd23b0beeb0e7fb2",
+  "normalizedMetadataGraphSha256": "683e5e7f13cf8fab8dd558850be94f3a39bb9a6fd4f9f03860119277d07e1f6f",
+  "features": [
+    "cli",
+    "wireguard",
+    "websocket",
+    "smoltcp",
+    "tun",
+    "socks5",
+    "kcp",
+    "quic",
+    "magic-dns",
+    "zstd",
+    "upnp",
+    "icmp-proxy",
+    "management",
+    "endpoint-discovery",
+    "extended-services",
+    "linux-netlink",
+    "tcp-hole-punch"
+  ],
+  "nativeBuilt": false,
+  "nativeExecuted": false
+}
