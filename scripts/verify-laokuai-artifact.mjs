@@ -9,7 +9,8 @@ import { fileURLToPath } from "node:url";
 const root=path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const require=createRequire(import.meta.url);
 const asar=require("@electron/asar");
-const unpacked=path.join(root,"release-laokuai/win-unpacked");
+const config=require("../electron-builder.laokuai.cjs");
+const unpacked=path.join(root,config.directories.output,"win-unpacked");
 const extracted=path.resolve(root,process.argv[2] || "../tools/laokuai-static-check");
 const sha=(bytes)=>createHash("sha256").update(bytes).digest("hex");
 const walk=(dir)=>fs.readdirSync(dir,{withFileTypes:true}).flatMap((entry)=>entry.isDirectory()?walk(path.join(dir,entry.name)):[path.join(dir,entry.name)]);
@@ -60,7 +61,7 @@ const pe=(file)=>{
   const certificate=optional+(b.readUInt16LE(optional)===0x20b?112:96)+32;
   return {machine:b.readUInt16LE(offset+4),certificateBytes:b.readUInt32LE(certificate+4)};
 };
-const exe=path.join(extracted,"LaoKuai-Chat.exe");
+const exe=path.join(extracted,`${config.win.executableName}.exe`);
 assert.equal(pe(exe).machine,0x8664);
 assert.equal(pe(exe).certificateBytes,0,"Local test EXE must remain unsigned");
 for (const file of ["audio-capture.exe","screen-capture.exe"]) {

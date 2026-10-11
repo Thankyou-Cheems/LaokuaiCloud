@@ -5,8 +5,6 @@ import fs from "node:fs";
 import { createRequire,stripTypeScriptTypes } from "node:module";
 import path from "node:path";
 
-import sharp from "sharp";
-
 const require = createRequire(import.meta.url);
 const root = path.resolve(import.meta.dirname, "..");
 const read = file => fs.readFileSync(path.join(root, file), "utf8");
@@ -21,9 +19,12 @@ const trayAssets = config.extraResources.filter(entry => /^tray.*\.png$/.test(en
 assert.equal(trayAssets.length, 11);
 for (const entry of trayAssets) {
   assert.ok(entry.from.startsWith("private-brand/icon-"));
-  const metadata = await sharp(path.join(root, entry.from)).metadata();
-  assert.equal(metadata.hasAlpha, true);
-  assert.equal(metadata.width, entry.to.includes("@3x") ? 48 : entry.to.includes("@2x") ? 32 : 16);
+  // IHDR only: no image addon, Electron, or OS input is needed for this check.
+  const png = fs.readFileSync(path.join(root, entry.from));
+  assert.equal(png.subarray(0,8).toString("hex"),"89504e470d0a1a0a");
+  assert.equal(png.toString("ascii",12,16),"IHDR");
+  assert.ok([4,6].includes(png[25]),"Tray PNG must retain alpha");
+  assert.equal(png.readUInt32BE(16), entry.to.includes("@3x") ? 48 : entry.to.includes("@2x") ? 32 : 16);
 }
 cases.push("all eleven tray resources: authorized source and transparent 16/32/48px assets");
 

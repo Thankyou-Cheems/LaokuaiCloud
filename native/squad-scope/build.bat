@@ -19,4 +19,6 @@ if %errorlevel% neq 0 (
 )
 :build
 cl.exe /nologo /EHsc /O2 /MT /DUNICODE /D_UNICODE /Fo:"%SQUAD_OUT%\scope.obj" /Fe:"%SQUAD_OUT%\squad-scope.exe" "%SQUAD_SRC%main.cpp" /link user32.lib
+if %errorlevel% neq 0 exit /b %errorlevel%
+node "%SQUAD_SRC%..\..\scripts\write-squad-build-receipt.cjs"
 exit /b %errorlevel%

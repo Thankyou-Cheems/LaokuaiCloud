@@ -18,6 +18,8 @@ config.extraResources = config.extraResources.map(entry => /^tray.*\.png$/.test(
   : entry);
 config.extraResources.push(
   { from: "build/squad/squad-scope.exe", to: "squad/squad-scope.exe" },
+  { from: "PRIVATE-PROFILE-REUSE.md", to: "legal/PRIVATE-PROFILE-REUSE.md" },
+  { from: "SQUAD-KEY-LIST.md", to: "legal/SQUAD-KEY-LIST.md" },
   { from: "SQUAD-MODE.md", to: "legal/SQUAD-MODE.md" },{ from: "LAOKUAI-SELF-USE.md", to: "legal/LAOKUAI-SELF-USE.md" });
 config.extraResources.push(
   { from: "node_modules/@gryt/voice/LICENSE", to: "legal/VOICE-AGPL-3.0.txt" },
@@ -35,5 +37,12 @@ config.beforeBuild = async (...args) => {
   }
 };
 // npmRebuild=false skips beforeBuild; validate resources at every packaging run.
-config.beforePack = async (...args) => { await config.beforeBuild(...args); };
+config.beforePack = async (...args) => {
+  await config.beforeBuild(...args);
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const { inventory } = require("./scripts/laokuai-package-audit.cjs");
+  const manifest = inventory(__dirname,config);
+  fs.writeFileSync(path.join(__dirname,"build/legal/LAOKUAI-PACKAGE-MANIFEST.json"),JSON.stringify(manifest,null,2)+"\n");
+};
 module.exports = config;
