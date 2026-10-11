@@ -1,0 +1,23 @@
+{
+  "project": "EasyTier",
+  "source": "https://github.com/EasyTier/EasyTier",
+  "sourceCommit": "8b7f1f0196edb5b580829ed5f135050fb5853478",
+  "release": "v2.7.0",
+  "prerelease": true,
+  "upstreamLicense": "LGPL-3.0",
+  "licenseSource": "https://github.com/EasyTier/EasyTier/blob/8b7f1f0196edb5b580829ed5f135050fb5853478/LICENSE",
+  "coreLicenseSource": "https://github.com/EasyTier/EasyTier/blob/8b7f1f0196edb5b580829ed5f135050fb5853478/easytier/LICENSE",
+  "asset": "easytier-windows-x86_64-v2.7.0.zip",
+  "assetBytes": 39616733,
+  "archiveSha256": "790fd9be347b00753570ac2b65f874a591ede9427603fe34e74a86b2b084847f",
+  "archiveLocallyHashed": true,
+  "filesLocallyHashed": true,
+  "binaryExecuted": false,
+  "sourcePatched": false,
+  "managementConsolePackaged": false,
+  "dynamicCliMutationSupported": false,
+  "upstreamDynamicRpcSourceSupported": true,
+  "productionDynamicRpcImplemented": false,
+  "networkAcceptancePassed": false,
+  "driverNotices": "Preserve the upstream third-party driver notices in the final release provenance; the EasyTier source license field is not a claim about every bundled driver."
+}

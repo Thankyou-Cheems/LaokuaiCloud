@@ -9,6 +9,8 @@ const easyTierCommunity: EasyTierCommunityAPI = {
   disconnectCommunity: serverId => ipcRenderer.invoke("et-community-disconnect-all", serverId),
   setEnabled: enabled => ipcRenderer.invoke("et-community-enabled", enabled),
   getState: serverId => ipcRenderer.invoke("et-community-state", serverId),
+  prepareRuntime: () => ipcRenderer.invoke("et-community-prepare"),
+  syncMemberships: serverIds => ipcRenderer.invoke("et-community-memberships", serverIds),
   onState: callback => {
     const listener = (_event: unknown, state: EasyTierCommunityState) => callback(state);
     ipcRenderer.on("et-community-state", listener);

@@ -12,6 +12,7 @@ import { useEmbeddedServer } from "@/settings/src/hooks/useEmbeddedServer";
 import { hostedServerAt, manageServerTab } from "@/settings/src/hostedServers";
 import { SidebarItem } from "@/settings/src/types/server";
 
+import { useEasyTierMemberSnapshot } from "../../../../lib/communityLanState";
 import { PiCaretLeftBold, PiGearSixFill } from "../../../../lib/icons";
 import { useFakeChat } from "../dev/fakeChat";
 import { useFakeChatRunning } from "../dev/fakeChatController";
@@ -106,6 +107,7 @@ export const ServerView = ({ dmSpace = false }: { dmSpace?: boolean }) => {
     devFakeDeafened, devFakeSpeaking, devFakeMembers, devFakeChatSeconds,
   } = useSettings();
   const { currentlyViewingServer, setShowRemoveServer, setLastSelectedChannelForServer, viewServerBehindDmSpace } = useServerManagement();
+  const lan = useEasyTierMemberSnapshot(currentlyViewingServer?.serverId);
   const directory = useDirectory();
   const { connect, currentServerConnected, isConnected, isConnecting, videoStreams, streamSources } = useSFU();
   const { serverDetailsList, clients, memberLists, serverProfiles } = useSockets();
@@ -1196,6 +1198,9 @@ forumTags={activeDm ? [] : activeChannelForumTags}
               </div>
             </div>
             <MemberSidebarPanel
+              lanSnapshot={lan.snapshot}
+              lanNowMs={lan.nowMs}
+              lanServerScope={currentlyViewingServer?.serverId}
               // Closed for good, not collapsed: the server stops sending the list,
               // so an open panel would show whatever was last cached.
               sidebarOpen={rightSidebarOpen && canViewMembers && !dmSpace}

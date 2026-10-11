@@ -31,6 +31,7 @@ import { useVoiceSounds } from "@/webRTC";
 import { ApproveDeviceDialog } from "./components/approveDevice";
 import { AuthLoadingOverlay } from "./components/AuthLoadingOverlay";
 import { CallStatsRecorder } from "./components/callStatsRecorder";
+import { CommunityLanSession } from "./components/communityLanSession";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { GameDetectPrompt } from "./components/gameDetectPrompt";
 import { GlobalLightbox } from "./components/GlobalLightbox";
@@ -141,6 +142,7 @@ export function App() {
       {!ready ? null : (
         <>
           <MainApp />
+          <CommunityLanSession />
           <Settings />
           <Welcome />
           <LinkDeviceDialog />

@@ -1,5 +1,5 @@
 import type {
-  EasyTierCommunityLease, EasyTierCommunityState,
+  EasyTierCommunityLease, EasyTierCommunityState, EasyTierReason,
 } from "../src/lib/easyTierCommunity";
 import { projectEasyTierMembers } from "./easyTierMemberAdapter";
 import { type EasyTierStatusSample, projectEasyTierStatus } from "./easyTierStatus";
@@ -17,7 +17,7 @@ export interface EasyTierRuntime {
   shutdownOwned(): void;
 }
 export class EasyTierOperationError extends Error {
-  constructor(public reason: "cleanup-failed" | "connect-failed") { super(reason); }
+  constructor(public reason: Exclude<EasyTierReason, null>) { super(reason); }
 }
 interface Community {
   leases: Set<string>;
@@ -44,6 +44,7 @@ export class EasyTierCommunityManager {
   private communities = new Map<string, Community>();
   private enabled = false;
   private disposed = false;
+  private membershipRevision = 0;
   constructor(private runtime: EasyTierRuntime | null, private emit: (state: EasyTierCommunityState) => void = () => undefined,
     private now = () => performance.now(), private timeoutMs = 8000, private maxAgeMs = 10_000, private unixNow = () => Date.now()) {}
 
@@ -101,6 +102,20 @@ export class EasyTierCommunityManager {
     await Promise.all([...this.communities.values()].map(c => c.operation));
     return [...this.communities.keys()].map(id => this.getState(id));
   }
+  async syncMemberships(serverIds: readonly string[]): Promise<EasyTierCommunityState[]> {
+    if (!Array.isArray(serverIds) || serverIds.length > 64 || !serverIds.every(validEasyTierId)) throw new Error("invalid-community-memberships");
+    const wanted = new Set(serverIds);
+    const revision = ++this.membershipRevision;
+    const releases: Promise<EasyTierCommunityState>[] = [];
+    for (const c of this.communities.values()) if (!wanted.has(c.state.serverId) && c.leases.has("renderer-community")) {
+      releases.push(this.disconnect({ serverId: c.state.serverId, leaseId: "renderer-community" }));
+    }
+    await Promise.all(releases);
+    if (revision !== this.membershipRevision || this.disposed) return [];
+    const work: Promise<EasyTierCommunityState>[] = [];
+    for (const serverId of wanted) work.push(this.connect({ serverId, leaseId: "renderer-community" }));
+    return Promise.all(work);
+  }
   private reconcile(c: Community): void {
     c.cancel?.abort();
     const cancel = new AbortController();
@@ -132,8 +147,8 @@ export class EasyTierCommunityManager {
     });
     c.tail = work.catch(error => {
       if (generation === c.state.generation && !cancel.signal.aborted) {
-        c.state.phase = "error";
         c.state.reason = error instanceof EasyTierOperationError ? error.reason : c.session ? "cleanup-failed" : "connect-failed";
+        c.state.phase = ["activation-required", "needs-permission", "configuration-required", "runtime-required", "multi-community-unavailable"].includes(c.state.reason) ? "activation-required" : "error";
         this.publish(c);
       }
     });

@@ -3,7 +3,7 @@ import type { LanCommunitySnapshot } from "./memberLanStatus";
 /** Renderer contract. Network credentials and physical endpoints stay in main. */
 export type EasyTierRoute = "physical-direct" | "relay" | "unknown";
 export type EasyTierPhase = "disabled" | "activation-required" | "connecting" | "connected" | "disconnecting" | "error";
-export type EasyTierReason = "activation-required" | "unsupported-target" | "connect-failed" | "operation-timeout" | "cleanup-failed" | "status-unavailable" | "runtime-exited" | null;
+export type EasyTierReason = "activation-required" | "needs-permission" | "configuration-required" | "runtime-required" | "unsupported-target" | "multi-community-unavailable" | "connect-failed" | "operation-timeout" | "cleanup-failed" | "status-unavailable" | "runtime-exited" | null;
 
 export interface EasyTierCommunityState {
   serverId: string;
@@ -28,6 +28,10 @@ export interface EasyTierCommunityAPI {
   setEnabled(enabled: boolean): Promise<EasyTierCommunityState[]>;
   getState(serverId: string): Promise<EasyTierCommunityState>;
   onState(listener: (state: EasyTierCommunityState) => void): () => void;
+  /** Download/verify fixed official assets only; never start core or install drivers. */
+  prepareRuntime(): Promise<{ ready: boolean }>;
+  /** Complete renderer membership set, also reconciles leases retained through reload. */
+  syncMemberships(serverIds: readonly string[]): Promise<EasyTierCommunityState[]>;
 }
 
 declare global {

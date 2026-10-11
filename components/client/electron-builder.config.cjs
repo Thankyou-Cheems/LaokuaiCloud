@@ -1,3 +1,5 @@
+/* eslint-env node */
+/* eslint-disable @typescript-eslint/no-var-requires */
 // Note: CommonJS because electron-builder loads a JS config through require().
 
 const fs = require("node:fs");
@@ -36,6 +38,10 @@ const EMBEDDED_RESOURCE_PREFIX = "build/embedded-";
 const config = yaml.load(
   fs.readFileSync(path.join(__dirname, "electron-builder.yml"), "utf8"),
 );
+
+// Prepared explicitly from the pinned official archive. Copy only the sidecar
+// and driver files; neither official management-console executable is shipped.
+config.win.extraResources = [...(config.win.extraResources || []), ...require("./scripts/community-easytier-resources.cjs")];
 
 if (SLIM) {
   config.extraResources = config.extraResources.filter(

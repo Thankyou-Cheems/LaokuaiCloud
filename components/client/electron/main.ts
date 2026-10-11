@@ -66,6 +66,8 @@ import curatedGames from "./curated-games.json";
 import { createRpcHost, findHolder, type Holder, ipcDir, ipcPath, type RpcHostState } from "./discordIpc";
 import { registerEasyTierCommunityIpc } from "./easyTierCommunityIpc";
 import { EasyTierCommunityManager } from "./easyTierCommunityManager";
+import { EASYTIER_WINDOWS_TARGET } from "./easyTierTarget";
+import { createWindowsEasyTierProduction, easyTierProductRoot } from "./easyTierWindowsProduction";
 import {
   autoStartIfNeeded,
   cleanupOnQuit,
@@ -236,9 +238,13 @@ const LEGACY_UPDATE_ARG = "--gryt-update";
 
 let pendingDeepLinkUrl: string | null = null;
 let mainWindow: BrowserWindow | null = null;
-// Native Windows ports remain behind the activation gate until target acceptance.
+// Existing approved configuration + driver permission gates remain in the production adapter.
 // Community/server integration owns leases; voice room events never touch this manager.
-const easyTierCommunities = new EasyTierCommunityManager(null, state => {
+const easyTierProduction = createWindowsEasyTierProduction(
+  () => easyTierProductRoot(app.getPath("userData")),
+  () => join(app.isPackaged ? process.resourcesPath : join(__dirname, "../build"), "community-lan", "runtime", EASYTIER_WINDOWS_TARGET.archiveSha256),
+);
+const easyTierCommunities = new EasyTierCommunityManager(IS_I18N_TEST && !IS_LAOKUAI ? null : easyTierProduction.runtime, state => {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("et-community-state", state);
 });
 let easyTierPoll: ReturnType<typeof setInterval> | null = null;
@@ -4626,7 +4632,8 @@ if (!gotSingleInstanceLock) {
       );
 
       registerEasyTierCommunityIpc(ipcMain, easyTierCommunities, event =>
-        !!mainWindow && !mainWindow.isDestroyed() && event.senderFrame === mainWindow.webContents.mainFrame);
+          !!mainWindow && !mainWindow.isDestroyed() && event.senderFrame === mainWindow.webContents.mainFrame,
+          easyTierProduction.prepareRuntime);
       easyTierPoll = setInterval(() => easyTierCommunities.refreshAll(), 2000);
       easyTierPoll.unref();
 

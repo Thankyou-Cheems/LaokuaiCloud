@@ -96,6 +96,7 @@ function checkSquadReceipt(root) {
 }
 
 function inventory(root,config,{ sourceOnly = false } = {}) {
+  const extraResources = [...config.extraResources, ...(config.win.extraResources || [])];
   const read = file => fs.readFileSync(path.join(root,file));
   const pkg = JSON.parse(read("package.json"));
   assert.equal(pkg.name,"gryt-chat","Keep original source package identity");
@@ -122,7 +123,7 @@ function inventory(root,config,{ sourceOnly = false } = {}) {
   }
   const sources = {};
   for (const item of ["package.json","yarn.lock","electron-builder.yml","electron-builder.config.cjs","electron-builder.i18n-test.cjs","electron-builder.laokuai.cjs","vite.config.ts",
-    "electron","src","native/squad-scope","private-brand","public/laokuai-icon.png","scripts/laokuai-package-audit.cjs","scripts/check-laokuai-package.mjs"]) {
+    "electron","src","native/squad-scope","private-brand","public/laokuai-icon.png","scripts/laokuai-package-audit.cjs","scripts/community-easytier-resources.cjs","scripts/check-laokuai-package.mjs"]) {
     for (const file of fs.statSync(path.join(root,item)).isDirectory() ? walk(path.join(root,item)) : [path.join(root,item)]) {
       sources[slash(path.relative(root,file))] = describe(fs.readFileSync(file));
     }
@@ -136,7 +137,7 @@ function inventory(root,config,{ sourceOnly = false } = {}) {
   const manifest = { schema:1, version:pkg.version, productName:config.productName, appId:config.appId,
     sourcePackage:pkg.name, packagedName:config.extraMetadata.name, executable:config.win.executableName+".exe",
     voice:{ name:voice.name,version:voice.version,vendor:voicePath,...describe(read(voicePath)),files:voiceFiles },
-    config:{ files:config.files,locales:config.electronLanguages,extraResources:config.extraResources },sources,
+    config:{ files:config.files,locales:config.electronLanguages,extraResources },sources,
     sourceOnly, applicationExecuted:false, realProfileRead:false, p2pAccepted:false };
   manifest.installedVersions={};
   for(const name of ["electron","electron-builder","vite","typescript","@gryt/ui","@shiguredo/rnnoise-wasm","@mediapipe/tasks-vision","uiohook-napi"]) {
@@ -182,7 +183,7 @@ function inventory(root,config,{ sourceOnly = false } = {}) {
   manifest.audioAssets = { rnnoiseWorker:workers[0],receiveAnalyzerWasm:describe(Buffer.from(analyzer,"base64")),
     worklets:"SDK worklet code and receive WASM embedded in renderer; RNNoise model WASM embedded in worker" };
   manifest.resources = {};
-  for (const e of config.extraResources) {
+  for (const e of extraResources) {
     const input = path.join(root,e.from);
     assert.ok(fs.existsSync(input),`Missing resource ${e.from}`);
     assert.ok(!e.filter || JSON.stringify(e.filter) === '["**/*"]',`Unsupported resource filter ${e.from}`);

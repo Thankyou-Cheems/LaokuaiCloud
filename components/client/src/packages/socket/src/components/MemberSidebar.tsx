@@ -115,6 +115,7 @@ export interface AdminActions {
 }
 
 interface MemberSidebarProps {
+  lanServerScope?: string;
   /** Optional presentation-only evidence. Omit until an authenticated adapter is wired. */
   lanSnapshot?: LanCommunitySnapshot;
   lanNowMs?: number;
@@ -156,6 +157,7 @@ const MemberItem = ({
   dmUnreadFor,
   lanSnapshot,
   lanNowMs,
+  lanServerScope,
 }: {
   member: MemberInfo;
   /** Already pulled into a readable band — see `readableRoleColor`. */
@@ -177,6 +179,7 @@ const MemberItem = ({
   dmUnreadFor?: (serverUserId: string) => number;
   lanSnapshot?: LanCommunitySnapshot;
   lanNowMs?: number;
+  lanServerScope?: string;
 }) => {
   useSocketTranslation();
   const isSelf = member.serverUserId === currentServerUserId;
@@ -262,7 +265,7 @@ const MemberItem = ({
               {member.isBot && <BotTag size="small" />}
             </div>
 
-            <MemberLanStatus serverScope={serverHost} authenticatedUserId={member.serverUserId}
+            <MemberLanStatus serverScope={lanServerScope ?? serverHost} authenticatedUserId={member.serverUserId}
               observerAuthenticatedUserId={currentServerUserId} snapshot={lanSnapshot} nowMs={lanNowMs} />
 
             {/* Only when it says something. Every row used to carry a status
@@ -336,6 +339,7 @@ export const MemberSidebar = ({
   onTogglePinned,
   lanSnapshot,
   lanNowMs,
+  lanServerScope,
 }: MemberSidebarProps) => {
   useSocketTranslation();
   const { roles } = useServerPermissions(serverHost);
@@ -458,6 +462,7 @@ export const MemberSidebar = ({
                     dmUnreadFor={dmUnreadFor}
                     lanSnapshot={lanSnapshot}
                     lanNowMs={lanNowMs}
+                    lanServerScope={lanServerScope}
                     adminActions={adminActions}
                     onOpenDm={onOpenDm}
                     onToggleBlock={onToggleBlock}

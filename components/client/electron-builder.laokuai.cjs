@@ -8,6 +8,8 @@ config.extraMetadata = { name: "laokuai-chat", productName: config.productName,
 config.directories.output = "release-laokuai-opus20-1";
 config.win.icon = "private-brand/icon.ico";
 config.win.executableName = "唠蒯云";
+// The i18n test variant replaces win; restore the real private product's sidecar.
+config.win.extraResources = require("./scripts/community-easytier-resources.cjs");
 config.portable.artifactName = "唠蒯云-${version}-zh-CN-win-x64-slim-portable.exe";
 config.extraResources = config.extraResources.filter(entry => entry.to !== "legal/I18N-PORTABLE-TEST.md");
 config.extraResources = config.extraResources.map(entry => entry.to === "icon.png"

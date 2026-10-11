@@ -11,6 +11,7 @@ type Role = string;
 const SIDEBAR_SPRING = { type: "spring" as const, stiffness: 380, damping: 34 };
 
 interface MemberSidebarPanelProps {
+  lanServerScope?: string;
   lanSnapshot?: LanCommunitySnapshot;
   /** Normalized adapter clock, advanced even without new telemetry. */
   lanNowMs?: number;
@@ -44,7 +45,7 @@ export const MemberSidebarPanel = ({
   currentUserRole,
   currentServerConnected, serverHost,
   adminActions, onOpenDm, onToggleBlock, isBlocked, onReport, pinned, onTogglePinned,
-  lanSnapshot, lanNowMs,
+  lanSnapshot, lanNowMs, lanServerScope,
 }: MemberSidebarPanelProps) => (
   <div
     // Named the way the other panels are, so a layout check can measure it. The
@@ -115,6 +116,7 @@ export const MemberSidebarPanel = ({
           }}
         >
           <MemberSidebar
+            lanServerScope={lanServerScope}
             lanSnapshot={lanSnapshot}
             lanNowMs={lanNowMs}
             members={members}
