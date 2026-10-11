@@ -116,13 +116,27 @@ if(m.validation.uiHiddenBootstrapActual){
   assert(receipt.testedFreeze==='5d309524116d2276d913af6f98a79436e9dbf3ed'&&receipt.status==='PASS-bootstrap-only'&&receipt.task6ReadOnlyVerification.files===201&&receipt.task6ReadOnlyVerification.allHashesMatched,'Actual UI source/evidence identity mismatch');
   assert(receipt.artifact.sha256==='d6a1ee4023fc33cf889798cb60b9a3dbe382a6a4a9af2e2b9f34168f223d4c83'&&receipt.appAsarSha256==='ed3ea18c2a6405a138386966ca41927a5ef1a8d5582afd6bdcedd6c6756682f0','Actual UI exact package identity changed');
   assert(receipt.actualRuns.length===2&&receipt.actualRuns.every(x=>x.exit===0&&x.residual.length===0&&!x.windowVisible&&!x.windowFocused)&&receipt.actualRuns[1].explicitEndpointAndForegroundQuerySuccess,'Actual UI bounded startup result changed');
-  assert(git(['diff','--name-only',receipt.testedFreeze,m.repository.codeCommit,'--','components/client/src','components/client/electron','components/voice','components/server','components/sfu','components/easytier/source'])==='','Measured UI/runtime source changed');
+  assert(git(['diff','--name-only',receipt.testedFreeze,m.repository.codeCommit,'--','components/client/src','components/client/electron','components/voice','components/server','components/sfu'])==='','Measured UI/media source changed');
+  // The next native source overlay is independently verified; the measured 5d
+  // package still contains only the immutable dbaf native binaries.
   assert(receipt.notAccepted.communityMemberRows&&receipt.notAccepted.callMenuFocusOcclusion&&receipt.notAccepted.actualDeviceListening&&receipt.notAccepted.etTunCoexistenceCleanup&&receipt.ready===false&&receipt.finalPackage===null&&!receipt.publicDistributionApproved&&!receipt.task6ReadOnlyVerification.productExecuted,'Bootstrap promoted to full product/native/release acceptance');
 }
 if(m.validation.nativeLicenseFollowup){
   const entry=m.validation.nativeLicenseFollowup;
   assert(sha(entry.receipt)===entry.receiptSha256&&sha(entry.sourceMaterialsManifest)===entry.sourceMaterialsManifestSha256,'Native provenance follow-up changed');
   require('./verify-source-materials.cjs');
+}
+if(m.validation.componentUiActual){
+  const entry=m.validation.componentUiActual;assert(sha(entry.receipt)===entry.receiptSha256,'Component UI receipt changed');
+  const r=JSON.parse(fs.readFileSync(path.join(root,entry.receipt),'utf8'));for(const x of r.productionInputs)assert(sha(x.path)===x.sha256,'Measured production UI input drifted: '+x.path);
+  assert(r.status==='PASS-component-fixture-only'&&r.actualAssertionsPassed===33&&r.captures===21&&r.testSeams.length===11&&r.task6ReadOnlyVerification.manifestFiles===178&&r.task6ReadOnlyVerification.allHashesMatched&&!r.task6ReadOnlyVerification.productExecuted&&!r.completeAppAccountMediaAccepted&&!r.realDeviceCallGameCapacityAccepted&&!r.physicalInputAccepted&&!r.ready&&r.finalPackage===null,'Component fixture acceptance promoted beyond measured scope');
+}
+if(m.validation.windowsServiceEncodingSource){
+  const e=m.validation.windowsServiceEncodingSource;assert(sha(e.receipt)===e.receiptSha256&&sha(e.restorationReceipt)===e.restorationReceiptSha256,'Next Windows source/check receipt changed');
+  git(['merge-base','--is-ancestor',e.sourceCommit,'HEAD']);assert(e.sourceCommit==='fb3ae901a02f763241ff8d78f1db0b89243fba24'&&e.changedFiles===1&&e.windowsActivePackages===504&&e.lockUnchanged&&!e.nativeBuilt&&!e.oldBinariesContainChange&&!e.linuxTreePassed,'Source removal falsely promoted to native/cross-platform acceptance');
+  assert(m.components.easytier.privateSourceCommit===e.baselineNativeSourceCommit&&m.components.easytier.pendingSourceOverlay.integrationSourceCommit===e.sourceCommit&&m.components.easytier.pendingSourceOverlay.currentRuntimeStillBaseline,'Historical native source/package correspondence changed');
+  assert(sha('components/easytier/source/easytier/Cargo.toml')===m.components.easytier.pendingSourceOverlay.sha256,'Current native overlay differs');
+  assert(sha(m.validation.nativeLicenseFollowup.crtUnitReceipt)===m.validation.nativeLicenseFollowup.crtUnitReceiptSha256,'CRT source scope receipt changed');
 }
 if(m.validation.nativeLatestApprovedAttempt){
   const entry=m.validation.nativeLatestApprovedAttempt;
@@ -156,7 +170,9 @@ if(m.validation.etIndependentObserver){
   const entry=m.validation.etIndependentObserver;
   assert(sha(entry.receipt)===entry.receiptSha256,'Independent observer receipt changed');
   const receipt=JSON.parse(fs.readFileSync(path.join(root,entry.receipt),'utf8'));
-  for(const file of receipt.imports)assert(sha(file.path)===file.sha256&&git(['rev-parse',`HEAD:${file.path}`])===file.ownerGitBlob,'Independent observer source changed');
+  const frozen=entry.frozenIntegrationCommit||'HEAD';
+  if(frozen!=='HEAD')git(['merge-base','--is-ancestor',frozen,'HEAD']);
+  for(const file of receipt.imports){assert(git(['rev-parse',`${frozen}:${file.path}`])===file.ownerGitBlob,'Frozen independent observer source changed');if(frozen==='HEAD')assert(sha(file.path)===file.sha256,'Independent observer working source changed');}
   assert(receipt.ownerCommit==='3c9e73fd8c6039ce8561d84058d1d7f502c6247b'&&receipt.maximumStopRequestMs===65000&&receipt.maximumExitConfirmationRelativeToStartMs===71000&&receipt.phaseBudgetMs===219000&&receipt.sourcePins===15&&receipt.scopeSchema===4,'Independent observer scope/budget mismatch');
   assert(receipt.task6TrialSnapshotSemanticObserverChecks===49&&receipt.task6PlanningChecks===8&&receipt.task6MockedProductionChecks===23&&receipt.task6MockedProductionPassed,'Independent observer pure checks incomplete');
   assert(!receipt.currentHumanNativeApprovalReceived&&!receipt.task6OsSnapshotExecuted&&!receipt.task6NativeExecuted&&!receipt.nativeActivationAccepted&&!receipt.consumedApprovalsReused,'Independent observer source falsely grants activation');
@@ -171,6 +187,12 @@ if(m.validation.nativeActual65sAttempt){
   assert(receipt.stop==='graceful-native-ACK-child-exit-zero-no-force'&&!receipt.forceApplied&&!receipt.residualNicOrRpc&&receipt.twoCleanPostLightSamplesConfirmed&&receipt.postFullConfirmedNoNicRpcResidual,'Actual65s owned cleanup evidence changed');
   assert(receipt.globalDiffsBeforeAfter===0&&receipt.newNetworkListRecords===1&&!receipt.newRecordDeleted,'Actual65s selected configuration facts changed');
   assert(!receipt.completeCoexistenceAccepted&&!receipt.nativeAcceptance&&!receipt.productionActivationApproved&&!receipt.task6NativeExecuted&&!receipt.task6OsNetworkSnapshotExecuted&&!receipt.rawEvidenceImported,'Actual65s false full/production acceptance');
+}
+if(m.validation.etSocketEvidenceSource){
+  const e=m.validation.etSocketEvidenceSource;assert(sha(e.receipt)===e.receiptSha256,'Socket diagnostic receipt changed');
+  const r=JSON.parse(fs.readFileSync(path.join(root,e.receipt),'utf8'));for(const x of r.imports)assert(sha(x.path)===x.sha256&&git(['rev-parse',`HEAD:${x.path}`])===x.ownerGitBlob,'Current socket diagnostic source changed');
+  assert(r.ownerCommit==='17f3dd1fd73b2efa4dc1042f18437799c35b20e5'&&r.scopeSchema===5&&r.sourcePins===17&&r.scopeSha256==='425b0131d0bf016a9ee5d4000b3fec492b5c637dcfe5d30dff1300386bce022c'&&r.task6PureChecks===101&&r.task6PlanningChecks===8&&r.task6Checks.every(x=>x.exit===0),'Current diagnostic source/test/scope mismatch');
+  assert(!r.newScopeApproved&&r.previous2392ApprovalConsumed&&r.oldNativeBinariesUnchanged&&!r.historicalUnexpectedSocketCauseConfirmed&&!r.task6NativeExecuted&&!r.task6OsQueryExecuted&&!r.rawOwnerEndpointEvidenceImported,'Diagnostics promoted to new native approval or historical attribution');
 }
 if(m.internalCandidate){
   const candidate=m.internalCandidate;

@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "id": "laokuai-cloud-receive-path-et-observation-frozen-20261011",
-  "stage": "independent-et-observer-actual65s-failed-before-readiness-owned-cleanup-confirmed-ui-bootstrap-only-public-distribution-pending",
+  "stage": "windows-unused-encoding-source-integrated-native-rebuild-prepared-crt-specific-source-scope-pending-ui-fixture-passed-diagnostic-schema5-unapproved",
   "ready": false,
   "repository": {
     "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud",
@@ -9,15 +9,15 @@
     "visibility": "private",
     "branch": "release/integration-20261011",
     "soleGitWriter": "task-6",
-    "codeCommit": "2d766aabbacb59bf231240d7687226a77342b817",
-    "codeTree": "ade9447441ccc3737d1cd896d7424568b6579b8e",
+    "codeCommit": "a2a3865b21d7afafdd9f11fc78abfa60b06cdf68",
+    "codeTree": "d926e8f5f398c226874740e92c16297660283f74",
     "newRepositoryReason": "Authenticated private-repo metadata and explicitly scoped old local core/game remotes revealed no matching existing private integration repository",
     "historyPolicy": "Original client history preserved; no force push/reset/rewrite; other components imported as licensed source snapshots"
   },
   "components": {
     "client": {
       "path": "components/client",
-      "tree": "3811b11462e691b9d599540da742d13ff4a71ea6",
+      "tree": "fdc5802ebdfc77c54da2baa4dc92aadbcc7d874a",
       "upstream": "Gryt-chat/client",
       "publicFork": "Thankyou-Cheems/gryt-client-i18n",
       "historyImportedFrom": "06ac43f51dbda3b9444c73270a126e10489110e9",
@@ -137,7 +137,7 @@
     },
     "easytier": {
       "path": "components/easytier",
-      "tree": "5be0c3df6880e04549f34fc0332b072ba83fe993",
+      "tree": "de962376715ae3cb736fd3b6e325dc605f69bac5",
       "mode": "Exact licensed frozen native source import; immutable downstream patches; create-only source review accepted",
       "upstream": "EasyTier/EasyTier",
       "publicFork": "Thankyou-Cheems/EasyTier",
@@ -169,10 +169,19 @@
           "upstreamProvenancePath": "source/vendor/rust-tun/UPSTREAM-PROVENANCE.json",
           "version": "1.1.1",
           "sourceOverrideOnly": true
-        }
+        },
+        "originalImportHistorical": true,
+        "currentReviewedOverlayFiles": 1
       },
       "originalHistory": false,
-      "preservedHistoricalPrivateBuildPackageSha256": "4c57e56ec2973d18216afe1e896e95f33b1441c8f8f18cc1eea14a3534de68b6"
+      "preservedHistoricalPrivateBuildPackageSha256": "4c57e56ec2973d18216afe1e896e95f33b1441c8f8f18cc1eea14a3534de68b6",
+      "pendingSourceOverlay": {
+        "integrationSourceCommit": "fb3ae901a02f763241ff8d78f1db0b89243fba24",
+        "path": "source/easytier/Cargo.toml",
+        "sha256": "3c2acac6245433e4058a6bc9f8fa2e48a767d316e67e7cb60838ffefc10b28bb",
+        "nativeRebuilt": false,
+        "currentRuntimeStillBaseline": true
+      }
     },
     "landing": {
       "path": "components/landing",
@@ -455,7 +464,7 @@
     "verification": "Owner verified official archive size/SHA256; task-6 independently rehashed all five extracted runtime files without execution",
     "networkVerified": false,
     "productionUpgrade": false,
-    "implementationStatus": "four-inputs-staged-administrator-readonly-baseline-passed-native-trial-and-distribution-pending",
+    "implementationStatus": "dbaf-runtime-immutable-next-windows-source-rebuild-prepared-crt-source-scope-and-native-acceptance-pending",
     "integratedLayer": "Owned child stdin stop/drain, trusted IPC, community lifetime/status and private manifest loader; config/permission gates retained",
     "nativePortsImplemented": true,
     "mainRuntime": "WindowsEasyTierCliRuntime via createWindowsEasyTierProduction; private Laokuai metadata injects production runtime",
@@ -1460,58 +1469,79 @@
       "actualActivationAccepted": false
     },
     "etFinalTrialSource": {
-      "ownerCommit": "3c9e73fd8c6039ce8561d84058d1d7f502c6247b",
-      "integrationSourceCommit": "2d766aabbacb59bf231240d7687226a77342b817",
-      "scopeSha256": "2392f12f7284d982a1a3b6e179c7becbe294449e519f7832a090aadbeb99bd5b",
-      "scopeSchema": 4,
-      "sourcePins": 15,
-      "exactSourceFiles": 20,
-      "pureChecks": 72,
+      "ownerCommit": "17f3dd1fd73b2efa4dc1042f18437799c35b20e5",
+      "integrationSourceCommit": "a2a3865b21d7afafdd9f11fc78abfa60b06cdf68",
+      "scopeSha256": "425b0131d0bf016a9ee5d4000b3fec492b5c637dcfe5d30dff1300386bce022c",
+      "scopeSchema": 5,
+      "sourcePins": 17,
+      "exactSourceFiles": 13,
+      "pureChecks": 101,
       "planningChecks": 8,
       "maximumStopRequestMs": 65000,
       "maximumExitConfirmationMs": 71000,
       "phaseBudgetMs": 219000,
-      "executed": true,
+      "executed": false,
       "currentHumanApprovalReceived": false,
-      "nativeExecuted": true,
+      "nativeExecuted": false,
       "productionActivationApproved": false,
-      "sourceReceipt": "release/acceptance/et-independent-observer-integrated.json",
-      "sourceReceiptSha256": "071c4c1701b3d9ec2ce646bdb67ca84bbe0cde8892cfd2bc4e9df5ab54c6d036",
-      "priorConsumedDd60": {
-        "ownerCommit": "732ad82e6528ae1567abf31b6429dabc6ef362e0",
-        "scopeSha256": "dd60b94603ffb3e17a85450810e2f3edfba3183705e0d515f662037916692dfc",
-        "exactSourceFiles": 7,
-        "pureChecks": 30,
+      "payloadStillDbaf": true,
+      "newNativeRebuildRequiresNewPayloadAndScope": true,
+      "sourceReceipt": "release/acceptance/et-socket-evidence-source-integrated.json",
+      "sourceReceiptSha256": "3ee6dfbb2b067823d09464b8fee9fc63dab862c63c0d74d89b1e348996592dc5",
+      "priorConsumed2392": {
+        "ownerCommit": "3c9e73fd8c6039ce8561d84058d1d7f502c6247b",
+        "integrationSourceCommit": "2d766aabbacb59bf231240d7687226a77342b817",
+        "scopeSha256": "2392f12f7284d982a1a3b6e179c7becbe294449e519f7832a090aadbeb99bd5b",
+        "scopeSchema": 4,
+        "sourcePins": 15,
+        "exactSourceFiles": 20,
+        "pureChecks": 72,
+        "planningChecks": 8,
+        "maximumStopRequestMs": 65000,
+        "maximumExitConfirmationMs": 71000,
+        "phaseBudgetMs": 219000,
         "executed": true,
-        "currentHumanApprovalReceived": true,
+        "currentHumanApprovalReceived": false,
+        "nativeExecuted": true,
         "productionActivationApproved": false,
-        "sourceReceipt": "release/acceptance/snapshot-diagnostic-repair-integrated.json",
-        "sourceReceiptSha256": "926d7b96307b6f977d1d950897dde1e2b42e9126401300370b9ce12c73c0644d",
-        "supersededUnactivatedScope": "c44bdbae1f2839914485b8c062b739557af271f92e27120a64bbef498be320ee",
-        "priorConsumedAttempt": {
-          "ownerCommit": "15e1c4b97022912ed6f4048cf657a1cb090ce1d2",
-          "scopeSha256": "c737fd450558cd0176356dc0e1dea3a086bf34a9042ed8e60cd89a6c15b47f20",
-          "exactSourceFiles": 9,
-          "pureChecks": 18,
+        "sourceReceipt": "release/acceptance/et-independent-observer-integrated.json",
+        "sourceReceiptSha256": "071c4c1701b3d9ec2ce646bdb67ca84bbe0cde8892cfd2bc4e9df5ab54c6d036",
+        "priorConsumedDd60": {
+          "ownerCommit": "732ad82e6528ae1567abf31b6429dabc6ef362e0",
+          "scopeSha256": "dd60b94603ffb3e17a85450810e2f3edfba3183705e0d515f662037916692dfc",
+          "exactSourceFiles": 7,
+          "pureChecks": 30,
           "executed": true,
           "currentHumanApprovalReceived": true,
           "productionActivationApproved": false,
-          "executionScope": "ET-owner runner preflight only; no native activation",
-          "runnerExecutedByEtOwner": true,
-          "nativeExecuted": false,
-          "currentSingleAttemptApprovalConsumed": true,
-          "actualReceipt": "release/acceptance/tun-preflight-unavailable.json",
-          "actualReceiptSha256": "3f74f4ca077292edbb658b2e78bbbe7935bb3d298ee382673d42bbee7616b453"
+          "sourceReceipt": "release/acceptance/snapshot-diagnostic-repair-integrated.json",
+          "sourceReceiptSha256": "926d7b96307b6f977d1d950897dde1e2b42e9126401300370b9ce12c73c0644d",
+          "supersededUnactivatedScope": "c44bdbae1f2839914485b8c062b739557af271f92e27120a64bbef498be320ee",
+          "priorConsumedAttempt": {
+            "ownerCommit": "15e1c4b97022912ed6f4048cf657a1cb090ce1d2",
+            "scopeSha256": "c737fd450558cd0176356dc0e1dea3a086bf34a9042ed8e60cd89a6c15b47f20",
+            "exactSourceFiles": 9,
+            "pureChecks": 18,
+            "executed": true,
+            "currentHumanApprovalReceived": true,
+            "productionActivationApproved": false,
+            "executionScope": "ET-owner runner preflight only; no native activation",
+            "runnerExecutedByEtOwner": true,
+            "nativeExecuted": false,
+            "currentSingleAttemptApprovalConsumed": true,
+            "actualReceipt": "release/acceptance/tun-preflight-unavailable.json",
+            "actualReceiptSha256": "3f74f4ca077292edbb658b2e78bbbe7935bb3d298ee382673d42bbee7616b453"
+          },
+          "approvalConsumed": true,
+          "executionStage": "Owner preflight only; stopped before core/TUN",
+          "nativeActivationExecuted": false,
+          "actualAttemptReceipt": "release/acceptance/native-dd60-preflight-failed.json"
         },
+        "originalHumanApprovalReceivedForConsumedAttempt": true,
         "approvalConsumed": true,
-        "executionStage": "Owner preflight only; stopped before core/TUN",
-        "nativeActivationExecuted": false,
-        "actualAttemptReceipt": "release/acceptance/native-dd60-preflight-failed.json"
-      },
-      "originalHumanApprovalReceivedForConsumedAttempt": true,
-      "approvalConsumed": true,
-      "reactivationApproved": false,
-      "actualAttemptReceipt": "release/acceptance/et-actual65s-failed-owned-cleanup.json"
+        "reactivationApproved": false,
+        "actualAttemptReceipt": "release/acceptance/et-actual65s-failed-owned-cleanup.json"
+      }
     },
     "providerActualInstanceBinding": {
       "receipt": "release/acceptance/provider-instance-binding-real-media.json",
@@ -1651,7 +1681,16 @@
       "actualVcLtlLinkInputsConfirmed": true,
       "linkedInputReceipt": "components/client/release/licenses/native-provenance-followup/native-linked-crt-inputs.json",
       "linkedInputReceiptSha256": "df89453ade7f9833431071ef76f0c4998f368eadf2f54e282575527cdf1473b9",
-      "nextSteps": "release/source-materials/LEGAL-NEXT-STEPS.md"
+      "nextSteps": "release/source-materials/LEGAL-NEXT-STEPS.md",
+      "historicalOriginalAuthorNoticeQuestionsRemaining": 1,
+      "currentWindowsGraphEncodingUtilsRemoved": true,
+      "oldBinariesNoticeQuestionCleared": false,
+      "crtUnitReceipt": "components/client/release/licenses/native-provenance-followup/native-crt-unit-correspondence.json",
+      "crtUnitReceiptSha256": "9f777f87aaacddf85f4c8b423802de5e6addda241f414eb46f126cb2eb00bcc5",
+      "exactCrtSourceMatches": 24,
+      "missingExactMicrosoftSources": 12,
+      "officialSdkStaticLibraryDirectoryCoverageVerified": true,
+      "modifiedCrtSourceDistributionScopeCleared": false
     },
     "uiHiddenBootstrapActual": {
       "receipt": "release/acceptance/internal-candidate5d-bootstrap.json",
@@ -1677,7 +1716,10 @@
       "nativeExecuted": false,
       "currentHumanApprovalReceived": false,
       "receiptPredatesActualTrial": true,
-      "latestActualAttempt": "nativeActual65sAttempt"
+      "latestActualAttempt": "nativeActual65sAttempt",
+      "frozenIntegrationCommit": "4b44c0749f4529df720043b6c2696078a9aed46c",
+      "currentSource": false,
+      "supersededByDiagnosticOwner": "17f3dd1fd73b2efa4dc1042f18437799c35b20e5"
     },
     "nativeActual65sAttempt": {
       "receipt": "release/acceptance/et-actual65s-failed-owned-cleanup.json",
@@ -1694,10 +1736,55 @@
       "completeCoexistenceAccepted": false,
       "nativeAccepted": false,
       "socketClassificationPending": true
+    },
+    "windowsServiceEncodingSource": {
+      "sourceCommit": "fb3ae901a02f763241ff8d78f1db0b89243fba24",
+      "receipt": "release/source-materials/windows-service-manager-encoding-integrated.json",
+      "receiptSha256": "680172d621c45d703bd6fe291af496907ac8a8dc5e9b36fac81c9a33aff3b128",
+      "baselineNativeSourceCommit": "dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",
+      "changedFiles": 1,
+      "windowsActivePackages": 504,
+      "windowsServiceManagerFeatures": [],
+      "lockUnchanged": true,
+      "nonWindowsDefaultDeclarationPreserved": true,
+      "linuxTreePassed": false,
+      "linuxMissingArchive": "iana-time-zone-0.1.65.crate",
+      "nativeBuilt": false,
+      "oldBinariesContainChange": false,
+      "restorationReceipt": "release/source-materials/NEXT-SOURCE-RESTORATION-CHECK.json",
+      "restorationReceiptSha256": "58a111afc174482b2cd7fa857c2be71ed76168b1fd7ab68640e4870bc0e74ca9",
+      "buildHandoff": "release/source-materials/NEXT-NATIVE-BUILD-HANDOFF.md"
+    },
+    "componentUiActual": {
+      "receipt": "release/acceptance/component-ui-5d-run4.json",
+      "receiptSha256": "c55f51643653a2203a203c7b728918cdf2448740230d951cbf807563bde0a0fd",
+      "status": "PASS-component-fixture-only",
+      "testedFreeze": "5d309524116d2276d913af6f98a79436e9dbf3ed",
+      "actualAssertions": 33,
+      "captures": 21,
+      "productionInputs": 45,
+      "ownerFilesHashed": 178,
+      "syntheticInputs": true,
+      "completeAppAccountMediaAccepted": false
+    },
+    "etSocketEvidenceSource": {
+      "sourceCommit": "a2a3865b21d7afafdd9f11fc78abfa60b06cdf68",
+      "receipt": "release/acceptance/et-socket-evidence-source-integrated.json",
+      "receiptSha256": "3ee6dfbb2b067823d09464b8fee9fc63dab862c63c0d74d89b1e348996592dc5",
+      "ownerCommit": "17f3dd1fd73b2efa4dc1042f18437799c35b20e5",
+      "scopeSha256": "425b0131d0bf016a9ee5d4000b3fec492b5c637dcfe5d30dff1300386bce022c",
+      "scopeSchema": 5,
+      "sourcePins": 17,
+      "exactScriptBlobs": 13,
+      "pureChecks": 101,
+      "planningChecks": 8,
+      "currentHumanApprovalReceived": false,
+      "nativeExecuted": false,
+      "payloadStillDbaf": true
     }
   },
   "securityBoundary": {
-    "currentTrackedTextScanned": 3258,
+    "currentTrackedTextScanned": 3338,
     "credentialPatternHits": 0,
     "currentMachinePathHits": 0,
     "sourceRawPrivateLogsImported": false,
@@ -1724,9 +1811,9 @@
     "Historical Packet dependency preserved; final rebuilt core/CLI capture DLL absence resolved. Actual runtime/distribution/source-license acceptance still pending",
     "BOTH final core/CLI,17-feature profile,normal/delay imports and four-file schema2 hashes integrated; actual native activation/coexistence/cleanup and distribution review pending",
     "Authenticated member-to-ET-peer binding, selected forwarding/full physical path and timestamped ET RTT are absent; keep unknown",
-    "Native notices:24 original text cases recovered; original encoding CC0/source notice provenance resolved conservatively. encoding-utils original author notice remains or select the unbuilt Windows-only feature-removal option. Actual VC-LTL libucrt/libvcruntime/YY-Thunks link inputs confirmed; specific EPL/Microsoft scope, coordinated rebuild/relink/source-recipient/export/package inventory remain pending",
-    "c3a72472 real Provider seam and5d hidden empty-profile main/preload/renderer bootstrap passed. Real account/socket/member/call/device listening remains unaccepted",
-    "Historical c737/dd60 approvals remain consumed. One newly approved3c/2392scope65s attempt also consumed: real NIC created, failed at first ownedForbiddenSocketCount1 before readiness/full-during, graceful ACK exit0 and two light/post-full cleanup confirmed; selected old configuration zero differences, NetworkList+1 retained. Unexpected endpoint classification pending source/read-only diagnosis; no reactivation approved",
+    "Native source fb3ae901 removes unused Windows encoding-utils/codepage only; locked/offline504 graph and exact recovery/build handoff ready, actual coordinated native rebuild/import/resource/fresh-source-functionality pending. Old binaries retain original notice question. CRT24 compiled sources matched;12 exact Microsoft sources/producer release and modified-CRT/source distribution scope remain. Official SDK static-library directory coverage verified; intended-recipient/relink/public export remain unaccepted",
+    "c3a72472 real Provider seam and5d hidden application bootstrap passed;5d production component TEST fixture now passed33 real renderer assertions/21captures with45 unchanged production source inputs. Actual account/devices/two-way calls/listening/game/20media capacity/full-App remains unaccepted",
+    "Historical c737/dd60 approvals remain consumed. One newly approved3c/2392scope65s attempt also consumed: real NIC created, failed at first ownedForbiddenSocketCount1 before readiness/full-during, graceful ACK exit0 and two light/post-full cleanup confirmed; selected old configuration zero differences, NetworkList+1 retained. Unexpected endpoint classification pending source/read-only diagnosis; no reactivation approved Diagnostic17/schema5 now saves strict endpoint identities/details before refusal;101 pure+8 plan passed. Empty-list NAT collector is a source candidate, historical attribution unproven, new scope425b unapproved and no reactivation",
     "Internal83 portable artifact SHA7d430b1c/source83dd572f/static188files verified. Follow-up26 legal/FileSet changes and944 runner repair are absent from that artifact; no attribution to current code",
     "5d exact internal artifact d6a1ee40 / ASAR ed3ea18c passed two actual hidden offline empty-profile runs.201 final owner file hashes verified. New legal c62 bytes are absent from this old artifact; no final public release"
   ],
@@ -1818,6 +1905,8 @@
     "containsCurrentLegalFollowup": false,
     "publicApproved": false,
     "final": false,
-    "containsIndependentObserver3cSource": false
+    "containsIndependentObserver3cSource": false,
+    "containsCurrentEncodingSourceOverlay": false,
+    "containsSocketDiagnostic17Source": false
   }
 }
