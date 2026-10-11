@@ -6,10 +6,12 @@ from their own branches. Test owners use a frozen commit/archive and report resu
 they do not modify this branch or the feature owners' working trees.
 
 Preserve repository boundaries for client, Voice SDK, server, SFU and EasyTier.
-The release manifest at `docs/releases/2026-10-11/manifest.json` coordinates exact
-source commits, package SHA256 values, delivery state and acceptance limits.
-Uncommitted Hybrid work is pending; never copy it as a completed SDK delivery.
-Review the closed-PC patch with the SDK owner before adding it to their delivery.
+The current candidate manifest is `docs/releases/2026-10-11-v2/manifest.json`.
+It coordinates exact source commits, package hashes and acceptance limits.
+The preceding `docs/releases/2026-10-11/manifest.json` is a preserved checkpoint.
+Final Hybrid SDK integration.2 is pending; integration.1 is intermediate only.
+The SDK owner alone incorporates the closed-PC guard before final delivery.
+EasyTier packaging must pin the approved v2.7.0 prerelease commit and asset hash.
 
 No push, public-main merge, PR, publishing, force push, history rewrite or deleting
 existing worktrees is authorized in this stage. Push URLs are disabled locally.
