@@ -103,7 +103,7 @@ export function HoverAudioControl({ label, side, action, children, settingsTab =
       >
         {action}
         <Popover.Trigger ref={arrow}
-          render={<IconButton tone="neutral" size="xsmall" className="!w-4 !min-w-4 !px-0" />}
+          render={<IconButton tone="neutral" size="xsmall" className="!w-6 !min-w-6 !px-0" />}
           aria-label={tr("voiceAudio.expand", { control: label })}
           title={tr("voiceAudio.expand", { control: label })}
         >

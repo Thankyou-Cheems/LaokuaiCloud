@@ -595,7 +595,7 @@
     "unconfigured": "Squad：尚未配置触发键"
   },
   "voiceMode": {
-    "unknown": "语音模式未知：旧客户端或服务器不支持",
+    "unknown": "未收到当前房间有效的语音模式共享状态",
     "voice_activity": "自由麦",
     "push_to_talk": "按键麦",
     "squad": {

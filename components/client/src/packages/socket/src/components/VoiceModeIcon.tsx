@@ -4,7 +4,7 @@ import { useMicrophone } from "@gryt/voice";
 import { useTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 
-import { PiGameControllerFill, PiMicrophoneFill, PiMicrophoneSlashFill, PiWarningFill } from "../../../../lib/icons";
+import { PiBroadcastFill, PiGameControllerFill, PiKeyboardFill, PiMicrophoneFill, PiMicrophoneSlashFill, PiWarningFill } from "../../../../lib/icons";
 import { useSquadSnapshot } from "../../../../lib/squadRuntime";
 import { deriveVoiceMode, type VoiceModeState } from "../../../../lib/voiceMode";
 import { useLocalVoiceMode, useRemoteVoiceMode } from "../../../../lib/voiceModeStore";
@@ -15,22 +15,28 @@ export function VoiceModeGlyph({ state, keyLabel, compact = false }: { state: Vo
     : t("voiceMode.unknown");
   const closed = state && (state.squad === "suppressed" || ["manual-muted", "server-muted"].includes(state.transmit));
   const warning = state && (state.squad === "unavailable" || ["error", "suspended"].includes(state.transmit));
-  const MicrophoneIcon = closed ? PiMicrophoneSlashFill : PiMicrophoneFill;
+  // A permitted transmission is not a speech detector. Keep PTT idle/active
+  // and manual mute distinct without deriving activity from local input level.
+  const MicrophoneIcon = state && ["manual-muted", "server-muted"].includes(state.transmit) ? PiMicrophoneSlashFill
+    : state?.transmit === "ptt-idle" ? PiKeyboardFill
+      : state?.inputMode === "push_to_talk" && state.transmit === "normal" ? PiBroadcastFill : PiMicrophoneFill;
   return <Tooltip title={label}><span role="img" tabIndex={0} aria-label={label} data-testid="voice-mode-icon"
-    data-squad-confirmed={state?.squad === "suppressed"} data-mic-closed={Boolean(closed)}
-    className="inline-flex shrink-0 items-center gap-1 text-[10px] leading-tight" style={{ flexWrap: compact ? undefined : "wrap", maxWidth: compact ? undefined : 155, color: warning ? "var(--gryt-warning-11)" : closed ? "var(--gryt-danger-11)" : undefined }}>
+    data-squad-confirmed={state?.squad === "suppressed"} data-mic-closed={Boolean(closed)} data-voice-transmit={state?.transmit ?? "unknown"}
+    className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-x-1 gap-y-0.5 text-[10px] leading-tight" style={{ maxWidth: compact ? "100%" : 155, color: warning ? "var(--gryt-warning-11)" : closed ? "var(--gryt-danger-11)" : undefined }}>
     {state ? <>
       <span aria-hidden="true" className="inline-flex items-center gap-0.5">
         {state.inputMode === "push_to_talk" && <kbd className="rounded border border-gryt-border px-0.5 text-[9px]">PTT</kbd>}
-        <MicrophoneIcon size={13} />{!compact && t(`voiceMode.${state.inputMode}`)}
+        <MicrophoneIcon size={13} />{t(`voiceMode.${state.inputMode}`)}
       </span>
       {state.squad !== "off" && <span aria-hidden="true" className="inline-flex items-center gap-0.5">
-        <PiGameControllerFill size={13} />{!compact && t(`voiceMode.compact.squad.${state.squad}`)}
+        <PiGameControllerFill size={13} />
+        {state.squad === "suppressed" && <svg data-testid="squad-pause-glyph" width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M2 1h2v8H2zm4 0h2v8H6z" /></svg>}
+        {t(`voiceMode.compact.squad.${state.squad}`)}
       </span>}
       <span aria-hidden="true" className="inline-flex items-center gap-0.5 text-gryt-muted">
-        {warning && <PiWarningFill size={12} />}{!compact && t(`voiceMode.compact.transmit.${state.transmit}`)}
+        {warning && <PiWarningFill size={12} />}{t(`voiceMode.compact.transmit.${state.transmit}`)}
       </span>
-    </> : <span aria-hidden="true">? {!compact && t("voiceMode.compact.unknown")}</span>}
+    </> : <span aria-hidden="true">? {t("voiceMode.compact.unknown")}</span>}
   </span></Tooltip>;
 }
 export function VoiceModeIcon({ host, member, isSelf }: { host?: string; member?: string; isSelf?: boolean }) {

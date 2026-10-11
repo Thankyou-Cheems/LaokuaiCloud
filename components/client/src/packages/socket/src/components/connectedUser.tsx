@@ -148,13 +148,13 @@ export function ConnectedUser({
           </div>
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <span className="text-sm truncate max-sm:whitespace-normal max-sm:overflow-visible max-sm:text-clip max-sm:break-words" data-gryt="member-name" title={nickname} style={{ minWidth: 0 }}>{nickname}</span>
+            <VoiceModeIcon host={serverHost} member={serverUserId} isSelf={isSelf} />
             {showVoiceMediaPath && !isSelf && <MemberVoiceMediaStatus host={serverHost} member={serverUserId} publicationId={streamId} />}
           </div>
         </div>
 
         <div className="flex shrink-0 gap-1 items-center">
           <MemberVoiceQuality host={serverHost} member={serverUserId}/>
-          <VoiceModeIcon host={serverHost} member={serverUserId} isSelf={isSelf} />
       {!isSelf && <RemoteReceiveCorrection compact host={serverHost} member={serverUserId} streamId={streamId} />}
           {isConnectingToVoice && (
             <Skeleton variant="circular" width="12px" height="12px" />

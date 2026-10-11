@@ -595,7 +595,7 @@
     "unconfigured": "Squad: no keys configured"
   },
   "voiceMode": {
-    "unknown": "Voice mode unknown — old client or unsupported server",
+    "unknown": "No valid shared voice mode state for the current room",
     "voice_activity": "Voice activity",
     "push_to_talk": "Push to talk",
     "squad": {
