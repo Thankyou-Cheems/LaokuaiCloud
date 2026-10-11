@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "domain": "voice.ruikang.wang",
+  "status": "deployed-and-protocol-regression-passed",
+  "deployedAt": "2026-10-11T08:19:48.904333+00:00",
+  "evidenceOrigin": "Frozen landing-owner deployment receipt and parent handoff; task-6 did not deploy or independently probe production",
+  "originalReceiptSha256": "8be8c45d0603abb90638bd6bf64a2f2d09c968078d07fc63dceeb48341d02631",
+  "originalDeliveryManifestSha256": "ac16eddb382d6504c756eb463239fac8fe780197626a12f5155b1a6591b27699",
+  "html": {
+    "bytes": 2141608,
+    "sha256": "519faa9074d5331efae9642f010973ef86b51e7e81abeb40420b3c3a6b65e139",
+    "containerHashVerifiedByOwner": true
+  },
+  "caddy": {
+    "scopedReviewedFragmentSha256": "fdddfb4fa5a06b935ec46612fb13d7b6c6d6860752befe7d111e7c7a9abff09b",
+    "reportedDeployedRouteSha256": "cf42b8702ecc5df796de7f2f93b43f241e931b2af6dbe4f4516f35824f58890e",
+    "fullConfigurationValidatedByOwner": true,
+    "reloadSucceededByOwner": true,
+    "outsideVoiceBytesUnchangedByOwner": true,
+    "bindMountInodePreservedByOwner": true
+  },
+  "regression": {
+    "status": "passed",
+    "beforeRecordedAt": "2026-10-11T08:18:48Z",
+    "afterRecordedAt": "2026-10-11T08:20:06Z",
+    "checks": {
+      "exactPublishedHtmlHash": true,
+      "browserGETandHEAD": true,
+      "byteIdenticalResponses": [
+        "default_root",
+        "non_html_root",
+        "html_without_fetch_metadata",
+        "query_root",
+        "html_q_zero",
+        "info",
+        "info_head",
+        "icon",
+        "api_unknown",
+        "unknown",
+        "bomana",
+        "pay",
+        "bomana_update"
+      ],
+      "healthStatusPreserved": true,
+      "engineIoPollingParametersPreserved": true,
+      "realWebSocket101AndEngineIoOpen": true,
+      "rootUpgradeStatusPreserved": 502
+    },
+    "limitations": [
+      "Health response body is dynamic; compared status and content type.",
+      "Polling session id changes by request; compared protocol parameters.",
+      "No authenticated room/media actions or browser render were performed."
+    ]
+  },
+  "sfusOrETChanged": false,
+  "portsOrAuthChanged": false,
+  "source": {
+    "libraryFileId": "libfile_33da0db79ae881918b0c5b6a2b443ec0",
+    "fileId": "file_000000005f0c81f5b6fdb1c2b5ebe3d2",
+    "version": 2
+  },
+  "embeddedImage": {
+    "bytes": 1602283,
+    "sha256": "06b380ae3c6f155ba11551d6eeb8a97f21a528cf6a51d9a83d43a0d26ca5a415",
+    "originalPixelsUnchanged": true
+  },
+  "omitted": [
+    "Full shared deployment configuration",
+    "Private backup and deployment machine paths",
+    "Credentials",
+    "Raw before/after live probes and local diagnostics"
+  ],
+  "task6": {
+    "redeployed": false,
+    "liveNetworkProbes": 0,
+    "browserRuns": 0,
+    "purePreviewChecks": "passed-copy-success/denied/unavailable/insecure plus static-content guards",
+    "pureRouteScenarios": 18
+  },
+  "desktopReleaseAccepted": false
+}

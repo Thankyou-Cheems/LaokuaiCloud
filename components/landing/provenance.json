@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "product": "唠蒯云",
+  "slogan": "来唠嗑吧",
+  "domain": "voice.ruikang.wang",
+  "html": {
+    "library_file_id": "libfile_33da0db79ae881918b0c5b6a2b443ec0",
+    "file_id": "file_000000005f0c81f5b6fdb1c2b5ebe3d2",
+    "version": 2,
+    "bytes": 2141608,
+    "sha256": "519faa9074d5331efae9642f010973ef86b51e7e81abeb40420b3c3a6b65e139",
+    "receiptRoute": "User-saved normal attachment, size and hash verified before deployment"
+  },
+  "embeddedImage": {
+    "sourceLibraryFileId": "libfile_e4f794e64ab0819185ecf6e8bbac5248",
+    "origin": "Existing user-authorized Library illustration",
+    "bytes": 1602283,
+    "sha256": "06b380ae3c6f155ba11551d6eeb8a97f21a528cf6a51d9a83d43a0d26ca5a415",
+    "pixelEdits": false,
+    "personallyViewedAfterLocalExtraction": true
+  },
+  "upstreamCodeDependencies": [],
+  "scope": "Authorized private LaokuaiCloud source and owned voice-domain static webpage"
+}

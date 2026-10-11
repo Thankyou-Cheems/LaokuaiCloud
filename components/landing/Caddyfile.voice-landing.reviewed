@@ -1,0 +1,31 @@
+# Scoped fragment deployed after user approval on 2026-10-11.
+# Static HTML is installed under the exact SHA-256 directory below.
+# Do not use this file as the full shared Caddyfile.
+voice.ruikang.wang {
+  @browserLanding {
+    path /
+    method GET HEAD
+    header Sec-Fetch-Dest document
+    header Sec-Fetch-Mode navigate
+    header_regexp htmlAccept Accept `(?i)(^|,)[ \t]*text/html([ \t]*;[^,]*)?([ \t]*,|$)`
+    not header_regexp htmlDisabled Accept `(?i)(^|,)[ \t]*text/html[^,]*;[ \t]*q=0(\.0*)?([ \t]*;|[ \t]*,|$)`
+    not header Upgrade *
+    not header_regexp connUpgrade Connection `(?i)(^|,)[ \t]*upgrade([ \t]*,|$)`
+    expression `{http.request.uri.query} == ""`
+  }
+  handle @browserLanding {
+    root * /opt/Website/voice-landing/519faa9074d5331efae9642f010973ef86b51e7e81abeb40420b3c3a6b65e139
+    rewrite * /index.html
+    header {
+      Content-Type "text/html; charset=utf-8"
+      Cache-Control "no-store"
+      X-Content-Type-Options "nosniff"
+      Referrer-Policy "no-referrer"
+      Content-Security-Policy "default-src 'none'; img-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'none'; font-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+    }
+    file_server
+  }
+  handle {
+    reverse_proxy laokuailiao-server:5000
+  }
+}

@@ -41,5 +41,20 @@ if(m.easytier.provenancePath){
   }
   if(m.ready)require('../components/client/scripts/check-easytier-patched-payload.cjs').assertPrivatePayloadContract(provenance);
 }
+if(m.components.landing){
+  const landing=m.components.landing;
+  assert(landing.path==='components/landing','Landing boundary mismatch');
+  assert(sha(landing.path+'/delivery-manifest.json')===landing.deliveryManifestSha256,'Landing delivery identity changed');
+  assert(sha(landing.path+'/deployment-record.json')===landing.deploymentRecordSha256,'Landing deployment record changed');
+  const delivery=JSON.parse(fs.readFileSync(path.join(root,landing.path,'delivery-manifest.json'),'utf8'));
+  assert(delivery.patch.sha256===landing.finalPatchSha256&&delivery.files.length===6,'Final landing delivery mismatch');
+  for(const file of delivery.files){
+    assert(file.path.startsWith(landing.path+'/')&&!file.path.includes('..'),'Landing file outside component');
+    assert(fs.statSync(path.join(root,file.path)).size===file.bytes&&sha(file.path)===file.sha256,'Landing source bytes changed: '+file.path);
+  }
+  assert(sha(landing.path+'/index.html')===landing.htmlSha256,'Published landing HTML identity changed');
+  const receipt=JSON.parse(fs.readFileSync(path.join(root,landing.path,'deployment-record.json'),'utf8'));
+  assert(receipt.html.sha256===landing.htmlSha256&&receipt.task6.redeployed===false&&receipt.task6.liveNetworkProbes===0,'Landing receipt/source or task6 boundary mismatch');
+}
 console.log(JSON.stringify({id:m.id,codeCommit:m.repository.codeCommit,sourceConsistent:true,components:Object.keys(m.components),sdkVersion:packed.version,ready:m.ready,easytier:m.easytier.implementationStatus,actualNetworkVerified:m.easytier.actualNetworkVerified}));
 if(process.argv.includes('--require-ready')&&!m.ready){console.error('Release blocked: '+m.pending.join('; '));process.exitCode=2;}

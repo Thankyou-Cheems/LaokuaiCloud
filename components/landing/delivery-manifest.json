@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "patch": {
+    "bytes": 2152179,
+    "sha256": "6d2ce663d8a4e7f70169fa9a9f98d1fd4a722eff663fea884b3871aed42c2027",
+    "supersedes": "Earlier placeholder create-only patch was not imported"
+  },
+  "files": [
+    {
+      "path": "components/landing/index.html",
+      "bytes": 2141608,
+      "sha256": "519faa9074d5331efae9642f010973ef86b51e7e81abeb40420b3c3a6b65e139"
+    },
+    {
+      "path": "components/landing/Caddyfile.voice-landing.reviewed",
+      "bytes": 1326,
+      "sha256": "fdddfb4fa5a06b935ec46612fb13d7b6c6d6860752befe7d111e7c7a9abff09b"
+    },
+    {
+      "path": "components/landing/README.md",
+      "bytes": 2416,
+      "sha256": "d2a8d66a880885ded66107ba39a20094ff90a8c9b97e7fc6b2dc8fe49349cb9b"
+    },
+    {
+      "path": "components/landing/provenance.json",
+      "bytes": 931,
+      "sha256": "19a83a02535a6fb04ca67cb9e372cce5072be52d3eba7f5e0a6a0bb4adf84042"
+    },
+    {
+      "path": "components/landing/verify-preview.cjs",
+      "bytes": 2320,
+      "sha256": "4bffe33939531ebe8b6e5170b53c43dd77eb75d79f8da77c2ccba2674b9439d5"
+    },
+    {
+      "path": "components/landing/verify-route.cjs",
+      "bytes": 2267,
+      "sha256": "4b66febfc7e01ef587b81e50f6f5483fb6741efd11a2352d1360ef5bcc5f17e7"
+    }
+  ],
+  "originalOwnerDeliveryManifestSha256": "ac16eddb382d6504c756eb463239fac8fe780197626a12f5155b1a6591b27699",
+  "deploymentRecord": "deployment-record.json",
+  "sourceImport": "Exact six frozen final-source files; normalized deployment record omits private deployment/configuration paths"
+}
