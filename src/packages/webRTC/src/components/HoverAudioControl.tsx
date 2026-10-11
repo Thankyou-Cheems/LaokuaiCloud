@@ -7,11 +7,12 @@ import { useSettings } from "@/settings";
 import { PiCaretRightBold } from "../../../../lib/icons";
 
 /** Pointer and keyboard paths share a popup; the main action stays an ordinary button. */
-export function HoverAudioControl({ label, side, action, children }: {
+export function HoverAudioControl({ label, side, action, children, settingsTab = "audio" }: {
   label: string;
   side: "top" | "right";
   action: ReactNode;
   children: ReactNode;
+  settingsTab?: "audio" | "voice";
 }) {
   const { t: tr } = useTranslation();
   const { openSettings } = useSettings();
@@ -112,6 +113,7 @@ export function HoverAudioControl({ label, side, action, children }: {
       <Popover.Portal container={portalContainer}>
         <Popover.Positioner positionMethod="fixed" side={side} sideOffset={4} collisionPadding={8}>
           <Popover.Popup ref={panel}
+            data-gryt="audio-control-popup"
             initialFocus={hoverOpen ? false : undefined}
             finalFocus={returnFocus && !hoverOpen ? arrow : false}
             className="transition-[opacity,transform] duration-150 w-60 max-w-[calc(100vw-16px)] max-h-[calc(100dvh-16px)] overflow-y-auto motion-reduce:!transition-none motion-reduce:!duration-0 motion-reduce:!animate-none data-[starting-style]:opacity-0 data-[ending-style]:opacity-0"
@@ -132,8 +134,8 @@ export function HoverAudioControl({ label, side, action, children }: {
               clearTimer();
               setReturnFocus(false);
               setOpen(false);
-              openSettings("audio");
-            }}>{tr("receiveVolume.more")}</Button>
+              openSettings(settingsTab);
+            }}>{tr(settingsTab === "voice" ? "pureVoice.squadSettings" : "receiveVolume.more")}</Button>
             <Popover.Close className="mt-2 text-sm underline">{tr("receiveVolume.close")}</Popover.Close>
           </Popover.Popup>
         </Popover.Positioner>

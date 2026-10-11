@@ -1,4 +1,3 @@
-import { Button } from "@gryt/ui";
 import { useMicrophone } from "@gryt/voice";
 
 import { useTranslation } from "@/i18n";
@@ -13,10 +12,10 @@ import { HoverAudioControl } from "./HoverAudioControl";
 /** Opt-in remains independent of VA/PTT and the actual transient suppression state. */
 export function SquadControl() {
   const { t } = useTranslation();
-  const { squadConfig, setSquadConfig, openSettings } = useSettings();
+  const { squadConfig, setSquadConfig } = useSettings();
   const snapshot = useSquadSnapshot();
   const { transmissionState } = useMicrophone();
-  return <HoverAudioControl label={t("squad.title")} side="top" action={
+  return <HoverAudioControl label={t("squad.title")} side="top" settingsTab="voice" action={
     <CallControlButton state={squadConfig.enabled ? "live" : "idle"} className="!w-auto !px-2 gap-1"
       aria-label={t("squad.title")} aria-pressed={squadConfig.enabled}
       onClick={() => setSquadConfig({ ...squadConfig, enabled: !squadConfig.enabled })}>
@@ -25,6 +24,5 @@ export function SquadControl() {
   }>
     <p className="text-sm">{t("squad.description")}</p>
     <SquadStatusText state={snapshot} transmission={transmissionState} />
-    <Button onClick={() => openSettings("audio")}>{t("pureVoice.squadSettings")}</Button>
   </HoverAudioControl>;
 }

@@ -13,6 +13,7 @@ export function VoiceModeControl() {
   const policy=useEffectiveVoicePolicy();const inputMode=policy?.inputMode??preference;
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
   const modes = ["voice_activity", "push_to_talk"] as const;
+  const keyLabel = pushToTalkKey ? formatCombo(pushToTalkKey, (key, values) => t(key, values)) : t("pureVoice.choosePtt");
   return <div className="flex flex-wrap items-center gap-2" data-gryt="voice-mode-control">
     <div role="radiogroup" aria-label={t("ui.inputMode")} className="flex rounded-lg bg-gryt-neutral-4 p-1">
       {modes.map((mode, index) => <button key={mode} ref={node => { buttons.current[index] = node; }}
@@ -27,9 +28,9 @@ export function VoiceModeControl() {
           setInputMode(modes[next]); buttons.current[next]?.focus();
         }}>{t(mode === "voice_activity" ? "pureVoice.voiceActivity" : "ui.pushToTalk")}</button>)}
     </div>
-    {inputMode === "push_to_talk" && <button type="button" className="max-w-40 truncate text-xs underline" onClick={() => openSettings("audio")}
-      title={pushToTalkKey ? formatCombo(pushToTalkKey) : t("pureVoice.choosePtt")}>
-      {pushToTalkKey ? <kbd>{formatCombo(pushToTalkKey)}</kbd> : t("pureVoice.choosePtt")}
+    {inputMode === "push_to_talk" && <button type="button" className="max-w-40 truncate text-xs underline" onClick={() => openSettings("hotkeys")}
+      aria-label={`${t("pureVoice.choosePtt")}: ${keyLabel}`} title={keyLabel}>
+      {pushToTalkKey ? <kbd>{keyLabel}</kbd> : keyLabel}
     </button>}
   </div>;
 }

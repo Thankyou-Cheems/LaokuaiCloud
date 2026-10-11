@@ -546,7 +546,7 @@
   "receiveLeveling": {
     "delay": "Added processing delay: {{latencyMs}} ms",
     "title": "Automatically balance teammate volume",
-    "description": "Keep remote voices at a steadier volume. Your volume slider for each person still applies. Screen audio is not automatically boosted.",
+    "description": "Automatic leveling brings teammates’ speech closer in volume. Each person’s volume setting and the total receive volume still apply; lowering either is not automatically compensated.",
     "disabled": "Off. Each person’s volume still applies.",
     "loading": "Starting audio processing…",
     "active": "Running · added processing delay: {{latencyMs}} ms",
@@ -660,7 +660,8 @@
     "connectAll": "Connect to every server before applying the nickname to all.",
     "applyAvatar": "Apply default avatar to connected servers",
     "confirmAvatar": "Apply the default avatar to {{count}} connected servers? If no default avatar is saved, their uploaded avatars will be removed. Nicknames stay unchanged.",
-    "editNickname": "Edit nickname"
+    "editNickname": "Edit nickname",
+    "renameShort": "Rename"
   },
   "shellFull": {
     "ErrorBoundary_tsx_8d886c0ba6": "Something went wrong",
@@ -1170,7 +1171,7 @@
   "receiveVolume": {
     "common": "Common controls",
     "title": "Receive volume",
-    "description": "Adjust incoming call audio, including shared-screen audio. 100% is unchanged; 200% is twice the amplitude.",
+    "description": "Adjust teammates’ speech after automatic leveling and each person’s volume setting. 100% adds no gain; 200% doubles the amplitude. Lowering this volume is not automatically compensated.",
     "deafened": "Listening is off. Your volume changes will take effect when listening resumes.",
     "reset": "Restore 100%",
     "more": "More audio settings",

@@ -82,7 +82,6 @@ export function AudioSettings() {
   const { devices, microphoneBuffer, getDevices, audioContext, getGateLevel } =
     useMicrophone(true);
   const { devices: outputDevices, getOutputDevices } = useSpeakers();
-  const nativeAudioActive = false;
 
   const muteStateBeforeLoopback = useRef<boolean | null>(null);
 
@@ -608,13 +607,6 @@ export function AudioSettings() {
 
       <ReceiveLevelingSettings />
       <ReceivePriorSettings />
-
-      {/* ── Screen Share ── */}
-      <span className="font-bold text-gryt-muted">{tr("ui.screenShareVariant")}</span>
-
-      {nativeAudioActive && (
-        <Alert severity="success">{tr("ui.nativeAudioCaptureIsActiveGrytVoicesAre")}</Alert>
-      )}
 
     </SettingsContainer>
   );

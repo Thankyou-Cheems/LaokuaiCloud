@@ -2211,3 +2211,6 @@ body {
   overflow-y: auto;
   overscroll-behavior: contain;
 }
+[data-gryt="audio-control-popup"] {
+  max-height: min(var(--available-height, var(--gryt-overlay-height)), var(--gryt-overlay-height)) !important;
+}

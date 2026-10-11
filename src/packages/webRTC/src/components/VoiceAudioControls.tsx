@@ -1,4 +1,5 @@
 import { Button, Slider } from "@gryt/ui";
+import { useId } from "react";
 import toast from "react-hot-toast";
 
 import { useTranslation } from "@/i18n";
@@ -35,6 +36,7 @@ export function VoiceAudioControls({ direction = "row", iconSize = 16 }: {
   const leveling = useReceiveLeveling();
   const side = direction === "column" ? "right" : "top";
   const parameter = leveling.available ? leveling.parameter : undefined;
+  const receiveDescriptionId = useId();
 
   return <div className={`flex max-w-full ${direction === "column" ? "flex-col" : "flex-row flex-wrap"} items-center gap-1`} data-gryt="voice-audio-controls">
     <HoverAudioControl label={tr("voiceAudio.microphone")} side={side} action={
@@ -53,7 +55,7 @@ export function VoiceAudioControls({ direction = "row", iconSize = 16 }: {
       <span className="tabular-nums">{micVolume}%</span>
       <Slider aria-label={tr("voiceAudio.microphone")} value={micVolume} min={0} max={MAX_VOLUME_PERCENT} step={1}
         onValueChange={(next) => setMicVolume(Number(next))} />
-      {(isMuted || isServerMuted) && <p role="status" className="text-sm text-gryt-muted">{tr("voiceAudio.muted")}</p>}
+      {(isMuted || isServerMuted || speakDenied) && <p role="status" className="text-sm text-gryt-muted">{tr(speakDenied ? "pureVoice.speakDenied" : "voiceAudio.muted")}</p>}
       <Button tone="neutral" onClick={() => setMicVolume(100)}>{tr("receiveVolume.reset")}</Button>
     </HoverAudioControl>
 
@@ -71,9 +73,9 @@ export function VoiceAudioControls({ direction = "row", iconSize = 16 }: {
       </CallControlButton>
     }>
       <span className="tabular-nums">{outputVolume}%</span>
-      <Slider aria-label={tr("receiveVolume.title")} value={outputVolume} min={0} max={MAX_VOLUME_PERCENT} step={1}
+      <Slider aria-label={tr("receiveVolume.title")} aria-describedby={receiveDescriptionId} value={outputVolume} min={0} max={MAX_VOLUME_PERCENT} step={1}
         onValueChange={(next) => setOutputVolume(Number(next))} />
-      <p className="text-sm text-gryt-muted">{tr("receiveVolume.description")}</p>
+      <p id={receiveDescriptionId} className="text-sm text-gryt-muted">{tr("receiveVolume.description")}</p>
       {(isDeafened || isServerDeafened) && <p role="status" className="text-sm text-gryt-muted">{tr("receiveVolume.deafened")}</p>}
       <Button tone="neutral" onClick={() => setOutputVolume(100)}>{tr("receiveVolume.reset")}</Button>
     </HoverAudioControl>

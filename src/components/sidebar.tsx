@@ -268,6 +268,11 @@ export function Sidebar({ setShowAddServer }: SidebarProps) {
       </div>
 
       <div className="flex justify-center items-center flex-col gap-3 pb-3">
+        <button type="button" data-gryt="edit-nickname" className="flex flex-col items-center gap-1 rounded px-1 py-1 text-xs text-gryt-muted hover:text-gryt-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-gryt-accent"
+          aria-label={tr("nicknameScope.editNickname")} onClick={() => openSettings("profile/profile/nickname")}>
+          <PiPencilSimpleFill size={16} aria-hidden="true" />
+          <span>{tr("nicknameScope.renameShort")}</span>
+        </button>
         <Menu.Root>
           {/* render, not children. Menu.Trigger is itself a button, so a
               button inside it is a button inside a button — invalid HTML that
