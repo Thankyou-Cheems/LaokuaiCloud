@@ -177,7 +177,7 @@ const __dirname = dirname(__filename);
 const require = createRequire(import.meta.url);
 
 const IS_LAOKUAI = isLaokuaiPackage();
-if (IS_LAOKUAI) setNativeApplicationName("唠蒯");
+if (IS_LAOKUAI) setNativeApplicationName("唠蒯云");
 const IS_I18N_TEST = isI18nTestPackage();
 if (IS_I18N_TEST) isolateI18nTestData();
 
@@ -2194,7 +2194,7 @@ function createMainWindow(): BrowserWindow {
     },
 
     autoHideMenuBar: true,
-    title: IS_LAOKUAI ? "唠蒯" : "Gryt",
+    title: IS_LAOKUAI ? "唠蒯云" : "Gryt",
   });
 
   mainWindow.loadURL(
@@ -2889,7 +2889,7 @@ function currentTrayIconPath(): string {
 }
 
 function trayTooltip(): string {
-  const name = IS_LAOKUAI ? "唠蒯" : "Gryt";
+  const name = IS_LAOKUAI ? "唠蒯云" : "Gryt";
   if (!voiceState.inVoice) {
     return name;
   }
@@ -4492,7 +4492,7 @@ if (!gotSingleInstanceLock) {
             try {
               openLaokuaiLogin(mainWindow, url);
             } catch {
-              dialog.showErrorBox("唠蒯", nativeT("privateLoginFailed"));
+              dialog.showErrorBox("唠蒯云", nativeT("privateLoginFailed"));
               mainWindow.webContents.send("auth-callback", "laokuai://auth?error=login_window_failed");
             }
             return;

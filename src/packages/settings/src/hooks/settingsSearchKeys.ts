@@ -6,6 +6,12 @@ export const SETTINGS_SEARCH_KEYS: Readonly<Record<string, Readonly<{
   description: string;
   section: string;
 }>>> = {
+  "voice-transport": {title:"transport.title",description:"transport.description",section:"ui.voice"},
+  "voice-transport-bitrate": {title:"transport.bitrateTitle",description:"transport.bitrateDescription",section:"ui.voice"},
+  "voice-transport-packet-time": {title:"transport.packetTime",description:"transport.packetTimeDescription",section:"ui.voice"},
+  "voice-transport-dtx": {title:"transport.dtx",description:"transport.dtxDescription",section:"ui.voice"},
+  "voice-transport-fec": {title:"transport.fec",description:"transport.fecDescription",section:"ui.voice"},
+
   "peer-voice-cues-enabled":{title:"pureVoice.peerCuesEnabled",description:"pureVoice.peerCuesDescription",section:"ui.voice"},
   "peer-voice-cues-dnd":{title:"pureVoice.peerCuesDnd",description:"pureVoice.peerCuesDescription",section:"ui.voice"},
   "peer-voice-cues-join-volume":{title:"pureVoice.peerCuejoin",description:"pureVoice.peerCuesDescription",section:"ui.voice"},

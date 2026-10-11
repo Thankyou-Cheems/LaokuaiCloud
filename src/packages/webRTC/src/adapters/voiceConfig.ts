@@ -62,6 +62,7 @@ export function useVoiceConfigFromSettings(stunHosts: string[],move?:MovePolicyB
       screen:{quality:"480p",fps:30,gamingMode:false},
       connection: {
         mediaMode:"audio-only",
+        microphoneCodec:{codec:"opus",maxBitrateBps:s.voiceTransportPreset.maxBitrateBps,packetTimeMs:s.voiceTransportPreset.packetTimeMs,channels:1,vbr:true,dtx:s.voiceTransportPreset.requestDtx,fec:s.voiceTransportPreset.requestInbandFec},
         receiveMicrophoneStreamIds:microphones,
         stunHosts,
         eSportsMode,
@@ -74,7 +75,7 @@ export function useVoiceConfigFromSettings(stunHosts: string[],move?:MovePolicyB
       s.micVolume, s.outputVolume, s.loopbackEnabled,
       s.noiseGate, s.noiseGateMode, s.noiseGateRelease, s.autoGainEnabled, s.autoGainTargetDb,
       s.compressorEnabled, s.compressorAmount, transmitEligible,microphones,
-      stunHosts,maxBitrate,
+      stunHosts,maxBitrate,s.voiceTransportPreset,
     ],
   );
 }

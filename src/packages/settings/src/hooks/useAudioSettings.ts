@@ -4,9 +4,11 @@ import { requestNotificationPermission } from "@/lib/desktopNotification";
 
 import { PEER_CUE_DEFAULTS, type PeerCueSettings,resolvePeerCueSettings } from "../../../../lib/peerVoiceCues";
 import { resolveSquadConfig, SQUAD_DEFAULTS,type SquadConfig } from "../../../../lib/squadMode";
+import { migrateVoiceTransportPreset, readVoiceTransportPreset, sharedVoicePreset, VOICE_TRANSPORT_SETTINGS_KEY, type VoiceTransportPreset } from "../../../../lib/voiceTransportPreset";
 import { getUserValue, setUserValue } from "./userStorage";
 
 export interface AudioSettingsData {
+  voiceTransportPreset: VoiceTransportPreset;
   squadConfig: SquadConfig;
   peerVoiceCues: PeerCueSettings;
   noiseGateMode: "automatic" | "manual";
@@ -42,6 +44,7 @@ export interface AudioSettingsData {
 }
 
 export const AUDIO_DEFAULTS: AudioSettingsData = {
+  voiceTransportPreset: sharedVoicePreset(),
   squadConfig: SQUAD_DEFAULTS,
   peerVoiceCues: PEER_CUE_DEFAULTS,
   noiseGateMode: "automatic",
@@ -82,6 +85,7 @@ export const AUDIO_DEFAULTS: AudioSettingsData = {
 export function loadAudioFromCache(): AudioSettingsData {
   const micId = getUserValue<string | undefined>("micID", undefined);
   return {
+    voiceTransportPreset: migrateVoiceTransportPreset(getUserValue<unknown>(VOICE_TRANSPORT_SETTINGS_KEY, undefined),getUserValue<unknown>("eSportsModeEnabled", false)).preset,
     peerVoiceCues: resolvePeerCueSettings(getUserValue<unknown>("peerVoiceCues", {})),
     noiseGateMode: getUserValue<unknown>("noiseGateMode", "automatic") === "manual" ? "manual" : "automatic",
     squadConfig: resolveSquadConfig(getUserValue<unknown>("squadConfig", {})),
@@ -118,6 +122,11 @@ export function loadAudioFromCache(): AudioSettingsData {
 }
 
 export function useAudioSettings() {
+  const [voiceTransportPreset,setVoiceTransportPresetState] = useState(sharedVoicePreset);
+  function setVoiceTransportPreset(value: VoiceTransportPreset) {
+    const safe=readVoiceTransportPreset(value); if(!safe)return;
+    setVoiceTransportPresetState(safe); setUserValue(VOICE_TRANSPORT_SETTINGS_KEY,safe);
+  }
   const [peerVoiceCues, setPeerVoiceCuesState] = useState<PeerCueSettings>(PEER_CUE_DEFAULTS);
   const [noiseGateMode, setNoiseGateModeState] = useState<"automatic" | "manual">("automatic");
   function setPeerVoiceCues(value: PeerCueSettings) {
@@ -174,6 +183,10 @@ export function useAudioSettings() {
   const [desktopNotificationsEnabled, setDesktopNotificationsEnabled] = useState(AUDIO_DEFAULTS.desktopNotificationsEnabled);
 
   function applyAudioData(d: AudioSettingsData) {
+    setVoiceTransportPresetState(d.voiceTransportPreset);
+    if(!readVoiceTransportPreset(getUserValue<unknown>(VOICE_TRANSPORT_SETTINGS_KEY,undefined))) {
+      setUserValue(VOICE_TRANSPORT_SETTINGS_KEY,d.voiceTransportPreset);
+    }
     setPeerVoiceCuesState(d.peerVoiceCues); setNoiseGateModeState(d.noiseGateMode);
     setSquadConfigState(d.squadConfig);
     setMicID(d.micID);
@@ -426,6 +439,7 @@ export function useAudioSettings() {
   }
 
   return {
+    voiceTransportPreset, setVoiceTransportPreset,
     squadConfig, setSquadConfig, peerVoiceCues, setPeerVoiceCues, noiseGateMode, setNoiseGateMode,
     applyAudioData,
     micID,

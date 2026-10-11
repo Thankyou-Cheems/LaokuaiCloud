@@ -1,0 +1,16 @@
+[
+  {
+    "file": "\u5520\u84af\u4e91.exe",
+    "customIconPayloadsMatched": 4,
+    "resourceIconPayloadCount": 4,
+    "peMachine": "0x8664",
+    "certificateBytes": 0
+  },
+  {
+    "file": "\u5520\u84af\u4e91-1.13.22-laokuai.opus20.1-zh-CN-win-x64-slim-portable.exe",
+    "customIconPayloadsMatched": 4,
+    "resourceIconPayloadCount": 4,
+    "peMachine": "0x14c",
+    "certificateBytes": 0
+  }
+]

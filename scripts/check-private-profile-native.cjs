@@ -13,7 +13,7 @@ const assert = require("node:assert/strict");
   const { privateProfilePaths } = await import(`data:text/javascript;base64,${Buffer.from(source).toString("base64")}`);
   const selected = mode === "write" ? { data: profile, sessions: profile }
     : privateProfilePaths(true, [`--user-data-dir=${profile}`], path.dirname(profile));
-  app.setName(mode === "write" ? "老蒯聊" : "唠蒯");
+  app.setName(mode === "write" ? "老蒯聊" : "唠蒯云");
   app.setPath("userData", selected.data);
   app.setPath("sessionData", selected.sessions);
   await app.whenReady();

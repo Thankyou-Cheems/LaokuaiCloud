@@ -11,6 +11,7 @@ import { PeerVoiceCueSettings } from "./PeerVoiceCueSettings";
 import { SettingsContainer, SliderSetting, ToggleSetting } from "./settingsComponents";
 import { SoundSettings } from "./SoundSettings";
 import { SquadSettings } from "./squadSettings";
+import { VoiceTransportSettings } from "./VoiceTransportSettings";
 
 export function VoiceSettings() {
   const { t: tr } = useTranslation();
@@ -61,6 +62,7 @@ export function VoiceSettings() {
 
       <SquadSettings />
       <PeerVoiceCueSettings />
+      <VoiceTransportSettings />
 
       <Divider />
 

@@ -21,6 +21,8 @@ export type ScreenShareCodec = VideoCodec;
 export type ScalabilityMode = "L1T1" | "L1T2" | "L1T3";
 
 export interface Settings {
+  voiceTransportPreset: import("../../../../lib/voiceTransportPreset").VoiceTransportPreset;
+  setVoiceTransportPreset: (value: import("../../../../lib/voiceTransportPreset").VoiceTransportPreset) => void;
   squadConfig: SquadConfig;
   setSquadConfig: (config: SquadConfig) => void;
   micID?: string;
@@ -368,6 +370,8 @@ export const settingsInit: Settings = {
   showVideoDebugOverlay: false,
   setShowVideoDebugOverlay: noop,
 
+  voiceTransportPreset: AUDIO_DEFAULTS.voiceTransportPreset,
+  setVoiceTransportPreset: noop,
   eSportsModeEnabled: AUDIO_DEFAULTS.eSportsModeEnabled,
   setESportsModeEnabled: noop,
 

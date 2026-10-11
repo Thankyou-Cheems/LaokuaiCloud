@@ -356,6 +356,7 @@ export const SETTINGS_KEYS = [
   "autoGainTargetDb",
   "compressorEnabled",
   "compressorAmount",
+  "voiceTransportPresetV1",
   "eSportsModeEnabled",
   "preEsportsSettings",
   "inputMode",

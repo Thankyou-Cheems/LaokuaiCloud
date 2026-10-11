@@ -22,7 +22,7 @@ export function isolateI18nTestData(): void {
   const root = process.env.PORTABLE_EXECUTABLE_DIR || dirname(process.execPath);
   const { data, sessions, reuseExisting } = privateProfilePaths(own, process.argv, root);
   if (!reuseExisting) mkdirSync(sessions, { recursive: true });
-  app.setName(own ? "唠蒯" : "唠蒯 汉化测试");
+  app.setName(own ? "唠蒯云" : "唠蒯云 汉化测试");
   app.setPath("userData", data);
   app.setPath("sessionData", sessions);
   app.setAppUserModelId(own ? "local.laokuai.chat" : "local.laokuai.chat.i18n-test");

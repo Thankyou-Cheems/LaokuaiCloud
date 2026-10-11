@@ -33,6 +33,12 @@ export function settingAnchorId(title: string): string {
 }
 
 export const SETTINGS_INDEX: SettingsIndexEntry[] = [
+  { id: "voice-transport", title: "Voice bandwidth", description: "Mono Opus with variable bitrate. This requests encoder and server preferences; actual traffic may differ. This experimental preset has not been shown to meet the target voice quality.", destination: "sound-video", page: "voice", section: "Voice" },
+  { id: "voice-transport-bitrate", title: "Maximum bitrate (kbps)", description: "The channel may impose a lower cap. This is RTP audio payload, excluding packet and network overhead.", destination: "sound-video", page: "voice", section: "Voice" },
+  { id: "voice-transport-packet-time", title: "Packet duration preference", description: "The server must negotiate this preference. Longer packets add buffering delay.", destination: "sound-video", page: "voice", section: "Voice" },
+  { id: "voice-transport-dtx", title: "Request DTX", description: "Request fewer packets during silence. This setting alone does not prove the encoder reduces packet rate.", destination: "sound-video", page: "voice", section: "Voice" },
+  { id: "voice-transport-fec", title: "Request in-band FEC", description: "Request packet-loss protection when supported. Negotiation alone does not prove redundancy is being sent.", destination: "sound-video", page: "voice", section: "Voice" },
+
   { id: "squad-mode", title: "Squad mode", description: "Squad game voice transmission suppression.", destination: "sound-video", page: "voice", section: "Squad"},
   { id: "squad-process", title: "Squad foreground detection", description: "Detect the foreground game process.", destination: "sound-video", page: "voice", section: "Squad"},
   { id: "squad-target", title: "Squad process target", description: "Choose the Squad executable name.", destination: "sound-video", page: "voice", section: "Squad"},
@@ -61,11 +67,11 @@ export const SETTINGS_INDEX: SettingsIndexEntry[] = [
   { id: "message-history-on-this-device", title: "Message history on this device", description: "Where your encrypted DM history is kept, and clearing it when it won't open.", page: "security", destination: "account", section: "Security" },
   { id: "your-devices", title: "Your devices", description: "Each app or browser you use for encrypted DMs, on each server. Remove one you don't use anymore.", page: "security", destination: "account", section: "Security" },
   { id: "message-key-warnings", title: "Message key warnings", description: "Warn when a server holds a message key this device didn't publish. Turn it off if your direct messages don't need to be private from the server.", page: "security", destination: "account", section: "Security" },
-  { id: "persist-server-access-tokens", title: "Persist server access tokens", description: "Keep server sign-in tokens between app sessions, or clear them when 唠蒯 closes.", page: "security", destination: "account", section: "Security" },
-  { id: "server-identities", title: "Server identities", description: "Servers 唠蒯 recognises by their identity key, and any it has blocked for answering with a different one. Unblock a server you rebuilt yourself.", page: "identities", destination: "servers", section: "Servers", panel: true },
+  { id: "persist-server-access-tokens", title: "Persist server access tokens", description: "Keep server sign-in tokens between app sessions, or clear them when 唠蒯云 closes.", page: "security", destination: "account", section: "Security" },
+  { id: "server-identities", title: "Server identities", description: "Servers 唠蒯云 recognises by their identity key, and any it has blocked for answering with a different one. Unblock a server you rebuilt yourself.", page: "identities", destination: "servers", section: "Servers", panel: true },
   ...(isElectron()
     ? ([
-    { id: "my-servers", title: "My servers", description: "Servers 唠蒯 runs on this machine. Start them, stop them, read their logs, and choose whether they start with the app.", page: "my-servers", destination: "servers", section: "Servers", panel: true }
+    { id: "my-servers", title: "My servers", description: "Servers 唠蒯云 runs on this machine. Start them, stop them, read their logs, and choose whether they start with the app.", page: "my-servers", destination: "servers", section: "Servers", panel: true }
       ] satisfies SettingsIndexEntry[])
     : []),
   { id: "microphone-volume", title: "Microphone volume", description: "Your microphone input level (100% = unchanged, 200% = 2x boost)", page: "audio", destination: "sound-video", section: "Microphone" },
@@ -80,9 +86,9 @@ export const SETTINGS_INDEX: SettingsIndexEntry[] = [
   { id: "afk-timeout", title: "AFK timeout", description: "You are marked AFK after this many minutes of silence, and only while you are connected to voice.", page: "voice", destination: "sound-video", section: "Voice" },
   { id: "appearance", title: "Appearance", description: "Mode, themes and display sizes.", page: "theme", destination: "appearance", section: "Appearance", panel: true },
   { id: "theme", title: "Theme", description: "Pick one, or open the editor and change it while you use the app. A theme is a couple of dozen hex values, so a link is the whole thing.", page: "theme", destination: "appearance", section: "Theme" },
-  { id: "the-server-we-run", title: "The server we run", description: "唠蒯 runs one server itself, and the dialog for adding a server offers it when you have nothing to paste. Turning this off hides that row for good on this device, and turning it back on is what this is for.", page: "adding-servers", destination: "servers", section: "Adding servers" },
-  { id: "typefaces-from-google", title: "Typefaces from Google", description: "A theme can name any typeface. Letting 唠蒯 fetch the ones you do not already have means Google sees your address and that you are running 唠蒯. Off, a theme that names one falls back to a face you have.", page: "theme", destination: "appearance", section: "Theme" },
-  { id: "ui-scale", title: "UI scale", description: "How large 唠蒯 draws everything. Ctrl+Plus and Ctrl+Minus do the same, and Ctrl+0 puts it back to 100%.", page: "display", destination: "appearance", section: "Display" },
+  { id: "the-server-we-run", title: "The server we run", description: "唠蒯云 runs one server itself, and the dialog for adding a server offers it when you have nothing to paste. Turning this off hides that row for good on this device, and turning it back on is what this is for.", page: "adding-servers", destination: "servers", section: "Adding servers" },
+  { id: "typefaces-from-google", title: "Typefaces from Google", description: "A theme can name any typeface. Letting 唠蒯云 fetch the ones you do not already have means Google sees your address and that you are running 唠蒯云. Off, a theme that names one falls back to a face you have.", page: "theme", destination: "appearance", section: "Theme" },
+  { id: "ui-scale", title: "UI scale", description: "How large 唠蒯云 draws everything. Ctrl+Plus and Ctrl+Minus do the same, and Ctrl+0 puts it back to 100%.", page: "display", destination: "appearance", section: "Display" },
   { id: "chat-font-size", title: "Chat font size", description: "The size messages are set in, with a preview underneath.", page: "display", destination: "appearance", section: "Display" },
   { id: "standalone-emoji-size", title: "Standalone emoji size", description: "How big an emoji is drawn when a message is nothing but emoji.", page: "display", destination: "appearance", section: "Display" },
   { id: "smiley-conversion", title: "Smiley conversion", description: "Turns typed smileys into emoji as you write them.", page: "chat", destination: "chat-notifications", section: "Chat" },
@@ -102,16 +108,16 @@ export const SETTINGS_INDEX: SettingsIndexEntry[] = [
   ...(isElectron()
     ? ([
       ...(isMacDesktop()
-        ? [{ id: "open-at-login", title: "Open at login", description: "Opens 唠蒯 when you log in to your Mac.", page: "desktop", destination: "behaviour", section: "Desktop" }]
+        ? [{ id: "open-at-login", title: "Open at login", description: "Opens 唠蒯云 when you log in to your Mac.", page: "desktop", destination: "behaviour", section: "Desktop" }]
         : [
-            { id: "start-with-windows", title: "Start with Windows", description: "Launches 唠蒯 when you sign in to Windows.", page: "desktop", destination: "behaviour", section: "Desktop" },
-            { id: "start-minimized-on-login", title: "Start minimized on login", description: "Only applies when 唠蒯 is launched automatically on sign-in. Manual launches will still show the window.", page: "desktop", destination: "behaviour", section: "Desktop" },
+            { id: "start-with-windows", title: "Start with Windows", description: "Launches 唠蒯云 when you sign in to Windows.", page: "desktop", destination: "behaviour", section: "Desktop" },
+            { id: "start-minimized-on-login", title: "Start minimized on login", description: "Only applies when 唠蒯云 is launched automatically on sign-in. Manual launches will still show the window.", page: "desktop", destination: "behaviour", section: "Desktop" },
           ]),
-      { id: "minimize-to-tray-on-close", title: "Minimize to tray on close", description: "Closing the window hides 唠蒯 in the system tray instead of quitting it.", page: "desktop", destination: "behaviour", section: "Desktop" },
-      { id: "hardware-acceleration", title: "Hardware acceleration", description: "Uses your GPU for rendering. Turn it off if you see visual glitches or high GPU usage. Changing this restarts 唠蒯.", page: "desktop", destination: "behaviour", section: "Desktop" }
+      { id: "minimize-to-tray-on-close", title: "Minimize to tray on close", description: "Closing the window hides 唠蒯云 in the system tray instead of quitting it.", page: "desktop", destination: "behaviour", section: "Desktop" },
+      { id: "hardware-acceleration", title: "Hardware acceleration", description: "Uses your GPU for rendering. Turn it off if you see visual glitches or high GPU usage. Changing this restarts 唠蒯云.", page: "desktop", destination: "behaviour", section: "Desktop" }
       ] satisfies SettingsIndexEntry[])
     : []),
-  { id: "esports-mode", title: "eSports mode", description: "Lowest possible latency. Disables all audio processing, enables push-to-talk, caps bitrate at 128kbps (studio quality), and optimizes Opus packetization (10ms frames).", page: "voice", destination: "sound-video", section: "Voice" },
+  { id: "esports-mode", title: "eSports mode", description: "Legacy latency mode changes audio processing and PTT. The voice bandwidth profile below separately controls codec requests; server limits still apply.", page: "voice", destination: "sound-video", section: "Voice" },
   { id: "warn-me-when-my-microphone-goes-silent", title: "Warn me when my microphone goes silent", description: "Says so if your microphone stops sending anything at all while you are in a voice channel. Some headsets mute their own noise floor between sentences, which looks the same from here.", page: "audio", destination: "sound-video", section: "Microphone" },
   // Dev builds only, the same way the Developer destination is. Without the gate
   // a release would offer results for a panel that is not in the bundle.
@@ -127,8 +133,8 @@ export const SETTINGS_INDEX: SettingsIndexEntry[] = [
         { id: "a-message-every", title: "A message every", description: "How often a fake message arrives, in seconds, while it is running.", destination: "developer", section: "Developer" }
       ] satisfies SettingsIndexEntry[])
     : []),
-  { id: "addons", title: "Addons", description: "Extensions that add features to 唠蒯.", destination: "extensions", section: "Addons", panel: true },
-  { id: "support-gryt", title: "Support 唠蒯", description: "Ways to support the project.", destination: "support", section: "Support", panel: true }
+  { id: "addons", title: "Addons", description: "Extensions that add features to 唠蒯云.", destination: "extensions", section: "Addons", panel: true },
+  { id: "support-gryt", title: "Support 唠蒯云", description: "Ways to support the project.", destination: "support", section: "Support", panel: true }
 ];
 
 // Search both languages while keeping catalog routing and screen order unchanged.

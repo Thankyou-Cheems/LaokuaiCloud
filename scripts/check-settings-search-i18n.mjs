@@ -18,6 +18,7 @@ const zh = JSON.parse(read("src/packages/i18n/locales/zh-CN.json"));
 const retiredMedia = new Set(["flip-camera","center-my-face-automatically","mirror-preview","tile-layout","two-people","experimental-screen-share","fake-screen-share"]);
 // Preserve the historical routing fixture and explicitly state this private build's policy delta.
 const originalRoutes = JSON.parse(read("scripts/fixtures/settings-search-routes.json")).filter(entry=>!retiredMedia.has(entry.id));
+originalRoutes.unshift(...[{"id": "voice-transport", "destination": "sound-video", "page": "voice"}, {"id": "voice-transport-bitrate", "destination": "sound-video", "page": "voice"}, {"id": "voice-transport-packet-time", "destination": "sound-video", "page": "voice"}, {"id": "voice-transport-dtx", "destination": "sound-video", "page": "voice"}, {"id": "voice-transport-fec", "destination": "sound-video", "page": "voice"}]);
 originalRoutes.splice(originalRoutes.findIndex(entry=>entry.id==="updates")+1,0,
   ...["automatic-noise-gate","receive-priors"].map(id=>({id,destination:"sound-video",page:"audio"})),
   ...["peer-voice-cues","peer-voice-cues-enabled","peer-voice-cues-dnd","peer-voice-cues-join-volume","peer-voice-cues-leave-volume"].map(id=>({id,destination:"sound-video",page:"voice"})));

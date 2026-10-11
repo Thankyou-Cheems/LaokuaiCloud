@@ -1,8 +1,8 @@
 {
   "name": "gryt-chat",
   "private": true,
-  "version": "1.13.22-laokuai.integration.4",
-  "description": "唠蒯 — real-time voice chat desktop client",
+  "version": "1.13.22-laokuai.opus20.1",
+  "description": "唠蒯云 — real-time voice chat desktop client",
   "author": {
     "name": "Gryt Chat",
     "email": "sivert@gryt.chat",
@@ -240,7 +240,7 @@
     "@gryt/crypto": "0.9.0",
     "@gryt/owl": "^0.6.0",
     "@gryt/ui": "file:vendor/gryt-ui-0.44.0-zh-cn.tgz",
-    "@gryt/voice": "file:vendor/gryt-voice-0.6.2-laokuai.integration.4.tgz",
+    "@gryt/voice": "file:vendor/gryt-voice-0.6.2-laokuai.opus20.alias.1.tgz",
     "@mediapipe/tasks-vision": "^1.0.1",
     "@noble/curves": "^2.3.0",
     "@noble/hashes": "^2.3.0",

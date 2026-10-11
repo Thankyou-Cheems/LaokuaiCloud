@@ -8,7 +8,7 @@ export function openLaokuaiLogin(parent: BrowserWindow, url: string): void {
   const { login, callback } = parseLaokuaiLogin(url);
   if (loginWindow && !loginWindow.isDestroyed()) loginWindow.close();
   const window = new BrowserWindow({
-    title: "老蒯聊 · 官方账户登录", width: 560, height: 760, parent,
+    title: "唠蒯云 · 官方账户登录", width: 560, height: 760, parent,
     autoHideMenuBar: true,
     webPreferences: {
       nodeIntegration: false, contextIsolation: true, sandbox: true,

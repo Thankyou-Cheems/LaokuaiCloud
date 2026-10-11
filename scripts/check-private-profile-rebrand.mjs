@@ -12,8 +12,8 @@ for (const mode of ["write", "read"]) {
     { env, windowsHide: true, encoding: "utf8", timeout: 30000 });
   assert.equal(result.status, 0, result.stderr);
   const evidence = JSON.parse(fs.readFileSync(path.join(profile, `result-${mode}.json`), "utf8"));
-  assert.equal(evidence.applicationName, mode === "write" ? "老蒯聊" : "唠蒯");
+  assert.equal(evidence.applicationName, mode === "write" ? "老蒯聊" : "唠蒯云");
   cases.push(evidence);
 }
 fs.writeFileSync("integration-profile-rebrand.json", JSON.stringify({ status: "passed", cases, profile: "synthetic Temp only", credentialsReadOrCopied: false }, null, 2));
-console.log("PASS two hidden real Electron processes: old display name writes synthetic IndexedDB; 唠蒯 reuses exact profile/session/origin and reads it");
+console.log("PASS two hidden real Electron processes: old display name writes synthetic IndexedDB; 唠蒯云 reuses exact profile/session/origin and reads it");
