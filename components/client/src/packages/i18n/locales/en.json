@@ -3703,4 +3703,56 @@
       "self": "This is the local member; peer RTT does not apply."
     }
   }
+,
+  "memberVoicePath": {
+    "title": "Voice path with you",
+    "receive": "Receive",
+    "send": "Send",
+    "receiveShort": "Rx",
+    "sendShort": "Tx",
+    "unknown": "Unknown",
+    "rtt": "RTT",
+    "peerRtt": "Selected peer transport RTT",
+    "sfuRtt": "Selected voice server transport RTT",
+    "loss": "Packet loss",
+    "age": "Media evidence age: {{seconds}} seconds",
+    "boundary": "This describes the voice relationship with this device. Community LAN status is separate. Direct and relay claims require selected usable media and proof of the complete underlay path.",
+    "labels": {
+      "direct": "Direct voice",
+      "member-relay": "Member relay",
+      "server-relay": "Server relay",
+      "path-pending": "Path unconfirmed",
+      "switching": "Switching",
+      "error": "Connection error",
+      "pending": "Awaiting connection"
+    },
+    "selected": {
+      "peer": "SDK selected peer media",
+      "sfu": "SDK selected server media",
+      "none": "SDK has not selected media",
+      "unknown": "Selected media unknown"
+    },
+    "reasons": {
+      "not-integrated": "Authoritative voice path observations are not connected",
+      "scope-mismatch": "Record does not match the current room or session",
+      "missing": "No authoritative media record for this direction",
+      "expired": "Media evidence expired",
+      "invalid": "Media evidence is not yet verified",
+      "inconsistent": "SDK selection and media availability disagree; awaiting SDK confirmation",
+      "media-unavailable": "Stable usable media is not confirmed",
+      "underlay-unproven": "Usable peer media selected; complete underlay path unconfirmed"
+    },
+    "nextHop": {
+      "member": "Known next hop: a member; the next hop does not prove the complete path",
+      "server": "Known next hop: a server; the next hop does not prove the complete path"
+    },
+    "metrics": {
+      "missing": "No metric data yet",
+      "expired": "Metrics expired",
+      "invalid": "Metrics not yet verified",
+      "measured": "Only measured metrics for the current selected media transport"
+    }
+  }
+,
+  "voiceRoom": {"members_one":"{{count}} member","members_other":"{{count}} members","expand":"Show room members","collapse":"Hide room members","current":"Your current voice room"}
 }

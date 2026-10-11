@@ -3703,4 +3703,56 @@
       "self": "这是本机成员，不适用成员 RTT。"
     }
   }
+,
+  "memberVoicePath": {
+    "title": "与你的语音路径",
+    "receive": "接收",
+    "send": "发送",
+    "receiveShort": "收",
+    "sendShort": "发",
+    "unknown": "未知",
+    "rtt": "RTT",
+    "peerRtt": "所选 peer 传输 RTT",
+    "sfuRtt": "所选语音服务器传输 RTT",
+    "loss": "丢包",
+    "age": "媒体证据年龄 {{seconds}} 秒",
+    "boundary": "此状态只描述本机与你的语音关系；社区联机状态另列。直连与中转须有当前所选可用媒体及完整底层路径证明。",
+    "labels": {
+      "direct": "语音直连",
+      "member-relay": "成员中转",
+      "server-relay": "服务器中转",
+      "path-pending": "路径待确认",
+      "switching": "正在切换",
+      "error": "连接异常",
+      "pending": "待连接"
+    },
+    "selected": {
+      "peer": "SDK 选中 peer 媒体",
+      "sfu": "SDK 选中服务器媒体",
+      "none": "SDK 尚未选中媒体",
+      "unknown": "所选媒体未知"
+    },
+    "reasons": {
+      "not-integrated": "尚未接入权威语音路径观测",
+      "scope-mismatch": "记录与当前房间或会话不匹配",
+      "missing": "此方向尚无权威媒体记录",
+      "expired": "媒体证据已过期",
+      "invalid": "媒体证据尚未有效确认",
+      "inconsistent": "SDK 媒体选择与可用性事实不一致，待 SDK 确认",
+      "media-unavailable": "尚未确认稳定可用媒体",
+      "underlay-unproven": "已选中可用 peer 媒体；完整底层路径未确认"
+    },
+    "nextHop": {
+      "member": "已知下一跳：某成员；下一跳不证明完整路径",
+      "server": "已知下一跳：服务器；下一跳不证明完整路径"
+    },
+    "metrics": {
+      "missing": "指标尚无数据",
+      "expired": "指标已过期",
+      "invalid": "指标尚未有效确认",
+      "measured": "仅展示当前所选媒体传输的实测指标"
+    }
+  }
+,
+  "voiceRoom": {"members_one":"{{count}} 人","members_other":"{{count}} 人","expand":"展开房间成员","collapse":"收起房间成员","current":"你所在的语音房间"}
 }

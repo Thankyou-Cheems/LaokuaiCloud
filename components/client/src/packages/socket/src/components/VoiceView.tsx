@@ -16,6 +16,7 @@ export const VoiceView = (props: Parameters<typeof LegacyVoiceView>[0]) => {
       const actions = props.adminActions;
       return <ConnectedUser key={id} nickname={client.nickname} serverHost={props.serverHost}
         serverUserId={target} streamId={client.streamID} isSelf={id===props.currentConnectionId}
+        showVoiceMediaPath={client.isConnectedToVoice === true && !!client.streamID}
         isSpeaking={props.clientsSpeaking[id]===true && !client.isMuted && !client.isServerMuted}
         isMuted={client.isMuted || !!client.isServerMuted} isDeafened={client.isDeafened || !!client.isServerDeafened}
         isAFK={client.isAFK} isConnectingToVoice={id===props.currentConnectionId && props.isConnecting}

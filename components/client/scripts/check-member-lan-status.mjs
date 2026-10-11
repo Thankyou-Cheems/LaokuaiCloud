@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
+
 import ts from "typescript";
 
 const read = path => fs.readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
@@ -108,6 +109,7 @@ const t=key=>{const value=lookup(locales[language],key)??lookup(locales.en,key);
 const jsx=(type,props)=>({type,props});
 const {MemberLanStatus}=compile("src/packages/socket/src/components/MemberLanStatus.tsx",{
   "react/jsx-runtime":{jsx,jsxs:jsx},"@gryt/ui":{Tooltip:"Tooltip"},"@/i18n":{useTranslation:()=>({t})},"../../../../lib/memberLanStatus":model,
+  "../../../../components/ConnectionTopologyIcon":{ConnectionTopologyIcon:"TopologyIcon"},
 });
 check("compact presentation preserves full keyboard/screenreader detail while truncating only visual text",()=>{
   const tree=MemberLanStatus(input(fixture()));const span=tree.props.children;
@@ -129,6 +131,18 @@ check("green is reserved for fresh verified membership; expired RTT remains expl
   const snapshot=fixture();remote(snapshot).path.rtt.observedAtMs=now-10_001;
   const span=MemberLanStatus(input(snapshot)).props.children;assert.match(span.props.style.color,/success/);assert.match(span.props.children[1].props.children,/已过期/);
   remote(snapshot).path.observedAtMs=now-10_001;assert.match(MemberLanStatus(input(snapshot)).props.children.props.children[1].props.children,/路径过期/);
+});
+check("LAN icon geometry follows proven route or enrollment; unknown/stale never borrow direct",()=>{
+  for(const path of ['direct','member-relay','server-relay','unknown']){
+    const snapshot=fixture();remote(snapshot).path.kind=path;
+    assert.equal(MemberLanStatus(input(snapshot)).props.children.props.children[0].props.kind,path);
+  }
+  for(const [state,icon]of [['joining','connecting'],['off','disconnected'],['not-joined','disconnected'],['error','disconnected']]){
+    const snapshot=fixture();remote(snapshot).enrollment.state=state;
+    assert.equal(MemberLanStatus(input(snapshot)).props.children.props.children[0].props.kind,icon);
+  }
+  const stale=fixture();stale.observedAtMs=now-10_001;
+  assert.equal(MemberLanStatus(input(stale)).props.children.props.children[0].props.kind,'unknown');
 });
 check("EN/ZH mappings cover every state/reason and route; no arbitrary errors, IPs or keys are rendered",()=>{
   function compare(a,b){assert.deepEqual(Object.keys(a).sort(),Object.keys(b).sort());for(const key of Object.keys(a))typeof a[key]==='object'?compare(a[key],b[key]):assert.ok(a[key]&&b[key]);}
@@ -161,7 +175,7 @@ check("actual member list passes scope, local identity and telemetry through wit
     '../../../lib/nameTags':{nameTags:()=>new Map()},'../hooks/dmDirectory':{useDirectory:()=>[]},
     '../hooks/useDirectoryUnread':{useDirectoryUnread:()=>({countFor:()=>0})},'../hooks/usePermissions':{useServerPermissions:()=>({roles:[]})},
     './memberCard/memberCardContext':{MEMBER_CARD_POPUP:'popup'},'./memberGroups':{groupMembersByRole:members=>[{key:'all',title:'Members',members}],readableRoleColor:()=>undefined},
-    './MemberLanStatus':{MemberLanStatus},'./memberStatus':{statusConfig:{online:{label:'Online',color:'gray'}}},
+    './MemberLanStatus':{MemberLanStatus},'./MemberVoiceMediaStatus':{MemberVoiceMediaStatus:'VoiceMediaStatus'},'./memberStatus':{statusConfig:{online:{label:'Online',color:'gray'}}},
   };
   for(const [name,value]of Object.entries(components))dependencies['./'+name]={[name]:value};
   const {MemberSidebar,MemberItem}=compile('src/packages/socket/src/components/MemberSidebar.tsx',dependencies,'\nexport { MemberItem };\n');

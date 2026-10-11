@@ -333,6 +333,13 @@ export const ChannelList = ({
     /* Visible and not enterable has always been expressible; the row never said
        so, and the refusal arrived from the media stack after the press. */
     const locked = channel?.type === "voice" && channel.canJoin === false;
+    const voiceMembers = channel?.type === "voice" ? Object.keys(clients).filter(id =>
+      clients[id].hasJoinedChannel && clients[id].voiceChannelId === channelId) : [];
+    const ownVoiceRoom = currentServerConnected === serverHost && currentChannelId === channelId &&
+      voiceMembers.includes(currentConnectionId ?? "");
+    const membersVisible = voiceMembers.length > 0 && (ownVoiceRoom || !collapsed.has(item.id));
+    const RoomCaret = membersVisible ? PiCaretDownFill : PiCaretRightFill;
+    const membersId = `voice-members-${encodeURIComponent(serverHost)}-${encodeURIComponent(channelId)}`;
 
     return (
       <div className="flex flex-col items-start w-full relative">
@@ -340,10 +347,13 @@ export const ChannelList = ({
             <Button>, which is the filled accent one, so the whole list read as
             selected and the channel you were actually in was invisible —
             "you are here" was the one thing the list stopped saying. */}
+        <div className="flex w-full min-w-0 items-center gap-1">
         <Button size="small"
           tone={channel?.id === selectedChannelId ? "primary" : "ghost"}
           style={{
             width: "100%",
+            flex: "1 1 0%",
+            minWidth: 0,
             justifyContent: "start",
             overflow: "hidden",
             // Dimmed rather than disabled: the row is still worth pressing,
@@ -422,10 +432,22 @@ export const ChannelList = ({
               there and two of them would fight. */}
           <UnreadIndicator unread={unread} mentions={mentions} />
         </Button>
+        {channel?.type === "voice" && <button type="button"
+          className="flex shrink-0 items-center gap-1 rounded px-1 py-1 text-[10px] text-gryt-muted hover:text-gryt-text focus-visible:outline-2 focus-visible:outline-gryt-accent disabled:cursor-default"
+          aria-expanded={membersVisible} aria-controls={membersId}
+          aria-label={`${tr(ownVoiceRoom ? "voiceRoom.current" : membersVisible ? "voiceRoom.collapse" : "voiceRoom.expand")} · ${tr("voiceRoom.members", { count: voiceMembers.length })}`}
+          title={ownVoiceRoom ? tr("voiceRoom.current") : undefined}
+          disabled={ownVoiceRoom || voiceMembers.length === 0}
+          onPointerDown={event => event.stopPropagation()}
+          onClick={() => toggleCollapsed(item.id)}>
+          <span>{tr("voiceRoom.members", { count: voiceMembers.length })}</span>
+          <RoomCaret size={10} aria-hidden="true" />
+        </button>}
+        </div>
 
         {channel?.type === "voice" && (
           <AnimatePresence initial={false}>
-            {Object.values(clients).some((c) => c.voiceChannelId === channelId) && (
+            {membersVisible && (
               <motion.div
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: "auto", opacity: 1 }}
@@ -433,16 +455,17 @@ export const ChannelList = ({
                 transition={{ duration: 0.25 }}
                 style={{ overflow: "hidden", width: "100%" }}
               >
-                <div className="flex w-full pt-2 flex-col" style={{
+                <div id={membersId} className="flex w-full pt-2 flex-col" style={{
                     background: "var(--gryt-neutral-3)",
                     borderRadius: "0 0 var(--gryt-radius-lg) var(--gryt-radius-lg)",
                   }}>
-                  {Object.keys(clients)?.map(
+                  {voiceMembers.map(
                     (id) =>
-                      clients[id].voiceChannelId === channelId && (
+                      clients[id].hasJoinedChannel && clients[id].voiceChannelId === channelId && (
                         <ConnectedUser
                           serverHost={serverHost}
                           streamId={clients[id].streamID}
+                          showVoiceMediaPath={serverHost === currentServerConnected && channelId === currentChannelId && clients[id].isConnectedToVoice === true && !!clients[id].streamID}
                           isSpeaking={clientsSpeaking[id] || false}
                           avatarColor={
                             clients[id].serverUserId

@@ -5,6 +5,7 @@ import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i1
 import { useTransmitSpeech } from "@/webRTC/src/components/TransmitSpeechAdapter";
 
 import { PiMicrophoneSlashFill, PiSpeakerSlashFill } from "../../../../lib/icons";
+import { MemberVoiceMediaStatus } from "./MemberVoiceMediaStatus";
 import { MemberVoiceQuality } from "./MemberVoiceQuality";
 import { RemoteReceiveCorrection } from "./RemoteReceiveCorrection";
 import { SpeakingHalo } from "./SpeakingHalo";
@@ -51,6 +52,7 @@ export function ConnectedUser({
   targetRoles,
   serverHost,
   streamId,
+  showVoiceMediaPath = false,
 }: {
   isSpeaking: boolean;
   /** Dominant colour of the avatar, so the ring matches the voice tile's. */
@@ -66,6 +68,8 @@ export function ConnectedUser({
   avatarSrc?: string;
   serverUserId?: string;
   streamId?: string;
+  /** Only the current room's live media membership may request a path badge. */
+  showVoiceMediaPath?: boolean;
   isSelf?: boolean;
   isConnectedToVoice?: boolean;
   isConnectingToVoice?: boolean;
@@ -142,7 +146,10 @@ export function ConnectedUser({
               }}
             />
           </div>
-          <span className="text-sm truncate" data-gryt="member-name" title={nickname} style={{ whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>{nickname}</span>
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <span className="text-sm truncate max-sm:whitespace-normal max-sm:overflow-visible max-sm:text-clip max-sm:break-words" data-gryt="member-name" title={nickname} style={{ minWidth: 0 }}>{nickname}</span>
+            {showVoiceMediaPath && !isSelf && <MemberVoiceMediaStatus host={serverHost} member={serverUserId} publicationId={streamId} />}
+          </div>
         </div>
 
         <div className="flex shrink-0 gap-1 items-center">
