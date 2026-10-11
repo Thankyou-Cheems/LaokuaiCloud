@@ -150,6 +150,7 @@ import {
   stopNativeScreenCapture,
 } from "./screenCaptureManager";
 import { SquadInputBroker } from "./squadInputBroker";
+import { attachUIAcceptanceEvidence, createUIAcceptanceIpc, createUIAcceptanceMode, installUIAcceptanceSession, UI_ACCEPTANCE_URL } from "./uiAcceptanceMode";
 import { nativeLanguage, nativeT, setNativeApplicationName,setNativeLanguagePreference } from "./uiLanguage";
 import {
   clockTime,
@@ -181,8 +182,17 @@ const require = createRequire(import.meta.url);
 
 const IS_LAOKUAI = isLaokuaiPackage();
 if (IS_LAOKUAI) setNativeApplicationName("唠蒯云");
+const UI_ACCEPTANCE_MODE = (() => {
+  try { return createUIAcceptanceMode(IS_LAOKUAI, process.argv); }
+  catch (error) {
+    process.stderr.write(`UI acceptance mode rejected: ${String(error)}\n`);
+    process.exit(2);
+  }
+})();
 const IS_I18N_TEST = isI18nTestPackage();
-if (IS_I18N_TEST) isolateI18nTestData();
+if (IS_I18N_TEST && !UI_ACCEPTANCE_MODE) isolateI18nTestData();
+
+const applicationIpc = UI_ACCEPTANCE_MODE ? createUIAcceptanceIpc(ipcMain) : ipcMain;
 
 // ── Startup logging ──────────────────────────────────────────────────────
 
@@ -243,7 +253,7 @@ const easyTierProduction = createWindowsEasyTierProduction(
   () => easyTierProductRoot(app.getPath("userData")),
   () => join(app.isPackaged ? process.resourcesPath : join(__dirname, "../build"), "community-lan", "product", "2.7.0-laokuai"),
 );
-const easyTierCommunities = new EasyTierCommunityManager(IS_I18N_TEST && !IS_LAOKUAI ? null : easyTierProduction.runtime, state => {
+const easyTierCommunities = new EasyTierCommunityManager(UI_ACCEPTANCE_MODE || (IS_I18N_TEST && !IS_LAOKUAI) ? null : easyTierProduction.runtime, state => {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("et-community-state", state);
 });
 let easyTierPoll: ReturnType<typeof setInterval> | null = null;
@@ -251,7 +261,7 @@ let easyTierQuitDrained = false;
 let easyTierQuitDraining = false;
 // Registered before updater hooks: ordinary quits wait for owned instance stop.
 app.on("before-quit", event => {
-  if ((IS_I18N_TEST && !IS_LAOKUAI) || easyTierQuitDrained) return;
+  if (UI_ACCEPTANCE_MODE || (IS_I18N_TEST && !IS_LAOKUAI) || easyTierQuitDrained) return;
   event.preventDefault();
   if (easyTierQuitDraining) return;
   easyTierQuitDraining = true;
@@ -276,13 +286,14 @@ function readScanConsent(): string | null {
 }
 
 function processScanAllowed(): boolean {
+  if (UI_ACCEPTANCE_MODE) return false;
   return readScanConsent() !== null;
 }
 
 /* ── Rich Presence (GRYT-1310) ───────────────────────────────────────── */
 
 /** A sandboxed Mac App Store build has its own temp folder, where no game would look. */
-const canHostRichPresence = !IS_I18N_TEST && !process.mas;
+const canHostRichPresence = !UI_ACCEPTANCE_MODE && !IS_I18N_TEST && !process.mas;
 const gameIndex = createGameIndex(readGameList(curatedGames));
 /* The bigger list from Gryt-chat/rich-presence: our own games.json still wins. */
 const bundledGames = createGameLookup(readGamesFile(gamesSnapshot));
@@ -384,6 +395,7 @@ function detectStatus() {
 
 /** Needs Rich Presence on as well, since the card goes out through the same board. */
 function startGameDetection(): void {
+  if (UI_ACCEPTANCE_MODE) return;
   if (gameDetector || !presenceBoard || !canListProcesses || !detectionOn()) return;
   const platform = process.platform as Platform;
   // Program names come with the game list; the snapshot shipped in the app has names only.
@@ -590,6 +602,7 @@ async function turnHelperOff(): Promise<void> {
 }
 
 function syncHelperAtLaunch(): Promise<void> {
+  if (UI_ACCEPTANCE_MODE) return Promise.resolve();
   if (IS_I18N_TEST) return Promise.resolve();
   return syncHelperStartup(helperDeps(), Boolean(readHelperOptIn() && readRichPresenceConsent()), helperRunning);
 }
@@ -618,7 +631,7 @@ let localServerUrl: string | null = null;
 
 process.on("uncaughtException", (err) => {
   startupLog(`FATAL uncaughtException: ${err.stack ?? err.message}`);
-  dialog.showErrorBox(
+  if (!UI_ACCEPTANCE_MODE) dialog.showErrorBox(
     nativeT("second_62649324d6a7"),
     nativeT("second_498caef107e8", { detail: err.message })
   );
@@ -633,7 +646,7 @@ process.on("unhandledRejection", (reason) => {
 
   if (!mainWindow) {
     const short = reason instanceof Error ? reason.message : String(reason);
-    dialog.showErrorBox(
+    if (!UI_ACCEPTANCE_MODE) dialog.showErrorBox(
       nativeT("second_1ca61af127cd"),
       nativeT("second_498caef107e8", { detail: short })
     );
@@ -643,7 +656,7 @@ process.on("unhandledRejection", (reason) => {
 
 // ── Deep link protocol ───────────────────────────────────────────────────
 
-if (!IS_I18N_TEST) {
+if (!UI_ACCEPTANCE_MODE && !IS_I18N_TEST) {
 if (process.defaultApp) {
   if (process.argv.length >= 2) {
     app.setAsDefaultProtocolClient(PROTOCOL, process.execPath, [
@@ -828,6 +841,7 @@ function parseLookLink(url: string): { card?: string; owl?: string } | null {
 }
 
 function handleDeepLink(url: string): void {
+  if (UI_ACCEPTANCE_MODE) return;
   if (!url.startsWith(`${PROTOCOL}://`)) return;
 
   if (mainWindow) {
@@ -886,7 +900,7 @@ function readBoolConfig(key: string, defaultValue: boolean): boolean {
 /** The migration installer renames the old install aside. Reaching this means
     the replacement started, so the copy is no longer needed. */
 function cleanupLegacyWindowsInstallBackup(): void {
-  if (IS_I18N_TEST) return;
+  if (UI_ACCEPTANCE_MODE || IS_I18N_TEST) return;
   if (process.platform !== "win32" || !app.isPackaged) return;
 
   const installDir = dirname(process.execPath);
@@ -1011,11 +1025,11 @@ autoUpdater.logger = {
 
 /* Always on. electron-updater reads it only after the `update-available` handlers have run, so it
    can't be flipped per check (GRYT-1218). A check that shouldn't download stops before the updater. */
-autoUpdater.autoDownload = !IS_I18N_TEST;
+autoUpdater.autoDownload = !UI_ACCEPTANCE_MODE && !IS_I18N_TEST;
 
 // On for Windows too now that installer.nsh moves the old install aside: while
 // it was off the PowerShell helper was the only route, and it did not parse.
-autoUpdater.autoInstallOnAppQuit = !IS_I18N_TEST && !updatesComeFromAStore;
+autoUpdater.autoInstallOnAppQuit = !UI_ACCEPTANCE_MODE && !IS_I18N_TEST && !updatesComeFromAStore;
 
 /** Read from the file Settings writes, at every check. Off, a check still says a
     release is out, and nothing downloads until somebody presses the button. */
@@ -1086,7 +1100,7 @@ if (!hardwareAcceleration) {
 }
 
 /* Off on macOS until asked for (GRYT-1659): the Windows installer turns it on, and nothing on a Mac ever did. */
-const canOpenAtLogin = !IS_I18N_TEST && (process.platform === "win32" || (process.platform === "darwin" && !process.mas));
+const canOpenAtLogin = !UI_ACCEPTANCE_MODE && !IS_I18N_TEST && (process.platform === "win32" || (process.platform === "darwin" && !process.mas));
 let startWithWindows = canOpenAtLogin ? readBoolConfig("startWithWindows", process.platform === "win32") : false;
 
 let startMinimizedOnLogin = readBoolConfig("startMinimizedOnLogin", false);
@@ -1110,6 +1124,7 @@ let installerWaitsForWindow =
 /* No setAlwaysOnTop: it cleared the splash window, which is gone, and it is
    the part that lands on top of a fullscreen game (GRYT-1105). */
 function showMain(): void {
+  if (UI_ACCEPTANCE_MODE) return;
   if (!mainWindow) return;
 
   mainWindow.show();
@@ -1288,7 +1303,7 @@ type FeedPinResult =
   | ReleaseLookupFailed;
 
 async function pinFeedToNewestCompleteRelease(): Promise<FeedPinResult> {
-  if (IS_I18N_TEST) return { kind: "nothing-to-install" };
+  if (UI_ACCEPTANCE_MODE || IS_I18N_TEST) return { kind: "nothing-to-install" };
   const choice = await findFeedRelease<GhRelease>(
     () =>
       requestWithTimeout(
@@ -1574,6 +1589,7 @@ function checkForUpdatesInBackground(
   reason: string,
   force = false
 ): void {
+  if (UI_ACCEPTANCE_MODE) return;
   if (IS_I18N_TEST) {
     sendToMain("error", { message: "本地汉化测试包禁用自动更新。" });
     return;
@@ -1695,7 +1711,7 @@ function downloadRelease(
 /** Called once from `initBackgroundUpdater`, the one place both non-dev launch
     paths pass through and dev passes through neither. */
 function startPeriodicUpdateChecks(launchAlreadyChecked: boolean): void {
-  if (updateCheckTimer) return;
+  if (UI_ACCEPTANCE_MODE || updateCheckTimer) return;
 
   /* Only when launch really did check: seeding otherwise makes the floor swallow
      the launch check that replaces it, leaving the first look an hour away. */
@@ -1727,7 +1743,7 @@ function restoreRolloutCheck(): void {
 }
 
 function initBackgroundUpdater(launchAlreadyChecked: boolean) {
-  if (IS_I18N_TEST) return;
+  if (UI_ACCEPTANCE_MODE || IS_I18N_TEST) return;
   autoUpdater.on(
     "checking-for-update",
     () => sendToMain("checking")
@@ -1853,7 +1869,7 @@ let quitHasItsOwnPlan = false;
 /** Gryt crashes on its way out on Windows, before electron-updater's "quit" handler, so an install
     on quit never started (GRYT-1496). The installer waits for the process to go. */
 function installOnQuit(): void {
-  if (IS_I18N_TEST) return;
+  if (UI_ACCEPTANCE_MODE || IS_I18N_TEST) return;
   if (!easyTierQuitDrained || quitHasItsOwnPlan || !(autoUpdater instanceof WindowsUpdater) || !updates.ready()) return;
   startupLog(`Update: installing ${updates.ready()} on quit`);
   autoUpdater.install(true, false);
@@ -1862,7 +1878,7 @@ function installOnQuit(): void {
 /** The flag first: `quitAndInstall` skips `before-quit`, so an open window
     cancels the quit and hides, and Squirrel cannot swap the bundle. */
 async function installDownloadedUpdate(): Promise<void> {
-  if (IS_I18N_TEST) return;
+  if (UI_ACCEPTANCE_MODE || IS_I18N_TEST) return;
   easyTierCommunities.shutdownOwned();
   await easyTierProduction.drainOwned().catch(() => {
     console.warn("[Main] Community LAN stop remains unconfirmed; residual review required");
@@ -1878,7 +1894,7 @@ async function installDownloadedUpdate(): Promise<void> {
 /** Every install button: the tray, the toast and Settings. Looks once more first, so
     one press lands on the newest release even when the download is stale (GRYT-1213). */
 function installNewestUpdate(): void {
-  if (IS_I18N_TEST) return;
+  if (UI_ACCEPTANCE_MODE || IS_I18N_TEST) return;
   switch (updates.requestInstall()) {
     case "nothing":
       downloadAnnouncedRelease({ installWhenReady: true });
@@ -1900,7 +1916,7 @@ function installNewestUpdate(): void {
 /** With automatic updates off a check reports and stops, and this is what the
     button reaches. Re-probes, since a toast may be hours old. */
 function downloadAnnouncedRelease({ installWhenReady = false } = {}): void {
-  if (IS_I18N_TEST) return;
+  if (UI_ACCEPTANCE_MODE || IS_I18N_TEST) return;
   const held = updates.held();
 
   if (held && !held.downloaded) {
@@ -2190,6 +2206,7 @@ function createMainWindow(): BrowserWindow {
     minWidth: 300,
     minHeight: 300,
     show: false,
+    skipTaskbar: UI_ACCEPTANCE_MODE !== undefined,
 
     titleBarStyle: "hidden",
 
@@ -2223,20 +2240,21 @@ function createMainWindow(): BrowserWindow {
       contextIsolation: true,
       nodeIntegration: false,
       // The idle default only; a call turns it off. See setRendererThrottling.
-      backgroundThrottling: true,
+      backgroundThrottling: UI_ACCEPTANCE_MODE === undefined,
     },
 
     autoHideMenuBar: true,
     title: IS_LAOKUAI ? "唠蒯云" : "Gryt",
   });
 
+  if (UI_ACCEPTANCE_MODE) attachUIAcceptanceEvidence(UI_ACCEPTANCE_MODE, mainWindow);
   mainWindow.loadURL(
-    localServerUrl ??
+    (UI_ACCEPTANCE_MODE ? UI_ACCEPTANCE_URL : undefined) ?? localServerUrl ??
       process.env.VITE_DEV_SERVER_URL ??
       "about:blank"
   );
 
-  if (!startHiddenOnLaunch) {
+  if (!UI_ACCEPTANCE_MODE && !startHiddenOnLaunch) {
     setTimeout(() => {
       if (
         mainWindow &&
@@ -2261,6 +2279,7 @@ function createMainWindow(): BrowserWindow {
 
   mainWindow.webContents.setWindowOpenHandler(
     ({ url }) => {
+      if (UI_ACCEPTANCE_MODE) return { action: "deny" };
       if (url === "about:blank") {
         return {
           action: "allow",
@@ -2303,7 +2322,7 @@ function createMainWindow(): BrowserWindow {
 
   /* Here rather than at app start, since a match only reaches a renderer. Once,
      or a second window means two pollers asking the same question. */
-  if (!processWatcher && canListProcesses) {
+  if (!UI_ACCEPTANCE_MODE && !processWatcher && canListProcesses) {
     processWatcher = createProcessWatcher({
       onChange: (running) => {
         mainWindow?.webContents.send("processes-changed", running);
@@ -2351,6 +2370,7 @@ function createMainWindow(): BrowserWindow {
         `Render process gone: ${details.reason} (exit code ${details.exitCode})`
       );
 
+      if (UI_ACCEPTANCE_MODE) { app.exit(1); return; }
       if (
         details.reason !== "clean-exit"
       ) {
@@ -2395,6 +2415,7 @@ let uiohookLib:
   | undefined;
 
 function loadUiohook(): UiohookLib | null {
+  if (UI_ACCEPTANCE_MODE) return null;
   if (uiohookLib !== undefined) {
     return uiohookLib;
   }
@@ -2571,6 +2592,7 @@ let regularHotkeys: Partial<Record<HotkeyAction, string>> = {};
 let squadBroker: SquadInputBroker | null = null;
 let squadTypingExcluded = false;
 function configureSquadBroker() {
+  if (UI_ACCEPTANCE_MODE) throw new Error("ui-acceptance-native-disabled");
   if (!squadBroker) squadBroker = new SquadInputBroker(
     app.isPackaged ? join(process.resourcesPath, "squad/squad-scope.exe") : join(app.getAppPath(), "build/squad/squad-scope.exe"),
     state => mainWindow?.webContents.send("squad-state", state),
@@ -2996,6 +3018,7 @@ function refreshTrayMenu(): void {
 /** Thousands of small files: 80 s on a Windows runner, which launch used to spend before
     any window existed (GRYT-1496). Called once the window is up. */
 function prepareRuntimeInBackground(): void {
+  if (UI_ACCEPTANCE_MODE) return;
   prepareEmbeddedServerRuntime(startupLog).then(
     () =>
       // No archive in a slim build, and "ready" would send somebody looking for one.
@@ -3041,6 +3064,7 @@ function sayAnUpdateIsInstalling(done: () => void): void {
 
 /** A launch while an installer replaces Gryt's files says so and leaves (GRYT-1496). */
 function launchedDuringAnUpdate(): boolean {
+  if (UI_ACCEPTANCE_MODE) return false;
   if (IS_I18N_TEST) return false;
   if (process.platform !== "win32" || !app.isPackaged) return false;
 
@@ -3079,7 +3103,7 @@ if (!gotSingleInstanceLock) {
     "second-instance",
     (_event, argv) => {
       // A launch while this one quits to install would show a window that is closing.
-      if (isQuitting) return;
+      if (UI_ACCEPTANCE_MODE || isQuitting) return;
 
       const deepLink = argv.find(
         (arg) =>
@@ -3119,6 +3143,7 @@ if (!gotSingleInstanceLock) {
   app
     .whenReady()
     .then(async () => {
+      if (UI_ACCEPTANCE_MODE) installUIAcceptanceSession(UI_ACCEPTANCE_MODE, join(__dirname, "../dist"));
   powerMonitor.on("suspend", () => squadBroker?.unavailable("system-suspended"));
   powerMonitor.on("resume", () => { if (squadBroker) configureSquadBroker(); });
 
@@ -3127,7 +3152,7 @@ if (!gotSingleInstanceLock) {
 
       // macOS will not prompt for getUserMedia alone, so without this the renderer
       // gets NotAllowedError forever. Safe every launch; a decision sticks.
-      if (process.platform === "darwin") {
+      if (!UI_ACCEPTANCE_MODE && process.platform === "darwin") {
         for (const kind of (IS_LAOKUAI ? ["microphone"] : ["microphone", "camera"]) as ("microphone" | "camera")[]) {
           try {
             const granted = await systemPreferences.askForMediaAccess(kind);
@@ -3138,12 +3163,12 @@ if (!gotSingleInstanceLock) {
         }
       }
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "get-app-version",
         () => app.getVersion()
       );
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "get-slim-variant",
         () => ({
           /** What they have asked for. */
@@ -3157,7 +3182,7 @@ if (!gotSingleInstanceLock) {
 
       /* No relaunch, since channel and version are properties. The check downloads with
          automatic updates off too, because flipping the switch is asking for the other build. */
-      ipcMain.on(
+      applicationIpc.on(
         "set-slim-variant",
         (_event, slim: boolean) => {
           writeConfig({
@@ -3194,12 +3219,12 @@ if (!gotSingleInstanceLock) {
         }
       );
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "get-beta-channel",
         () => isOnBetaChannel()
       );
 
-      ipcMain.on(
+      applicationIpc.on(
         "set-beta-channel",
         (_event, enabled: boolean) => {
           writeConfig({
@@ -3211,7 +3236,7 @@ if (!gotSingleInstanceLock) {
         }
       );
 
-      ipcMain.on(
+      applicationIpc.on(
         "switch-update-channel",
         (_event, enabled: boolean) => {
           writeConfig({
@@ -3225,12 +3250,12 @@ if (!gotSingleInstanceLock) {
         }
       );
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "get-auto-update",
         () => automaticUpdatesOn()
       );
 
-      ipcMain.on(
+      applicationIpc.on(
         "set-auto-update",
         (_event, enabled: boolean) => {
           writeConfig({
@@ -3253,15 +3278,15 @@ if (!gotSingleInstanceLock) {
 
       /* Gated here, not only in the panel, which used to read every running
          process from an effect on mount. GRYT-1063. */
-      ipcMain.handle("processes-list-running", () =>
+      applicationIpc.handle("processes-list-running", () =>
         processScanAllowed() ? listRunningPrograms() : [],
       );
 
-      ipcMain.handle("processes-get-consent", () => readScanConsent());
+      applicationIpc.handle("processes-get-consent", () => readScanConsent());
 
       /* Withdrawing takes the list with it. Emptying the list already stops the
          watcher, so this is the same off switch under one name. */
-      ipcMain.handle("processes-set-consent", (_event, allow: unknown) => {
+      applicationIpc.handle("processes-set-consent", (_event, allow: unknown) => {
         if (allow === true) {
           const at = new Date().toISOString();
           setGlobalValue("processScanConsent", at);
@@ -3274,11 +3299,11 @@ if (!gotSingleInstanceLock) {
         return null;
       });
 
-      ipcMain.handle("processes-get-watched", () =>
+      applicationIpc.handle("processes-get-watched", () =>
         readWatchList(loadGlobalStore()["watchedPrograms"]),
       );
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "processes-set-watched",
         (_event, programs: unknown) => {
           const list = readWatchList(programs);
@@ -3289,9 +3314,9 @@ if (!gotSingleInstanceLock) {
       );
 
       /** What is running right now, out of the list. Never the whole list. */
-      ipcMain.handle("processes-running", () => processWatcher?.current() ?? []);
+      applicationIpc.handle("processes-running", () => processWatcher?.current() ?? []);
 
-      ipcMain.handle("rich-presence-get", () => ({
+      applicationIpc.handle("rich-presence-get", () => ({
         supported: canHostRichPresence,
         consentedAt: readRichPresenceConsent(),
         ...socketStatus(),
@@ -3303,7 +3328,7 @@ if (!gotSingleInstanceLock) {
       }));
 
       /* Off lets go of the socket at once, so Discord can have it back when it next starts. */
-      ipcMain.handle("rich-presence-set-consent", async (_event, allow: unknown) => {
+      applicationIpc.handle("rich-presence-set-consent", async (_event, allow: unknown) => {
         if (allow === true && canHostRichPresence) {
           setGlobalValue("richPresenceConsent", new Date().toISOString());
           startRichPresence();
@@ -3315,23 +3340,23 @@ if (!gotSingleInstanceLock) {
         return readRichPresenceConsent();
       });
 
-      ipcMain.handle("presence-helper-get", () => presenceHelperStatus());
+      applicationIpc.handle("presence-helper-get", () => presenceHelperStatus());
 
       /* The only place the helper gets registered. Install, first launch and updates never do. */
-      ipcMain.handle("presence-helper-set", async (_event, on: unknown) => {
+      applicationIpc.handle("presence-helper-set", async (_event, on: unknown) => {
         if (on === true) await turnHelperOn();
         else await turnHelperOff();
         return presenceHelperStatus();
       });
 
       /* Addons with `media`: what the OS media controls say is playing, or null. */
-      ipcMain.handle("now-playing-get", async () => {
+      applicationIpc.handle("now-playing-get", async () => {
         const running = process.platform === "darwin" ? await listRunningExecutables() : [];
         return readNowPlaying(running).catch(() => null);
       });
 
       /* Addons with `activity`: their card, or null to take it down. */
-      ipcMain.handle("addon-activity-set", (_event, addonId: unknown, card: unknown) => {
+      applicationIpc.handle("addon-activity-set", (_event, addonId: unknown, card: unknown) => {
         if (typeof addonId !== "string" || !addonId) return;
         const next = card === null ? null : readAddonCard(addonId, card);
         if (next) addonCards.set(addonId, next);
@@ -3339,9 +3364,9 @@ if (!gotSingleInstanceLock) {
         pushDetected();
       });
 
-      ipcMain.handle("game-detect-get", () => detectStatus());
+      applicationIpc.handle("game-detect-get", () => detectStatus());
 
-      ipcMain.handle("game-detect-set-enabled", (_event, allow: unknown) => {
+      applicationIpc.handle("game-detect-set-enabled", (_event, allow: unknown) => {
         if (allow === true) {
           setGlobalValue("gameDetection", new Date().toISOString());
           startGameDetection();
@@ -3354,7 +3379,7 @@ if (!gotSingleInstanceLock) {
       });
 
       /* "show", "hide", or null to forget the answer and be asked again. */
-      ipcMain.handle("game-detect-answer", (_event, appId: unknown, answer: unknown) => {
+      applicationIpc.handle("game-detect-answer", (_event, appId: unknown, answer: unknown) => {
         if (typeof appId !== "string" || !/^(\d{1,32}|app:[a-z0-9-]{1,40})$/.test(appId)) return detectStatus();
         const answers = detectAnswers();
         if (answer === "show" || answer === "hide") answers[appId] = answer;
@@ -3368,7 +3393,7 @@ if (!gotSingleInstanceLock) {
       });
 
       /* A name for a game no list knows, or null to forget it. Only on this device. */
-      ipcMain.handle("rich-presence-set-name", (_event, appId: unknown, name: unknown) => {
+      applicationIpc.handle("rich-presence-set-name", (_event, appId: unknown, name: unknown) => {
         if (typeof appId !== "string" || !/^\d{1,32}$/.test(appId)) return;
         const names = readLocalNames();
         const clean = typeof name === "string" ? name.trim().slice(0, 64) : "";
@@ -3377,19 +3402,19 @@ if (!gotSingleInstanceLock) {
         setGlobalValue("richPresenceNames", names);
       });
 
-      ipcMain.handle("rich-presence-set-hidden", (_event, apps: unknown) => {
+      applicationIpc.handle("rich-presence-set-hidden", (_event, apps: unknown) => {
         const list = readHiddenApps(apps);
         setGlobalValue("richPresenceHidden", list);
         presenceBoard?.setHidden(list.map((app) => app.id));
         return list;
       });
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "get-close-to-tray",
         () => closeToTray
       );
 
-      ipcMain.on(
+      applicationIpc.on(
         "set-close-to-tray",
         (_event, enabled: boolean) => {
           closeToTray = enabled;
@@ -3402,7 +3427,7 @@ if (!gotSingleInstanceLock) {
 
       /** The OS draws these, so the stylesheet cannot reach them. Resolved
           colours, since only the renderer reads the variables. Not macOS. */
-      ipcMain.on(
+      applicationIpc.on(
         "set-titlebar-overlay",
         (
           _event,
@@ -3451,7 +3476,7 @@ if (!gotSingleInstanceLock) {
         }
       );
 
-      ipcMain.on(
+      applicationIpc.on(
         "set-signed-in",
         (_event, signedIn: boolean) => {
           isUserSignedIn =
@@ -3459,7 +3484,7 @@ if (!gotSingleInstanceLock) {
         }
       );
 
-      ipcMain.on(
+      applicationIpc.on(
         "set-voice-state",
         (_event, next: VoiceState) => {
           const changed =
@@ -3490,17 +3515,17 @@ if (!gotSingleInstanceLock) {
         }
       );
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "get-start-with-windows-supported",
         () => canOpenAtLogin
       );
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "get-start-with-windows",
         () => startWithWindows
       );
 
-      ipcMain.on(
+      applicationIpc.on(
         "set-start-with-windows",
         (_event, enabled: boolean) => {
           startWithWindows =
@@ -3516,13 +3541,13 @@ if (!gotSingleInstanceLock) {
         }
       );
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "get-start-minimized-on-login",
         () =>
           startMinimizedOnLogin
       );
 
-      ipcMain.on(
+      applicationIpc.on(
         "set-start-minimized-on-login",
         (_event, enabled: boolean) => {
           startMinimizedOnLogin =
@@ -3534,13 +3559,13 @@ if (!gotSingleInstanceLock) {
         }
       );
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "get-hardware-acceleration",
         () =>
           hardwareAcceleration
       );
 
-      ipcMain.on(
+      applicationIpc.on(
         "set-hardware-acceleration",
         (_event, enabled: boolean) => {
           writeConfig({
@@ -3557,13 +3582,13 @@ if (!gotSingleInstanceLock) {
 
       // ── Per-user file store ────────────────────────────────────────
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "user-store:load",
         (_event, userId: string) =>
           loadUser(userId)
       );
 
-      ipcMain.on(
+      applicationIpc.on(
         "user-store:set",
         (
           _event,
@@ -3579,7 +3604,7 @@ if (!gotSingleInstanceLock) {
         }
       );
 
-      ipcMain.on(
+      applicationIpc.on(
         "user-store:save",
         (
           _event,
@@ -3598,7 +3623,7 @@ if (!gotSingleInstanceLock) {
 
       // ── Secrets at rest ────────────────────────────────────────────
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "secret:available",
         () => {
           try {
@@ -3609,7 +3634,7 @@ if (!gotSingleInstanceLock) {
         }
       );
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "secret:seal",
         (_event, plain: string) => {
           return safeStorage
@@ -3618,7 +3643,7 @@ if (!gotSingleInstanceLock) {
         }
       );
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "secret:unseal",
         (_event, sealed: string) => {
           return safeStorage.decryptString(
@@ -3630,12 +3655,12 @@ if (!gotSingleInstanceLock) {
         }
       );
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "global-store:load",
         () => loadGlobalStore()
       );
 
-      ipcMain.on(
+      applicationIpc.on(
         "global-store:set",
         (
           _event,
@@ -3653,7 +3678,7 @@ if (!gotSingleInstanceLock) {
         }
       );
 
-      ipcMain.on(
+      applicationIpc.on(
         "global-store:delete",
         (_event, key: string) => {
           deleteGlobalValue(key);
@@ -3664,7 +3689,7 @@ if (!gotSingleInstanceLock) {
         }
       );
 
-      ipcMain.on(
+      applicationIpc.on(
         "global-store:save",
         (
           _event,
@@ -3681,19 +3706,19 @@ if (!gotSingleInstanceLock) {
 
       // ── Addons ────────────────────────────────────────────────────
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "addons:list",
         () => getAddons()
       );
 
       // On open rather than on a timer: a check that only runs when somebody is
       // looking cannot spend a rate limit in the background.
-      ipcMain.handle(
+      applicationIpc.handle(
         "addons:check-updates",
         () => checkAddonUpdates()
       );
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "addons:open-folder",
         () =>
           shell.openPath(
@@ -3701,7 +3726,7 @@ if (!gotSingleInstanceLock) {
           )
       );
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "addons:resolve-asset",
         (
           _event,
@@ -3808,14 +3833,10 @@ if (!gotSingleInstanceLock) {
           }
         })();
 
-      startHiddenOnLaunch =
-        launchedFromAutoStart &&
-        startMinimizedOnLogin;
+      startHiddenOnLaunch = UI_ACCEPTANCE_MODE !== undefined ||
+        (launchedFromAutoStart && startMinimizedOnLogin);
 
-      if (
-        !process.env
-          .VITE_DEV_SERVER_URL
-      ) {
+      if (!UI_ACCEPTANCE_MODE && !process.env.VITE_DEV_SERVER_URL) {
         try {
           localServerUrl =
             await startLocalServer();
@@ -3851,7 +3872,7 @@ if (!gotSingleInstanceLock) {
 
       // ── Native audio capture IPC ──────────────────────────────────
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "native-audio-capture-available",
         () => {
           if (IS_LAOKUAI) return false;
@@ -3859,7 +3880,7 @@ if (!gotSingleInstanceLock) {
         }
       );
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "start-native-audio-capture",
         (
           _event,
@@ -3877,14 +3898,14 @@ if (!gotSingleInstanceLock) {
         }
       );
 
-      ipcMain.on(
+      applicationIpc.on(
         "stop-native-audio-capture",
         () => {
           stopNativeAudioCapture();
         }
       );
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "per-application-audio-supported",
         () => {
           if (IS_LAOKUAI) return false;
@@ -3893,7 +3914,7 @@ if (!gotSingleInstanceLock) {
       );
 
       // An empty list puts the share back on everything except Gryt.
-      ipcMain.handle(
+      applicationIpc.handle(
         "set-audio-capture-applications",
         (
           _event,
@@ -3911,7 +3932,7 @@ if (!gotSingleInstanceLock) {
         }
       );
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "list-audio-capture-sources",
         () => {
           if (IS_LAOKUAI) return [];
@@ -3919,7 +3940,7 @@ if (!gotSingleInstanceLock) {
         }
       );
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "native-screen-capture:available",
         () => {
           if (IS_LAOKUAI) return false;
@@ -3927,7 +3948,7 @@ if (!gotSingleInstanceLock) {
         }
       );
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "native-screen-capture:start",
         async (
           _event,
@@ -3957,7 +3978,7 @@ if (!gotSingleInstanceLock) {
         }
       );
 
-      ipcMain.on(
+      applicationIpc.on(
         "native-screen-capture:stop",
         () => {
           stopNativeScreenCapture();
@@ -3966,19 +3987,19 @@ if (!gotSingleInstanceLock) {
 
       // ── Embedded server ───────────────────────────────────────────
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "embedded-server:available",
         () =>
           isEmbeddedServerAvailable()
       );
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "embedded-server:info",
         () =>
           getEmbeddedServerInfo()
       );
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "embedded-server:create",
         async (
           _event,
@@ -3999,18 +4020,18 @@ if (!gotSingleInstanceLock) {
         }
       );
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "embedded-server:suggest-port",
         () => suggestServerPort()
       );
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "embedded-server:check-port",
         (_event, port: number) =>
           isPortAvailable(port)
       );
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "embedded-server:start",
         async (
           _event,
@@ -4027,13 +4048,13 @@ if (!gotSingleInstanceLock) {
         }
       );
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "embedded-server:stop",
         (_event, id: string) =>
           stopServer(id)
       );
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "embedded-server:dismiss-error",
         (_event, id: string) =>
           dismissEmbeddedServerError(
@@ -4041,7 +4062,7 @@ if (!gotSingleInstanceLock) {
           )
       );
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "embedded-server:delete",
         async (
           _event,
@@ -4050,12 +4071,12 @@ if (!gotSingleInstanceLock) {
           deleteServer(id)
       );
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "embedded-server:status",
         () => getAllStates()
       );
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "embedded-server:update-advertised-addresses",
         (
           _event,
@@ -4068,7 +4089,7 @@ if (!gotSingleInstanceLock) {
           )
       );
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "embedded-server:update-ports",
         (
           _event,
@@ -4081,7 +4102,7 @@ if (!gotSingleInstanceLock) {
           )
       );
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "embedded-server:logs",
         (_event, id?: string) =>
           getEmbeddedServerLogs(
@@ -4089,7 +4110,7 @@ if (!gotSingleInstanceLock) {
           )
       );
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "embedded-server:clear-logs",
         (_event, id?: string) => {
           clearEmbeddedServerLogs(
@@ -4098,13 +4119,13 @@ if (!gotSingleInstanceLock) {
         }
       );
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "embedded-server:get-auto-start",
         (_event, id: string) =>
           getAutoStart(id)
       );
 
-      ipcMain.on(
+      applicationIpc.on(
         "embedded-server:set-auto-start",
         (
           _event,
@@ -4123,15 +4144,14 @@ if (!gotSingleInstanceLock) {
         "Main window created"
       );
 
-      createTray();
+      if (!UI_ACCEPTANCE_MODE) createTray();
       startupLog(
         "Tray created"
       );
 
-      if (
-        process.env
-          .VITE_DEV_SERVER_URL
-      ) {
+      if (UI_ACCEPTANCE_MODE) {
+        startupLog("UI acceptance: hidden, offline, no host listeners or native activation");
+      } else if (process.env.VITE_DEV_SERVER_URL) {
         startupLog(
           "Dev mode — skipping the update check"
         );
@@ -4201,7 +4221,7 @@ if (!gotSingleInstanceLock) {
 
       // ── Embedded server auto-start ─────────────────────────────────
 
-      if (mainWindow) {
+      if (mainWindow && !UI_ACCEPTANCE_MODE) {
         autoStartIfNeeded(
           mainWindow
         ).catch((err) => {
@@ -4387,6 +4407,7 @@ if (!gotSingleInstanceLock) {
           _request,
           callback
         ) => {
+          if (UI_ACCEPTANCE_MODE) { callback({}); return; }
           desktopCapturer
             .getSources({
               types: ["screen"],
@@ -4417,7 +4438,7 @@ if (!gotSingleInstanceLock) {
         }
       );
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "get-screen-capture-access",
         () => {
           if (IS_LAOKUAI) return "denied";
@@ -4434,7 +4455,7 @@ if (!gotSingleInstanceLock) {
         }
       );
 
-      ipcMain.handle(
+      applicationIpc.handle(
         "get-desktop-sources",
         async () => {
           if (IS_LAOKUAI) return [];
@@ -4518,9 +4539,10 @@ if (!gotSingleInstanceLock) {
 
       // ── IPC handlers ───────────────────────────────────────────────
 
-      ipcMain.on(
+      applicationIpc.on(
         "auth:open-external",
         (_event, url: string) => {
+          if (UI_ACCEPTANCE_MODE) return;
           if (IS_LAOKUAI && mainWindow) {
             try {
               openLaokuaiLogin(mainWindow, url);
@@ -4553,7 +4575,7 @@ if (!gotSingleInstanceLock) {
 
       // ── LAN server discovery ──────────────────────────────────────
 
-      if (mainWindow) {
+      if (mainWindow && !UI_ACCEPTANCE_MODE) {
         const stopLanDiscovery =
           startLanDiscovery(
             mainWindow,
@@ -4565,20 +4587,20 @@ if (!gotSingleInstanceLock) {
           stopLanDiscovery
         );
 
-        ipcMain.handle(
+        applicationIpc.handle(
           "lan:get-servers",
           () =>
             getDiscoveredLanServers()
         );
 
-        ipcMain.on(
+        applicationIpc.on(
           "lan:rescan",
           () =>
             rescanLanServers()
         );
       }
 
-      ipcMain.on(
+      applicationIpc.on(
         "check-for-updates",
         () => {
           if (updatesComeFromTheAppStore) {
@@ -4619,14 +4641,14 @@ if (!gotSingleInstanceLock) {
         }
       );
 
-      ipcMain.on(
+      applicationIpc.on(
         "download-update",
         () => downloadAnnouncedRelease()
       );
 
       /* The toast is React state and the announcement a one-shot message, so a
          reload cleared it for good. The renderer asks on mount instead. */
-      ipcMain.on(
+      applicationIpc.on(
         "replay-update-status",
         () => {
           const held = updates.held();
@@ -4644,29 +4666,31 @@ if (!gotSingleInstanceLock) {
 
       /* Asked for before there is anything to install, this starts the download and
          installs once it lands, rather than restart into nothing. */
-      ipcMain.on(
+      applicationIpc.on(
         "restart-for-update",
         () => installNewestUpdate()
       );
 
-      registerEasyTierCommunityIpc(ipcMain, easyTierCommunities, event =>
+      registerEasyTierCommunityIpc(applicationIpc, easyTierCommunities, event =>
           !!mainWindow && !mainWindow.isDestroyed() && event.senderFrame === mainWindow.webContents.mainFrame,
-          easyTierProduction.prepareRuntime);
-      easyTierPoll = setInterval(() => easyTierCommunities.refreshAll(), 2000);
-      easyTierPoll.unref();
+          UI_ACCEPTANCE_MODE ? async () => ({ ready: false }) : easyTierProduction.prepareRuntime);
+      if (!UI_ACCEPTANCE_MODE) {
+        easyTierPoll = setInterval(() => easyTierCommunities.refreshAll(), 2000);
+        easyTierPoll.unref();
+      }
 
-      ipcMain.handle("squad-configure", (_event, value: SquadConfig) => {
+      applicationIpc.handle("squad-configure", (_event, value: SquadConfig) => {
         if (!value || typeof value.enabled !== "boolean" || typeof value.processDetection !== "boolean"
           || typeof value.processTarget !== "string" || !Array.isArray(value.keys)
           || value.keys.some(k => typeof k !== "string") || validateSquadConfig(value)) throw new Error("invalid-squad-config");
         squadConfig = { ...value, keys: [...value.keys] };
         return configureSquadBroker();
       });
-      ipcMain.on("squad-input-excluded", (_event, excluded: boolean) => {
+      applicationIpc.on("squad-input-excluded", (_event, excluded: boolean) => {
         squadTypingExcluded = excluded === true;
         squadBroker?.exclude(squadTypingExcluded && !!mainWindow?.isFocused());
       });
-      ipcMain.handle("squad-validate-process", (_event, target: string) => {
+      applicationIpc.handle("squad-validate-process", (_event, target: string) => {
         if (typeof target !== "string" || !squadTargetValid(target)) return { valid: false, reason: "invalid-process" };
         if (target.includes("\\") && (!existsSync(target) || !statSync(target).isFile())) return { valid: false, reason: "process-not-found" };
         return { valid: true };
@@ -4674,7 +4698,7 @@ if (!gotSingleInstanceLock) {
 
       // uiohook is missing on some Linux setups and needs Accessibility on macOS,
       // so the renderer falls back to its own window listeners.
-      ipcMain.handle(
+      applicationIpc.handle(
         "hotkeys-set",
         (
           _event,
@@ -4706,7 +4730,7 @@ if (!gotSingleInstanceLock) {
 
       /* `silent` always, since the app plays its own sound from the same event.
          The icon is explicit because an unregistered AppImage has no entry. */
-      ipcMain.on(
+      applicationIpc.on(
         "show-notification",
         (
           _event,
@@ -4716,6 +4740,7 @@ if (!gotSingleInstanceLock) {
             destination?: { host: string; channelId: string };
           }
         ) => {
+          if (UI_ACCEPTANCE_MODE) return;
           if (!Notification.isSupported()) return;
           if (!payload?.title) return;
 
@@ -4742,7 +4767,7 @@ if (!gotSingleInstanceLock) {
         }
       );
 
-      ipcMain.on(
+      applicationIpc.on(
         "set-badge-count",
         (
           _event,
@@ -4758,7 +4783,7 @@ if (!gotSingleInstanceLock) {
         }
       );
 
-      ipcMain.on(
+      applicationIpc.on(
         "toggle-always-on-top",
         (
           event,
@@ -4797,6 +4822,7 @@ if (!gotSingleInstanceLock) {
       app.on(
         "activate",
         () => {
+          if (UI_ACCEPTANCE_MODE) return;
           if (mainWindow) {
             if (
               !mainWindow.isVisible()
@@ -4829,7 +4855,7 @@ if (!gotSingleInstanceLock) {
         }`
       );
 
-      dialog.showErrorBox(
+      if (!UI_ACCEPTANCE_MODE) dialog.showErrorBox(
         nativeT("second_ca7801c6cea0"),
         nativeT("second_2881d7808e79", { detail: msg })
       );
