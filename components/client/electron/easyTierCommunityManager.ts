@@ -30,7 +30,8 @@ interface Community {
   refreshing: boolean;
 }
 export function validEasyTierId(value: unknown): value is string {
-  return typeof value === "string" && value.length > 0 && value.length <= 256 && !/[\x00-\x1f\x7f]/.test(value);
+  return typeof value === "string" && value.length > 0 && value.length <= 256
+    && [...value].every(character => { const code = character.charCodeAt(0); return code > 0x1f && code !== 0x7f; });
 }
 export function validEasyTierLease(value: unknown): value is EasyTierCommunityLease {
   if (!value || typeof value !== "object") return false;

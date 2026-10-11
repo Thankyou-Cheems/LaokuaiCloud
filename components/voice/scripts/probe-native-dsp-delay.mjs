@@ -3,7 +3,8 @@ import {writeFileSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
 import os from 'node:os';
 try{os.setPriority(0,os.constants.priority.PRIORITY_BELOW_NORMAL);}catch{}
-const {chromium}=await import(pathToFileURL('C:/Users/cheb2/Documents/Codex/2026-10-10/task-2/gryt-client-work/node_modules/playwright/index.mjs').href);
+const playwrightModule=process.env.PLAYWRIGHT_MODULE;
+const {chromium}=await import(playwrightModule ? pathToFileURL(playwrightModule).href : 'playwright');
 const server=createServer((q,s)=>s.end('<title>Muted offline DSP delay evidence</title>'));
 await new Promise(r=>server.listen(0,'127.0.0.1',r));let browser;
 try{
