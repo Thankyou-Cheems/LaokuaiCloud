@@ -21,6 +21,12 @@ export interface PriorStorage {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
 }
+export interface PriorPersistenceOptions {
+  /** Zero preserves immediate writes; product use coalesces within a fixed bounded window. */
+  delayMs?: number;
+  /** Persistence is optional; never let an observer failure interrupt audio. */
+  onFailure?: () => void;
+}
 export interface PriorLease {
   readonly key: string;
   readonly epoch: number;
@@ -53,7 +59,12 @@ export class ReceivePriorCache {
   private account: string | null = null;
   private epoch = 0;
   private storageHealthy = true;
-  constructor(private storage: PriorStorage | undefined, private now: () => number = Date.now) {
+  private dirty = false;
+  private pendingWrite?: ReturnType<typeof setTimeout>;
+  private readonly delayMs: number;
+  constructor(private storage: PriorStorage | undefined, private now: () => number = Date.now,
+    private options: PriorPersistenceOptions = {}) {
+    this.delayMs = Number.isFinite(options.delayMs) ? Math.max(0, Math.min(1000, options.delayMs!)) : 0;
     let raw: string | null | undefined;
     try { raw = storage?.getItem(STORAGE_KEY); }
     catch { this.storageHealthy = false; return; }
@@ -74,6 +85,7 @@ export class ReceivePriorCache {
   get available(): boolean { return this.storageHealthy && !!this.storage; }
   setAccount(accountId: string | null): void {
     if (this.account === accountId) return;
+    this.flush();
     this.account = accountId; this.epoch++;
   }
   begin(scope: ReceivePriorScope): PriorLease | undefined {
@@ -94,28 +106,62 @@ export class ReceivePriorCache {
     if (!clean) return false;
     // The bridge supplies an SDK export only after actual accepted speech advances.
     this.rows.set(keyOf(scope), { scope: { ...scope }, prior: clean, lastAccessUnixMs: this.now() });
-    this.prune(); return this.persist();
+    if (this.rows.size > MAX_ENTRIES) this.prune(); return this.queuePersist();
   }
   clear(scope: ReceivePriorScope): void {
     if (scope.accountId !== this.account) return;
-    this.epoch++; this.rows.delete(keyOf(scope)); this.persist();
+    this.epoch++; this.rows.delete(keyOf(scope)); this.dirty = true; this.flush();
   }
   clearAccount(): void {
     this.epoch++;
     for (const [key, row] of this.rows) if (row.scope.accountId === this.account) this.rows.delete(key);
-    this.persist();
+    this.dirty = true; this.flush();
   }
   count(): number {
     this.prune();
     return [...this.rows.values()].filter(row => row.scope.accountId === this.account).length;
   }
+  /** Flush pending current rows, including on leave/hidden/pagehide. No-op when clean. */
+  flush(): boolean {
+    if (this.pendingWrite !== undefined) clearTimeout(this.pendingWrite);
+    this.pendingWrite = undefined;
+    if (!this.dirty) return this.available;
+    this.dirty = false;
+    if (!this.available) return false;
+    this.prune();
+    return this.persist();
+  }
+  private queuePersist(): boolean {
+    this.dirty = true;
+    if (this.delayMs === 0) return this.flush();
+    // Schedule once from the first dirty row. Later speech must not postpone it.
+    if (this.pendingWrite === undefined) {
+      try { this.pendingWrite = setTimeout(() => { this.pendingWrite = undefined; this.flush(); }, this.delayMs); }
+      catch { return this.flush(); }
+    }
+    // Accepted in memory; the bounded write window is deliberately not a durability receipt.
+    return true;
+  }
   private prune(): void {
     for (const [key, row] of this.rows) if (!decodeReceivePrior(row.prior, this.now())) this.rows.delete(key);
-    const ordered = [...this.rows].sort((a, b) => a[1].lastAccessUnixMs - b[1].lastAccessUnixMs);
-    while (this.rows.size > MAX_ENTRIES) { const oldest = ordered.shift(); if (oldest) this.rows.delete(oldest[0]); }
+    this.evictOverflow();
+  }
+  private evictOverflow(): void {
+    while (this.rows.size > MAX_ENTRIES) {
+      let oldestKey: string | undefined; let oldestTime = Infinity;
+      for (const [key, row] of this.rows) if (oldestKey === undefined || row.lastAccessUnixMs < oldestTime) {
+        oldestKey = key; oldestTime = row.lastAccessUnixMs;
+      }
+      if (oldestKey === undefined) break;
+      this.rows.delete(oldestKey);
+    }
   }
   private persist(): boolean {
     try { this.storage?.setItem(STORAGE_KEY, JSON.stringify({ v: 1, rows: [...this.rows.values()] })); return this.available; }
-    catch { this.storageHealthy = false; this.rows.clear(); this.epoch++; return false; }
+    catch {
+      this.storageHealthy = false; this.rows.clear(); this.epoch++;
+      try { this.options.onFailure?.(); } catch { /* Cache observers cannot interrupt audio. */ }
+      return false;
+    }
   }
 }

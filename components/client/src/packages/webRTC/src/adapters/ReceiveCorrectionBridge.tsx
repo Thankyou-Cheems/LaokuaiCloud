@@ -6,6 +6,7 @@ import { useSockets } from "@/socket";
 
 import { ReceiveCorrectionRegistry } from "../../../../lib/receiveCorrectionRegistry";
 import { ReceivePriorCache, type ReceivePriorScope } from "../../../../lib/receivePriorCache";
+import { subscribeReceivePriorLifecycle } from "../../../../lib/receivePriorLifecycle";
 import { ReceivePriorSession } from "../../../../lib/receivePriorSession";
 import { ReceiveCorrectionProvider } from "../components/ReceiveCorrectionAdapter";
 import { ReceivePriorProvider } from "../components/ReceivePriorAdapter";
@@ -17,8 +18,10 @@ import { useReceiveAudioRoles } from "./useReceiveAudioRoles";
 export function ReceiveCorrectionBridge({ children, config, hybrid }: { children?: ReactNode; config: VoiceConfig; hybrid?: HybridVoicePolicy }) {
   const account=useUserId();const {serverDetailsList}=useSockets();const {currentServerConnected:host}=useSFU();
   const context=useRef({account,serverDetailsList});context.current={account,serverDetailsList};
-  const [cache]=useState(()=>{try{return new ReceivePriorCache(localStorage);}catch{return new ReceivePriorCache(undefined);}});
   const [,refresh]=useState(0);
+  const [cache]=useState(()=>{try{return new ReceivePriorCache(localStorage,Date.now,
+    {delayMs:1000,onFailure:()=>refresh(value=>value+1)});}catch{return new ReceivePriorCache(undefined);}});
+  useLayoutEffect(()=>subscribeReceivePriorLifecycle(cache),[cache]);
   const [session]=useState(()=>new ReceivePriorSession<ReceiveAutoLevelSnapshot>(cache,exportReceiveLevelPrior));
   const scopeFor=(serverHost:string,member:string):ReceivePriorScope|undefined=>{
     const current=context.current;const serverInstanceId=current.serverDetailsList[serverHost]?.server_info?.server_id;
