@@ -1,4 +1,4 @@
-import type { CommunityBindingProofV1 } from '../../server/src/easytier/communityGrantApi';
+import type { CommunityBindingProofV1 } from './communityEtHttpContract';
 import { exact, publicKeyFingerprint, sameScope, scope, type PrivateCommunityGrantV1 } from './communityEtGrant';
 import type { VerifiedCommunitySession } from './communityEtGrantTransport';
 import type { OwnedCredentialObservation } from './communityEtCredentialObservation';

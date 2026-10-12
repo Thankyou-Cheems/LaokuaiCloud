@@ -7,6 +7,7 @@ import { CommunityEtOwnedFiles, readCommunityGrantTarget } from './communityEtTr
 import { EasyTierOperationError, EasyTierSessionRetiredError, type EasyTierRuntime, type EasyTierSession } from './easyTierCommunityManager';
 import type { EasyTierExistingConfiguration } from './easyTierExistingConfiguration';
 import { projectCommunityEtBinding } from './communityEtBindingProjection';
+import type {CommunityAcquireRequestV1, CommunityBindingRequestV1} from './communityEtHttpContract';
 
 interface AuthInput { serverId: string; host: string; accessToken: string | null }
 interface Context {
@@ -93,7 +94,7 @@ export class CommunityEtGrantRuntime {
   private sameIntent(a: TrustedCommunityIntent, b: TrustedCommunityIntent): boolean {
     return ['networkName', 'networkRevision', 'virtualIp', 'bootstrapProfileId'].every(k => a[k as keyof TrustedCommunityIntent] === b[k as keyof TrustedCommunityIntent]);
   }
-  private body(c: Context, requestId: string) {
+  private body(c: Context, requestId: string): CommunityAcquireRequestV1 {
     return {v: 1, communityId: c.verified.intent.communityId, deviceId: c.verified.intent.deviceId,
       nativeInstanceId: c.verified.intent.nativeInstanceId, requestId};
   }
@@ -217,9 +218,10 @@ export class CommunityEtGrantRuntime {
           const started = Math.floor(this.ports.monoMs());
           let proof: unknown;
           try {
-            proof = await this.ports.transport.post(c.target, 'binding', c.bearer, {v: 1,
+            const body: CommunityBindingRequestV1 = {v: 1,
               communityId: grant.scope.communityId, deviceId: grant.scope.deviceId,
-              nativeInstanceId: grant.scope.nativeInstanceId, grantId: grant.grantId}, combined(readSignal, c.cancel.signal));
+              nativeInstanceId: grant.scope.nativeInstanceId, grantId: grant.grantId};
+            proof = await this.ports.transport.post(c.target, 'binding', c.bearer, body, combined(readSignal, c.cancel.signal));
           } catch (error) {
             if (error instanceof CommunityEtTransportError && error.code === 'auth-unavailable') return this.retired(c, 'configuration-required');
             throw error;

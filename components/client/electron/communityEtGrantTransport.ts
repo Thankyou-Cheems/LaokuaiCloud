@@ -2,7 +2,7 @@ import { request } from 'node:https';
 
 import { exact, id, intent, type TrustedCommunityIntent } from './communityEtGrant';
 import type { TrustedCommunityBootstrap } from './communityEtConfig';
-import type { CommunitySessionResponseV1 } from '../../server/src/easytier/communityGrantApi';
+import type { CommunitySessionResponseV1 } from './communityEtHttpContract';
 
 export interface TrustedCommunityTarget {
   communityId: string; serverHost: string; origin: string; serverInstanceId: string;
