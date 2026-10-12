@@ -1,0 +1,30 @@
+[Unit]
+Description=Laokuai approved first-device EasyTier management channel
+After=network.target docker.service
+
+[Service]
+Type=simple
+User=1001
+Group=1001
+ExecStart=/usr/bin/python3 -I /usr/local/libexec/laokuai-community-et-management/proxy.py
+Restart=no
+UMask=0077
+RuntimeDirectory=laokuai-community-et
+RuntimeDirectoryMode=0700
+RuntimeDirectoryPreserve=yes
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+RestrictAddressFamilies=AF_UNIX AF_INET
+IPAddressDeny=any
+IPAddressAllow=127.0.0.1
+CapabilityBoundingSet=
+ReadWritePaths=/run/laokuai-community-et
+TasksMax=16
+MemoryMax=64M
+StandardOutput=null
+StandardError=null
+
+[Install]
+WantedBy=multi-user.target
