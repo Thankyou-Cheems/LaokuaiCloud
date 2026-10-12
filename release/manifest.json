@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "id": "laokuai-cloud-receive-path-et-observation-frozen-20261011",
-  "stage": "voice-rate-limit-preview-source-checked-real-drop-cause-pending",
+  "stage": "voice-policy-feedback-source-fixed-live-stability-pending",
   "ready": false,
   "repository": {
     "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud",
@@ -9,15 +9,15 @@
     "visibility": "private",
     "branch": "integration/lifecycle3-20261012",
     "soleGitWriter": "task-6",
-    "codeCommit": "701200d01e8a898f857ba222ef34a3b1af532f01",
-    "codeTree": "2ff776d9cc206180dac5fafcb25ba758225b6a0a",
+    "codeCommit": "a3dda7367927833dd9258dc05c8f3ef036d0666b",
+    "codeTree": "57f59cb28efda06c86ada62879dcba7e48fcf9c8",
     "newRepositoryReason": "Authenticated private-repo metadata and explicitly scoped old local core/game remotes revealed no matching existing private integration repository",
     "historyPolicy": "Original client history preserved; no force push/reset/rewrite; other components imported as licensed source snapshots"
   },
   "components": {
     "client": {
       "path": "components/client",
-      "tree": "a65e2a1ed2b424bd259e0e525a8b0b390f7ec442",
+      "tree": "59f4395ea8dcc8d18a9e050b7af4f5488f4033d3",
       "upstream": "Gryt-chat/client",
       "publicFork": "Thankyou-Cheems/gryt-client-i18n",
       "historyImportedFrom": "06ac43f51dbda3b9444c73270a126e10489110e9",
@@ -32,7 +32,7 @@
         "tree": "8123a71d99a101a3dce02027d476c7e8879ff48d",
         "sourceCommit": "a88f7d75066cf03d65d618bb49cabbff6e8d7884"
       },
-      "sourceCommit": "701200d01e8a898f857ba222ef34a3b1af532f01",
+      "sourceCommit": "a3dda7367927833dd9258dc05c8f3ef036d0666b",
       "communityContractWired": true,
       "preservedPreCommunityWiring": {
         "tree": "fbcc9d4e2db64348fc17704d486a421233f7513f",
@@ -2859,6 +2859,18 @@
     "actualRateLimitObserved": true,
     "realDepartureCauseProven": false,
     "realRecoveryPassed": false,
+    "ready": false,
+    "finalPackage": null
+  },
+  "voicePolicyFeedback": {
+    "sourceCommit": "a3dda7367927833dd9258dc05c8f3ef036d0666b",
+    "receipt": "release/acceptance/voice-policy-stability-a3dda736.json",
+    "receiptSha256": "9ef204625517e44468d0f003272f67439afd8d2ad9638fd3b35052ad61c07410",
+    "observedPolicyReconnectLoop": true,
+    "oldSourceFeedbackReproduced": true,
+    "sourceFixChecked": true,
+    "liveStabilityPassed": false,
+    "tunEnabled": false,
     "ready": false,
     "finalPackage": null
   }
