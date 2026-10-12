@@ -5,6 +5,8 @@ const m=JSON.parse(fs.readFileSync(path.join(__dirname,'manifest.json'),'utf8'))
 const assert=(ok,message)=>{if(!ok)throw Error(message);};
 const git=args=>{const r=spawnSync('git',args,{cwd:root,windowsHide:true,encoding:'utf8'});if(r.status)throw Error(r.stderr);return r.stdout.trim();};
 const sha=file=>crypto.createHash('sha256').update(fs.readFileSync(path.join(root,file))).digest('hex');
+const evidence=require('./release-evidence-scope.cjs');
+const readFrozen=(commit,file)=>{const r=spawnSync('git',['show',commit+':'+file],{cwd:root,windowsHide:true,maxBuffer:16*1024*1024});assert(r.status===0,'Frozen source unavailable: '+file);return r.stdout;};
 git(['merge-base','--is-ancestor',m.repository.codeCommit,'HEAD']);
 assert(git(['rev-parse',`${m.repository.codeCommit}^{tree}`])===m.repository.codeTree,'Recorded source tree mismatch');
 for(const [name,component]of Object.entries(m.components))assert(git(['rev-parse',`HEAD:${component.path}`])===component.tree,`Component changed: ${name}`);
@@ -16,7 +18,13 @@ const client=JSON.parse(fs.readFileSync(path.join(root,'components/client/packag
 assert(client.devDependencies['@gryt/voice']==='file:'+packageInfo.path.replace('components/client/',''),'Client SDK pin mismatch');
 const tar=zlib.gunzipSync(fs.readFileSync(path.join(root,packageInfo.path)));let packed,files=0;
 for(let pos=0;pos+512<=tar.length;){const header=tar.subarray(pos,pos+512);if(header.every(x=>x===0))break;const field=(start,length)=>header.toString('utf8',start,start+length).split('\0')[0];const size=parseInt(field(124,12).trim()||'0',8);assert(Number.isSafeInteger(size)&&size>=0&&pos+512+size<=tar.length,'Invalid SDK tar');const name=field(0,100),type=field(156,1);if(type==='0'||type===''){files++;if(name==='package/package.json')packed=JSON.parse(tar.toString('utf8',pos+512,pos+512+size));}pos+=512+Math.ceil(size/512)*512;}
-assert(packed?.version===packageInfo.version&&Number.isSafeInteger(packageInfo.installedPackedFiles)&&files===packageInfo.installedPackedFiles,'SDK packed version/inventory mismatch');
+evidence.verifyPackedInventory(packed,packageInfo,files);
+let sdkScope={current:m.components.voice,currentBoundary:m.repository.codeCommit};
+if(m.validation.lifecycle3LocalIntegration){
+  const entry=m.validation.lifecycle3LocalIntegration;
+  assert(sha(entry.receipt)===entry.receiptSha256,'Lifecycle integration receipt changed');
+  sdkScope=evidence.verifyLifecycleScope(m,JSON.parse(fs.readFileSync(path.join(root,entry.receipt))),{git,sha,readFrozen});
+}
 assert(m.easytier.tag==='v2.7.0'&&m.easytier.prerelease&&m.easytier.tagCommit==='8b7f1f0196edb5b580829ed5f135050fb5853478','ET source target mismatch');
 assert(m.validation.clientPure.checks.every(x=>x.exit===0),'Recorded checks not green');
 if(m.validation.nativePacketDependency){
@@ -53,7 +61,7 @@ for(const key of ['uiFinalAudioIcons','providerInstanceBindingFix'])if(m.validat
   const receipt=JSON.parse(fs.readFileSync(path.join(root,candidate.receipt),'utf8'));
   git(['merge-base','--is-ancestor',receipt.sourceCommit,'HEAD']);
   if(receipt.files)for(const file of receipt.files)assert(git(['rev-parse',`${receipt.sourceCommit}:${file.path}`])===file.gitBlob,'Final UI frozen blob changed');
-  if(key==='providerInstanceBindingFix')assert(receipt.sdkSourceCommit===m.components.voice.sourceCommit&&receipt.sdkPackageSha256===packageInfo.sha256&&receipt.physicalDirectVerified===false,'Provider identity receipt scope mismatch');
+  if(key==='providerInstanceBindingFix'){evidence.bindSdkReceipt(receipt.sdkSourceCommit,receipt.sdkPackageSha256,sdkScope);assert(receipt.physicalDirectVerified===false,'Provider identity receipt scope mismatch');}
 }
 if(m.validation.sfuMicrophone48Candidate){
   const candidate=m.validation.sfuMicrophone48Candidate;
@@ -65,7 +73,7 @@ if(m.validation.receivePathIntegration){
   const candidate=m.validation.receivePathIntegration;
   assert(sha(candidate.receipt)===candidate.receiptSha256,'Receive-path integration receipt changed');
   const receipt=JSON.parse(fs.readFileSync(path.join(root,candidate.receipt),'utf8'));
-  assert(receipt.sdk.sourceCommit===m.components.voice.sourceCommit&&receipt.sdk.packageSha256===packageInfo.sha256,'Receive-path SDK source/package mismatch');
+  evidence.bindSdkReceipt(receipt.sdk.sourceCommit,receipt.sdk.packageSha256,sdkScope);
   assert(receipt.clockDomain==='performance.now'&&receipt.physicalDirectVerified===false&&receipt.sentToRemote===null,'Receive-path evidence boundary mismatch');
 }
 if(m.validation.etLocalObservation){
@@ -85,9 +93,11 @@ if(m.validation.providerActualInstanceBinding){
   const actual=m.validation.providerActualInstanceBinding;
   assert(sha(actual.receipt)===actual.receiptSha256,'Actual Provider receipt changed');
   const receipt=JSON.parse(fs.readFileSync(path.join(root,actual.receipt),'utf8'));
-  assert(receipt.testedFreeze===actual.testedFreeze&&receipt.sdkSourceCommit===m.components.voice.sourceCommit&&receipt.sdkPackageSha256===packageInfo.sha256,'Actual Provider source/package mismatch');
+  assert(receipt.testedFreeze===actual.testedFreeze,'Actual Provider tested freeze mismatch');
+  const binding=evidence.bindSdkReceipt(receipt.sdkSourceCommit,receipt.sdkPackageSha256,sdkScope);
+  if(binding.scope==='historical')assert(actual.currentBuildFreezeMediaSourceIdentical===false&&actual.historicalMediaIdenticalThroughFreeze===binding.sourceBoundary,'Historical Provider acceptance promoted to current source');
   assert(receipt.testedProductionProviderSeamAccepted===true&&receipt.currentFreezeMediaSourceByteIdentical===true&&receipt.completeAppE2E===false&&receipt.physicalDirectVerified===false,'Provider acceptance scope changed');
-  assert(git(['diff','--name-only',receipt.testedFreeze,m.repository.codeCommit,'--','components/client/src','components/voice','components/server','components/sfu'])==='','Tested media source drifted');
+  assert(git(['diff','--name-only',receipt.testedFreeze,binding.sourceBoundary,'--','components/client/src','components/voice','components/server','components/sfu'])==='','Tested media source drifted within its pinned scope');
 }
 if(m.validation.nativeActualPreflight){
   const actual=m.validation.nativeActualPreflight;
@@ -249,8 +259,6 @@ if(m.components.landing){
   const receipt=JSON.parse(fs.readFileSync(path.join(root,landing.path,'deployment-record.json'),'utf8'));
   assert(receipt.html.sha256===landing.htmlSha256&&receipt.task6.redeployed===false&&receipt.task6.liveNetworkProbes===0,'Landing receipt/source or task6 boundary mismatch');
 }
-console.log(JSON.stringify({id:m.id,codeCommit:m.repository.codeCommit,sourceConsistent:true,components:Object.keys(m.components),sdkVersion:packed.version,ready:m.ready,easytier:m.easytier.implementationStatus,actualNetworkVerified:m.easytier.actualNetworkVerified}));
-if(process.argv.includes('--require-ready')&&!m.ready){console.error('Release blocked: '+m.pending.join('; '));process.exitCode=2;}
 
 if(m.validation.etExpectedUdpScope){
  const e=m.validation.etExpectedUdpScope,r=JSON.parse(fs.readFileSync(path.join(root,e.receipt)));assert(sha(e.receipt)===e.receiptSha256,'UDP scope receipt changed');
@@ -286,11 +294,38 @@ if(m.validation.internalFullApp842Actual){
  assert(r.task6ReadOnlyVerification.files===298&&r.task6ReadOnlyVerification.allHashesMatched&&!r.task6ReadOnlyVerification.productExecuted&&!r.task6ReadOnlyVerification.osQueriesExecuted&&r.payloadExactFiles===141,'Actual candidate verification scope changed');
  assert(r.actualBootstrap.run1.startsWith('observations-only')&&r.actualBootstrap.run2==='PASS-hidden-offline-bootstrap'&&r.actualBootstrap.run2Exit===0&&r.actualBootstrap.run2Samples===9&&r.actualBootstrap.run2SampledOwnedEndpoints===0&&!r.actualBootstrap.run2Foreground&&!r.actualBootstrap.nativeCoreCLIOrDriversExecuted&&!r.actualBootstrap.NSISWrapperExecuted,'Bootstrap or preserved run1 failure reclassified');
  assert(!r.ready&&r.finalPackage===null&&!r.publicDistributionApproved&&!r.nativeActivationApproved&&m.internalFullAppCandidate.containsModernNative&&!m.internalFullAppCandidate.nativeRuntimeAccepted&&!m.internalFullAppCandidate.realCallAccepted,'Internal full app promoted to release or native acceptance');
- assert(git(['diff','--name-only',r.testedFreeze,'HEAD','--','components'])==='','Measured full-app product source changed; requires a new candidate scope');
+ assert(git(['diff','--name-only',r.testedFreeze,sdkScope.historicalBoundary||'HEAD','--','components'])==='','Measured historical full-app product source changed within its scope');
 }
 if(m.validation.recipientBuildPreparation){
  const e=m.validation.recipientBuildPreparation,r=JSON.parse(fs.readFileSync(path.join(root,e.receipt)));
  assert(sha(e.receipt)===e.receiptSha256&&r.checks.checks===9&&r.checks.lockMutationCasesRejected===4&&r.checks.powershellParserPassed&&!r.checks.compilerNativeOrProductExecuted,'Recipient preparation proof changed');
- for(const x of r.tools)assert(sha(x.path)===x.sha256,'Recipient tool/plan changed');
- assert(!r.modifiedProbeCompiled&&!r.actualRecipientTransferred&&!r.publicApproved&&!e.screenedCompilePassed&&!e.modifiedLibraryRelinkPassed,'Recipient command preparation promoted to executed relink');
+ if(e.relinkReceipt){
+   git(['merge-base','--is-ancestor',e.preparationSourceCommit,'HEAD']);
+   for(const x of r.tools)assert(crypto.createHash('sha256').update(readFrozen(e.preparationSourceCommit,x.path)).digest('hex')===x.sha256,'Frozen recipient tool/plan changed');
+   assert(sha(e.relinkReceipt)===e.relinkReceiptSha256,'Recipient relink receipt changed');
+   evidence.verifyRelinkEvidence(e,JSON.parse(fs.readFileSync(path.join(root,e.relinkReceipt))),sha);
+   assert(sha(e.plan)===e.currentPlanSha256,'Current recipient plan changed');
+   for(const x of r.tools)if(x.path!==e.plan&&x.path!=='release/source-materials/build-screened-recipient-native.ps1')assert(sha(x.path)===x.sha256,'Unrepaired recipient tool changed');
+ }else{for(const x of r.tools)assert(sha(x.path)===x.sha256,'Recipient tool/plan changed');assert(!e.screenedCompilePassed&&!e.modifiedLibraryRelinkPassed,'Recipient command preparation promoted without relink evidence');}
+ assert(!r.modifiedProbeCompiled&&!r.actualRecipientTransferred&&!r.publicApproved,'Historical preparation falsely promoted to relink or transfer');
 }
+
+if(m.validation.lifecycle3InternalBuild){
+ const e=m.validation.lifecycle3InternalBuild,r=JSON.parse(fs.readFileSync(path.join(root,e.receipt))),candidate=m.internalLifecycle3Candidate;
+ assert(sha(e.receipt)===e.receiptSha256,'Lifecycle internal build receipt changed');
+ git(['merge-base','--is-ancestor',r.sourceCommit,'HEAD']);
+ assert(git(['rev-parse',r.sourceCommit+'^{tree}'])===r.sourceTree&&e.sourceFreeze===r.sourceCommit&&e.sourceTree===r.sourceTree,'Lifecycle build source identity mismatch');
+ assert(git(['diff','--name-only',r.sourceCommit,'HEAD','--','components'])==='','Lifecycle built product source changed');
+ assert(r.sdkSha256===packageInfo.sha256&&r.filesVerified===411&&r.allHashesMatched&&r.payloadFilesByteExact===141,'Lifecycle build/SDK evidence mismatch');
+ assert(candidate.sourceFreeze===r.sourceCommit&&candidate.sourceTree===r.sourceTree&&candidate.sdkSha256===r.sdkSha256&&candidate.artifact.sha256===r.artifact.sha256&&candidate.artifact.bytes===r.artifact.bytes&&candidate.asarSha256===r.asarSha256,'Lifecycle artifact descriptor mismatch');
+ for(const [name,file] of Object.entries(r.nativePayloadUnchanged))assert(file.sha256===m.easytier.privateWindowsRuntimeFiles[name].sha256,'Lifecycle native payload changed');
+ assert(!r.actualProductRun&&!r.ready&&r.finalPackage===null&&!r.publicDistributionApproved&&!r.nativeActivationApproved&&!candidate.runtimeAccepted&&!candidate.realCallAccepted&&!candidate.publicDistributionApproved&&!candidate.nativeActivationApproved&&!e.actualAppRun&&!m.ready&&m.finalPackage===null,'Lifecycle static build promoted to actual product/release acceptance');
+}
+
+if(m.validation.lifecycle3ReleaseVerifier){
+ const e=m.validation.lifecycle3ReleaseVerifier,r=JSON.parse(fs.readFileSync(path.join(root,e.receipt)));
+ assert(sha(e.receipt)===e.receiptSha256&&r.checks.scope.allPassed&&r.checks.scope.checks===e.scopeCases&&r.checks.cli.allPassed&&r.checks.cli.checks===e.cliCases,'Lifecycle verifier regression receipt changed');
+ assert(e.requireReadyExit===2&&!r.ready&&r.finalPackage===null&&!r.publicDistributionApproved&&!r.nativeActivationApproved&&!r.productSourceChanged&&!r.windowsRepackageRequired,'Verifier checks promoted to product/release acceptance');
+}
+console.log(JSON.stringify({id:m.id,codeCommit:sdkScope.currentBoundary,historicalCodeCommit:m.repository.codeCommit,sourceConsistent:true,components:Object.keys(m.components),sdkVersion:packed.version,historicalSdkReceiptsApplicableToCurrentSdk:!sdkScope.historical,ready:m.ready,easytier:m.easytier.implementationStatus,actualNetworkVerified:m.easytier.actualNetworkVerified}));
+if(process.argv.includes('--require-ready')&&!m.ready){console.error('Release blocked: '+m.pending.join('; '));process.exitCode=2;}

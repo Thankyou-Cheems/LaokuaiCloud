@@ -1,0 +1,93 @@
+{
+  "schema": 1,
+  "status": "PASS-release-verifier-scoped-integrity-and-negative-regressions",
+  "builtFreeze": "b38566f082f07639c0cd3948a03af33e78c43ad2",
+  "builtTree": "1d4e9124e311e8991be6e5d43de232a640fbf09b",
+  "changes": [
+    "Read packedFiles or historical installedPackedFiles; reject missing, conflicting or wrong counts/version",
+    "Verify lifecycle source/tree/archive and historical SDK descriptor against its immutable baseline manifest/Git tree; no old Provider acceptance for new SDK",
+    "Keep old842 artifact product-source check within its frozen baseline; separately check new b385 artifact scope",
+    "Verify historical recipient preparation tools at ad219 and current one-line helper repair/relink receipt, corrected plan/hash; preserve first failure",
+    "Report success only after every assertion; --require-ready remains exit2"
+  ],
+  "checks": {
+    "scope": {
+      "checks": 42,
+      "positive": 7,
+      "negative": 35,
+      "allPassed": true,
+      "realNetworkOrNativeExecuted": false
+    },
+    "cli": {
+      "checks": 10,
+      "allPassed": true,
+      "sourceManifestWasNotModified": true,
+      "results": [
+        {
+          "scenario": "valid",
+          "expectedExit": 0,
+          "actualExit": 0
+        },
+        {
+          "scenario": "require-ready",
+          "expectedExit": 2,
+          "actualExit": 2
+        },
+        {
+          "scenario": "bad-inventory",
+          "expectedExit": 1,
+          "actualExit": 1
+        },
+        {
+          "scenario": "bad-version",
+          "expectedExit": 1,
+          "actualExit": 1
+        },
+        {
+          "scenario": "bad-history",
+          "expectedExit": 1,
+          "actualExit": 1
+        },
+        {
+          "scenario": "bad-provider-hash",
+          "expectedExit": 1,
+          "actualExit": 1
+        },
+        {
+          "scenario": "bad-relink-hash",
+          "expectedExit": 1,
+          "actualExit": 1
+        },
+        {
+          "scenario": "bad-current-plan",
+          "expectedExit": 1,
+          "actualExit": 1
+        },
+        {
+          "scenario": "bad-current-acceptance",
+          "expectedExit": 1,
+          "actualExit": 1
+        },
+        {
+          "scenario": "bad-provider-promotion",
+          "expectedExit": 1,
+          "actualExit": 1
+        }
+      ]
+    },
+    "scopeLogSha256": "5f5a429277fc9cd1bc1bba56e6d2d7ca79ffee90f09fcf252afc759932852244",
+    "cliLogSha256": "df3f778d21963e7deb5db473611517c2d0c77777259f3ecb01aedeaae211056b"
+  },
+  "productDefectDetected": false,
+  "productSourceChanged": false,
+  "componentsDiffFromBuild": [],
+  "windowsRepackageRequired": false,
+  "artifactSha256": "3a8065e5ebc3ada52b7de8d62971071c2893c777cb0520ca9b4b1db35704c606",
+  "reason": "Only root release verification, tests and metadata/docs changed. SDK, client/server/SFU/native and packaged input trees equal b385. Existing EXE remains attributed to b385, not the later tool-only commit.",
+  "historicalFailuresPreserved": true,
+  "ready": false,
+  "finalPackage": null,
+  "publicDistributionApproved": false,
+  "nativeActivationApproved": false,
+  "productOrNetworkRun": false
+}

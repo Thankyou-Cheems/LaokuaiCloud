@@ -63,3 +63,10 @@ schedules Windows bootstrap, authentic devices/two-way listening/media/TUN/
 coexistence/capacity acceptance. Offline logical-user tests are not20 physical
 clients or real calls. Server source is integrated; server deployment is not.
 ready=false/finalPackage=null. Keep old failures and known approval boundaries.
+
+The b38566f lifecycle.3 internal portable3a8065e5 is now built;411 sealed files
+readonly rehashed and141 payload files matched. Root verifier scope/inventory
+expectations corrected with42 range+10 CLI positive/negative checks; ready flag
+still blocks exit2. No component/product input change, no repack needed. Old
+receipts/artifacts/failures stay frozen; real runtime/media and license/recipient
+acceptance pending. See release/LIFECYCLE3-VERIFIER-REVIEW.md.

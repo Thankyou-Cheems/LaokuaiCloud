@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "id": "laokuai-cloud-receive-path-et-observation-frozen-20261011",
-  "stage": "local-lifecycle3-source-integrated-windows-build-and-actual-acceptance-pending",
+  "stage": "lifecycle3-internal-candidate-built-release-verifier-scopes-corrected-real-acceptance-pending",
   "ready": false,
   "repository": {
     "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud",
@@ -1735,9 +1735,10 @@
       "testedFreeze": "c3a724721f95ed9701d1d38f564ec53cfda4b33e",
       "testedCodeCommit": "69e35aace6f6eb0cf068634bebbc94ef1beac7f1",
       "acceptedForTestedProductionProviderSeam": true,
-      "currentBuildFreezeMediaSourceIdentical": true,
+      "currentBuildFreezeMediaSourceIdentical": false,
       "physicalDirectVerified": false,
-      "completeAppE2E": false
+      "completeAppE2E": false,
+      "historicalMediaIdenticalThroughFreeze": "3a6c794fe6e904ad195fafcd70a8a51d65632b60"
     },
     "nativeActualPreflight": {
       "receipt": "release/acceptance/tun-preflight-unavailable.json",
@@ -2109,7 +2110,9 @@
         "entries": 4,
         "zipCrcAndAllMemberBytesVerified": true,
         "oldToolsZipUnmodified": true
-      }
+      },
+      "preparationSourceCommit": "ad219385f7510ab4615a430e26baaccf018aad72",
+      "currentPlanSha256": "778c4bc5b9f25f10e738ba268117e1b1cd543ba2caa36d6f7a1f9953c33014e1"
     },
     "userLocalDbafUdp65Actual": {
       "receipt": "release/acceptance/et-user-local-dbaf-udp65-pass.json",
@@ -2216,6 +2219,25 @@
       "syntaxScriptsChecked": 14,
       "cloudFullBuildAndOfflineSoak": "Delivered summary evidence only; not local Windows build/real network acceptance",
       "previousValidationEntriesRetainTheirOriginalFrozenScope": true
+    },
+    "lifecycle3InternalBuild": {
+      "receipt": "release/acceptance/lifecycle3-internal-build.json",
+      "receiptSha256": "e6d18687943d91ad5167e930964848e0678ee89573ee5c578b5f47b4ffab5a02",
+      "sourceFreeze": "b38566f082f07639c0cd3948a03af33e78c43ad2",
+      "sourceTree": "1d4e9124e311e8991be6e5d43de232a640fbf09b",
+      "windowsPackageBuilt": true,
+      "actualAppRun": false,
+      "ready": false,
+      "finalPackage": null
+    },
+    "lifecycle3ReleaseVerifier": {
+      "receipt": "release/acceptance/lifecycle3-verifier-regressions.json",
+      "receiptSha256": "f0bfeee845a90259adb5e1794787b48d2df9aec853d5555f66ea80bdb1bea6df",
+      "scopeCases": 42,
+      "cliCases": 10,
+      "requireReadyExit": 2,
+      "productChanged": false,
+      "windowsRepackageRequired": false
     }
   },
   "securityBoundary": {
@@ -2257,7 +2279,7 @@
     "Recipient engineering proof completed: original helper failed; one reviewed environment-key removal fixes it, and one fresh-target offline screened-kit modified-library core/CLI compile+link passed. Test-only EXEs do not replace product. Actual recipient transfer/access, external export/platform/license review and recipient app acquisition/rebuild instructions remain separate. No additional engineering compile requested.",
     "Private source offer: exact842 client/Voice plus405-file custom UI source and RNNoise wrapper/native/model archives are sealed with acquisition/lock/notices/SHA and no Git history. No external transfer or public URL; absence of public URL is not an internal-test blocker. User must choose concrete recipients/channel or screened public target/brand scope before sharing; current private integration repository stays private.",
     "Modern089b/f716+1ad4 minimum runtime handoff is now prepared:624 shared Rust files and lock identical, only Cargo.toml dependency/CRT selection changes. Strict original modern producer schema adaptation, re-pinned pwsh7 runner/new source+scope closure and fresh protected-object preflight/approval must precede one no-peer test. Real2-client community/device/media/fallback and optional chosen-game coexistence use separately explicit scopes; do not repeat passing old dbaf or unchanged UI/SDK/capacity checks.",
-    "Local lifecycle.3 source recovered from exact user-downloaded v2. Prior8+new24 paths match delivery. Local8 guarded pure suites/14 script syntax checks pass. Cloud complete SDK/client/server and352-batch offline-soak summary retained separately. New Windows build/install/package/real-media acceptance pending; old842/5d/83 executables remain unchanged. No remote push/deployment approved for this turn."
+    "Lifecycle.3 Windows internal portable3a8065e5 from b38566f completed;411 sealed files rehashed,141 payload files exact, SDK212 installed/170 rebuilt dist and exact tgz repack reported. Root release verifier correctly separates historical Provider/842 scopes and current lifecycle SDK/relink evidence. New hidden bootstrap, authentic device/media/native tests and source-recipient/license clearance remain pending; no public release."
   ],
   "finalPackage": null,
   "frozenPreviousHybrid": {
@@ -2372,5 +2394,20 @@
     "nativeRuntimeAccepted": false,
     "realCallAccepted": false,
     "publicDistributionApproved": false
+  },
+  "internalLifecycle3Candidate": {
+    "sourceFreeze": "b38566f082f07639c0cd3948a03af33e78c43ad2",
+    "sourceTree": "1d4e9124e311e8991be6e5d43de232a640fbf09b",
+    "sdkSha256": "897b597926cad23447f057e2b45e95f47806ddfba2f6808e6beb32f80eec49ae",
+    "artifact": {
+      "filename": "LaokuaiCloud-1.13.22-laokuai.opus20.1-lifecycle3-b38566f-INTERNAL-CANDIDATE-win-x64-portable.exe",
+      "bytes": 129121577,
+      "sha256": "3a8065e5ebc3ada52b7de8d62971071c2893c777cb0520ca9b4b1db35704c606"
+    },
+    "asarSha256": "749545b06ccd40aefb296ce8554a6d415309b0b8e7d2b7a01b2e5b3cb2f1b2f9",
+    "runtimeAccepted": false,
+    "realCallAccepted": false,
+    "publicDistributionApproved": false,
+    "nativeActivationApproved": false
   }
 }

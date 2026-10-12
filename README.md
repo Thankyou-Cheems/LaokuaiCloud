@@ -45,3 +45,10 @@ and release/LIFECYCLE3-BUILD-HANDOFF.md.8 guarded pure suites/14 script syntax
 checks pass; full cloud build/soak are delivered summaries, not local Windows
 acceptance. Parent assigns the sole next builder. No remote sync/build/product
 launch/user config change by Task6; old packages/freeze preserved.
+
+The b38566f lifecycle.3 internal portable3a8065e5 is now built;411 sealed files
+readonly rehashed and141 payload files matched. Root verifier scope/inventory
+expectations corrected with42 range+10 CLI positive/negative checks; ready flag
+still blocks exit2. No component/product input change, no repack needed. Old
+receipts/artifacts/failures stay frozen; real runtime/media and license/recipient
+acceptance pending. See release/LIFECYCLE3-VERIFIER-REVIEW.md.

@@ -1,0 +1,55 @@
+{
+  "ownerManifestSha256": "2a37da3826fbf194791781c901b6e6f9436b38d474b65bc5d313be2a9b788662",
+  "reportSha256": "97192f83459c7569a3bdce1bbc52d9c777d082e17f1fe86276a86517bdd86909",
+  "handoffSha256": "4ba02e8c348f788ee63e5c4eb56788092cdbb6a58eae7e04ea0cf38d707cafbf",
+  "filesVerified": 411,
+  "bytesVerified": 943675640,
+  "allHashesMatched": true,
+  "artifact": {
+    "filename": "LaokuaiCloud-1.13.22-laokuai.opus20.1-lifecycle3-b38566f-INTERNAL-CANDIDATE-win-x64-portable.exe",
+    "bytes": 129121577,
+    "sha256": "3a8065e5ebc3ada52b7de8d62971071c2893c777cb0520ca9b4b1db35704c606"
+  },
+  "sourceCommit": "b38566f082f07639c0cd3948a03af33e78c43ad2",
+  "sourceTree": "1d4e9124e311e8991be6e5d43de232a640fbf09b",
+  "sdkSha256": "897b597926cad23447f057e2b45e95f47806ddfba2f6808e6beb32f80eec49ae",
+  "asarSha256": "749545b06ccd40aefb296ce8554a6d415309b0b8e7d2b7a01b2e5b3cb2f1b2f9",
+  "mainSha256": "42ff3e705cf6f4c91b83ee26399df1e262764ac2a883e81e224251df6b236b32",
+  "preloadSha256": "3ce5678b060890f2bcb877d0fd60850faeb48bd8b202ab07ed032f9a4970d5da",
+  "payloadFilesByteExact": 141,
+  "nativePayloadUnchanged": {
+    "easytier-core.exe": {
+      "bytes": 20284928,
+      "sha256": "f716a1139d66800bbc75daa200b1c0c6eecccb97e88e13167fafb8d7d38bb81d",
+      "origin": "Exact source089b6182 standard-static producer build"
+    },
+    "easytier-cli.exe": {
+      "bytes": 6160896,
+      "sha256": "1ad46380937aab6dd7385ebb37bb458c94f8d1a3e68baf2e6c24ea973adc6411",
+      "origin": "Exact source089b6182 standard-static producer build"
+    },
+    "WinDivert64.sys": {
+      "bytes": 94144,
+      "sha256": "8da085332782708d8767bcace5327a6ec7283c17cfb85e40b03cd2323a90ddc2",
+      "origin": "Unchanged signed companion reference"
+    },
+    "wintun.dll": {
+      "bytes": 427552,
+      "sha256": "e5da8447dc2c320edc0fc52fa01885c103de8c118481f683643cacc3220dafce",
+      "origin": "Unchanged signed companion reference"
+    }
+  },
+  "fullSdkClientServerBuildReported": true,
+  "sdkInstalled212Rebuilt170AndWholeArchiveRepackReported": true,
+  "focusedOfflineSuitesReported": 15,
+  "actualProductRun": false,
+  "ready": false,
+  "finalPackage": null,
+  "publicDistributionApproved": false,
+  "nativeActivationApproved": false,
+  "status": "PASS-internal-portable-build-static-offline-only",
+  "productSourceFreezeUnchanged": true,
+  "historicalVerifierFailureRetained": true,
+  "rootVerificationFixNeedsWindowsRepackage": false,
+  "reason": "Only root release verifier/tests/metadata/docs change; all components and packaged inputs stay byte-identical to b38566f."
+}
