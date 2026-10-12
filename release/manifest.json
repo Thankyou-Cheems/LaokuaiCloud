@@ -2690,7 +2690,7 @@
       "version": "laokuai.hybrid.shutdown.011f12b9"
     },
     "operator": "release/deployment/hybrid-d38ed22d/cutover.py",
-    "operatorSha256": "ae5dcb2d8ad1dc35be9fe0faa7ad453e13011fcf9348710f7dc94678b4bb9464",
+    "operatorSha256": "0f95bb0a911870dc88c9c14f893b940c1386d221720d9943c708d8e17e7e09e3",
     "ordinaryDeploymentRequestedViaParent": true,
     "executed": false,
     "expectedInterruptSeconds": [
@@ -2703,6 +2703,12 @@
     "originalIdentityKeysPreserved": true,
     "originalDataPreserved": true,
     "consistentCandidateCopyOnSameTargetOnly": true,
-    "rollbackUsesOldImagesAndOriginalData": true
+    "rollbackUsesOldImagesAndOriginalData": true,
+    "productionPreflightReceipt": "release/acceptance/voice-production-preflight-transfer-blocked.json",
+    "productionPreflightReceiptSha256": "c3c10d42df5c81a64524ecad7d3883291510c1388b911fe9aad9453452977423",
+    "transferApproved": false,
+    "transferBlockedByAutomaticReview": true,
+    "existingProductionHealthy": true,
+    "target": "TencentCloudPublic / root@124.221.119.113:22"
   }
 }

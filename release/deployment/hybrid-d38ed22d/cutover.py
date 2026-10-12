@@ -162,7 +162,7 @@ def main(args):
                 raise RuntimeError('foreign-container-no-rollback')
             stop_owned(name, x['Image'])
         for name in ['sfu', 'server']:
-            compose(['-f', str(WORK / 'rollback.json')], ['up', '-d', '--no-deps', '--pull', 'never', name])
+            compose(['-f', str(WORK / 'rollback.json')], ['up', '-d', '--no-deps', '--no-build', '--pull', 'never', name])
         print(json.dumps({'rollbackStarted': True, 'candidateDataPreserved': True, 'realAccountVoiceAcceptance': False}))
         return
     base = json.loads(compose().stdout)
@@ -201,7 +201,7 @@ def main(args):
                                          'baseComposeSha256': hashlib.sha256(BASE.read_bytes()).hexdigest()})
     stop_owned('sfu', OLD['sfu'])
     for name in ['sfu', 'server']:
-        compose(['-f', str(WORK / 'activate.json')], ['up', '-d', '--no-deps', '--pull', 'never', name])
+        compose(['-f', str(WORK / 'activate.json')], ['up', '-d', '--no-deps', '--no-build', '--pull', 'never', name])
     print(json.dumps({**summary, 'started': True, 'originalDataRetained': True, 'healthAndRealClientChecksPending': True}))
 
 if __name__ == '__main__':

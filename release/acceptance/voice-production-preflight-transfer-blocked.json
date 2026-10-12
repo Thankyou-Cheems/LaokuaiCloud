@@ -1,0 +1,88 @@
+{
+  "schema": 1,
+  "status": "PRODUCTION-READONLY-PREFLIGHT-PASS-EXACT-SCP-APPROVAL-BLOCKED",
+  "atUtc": "2026-10-12T09:25:32.228Z",
+  "target": {
+    "sshAlias": "TencentCloudPublic",
+    "host": "124.221.119.113",
+    "user": "root",
+    "port": 22,
+    "hostKeyChecking": "ask; BatchMode=yes; not disabled",
+    "currentProductionConfirmedByExactContainersImagesMountsAndPorts": true
+  },
+  "preflight": {
+    "python": "3.11.6",
+    "compose": "5.4.0",
+    "backend": {
+      "id": "ec639ef7e7abbd8340605b2db85e35074e59ad4a3dedc4f12cb022c176e096b7",
+      "image": "sha256:b6f4bf5db57493a06307e1cfaefd1c92d6c90ccc26e46c9ba05a8fab53d093e8",
+      "healthy": true,
+      "version": "1.10.58",
+      "validExistingJwtConfigured": true,
+      "hostPorts": {}
+    },
+    "sfu": {
+      "id": "8ff6fed7e5fe60de998ec1aec0b5370a9debb68962fe5ae03830951e9929861c",
+      "image": "sha256:33babe9b71475b123d5bb0e8482f0da5ae2b92c0fbe0e59a00957d89faea6eef",
+      "healthy": true,
+      "clientTokenRequired": true,
+      "controlPort": 9092,
+      "metricsPort": 0,
+      "hostPorts": {
+        "3478/udp": [
+          {
+            "HostIp": "0.0.0.0",
+            "HostPort": "3478"
+          }
+        ]
+      }
+    },
+    "network": "gryt-voice",
+    "networkId": "9bbd88d5d585d9cb3d0f47057da736666ccb3d7999ec979bd78bc61aef733ca2",
+    "dataDirectory": "/opt/stacks/gryt/data",
+    "dataBytes": 3053502,
+    "diskFreeBytes": 9516445696,
+    "composeSha256": "40aa671ef0d26c35dfe1703110995c45c4350c671fe37c8f25df55e7b6f776a1",
+    "operationDirectoryExisted": false,
+    "credentialsOrDataRowsOutput": false
+  },
+  "permittedCompletedOperation": {
+    "privateStageDirectoryCreated": "/opt/stacks/gryt/voice-image-stage-d38ed22d",
+    "mode": "700",
+    "productServicesChanged": false
+  },
+  "transfer": {
+    "attempted": true,
+    "executed": false,
+    "bytesTransferred": 0,
+    "totalTarBytes": 122206720,
+    "privateProductTars": [
+      "server-85ec3b9c-linux-amd64.docker.tar",
+      "sfu-011f12b9-linux-amd64.docker.tar"
+    ],
+    "operatorAndCandidatesOnly": true,
+    "userDataOrKeysIncluded": false,
+    "destination": "/opt/stacks/gryt/voice-image-stage-d38ed22d/"
+  },
+  "automaticReview": {
+    "action": "scp exact two private product Docker image archives and no-credential deployment materials",
+    "rejected": true,
+    "reason": "Private organization-code/deployment images to external TencentCloudPublic destination require explicit payload-and-destination authorization; general deployment request insufficient.",
+    "workaroundAttempted": false,
+    "specificHumanApprovalRequested": true
+  },
+  "operator": {
+    "path": "release/deployment/hybrid-d38ed22d/cutover.py",
+    "sha256": "0f95bb0a911870dc88c9c14f893b940c1386d221720d9943c708d8e17e7e09e3",
+    "pureScopeChecks": 8,
+    "noBuildAndNoPullForced": true,
+    "targetDockerPhasesExecuted": false
+  },
+  "productionDeploymentExecuted": false,
+  "servicesStopped": false,
+  "originalDataCopiedOrModified": false,
+  "etCredentialsIssued": false,
+  "etTunFirewallChanged": false,
+  "ready": false,
+  "finalPackage": null
+}
