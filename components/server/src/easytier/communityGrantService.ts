@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 
 import {
   assertCredentialProviderCapability, commitCommunityCredentialReadback, confirmCommunityGrantRevoked,
-  COMMUNITY_ET_UPSTREAM_COMMIT, copiedScope, exact, fail, id, intent, planCommunityCredentialOperation, positive, privateIpv4,
+  COMMUNITY_ET_UPSTREAM_COMMIT, communityIdentity, copiedScope, exact, fail, id, intent, planCommunityCredentialOperation, positive, privateIpv4,
   retireCommunityGrant, safeArray, sameScope, uuid, type CommunityGrantOperation,
   type CommunityGrantScope, type CredentialProvider, type NativeAuthority, type PrivateCommunityGrantV1,
   type PrivateNativeCredentialReceipt, type TrustedCommunityIntent,
@@ -41,7 +41,7 @@ export class CommunityGrantService implements CommunityGrantApi {
     exact<CommunityGrantServiceConfiguration>(configuration,['serverInstanceId','communityId','networkName','networkRevision',
       'bootstrapProfileId','virtualIpPool','authority','ttlSeconds','enabled','credentialWritesEnabled','runtimeGeneration'],'invalid-service-config');
     const c = configuration;
-    if (![c.serverInstanceId,c.communityId,c.networkName,c.bootstrapProfileId].every(id) || !positive(c.networkRevision) ||
+    if (!communityIdentity(c.serverInstanceId) || !communityIdentity(c.communityId) || ![c.networkName,c.bootstrapProfileId].every(id) || !positive(c.networkRevision) ||
         !positive(c.ttlSeconds) || c.ttlSeconds < 30 || c.ttlSeconds > 3600 || !safeArray(c.virtualIpPool,254) || c.virtualIpPool.length < 1 ||
         c.virtualIpPool.length > 254 || !c.virtualIpPool.every(privateIpv4) || new Set(c.virtualIpPool).size !== c.virtualIpPool.length ||
         typeof c.enabled !== 'function' || typeof c.credentialWritesEnabled !== 'function' || typeof c.runtimeGeneration !== 'function') fail('invalid-service-config');

@@ -3,13 +3,19 @@ import test from 'node:test';
 
 import {
   assertCredentialProviderCapability, COMMUNITY_ET_UPSTREAM_COMMIT, commitCommunityCredentialReadback, confirmCommunityGrantRevoked,
-  ContractError, expiryUnixToMs, planCommunityCredentialOperation, publicKeyFingerprint, retireCommunityGrant,
+  ContractError, communityIdentity, scope, expiryUnixToMs, planCommunityCredentialOperation, publicKeyFingerprint, retireCommunityGrant,
   type CommunityGrantOperation, type CommunityGrantRecord, type CredentialProvider, type GrantAuthorization,
   type NativeCredentialReadback, type PrivateNativeCredentialReceipt,
 } from './communityGrant';
 
 const NATIVE = '11111111-1111-4111-8111-111111111111';
 const ADMIN = '22222222-2222-4222-8222-222222222222';
+test('existing CJK server namespace is exact and does not broaden account/key grammar', () => {
+  const real='老蒯聊_5000_default';assert.equal(communityIdentity(real),true);
+  const value={serverInstanceId:real,communityId:real,accountId:'account',deviceId:'device',nativeInstanceId:NATIVE};
+  assert.doesNotThrow(()=>scope(value));assert.throws(()=>scope({...value,accountId:'中文账户'}));
+  for(const communityId of ['../社区','社/区','社\\区','社\u202e区','社\n区','社'.repeat(129)])assert.throws(()=>scope({...value,communityId}));
+});
 const SECRET = Buffer.alloc(32, 0x42).toString('base64'); // Synthetic public fixture, not a keypair.
 const FP = publicKeyFingerprint(Buffer.alloc(32, 0x31).toString('base64'));
 function fixture() {

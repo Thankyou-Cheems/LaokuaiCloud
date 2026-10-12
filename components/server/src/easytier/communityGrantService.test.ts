@@ -19,7 +19,7 @@ const START=1_000_000;
 const AUTHORITY: NativeAuthority={adminInstanceId:ADMIN,upstreamCommit:COMMUNITY_ET_UPSTREAM_COMMIT,groups:['community-member']};
 
 /** Fake provider only in pure tests; never exported or selected by product code. */
-function fixture() {
+function fixture(communityId: string = BODY.communityId) {
   const db=new DatabaseSync(':memory:'),store=new SqliteCommunityGrantStore(db,communityVaultKey('PURE-TEST-VAULT-SECRET-01234567890123456789'));
   store.initSchema();
   const control={wall:START,mono:0,enabled:true,writes:true,member:true,serverVersion:0,userVersion:0,generation:1,
@@ -35,7 +35,7 @@ function fixture() {
     checkSessionAllowed:async identity=>({ok:true,user:{gryt_user_id:identity.grytUserId,server_user_id:identity.serverUserId,
       is_active:control.member,token_version:control.userVersion}}),
   };
-  const auth=createCommunityMemberAuthorizer(services,{communityId:BODY.communityId,serverHost:'test.invalid'},()=>control.wall);
+  const auth=createCommunityMemberAuthorizer(services,{communityId,serverHost:'test.invalid'},()=>control.wall);
   const entries=new Map<string,{receipt:PrivateNativeCredentialReceipt;readback:NativeCredentialReadback;publicB64:string}>();
   let afterCreate: (()=>Promise<void>)|null=null;
   const provider: CommunityGrantServiceProvider={
@@ -69,13 +69,26 @@ function fixture() {
       return sample;
     },
   };
-  const service=new CommunityGrantService({serverInstanceId:'backend',communityId:'community',networkName:'network',networkRevision:1,
+  const service=new CommunityGrantService({serverInstanceId:communityId===BODY.communityId?'backend':communityId,communityId,networkName:'network',networkRevision:1,
     bootstrapProfileId:'public-2.7',virtualIpPool:['10.77.0.2','10.77.0.3'],authority:AUTHORITY,ttlSeconds:120,
     enabled:()=>control.enabled,credentialWritesEnabled:()=>control.writes,runtimeGeneration:()=>control.generation},store,provider,auth,
     {wallMs:()=>control.wall,monoMs:()=>control.mono});
   return {db,store,service,control,entries,services,auth,setAfterCreate:(value:typeof afterCreate)=>{afterCreate=value;}};
 }
 const code=(expected:string)=>(error:unknown)=>error instanceof ContractError && error.code===expected;
+test('real CJK namespace crosses existing member auth, service and durable device allocation unchanged',async()=>{
+  const real='老蒯聊_5000_default',f=fixture(real);try {
+    const result=await f.service.session('alice',{...BODY,communityId:real});
+    assert.equal(result.intent.communityId,real);assert.equal(result.intent.serverInstanceId,real);
+    assert.equal(result.intent.accountId,'alice');assert.equal(result.serverUserId,'server-alice');
+    assert.equal(f.control.createCount,0);
+    const body={...BODY,communityId:real},grant=await f.service.acquire('alice',{...body,requestId:'real-namespace-grant'});
+    const binding=await f.service.binding('alice',{...body,grantId:grant.grantId});
+    assert.equal(grant.scope.communityId,real);assert.deepEqual(binding.scope,grant.scope);
+    assert.equal(binding.serverUserId,'server-alice');assert.equal(binding.physicalDirectVerified,false);
+    await assert.rejects(f.service.session('alice',{...BODY,communityId:'另一个社区'}),code('community-forbidden'));
+  }finally{f.db.close();}
+});
 
 test('session is idempotent, account comes from existing bearer, and no native write occurs',async()=>{
   const f=fixture();try {

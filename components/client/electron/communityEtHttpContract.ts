@@ -1,4 +1,4 @@
-// Generated from canonical server communityGrantApi.ts (Git blob21d7a4804b1b35d33197346b5b7098254c9a8701).
+// Generated from canonical server communityGrantApi.ts (Git blob3725a571222d8897ea10eb2d1c0a662072f2a719).
 // Do not edit independently. This projection keeps client builds inside their repository boundary.
 import type {CommunityGrantScope, PrivateCommunityGrantV1, TrustedCommunityIntent} from './communityEtGrant';
 

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { buildCommunityEtConfig } from './communityEtConfig';
-import { MainGrantGate, exact, id, sameScope, type TrustedCommunityIntent } from './communityEtGrant';
+import { MainGrantGate, exact, communityIdentity, sameScope, type TrustedCommunityIntent } from './communityEtGrant';
 import { CommunityEtGrantTransport, CommunityEtTransportError, validCommunityBearer, type TrustedCommunityTarget, type VerifiedCommunitySession } from './communityEtGrantTransport';
 import { CommunityEtOwnedFiles, readCommunityGrantTarget } from './communityEtTrustedConfiguration';
 import { EasyTierOperationError, EasyTierSessionRetiredError, type EasyTierRuntime, type EasyTierSession } from './easyTierCommunityManager';
@@ -34,7 +34,7 @@ export class CommunityEtGrantRuntime {
   constructor(private ports: CommunityEtGrantRuntimePorts) {}
   async setAuthenticatedSession(input: unknown): Promise<{serverId: string; changed: boolean; authenticated: boolean}> {
     exact<AuthInput>(input, ['serverId', 'host', 'accessToken'], 'invalid-community-auth');
-    if (!id(input.serverId) || typeof input.host !== 'string' || input.host.length > 256 ||
+    if (!communityIdentity(input.serverId) || typeof input.host !== 'string' || input.host.length > 256 ||
         (input.accessToken !== null && !validCommunityBearer(input.accessToken))) throw new Error('invalid-community-auth');
     if (this.stopped) throw new EasyTierOperationError('activation-required');
     const previous = this.contexts.get(input.serverId);

@@ -43,11 +43,11 @@ export class WindowsEasyTierCliRuntime implements EasyTierRuntime {
     const check = () => { if (this.stopped || scope.signal.aborted) throw new EasyTierOperationError("connect-failed"); };
     try {
       check();
+      if (!(await this.ports.permission())) throw new EasyTierOperationError("needs-permission");
+      check();
       const config = await this.ports.configuration(scope.serverId, scope.signal);
       check();
       if (config.serverId !== scope.serverId) throw new EasyTierOperationError("configuration-required");
-      if (!(await this.ports.permission())) throw new EasyTierOperationError("needs-permission");
-      check();
       const directory = await this.ports.verifiedAssets();
       check();
       owner.core = await this.ports.start(directory, config, scope.signal);

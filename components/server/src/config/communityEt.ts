@@ -2,7 +2,7 @@ import {lstat, readFile} from 'node:fs/promises';
 import {createConnection} from 'node:net';
 import {join} from 'node:path';
 
-import {COMMUNITY_ET_UPSTREAM_COMMIT, exact, fail, id, positive, privateIpv4, safeArray, uuid} from '../easytier/communityGrant';
+import {COMMUNITY_ET_UPSTREAM_COMMIT, communityIdentity, exact, fail, id, positive, privateIpv4, safeArray, uuid} from '../easytier/communityGrant';
 import type {CommunityGrantFactoryOptions} from '../easytier/communityGrantFactory';
 import {CommunityTcpRpcTransport, type RpcDialer} from '../easytier/communityRpcWire';
 
@@ -29,7 +29,7 @@ export function parseCommunityEtDeployment(value: unknown, nowMs = Date.now()): 
   exact<FixedService>(c.service, ['serverInstanceId', 'communityId', 'networkName', 'networkRevision', 'bootstrapProfileId',
     'virtualIpPool', 'authority', 'ttlSeconds'], 'invalid-community-et-deployment');
   const s = c.service;
-  if (![s.serverInstanceId, s.communityId, s.networkName, s.bootstrapProfileId].every(id) || !positive(s.networkRevision) ||
+  if (!communityIdentity(s.serverInstanceId) || !communityIdentity(s.communityId) || ![s.networkName, s.bootstrapProfileId].every(id) || !positive(s.networkRevision) ||
       !positive(s.ttlSeconds) || s.ttlSeconds > 300 || !safeArray(s.virtualIpPool, 64) || s.virtualIpPool.length < 1 ||
       !s.virtualIpPool.every(privateIpv4) || new Set(s.virtualIpPool).size !== s.virtualIpPool.length) fail('invalid-community-et-deployment');
   exact(s.authority, ['adminInstanceId', 'upstreamCommit', 'groups'], 'invalid-community-et-deployment');

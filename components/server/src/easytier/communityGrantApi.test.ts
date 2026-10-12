@@ -8,6 +8,11 @@ const base = {v:1 as const,communityId:'community',deviceId:'device',nativeInsta
 test('single owner session contract has community/device/native scope, no session capability', () => {
   assert.deepEqual(parseCommunityGrantRequest('session',base),base);
 });
+test('real existing CJK community ID reaches the canonical HTTP parser unchanged', () => {
+  const value={...base,communityId:'老蒯聊_5000_default'};
+  assert.deepEqual(parseCommunityGrantRequest('session',value),value);
+  assert.throws(()=>parseCommunityGrantRequest('session',{...value,deviceId:'另一个设备'}));
+});
 test('acquire includes request ID and renew/revoke include current grant ID', () => {
   const acquire = {...base,requestId:'request'};
   assert.deepEqual(parseCommunityGrantRequest('acquire',acquire),acquire);

@@ -18,6 +18,12 @@ test('trusted deployment keeps credential mutations disabled until explicitly ap
   assert.equal(result.credentialWritesApproved, false);
   f.service.virtualIpPool[0] = '10.77.1.8'; assert.equal(result.service.virtualIpPool[0], '10.77.1.2');
 });
+test('real existing CJK namespace is preserved by deployment parsing', () => {
+  const f=fixture();f.service.serverInstanceId='老蒯聊_5000_default';f.service.communityId=f.service.serverInstanceId;
+  const parsed=parseCommunityEtDeployment(f,1000000);
+  assert.equal(parsed.service.communityId,'老蒯聊_5000_default');
+  assert.equal(parsed.credentialWritesApproved,false);
+});
 const cases: Array<[string, (f: ReturnType<typeof fixture>) => void]> = [
   ['approval', f => f.approved = false], ['expiry', f => f.expiresAtUnixMs = 1000000],
   ['http', f => f.trustedServerOrigin = 'http://test.invalid'], ['userinfo', f => f.trustedServerOrigin = 'https://user@test.invalid'],

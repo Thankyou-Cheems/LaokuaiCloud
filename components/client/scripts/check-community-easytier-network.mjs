@@ -158,4 +158,12 @@ await test("existing manager IPC returns local facts without inventing a member 
   monotonic = 5101; utc = 105001; assert.equal(manager.getState(scope.serverId).localDetails, null);
   await manager.disconnect(lease); assert.equal(manager.getState(scope.serverId).localDetails, null); assert.equal(timers.size, 0);
 });
+await test("missing administrator permission cannot acquire a one-shot native credential", async () => {
+  let configurationCalls=0;
+  const runtime=new WindowsEasyTierCliRuntime({platform:"win32",permission:async()=>false,
+    configuration:async()=>{configurationCalls++;throw new Error("credential-must-not-be-acquired");},
+    verifiedAssets:forbidden,start:forbidden,pause:forbidden,shutdownOwned:forbidden});
+  await assert.rejects(runtime.connect({...scope,signal:new AbortController().signal}),error=>error.reason==="needs-permission");
+  assert.equal(configurationCalls,0);
+});
 console.log(`${checks} read-only network checks passed; every runtime port was fake`);

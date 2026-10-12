@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 
-import { fail, id, natural, positive } from './communityGrant';
+import { communityIdentity, fail, id, natural, positive } from './communityGrant';
 
 export interface CommunityMemberIdentity {
   accountId: string; serverUserId: string; tokenDigest: string; issuedAtMs: number; expiresAtMs: number;
@@ -18,7 +18,7 @@ export interface ExistingCommunityAuthServices {
 }
 export function createCommunityMemberAuthorizer(services: ExistingCommunityAuthServices,
   trusted: {communityId: string; serverHost: string}, now: () => number = Date.now): CommunityMemberAuthorizer {
-  if (!id(trusted.communityId) || !trusted.serverHost || new URL('https://' + trusted.serverHost).host !== trusted.serverHost)
+  if (!communityIdentity(trusted.communityId) || !trusted.serverHost || new URL('https://' + trusted.serverHost).host !== trusted.serverHost)
     fail('invalid-auth-config');
   const expected = {...trusted};
   return async (bearer, communityId) => {

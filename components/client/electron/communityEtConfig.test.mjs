@@ -27,8 +27,9 @@ function load(url) {
 const {MainGrantGate, publicKeyFingerprint, COMMUNITY_ET_UPSTREAM_COMMIT, ContractError} = load(new URL('./communityEtGrant.ts', import.meta.url));
 const {buildCommunityEtConfig} = load(new URL('./communityEtConfig.ts', import.meta.url));
 const SECRET = Buffer.alloc(32, 0x42).toString('base64'); // Unissued, intentionally not a keypair.
-function fixture() {
+function fixture(communityIdentity = null) {
   const scope = {serverInstanceId: 'backend', accountId: 'a', communityId: 'c', deviceId: 'd', nativeInstanceId: '11111111-1111-4111-8111-111111111111'};
+  if(communityIdentity){scope.serverInstanceId=communityIdentity;scope.communityId=communityIdentity;}
   const trusted = {...scope, networkName: 'network', networkRevision: 1, virtualIp: '10.77.1.2', bootstrapProfileId: 'profile'};
   const now = {wallMs: 1000, monoMs: 1000};
   const gate = new MainGrantGate(trusted, () => ({...now}));
@@ -46,6 +47,13 @@ function fixture() {
 }
 function rejects(fn, code) { assert.throws(fn, e => e instanceof ContractError && e.code === code && !e.message.includes(SECRET)); }
 function build(f) { return buildCommunityEtConfig(f.gate, f.trusted, f.profile); }
+test('real CJK identity survives main grant gate and private TOML without identity substitution', () => {
+  const f=fixture('老蒯聊_5000_default');
+  assert.equal(f.grant.scope.communityId,'老蒯聊_5000_default');
+  build(f).withPrivateToml(toml=>assert.ok(toml.includes('instance_name = "laokuai-老蒯聊_5000_default"')));
+  assert.equal(f.grant.scope.accountId,'a');
+  assert.throws(()=>buildCommunityEtConfig(f.gate,{...f.trusted,communityId:'另一个社区'},f.profile));
+});
 test('config uses credential secure-mode and exact instance/network/IP without admin secret', () => {
   const draft = build(fixture());
   draft.withPrivateToml(toml => {

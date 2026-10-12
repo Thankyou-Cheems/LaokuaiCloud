@@ -2,7 +2,7 @@ import { createCipheriv, createDecipheriv, createHash, hkdfSync, randomBytes, ra
 import type { DatabaseSync } from 'node:sqlite';
 
 import {
-  copiedScope, exact, fail, fingerprint, id, intent, keyBytes, natural, planCommunityCredentialOperation,
+  communityIdentity, copiedScope, exact, fail, fingerprint, id, intent, keyBytes, natural, planCommunityCredentialOperation,
   positive, privateIpv4, recordShape, sameScope, scope, uuid,
   type CommunityGrantOperation, type CommunityGrantRecord, type CommunityGrantScope, type PrivateNativeCredentialReceipt,
   type TrustedCommunityIntent,
@@ -77,7 +77,7 @@ export class SqliteCommunityGrantStore {
     } catch { return fail('grant-store-corrupt'); }
   }
   registerDevice(accountId: string, communityId: string, deviceId: string, nativeInstanceId: string, pool: readonly string[]): string {
-    if (![accountId,communityId,deviceId].every(id) || !uuid(nativeInstanceId) || pool.length < 1 || pool.length > 254 ||
+    if (![accountId,deviceId].every(id) || !communityIdentity(communityId) || !uuid(nativeInstanceId) || pool.length < 1 || pool.length > 254 ||
         !pool.every(privateIpv4) || new Set(pool).size !== pool.length) fail('invalid-device-registration');
     return this.#transaction(() => {
       const row = this.#db.prepare('SELECT native_instance_id, virtual_ip FROM community_et_devices WHERE account_id=? AND community_id=? AND device_id=?').get(accountId, communityId, deviceId);

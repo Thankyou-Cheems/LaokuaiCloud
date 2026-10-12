@@ -3,7 +3,7 @@ import { randomUUID, createHash } from 'node:crypto';
 import { lstat, mkdir, open, readFile, realpath, rename, unlink } from 'node:fs/promises';
 import { join, relative, isAbsolute } from 'node:path';
 
-import { exact, id, uuid, publicKeyFingerprint } from './communityEtGrant';
+import { communityIdentity, exact, uuid, publicKeyFingerprint } from './communityEtGrant';
 import { trustedHttpsOrigin, type TrustedCommunityTarget } from './communityEtGrantTransport';
 import { EasyTierOperationError } from './easyTierCommunityManager';
 import type { EasyTierExistingConfiguration } from './easyTierExistingConfiguration';
@@ -29,7 +29,7 @@ export async function readCommunityGrantTarget(root: string, serverId: string): 
     const seen = new Set<string>();
     for (const c of value.grantCommunities) {
       exact<TrustedCommunityTarget>(c, ['communityId', 'serverHost', 'origin', 'serverInstanceId', 'bootstrap'], 'invalid-target');
-      if (!id(c.communityId) || !id(c.serverInstanceId) || typeof c.serverHost !== 'string' || c.serverHost.length > 256 ||
+      if (!communityIdentity(c.communityId) || !communityIdentity(c.serverInstanceId) || typeof c.serverHost !== 'string' || c.serverHost.length > 256 ||
           seen.has(c.communityId) || trustedHttpsOrigin(c.origin) !== c.origin) throw new Error('invalid-target');
       validateBootstrap(c.bootstrap);
       if (publicKeyFingerprint(c.bootstrap.issuerPublicKeyB64) !== c.bootstrap.issuerPublicKeyFingerprint) throw new Error('issuer-pin');
@@ -61,7 +61,7 @@ export class CommunityEtOwnedFiles {
   constructor(private root: () => string, private protect = protectOwnedFile) {}
   identities(serverId: string): Promise<{deviceId: string; nativeInstanceId: string}> {
     const work = this.metadataLane.then(async () => {
-      if (!id(serverId)) throw new EasyTierOperationError('configuration-required');
+      if (!communityIdentity(serverId)) throw new EasyTierOperationError('configuration-required');
       const root = this.root(); await mkdir(root, {recursive: true, mode: 0o700});
       if ((await lstat(root)).isSymbolicLink()) throw new EasyTierOperationError('configuration-required');
       const file = join(root, 'community-device.json');

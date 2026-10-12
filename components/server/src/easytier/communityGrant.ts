@@ -50,6 +50,11 @@ export function safeArray(value: unknown, maxLength: number): value is unknown[]
       'value' in Object.getOwnPropertyDescriptor(value, k)!));
 }
 export const id = (x: unknown): x is string => typeof x === 'string' && /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(x);
+/** Existing socket/SFU namespace may contain CJK letters. Preserve exact bytes;
+ * account/request/key identifiers keep their separate ASCII grammar. */
+export const communityIdentity = (x: unknown): x is string => typeof x === 'string' && x.length <= 128 &&
+  /^[\p{L}\p{N}][\p{L}\p{N}._:-]{0,127}$/u.test(x);
+
 export const uuid = (x: unknown): x is string => typeof x === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(x);
 export const natural = (x: unknown): x is number => typeof x === "number" && Number.isSafeInteger(x) && x >= 0;
 export const positive = (x: unknown): x is number => natural(x) && x > 0;
@@ -77,7 +82,7 @@ export const SCOPE_KEYS = ['serverInstanceId', 'accountId', 'communityId', 'devi
 const INTENT_KEYS = [...SCOPE_KEYS, 'networkName', 'networkRevision', 'virtualIp', 'bootstrapProfileId'];
 export function scope(s: unknown): asserts s is CommunityGrantScope {
   exact<CommunityGrantScope>(s, SCOPE_KEYS, 'invalid-scope');
-  if (!SCOPE_KEYS.every(k => k === 'nativeInstanceId' ? uuid(s[k]) : id(s[k]))) fail('invalid-scope');
+  if (!SCOPE_KEYS.every(k => k === 'nativeInstanceId' ? uuid(s[k]) : k === 'serverInstanceId' || k === 'communityId' ? communityIdentity(s[k]) : id(s[k]))) fail('invalid-scope');
 }
 export function sameScope(a: CommunityGrantScope, b: CommunityGrantScope): boolean { return SCOPE_KEYS.every(k => a[k] === b[k]); }
 export function copiedScope(s: CommunityGrantScope): CommunityGrantScope { return Object.fromEntries(SCOPE_KEYS.map(k => [k, s[k]])) as unknown as CommunityGrantScope; }

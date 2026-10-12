@@ -2,7 +2,7 @@
  * Authenticated identity is derived by backend, never accepted in these request bodies.
  * Register under /api/community-et only after real fixed-version RPC interoperability.
  */
-import { exact, fail, id, uuid, type CommunityGrantScope, type PrivateCommunityGrantV1, type TrustedCommunityIntent } from './communityGrant';
+import { communityIdentity, exact, fail, id, uuid, type CommunityGrantScope, type PrivateCommunityGrantV1, type TrustedCommunityIntent } from './communityGrant';
 
 export interface CommunitySessionRequestV1 {
   v: 1; communityId: string; deviceId: string; nativeInstanceId: string;
@@ -34,7 +34,7 @@ export function parseCommunityGrantRequest(kind: 'session' | 'acquire' | 'renew'
   if (kind === 'acquire' || kind === 'renew' || kind === 'revoke') keys.push('requestId');
   if (kind === 'renew' || kind === 'revoke' || kind === 'binding') keys.push('grantId');
   exact<CommunityRenewRequestV1>(raw, keys, 'invalid-community-et-request');
-  if (raw.v !== 1 || !id(raw.communityId) || !id(raw.deviceId) || !uuid(raw.nativeInstanceId) ||
+  if (raw.v !== 1 || !communityIdentity(raw.communityId) || !id(raw.deviceId) || !uuid(raw.nativeInstanceId) ||
       (keys.includes('requestId') && !id(raw.requestId)) || (keys.includes('grantId') && !id(raw.grantId))) fail('invalid-community-et-request');
   return structuredClone(raw);
 }

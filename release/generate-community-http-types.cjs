@@ -2,7 +2,7 @@ const fs=require('node:fs'),p=require('node:path'),crypto=require('node:crypto')
 const root=p.resolve(__dirname,'..'),source=p.join(root,'components/server/src/easytier/communityGrantApi.ts');
 const text=fs.readFileSync(source,'utf8').replace(/\r\n/g,'\n'),bytes=Buffer.from(text);
 const blob=crypto.createHash('sha1').update(Buffer.from('blob '+bytes.length+'\0')).update(bytes).digest('hex');
-const expected='21d7a4804b1b35d33197346b5b7098254c9a8701';
+const expected='3725a571222d8897ea10eb2d1c0a662072f2a719';
 if(blob!==expected)throw Error('canonical-API-owner-review-required');
 const start=text.indexOf('export interface CommunitySessionRequestV1'),end=text.indexOf('export function parseCommunityGrantRequest');
 if(start<0||end<=start)throw Error('canonical-API-layout-changed');

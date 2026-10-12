@@ -23,7 +23,17 @@ function load(url) {
   vm.runInThisContext('(function(require,module,exports){' + js + '\n})', {filename: path})(localRequire, mod, mod.exports);
   return mod.exports;
 }
-const {ContractError, MainGrantGate, parseRendererIntent, publicKeyFingerprint} = load(new URL('./communityEtGrant.ts', import.meta.url));
+const {ContractError, MainGrantGate, parseRendererIntent, publicKeyFingerprint, communityIdentity, scope} = load(new URL('./communityEtGrant.ts', import.meta.url));
+
+test('existing CJK community namespace survives while account and native identities remain strict', () => {
+  const realId='老蒯聊_5000_default';
+  assert.equal(communityIdentity(realId),true);
+  assert.deepEqual(parseRendererIntent({v:1,communityId:realId,enabled:true}),{v:1,communityId:realId,enabled:true});
+  const value={serverInstanceId:realId,communityId:realId,accountId:'actual-account',deviceId:'device',nativeInstanceId:'11111111-1111-4111-8111-111111111111'};
+  assert.doesNotThrow(()=>scope(value));
+  assert.throws(()=>scope({...value,accountId:'另一个账号'}));
+  for(const communityId of ['../逃逸','社区/另一个','社区\\另一个','社区\u202efoo','社区\nfoo','社'.repeat(129)])assert.throws(()=>scope({...value,communityId}));
+});
 const binding = load(new URL('../../server/src/easytier/communityDeviceBinding.ts', import.meta.url));
 function verifyDeviceBinding(...args) {
   try { return binding.verifyDeviceBinding(...args); }
