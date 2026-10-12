@@ -1,0 +1,140 @@
+{
+  "schema": 1,
+  "status": "MINIMAL-ISOLATED-REAL-RTP-AND-PAUSE-RESUME-PASS",
+  "utc": "2026-10-12T09:01:16.393262+00:00",
+  "backend": {
+    "imageID": "sha256:e45e9c27fe391aa9281365745a54c34529b502f09fa79a2d8e68fcc5486d1eba",
+    "sourceCommit": "85ec3b9c60d49881ba9ad5cd48c9a17d59c1772d",
+    "tree": "96db8312488c4f399904192f3a932232cf6130ad",
+    "bundleSHA256": "8181b0834bcb93937b567939f69b26e8719a15e2785f9fd5ea3be955dade3fe5"
+  },
+  "sfu": {
+    "imageID": "sha256:d38ed22ddbed419661ba20b2c0bf008b18d07e05446c0c813c05a022883aafc6",
+    "sourceCommit": "011f12b92af2732cc6a86a088c5f753dfd5c1a14",
+    "tree": "3d64d5904681d59590be940870ce045e5c1577ff",
+    "version": "laokuai.hybrid.shutdown.011f12b9"
+  },
+  "evidence": {
+    "ownerReceiptSha256": "a136ec75ebdb52aa316dde5d48b0b3feb197b376bc90ce0e4f37491367cedc66",
+    "reportSha256": "9f69bb5d5e07db6670be70e462a09602e560b14207d0fa66332adee5eee5b8e7",
+    "postSealVerifySha256": "63d10bd2a4d7d21be98680d307e0b9d67585f6d7340f892dee9c71884e0b2e52",
+    "ownerReportedSealedFilesRehashed": 65,
+    "task6ReadNormalizedEvidenceOnly": true
+  },
+  "fixture": {
+    "audio": "440Hz tone with5Hz amplitude watermark;48kHz mono valid Opus48kbps CBR20ms",
+    "fixtureSha256": "b9d173404f957857d7b512f839cc316334bd56feddbbfa513737ec2cb868761e",
+    "peerBinarySha256": "e36eeabea943e547953f6811fd3678fb1eb2bff275bf7f4dd0a787d8140ad67e",
+    "receiverProofLimit": "Known valid encoded fixture payload matches and RTP sequence progression; no playback or actual client browser/device acceptance"
+  },
+  "selectedPairs": {
+    "a": [
+      {
+        "localIP": "172.18.0.4",
+        "localPort": 40014,
+        "nominated": true,
+        "protocol": "udp",
+        "remoteIP": "172.18.0.3",
+        "remotePort": 3478,
+        "state": "succeeded"
+      }
+    ],
+    "b": [
+      {
+        "localIP": "172.18.0.4",
+        "localPort": 40020,
+        "nominated": true,
+        "protocol": "udp",
+        "remoteIP": "172.18.0.3",
+        "remotePort": 3478,
+        "state": "succeeded"
+      }
+    ],
+    "c": [
+      {
+        "localIP": "172.18.0.4",
+        "localPort": 40021,
+        "nominated": true,
+        "protocol": "udp",
+        "remoteIP": "172.18.0.3",
+        "remotePort": 3478,
+        "state": "succeeded"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "id": "M1",
+      "status": "PASS",
+      "layer": "approved isolated deployment with real backend auth and raw Pion peers",
+      "windowMs": 5000,
+      "sent": 251,
+      "receiverB": 251,
+      "receiverC": 251,
+      "deliveryB": 1,
+      "deliveryC": 1,
+      "fixturePayloadsMatched": true,
+      "advancingRTPSequence": true
+    },
+    {
+      "id": "M2-minimal-cycle",
+      "status": "PASS",
+      "realBackendAndSFUAppliedACK": true,
+      "pauseObservationMs": 2000,
+      "receiverBDelta": 0,
+      "publisherSentDelta": 101,
+      "independentReceiverCDelta": 101,
+      "resumeFirstPacketMs": 21,
+      "resumeContinues5s": true
+    },
+    {
+      "id": "lease-expiry",
+      "status": "PASS",
+      "resumeCallSent": false
+    },
+    {
+      "id": "control-disconnect-safety-restoration",
+      "status": "PASS",
+      "backendError": "hybrid_unsupported",
+      "actualRTPReturned": true,
+      "SDKDirectToSFUSwitchAccepted": false
+    },
+    {
+      "id": "active-SFU-TERM-and-route-negative-control",
+      "status": "PASS",
+      "signal": "TERM",
+      "exit": 0,
+      "signalToDieMs": 189.277175,
+      "shutdownComplete": true,
+      "receiverBAndCNewValidPacketDeltaAfterSettling": 0
+    }
+  ],
+  "resourceScope": {
+    "containers": 3,
+    "internalBridgeOnly": true,
+    "CPUs": 2,
+    "memoryMiB": 2560,
+    "hostPorts": false,
+    "realDataAccountsDevicesOrET": false,
+    "productChanges": false
+  },
+  "cleanup": {
+    "ownedContainers": 0,
+    "ownedNetworks": 0,
+    "allThreeExits": 0,
+    "OOMOrSIGKILLOrPanic": false,
+    "priorContainerAndNetworkIDsUnchanged": true
+  },
+  "notRun": [
+    "Full Client/Voice SDK UI/browser/device integration",
+    "SDK automatic direct/P2P→SFU weak-network switching",
+    "20 pause/resume cycles and peer switching/epoch race matrix",
+    "active INT/repeated-signal/paused-and-joining drain matrix",
+    "wrong/old/dropped ACK and cross-room media failure matrix in this new run",
+    "runtime full listener inventory"
+  ],
+  "ready": false,
+  "finalPackage": null,
+  "productionDeploymentExecuted": false,
+  "physicalDirectVerified": false
+}

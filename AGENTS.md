@@ -210,6 +210,17 @@ Parent transferred narrow human-approved max3-container internal-bridge media
 execution to buildowner01a12dd7. Task6 creates no media resources; four-container
 V2/HTTP8080/wide-UDP remains unapproved. ready=false/finalPackage=null; no push.
 
+Latest human closeout supersedes further feature development: stop new ET wiring,
+cache/replay features and generalized diagnostics. Only finish existing basic
+voice/fallback checks, ordinary two-service deployment and current packaging.
+The designated buildowner run3 passed exact e45 backend+d38 SFU real Opus RTP,
+actual pause/resume ACK, lease restoration and active TERM; full SDK automatic
+P2P/device/WAN acceptance is not claimed. Task6 prepared the bounded operator
+package in release/deployment/hybrid-d38ed22d; production phases remain unexecuted
+by Task6. ET stays unavailable/pending and is not a voice deployment prerequisite.
+Real ET credentials/TUN/firewall and new network permissions still require their
+separate concrete human scope. Do not restart reserved ET tasks automatically.
+
 Exact original b385 lifecycle.3 payload now passed one independent-owner hidden
 offline empty-profile bootstrap/DOM, exit0/residual0;4 successful queries observed
 no owned TCP/UDP or foreground. See release/acceptance/lifecycle3-hidden-bootstrap.json.

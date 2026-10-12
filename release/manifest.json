@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "id": "laokuai-cloud-receive-path-et-observation-frozen-20261011",
-  "stage": "pure-community-contract-integrated-sfu-shutdown-image-pid1-pass-real-wiring-pending",
+  "stage": "minimal-real-voice-media-pass-two-service-production-candidate-prepared-et-wiring-separate",
   "ready": false,
   "repository": {
     "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud",
@@ -2412,6 +2412,19 @@
       "codeFreeze": "20006cf1bad50e5331339710ae22ae6578fffed8",
       "scopeCases": 86,
       "requireReadyExit": 2
+    },
+    "minimalActualMedia": {
+      "receipt": "release/acceptance/minimal-media-d38ed22d-run3.json",
+      "receiptSha256": "8da4ba2754461ced073052cfd968ed020672b6253f1ac78adeb9ca6e45fca1f8",
+      "backendImage": "sha256:e45e9c27fe391aa9281365745a54c34529b502f09fa79a2d8e68fcc5486d1eba",
+      "sfuImage": "sha256:d38ed22ddbed419661ba20b2c0bf008b18d07e05446c0c813c05a022883aafc6",
+      "validRtpPassed": true,
+      "realAppliedPauseResumePassed": true,
+      "controlDisconnectLeaseRestorationPassed": true,
+      "activeTermPassed": true,
+      "sdkAutomaticP2pFallbackAccepted": false,
+      "realUserDeviceHearingAccepted": false,
+      "task6CreatedMediaResources": false
     }
   },
   "securityBoundary": {
@@ -2456,7 +2469,7 @@
     "Lifecycle.3 Windows internal portable3a8065e5 from b38566f completed;411 sealed files rehashed,141 payload files exact, SDK212 installed/170 rebuilt dist and exact tgz repack reported. Root release verifier correctly separates historical Provider/842 scopes and current lifecycle SDK/relink evidence. Hidden offline empty-profile bootstrap now passed within its recorded scope; authentic device/media/native tests and source-recipient/license clearance remain pending; no public release.",
     "Exact lifecycle.3/b385 original payload passed one hidden offline empty-profile bootstrap/DOM, exit0/no residual,4 successful owned-endpoint/foreground samples. Three known disabled-IPC Promise errors persist as old842; console is not error-free. Tray8 pure branches only: real tray skipped and voice toolbar not mounted. Authentic settings/menu/room/device/native interaction and media remain unaccepted; no ready promotion or repack.",
     "Real community issuer/provider, persistent grant transactions, main-only transport/IPC/runtime and issuer pin wiring",
-    "New SFU active authenticated room/RTP/lease drain acceptance"
+    "Full Client/SDK automatic P2P-to-SFU, real user/device/WAN hearing remain unaccepted; minimal run3 real RTP/pause/resume/lease safety/active TERM passed"
   ],
   "finalPackage": null,
   "frozenPreviousHybrid": {
@@ -2660,5 +2673,36 @@
     "staticExportOccurredBeforeApplicationExecution": true,
     "authorizedOfflineSFUAcceptanceExecuted": true,
     "allStaticImageChecksPassed": true
+  },
+  "deploymentCandidate": {
+    "scope": "Existing main-community backend/SFU only; ET separate",
+    "sourceBaseline": "f8a4c6e71c8e9b2b416f8601750d5867efaf8ac2",
+    "backend": {
+      "imageID": "sha256:e45e9c27fe391aa9281365745a54c34529b502f09fa79a2d8e68fcc5486d1eba",
+      "sourceCommit": "85ec3b9c60d49881ba9ad5cd48c9a17d59c1772d",
+      "tree": "96db8312488c4f399904192f3a932232cf6130ad",
+      "bundleSHA256": "8181b0834bcb93937b567939f69b26e8719a15e2785f9fd5ea3be955dade3fe5"
+    },
+    "sfu": {
+      "imageID": "sha256:d38ed22ddbed419661ba20b2c0bf008b18d07e05446c0c813c05a022883aafc6",
+      "sourceCommit": "011f12b92af2732cc6a86a088c5f753dfd5c1a14",
+      "tree": "3d64d5904681d59590be940870ce045e5c1577ff",
+      "version": "laokuai.hybrid.shutdown.011f12b9"
+    },
+    "operator": "release/deployment/hybrid-d38ed22d/cutover.py",
+    "operatorSha256": "ae5dcb2d8ad1dc35be9fe0faa7ad453e13011fcf9348710f7dc94678b4bb9464",
+    "ordinaryDeploymentRequestedViaParent": true,
+    "executed": false,
+    "expectedInterruptSeconds": [
+      60,
+      120
+    ],
+    "maintenanceBudgetSeconds": 300,
+    "newPublicPorts": [],
+    "newTunFirewallDriverOrCredentialPermissions": false,
+    "originalIdentityKeysPreserved": true,
+    "originalDataPreserved": true,
+    "consistentCandidateCopyOnSameTargetOnly": true,
+    "rollbackUsesOldImagesAndOriginalData": true
   }
 }

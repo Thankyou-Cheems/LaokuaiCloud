@@ -7,3 +7,5 @@ components/client/release/licenses/native-transitive/MODERN-NATIVE-THIRD-PARTY-L
 components/easytier/patches/laokuai-modern-static-cumulative-code.patch -text -whitespace
 # Preserve the nine immutable prototype handoff files byte for byte.
 release/prototypes/easytier-contract-20261012/** -text -whitespace
+# Keep the hash-pinned cross-platform operator inputs exact on checkout.
+release/deployment/hybrid-d38ed22d/*.py -text

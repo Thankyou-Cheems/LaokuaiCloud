@@ -1,0 +1,11 @@
+# 已预留的真实接线边界与收尾暂停
+
+用户最新要求尽快收尾、停止新增功能；本文件只保留此前已要求的写入边界记录，不启动新任务或授权后续开发。ET复杂真实接线保持未启用，普通backend/SFU部署与基础通话测试独立先行。固定原分工基点f8a4c6e71c8e9b2b416f8601750d5867efaf8ac2，已有8文件纯合约均已整合。
+
+指定并行owner01a12f05的新文件唯一边界：server/src/easytier/communityEtStore.ts、communityCredentialProvider.ts、communityEtService.ts、communityEtBackend.ts；server/src/routes/communityEt.ts及同名targeted tests。只在独立worktree；不改现有8模块、DB index/migrations、server index/socket index、client、native和root。真实RPC framing若确需额外新codec文件，应在交接标明准确最小范围。Task6独占共享HTTP/router/DB注册、main IPC/Manager/preload、最终清单与集成提交。
+
+独立Router契约建议 POST /api/community-et/session/acquire/renew/revoke；session是main的可信auth核验入口，返回当前账号身份+trusted intent/public bootstrap；后3是私密server-to-main DTO。复用requireBearerToken，再每操作fail-closed复查getServerConfig/checkSessionAllowed/server与user token_version。不能信任request accountId/network/issuer/admin instance。真实持久operation/revision/tombstone/串行事务、取消和RPC不确定结果补偿；fixed native management instance的真实Generate(reusable=false)/同keyUpsert/List/Revoke实现沿本地api_instance.proto与RPC framing，不造REST API或响应字段。Generate私钥必须派生实际X25519公钥并以List回读验证，不从credential_id猜；trusted配置缺失诚实pending。只实现代码与纯/独立临时store/types，不执行真实凭据/RPC/network/native。
+
+Task6的main纵向边界：既有auth可信会话如何从renderer持有的member bearer移交main，并经固定可信HTTPS backend验证身份，而不是信任renderer accountId；main-only transport/gate/config的取消、续期和公开projection接到现有IPC/Manager。Grant永不投影renderer；缺可信session/provider/issuer pin或激活范围时不能connected成功。保留既有普通voice路径与独立社区生命周期。当前main没有现成main-owned bearer store，必须明确实现此接入点，不能称其已存在。
+
+派工状态：Task6实际调用既有线程两次均失败，第一次应用返回AbsolutePathBuf缺base，显式local重试返回no rollout found for thread id01a12f05-aaf0-74ec-960a-4fd74f7710d1。没有确认送达或启动第二writer。父可通过当前cloud delegation渠道向该已有owner下发此边界；此应用派工故障不是需要用户重新批准，也不是ET代码已交付。现有纯源码未改，本轮优先封存可执行两服务生产切换材料。
