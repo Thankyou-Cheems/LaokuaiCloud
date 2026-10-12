@@ -29,7 +29,7 @@ export function CommunityLanStatusControl({ action, enabled, preparing, communit
       </Tooltip>
       <Menu.Portal>
         <Menu.Positioner side="right" align="start" sideOffset={8}>
-          <Menu.Popup aria-label="社区联机详情" style={{ width: 288, maxWidth: "calc(100vw - 24px)", maxHeight: "calc(100dvh - 24px)", overflowY: "auto" }}>
+          <Menu.Popup aria-label="社区联机详情" style={{ width: "min(288px, calc(100vw - 24px), var(--available-width))", minWidth: 0, boxSizing: "border-box", maxWidth: "min(calc(100vw - 24px), var(--available-width))", maxHeight: "min(calc(100dvh - 24px), var(--available-height))", overflowY: "auto" }}>
             <div className="px-3 py-2 text-xs leading-relaxed" style={{ overflowWrap: "anywhere", whiteSpace: "normal" }}>
               <strong className="block text-sm">社区联机 · {action.label}</strong>
               <p className="mt-1 text-gryt-muted">{communityLabel} · {channelsReceived ? "频道信息已收到" : "频道信息未收到"}</p>
