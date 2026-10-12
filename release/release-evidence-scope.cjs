@@ -6,7 +6,52 @@ function verifyPackedInventory(packed,info,files){
   assert.equal(packed?.version,info.version,'SDK packed version mismatch');
 }
 
-function verifyLifecycleScope(manifest,receipt,{git,sha,readFrozen}){
+
+function verifyCurrentComponentSource(manifest,receipt,{git,sha,readFrozen}){
+  const entry=manifest.validation.currentComponentSource;
+  assert.ok(entry&&receipt,'Current component source receipt required');
+  assert.equal(sha(entry.receipt),entry.receiptSha256,'Current source receipt changed');
+  assert.equal(receipt.status,'PASS-CURRENT-SOURCE-AND-POPUP-RENDER-PACKAGE-PENDING');
+  assert.equal(receipt.sourceCommit,entry.sourceCommit);
+  assert.equal(git(['rev-parse',entry.sourceCommit+'^{tree}']),receipt.sourceTree,'Current source tree mismatch');
+  const baseline=manifest.validation.lifecycle3LocalIntegration.sourceCommit;
+  assert.equal(receipt.lifecycleBaseline,baseline);
+  git(['merge-base','--is-ancestor',baseline,entry.sourceCommit]);git(['merge-base','--is-ancestor',entry.sourceCommit,'HEAD']);
+  const changes=git(['diff','--name-only',baseline,entry.sourceCommit,'--','components']).split('\n').filter(Boolean).sort();
+  assert.deepEqual(receipt.changes.map(x=>x.path).sort(),changes,'Superseding source delta mismatch');
+  assert.equal(new Set(changes).size,changes.length);
+  for(const x of receipt.changes){
+    assert.ok(x.path.startsWith('components/client/')||['components/server/Dockerfile','components/server/src/sfu/hybridProtocol.test.ts'].includes(x.path),'Unreviewed component change');
+    assert.equal(git(['rev-parse',entry.sourceCommit+':'+x.path]),x.gitBlob,'Superseding Git blob mismatch');
+    assert.equal(require('node:crypto').createHash('sha256').update(readFrozen(entry.sourceCommit,x.path)).digest('hex'),x.sha256,'Superseding source byte mismatch');
+  }
+  for(const [name,c]of Object.entries(manifest.components)){
+    assert.equal(git(['rev-parse',entry.sourceCommit+':'+c.path]),receipt.componentTrees[name],'Current frozen component tree mismatch');
+    assert.equal(c.tree,receipt.componentTrees[name],'Current manifest component tree mismatch');
+    assert.equal(git(['rev-parse','HEAD:'+c.path]),c.tree,'Current HEAD component mismatch');
+  }
+  const popupBase=manifest.validation.hybridDeploymentPreparation.sourceCommit;
+  assert.equal(receipt.popupBaseline,popupBase);git(['merge-base','--is-ancestor',popupBase,entry.sourceCommit]);
+  const popupFiles=['components/client/src/components/CommunityLanStatusControl.tsx','components/client/scripts/fixtures/community-lan-popup.tsx','components/client/scripts/check-community-popup-layout.cjs','components/client/scripts/build-community-popup-fixture.cjs'].sort();
+  assert.deepEqual(git(['diff','--name-only',popupBase,entry.sourceCommit,'--','components']).split('\n').filter(Boolean).sort(),popupFiles,'Popup change exceeded reviewed source scope');
+  assert.equal(receipt.localTypes.appErrors,0);assert.equal(receipt.localTypes.nodeErrors,0);assert.equal(receipt.localLint.errors,0);assert.equal(receipt.localLint.warnings,0);
+  const ui=receipt.popupRender;assert.equal(ui.checks.length,13);assert.ok(ui.checks.every(x=>x.passed));assert.equal(ui.baseChecksPassed,9);assert.equal(ui.extraChecksPassed,4);
+  for(const c of ui.checks){
+    assert.ok(c.documentWidth<=c.viewport.width,'Rendered document overflow');
+    assert.ok(c.footer.bottom<=c.viewport.height+1&&c.control.bottom<=c.footer.y,'Rendered footer/control overlap');
+    assert.ok(c.controlPosition!=='fixed'&&c.controlPosition!=='absolute'&&c.button.width<=40,'Rendered compact control changed');
+    if(c.popup)assert.ok(c.popup.x>=0&&c.popup.y>=0&&c.popup.right<=c.viewport.width+1&&c.popup.bottom<=c.viewport.height+1,'Rendered popup overflow');
+    if(c.keyboard)assert.ok(c.keyboard.menuFocus&&c.focusRestored===true,'Rendered keyboard/focus regression');
+  }
+  assert.equal(ui.exitCode,0);assert.equal(ui.residualCount,0);assert.equal(ui.ownedEndpointCount,0);assert.equal(ui.foregroundCount,0);assert.ok(ui.endpointSamples>0);assert.equal(ui.allEndpointQueriesSucceeded,true);assert.equal(ui.monitorStopReason,null);assert.equal(ui.showOrFocusEvents,0);
+  for(const [file,hash]of Object.entries(ui.sourceInputHashes))assert.equal(require('node:crypto').createHash('sha256').update(readFrozen(entry.sourceCommit,'components/client/'+file)).digest('hex'),hash,'Rendered input/source mismatch');
+  for(const flag of ['newPackageBuilt','actualWholeAppAccepted','realAccountAccepted','realMediaAccepted','nativeAccepted','deployed','ready'])assert.equal(receipt.boundaries[flag],false,'Source/render evidence promoted to runtime/release');
+  assert.equal(receipt.boundaries.finalPackage,null);
+  return receipt;
+}
+
+function verifyLifecycleScope(manifest,receipt,{git,sha,readFrozen,currentSourceReceipt}){
+  const currentScope=manifest.validation.currentComponentSource?verifyCurrentComponentSource(manifest,currentSourceReceipt,{git,sha,readFrozen}):null;
   const entry=manifest.validation.lifecycle3LocalIntegration;
   assert.equal(receipt.status,'LOCAL-SOURCE-INTEGRATED-PURE-CHECKS-PASS-WINDOWS-BUILD-PENDING');
   assert.equal(receipt.candidate.sourceCommit,entry.sourceCommit);
@@ -16,7 +61,8 @@ function verifyLifecycleScope(manifest,receipt,{git,sha,readFrozen}){
   assert.equal(git(['rev-parse',entry.sourceCommit+'^{tree}']),receipt.candidate.sourceTree,'Lifecycle source tree mismatch');
   for(const [name,pin] of Object.entries(receipt.candidate.componentTrees)){
     assert.equal(git(['rev-parse',entry.sourceCommit+':components/'+name]),pin.tree,'Lifecycle frozen component mismatch');
-    assert.equal(manifest.components[name].tree,pin.tree,'Lifecycle current component mismatch');
+    if(currentScope&&['client','server'].includes(name)){assert.equal(manifest.components[name].tree,currentScope.componentTrees[name],'Lifecycle superseding component mismatch');}
+    else assert.equal(manifest.components[name].tree,pin.tree,'Lifecycle current component mismatch');
   }
   assert.equal(receipt.sdkArchive.tgzSha256,manifest.components.voice.package.sha256,'Lifecycle archive receipt mismatch');
   assert.equal(receipt.sdkArchive.tgzSha1,manifest.components.voice.package.sha1,'Lifecycle archive SHA1 mismatch');
@@ -33,7 +79,10 @@ function verifyLifecycleScope(manifest,receipt,{git,sha,readFrozen}){
   assert.equal(receipt.boundaries.ready,false);
   assert.equal(receipt.boundaries.finalPackage,null);
   for(const key of ['productRun','nativeRun','realNetworkTrial','deployment','userConfigurationTouched'])assert.equal(receipt.boundaries[key],false,'Lifecycle source evidence promoted to execution');
-  return {current:manifest.components.voice,historical:old,historicalBoundary:receipt.baseline,currentBoundary:entry.sourceCommit};
+  const legacy=JSON.parse(readFrozen(entry.sourceCommit,'release/manifest.json')).repository;
+  git(['merge-base','--is-ancestor',legacy.codeCommit,entry.sourceCommit]);
+  assert.equal(git(['rev-parse',legacy.codeCommit+'^{tree}']),legacy.codeTree,'Frozen legacy comparison tree mismatch');
+  return {current:manifest.components.voice,historical:old,historicalBoundary:receipt.baseline,currentBoundary:entry.sourceCommit,legacyComparisonBoundary:legacy.codeCommit};
 }
 
 function bindSdkReceipt(sourceCommit,packageSha256,scope){
@@ -68,4 +117,4 @@ function verifyRelinkEvidence(entry,receipt,sha){
   assert.equal(receipt.testOnlyLibraryProbe.binariesImportedIntoProduct,false);
 }
 
-module.exports={verifyPackedInventory,verifyLifecycleScope,bindSdkReceipt,verifyRelinkEvidence};
+module.exports={verifyPackedInventory,verifyCurrentComponentSource,verifyLifecycleScope,bindSdkReceipt,verifyRelinkEvidence};

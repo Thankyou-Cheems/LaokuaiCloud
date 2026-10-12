@@ -23,7 +23,7 @@ let sdkScope={current:m.components.voice,currentBoundary:m.repository.codeCommit
 if(m.validation.lifecycle3LocalIntegration){
   const entry=m.validation.lifecycle3LocalIntegration;
   assert(sha(entry.receipt)===entry.receiptSha256,'Lifecycle integration receipt changed');
-  sdkScope=evidence.verifyLifecycleScope(m,JSON.parse(fs.readFileSync(path.join(root,entry.receipt))),{git,sha,readFrozen});
+  sdkScope=evidence.verifyLifecycleScope(m,JSON.parse(fs.readFileSync(path.join(root,entry.receipt))),{git,sha,readFrozen,currentSourceReceipt:m.validation.currentComponentSource?JSON.parse(fs.readFileSync(path.join(root,m.validation.currentComponentSource.receipt))):undefined});
 }
 assert(m.easytier.tag==='v2.7.0'&&m.easytier.prerelease&&m.easytier.tagCommit==='8b7f1f0196edb5b580829ed5f135050fb5853478','ET source target mismatch');
 assert(m.validation.clientPure.checks.every(x=>x.exit===0),'Recorded checks not green');
@@ -126,7 +126,7 @@ if(m.validation.uiHiddenBootstrapActual){
   assert(receipt.testedFreeze==='5d309524116d2276d913af6f98a79436e9dbf3ed'&&receipt.status==='PASS-bootstrap-only'&&receipt.task6ReadOnlyVerification.files===201&&receipt.task6ReadOnlyVerification.allHashesMatched,'Actual UI source/evidence identity mismatch');
   assert(receipt.artifact.sha256==='d6a1ee4023fc33cf889798cb60b9a3dbe382a6a4a9af2e2b9f34168f223d4c83'&&receipt.appAsarSha256==='ed3ea18c2a6405a138386966ca41927a5ef1a8d5582afd6bdcedd6c6756682f0','Actual UI exact package identity changed');
   assert(receipt.actualRuns.length===2&&receipt.actualRuns.every(x=>x.exit===0&&x.residual.length===0&&!x.windowVisible&&!x.windowFocused)&&receipt.actualRuns[1].explicitEndpointAndForegroundQuerySuccess,'Actual UI bounded startup result changed');
-  const bootstrapChanges=git(['diff','--name-only',receipt.testedFreeze,m.repository.codeCommit,'--','components/client/src','components/client/electron','components/voice','components/server','components/sfu']);
+  const bootstrapChanges=git(['diff','--name-only',receipt.testedFreeze,sdkScope.legacyComparisonBoundary||m.repository.codeCommit,'--','components/client/src','components/client/electron','components/voice','components/server','components/sfu']);
   assert(bootstrapChanges===''||(m.validation.modernNativeRuntime&&bootstrapChanges==='components/client/electron/easyTierWindowsAssets.ts'),'Measured UI/media source changed outside independently verified native asset pins');
   // Bootstrap acceptance stays with the exact old 5d package. The newer native
   // asset loader pins do not inherit complete-app bootstrap acceptance.
@@ -315,7 +315,9 @@ if(m.validation.lifecycle3InternalBuild){
  assert(sha(e.receipt)===e.receiptSha256,'Lifecycle internal build receipt changed');
  git(['merge-base','--is-ancestor',r.sourceCommit,'HEAD']);
  assert(git(['rev-parse',r.sourceCommit+'^{tree}'])===r.sourceTree&&e.sourceFreeze===r.sourceCommit&&e.sourceTree===r.sourceTree,'Lifecycle build source identity mismatch');
- assert(git(['diff','--name-only',r.sourceCommit,'HEAD','--','components'])==='','Lifecycle built product source changed');
+ const buildBoundary=m.validation.currentComponentSource?m.validation.lifecycle3LocalIntegration.sourceCommit:'HEAD';
+ assert(git(['diff','--name-only',r.sourceCommit,buildBoundary,'--','components'])==='','Lifecycle built product source changed within its frozen scope');
+ if(m.validation.currentComponentSource)assert(e.currentProductAccepted===false&&candidate.includesCurrentUiBrandSource===false,'Historical artifact promoted to current source acceptance');
  assert(r.sdkSha256===packageInfo.sha256&&r.filesVerified===411&&r.allHashesMatched&&r.payloadFilesByteExact===141,'Lifecycle build/SDK evidence mismatch');
  assert(candidate.sourceFreeze===r.sourceCommit&&candidate.sourceTree===r.sourceTree&&candidate.sdkSha256===r.sdkSha256&&candidate.artifact.sha256===r.artifact.sha256&&candidate.artifact.bytes===r.artifact.bytes&&candidate.asarSha256===r.asarSha256,'Lifecycle artifact descriptor mismatch');
  for(const [name,file] of Object.entries(r.nativePayloadUnchanged))assert(file.sha256===m.easytier.privateWindowsRuntimeFiles[name].sha256,'Lifecycle native payload changed');
@@ -327,5 +329,13 @@ if(m.validation.lifecycle3ReleaseVerifier){
  assert(sha(e.receipt)===e.receiptSha256&&r.checks.scope.allPassed&&r.checks.scope.checks===e.scopeCases&&r.checks.cli.allPassed&&r.checks.cli.checks===e.cliCases,'Lifecycle verifier regression receipt changed');
  assert(e.requireReadyExit===2&&!r.ready&&r.finalPackage===null&&!r.publicDistributionApproved&&!r.nativeActivationApproved&&!r.productSourceChanged&&!r.windowsRepackageRequired,'Verifier checks promoted to product/release acceptance');
 }
-console.log(JSON.stringify({id:m.id,codeCommit:sdkScope.currentBoundary,historicalCodeCommit:m.repository.codeCommit,sourceConsistent:true,components:Object.keys(m.components),sdkVersion:packed.version,historicalSdkReceiptsApplicableToCurrentSdk:!sdkScope.historical,ready:m.ready,easytier:m.easytier.implementationStatus,actualNetworkVerified:m.easytier.actualNetworkVerified}));
+if(m.validation.currentPopupVerifier){
+ const e=m.validation.currentPopupVerifier,r=JSON.parse(fs.readFileSync(path.join(root,e.receipt)));
+ assert(sha(e.receipt)===e.receiptSha256&&r.sourceCommit===m.validation.currentComponentSource.sourceCommit&&e.sourceCommit===r.sourceCommit,'Current verifier receipt/source mismatch');
+ assert(r.scopeChecks.allPassed&&r.scopeChecks.checks===e.scopeCases&&r.scopeChecks.positive+r.scopeChecks.negative===r.scopeChecks.checks,'Current verifier regressions incomplete');
+ assert(r.cliChecks.length===2&&r.cliChecks[0].exit===0&&r.cliChecks[1].exit===2&&e.requireReadyExit===2,'Current readiness CLI regression changed');
+ for(const x of r.verifierFiles)assert(sha(x.path)===x.sha256,'Current verifier source changed');
+ assert(!r.actualRuntimeOrMediaAccepted&&!r.ready&&r.finalPackage===null,'Current verifier proof promoted to media/release');
+}
+console.log(JSON.stringify({id:m.id,codeCommit:m.repository.codeCommit,sdkSourceBoundary:sdkScope.currentBoundary,historicalSdkSourceBoundary:sdkScope.historicalBoundary,sourceConsistent:true,components:Object.keys(m.components),sdkVersion:packed.version,historicalSdkReceiptsApplicableToCurrentSdk:!sdkScope.historical,ready:m.ready,easytier:m.easytier.implementationStatus,actualNetworkVerified:m.easytier.actualNetworkVerified}));
 if(process.argv.includes('--require-ready')&&!m.ready){console.error('Release blocked: '+m.pending.join('; '));process.exitCode=2;}

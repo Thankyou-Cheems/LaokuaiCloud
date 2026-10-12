@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "sourceCommit": "a88f7d75066cf03d65d618bb49cabbff6e8d7884",
+  "scopeChecks": {
+    "checks": 68,
+    "positive": 8,
+    "negative": 60,
+    "allPassed": true,
+    "realNetworkOrNativeExecuted": false
+  },
+  "cliChecks": [
+    {
+      "args": [],
+      "exit": 0,
+      "error": null
+    },
+    {
+      "args": [
+        "--require-ready"
+      ],
+      "exit": 2,
+      "error": null
+    }
+  ],
+  "verifierFiles": [
+    {
+      "path": "release/verify-release.cjs",
+      "sha256": "23558175687051dd1d210f39a9ceae44edc00e10d1f227ba84d8c44a607d77a4"
+    },
+    {
+      "path": "release/release-evidence-scope.cjs",
+      "sha256": "ece5e9a78ab7679b1a015107d439d68d68336679135615a7d64bc1095d9a610d"
+    },
+    {
+      "path": "release/check-release-evidence-scope.cjs",
+      "sha256": "828ec79c898788ac55eb43a69b66979f6d2cf2a53fb745a20cd9ba55d5ce2f39"
+    }
+  ],
+  "oldAssertionPreservation": "Historical bootstrap compared at its immutable legacy boundary, historical b385 build compared at its exact lifecycle source boundary. Current source has a separate exact32-path Git-byte and13-render-case supersession; old package is not current acceptance.",
+  "actualRuntimeOrMediaAccepted": false,
+  "ready": false,
+  "finalPackage": null,
+  "remotePush": false
+}

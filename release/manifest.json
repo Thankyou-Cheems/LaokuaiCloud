@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "id": "laokuai-cloud-receive-path-et-observation-frozen-20261011",
-  "stage": "community-ui-brand-source-checked-new-package-and-p2p-wiring-pending",
+  "stage": "popup-current-source-render-pass-fresh-package-and-real-media-pending",
   "ready": false,
   "repository": {
     "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud",
@@ -9,15 +9,15 @@
     "visibility": "private",
     "branch": "integration/lifecycle3-20261012",
     "soleGitWriter": "task-6",
-    "codeCommit": "85ec3b9c60d49881ba9ad5cd48c9a17d59c1772d",
-    "codeTree": "0412a059261ad0564f3aca03b3cdf9a6d3a69de8",
+    "codeCommit": "a88f7d75066cf03d65d618bb49cabbff6e8d7884",
+    "codeTree": "ac62e1bfda50664bb35f5ff532109369ab824b1d",
     "newRepositoryReason": "Authenticated private-repo metadata and explicitly scoped old local core/game remotes revealed no matching existing private integration repository",
     "historyPolicy": "Original client history preserved; no force push/reset/rewrite; other components imported as licensed source snapshots"
   },
   "components": {
     "client": {
       "path": "components/client",
-      "tree": "fdba7f4b377933411a5adb2c932e389ca8ec0d0e",
+      "tree": "8123a71d99a101a3dce02027d476c7e8879ff48d",
       "upstream": "Gryt-chat/client",
       "publicFork": "Thankyou-Cheems/gryt-client-i18n",
       "historyImportedFrom": "06ac43f51dbda3b9444c73270a126e10489110e9",
@@ -2230,7 +2230,8 @@
       "windowsPackageBuilt": true,
       "actualAppRun": false,
       "ready": false,
-      "finalPackage": null
+      "finalPackage": null,
+      "currentProductAccepted": false
     },
     "lifecycle3ReleaseVerifier": {
       "receipt": "release/acceptance/lifecycle3-verifier-regressions.json",
@@ -2262,6 +2263,19 @@
       "sourceCommit": "85ec3b9c60d49881ba9ad5cd48c9a17d59c1772d",
       "imagesBuilt": false,
       "deployed": false
+    },
+    "currentComponentSource": {
+      "receipt": "release/acceptance/current-popup-source.json",
+      "receiptSha256": "2fbaacd8b69ed3604cfaf489e8607169ee1f1ef471b547014304baf2d8bb753a",
+      "sourceCommit": "a88f7d75066cf03d65d618bb49cabbff6e8d7884",
+      "status": "PASS-CURRENT-SOURCE-AND-POPUP-RENDER-PACKAGE-PENDING"
+    },
+    "currentPopupVerifier": {
+      "receipt": "release/acceptance/current-popup-verifier.json",
+      "receiptSha256": "4fffe2bfd14e81da786f215b3411eff2e68cd70d993bd1cb8e84099ea18c046e",
+      "sourceCommit": "a88f7d75066cf03d65d618bb49cabbff6e8d7884",
+      "scopeCases": 68,
+      "requireReadyExit": 2
     }
   },
   "securityBoundary": {
@@ -2439,13 +2453,14 @@
     "includesCurrentUiBrandSource": false
   },
   "pendingUiBrandCandidate": {
-    "sourceCommit": "c75e6802ac9971b7d4139df8f97b99c7398efd7d",
-    "clientTree": "fdba7f4b377933411a5adb2c932e389ca8ec0d0e",
+    "sourceCommit": "a88f7d75066cf03d65d618bb49cabbff6e8d7884",
+    "clientTree": "8123a71d99a101a3dce02027d476c7e8879ff48d",
     "package": null,
     "buildAccepted": false,
     "actualUiAccepted": false,
     "p2pAccepted": false,
     "buildHandoff": "release/COMMUNITY-UI-BRAND-BUILD-HANDOFF.md",
-    "wiringGaps": "release/P2P-WIRING-GAPS-20261012.md"
+    "wiringGaps": "release/P2P-WIRING-GAPS-20261012.md",
+    "componentPopupRendered": true
   }
 }

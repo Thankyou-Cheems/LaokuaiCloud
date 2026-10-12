@@ -1,0 +1,19 @@
+# ADR0001: Independent community, voice SFU and EasyTier modules
+
+Status: user-approved architecture,2026-10-12. Local Git record; no production deployment or new credential issuance. Unified client branding does not combine the backend into one process.
+
+| Module | Ownership | Interface and compatibility | Current reality |
+| --- | --- | --- | --- |
+| Community backend | Accounts, membership, channel permissions, authenticated signaling; future community ET authorization | Existing server join/identity, room grant and voice:hybrid:* pair authority; authenticated SFU control capability/ACK | Hybrid source is implemented. Current deployed1.10.58 bundle lacks its markers. ET grant/device directory is planned. |
+| Voice SFU | Necessary microphone forwarding and per-edge pause/restore | Signed room/session admission; hybrid_command/result with actual applied ACK and bounded expiry | Hybrid source is implemented. Current deployed SFU lacks its markers. Ordinary voice fallback remains separate; clients still upload SFU while peer downlink is selected. |
+| EasyTier | Virtual network, hole punching and network relay | Existing Secure Mode device credential/Noise APIs; future main-only config, identity binding and telemetry adapter | Native/source is frozen; community auto-enrollment is not implemented. Existing public/private instances are protected. ET/ICE relay is not physical-direct proof. |
+
+Each module retains its own process/container, source/version/image digest, persistence and rollback authority. Capability absence must fail closed for that optional path, while ordinary authenticated community/SFU remains usable. Pair support requires a real current registered SFU probe; a configured flag or HTTP health is insufficient. Future ET capability/grant messages must be explicitly versioned; do not invent currently deployed event names.
+
+- Upgrade, health check and rollback each service independently. Existing Compose may remain an operator inventory, but use service-scoped --no-deps actions; never default to compose down/up of all modules, and never restart ET merely because community/SFU/voice changes. A coordinated first Hybrid rollout names only the two affected image IDs and their compatibility/order. Later upgrades must declare supported old/new peer-interface versions and per-service rollback; preserve data/signing identity and account permissions.
+- Client/main owns only its approved sidecar instance. Community membership owns ET lifetime, independently of viewing, voice rooms, voice exit and shared signaling socket lifetime. Preserve the current single-active-community limit until a separately tested extension.
+- Planned ET enrollment reuses native short-lived per-device credentials and Noise identities, not a new PKI or distributed network_secret. Renderer sends communityId/intent only; main verifies bounded authority/schema/device/expiry/instance and generates known config. No arbitrary TOML/path/command. Actual local driver/management/network authorization remains separate from community membership. No real device credential has been generated or saved in this work.
+- Media proof combines actual selected candidate/transport generation, exact selected track, RTP/decode and ET physical path when applicable. Interface enumeration alone cannot establish ICE/TUN selection. Screen stays unavailable until a separate direct-only channel proves no SFU/TURN/ET relay; p2p_only is not a zero-relay guarantee.
+- Current frozen core's reported#2658 multithread gap is a risk, not a reason to upgrade or enable multi_thread during this UI/Hybrid rollout. Public/private ET node changes and production/security operations need their own concrete scope.
+
+Implementation references: P2P-WIRING-GAPS-20261012.md, HYBRID-BACKEND-SFU-UPGRADE-PLAN.md and EASYTIER-SECURE-MODE-API-REVIEW.md. The narrow popup fix and its source/render evidence do not depend on this ADR or future enrollment implementation.

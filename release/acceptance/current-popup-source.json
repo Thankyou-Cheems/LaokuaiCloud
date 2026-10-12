@@ -1,0 +1,893 @@
+{
+  "schema": 1,
+  "status": "PASS-CURRENT-SOURCE-AND-POPUP-RENDER-PACKAGE-PENDING",
+  "sourceCommit": "a88f7d75066cf03d65d618bb49cabbff6e8d7884",
+  "sourceTree": "ac62e1bfda50664bb35f5ff532109369ab824b1d",
+  "lifecycleBaseline": "cb31e2e4ec044a2574f88321bc90cc01c3b51e0c",
+  "popupBaseline": "85ec3b9c60d49881ba9ad5cd48c9a17d59c1772d",
+  "componentTrees": {
+    "client": "8123a71d99a101a3dce02027d476c7e8879ff48d",
+    "voice": "45a5122b5480e37224987e74b898cfd4553f0cb4",
+    "server": "96db8312488c4f399904192f3a932232cf6130ad",
+    "sfu": "24c3669c4ca13d39f8132225ae1cb4a450750729",
+    "easytier": "1af35e8bef73da0a0c3eaddef464a714d8a4b2a2",
+    "landing": "e1215b01f703d2a2dba56ba9cb1261b55789220a"
+  },
+  "changes": [
+    {
+      "path": "components/client/LAOKUAI-BRAND-NOTICES.md",
+      "gitBlob": "da39b9966b43657ea0cc7af832f7af8013a94d61",
+      "sha256": "c638ebfe38fbb77d17d56bd00c1fa43f0bf91c4fc6599d489fbe7e01937890d0"
+    },
+    {
+      "path": "components/client/electron-builder.laokuai.cjs",
+      "gitBlob": "3e4d27526315dbea4657e56d0470200b65e6105b",
+      "sha256": "7a92bb13375b8d5a84f8c1340612ee69144c9c8ac20b53d8d9d72911faf003ff"
+    },
+    {
+      "path": "components/client/private-brand/ICON-SOURCE.json",
+      "gitBlob": "ea6472826566ae7367ec29cde020d0105d574f55",
+      "sha256": "3146aea81686da2561ad078e63eb7f4fb9392419f59253c47fff54f8da03495a"
+    },
+    {
+      "path": "components/client/private-brand/icon-128.png",
+      "gitBlob": "a54e8806ea03ca2ba72b6d926e5051bd475212e7",
+      "sha256": "db41d74e018083134e24d5923b3769388ba2c04c21a9abcdf0f551a8eb5d99a8"
+    },
+    {
+      "path": "components/client/private-brand/icon-16.png",
+      "gitBlob": "840ca450a340addf08139047b54c56ae3d9a4f76",
+      "sha256": "8e88117e3609e66135e8a39c2a31d9286d9273dce6bb6aa2e7244d139ada2acc"
+    },
+    {
+      "path": "components/client/private-brand/icon-24.png",
+      "gitBlob": "73ce4b9f1fe933b094c4e1ea96a3b310bbd7cbb9",
+      "sha256": "7b709d5a4a2846a75af84c2b2f0de452833bafa2312856315db40b6d35f336bf"
+    },
+    {
+      "path": "components/client/private-brand/icon-256.png",
+      "gitBlob": "14826738ba60af5cb052ec822dd091e302623301",
+      "sha256": "ad5f67a0d5541f3a214b6ad7f46354de34d0497bdfd257339f06b5d085fed13d"
+    },
+    {
+      "path": "components/client/private-brand/icon-32.png",
+      "gitBlob": "7c34b16dc27ddcd92fd5fae23cd0757bd529ba2d",
+      "sha256": "24d15431782941475995c27950293517eca59e3a3f9bcefdc0e3f3cc62539c74"
+    },
+    {
+      "path": "components/client/private-brand/icon-48.png",
+      "gitBlob": "fd15dae8241ad006b84675edc5e525117a13e702",
+      "sha256": "8584f7dd2422ee24262b10538da57ad629fd7a6a434965b35d9655ac3a1c40f2"
+    },
+    {
+      "path": "components/client/private-brand/icon-512.png",
+      "gitBlob": "9f4c2bf09703d50d5580dc4662ad842fa18850c4",
+      "sha256": "51b00dbce1d2fc11904e82a98f1704ecd9e10bdb24c8a7d66cd2cc33ee190934"
+    },
+    {
+      "path": "components/client/private-brand/icon-64.png",
+      "gitBlob": "83273f61de1ed48d3f5ce03ed6422e3d2db89933",
+      "sha256": "6273394ff6b495ea62a139881edd9fe487ffa24a7320f9f4ef8fe9cca6c7084a"
+    },
+    {
+      "path": "components/client/private-brand/icon.ico",
+      "gitBlob": "91e29b4fdec9267d470c118e9ac56f3e484cd9ab",
+      "sha256": "b95f8bd229b8f5c631bcb1bd6f628a7c0480aa9fd5e4c1659b17863226e1ffe7"
+    },
+    {
+      "path": "components/client/private-brand/icon.png",
+      "gitBlob": "9f4c2bf09703d50d5580dc4662ad842fa18850c4",
+      "sha256": "51b00dbce1d2fc11904e82a98f1704ecd9e10bdb24c8a7d66cd2cc33ee190934"
+    },
+    {
+      "path": "components/client/private-brand/kiriye-approved.png",
+      "gitBlob": "425fb0f4305efd0e9a3ca9bb6632d77831e38a1d",
+      "sha256": "06b380ae3c6f155ba11551d6eeb8a97f21a528cf6a51d9a83d43a0d26ca5a415"
+    },
+    {
+      "path": "components/client/public/laokuai-icon.png",
+      "gitBlob": "14826738ba60af5cb052ec822dd091e302623301",
+      "sha256": "ad5f67a0d5541f3a214b6ad7f46354de34d0497bdfd257339f06b5d085fed13d"
+    },
+    {
+      "path": "components/client/scripts/build-community-popup-fixture.cjs",
+      "gitBlob": "911c49ddf32f92d3af16128b715f27ec0e87d4ce",
+      "sha256": "e10a8c17873047cfe3882fec738921788932a11c90519a56104c7fd50a66cafc"
+    },
+    {
+      "path": "components/client/scripts/check-community-lan-isolation.mjs",
+      "gitBlob": "735fc580bc4338c9862b964df760625119b22251",
+      "sha256": "a480b5452933d471533196c107b7184481ecbbecb97d7678bc0b11144f4ff6cd"
+    },
+    {
+      "path": "components/client/scripts/check-community-popup-layout.cjs",
+      "gitBlob": "e9760981217b96d2db6c4ba695c8a49e2d67398b",
+      "sha256": "90663bf5c1896898431c1d8f628297079267ffc821fcd44dffc4c2e48bdc1c77"
+    },
+    {
+      "path": "components/client/scripts/check-laokuai-approved-brand.mjs",
+      "gitBlob": "ef47e526f3c47d01407e1250ba19e2736db2f39d",
+      "sha256": "70e975cf4b14787fcfce82a0c24595f6cb31cd3af225e293af65d8082aed9db0"
+    },
+    {
+      "path": "components/client/scripts/check-laokuai-package-audit.mjs",
+      "gitBlob": "78cea13cad6a1237234baba8ff6eed92fb7ca087",
+      "sha256": "f517a0f974df03cca7215ade355229b55da14a9bf99058d327225e8de4015549"
+    },
+    {
+      "path": "components/client/scripts/check-private-startup.mjs",
+      "gitBlob": "43b5587b028c6656a86e26d244104c7a708d5ee4",
+      "sha256": "e6fbbcd28f674317d4c96191eeed6c9ac1a3e434a31fa249564ee67ad575f5f3"
+    },
+    {
+      "path": "components/client/scripts/convert-laokuai-icon.mjs",
+      "gitBlob": "7d36e9c7a0367972373662b553daa360ee4bec51",
+      "sha256": "58b842050d83c862b962ef4eca6072a4c773e03b99a5317c27364628193ba476"
+    },
+    {
+      "path": "components/client/scripts/fixtures/community-lan-popup.tsx",
+      "gitBlob": "50db50666d00f0a121a40ab468306f543d9fdae5",
+      "sha256": "528b158b7c9867bd327a3967c3aabe043b84a44209ffb4e59beb88cd486c17a1"
+    },
+    {
+      "path": "components/client/scripts/laokuai-package-audit.cjs",
+      "gitBlob": "6c3e14fcb9217f1a0056daecd01974406ec342ec",
+      "sha256": "a828dd984bd94de64d15e463d452e1bab69195922913944f9c32cc557a6dba50"
+    },
+    {
+      "path": "components/client/src/App.tsx",
+      "gitBlob": "ce3bd1181c5a68c1c2742c91475d6fa956fc98a7",
+      "sha256": "6cb3ce58a806a9ced1235c4abb7edb26c9dfc37168970b77c4ba07a8ead10e6a"
+    },
+    {
+      "path": "components/client/src/components/CommunityLanStatusControl.tsx",
+      "gitBlob": "f00d5e419a0385b133508e80ff79c70376eb128a",
+      "sha256": "b5e19cc51fc0c6f89ea0d8cb53ddf9af7a2378f6f9be2bd9b383694ad5bfd0f7"
+    },
+    {
+      "path": "components/client/src/components/communityLanSession.tsx",
+      "gitBlob": "797c23106c17875e2cf3909ada28dab18aa5a257",
+      "sha256": "54253c7268707153653d311ce9e2501e52adace860c255cb13682bc5fe1fa9df"
+    },
+    {
+      "path": "components/client/src/components/mainApp.tsx",
+      "gitBlob": "21b2d77ea935424e9a47f5578f054a922c07b550",
+      "sha256": "524a3b4b7550e57cc5b7da143de88d9b79873d69e7ffce62fe1978ce1c2b534b"
+    },
+    {
+      "path": "components/client/src/components/sidebar.tsx",
+      "gitBlob": "c13fb3db060d9fa9856523a448a17c72b0915ac0",
+      "sha256": "3634034b1608f7dbc890bfcebd700043dc863ad1c7cd761cf595db8a9fda2969"
+    },
+    {
+      "path": "components/client/src/lib/easyTierCommunitySubscriptions.ts",
+      "gitBlob": "b2a17b310463ab1545d4324a66f86251434b65ed",
+      "sha256": "a1a9f45ad64a61f9a82fe2d5e0f32db136ec18fba7a1f2ba9a2007098dc332a1"
+    },
+    {
+      "path": "components/server/Dockerfile",
+      "gitBlob": "9779381b14c7ec56e7e084627f74b02970577402",
+      "sha256": "c3e40300362b6c65cf1995b2a367393b54db1f79fc62b23fd0ee15f27ec05a46"
+    },
+    {
+      "path": "components/server/src/sfu/hybridProtocol.test.ts",
+      "gitBlob": "0cd064028806bd6a2bdb34e8777c641499887a2f",
+      "sha256": "c03241e76986da006b5d74ee550004d6b626368b264b2b15954bd435346c3118"
+    }
+  ],
+  "localTypes": {
+    "typescript": "5.9.3",
+    "appErrors": 0,
+    "nodeErrors": 0,
+    "fixtureIncluded": true
+  },
+  "localLint": {
+    "files": 9,
+    "errors": 0,
+    "warnings": 0
+  },
+  "popupRender": {
+    "scope": "Production component/status logic plus actual product CSS; synthetic community/rail, no App/auth/media",
+    "checks": [
+      {
+        "name": "normal compact control and footer in normal flow",
+        "passed": true,
+        "viewport": {
+          "width": 980,
+          "height": 720
+        },
+        "popup": null,
+        "documentWidth": 980,
+        "keyboard": null,
+        "focusRestored": null,
+        "control": {
+          "x": 0,
+          "y": 639,
+          "width": 54,
+          "height": 33,
+          "right": 54,
+          "bottom": 672
+        },
+        "controlPosition": "static",
+        "button": {
+          "x": 0,
+          "y": 639,
+          "width": 32,
+          "height": 32,
+          "right": 32,
+          "bottom": 671
+        },
+        "footer": {
+          "x": 14,
+          "y": 688,
+          "width": 32,
+          "height": 32,
+          "right": 46,
+          "bottom": 720
+        }
+      },
+      {
+        "name": "normal explicit details wrapped and viewport bounded",
+        "passed": true,
+        "viewport": {
+          "width": 980,
+          "height": 720
+        },
+        "popup": {
+          "x": 40.01783752441406,
+          "y": 430.514892578125,
+          "width": 287.96435546875,
+          "height": 240.47021484375,
+          "right": 327.98219299316406,
+          "bottom": 670.985107421875
+        },
+        "documentWidth": 980,
+        "keyboard": {
+          "menuFocus": true,
+          "role": "menuitem"
+        },
+        "focusRestored": true,
+        "control": {
+          "x": 0,
+          "y": 639,
+          "width": 54,
+          "height": 33,
+          "right": 54,
+          "bottom": 672
+        },
+        "controlPosition": "static",
+        "button": {
+          "x": 0,
+          "y": 639,
+          "width": 32,
+          "height": 32,
+          "right": 32,
+          "bottom": 671
+        },
+        "footer": {
+          "x": 14,
+          "y": 688,
+          "width": 32,
+          "height": 32,
+          "right": 46,
+          "bottom": 720
+        }
+      },
+      {
+        "name": "narrow compact control and footer in normal flow",
+        "passed": true,
+        "viewport": {
+          "width": 340,
+          "height": 420
+        },
+        "popup": null,
+        "documentWidth": 340,
+        "keyboard": null,
+        "focusRestored": null,
+        "control": {
+          "x": 0,
+          "y": 339,
+          "width": 35.765625,
+          "height": 33,
+          "right": 35.765625,
+          "bottom": 372
+        },
+        "controlPosition": "static",
+        "button": {
+          "x": 0,
+          "y": 339,
+          "width": 32,
+          "height": 32,
+          "right": 32,
+          "bottom": 371
+        },
+        "footer": {
+          "x": 4.8828125,
+          "y": 388,
+          "width": 32,
+          "height": 32,
+          "right": 36.8828125,
+          "bottom": 420
+        }
+      },
+      {
+        "name": "narrow explicit details wrapped and viewport bounded",
+        "passed": true,
+        "viewport": {
+          "width": 340,
+          "height": 420
+        },
+        "popup": {
+          "x": 40.02751159667969,
+          "y": 130.52297973632812,
+          "width": 287.9449462890625,
+          "height": 240.45404052734375,
+          "right": 327.9724578857422,
+          "bottom": 370.9770202636719
+        },
+        "documentWidth": 340,
+        "keyboard": {
+          "menuFocus": true,
+          "role": "menuitem"
+        },
+        "focusRestored": true,
+        "control": {
+          "x": 0,
+          "y": 339,
+          "width": 35.765625,
+          "height": 33,
+          "right": 35.765625,
+          "bottom": 372
+        },
+        "controlPosition": "static",
+        "button": {
+          "x": 0,
+          "y": 339,
+          "width": 32,
+          "height": 32,
+          "right": 32,
+          "bottom": 371
+        },
+        "footer": {
+          "x": 4.8828125,
+          "y": 388,
+          "width": 32,
+          "height": 32,
+          "right": 36.8828125,
+          "bottom": 420
+        }
+      },
+      {
+        "name": "minimum compact control and footer in normal flow",
+        "passed": true,
+        "viewport": {
+          "width": 300,
+          "height": 300
+        },
+        "popup": null,
+        "documentWidth": 300,
+        "keyboard": null,
+        "focusRestored": null,
+        "control": {
+          "x": 0,
+          "y": 219,
+          "width": 35.765625,
+          "height": 33,
+          "right": 35.765625,
+          "bottom": 252
+        },
+        "controlPosition": "static",
+        "button": {
+          "x": 0,
+          "y": 219,
+          "width": 32,
+          "height": 32,
+          "right": 32,
+          "bottom": 251
+        },
+        "footer": {
+          "x": 4.8828125,
+          "y": 268,
+          "width": 32,
+          "height": 32,
+          "right": 36.8828125,
+          "bottom": 300
+        }
+      },
+      {
+        "name": "minimum explicit details wrapped and viewport bounded",
+        "passed": true,
+        "viewport": {
+          "width": 300,
+          "height": 300
+        },
+        "popup": {
+          "x": 40.024085998535156,
+          "y": 10.522987365722656,
+          "width": 251.95184326171875,
+          "height": 240.45404052734375,
+          "right": 291.9759292602539,
+          "bottom": 250.9770278930664
+        },
+        "documentWidth": 300,
+        "keyboard": {
+          "menuFocus": true,
+          "role": "menuitem"
+        },
+        "focusRestored": true,
+        "control": {
+          "x": 0,
+          "y": 219,
+          "width": 35.765625,
+          "height": 33,
+          "right": 35.765625,
+          "bottom": 252
+        },
+        "controlPosition": "static",
+        "button": {
+          "x": 0,
+          "y": 219,
+          "width": 32,
+          "height": 32,
+          "right": 32,
+          "bottom": 251
+        },
+        "footer": {
+          "x": 4.8828125,
+          "y": 268,
+          "width": 32,
+          "height": 32,
+          "right": 36.8828125,
+          "bottom": 300
+        }
+      },
+      {
+        "name": "stress compact control and footer in normal flow",
+        "passed": true,
+        "viewport": {
+          "width": 240,
+          "height": 240
+        },
+        "popup": null,
+        "documentWidth": 240,
+        "keyboard": null,
+        "focusRestored": null,
+        "control": {
+          "x": 0,
+          "y": 159,
+          "width": 35.765625,
+          "height": 33,
+          "right": 35.765625,
+          "bottom": 192
+        },
+        "controlPosition": "static",
+        "button": {
+          "x": 0,
+          "y": 159,
+          "width": 32,
+          "height": 32,
+          "right": 32,
+          "bottom": 191
+        },
+        "footer": {
+          "x": 4.8828125,
+          "y": 208,
+          "width": 32,
+          "height": 32,
+          "right": 36.8828125,
+          "bottom": 240
+        }
+      },
+      {
+        "name": "stress explicit details wrapped and viewport bounded",
+        "passed": true,
+        "viewport": {
+          "width": 240,
+          "height": 240
+        },
+        "popup": {
+          "x": 40.00596618652344,
+          "y": 8.0069580078125,
+          "width": 191.98806762695312,
+          "height": 223.986083984375,
+          "right": 231.99403381347656,
+          "bottom": 231.9930419921875
+        },
+        "documentWidth": 240,
+        "keyboard": {
+          "menuFocus": true,
+          "role": "menuitem"
+        },
+        "focusRestored": true,
+        "control": {
+          "x": 0,
+          "y": 159,
+          "width": 35.765625,
+          "height": 33,
+          "right": 35.765625,
+          "bottom": 192
+        },
+        "controlPosition": "static",
+        "button": {
+          "x": 0,
+          "y": 159,
+          "width": 32,
+          "height": 32,
+          "right": 32,
+          "bottom": 191
+        },
+        "footer": {
+          "x": 4.8828125,
+          "y": 208,
+          "width": 32,
+          "height": 32,
+          "right": 36.8828125,
+          "bottom": 240
+        }
+      },
+      {
+        "name": "short compact control and footer in normal flow",
+        "passed": true,
+        "viewport": {
+          "width": 320,
+          "height": 300
+        },
+        "popup": null,
+        "documentWidth": 320,
+        "keyboard": null,
+        "focusRestored": null,
+        "control": {
+          "x": 0,
+          "y": 215,
+          "width": 35.765625,
+          "height": 33,
+          "right": 35.765625,
+          "bottom": 248
+        },
+        "controlPosition": "static",
+        "button": {
+          "x": 0,
+          "y": 215,
+          "width": 32,
+          "height": 32,
+          "right": 32,
+          "bottom": 247
+        },
+        "footer": {
+          "x": 4.8828125,
+          "y": 268,
+          "width": 32,
+          "height": 32,
+          "right": 36.8828125,
+          "bottom": 300
+        }
+      },
+      {
+        "name": "short explicit details wrapped and viewport bounded",
+        "passed": true,
+        "viewport": {
+          "width": 320,
+          "height": 300
+        },
+        "popup": {
+          "x": 40.0260009765625,
+          "y": 8.022987365722656,
+          "width": 271.947998046875,
+          "height": 240.45404052734375,
+          "right": 311.9739990234375,
+          "bottom": 248.4770278930664
+        },
+        "documentWidth": 320,
+        "keyboard": {
+          "menuFocus": true,
+          "role": "menuitem"
+        },
+        "focusRestored": true,
+        "control": {
+          "x": 0,
+          "y": 215,
+          "width": 35.765625,
+          "height": 33,
+          "right": 35.765625,
+          "bottom": 248
+        },
+        "controlPosition": "static",
+        "button": {
+          "x": 0,
+          "y": 215,
+          "width": 32,
+          "height": 32,
+          "right": 32,
+          "bottom": 247
+        },
+        "footer": {
+          "x": 4.8828125,
+          "y": 268,
+          "width": 32,
+          "height": 32,
+          "right": 36.8828125,
+          "bottom": 300
+        }
+      },
+      {
+        "name": "disabled accurate visible state and action",
+        "passed": true,
+        "viewport": {
+          "width": 980,
+          "height": 720
+        },
+        "popup": {
+          "x": 40.027496337890625,
+          "y": 462.51953125,
+          "width": 287.94500732421875,
+          "height": 204.4609375,
+          "right": 327.9725036621094,
+          "bottom": 666.98046875
+        },
+        "documentWidth": 980,
+        "keyboard": null,
+        "focusRestored": null,
+        "control": {
+          "x": 0,
+          "y": 635,
+          "width": 54,
+          "height": 33,
+          "right": 54,
+          "bottom": 668
+        },
+        "controlPosition": "static",
+        "button": {
+          "x": 0,
+          "y": 635,
+          "width": 32,
+          "height": 32,
+          "right": 32,
+          "bottom": 667
+        },
+        "footer": {
+          "x": 14,
+          "y": 688,
+          "width": 32,
+          "height": 32,
+          "right": 46,
+          "bottom": 720
+        }
+      },
+      {
+        "name": "cleanup accurate visible state and action",
+        "passed": true,
+        "viewport": {
+          "width": 980,
+          "height": 720
+        },
+        "popup": {
+          "x": 40.01783752441406,
+          "y": 426.514892578125,
+          "width": 287.96435546875,
+          "height": 240.47021484375,
+          "right": 327.98219299316406,
+          "bottom": 666.985107421875
+        },
+        "documentWidth": 980,
+        "keyboard": null,
+        "focusRestored": null,
+        "control": {
+          "x": 0,
+          "y": 635,
+          "width": 54,
+          "height": 33,
+          "right": 54,
+          "bottom": 668
+        },
+        "controlPosition": "static",
+        "button": {
+          "x": 0,
+          "y": 635,
+          "width": 32,
+          "height": 32,
+          "right": 32,
+          "bottom": 667
+        },
+        "footer": {
+          "x": 14,
+          "y": 688,
+          "width": 32,
+          "height": 32,
+          "right": 46,
+          "bottom": 720
+        }
+      },
+      {
+        "name": "error accurate visible state and action",
+        "passed": true,
+        "viewport": {
+          "width": 980,
+          "height": 720
+        },
+        "popup": {
+          "x": 40.01783752441406,
+          "y": 446.0137023925781,
+          "width": 287.96435546875,
+          "height": 220.97262573242188,
+          "right": 327.98219299316406,
+          "bottom": 666.986328125
+        },
+        "documentWidth": 980,
+        "keyboard": null,
+        "focusRestored": null,
+        "control": {
+          "x": 0,
+          "y": 635,
+          "width": 54,
+          "height": 33,
+          "right": 54,
+          "bottom": 668
+        },
+        "controlPosition": "static",
+        "button": {
+          "x": 0,
+          "y": 635,
+          "width": 32,
+          "height": 32,
+          "right": 32,
+          "bottom": 667
+        },
+        "footer": {
+          "x": 14,
+          "y": 688,
+          "width": 32,
+          "height": 32,
+          "right": 46,
+          "bottom": 720
+        }
+      }
+    ],
+    "baseChecksPassed": 9,
+    "extraChecksPassed": 4,
+    "sourceInputHashes": {
+      "src/components/CommunityLanStatusControl.tsx": "b5e19cc51fc0c6f89ea0d8cb53ddf9af7a2378f6f9be2bd9b383694ad5bfd0f7",
+      "src/lib/easyTierCommunitySubscriptions.ts": "a1a9f45ad64a61f9a82fe2d5e0f32db136ec18fba7a1f2ba9a2007098dc332a1",
+      "src/lib/icons.tsx": "2a1024a9a5d619992f783cfa2c782f3a895191cf93ddb6aaf2fec481e5e0edf8",
+      "scripts/fixtures/community-lan-popup.tsx": "528b158b7c9867bd327a3967c3aabe043b84a44209ffb4e59beb88cd486c17a1",
+      "scripts/check-community-popup-layout.cjs": "90663bf5c1896898431c1d8f628297079267ffc821fcd44dffc4c2e48bdc1c77"
+    },
+    "productCss": {
+      "path": "C:\\Users\\cheb2\\Documents\\Codex\\2026-10-12\\task\\community-ui-kiriye-c75e6802-layout\\dist\\assets\\index-Cl5XxhmC.css",
+      "sha256": "876e9732ce112808865cb890fb4268799a90c7417272023f3b13f1bdaeda9fa3"
+    },
+    "fixtureOutputHashes": [
+      {
+        "path": "fixture.js",
+        "sha256": "5af0689f88f28c3892d16fac852d2679397bad9e357fe8bb9940ed370862b356"
+      },
+      {
+        "path": "index.html",
+        "sha256": "fe5def27735cf97746d5cd3eb4efcb40de6395db2de6b78898cfa7df0175919d"
+      },
+      {
+        "path": "laokuai-icon.png",
+        "sha256": "ad5f67a0d5541f3a214b6ad7f46354de34d0497bdfd257339f06b5d085fed13d"
+      },
+      {
+        "path": "assets/AtkinsonHyperlegibleMonoVF-Variable-AOX2ik3A.woff2",
+        "sha256": "4a886fc354db1abc9fe4ef57c207d09a7ad94dab7a5ddae23bbc28f73888a7cc"
+      },
+      {
+        "path": "assets/AtkinsonHyperlegibleNextVF-Variable-BwRyMOOp.woff2",
+        "sha256": "b3b26749af25c757133293e9771374936927a7bd0c26396e782b9a112bb3b9c1"
+      },
+      {
+        "path": "assets/index-Cl5XxhmC.css",
+        "sha256": "876e9732ce112808865cb890fb4268799a90c7417272023f3b13f1bdaeda9fa3"
+      }
+    ],
+    "actualResultsSha256": "c4ff046f4bad04add6d8e6dcffe674c9f78f2cc5c5e8e9380371d3e9591ba244",
+    "monitorSha256": "56dd9d5d87c67856fb2250dac205ac31dbbc33435818254b6e3711681122a825",
+    "exitCode": 0,
+    "residualCount": 0,
+    "endpointSamples": 16,
+    "ownedEndpointCount": 0,
+    "foregroundCount": 0,
+    "renderedFrames": 588,
+    "captures": [
+      {
+        "name": "normal-closed",
+        "pngSha256": "a54d58242beeabeda78193a8b2bc595de0e2b501331dac4eebcbbaeb0c9dc73f",
+        "visible": false,
+        "focused": false
+      },
+      {
+        "name": "normal-open",
+        "pngSha256": "789ba0623c240839729fa7070f7c9830bb3c0f10e313b387d4c3e370a302f8eb",
+        "visible": false,
+        "focused": false
+      },
+      {
+        "name": "narrow-closed",
+        "pngSha256": "3d626e9affe0af12a69733eb7e3dcbf8233d3413603f54fa348db7e37bd18aea",
+        "visible": false,
+        "focused": false
+      },
+      {
+        "name": "narrow-open",
+        "pngSha256": "cc0171d269de5c1633203195896a74f486a0c77b675d238b6104e37ee9456996",
+        "visible": false,
+        "focused": false
+      },
+      {
+        "name": "minimum-closed",
+        "pngSha256": "575ce4db6b2c437fbcc53594cf6423456b91df7c6ce795f33a1a52f32cb48433",
+        "visible": false,
+        "focused": false
+      },
+      {
+        "name": "minimum-open",
+        "pngSha256": "c13a089b89e0996c30b5e5234c3ee6ca7df037c803a8bd01b50ba3d78d2f0513",
+        "visible": false,
+        "focused": false
+      },
+      {
+        "name": "stress-closed",
+        "pngSha256": "ef3ad646a832169435b85ff0c2aa6c7a875ebe018e1b7d8d8b67cfe3fabdf2c2",
+        "visible": false,
+        "focused": false
+      },
+      {
+        "name": "stress-open",
+        "pngSha256": "4f5c1e8433c139ef2fe6b0e849b77361ca5453d650e2a2d52cc1261ce9603dab",
+        "visible": false,
+        "focused": false
+      },
+      {
+        "name": "short-closed",
+        "pngSha256": "468c2840ac53f9959a230b9f78c9e59ffb29116b596154cb569ee68734de91f1",
+        "visible": false,
+        "focused": false
+      },
+      {
+        "name": "short-open",
+        "pngSha256": "0891b5480694bc36aa133156d240aa155109a17841a85f3b535a144d6634d4e5",
+        "visible": false,
+        "focused": false
+      },
+      {
+        "name": "disabled-open",
+        "pngSha256": "6a8c53ba78691b08b1fd6479102640ee8b31fa2355685feca67b61de25aadd53",
+        "visible": false,
+        "focused": false
+      },
+      {
+        "name": "cleanup-open",
+        "pngSha256": "f5c0482802eea55dcf873e669026c2284b0900c7aaa8c98ee7ef77b432f7b4d2",
+        "visible": false,
+        "focused": false
+      },
+      {
+        "name": "error-open",
+        "pngSha256": "93e8416e23a25de01bd9f03b48fe5c46bad745d3bd39fb693b3cf3e97f034d9b",
+        "visible": false,
+        "focused": false
+      }
+    ],
+    "allEndpointQueriesSucceeded": true,
+    "monitorStopReason": null,
+    "showOrFocusEvents": 0
+  },
+  "preservedFailures": [
+    "Owner c75 minimum-window8/9 and pressure8/9 remain unchanged.",
+    "Own run1 maxWidth overridden by shared !important CSS.",
+    "Own run2/3 width correct, keyboard assertion observed before exit transition completed; settle routine fixed.",
+    "Fixture-only nullable type corrected before final run.",
+    "Node22 optional14-case rerun hit30s helper timeout; no product failure inferred."
+  ],
+  "boundaries": {
+    "newPackageBuilt": false,
+    "actualWholeAppAccepted": false,
+    "realAccountAccepted": false,
+    "realMediaAccepted": false,
+    "nativeAccepted": false,
+    "deployed": false,
+    "ready": false,
+    "finalPackage": null
+  }
+}

@@ -2,7 +2,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const evidence=require('./release-evidence-scope.cjs'),root=path.resolve(__dirname,'..'),clone=x=>structuredClone(x),hash=b=>crypto.createHash('sha256').update(b).digest('hex');
 const manifest=JSON.parse(fs.readFileSync(path.join(__dirname,'manifest.json'))),entry=manifest.validation.lifecycle3LocalIntegration,lifecycle=JSON.parse(fs.readFileSync(path.join(root,entry.receipt))),relEntry=manifest.validation.recipientBuildPreparation,relink=JSON.parse(fs.readFileSync(path.join(root,relEntry.relinkReceipt)));
 const cache=new Map();const git=args=>{const key=JSON.stringify(args);if(!cache.has(key)){const r=spawnSync('git',args,{cwd:root,windowsHide:true,encoding:'utf8',maxBuffer:16*1024*1024});assert.equal(r.status,0,r.stderr);cache.set(key,r.stdout.trim());}return cache.get(key);};
-const services={git,sha:f=>hash(fs.readFileSync(path.join(root,f))),readFrozen:(commit,file)=>Buffer.from(git(['show',commit+':'+file]))};
+const services={git,sha:f=>hash(fs.readFileSync(path.join(root,f))),readFrozen:(commit,file)=>{const r=spawnSync('git',['show',commit+':'+file],{cwd:root,windowsHide:true,maxBuffer:16*1024*1024});assert.equal(r.status,0);return r.stdout;},currentSourceReceipt:manifest.validation.currentComponentSource?JSON.parse(fs.readFileSync(path.join(root,manifest.validation.currentComponentSource.receipt))):undefined};
 const cases=[];let negatives=0;function test(name,fn){fn();cases.push(name);console.log('PASS '+name);}function rejects(name,fn){test(name,()=>assert.throws(fn));negatives++;}
 test('Current packedFiles schema preserves exact version/count',()=>evidence.verifyPackedInventory({version:'new'},{version:'new',packedFiles:212},212));
 test('Historical installedPackedFiles schema preserves exact version/count',()=>evidence.verifyPackedInventory({version:'old'},{version:'old',installedPackedFiles:212},212));
@@ -30,4 +30,33 @@ rejects('Reject failed corrected build',()=>{const r=clone(relink);r.attempts[1]
 rejects('Reject relink entry flags without matching proof',()=>{const e=clone(relEntry);e.modifiedLibraryRelinkPassed=false;evidence.verifyRelinkEvidence(e,relink,services.sha);});
 for(const flag of ['nativeExecuted','appRebuilt','externalRecipientActuallyReceived','licenseFulfillmentAdjudicated','publicApproved','ready'])rejects('Reject relink '+flag+' promotion',()=>{const r=clone(relink);r.boundaries[flag]=true;evidence.verifyRelinkEvidence(relEntry,r,services.sha);});
 rejects('Reject marker binaries imported into product',()=>{const r=clone(relink);r.testOnlyLibraryProbe.binariesImportedIntoProduct=true;evidence.verifyRelinkEvidence(relEntry,r,services.sha);});
+if(services.currentSourceReceipt){
+ test('Current source/render supersession is bound to exact new Git trees',()=>evidence.verifyCurrentComponentSource(manifest,services.currentSourceReceipt,services));
+ for(const[name,mutate]of [
+ ['new-source-tree',r=>r.sourceTree='0'.repeat(40)],
+ ['missing-source-delta',r=>r.changes.pop()],
+ ['new-source-byte',r=>r.changes[0].sha256='0'.repeat(64)],
+ ['old-rendered-input',r=>r.popupRender.sourceInputHashes[Object.keys(r.popupRender.sourceInputHashes)[0]]='0'.repeat(64)],
+ ['failed-render-case',r=>r.popupRender.checks[0].passed=false],
+ ['old-eight-of-nine',r=>r.popupRender.baseChecksPassed=8],
+ ['missing-extra-size',r=>r.popupRender.extraChecksPassed=3],
+ ['render-nonzero-exit',r=>r.popupRender.exitCode=1],
+ ['render-listener',r=>r.popupRender.ownedEndpointCount=1],
+ ['render-foreground',r=>r.popupRender.foregroundCount=1],
+ ['render-residual',r=>r.popupRender.residualCount=1],
+ ['render-no-endpoint-query',r=>r.popupRender.endpointSamples=0],
+ ['failed-endpoint-query',r=>r.popupRender.allEndpointQueriesSucceeded=false],
+ ['guard-aborted-run',r=>r.popupRender.monitorStopReason='monitor-error'],
+ ['test-window-show',r=>r.popupRender.showOrFocusEvents=1],
+ ['type-failure',r=>r.localTypes.appErrors=1],
+ ['popup-geometry-overflow',r=>{const c=r.popupRender.checks.find(x=>x.popup);c.popup.right=c.viewport.width+24;}],
+ ['document-geometry-overflow',r=>r.popupRender.checks[0].documentWidth=r.popupRender.checks[0].viewport.width+24],
+ ['footer-overlap',r=>r.popupRender.checks[0].footer.bottom=r.popupRender.checks[0].viewport.height+24],
+ ['lost-keyboard-focus',r=>{const c=r.popupRender.checks.find(x=>x.keyboard);c.focusRestored=false;}],
+ ['unbuilt-package-promotion',r=>r.boundaries.newPackageBuilt=true],
+ ['real-media-promotion',r=>r.boundaries.realMediaAccepted=true],
+ ['ready-promotion',r=>r.boundaries.ready=true]])rejects('Reject '+name+' current-scope forgery',()=>{const r=clone(services.currentSourceReceipt);mutate(r);evidence.verifyCurrentComponentSource(manifest,r,services);});
+ rejects('Reject missing current source receipt',()=>evidence.verifyLifecycleScope(manifest,lifecycle,{...services,currentSourceReceipt:undefined}));
+ rejects('Reject missing current source receipt hash pin',()=>{const m=clone(manifest);m.validation.currentComponentSource.receiptSha256='0'.repeat(64);evidence.verifyCurrentComponentSource(m,services.currentSourceReceipt,services);});
+}
 console.log(JSON.stringify({checks:cases.length,positive:cases.length-negatives,negative:negatives,allPassed:true,realNetworkOrNativeExecuted:false}));
