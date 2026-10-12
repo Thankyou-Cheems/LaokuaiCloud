@@ -3,12 +3,15 @@ import type {
 } from "../src/lib/easyTierCommunity";
 import { projectEasyTierMembers } from "./easyTierMemberAdapter";
 import { type EasyTierStatusSample, projectEasyTierStatus, projectEasyTierLocalDetails } from "./easyTierStatus";
+import type { OwnedCredentialObservation } from "./communityEtCredentialObservation";
 
 export interface EasyTierSession {
   instanceId: string;
   read(signal: AbortSignal): Promise<EasyTierStatusSample>;
   /** Idempotent; removes only this app's instance, never restarts a shared core. */
   close(): Promise<void>;
+  readCredentialObservation?(signal: AbortSignal): Promise<OwnedCredentialObservation>;
+  readCredentialSample?(signal: AbortSignal): Promise<{sample: EasyTierStatusSample; observation: OwnedCredentialObservation}>;
 }
 export interface EasyTierRuntime {
   activationReason(): "activation-required" | "unsupported-target" | null;
@@ -19,6 +22,8 @@ export interface EasyTierRuntime {
 export class EasyTierOperationError extends Error {
   constructor(public reason: Exclude<EasyTierReason, null>) { super(reason); }
 }
+/** An owned session retirement is separate from an ordinary telemetry failure. */
+export class EasyTierSessionRetiredError extends EasyTierOperationError {}
 interface Community {
   leases: Set<string>;
   state: EasyTierCommunityState;
@@ -94,6 +99,13 @@ export class EasyTierCommunityManager {
     await c.operation;
     return this.getState(serverId);
   }
+  /** Main auth callback only. Membership leases survive bearer refresh and voice changes. */
+  async authenticatedSessionChanged(serverId: string): Promise<EasyTierCommunityState> {
+    const c = this.community(serverId);
+    if (!this.disposed) this.reconcile(c);
+    await c.operation;
+    return this.getState(serverId);
+  }
   async setEnabled(enabled: boolean): Promise<EasyTierCommunityState[]> {
     if (typeof enabled !== "boolean") throw new Error("invalid-enabled-value");
     if (!this.disposed && this.enabled !== enabled) {
@@ -164,12 +176,12 @@ export class EasyTierCommunityManager {
   }
   private deadline(work: Promise<void>, signal: AbortSignal): Promise<void> {
     return new Promise((resolve, reject) => {
-      const done = (error = false) => { clearTimeout(timer); signal.removeEventListener("abort", abort); error ? reject(new Error("operation-timeout")) : resolve(); };
+      const done = (error?: unknown) => { clearTimeout(timer); signal.removeEventListener("abort", abort); error === undefined ? resolve() : reject(error); };
       const abort = () => done();
-      const timer = setTimeout(() => done(true), this.timeoutMs);
+      const timer = setTimeout(() => done(new EasyTierOperationError("operation-timeout")), this.timeoutMs);
       signal.addEventListener("abort", abort, { once: true });
       if (signal.aborted) done();
-      work.then(() => done(), () => done(true));
+      work.then(() => done(), error => done(error));
     });
   }
   /** A poll failure clears telemetry and leaves LAN session ownership intact. */
@@ -190,9 +202,14 @@ export class EasyTierCommunityManager {
       this.publish(c);
     }).finally(() => { c.refreshing = false; });
     try { await this.deadline(work, cancel.signal); }
-    catch {
+    catch (error) {
       cancel.abort();
-      if (c.session === session && c.state.generation === generation) { c.sample = null; c.state.reason = "status-unavailable"; this.publish(c); }
+      if (c.session === session && c.state.generation === generation) {
+        c.sample = null;
+        c.state.reason = error instanceof EasyTierSessionRetiredError ? error.reason : "status-unavailable";
+        if (error instanceof EasyTierSessionRetiredError) c.state.phase = "error";
+        this.publish(c);
+      }
     }
   }
   refreshAll(): void {

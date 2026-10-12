@@ -1,5 +1,5 @@
 import type { EasyTierCommunityLease } from "../src/lib/easyTierCommunity";
-import { EasyTierCommunityManager, validEasyTierId, validEasyTierLease } from "./easyTierCommunityManager";
+import { EasyTierCommunityManager, EasyTierSessionRetiredError, validEasyTierId, validEasyTierLease } from "./easyTierCommunityManager";
 
 interface IpcEvent { senderFrame: unknown }
 interface IpcPort {
@@ -8,7 +8,8 @@ interface IpcPort {
 }
 /** Only the trusted top-level renderer may request community leases. */
 export function registerEasyTierCommunityIpc(ipc: IpcPort, manager: EasyTierCommunityManager, trusted: (event: IpcEvent) => boolean,
-  prepareRuntime: () => Promise<{ ready: boolean }> = async () => ({ ready: false })): () => void {
+  prepareRuntime: () => Promise<{ ready: boolean }> = async () => ({ ready: false }),
+  authenticate?: (value: unknown) => Promise<{serverId: string; changed: boolean; authenticated: boolean}>): () => void {
   const handlers: Record<string, (value: unknown) => unknown> = {
     "et-community-connect": value => { if (!validEasyTierLease(value)) throw new Error("invalid-community-lease"); return manager.connect(value as EasyTierCommunityLease); },
     "et-community-disconnect": value => { if (!validEasyTierLease(value)) throw new Error("invalid-community-lease"); return manager.disconnect(value as EasyTierCommunityLease); },
@@ -16,6 +17,18 @@ export function registerEasyTierCommunityIpc(ipc: IpcPort, manager: EasyTierComm
     "et-community-enabled": value => { if (typeof value !== "boolean") throw new Error("invalid-enabled-value"); return manager.setEnabled(value); },
     "et-community-state": value => { if (!validEasyTierId(value)) throw new Error("invalid-community-id"); return manager.getState(value); },
     "et-community-prepare": () => prepareRuntime(),
+    "et-community-authenticated-session": async value => {
+      if (!authenticate) throw new Error("community-auth-unavailable");
+      let result;
+      try { result = await authenticate(value); }
+      catch (error) {
+        if (error instanceof EasyTierSessionRetiredError && value && typeof value === "object" &&
+            validEasyTierId((value as {serverId?: unknown}).serverId))
+          await manager.authenticatedSessionChanged((value as {serverId: string}).serverId);
+        throw error;
+      }
+      return result.changed ? manager.authenticatedSessionChanged(result.serverId) : manager.getState(result.serverId);
+    },
     "et-community-memberships": value => {
       if (!Array.isArray(value) || value.length > 64 || !value.every(validEasyTierId)) throw new Error("invalid-community-memberships");
       return manager.syncMemberships(value);

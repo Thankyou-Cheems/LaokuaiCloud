@@ -54,6 +54,8 @@ export interface EasyTierCommunityAPI {
   prepareRuntime(): Promise<{ ready: boolean }>;
   /** Complete renderer membership set, also reconciles leases retained through reload. */
   syncMemberships(serverIds: readonly string[]): Promise<EasyTierCommunityState[]>;
+  /** Opaque existing bearer handoff. Main verifies identity at a fixed trusted backend. */
+  setAuthenticatedSession?(value: {serverId: string; host: string; accessToken: string | null}): Promise<EasyTierCommunityState>;
 }
 
 declare global {

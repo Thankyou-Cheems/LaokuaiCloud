@@ -3,11 +3,12 @@ import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
 import { EventEmitter } from "node:events";
+import crypto from "node:crypto";
 import ts from "typescript";
 
 // No real child, socket, profile, permission, core or CLI is used.
 const forbidden = () => { throw new Error("Unexpected runtime operation"); };
-const deps = { "node:path": path, "node:child_process": { spawn: forbidden, execFile: forbidden }, "node:net": { createServer: forbidden } };
+const deps = { "node:crypto": crypto, "node:path": path, "node:child_process": { spawn: forbidden, execFile: forbidden }, "node:net": { createServer: forbidden } };
 let monotonic = 100, utc = 100000, timerId = 0;
 const timers = new Map();
 function compile(file) {
@@ -15,7 +16,7 @@ function compile(file) {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText;
   const exports = {};
-  vm.runInNewContext(code, { exports, Set, Map, Buffer, URL, AbortController, performance: { now: () => monotonic },
+  vm.runInNewContext(code, { exports, Set, Map, Buffer, URL, AbortController, structuredClone, performance: { now: () => monotonic },
     Date: { now: () => utc }, process: { platform: "win32", env: {} },
     setTimeout: callback => { const id = ++timerId; timers.set(id, callback); return id; }, clearTimeout: id => timers.delete(id),
     require: key => { assert.ok(key in deps, `Unmocked dependency ${key}`); return deps[key]; },
@@ -26,6 +27,8 @@ const status = deps["./easyTierStatus"] = compile("electron/easyTierStatus.ts");
 deps["./easyTierMemberAdapter"] = compile("electron/easyTierMemberAdapter.ts");
 deps["./easyTierCommunityManager"] = compile("electron/easyTierCommunityManager.ts");
 const network = deps["./easyTierCliNetwork"] = compile("electron/easyTierCliNetwork.ts");
+deps["./communityEtGrant"] = compile("electron/communityEtGrant.ts");
+deps["./communityEtCredentialObservation"] = compile("electron/communityEtCredentialObservation.ts");
 const processes = compile("electron/easyTierWindowsProcesses.ts");
 const { WindowsEasyTierCliRuntime } = compile("electron/windowsEasyTierCliRuntime.ts");
 const instanceId = "00000000-0000-4000-8000-000000000001";

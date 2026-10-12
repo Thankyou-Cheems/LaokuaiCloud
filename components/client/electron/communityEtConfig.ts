@@ -5,8 +5,8 @@ type TrustedCommunityIntent,
 } from './communityEtGrant';
 
 /** Main-owned approved profile. Never accept it from renderer or grant body.
- * Public issuer key pin is a separate runtime-verifier obligation: v2.7.0 TOML
- * has no invented issuer_pin/trusted_public_keys field to enforce this here.
+ * v2.7.0 pins the actual issuer on each outbound PeerConfig.peer_public_key.
+ * The owned runtime additionally verifies the observed Noise connection identity.
  */
 export interface TrustedCommunityBootstrap {
   bootstrapProfileId: string;
@@ -16,7 +16,7 @@ export interface TrustedCommunityBootstrap {
   issuerPublicKeyB64: string;
   issuerPublicKeyFingerprint: string;
 }
-function validateBootstrap(value: unknown): asserts value is TrustedCommunityBootstrap {
+export function validateBootstrap(value: unknown): asserts value is TrustedCommunityBootstrap {
   exact<TrustedCommunityBootstrap>(value, ['bootstrapProfileId', 'upstreamCommit', 'peerEndpoints', 'ipv4PrefixLength',
     'issuerPublicKeyB64', 'issuerPublicKeyFingerprint'], 'invalid-bootstrap-profile');
   if (value.upstreamCommit !== COMMUNITY_ET_UPSTREAM_COMMIT || !positive(value.ipv4PrefixLength) ||
@@ -71,7 +71,8 @@ function buildValidated(grant: PrivateCommunityGrantV1, trusted: TrustedCommunit
     '[flags]', `dev_name = ${quote('lkc-' + trusted.nativeInstanceId.replace(/-/g, ''))}`,
     'enable_exit_node = false', 'relay_network_whitelist = ""', '',
   ];
-  for (const endpoint of profile.peerEndpoints) lines.push('[[peer]]', `uri = ${quote(endpoint)}`, '');
+  for (const endpoint of profile.peerEndpoints) lines.push('[[peer]]', `uri = ${quote(endpoint)}`,
+    `peer_public_key = ${quote(profile.issuerPublicKeyB64)}`, '');
   // reusable=false is verified issuer policy; adding it to TOML would not enforce it.
   return new PrivateCommunityEtConfig(lines.join('\n'), profile.issuerPublicKeyFingerprint, isCurrent);
 }

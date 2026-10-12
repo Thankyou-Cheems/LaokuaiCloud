@@ -55,6 +55,8 @@ test('config uses credential secure-mode and exact instance/network/IP without a
     assert.ok(toml.includes('dhcp = false')); assert.ok(toml.includes('listeners = []'));
     for (const forbidden of ['network_secret', 'managed_credentials', 'credential_file', 'reusable', 'issuer_pin']) assert.equal(toml.includes(forbidden), false);
     assert.equal((toml.match(/\[\[peer\]\]/g) ?? []).length, 3);
+    assert.equal((toml.match(/peer_public_key = /g) ?? []).length, 3);
+    assert.ok(toml.includes(`peer_public_key = "${fixture().profile.issuerPublicKeyB64}"`));
   });
   assert.equal(draft.requirements().activationReady, false);
   assert.equal(draft.requirements().issuerPinMustBeVerified, true);

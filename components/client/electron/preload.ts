@@ -11,6 +11,7 @@ const easyTierCommunity: EasyTierCommunityAPI = {
   getState: serverId => ipcRenderer.invoke("et-community-state", serverId),
   prepareRuntime: () => ipcRenderer.invoke("et-community-prepare"),
   syncMemberships: serverIds => ipcRenderer.invoke("et-community-memberships", serverIds),
+  setAuthenticatedSession: value => ipcRenderer.invoke("et-community-authenticated-session", value),
   onState: callback => {
     const listener = (_event: unknown, state: EasyTierCommunityState) => callback(state);
     ipcRenderer.on("et-community-state", listener);

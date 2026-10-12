@@ -88,10 +88,12 @@ export function getServerAccessToken(host: string): string | null {
 
 export function setServerAccessToken(host: string, token: string): void {
   setStoredAccessToken(`accessToken_${host}`, token);
+  if (typeof window !== "undefined") window.dispatchEvent(new Event("community-member-token-changed"));
 }
 
 export function removeServerAccessToken(host: string): void {
   removeStoredAccessToken(`accessToken_${host}`);
+  if (typeof window !== "undefined") window.dispatchEvent(new Event("community-member-token-changed"));
 }
 
 // ── File access ───────────────────────────────────────────────────
@@ -151,6 +153,7 @@ export function clearAllServerTokens(): void {
   clear(localStorage, "localStorage");
   clear(sessionStorage, "sessionStorage");
   forgetAllServerFileAccess();
+  if (typeof window !== "undefined") window.dispatchEvent(new Event("community-member-token-changed"));
 }
 
 export function migrateAccessTokensToMode(mode: AccessTokenStorageMode): void {

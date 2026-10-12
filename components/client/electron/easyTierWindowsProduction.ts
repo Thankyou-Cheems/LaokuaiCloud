@@ -5,14 +5,16 @@ import { readEasyTierExistingConfiguration } from "./easyTierExistingConfigurati
 import { EasyTierWindowsAssets } from "./easyTierWindowsAssets";
 import { EasyTierWindowsProcesses, hasEasyTierWindowsPermission } from "./easyTierWindowsProcesses";
 import { WindowsEasyTierCliRuntime } from "./windowsEasyTierCliRuntime";
+import type { EasyTierExistingConfiguration } from "./easyTierExistingConfiguration";
 
 /** Lazy paths: constructing the adapter performs no profile I/O or activation. */
-export function createWindowsEasyTierProduction(root: () => string, bundledDirectory: () => string) {
+export function createWindowsEasyTierProduction(root: () => string, bundledDirectory: () => string,
+  configuration?: (serverId: string, signal: AbortSignal) => Promise<EasyTierExistingConfiguration>) {
   const assets = new EasyTierWindowsAssets(root, bundledDirectory);
   const processes = new EasyTierWindowsProcesses();
   const runtime = new WindowsEasyTierCliRuntime({
     platform: process.platform === "win32" && process.arch !== "x64" ? "unsupported-windows-arch" : process.platform,
-    configuration: serverId => readEasyTierExistingConfiguration(root(), serverId),
+    configuration: configuration ?? (serverId => readEasyTierExistingConfiguration(root(), serverId)),
     permission: hasEasyTierWindowsPermission,
     verifiedAssets: () => assets.prepareProductBundled(),
     start: (directory, config, signal) => processes.start(directory, config, signal),

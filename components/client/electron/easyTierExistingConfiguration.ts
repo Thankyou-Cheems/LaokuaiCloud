@@ -3,6 +3,7 @@ import { isAbsolute, join, relative } from "node:path";
 
 import { EasyTierOperationError, validEasyTierId } from "./easyTierCommunityManager";
 import { easyTierSha256 } from "./easyTierWindowsAssets";
+import type { CredentialIdentityExpectation } from "./communityEtCredentialObservation";
 
 export interface EasyTierExistingConfiguration {
   serverId: string;
@@ -12,6 +13,8 @@ export interface EasyTierExistingConfiguration {
   configSha256: string;
   /** Provisioner reviewed this config's peer/bootstrap URLs; public fallback is absent. */
   bootstrap: "product-owned";
+  /** Main-generated live grant, never a renderer field or saved activation capability. */
+  credentialIdentity?: CredentialIdentityExpectation;
 }
 export interface EasyTierActivationReceipt {
   schemaVersion: 1;

@@ -6,11 +6,14 @@ import { EasyTierOperationError } from "./easyTierCommunityManager";
 import type { EasyTierExistingConfiguration } from "./easyTierExistingConfiguration";
 import { easyTierVirtualIp } from "./easyTierStatus";
 import { sanitizedEasyTierCliNetwork, type EasyTierCliNetwork } from "./easyTierCliNetwork";
+import { verifyOwnedCredentialObservation, type OwnedCredentialObservation } from "./communityEtCredentialObservation";
 
 export interface EasyTierCliCore {
   isAlive(): boolean;
   readNode(signal: AbortSignal): Promise<{ peerId: number; virtualIp: string | null }>;
   readNetwork(signal: AbortSignal): Promise<EasyTierCliNetwork>;
+  readCredentialObservation?(signal: AbortSignal): Promise<OwnedCredentialObservation>;
+  readCredentialNetwork?(signal: AbortSignal): Promise<{network: EasyTierCliNetwork; observation: OwnedCredentialObservation}>;
   close(): Promise<void>;
   terminateOwned(): void;
   /** Main-only diagnostics; this receipt alone never authorizes OS deletion. */
@@ -187,7 +190,38 @@ export class EasyTierWindowsProcesses {
         reader.once("exit", release); reader.on("error", () => { if (!reader.pid) release(); });
       });
     };
-    let networkFlight: Promise<EasyTierCliNetwork> | null = null;
+    let networkFlight: Promise<{network: EasyTierCliNetwork; observation: OwnedCredentialObservation | null}> | null = null;
+    const collectNetwork = async (readSignal: AbortSignal) => {
+      if (!isAlive() || readSignal.aborted) throw new EasyTierOperationError("runtime-exited");
+      if (!networkFlight) {
+        const acquisitionStartedAtMs = performance.now(), acquisitionStartedAtUnixMs = Date.now();
+        const current = readJson(readSignal, easyTierCliNetworkArguments(config.instanceId, portal)).then(value => {
+          if (!isAlive() || readSignal.aborted) throw new EasyTierOperationError("runtime-exited");
+          try {
+            const info = sanitizedEasyTierCliNetwork(value, config.instanceId);
+            const observation = config.credentialIdentity ? verifyOwnedCredentialObservation(value, config.instanceId, config.credentialIdentity) : null;
+            return {observation, network: {info, latencyFirst: null, acquisitionStartedAtMs, acquisitionStartedAtUnixMs,
+              acquiredAtMs: performance.now(), acquiredAtUnixMs: Date.now()} as EasyTierCliNetwork};
+          } catch { throw new EasyTierOperationError("status-unavailable"); }
+        });
+        networkFlight = current;
+        void current.finally(() => { if (networkFlight === current) networkFlight = null; }).catch(() => {});
+      }
+      let abort: (() => void) | null = null;
+      try {
+        const result = await Promise.race([networkFlight, new Promise<never>((_resolve, reject) => {
+          abort = () => reject(new EasyTierOperationError("runtime-exited")); readSignal.addEventListener("abort", abort, {once: true});
+        })]);
+        if (!isAlive() || readSignal.aborted) throw new EasyTierOperationError("runtime-exited");
+        return structuredClone(result);
+      } finally { if (abort) readSignal.removeEventListener("abort", abort); }
+    };
+    const readCredentialNetwork = async (readSignal: AbortSignal) => {
+      if (!config.credentialIdentity) throw new EasyTierOperationError("configuration-required");
+      const result = await collectNetwork(readSignal);
+      if (!result.observation) throw new EasyTierOperationError("status-unavailable");
+      return {network: result.network, observation: result.observation};
+    };
     return {
       isAlive, terminateOwned, close,
       ownedResources: () => ({ pid: child.pid ?? null, interfaces: interfaces.map(value => ({ ...value })) }),
@@ -196,29 +230,9 @@ export class EasyTierWindowsProcesses {
         if (!isAlive() || readSignal.aborted) throw new EasyTierOperationError("runtime-exited");
         return sanitizedEasyTierCliNode(node, config.instanceId);
       },
-      readNetwork: async readSignal => {
-        if (!isAlive() || readSignal.aborted) throw new EasyTierOperationError("runtime-exited");
-        if (!networkFlight) {
-          const acquisitionStartedAtMs = performance.now(), acquisitionStartedAtUnixMs = Date.now();
-          const current = readJson(readSignal, easyTierCliNetworkArguments(config.instanceId, portal)).then(value => {
-            if (!isAlive() || readSignal.aborted) throw new EasyTierOperationError("runtime-exited");
-            let info: EasyTierCliNetwork["info"];
-            try { info = sanitizedEasyTierCliNetwork(value, config.instanceId); } catch { throw new EasyTierOperationError("status-unavailable"); }
-            return { info, latencyFirst: null, acquisitionStartedAtMs, acquisitionStartedAtUnixMs, acquiredAtMs: performance.now(), acquiredAtUnixMs: Date.now() } as EasyTierCliNetwork;
-          });
-          networkFlight = current;
-          void current.finally(() => { if (networkFlight === current) networkFlight = null; }).catch(() => {});
-        }
-        const flight = networkFlight;
-        let abort: (() => void) | null = null;
-        try {
-          const result = await Promise.race([flight, new Promise<never>((_resolve, reject) => {
-            abort = () => reject(new EasyTierOperationError("runtime-exited")); readSignal.addEventListener("abort", abort, { once: true });
-          })]);
-          if (!isAlive() || readSignal.aborted) throw new EasyTierOperationError("runtime-exited");
-          return JSON.parse(JSON.stringify(result)) as EasyTierCliNetwork;
-        } finally { if (abort) readSignal.removeEventListener("abort", abort); }
-      },
+      readCredentialNetwork,
+      readCredentialObservation: async signal => (await readCredentialNetwork(signal)).observation,
+      readNetwork: async signal => (await collectNetwork(signal)).network,
     };
   }
 }

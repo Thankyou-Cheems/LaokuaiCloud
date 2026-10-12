@@ -66,6 +66,7 @@ import curatedGames from "./curated-games.json";
 import { createRpcHost, findHolder, type Holder, ipcDir, ipcPath, type RpcHostState } from "./discordIpc";
 import { registerEasyTierCommunityIpc } from "./easyTierCommunityIpc";
 import { EasyTierCommunityManager } from "./easyTierCommunityManager";
+import { createCommunityEtGrantRuntime } from "./communityEtGrantRuntime";
 import { createWindowsEasyTierProduction, easyTierProductRoot } from "./easyTierWindowsProduction";
 import {
   autoStartIfNeeded,
@@ -249,11 +250,13 @@ let pendingDeepLinkUrl: string | null = null;
 let mainWindow: BrowserWindow | null = null;
 // Existing approved configuration + driver permission gates remain in the production adapter.
 // Community/server integration owns leases; voice room events never touch this manager.
+const easyTierGrants = createCommunityEtGrantRuntime(() => easyTierProductRoot(app.getPath("userData")));
 const easyTierProduction = createWindowsEasyTierProduction(
   () => easyTierProductRoot(app.getPath("userData")),
   () => join(app.isPackaged ? process.resourcesPath : join(__dirname, "../build"), "community-lan", "product", "2.7.0-laokuai"),
+  (serverId, signal) => easyTierGrants.configuration(serverId, signal),
 );
-const easyTierCommunities = new EasyTierCommunityManager(UI_ACCEPTANCE_MODE || (IS_I18N_TEST && !IS_LAOKUAI) ? null : easyTierProduction.runtime, state => {
+const easyTierCommunities = new EasyTierCommunityManager(UI_ACCEPTANCE_MODE || (IS_I18N_TEST && !IS_LAOKUAI) ? null : easyTierGrants.wrap(easyTierProduction.runtime), state => {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("et-community-state", state);
 });
 let easyTierPoll: ReturnType<typeof setInterval> | null = null;
@@ -266,7 +269,7 @@ app.on("before-quit", event => {
   if (easyTierQuitDraining) return;
   easyTierQuitDraining = true;
   easyTierCommunities.shutdownOwned();
-  void easyTierProduction.drainOwned().catch(() => {
+  void Promise.all([easyTierProduction.drainOwned(), easyTierGrants.drainOwned()]).catch(() => {
     // No native output, endpoints, credentials or resource identifiers in logs.
     console.warn("[Main] Community LAN stop remains unconfirmed; residual review required");
   }).finally(() => { easyTierQuitDrained = true; app.quit(); });
@@ -1880,7 +1883,7 @@ function installOnQuit(): void {
 async function installDownloadedUpdate(): Promise<void> {
   if (UI_ACCEPTANCE_MODE || IS_I18N_TEST) return;
   easyTierCommunities.shutdownOwned();
-  await easyTierProduction.drainOwned().catch(() => {
+  await Promise.all([easyTierProduction.drainOwned(), easyTierGrants.drainOwned()]).catch(() => {
     console.warn("[Main] Community LAN stop remains unconfirmed; residual review required");
   });
   easyTierQuitDrained = true;
@@ -4673,7 +4676,8 @@ if (!gotSingleInstanceLock) {
 
       registerEasyTierCommunityIpc(applicationIpc, easyTierCommunities, event =>
           !!mainWindow && !mainWindow.isDestroyed() && event.senderFrame === mainWindow.webContents.mainFrame,
-          UI_ACCEPTANCE_MODE ? async () => ({ ready: false }) : easyTierProduction.prepareRuntime);
+          UI_ACCEPTANCE_MODE ? async () => ({ ready: false }) : easyTierProduction.prepareRuntime,
+          UI_ACCEPTANCE_MODE ? undefined : value => easyTierGrants.setAuthenticatedSession(value));
       if (!UI_ACCEPTANCE_MODE) {
         easyTierPoll = setInterval(() => easyTierCommunities.refreshAll(), 2000);
         easyTierPoll.unref();

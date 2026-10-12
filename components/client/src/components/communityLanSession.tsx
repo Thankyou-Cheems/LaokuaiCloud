@@ -1,6 +1,7 @@
 import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from "react";
 
 import { useServerManagement, useSockets } from "@/socket";
+import { getServerAccessToken } from "@/common";
 
 import { publishCommunityLanState as publish, useEasyTierCommunityState } from "../lib/communityLanState";
 import { easyTierCommunityAction, EasyTierCommunitySubscriptions } from "../lib/easyTierCommunitySubscriptions";
@@ -20,6 +21,8 @@ export function CommunityLanSession({ children }: { children?: ReactNode }) {
   const [operationFailed, setOperationFailed] = useState(false);
   const [subscriptionFailed, setSubscriptionFailed] = useState(false);
   const subscription = useRef<EasyTierCommunitySubscriptions | null>(null);
+  const authInputs = useRef(new Map<string, {host: string; accessToken: string | null}>());
+  const authSync = useRef<(() => void) | null>(null);
   // Persist through signaling reconnects. Pending approval entries are not memberships.
   const key = JSON.stringify([...new Set(Object.values(servers).filter(s => !s.approvalRequestedAt && s.serverId).map(s => s.serverId!))].sort());
   useEffect(() => {
@@ -36,6 +39,30 @@ export function CommunityLanSession({ children }: { children?: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => { subscription.current?.reconcile(JSON.parse(key) as string[]); }, [key]);
+  useEffect(() => {
+    const api = window.easyTierCommunity;
+    if (!api?.setAuthenticatedSession) return;
+    let retired = false;
+    const sync = () => {
+      const memberships = new Map<string, {host: string; accessToken: string | null}>();
+      for (const [host, server] of Object.entries(servers)) if (!server.approvalRequestedAt && server.serverId) {
+        const accessToken = getServerAccessToken(host);
+        const old = memberships.get(server.serverId);
+        if (!old || (!old.accessToken && accessToken)) memberships.set(server.serverId, {host, accessToken});
+      }
+      for (const [id, old] of authInputs.current) if (!memberships.has(id)) memberships.set(id, {host: old.host, accessToken: null});
+      for (const [serverId, input] of memberships) {
+        const old = authInputs.current.get(serverId);
+        if (old?.host === input.host && old.accessToken === input.accessToken) continue;
+        authInputs.current.set(serverId, input);
+        void api.setAuthenticatedSession!({serverId, ...input}).then(state => { if (!retired) publish(state); })
+          .catch(() => { if (!retired) { authInputs.current.delete(serverId); setOperationFailed(true); } });
+      }
+    };
+    authSync.current = sync;
+    sync(); window.addEventListener("community-member-token-changed", sync);
+    return () => { retired = true; if (authSync.current === sync) authSync.current = null; window.removeEventListener("community-member-token-changed", sync); };
+  }, [servers]);
   useEffect(() => {
     const api = window.easyTierCommunity;
     if (!api) return;
@@ -73,7 +100,7 @@ export function CommunityLanSession({ children }: { children?: ReactNode }) {
   return <CommunityLanControlsContext.Provider value={window.easyTierCommunity && serverId ? {
     enabled, preparing, action: shownAction, communityLabel, channelsReceived,
     onToggle: () => setEnabled(value => !value), onPrepare: () => void prepare(),
-    onRetry: () => subscription.current?.retry(serverId),
+    onRetry: () => { authInputs.current.delete(serverId); authSync.current?.(); subscription.current?.retry(serverId); },
   } : null}>{children}</CommunityLanControlsContext.Provider>;
 }
 

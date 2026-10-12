@@ -4,7 +4,7 @@ import type { EasyTierCliCore } from "./easyTierWindowsProcesses";
 
 export interface WindowsEasyTierCliPorts {
   platform: string;
-  configuration(serverId: string): Promise<EasyTierExistingConfiguration>;
+  configuration(serverId: string, signal: AbortSignal): Promise<EasyTierExistingConfiguration>;
   permission(): Promise<boolean>;
   verifiedAssets(): Promise<string>;
   start(directory: string, config: EasyTierExistingConfiguration, signal: AbortSignal): Promise<EasyTierCliCore>;
@@ -43,7 +43,7 @@ export class WindowsEasyTierCliRuntime implements EasyTierRuntime {
     const check = () => { if (this.stopped || scope.signal.aborted) throw new EasyTierOperationError("connect-failed"); };
     try {
       check();
-      const config = await this.ports.configuration(scope.serverId);
+      const config = await this.ports.configuration(scope.serverId, scope.signal);
       check();
       if (config.serverId !== scope.serverId) throw new EasyTierOperationError("configuration-required");
       if (!(await this.ports.permission())) throw new EasyTierOperationError("needs-permission");
@@ -56,7 +56,13 @@ export class WindowsEasyTierCliRuntime implements EasyTierRuntime {
       for (let attempt = 0; attempt < 12; attempt++) {
         check();
         if (!owner.core.isAlive()) throw new EasyTierOperationError("connect-failed");
-        try { if ((await owner.core.readNode(scope.signal)).virtualIp) { ready = true; break; } }
+        try {
+          if (config.credentialIdentity) {
+            if (!owner.core.readCredentialObservation) throw new EasyTierOperationError("status-unavailable");
+            await owner.core.readCredentialObservation(scope.signal); ready = true; break;
+          }
+          if ((await owner.core.readNode(scope.signal)).virtualIp) { ready = true; break; }
+        }
         catch { check(); }
         await this.ports.pause(scope.signal);
       }
@@ -65,6 +71,14 @@ export class WindowsEasyTierCliRuntime implements EasyTierRuntime {
       const core = owner.core;
       return {
         instanceId: config.instanceId, close,
+        readCredentialObservation: core.readCredentialObservation ? signal => core.readCredentialObservation!(signal) : undefined,
+        readCredentialSample: core.readCredentialNetwork ? async signal => {
+          if (closed || closing || this.stopped || !core.isAlive() || signal.aborted) throw new EasyTierOperationError("runtime-exited");
+          const {network, observation} = await core.readCredentialNetwork!(signal);
+          if (closed || closing || this.stopped || !core.isAlive() || signal.aborted) throw new EasyTierOperationError("runtime-exited");
+          return {observation, sample: {serverId: scope.serverId, generation: scope.generation, instanceId: config.instanceId,
+            ...network, acquisitionSource: "owned-cli-route-list", freshRpc: true, bindings: []}};
+        } : undefined,
         read: async signal => {
           const context = { serverId: scope.serverId, generation: scope.generation, instanceId: config.instanceId,
             acquiredAtMs: performance.now(), acquiredAtUnixMs: Date.now(), freshRpc: !signal.aborted, latencyFirst: null, bindings: [] };

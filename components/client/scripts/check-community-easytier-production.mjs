@@ -23,7 +23,7 @@ function compile(file) {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText;
   const exports = {};
-  vm.runInNewContext(code, { exports, AbortController, Date, Buffer, Uint8Array, Set, Map, URL,
+  vm.runInNewContext(code, { exports, AbortController, Date, Buffer, Uint8Array, Set, Map, URL, structuredClone,
     performance: { now: () => 1000 }, process: { platform: "win32", env: {} },
     setTimeout: callback => { const id = ++timerId; timers.set(id, callback); return id; }, clearTimeout: id => timers.delete(id), fetch: forbidden,
     require: key => { assert.ok(key in deps, `Unmocked import ${key}`); return deps[key]; },
@@ -37,6 +37,8 @@ deps["./easyTierTarget"] = compile("electron/easyTierTarget.ts");
 const assets = compile("electron/easyTierWindowsAssets.ts"); deps["./easyTierWindowsAssets"] = assets;
 const configuration = compile("electron/easyTierExistingConfiguration.ts");
 deps["./easyTierCliNetwork"] = compile("electron/easyTierCliNetwork.ts");
+deps["./communityEtGrant"] = compile("electron/communityEtGrant.ts");
+deps["./communityEtCredentialObservation"] = compile("electron/communityEtCredentialObservation.ts");
 const processes = compile("electron/easyTierWindowsProcesses.ts");
 const { WindowsEasyTierCliRuntime } = compile("electron/windowsEasyTierCliRuntime.ts");
 const { EasyTierCommunitySubscriptions, easyTierCommunityAction } = compile("src/lib/easyTierCommunitySubscriptions.ts");
@@ -286,14 +288,15 @@ await test("unconfirmed forced exit retains the owned core until cleanup can be 
 await test("downstream identity requires reviewed host policy and owned-stop contract; official core hash is forbidden", async () => {
   const manifest = { schemaVersion: 2, version: "2.7.0-laokuai", upstreamCommit: "8b7f1f0196edb5b580829ed5f135050fb5853478",
     hostPolicy: "externally-managed", ownedStopProtocol: 1, sourcePatchSha256: assets.EASYTIER_LAOKUAI_SOURCE_PATCH_SHA256,
-    sourceCommit:"dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49",sourceTree:"e58f64a219c204cdaf364fc95466cf03acfb7c21",
-    cargoLockSha256:"e3ee41507e7a8ef94470b70f4639140e67aadae646ada82dfd23b0beeb0e7fb2",buildProfile:"windows-default-minus-faketcp-v1",
+    sourceCommit:"089b6182c603c8ab60044b673effe0cf614cc28a",sourceTree:"25be11e0c9460bce1330cbd7964e4d6561f0bc14",
+    cargoLockSha256:"e3ee41507e7a8ef94470b70f4639140e67aadae646ada82dfd23b0beeb0e7fb2",buildProfile:"windows-std-static-minus-faketcp-v2",
     buildProfileSha256:assets.EASYTIER_LAOKUAI_PROFILE_SHA256,noDefaultFeatures:true,target:"x86_64-pc-windows-msvc",toolchain:"1.95.0",normalAndDelayImportsVerified:true,
     coreSha256:assets.EASYTIER_PRODUCT_FILES["easytier-core.exe"].sha256,cliSha256:assets.EASYTIER_PRODUCT_FILES["easytier-cli.exe"].sha256,files:assets.EASYTIER_PRODUCT_FILES };
   assert.equal(assets.verifiedEasyTierProductManifest(manifest).coreSha256, manifest.coreSha256);
   for (const changes of [{ version: "2.7.0" }, { coreSha256: assets.EASYTIER_WINDOWS_FILES["easytier-core.exe"] },
     { cliSha256:assets.EASYTIER_WINDOWS_FILES["easytier-cli.exe"] },{schemaVersion:1},
-    { ownedStopProtocol: 0 }, { hostPolicy: "legacy" }, { sourcePatchSha256: null }, { sourcePatchSha256: "c".repeat(64) }]) {
+    { ownedStopProtocol: 0 }, { hostPolicy: "legacy" }, { sourcePatchSha256: null }, { sourcePatchSha256: "c".repeat(64) },
+    {sourceCommit:"dbaf04531024f4201e73ec0bc5ba6a7a6d8d3b49"}, {buildProfile:"windows-default-minus-faketcp-v1"}]) {
     assert.throws(() => assets.verifiedEasyTierProductManifest({ ...manifest, ...changes }), e => e.reason === "runtime-required");
   }
 });
