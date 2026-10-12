@@ -1,0 +1,77 @@
+{
+  "schema": 1,
+  "sourceCommit": "701200d01e8a898f857ba222ef34a3b1af532f01",
+  "sourceClientTree": "a65e2a1ed2b424bd259e0e525a8b0b390f7ec442",
+  "status": "COOLDOWN-SOURCE-CHECKED-REAL-DROP-CAUSE-PENDING",
+  "ready": false,
+  "finalPackage": null,
+  "observation": {
+    "actualSocketConnection": true,
+    "actualTokenRefresh": true,
+    "firstPreviewRoomRequestsBeforeFirstRefusal": 9,
+    "regularRequestSpacingApproxMs": 3900,
+    "firstRateLimitRetryAfterMs": 10000,
+    "prematureRetryAfterMs": 6007,
+    "secondRateLimitRetryAfterMs": 10000,
+    "lateRefusalRetryAfterMs": 12938,
+    "grantsAndLeavesNotCapturedInFirstPreview": true,
+    "serverKickCausalityProven": false
+  },
+  "fix": {
+    "serverLimitsUnchanged": true,
+    "roomRequestsSuppressedUntilServerCooldown": true,
+    "cooldownSurvivesCoordinatorReplacementAndSameSocketReconnect": true,
+    "lateRefusalsObserved": true,
+    "countdownToastUsesStableContextId": true
+  },
+  "diagnostics": {
+    "localOnly": true,
+    "maxBytesPerFile": 2097152,
+    "maxFiles": 3,
+    "repeatAggregation": true,
+    "acceptedFields": "fixed enum and bounded numeric fields only",
+    "rawPayloadOrIdentityAllowed": false,
+    "upload": false,
+    "sourceFiles": [
+      "components/client/src/lib/localDiagnostics.ts",
+      "components/client/electron/localDiagnostics.ts"
+    ]
+  },
+  "preview": {
+    "kind": "real-Electron-built-product-origin",
+    "grytLaokuai": true,
+    "grytI18nTest": true,
+    "existingOriginalAdministratorProfile": true,
+    "profileCopiedOrReset": false,
+    "origin": "http://127.0.0.1:15738",
+    "build": "existing Vite renderer and Electron build",
+    "nativeAssets": "verified frozen 9db sealed resources reused",
+    "tunEnabled": false,
+    "firewallChanged": false,
+    "entry": "components/client/scripts/laokuai-preview.mjs",
+    "mainSha256": "cd8254edcdc2bfb57077f1bd4b1d2e227bde2cdca01b36ea903c10dbe11e9929",
+    "preloadSha256": "9373cfd4cd88de4879f079a6abfb5be378bcea825846e0d7021dfd987c9064b6",
+    "indexHtmlSha256": "54c9d471486eed4e17370e89cb4d4446c0667ab48e8c85f8a4837af018831b31",
+    "restartObserved": {
+      "socketConnected": true,
+      "tokenRefreshed": true,
+      "singleJoinRetestObserved": false
+    }
+  },
+  "checks": {
+    "loggerSchemaAggregationRotation": "PASS",
+    "typecheck": "PASS",
+    "viteRendererAndElectronBuild": "PASS",
+    "roomAccessRegression": "14/14 PASS",
+    "moveAuthorityIdentityFixture": "PASS after correcting pre-existing missing stable server identity fixture",
+    "mountedRequestBound": "BLOCKED: components/voice/dist and React test dependencies absent; no SDK rebuild attempted"
+  },
+  "pending": [
+    "User single-join real preview state/leave/disconnect timeline",
+    "Cause of successful join followed by departure",
+    "Actual cooldown suppression and recovery in live voice flow",
+    "Windows Electron executable versus portable firewall/native scope confirmation before any TUN attempt",
+    "Native 817 preparation remains paused; no new native build",
+    "One final portable only after real flow passes"
+  ]
+}
