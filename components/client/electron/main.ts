@@ -4685,7 +4685,7 @@ if (!gotSingleInstanceLock) {
       registerEasyTierCommunityIpc(applicationIpc, easyTierCommunities, event =>
           !!mainWindow && !mainWindow.isDestroyed() && event.senderFrame === mainWindow.webContents.mainFrame,
           LAOKUAI_PREVIEW || UI_ACCEPTANCE_MODE ? async () => ({ ready: false }) : easyTierProduction.prepareRuntime,
-          LAOKUAI_PREVIEW || UI_ACCEPTANCE_MODE ? undefined : value => easyTierGrants.setAuthenticatedSession(value));
+          LAOKUAI_PREVIEW || UI_ACCEPTANCE_MODE ? undefined : value => easyTierGrants.setAuthenticatedSession(value), LAOKUAI_PREVIEW);
       applicationIpc.on("laokuai-local-diagnostic", (event, value: unknown) => {
         if (mainWindow && !mainWindow.isDestroyed() && event.senderFrame === mainWindow.webContents.mainFrame) localDiagnostics?.record(value);
       });

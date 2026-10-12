@@ -9,13 +9,14 @@ export interface CommunityLanStatusControlProps {
   preparing: boolean;
   communityLabel: string;
   channelsReceived: boolean;
+  toggleDisabled?: boolean;
   onToggle(): void;
   onPrepare(): void;
   onRetry(): void;
 }
 
 /** Compact normal-flow entry; full status/actions appear only after an explicit open. */
-export function CommunityLanStatusControl({ action, enabled, preparing, communityLabel, channelsReceived, onToggle, onPrepare, onRetry }: CommunityLanStatusControlProps) {
+export function CommunityLanStatusControl({ action, enabled, preparing, communityLabel, channelsReceived, toggleDisabled, onToggle, onPrepare, onRetry }: CommunityLanStatusControlProps) {
   const dot = action.kind === "error" ? "bg-gryt-danger" : action.kind === "connected" ? "bg-gryt-accent" : "bg-gryt-muted";
   return <div className="shrink-0" data-gryt="community-lan-control" data-state={action.kind}>
     <Menu.Root modal={false}>
@@ -36,7 +37,7 @@ export function CommunityLanStatusControl({ action, enabled, preparing, communit
               <p role="status" className="mt-1 text-gryt-muted">{action.message}</p>
             </div>
             <Menu.Separator />
-            <Menu.Item onClick={onToggle}>{enabled ? "关闭联机" : "开启联机"}</Menu.Item>
+            <Menu.Item disabled={toggleDisabled} onClick={onToggle}>{enabled ? "关闭联机" : "开启联机"}</Menu.Item>
             {enabled && action.prepare && <Menu.Item disabled={preparing} onClick={onPrepare}>准备组件</Menu.Item>}
             {(enabled || action.label === "退出异常") && action.retry && !action.prepare && <Menu.Item disabled={preparing} onClick={onRetry}>{action.retryLabel}</Menu.Item>}
           </Menu.Popup>

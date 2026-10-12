@@ -13,6 +13,12 @@ const CommunityLanControlsContext = createContext<CommunityLanStatusControlProps
 export function CommunityLanSession({ children }: { children?: ReactNode }) {
   const { servers, currentlyViewingServer } = useServerManagement();
   const { sockets, serverConnectionStatus, serverDetailsList } = useSockets();
+  const [previewDisabled, setPreviewDisabled] = useState(false);
+  useEffect(() => {
+    let retired = false;
+    void window.easyTierCommunity?.getRuntimeMode?.().then(mode => {if (!retired) setPreviewDisabled(mode === "preview-disabled");}).catch(() => {});
+    return () => {retired = true;};
+  }, []);
   const [enabled, setEnabled] = useState(() => {
     try { return localStorage.getItem("community-lan-enabled") !== "off"; } catch { return true; }
   });
@@ -86,7 +92,9 @@ export function CommunityLanSession({ children }: { children?: ReactNode }) {
     } catch { setPrepareFailed(true); }
     finally { setPreparing(false); }
   };
-  const shownAction = operationFailed || subscriptionFailed ? { ...action, label: "组件不可用", kind: "error" as const,
+  const shownAction = previewDisabled ? { ...action, label: "测试模式：联机未启用", kind: "disabled" as const,
+    message: "本轮测试预览未启用联机。联机入口已禁用，不会尝试连接。", prepare: false, retry: false }
+    : operationFailed || subscriptionFailed ? { ...action, label: "组件不可用", kind: "error" as const,
     message: "联机组件操作未完成，请重试。社区与语音鉴权不依赖此组件，请分别查看社区和频道状态。", prepare: false, retry: true }
     : preparing ? { ...action, label: "准备中", kind: "pending" as const, message: "正在准备联机组件…联机与社区语音独立。" }
     : prepareFailed && enabled ? { ...action, label: "准备失败", kind: "error" as const,
@@ -98,7 +106,7 @@ export function CommunityLanSession({ children }: { children?: ReactNode }) {
     ? "社区服务已连接" : connection === "connecting" || connection === "reconnecting" ? "社区服务连接中" : "社区服务未连接";
   const channelsReceived = Boolean(host && Array.isArray(serverDetailsList[host]?.channels));
   return <CommunityLanControlsContext.Provider value={window.easyTierCommunity && serverId ? {
-    enabled, preparing, action: shownAction, communityLabel, channelsReceived,
+    enabled: previewDisabled ? false : enabled, toggleDisabled: previewDisabled, preparing, action: shownAction, communityLabel, channelsReceived,
     onToggle: () => setEnabled(value => !value), onPrepare: () => void prepare(),
     onRetry: () => { authInputs.current.delete(serverId); authSync.current?.(); subscription.current?.retry(serverId); },
   } : null}>{children}</CommunityLanControlsContext.Provider>;

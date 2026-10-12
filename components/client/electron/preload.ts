@@ -5,6 +5,7 @@ import type { EasyTierCommunityAPI, EasyTierCommunityState } from "../src/lib/ea
 import type { SquadConfig, SquadSnapshot } from "../src/lib/squadMode";
 
 const easyTierCommunity: EasyTierCommunityAPI = {
+  getRuntimeMode: () => ipcRenderer.invoke("et-community-mode"),
   connect: lease => ipcRenderer.invoke("et-community-connect", lease),
   disconnect: lease => ipcRenderer.invoke("et-community-disconnect", lease),
   disconnectCommunity: serverId => ipcRenderer.invoke("et-community-disconnect-all", serverId),

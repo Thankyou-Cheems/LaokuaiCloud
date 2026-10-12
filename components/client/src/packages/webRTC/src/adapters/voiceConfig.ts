@@ -16,7 +16,7 @@ import { voicePresetCodec } from "../../../../lib/voiceTransportPreset";
 export function useVoiceConfigFromSettings(stunHosts: string[],move?:MovePolicyBinding): VoiceConfig {
   const s = useSettings();
   const transmitSuppressionEnabled = useSquadGateEnabled();
-  const {currentServerConnected:host,currentChannelConnected:channel,isConnected}=useSFU();
+  const {currentServerConnected:host,currentChannelConnected:channel}=useSFU();
   const {clients,serverDetailsList,sockets}=useSockets();
   const details=serverDetailsList[host];
   const currentChannel=details?.channels.find(item=>item.id===channel);
@@ -32,8 +32,13 @@ export function useVoiceConfigFromSettings(stunHosts: string[],move?:MovePolicyB
   const inputMode=policy?.requirePTT || currentChannel?.requirePushToTalk ? "push_to_talk" : s.inputMode;
   const noiseSuppression=!(policy?.disableRNNoise || currentChannel?.disableRnnoise) && s.rnnoiseEnabled;
   const eSportsMode=policy?.eSportsMode===true || currentChannel?.eSportsMode===true || s.eSportsModeEnabled;
-  const microphones=useMemo(()=>receiveMicrophoneStreamIds({host,channelId:channel,connected:isConnected,
-    clients:Object.values(clients[host]??{})}),[host,channel,isConnected,clients]);
+  // Permission comes from the authenticated signalling roster, not the media
+  // connection state that this policy itself controls. Our publication is not
+  // a remote receive source; announcing it must not tear down our own PC.
+  const microphones=useMemo(()=>receiveMicrophoneStreamIds({host,channelId:channel,
+    connected:socket?.connected===true && !!own?.serverUserId,
+    clients:Object.entries(clients[host]??{}).filter(([id])=>id!==socket?.id).map(([,client])=>client)}),
+    [host,channel,socket?.connected,socket?.id,own?.serverUserId,clients]);
 
   return useMemo(
     () => ({
