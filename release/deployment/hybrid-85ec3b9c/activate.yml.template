@@ -1,0 +1,21 @@
+services:
+  server:
+    image: ${NEW_BACKEND_IMAGE:?exact_built_backend_sha256_required}
+    environment:
+      VOICE_HYBRID_ENABLED: "true"
+      SERVER_VERSION: "1.0.76-laokuai.hybrid.85ec3b9c"
+    volumes:
+      - type: bind
+        source: /opt/stacks/gryt/hybrid-upgrade-85ec3b9c/data-candidate
+        target: /data
+        bind:
+          propagation: rprivate
+  sfu:
+    image: ${NEW_SFU_IMAGE:?exact_built_sfu_sha256_required}
+    environment:
+      SFU_HYBRID_ENABLED: "true"
+      SFU_AUDIO_ONLY: "true"
+      SFU_REQUIRE_CLIENT_TOKEN: "true"
+      SFU_CONTROL_PORT: "9092"
+      SFU_METRICS_PORT: "0"
+      ICE_UDP_MUX_PORT: "3478"

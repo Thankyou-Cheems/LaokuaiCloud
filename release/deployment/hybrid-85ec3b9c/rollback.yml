@@ -1,0 +1,11 @@
+services:
+  server:
+    image: sha256:b6f4bf5db57493a06307e1cfaefd1c92d6c90ccc26e46c9ba05a8fab53d093e8
+    volumes:
+      - type: bind
+        source: /opt/stacks/gryt/data
+        target: /data
+        bind:
+          propagation: rprivate
+  sfu:
+    image: sha256:33babe9b71475b123d5bb0e8482f0da5ae2b92c0fbe0e59a00957d89faea6eef

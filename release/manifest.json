@@ -9,8 +9,8 @@
     "visibility": "private",
     "branch": "integration/lifecycle3-20261012",
     "soleGitWriter": "task-6",
-    "codeCommit": "c75e6802ac9971b7d4139df8f97b99c7398efd7d",
-    "codeTree": "c772bf0235e4f1696a3bc12e69025517f2295cec",
+    "codeCommit": "85ec3b9c60d49881ba9ad5cd48c9a17d59c1772d",
+    "codeTree": "0412a059261ad0564f3aca03b3cdf9a6d3a69de8",
     "newRepositoryReason": "Authenticated private-repo metadata and explicitly scoped old local core/game remotes revealed no matching existing private integration repository",
     "historyPolicy": "Original client history preserved; no force push/reset/rewrite; other components imported as licensed source snapshots"
   },
@@ -135,7 +135,7 @@
     },
     "server": {
       "path": "components/server",
-      "tree": "64d94112ac4969823875522bfc6698e81eca5d3b",
+      "tree": "96db8312488c4f399904192f3a932232cf6130ad",
       "upstream": "Gryt-chat/server",
       "userFork": null,
       "sourceCommit": "cb31e2e4ec044a2574f88321bc90cc01c3b51e0c",
@@ -152,7 +152,8 @@
         "tree": "20534c8de8afb7f191ad05b553bdf520cd51c73c",
         "sourceZipSha256": "18fc1d8ab97972b57a2fa02d40b9bb6086f243f29291e0b51be694c62e3657d4"
       },
-      "lifecycle3": "Per-socket room request revision guards; exact delivered source. Existing auth/permissions preserved; no server deployment."
+      "lifecycle3": "Per-socket room request revision guards; exact delivered source. Existing auth/permissions preserved; no server deployment.",
+      "deploymentPreparationSourceCommit": "85ec3b9c60d49881ba9ad5cd48c9a17d59c1772d"
     },
     "sfu": {
       "path": "components/sfu",
@@ -2254,6 +2255,13 @@
       "receiptSha256": "e27610b8fb0ed8a9e639d8b0163156722c64b063f8828b6f67df6748c36b7b71",
       "sourceCommit": "c75e6802ac9971b7d4139df8f97b99c7398efd7d",
       "currentPackageAccepted": false
+    },
+    "hybridDeploymentPreparation": {
+      "receipt": "release/acceptance/hybrid-deployment-preparation.json",
+      "receiptSha256": "462b8b7c61149c07fb26f4a8072956fee7f33295d7734fdc4668f610915e5cdb",
+      "sourceCommit": "85ec3b9c60d49881ba9ad5cd48c9a17d59c1772d",
+      "imagesBuilt": false,
+      "deployed": false
     }
   },
   "securityBoundary": {
