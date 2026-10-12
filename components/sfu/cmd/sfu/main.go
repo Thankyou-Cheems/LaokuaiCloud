@@ -1,14 +1,19 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"net/http"
+	"os"
+	"os/signal"
 	"sort"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/pion/ice/v4"
@@ -29,6 +34,11 @@ import (
 var Version = "dev"
 
 func main() {
+	signalCtx, stopSignals := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stopSignals()
+	workerCtx, stopWorkers := context.WithCancel(signalCtx)
+	defer stopWorkers()
+	serveFailures := make(chan error, 3)
 	// Set up global panic recovery
 	defer func() {
 		if r := recover(); r != nil {
@@ -86,7 +96,7 @@ func main() {
 	}
 
 	// Start system monitoring
-	recovery.StartSystemMonitor(30 * time.Second) // Monitor every 30 seconds
+	monitorDone := recovery.StartSystemMonitorContext(workerCtx, 30*time.Second)
 	logger.LogAction("MAIN", "MONITOR_STARTED", "", "", "System monitoring active")
 
 	// Initialize managers with crash protection
@@ -97,6 +107,7 @@ func main() {
 	var roomManager *room.Manager
 	var coordinator *signaling.Coordinator
 	var webrtcAPI *pion.API
+	var udpOwner io.Closer
 
 	// Initialize track manager with recovery
 	err = recovery.SafeExecute("MAIN", "INIT_TRACK_MANAGER", func() error {
@@ -120,10 +131,11 @@ func main() {
 
 	// Build a Pion WebRTC API with a configured SettingEngine (UDP port range, advertised IP, etc.)
 	err = recovery.SafeExecute("MAIN", "INIT_WEBRTC_API", func() error {
-		se, seErr := newSettingEngine(cfg)
+		se, ownedMux, seErr := newSettingEngine(cfg)
 		if seErr != nil {
 			return seErr
 		}
+		udpOwner = ownedMux
 		me := &pion.MediaEngine{}
 		if err := registerCodecs(me); err != nil {
 			return fmt.Errorf("failed to register codecs: %w", err)
@@ -137,7 +149,7 @@ func main() {
 
 	// Verify UDP connectivity before reporting healthy. This gates /health so Compose waits
 	// for the networking stack before starting dependent services.
-	readiness.VerifyUDP(cfg.STUNServers, cfg.DisableSTUN)
+	readinessDone := readiness.VerifyUDPContext(workerCtx, cfg.STUNServers, cfg.DisableSTUN)
 
 	// Initialize room manager with recovery
 	err = recovery.SafeExecute("MAIN", "INIT_ROOM_MANAGER", func() error {
@@ -178,41 +190,33 @@ func main() {
 	}
 
 	// Start room cleanup routine with recovery
-	recovery.SafeGoroutine("MAIN", "ROOM_CLEANUP", func() {
-		ticker := time.NewTicker(5 * time.Minute) // Check every 5 minutes
-		defer ticker.Stop()
-
-		log.Printf("🧹 Room cleanup routine started (check interval: 5m, cleanup threshold: 30m)")
-
-		for range ticker.C {
-			recovery.SafeExecute("ROOM_CLEANUP", "CLEANUP_CYCLE", func() error {
-				if cfg.Debug {
-					log.Printf("🧹 Running scheduled room cleanup...")
-				}
-				roomManager.CleanupEmptyRooms(30 * time.Minute) // Remove rooms empty for 30+ minutes
-				return nil
-			})
-		}
+	log.Printf("🧹 Room cleanup routine started (check interval: 5m, cleanup threshold: 30m)")
+	roomCleanupDone := periodicWork(workerCtx, 5*time.Minute, func() {
+		recovery.SafeExecute("ROOM_CLEANUP", "CLEANUP_CYCLE", func() error {
+			if cfg.Debug {
+				log.Printf("🧹 Running scheduled room cleanup...")
+			}
+			roomManager.CleanupEmptyRooms(30 * time.Minute) // Remove rooms empty for 30+ minutes
+			return nil
+		})
 	})
 
 	// Ending calls somebody is sitting in alone. Its own routine because the cleanup above
 	// runs every five minutes against a thirty-minute threshold, and this has minutes.
+	callSweepDone := make(chan struct{})
+	var callSweepStopped <-chan struct{} = callSweepDone
 	if cfg.CallAloneTimeout > 0 {
-		recovery.SafeGoroutine("MAIN", "CALL_SWEEP", func() {
-			ticker := time.NewTicker(config.DefaultCallSweepInterval)
-			defer ticker.Stop()
+		log.Printf("📴 Abandoned-call sweep started (check interval: %s, ends a call after %s alone)",
+			config.DefaultCallSweepInterval, cfg.CallAloneTimeout)
 
-			log.Printf("📴 Abandoned-call sweep started (check interval: %s, ends a call after %s alone)",
-				config.DefaultCallSweepInterval, cfg.CallAloneTimeout)
-
-			for range ticker.C {
-				recovery.SafeExecute("CALL_SWEEP", "SWEEP_CYCLE", func() error {
-					roomManager.EndAbandonedCalls(cfg.CallAloneTimeout)
-					return nil
-				})
-			}
+		callSweepStopped = periodicWork(workerCtx, config.DefaultCallSweepInterval, func() {
+			recovery.SafeExecute("CALL_SWEEP", "SWEEP_CYCLE", func() error {
+				roomManager.EndAbandonedCalls(cfg.CallAloneTimeout)
+				return nil
+			})
 		})
 	} else {
+		close(callSweepDone)
 		log.Printf("📴 Abandoned-call sweep off (SFU_CALL_ALONE_TIMEOUT=0)")
 	}
 
@@ -231,25 +235,28 @@ func main() {
 
 	// Metrics get a listener of their own: on the default mux, /metrics sat beside the
 	// signalling WebSocket. Publishing this port puts the full register back on the internet.
+	var metricsServer *http.Server
+	metricsServeDone := make(chan struct{})
 	if cfg.MetricsPort > 0 {
 		metricsMux := http.NewServeMux()
 		metricsMux.Handle("/metrics", promhttp.Handler())
 		addr := net.JoinHostPort(cfg.MetricsHost, strconv.Itoa(cfg.MetricsPort))
+		metricsServer = &http.Server{Addr: addr, Handler: metricsMux}
 		recovery.SafeGoroutine("MAIN", "METRICS_LISTENER", func() {
+			defer close(metricsServeDone)
 			log.Printf("📊 Metrics on %s (container-only; do not publish this port)", addr)
-			if err := http.ListenAndServe(addr, metricsMux); err != nil {
+			if err := metricsServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 				log.Printf("❌ Metrics listener stopped: %v", err)
 			}
 		})
 	} else {
+		close(metricsServeDone)
 		log.Printf("📊 SFU_METRICS_PORT=0, so metrics are recorded but not served anywhere")
 	}
 
 	// Periodically sync room/peer gauges with actual state
-	recovery.SafeGoroutine("MAIN", "METRICS_SYNC", func() {
-		ticker := time.NewTicker(15 * time.Second)
-		defer ticker.Stop()
-		for range ticker.C {
+	metricsSyncDone := periodicWork(workerCtx, 15*time.Second, func() {
+		recovery.SafeExecute("MAIN", "METRICS_SYNC_CYCLE", func() error {
 			stats := webrtcManager.GetRoomStats()
 			metrics.RoomsActive.Set(float64(len(stats)))
 			totalPeers := 0
@@ -257,7 +264,8 @@ func main() {
 				totalPeers += count
 			}
 			metrics.PeersActive.Set(float64(totalPeers))
-		}
+			return nil
+		})
 	})
 
 	// Registration gets a listener of its own, for the same reason metrics do: on
@@ -277,12 +285,12 @@ func main() {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("This endpoint only accepts WebSocket connections."))
 	})
+	controlServer := &http.Server{Handler: controlMux}
+	controlServeDone := make(chan struct{})
 	recovery.SafeGoroutine("MAIN", "CONTROL_LISTENER", func() {
+		defer close(controlServeDone)
 		log.Printf("🔐 Server registration on %s (container-only; do not publish this port)", controlListener.Addr())
-		// Fatal for the same reason as the bind: once Serve returns, the port is free for anyone.
-		if err := http.Serve(controlListener, controlMux); err != nil {
-			log.Fatalf("❌ Control listener stopped: %v", err)
-		}
+		reportServeError("control", controlServer.Serve(controlListener), serveFailures)
 	})
 
 	// Handle WebSocket connections with recovery wrapper
@@ -339,10 +347,50 @@ func main() {
 
 	logger.LogAction("MAIN", "SERVER_READY", "", "", "HTTP server starting on port "+cfg.Port)
 
-	if err := http.ListenAndServe(":"+cfg.Port, nil); err != nil {
-		logger.LogAction("MAIN", "SERVER_ERROR", "", "", err.Error())
-		log.Fatalf("❌ HTTP server failed: %v", err)
+	publicServer := &http.Server{Addr: ":" + cfg.Port}
+	publicServeDone := make(chan struct{})
+	go func() {
+		defer close(publicServeDone)
+		reportServeError("public", publicServer.ListenAndServe(), serveFailures)
+	}()
+	var serveErr error
+	select {
+	case <-signalCtx.Done():
+	case serveErr = <-serveFailures:
 	}
+	stopWorkers()
+	log.Printf("SFU shutdown started (budget %s)", shutdownBudget)
+	shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), shutdownBudget)
+	defer cancelShutdown()
+	owners := []ownedClose{
+		{"public HTTP", publicServer.Shutdown}, {"control HTTP", controlServer.Shutdown},
+		{"WebSockets/handlers", wsHandler.Shutdown}, {"peer connections", func(context.Context) error { return webrtcManager.Close() }},
+		{"tracks/leases", trackManager.Shutdown},
+		{"system monitor", func(ctx context.Context) error { return waitStopped(ctx, monitorDone) }},
+		{"UDP readiness", func(ctx context.Context) error { return waitStopped(ctx, readinessDone) }},
+		{"room cleanup", func(ctx context.Context) error { return waitStopped(ctx, roomCleanupDone) }},
+		{"call sweep", func(ctx context.Context) error { return waitStopped(ctx, callSweepStopped) }},
+		{"metrics sync", func(ctx context.Context) error { return waitStopped(ctx, metricsSyncDone) }},
+		{"public Serve", func(ctx context.Context) error { return waitStopped(ctx, publicServeDone) }},
+		{"control Serve", func(ctx context.Context) error { return waitStopped(ctx, controlServeDone) }},
+		{"metrics Serve", func(ctx context.Context) error { return waitStopped(ctx, metricsServeDone) }},
+	}
+	if metricsServer != nil {
+		owners = append(owners, ownedClose{"metrics HTTP", metricsServer.Shutdown})
+	}
+	shutdownErr := shutdownOwned(shutdownCtx, owners)
+	// Peer transports release their mux connections before the shared mux closes.
+	muxErr := shutdownOwned(shutdownCtx, []ownedClose{{"ICE UDP mux", func(context.Context) error { return udpOwner.Close() }}})
+	if shutdownErr != nil || muxErr != nil {
+		log.Printf("SFU shutdown incomplete: owners=%v mux=%v", shutdownErr, muxErr)
+		os.Exit(1)
+	}
+	serveErr = drainServeErrors(serveFailures, serveErr)
+	if serveErr != nil {
+		log.Printf("SFU listener failed: %v", serveErr)
+		os.Exit(1)
+	}
+	log.Printf("SFU shutdown complete")
 }
 
 // logBoundAddresses says where a listener answers. IPv4 in full, IPv6 as a count: a host can
@@ -469,7 +517,7 @@ const srtpReplayWindow = 1024
 
 // newSettingEngine builds the ICE half of the WebRTC API from the config. Extracted so a
 // test can gather against it: a wrong answer here looks right until somebody reads an SDP.
-func newSettingEngine(cfg *config.Config) (pion.SettingEngine, error) {
+func newSettingEngine(cfg *config.Config) (pion.SettingEngine, io.Closer, error) {
 	se := pion.SettingEngine{}
 	// Pion's 64-packet window threw away retransmits of a big keyframe, so the NACKs never
 	// stopped and a share started on a thin link never showed (GRYT-1571). Chrome uses 1024.
@@ -482,7 +530,7 @@ func newSettingEngine(cfg *config.Config) (pion.SettingEngine, error) {
 		ice.UDPMuxFromPortWithIPFilter(shouldBindICEUDPAddress),
 	)
 	if muxErr != nil {
-		return se, fmt.Errorf("failed to create ICE UDP mux on port %d: %w", cfg.ICEUDPMuxPort, muxErr)
+		return se, nil, fmt.Errorf("failed to create ICE UDP mux on port %d: %w", cfg.ICEUDPMuxPort, muxErr)
 	}
 	se.SetICEUDPMux(udpMux)
 	log.Printf("🧊 ICE UDP mux on port: %d", cfg.ICEUDPMuxPort)
@@ -497,12 +545,13 @@ func newSettingEngine(cfg *config.Config) (pion.SettingEngine, error) {
 			AsCandidateType: pion.ICECandidateTypeHost,
 			Mode:            pion.ICEAddressRewriteReplace,
 		}); rewriteErr != nil {
-			return se, fmt.Errorf("failed to set ICE address rewrite rules: %w", rewriteErr)
+			_ = udpMux.Close()
+			return se, nil, fmt.Errorf("failed to set ICE address rewrite rules: %w", rewriteErr)
 		}
 		log.Printf("🧊 ICE address rewrite (host replace): %v", cfg.ICEAdvertiseIPs)
 	}
 
-	return se, nil
+	return se, udpMux, nil
 }
 
 func shouldBindICEUDPAddress(ip net.IP) bool {

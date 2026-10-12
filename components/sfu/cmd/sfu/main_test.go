@@ -42,10 +42,11 @@ func TestSentCandidatesOnlyCarryAdvertisedAddresses(t *testing.T) {
 		DisableSTUN:     true,
 	}
 
-	se, err := newSettingEngine(cfg)
+	se, muxOwner, err := newSettingEngine(cfg)
 	if err != nil {
 		t.Fatalf("newSettingEngine: %v", err)
 	}
+	defer muxOwner.Close()
 
 	api := pion.NewAPI(pion.WithSettingEngine(se))
 	pc, err := api.NewPeerConnection(pion.Configuration{})

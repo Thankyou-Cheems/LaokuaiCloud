@@ -13,10 +13,11 @@ import (
 // TestLateRetransmitsReachTheSFU sends 300 packets with 40 held back, then the 40 late,
 // the way a NACKed keyframe arrives. Each late one is 200+ behind the newest (GRYT-1571).
 func TestLateRetransmitsReachTheSFU(t *testing.T) {
-	se, err := newSettingEngine(&config.Config{ICEUDPMuxPort: 0, DisableSTUN: true})
+	se, muxOwner, err := newSettingEngine(&config.Config{ICEUDPMuxPort: 0, DisableSTUN: true})
 	if err != nil {
 		t.Fatalf("newSettingEngine: %v", err)
 	}
+	defer muxOwner.Close()
 	me := &pion.MediaEngine{}
 	if err := registerCodecs(me); err != nil {
 		t.Fatalf("registerCodecs: %v", err)

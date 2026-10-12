@@ -1,6 +1,8 @@
 package websocket
 
 import (
+	"context"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -14,6 +16,8 @@ const pingWriteWait = 10 * time.Second
 // without a FIN reads forever, and a quiet call has its NAT mapping reaped.
 type KeepAlive struct {
 	stop chan struct{}
+	done chan struct{}
+	once sync.Once
 }
 
 // StartKeepAlive arms conn's read deadline and starts pinging every interval; Stop belongs in
@@ -34,9 +38,10 @@ func StartKeepAlive(conn *ThreadSafeWriter, interval, timeout time.Duration) *Ke
 		return nil
 	})
 
-	k := &KeepAlive{stop: make(chan struct{})}
+	k := &KeepAlive{stop: make(chan struct{}), done: make(chan struct{})}
 
 	go func() {
+		defer close(k.done)
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 
@@ -65,5 +70,18 @@ func (k *KeepAlive) Stop() {
 	if k == nil || k.stop == nil {
 		return
 	}
-	close(k.stop)
+	k.once.Do(func() { close(k.stop) })
+}
+
+// Normal Stop remains nonblocking; global shutdown can await the owned pinger.
+func (k *KeepAlive) Wait(ctx context.Context) error {
+	if k == nil || k.done == nil {
+		return nil
+	}
+	select {
+	case <-k.done:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }

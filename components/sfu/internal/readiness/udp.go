@@ -1,6 +1,7 @@
 package readiness
 
 import (
+	"context"
 	"crypto/rand"
 	"log"
 	"net"
@@ -17,23 +18,37 @@ func IsUDPReady() bool { return udpVerified.Load() }
 // VerifyUDP sends STUN Binding Requests in the background so /health can gate on
 // IsUDPReady(): Docker Desktop's UDP forwarding can lag the container process.
 func VerifyUDP(stunServers []string, disableSTUN bool) {
+	VerifyUDPContext(context.Background(), stunServers, disableSTUN)
+}
+
+func VerifyUDPContext(ctx context.Context, stunServers []string, disableSTUN bool) <-chan struct{} {
+	done := make(chan struct{})
 	if disableSTUN || len(stunServers) == 0 {
 		log.Printf("🧊 UDP readiness: STUN disabled or no servers configured — ready immediately")
 		udpVerified.Store(true)
-		return
+		close(done)
+		return done
 	}
 
-	go verifyLoop(stunServers)
+	go func() { defer close(done); verifyLoopContext(ctx, stunServers) }()
+	return done
 }
 
 func verifyLoop(stunServers []string) {
+	verifyLoopContext(context.Background(), stunServers)
+}
+
+func verifyLoopContext(ctx context.Context, stunServers []string) {
 	const maxAttempts = 8
 	delay := 1 * time.Second
 
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		if ctx.Err() != nil {
+			return
+		}
 		for _, raw := range stunServers {
 			addr := strings.TrimPrefix(raw, "stun:")
-			if sendSTUNBinding(addr) {
+			if sendSTUNBindingContext(ctx, addr) {
 				log.Printf("✅ UDP readiness verified via STUN (%s) on attempt %d", raw, attempt)
 				udpVerified.Store(true)
 				return
@@ -42,13 +57,22 @@ func verifyLoop(stunServers []string) {
 
 		if attempt < maxAttempts {
 			log.Printf("⚠️  UDP readiness: STUN probe failed (attempt %d/%d), retrying in %v", attempt, maxAttempts, delay)
-			time.Sleep(delay)
+			timer := time.NewTimer(delay)
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+				return
+			case <-timer.C:
+			}
 			if delay < 5*time.Second {
 				delay *= 2
 			}
 		}
 	}
 
+	if ctx.Err() != nil {
+		return
+	}
 	log.Printf("⚠️  UDP readiness: could not verify after %d attempts — proceeding anyway", maxAttempts)
 	udpVerified.Store(true)
 }
@@ -56,11 +80,20 @@ func verifyLoop(stunServers []string) {
 // sendSTUNBinding sends a minimal RFC 5389 Binding Request and checks for a
 // Binding Success Response. Uses raw UDP so there is no extra dependency.
 func sendSTUNBinding(serverAddr string) bool {
-	conn, err := net.DialTimeout("udp", serverAddr, 3*time.Second)
+	return sendSTUNBindingContext(context.Background(), serverAddr)
+}
+
+func sendSTUNBindingContext(ctx context.Context, serverAddr string) bool {
+	if ctx.Err() != nil {
+		return false
+	}
+	conn, err := (&net.Dialer{Timeout: 3 * time.Second}).DialContext(ctx, "udp", serverAddr)
 	if err != nil {
 		return false
 	}
 	defer conn.Close()
+	stopClose := context.AfterFunc(ctx, func() { _ = conn.Close() })
+	defer stopClose()
 	if err := conn.SetDeadline(time.Now().Add(3 * time.Second)); err != nil {
 		return false
 	}

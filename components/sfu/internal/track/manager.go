@@ -1,6 +1,7 @@
 package track
 
 import (
+	"context"
 	"log"
 	"sync"
 
@@ -24,10 +25,13 @@ type Manager struct {
 	// Map of roomID -> trackID -> sender info (peer connection + SSRC)
 	roomSenderInfo map[string]map[string]SenderInfo
 	// Map of roomID -> trackID -> LayerForwarder (SVC-aware forwarding)
-	roomForwarders   map[string]map[string]*svc.LayerForwarder
-	debug            bool
-	fenced           map[*webrtc.PeerConnection]bool
-	retiredReceivers map[string]map[string]*webrtc.PeerConnection
+	roomForwarders     map[string]map[string]*svc.LayerForwarder
+	debug              bool
+	closed             bool
+	closeOnce          sync.Once
+	shutdownForwarders []*svc.LayerForwarder
+	fenced             map[*webrtc.PeerConnection]bool
+	retiredReceivers   map[string]map[string]*webrtc.PeerConnection
 }
 
 // NewManager creates a new track manager
@@ -52,6 +56,9 @@ func (m *Manager) debugLog(format string, args ...interface{}) {
 func (m *Manager) AddTrackToRoom(roomID string, t *webrtc.TrackRemote, senderPC *webrtc.PeerConnection) *webrtc.TrackLocalStaticRTP {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if m.closed {
+		return nil
+	}
 	if m.fenced[senderPC] || senderPC.ConnectionState() == webrtc.PeerConnectionStateClosed || senderPC.ConnectionState() == webrtc.PeerConnectionStateFailed {
 		return nil
 	}
@@ -97,6 +104,38 @@ func (m *Manager) AddTrackToRoom(roomID string, t *webrtc.TrackRemote, senderPC 
 		roomID, t.ID(), t.StreamID(), t.Kind().String(), codec.MimeType, t.SSRC(), roomTrackCount)
 
 	return trackLocal
+}
+
+// Stop closes all receiver leases, then waits for RTP readers after owned PCs close.
+func (m *Manager) Shutdown(ctx context.Context) error {
+	m.closeOnce.Do(func() {
+		m.mu.Lock()
+		m.closed = true
+		seen := make(map[*svc.LayerForwarder]struct{})
+		for _, room := range m.roomForwarders {
+			for _, lf := range room {
+				if lf != nil {
+					seen[lf] = struct{}{}
+				}
+			}
+		}
+		for lf := range seen {
+			m.shutdownForwarders = append(m.shutdownForwarders, lf)
+		}
+		m.roomTracks = make(map[string]map[string]*webrtc.TrackLocalStaticRTP)
+		m.roomSenderInfo = make(map[string]map[string]SenderInfo)
+		m.roomForwarders = make(map[string]map[string]*svc.LayerForwarder)
+		m.mu.Unlock()
+		for _, lf := range m.shutdownForwarders {
+			lf.Stop()
+		}
+	})
+	for _, lf := range m.shutdownForwarders {
+		if err := lf.Wait(ctx); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // ForgetPeer is safe after Close: a late OnTrack is still rejected by PC state.

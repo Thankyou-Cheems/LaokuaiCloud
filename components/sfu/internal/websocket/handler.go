@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -17,6 +18,7 @@ import (
 	"github.com/pion/webrtc/v4"
 
 	"sfu-v2/internal/config"
+	"sfu-v2/internal/lifecycle"
 	"sfu-v2/internal/metrics"
 	"sfu-v2/internal/recovery"
 	"sfu-v2/internal/room"
@@ -88,6 +90,7 @@ type Handler struct {
 	roomManager   *room.Manager
 	coordinator   Coordinator
 	live          livePeers
+	connections   lifecycle.Registry
 }
 
 // NewHandler creates a new WebSocket handler
@@ -118,6 +121,10 @@ func generateClientID() string {
 
 // HandleWebSocket handles incoming WebSocket connections
 func (h *Handler) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
+	if h.connections.Stopping() {
+		http.Error(w, "server shutting down", http.StatusServiceUnavailable)
+		return
+	}
 	recovery.SafeExecuteWithContext("WEBSOCKET", "HANDLE_CONNECTION", "", "", r.RemoteAddr, func() error {
 		unsafeConn, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
@@ -127,12 +134,23 @@ func (h *Handler) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 			return err
 		}
 
-		metrics.WebSocketConnections.Inc()
 		safeConn := NewThreadSafeWriter(unsafeConn)
 
 		// Started here rather than inside either handler, so it covers the join handshake:
 		// a socket that never sends client_join used to sit in a blocking read forever.
 		keepAlive := StartKeepAlive(safeConn, h.config.PingInterval, h.config.PongTimeout)
+		release, accepted := h.connections.Track(func(ctx context.Context) error {
+			keepAlive.Stop()
+			closeErr := safeConn.ShutdownClose()
+			return errors.Join(closeErr, keepAlive.Wait(ctx))
+		})
+		if !accepted {
+			keepAlive.Stop()
+			_ = safeConn.ShutdownClose()
+			return nil
+		}
+		defer release()
+		metrics.WebSocketConnections.Inc()
 		defer keepAlive.Stop()
 
 		// Why this connection ended, so the close frame below can say. Set by the handler
@@ -176,6 +194,9 @@ func (h *Handler) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		return handlerErr
 	})
 }
+
+// Shutdown covers upgraded sockets, pending joins, owned peer cleanup and keepalive.
+func (h *Handler) Shutdown(ctx context.Context) error { return h.connections.Shutdown(ctx) }
 
 // handleServerConnection handles server registration connections
 func (h *Handler) handleServerConnection(conn *ThreadSafeWriter, clientID string) error {

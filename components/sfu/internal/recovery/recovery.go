@@ -1,6 +1,7 @@
 package recovery
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -241,11 +242,26 @@ func LogSystemStats() {
 
 // StartSystemMonitor starts a background system monitor
 func StartSystemMonitor(interval time.Duration) {
+	StartSystemMonitorContext(context.Background(), interval)
+}
+
+// StartSystemMonitorContext retains normal monitoring and exposes owned shutdown.
+func StartSystemMonitorContext(ctx context.Context, interval time.Duration) <-chan struct{} {
+	done := make(chan struct{})
 	SafeGoroutine("SYSTEM", "MONITOR", func() {
+		defer close(done)
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 
-		for range ticker.C {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+			}
+			if ctx.Err() != nil {
+				return
+			}
 			LogSystemStats()
 
 			// Check for potential memory leaks
@@ -263,4 +279,5 @@ func StartSystemMonitor(interval time.Duration) {
 			}
 		}
 	})
+	return done
 }

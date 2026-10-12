@@ -1,6 +1,8 @@
 package websocket
 
 import (
+	"errors"
+	"net"
 	"sync"
 	"time"
 
@@ -74,6 +76,17 @@ func (t *ThreadSafeWriter) CloseWithReason(code int, reason string) error {
 	)
 
 	return t.Conn.Close()
+}
+
+// Gorilla permits WriteControl/Close concurrently with writes. Bypass our JSON
+// mutex so a blocked writer cannot prevent shutdown from releasing its TCP read.
+func (t *ThreadSafeWriter) ShutdownClose() error {
+	_ = t.Conn.WriteControl(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseGoingAway, "server shutting down"), time.Now().Add(250*time.Millisecond))
+	err := t.Conn.Close()
+	if errors.Is(err, net.ErrClosed) {
+		return nil
+	}
+	return err
 }
 
 // NewThreadSafeWriter creates a new thread-safe WebSocket writer

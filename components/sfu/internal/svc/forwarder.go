@@ -1,6 +1,7 @@
 package svc
 
 import (
+	"context"
 	"encoding/binary"
 	"log"
 	"sync"
@@ -64,6 +65,7 @@ type LayerForwarder struct {
 	onWanted  func()
 
 	stopped chan struct{}
+	done    chan struct{}
 	debug   bool
 }
 
@@ -80,6 +82,7 @@ func NewLayerForwarder(remote *webrtc.TrackRemote, senderPC *webrtc.PeerConnecti
 		ddParser:    NewDDParser(),
 		receivers:   make(map[string]*ReceiverState),
 		stopped:     make(chan struct{}),
+		done:        make(chan struct{}),
 		debug:       debug,
 	}
 	go lf.run()
@@ -298,6 +301,9 @@ func (lf *LayerForwarder) RetireReceiver(id string) {
 // run is the main forwarding loop. It reads raw RTP bytes from the remote track,
 // parses the RTP header to check for a DD extension, and fans out to receivers.
 func (lf *LayerForwarder) run() {
+	if lf.done != nil {
+		defer close(lf.done)
+	}
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("[SVC-FORWARDER] panic in forwarding loop for track %s: %v", lf.trackID, r)
@@ -378,6 +384,19 @@ func (lf *LayerForwarder) run() {
 			}
 		}
 		lf.mu.RUnlock()
+	}
+}
+
+// Stop alone cannot interrupt ReadRTP; the PC owner closes it before this wait.
+func (lf *LayerForwarder) Wait(ctx context.Context) error {
+	if lf.done == nil {
+		return nil
+	}
+	select {
+	case <-lf.done:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
 	}
 }
 

@@ -1,6 +1,7 @@
 package webrtc
 
 import (
+	"errors"
 	"log"
 	"sync"
 
@@ -24,6 +25,9 @@ type Manager struct {
 	// Map of roomID -> clientID -> PeerConnection
 	roomPeers map[string]map[string]PeerConnection
 	debug     bool
+	closed    bool
+	closeOnce sync.Once
+	closeErr  error
 }
 
 // NewManager creates a new WebRTC peer connection manager
@@ -44,6 +48,13 @@ func (m *Manager) debugLog(format string, args ...interface{}) {
 // AddPeerToRoom adds a new peer connection to a specific room
 func (m *Manager) AddPeerToRoom(roomID, clientID string, pc *webrtc.PeerConnection, ws WebSocketWriter) {
 	m.mu.Lock()
+	if m.closed {
+		m.mu.Unlock()
+		if pc != nil {
+			_ = pc.Close()
+		}
+		return
+	}
 	defer m.mu.Unlock()
 
 	// Initialize room if it doesn't exist
@@ -60,6 +71,32 @@ func (m *Manager) AddPeerToRoom(roomID, clientID string, pc *webrtc.PeerConnecti
 
 	roomPeerCount := len(m.roomPeers[roomID])
 	m.debugLog("🔗 Added peer '%s' to room '%s' (Room peers: %d)", clientID, roomID, roomPeerCount)
+}
+
+// Close releases current owned PCs outside the map lock, including late arrivals.
+func (m *Manager) Close() error {
+	m.closeOnce.Do(func() {
+		m.mu.Lock()
+		m.closed = true
+		peers := make(map[*webrtc.PeerConnection]struct{})
+		for _, room := range m.roomPeers {
+			for _, peer := range room {
+				if peer.PC != nil {
+					peers[peer.PC] = struct{}{}
+				}
+			}
+		}
+		m.roomPeers = make(map[string]map[string]PeerConnection)
+		m.mu.Unlock()
+		var failures []error
+		for pc := range peers {
+			if err := pc.Close(); err != nil {
+				failures = append(failures, err)
+			}
+		}
+		m.closeErr = errors.Join(failures...)
+	})
+	return m.closeErr
 }
 
 // RemovePeerFromRoom removes a peer connection from a specific room
