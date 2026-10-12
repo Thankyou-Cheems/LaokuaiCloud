@@ -2238,6 +2238,15 @@
       "requireReadyExit": 2,
       "productChanged": false,
       "windowsRepackageRequired": false
+    },
+    "lifecycle3HiddenBootstrapActual": {
+      "receipt": "release/acceptance/lifecycle3-hidden-bootstrap.json",
+      "receiptSha256": "bae71a4d2993200ca958f9cd4a32fd271a0420c8c1d952f57d0a0d93c7be3f1a",
+      "testedFreeze": "b38566f082f07639c0cd3948a03af33e78c43ad2",
+      "status": "PASS-hidden-offline-bootstrap-DOM-with-known-isolation-denials",
+      "scope": "Original payload, one hidden offline fresh empty-profile main/preload/renderer bootstrap and initial DOM only",
+      "runtimeAndInteractionAccepted": false,
+      "knownConsoleErrorsRetained": 3
     }
   },
   "securityBoundary": {
@@ -2279,7 +2288,8 @@
     "Recipient engineering proof completed: original helper failed; one reviewed environment-key removal fixes it, and one fresh-target offline screened-kit modified-library core/CLI compile+link passed. Test-only EXEs do not replace product. Actual recipient transfer/access, external export/platform/license review and recipient app acquisition/rebuild instructions remain separate. No additional engineering compile requested.",
     "Private source offer: exact842 client/Voice plus405-file custom UI source and RNNoise wrapper/native/model archives are sealed with acquisition/lock/notices/SHA and no Git history. No external transfer or public URL; absence of public URL is not an internal-test blocker. User must choose concrete recipients/channel or screened public target/brand scope before sharing; current private integration repository stays private.",
     "Modern089b/f716+1ad4 minimum runtime handoff is now prepared:624 shared Rust files and lock identical, only Cargo.toml dependency/CRT selection changes. Strict original modern producer schema adaptation, re-pinned pwsh7 runner/new source+scope closure and fresh protected-object preflight/approval must precede one no-peer test. Real2-client community/device/media/fallback and optional chosen-game coexistence use separately explicit scopes; do not repeat passing old dbaf or unchanged UI/SDK/capacity checks.",
-    "Lifecycle.3 Windows internal portable3a8065e5 from b38566f completed;411 sealed files rehashed,141 payload files exact, SDK212 installed/170 rebuilt dist and exact tgz repack reported. Root release verifier correctly separates historical Provider/842 scopes and current lifecycle SDK/relink evidence. New hidden bootstrap, authentic device/media/native tests and source-recipient/license clearance remain pending; no public release."
+    "Lifecycle.3 Windows internal portable3a8065e5 from b38566f completed;411 sealed files rehashed,141 payload files exact, SDK212 installed/170 rebuilt dist and exact tgz repack reported. Root release verifier correctly separates historical Provider/842 scopes and current lifecycle SDK/relink evidence. Hidden offline empty-profile bootstrap now passed within its recorded scope; authentic device/media/native tests and source-recipient/license clearance remain pending; no public release.",
+    "Exact lifecycle.3/b385 original payload passed one hidden offline empty-profile bootstrap/DOM, exit0/no residual,4 successful owned-endpoint/foreground samples. Three known disabled-IPC Promise errors persist as old842; console is not error-free. Tray8 pure branches only: real tray skipped and voice toolbar not mounted. Authentic settings/menu/room/device/native interaction and media remain unaccepted; no ready promotion or repack."
   ],
   "finalPackage": null,
   "frozenPreviousHybrid": {
@@ -2408,6 +2418,8 @@
     "runtimeAccepted": false,
     "realCallAccepted": false,
     "publicDistributionApproved": false,
-    "nativeActivationApproved": false
+    "nativeActivationApproved": false,
+    "hiddenOfflineBootstrapAccepted": true,
+    "hiddenOfflineBootstrapReceipt": "release/acceptance/lifecycle3-hidden-bootstrap.json"
   }
 }

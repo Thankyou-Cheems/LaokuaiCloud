@@ -1,0 +1,142 @@
+{
+  "schema": 1,
+  "status": "PASS-hidden-offline-bootstrap-DOM-with-known-isolation-denials",
+  "sourceFreeze": "b38566f082f07639c0cd3948a03af33e78c43ad2",
+  "artifact": {
+    "bytes": 129121577,
+    "sha256": "3a8065e5ebc3ada52b7de8d62971071c2893c777cb0520ca9b4b1db35704c606"
+  },
+  "asarSha256": "749545b06ccd40aefb296ce8554a6d415309b0b8e7d2b7a01b2e5b3cb2f1b2f9",
+  "ownerEvidence": {
+    "reportSha256": "9247a29cad628f3573e8f2f4c7c0febcb4ce2a358ff8816840be24c7231bbf1b",
+    "handoffSha256": "798322aca51a791df3efa2a3e3cf2a637c87efda60f37e178fe28ad97fff2562",
+    "manifestSha256": "2707e6842484cbc3310e127bf4825afb8366726164144d079000d84aaf5c11da",
+    "evidenceArchiveSha256": "71264217d70d5912b6d44ef1639a0bedb1d0d7a60851c20786718b18af536c08",
+    "evidenceArchiveBytes": 119351,
+    "pins": [
+      {
+        "path": "evidence/COMPILED-ASAR-AUDIT.json",
+        "bytes": 1620,
+        "sha256": "772ae1924ffc223025505d11ff6154b3f698f4ce85c7b519dcb3a1e08f731e95"
+      },
+      {
+        "path": "evidence/ISOLATION-PREFLIGHT.json",
+        "bytes": 1320,
+        "sha256": "2e21b2eb5a780dcff6a6897dab1f4683ca5dde1edeb3c017acbcffaa22486079"
+      },
+      {
+        "path": "evidence/STATIC-UI-CHECKS.json",
+        "bytes": 3019,
+        "sha256": "0c54f532832943ac981e06b11575df9932b63a96a68e5919286044f80b38d0af"
+      },
+      {
+        "path": "evidence/UI-RUN-lifecycle3-run1.json",
+        "bytes": 8579,
+        "sha256": "c514e8e2f99e58858e7f22d9aad95f52dbffa57712fc7f8a140a4e66e0457023"
+      },
+      {
+        "path": "evidence/UI-run1-dom.json",
+        "bytes": 2604,
+        "sha256": "68a9a053bda6ce74aa6c0ecee382c14f72e6fc167726ba3fed9ef55526e0103e"
+      },
+      {
+        "path": "evidence/UI-run1-events.json",
+        "bytes": 25477,
+        "sha256": "75e9ebbe7bcbd4b6cf2af5af2f3a923c209625730dc439e4e1056463331f430c"
+      },
+      {
+        "path": "evidence/UI-run1-startup.log",
+        "bytes": 689,
+        "sha256": "00d14a1ca7af2b34696841c424cf4a80873af2987906e418d16990ced3e9d0af"
+      },
+      {
+        "path": "evidence/UI-run1-viewport.png",
+        "bytes": 83186,
+        "sha256": "887b1b4e0ab56d245b436d954bf3aac18cafac3780fca5ee3c4abaddca7c1db8"
+      }
+    ]
+  },
+  "task6ReadOnlyVerification": {
+    "uiManifestFiles": 27,
+    "uiManifestBytes": 230329,
+    "buildManifestFilesReverifiedAfterRun": 411,
+    "buildManifestBytes": 943675640,
+    "buildManifestSha256": "2a37da3826fbf194791781c901b6e6f9436b38d474b65bc5d313be2a9b788662",
+    "allHashesMatched": true,
+    "productExecuted": false,
+    "rawProfilesSnapshotsAndLogsImported": false,
+    "focusedCurrentSourceFilesVerified": 8
+  },
+  "actualBootstrap": {
+    "performedByIndependentOwner": true,
+    "actualMainPreloadRenderer": true,
+    "freshIsolatedEmptyProfile": true,
+    "exit": 0,
+    "stopReason": null,
+    "residualProcesses": 0,
+    "endpointSamples": 4,
+    "queriesAllSucceeded": true,
+    "systemEndpointCountsNonzeroAndForegroundQueryValid": true,
+    "sampledOwnedTCPUDP": 0,
+    "sampledOwnedForeground": false,
+    "unexpectedShowFocusEvents": 0,
+    "DOM": {
+      "readyState": "complete",
+      "lang": "zh-CN",
+      "rootChildren": 1,
+      "preload": {
+        "electronAPI": "object",
+        "easyTierCommunity": "object"
+      },
+      "actualQuickEntries": [
+        "设置与账号",
+        "添加服务器",
+        "局域网服务器",
+        "私信"
+      ]
+    },
+    "noAddedRoomProviderInitializationExceptionReported": true,
+    "roomsOrVoiceServerJoined": false,
+    "appSelfExitSeconds": 12,
+    "externalWatchdogSeconds": 35,
+    "samplingIsNotContinuousTracing": true
+  },
+  "isolationConsole": {
+    "errorFree": false,
+    "knownUncaughtPromises": 3,
+    "disabledIpcNames": [
+      "game-detect-get",
+      "processes-running",
+      "rich-presence-get"
+    ],
+    "newUncaughtComparedTo842Run2": 0,
+    "blockedAuthStatusPublicAndTestSoundRequestsRetained": true
+  },
+  "tray": {
+    "pureCloseHandlerBranches": 8,
+    "realTrayCreated": false,
+    "realTrayInteractionAccepted": false,
+    "unconditionalTrayCreatedLogIsNotRuntimeProof": true
+  },
+  "notAccepted": {
+    "fullSettingsNavigation": true,
+    "voiceToolbarButtonsAndHoverMenus": true,
+    "joinedRoomSquadPttAndFreeMic": true,
+    "realDevicesTwoWayListeningGameCapacity": true,
+    "nativeTunCoexistence": true,
+    "nsisWrapper": true,
+    "distributionAndActualRecipientDelivery": true
+  },
+  "boundaries": {
+    "ready": false,
+    "finalPackage": null,
+    "publicDistributionApproved": false,
+    "nativeActivationApproved": false,
+    "coreCliHelperOrDriverExecuted": false,
+    "TUNActivated": false,
+    "userInstallationIdentityOrProfileChanged": false,
+    "productOrPackedBytesChanged": false,
+    "deploymentOrRemoteGitWrite": false
+  },
+  "productRepackageRequired": false
+}

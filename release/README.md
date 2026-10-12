@@ -62,3 +62,12 @@ expectations corrected with42 range+10 CLI positive/negative checks; ready flag
 still blocks exit2. No component/product input change, no repack needed. Old
 receipts/artifacts/failures stay frozen; real runtime/media and license/recipient
 acceptance pending. See release/LIFECYCLE3-VERIFIER-REVIEW.md.
+
+Exact original b385 lifecycle.3 payload now passed one independent-owner hidden
+offline empty-profile bootstrap/DOM, exit0/residual0;4 successful queries observed
+no owned TCP/UDP or foreground. See release/acceptance/lifecycle3-hidden-bootstrap.json.
+Three old disabled-IPC Promise errors remain; console is not error-free. Tray
+close8 branches are pure logic; no real tray, settings navigation, voice toolbar
+or authentic room/device/media/native interaction acceptance.27 UI evidence files
+and all411 original build files were readonly rehashed unchanged. Task6 launched
+nothing. No repack or ready promotion; raw profile/logs/screenshots stay owner-only.
