@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "id": "laokuai-cloud-receive-path-et-observation-frozen-20261011",
-  "stage": "existing-real-unicode-community-source-fixed-public-admin-unix-readonly-pass-new-build-and-member-login-pending",
+  "stage": "real-backend-deployed-client-normal-started-member-verification-pending",
   "ready": false,
   "repository": {
     "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud",
@@ -2811,5 +2811,23 @@
     "supersededBySource": "8f8dd7c1f61f89a0e85bfa882a6ba13992fc4fdb",
     "executionPermitted": false,
     "qualification": "Historical media-only images/operator preserved byte-for-byte; human requires unified ET enrollment. Do not execute the former two-service cutover, even if an older approval arrives. Fresh backend/client build must bind to new source."
+  },
+  "productionRealCommunity": {
+    "sourceCommit": "9db53f79ec1cbf9408b51e0733e6071b00f192a1",
+    "artifactMetadataFreeze": "c8b645a3dd0b9302b69463c1143a2ad954c9c7ea",
+    "receipt": "release/acceptance/community-real-9db-deployment-checkpoint.json",
+    "receiptSha256": "c847a8b87a4ce783a2b9eba716af4b6053189107ad004dd2ac49b8b3e33850da",
+    "serverImageId": "sha256:3c11acf9c0c76a44793e42513574c0de7a6ff182b333d4071e8927a91769acfc",
+    "sfuImageId": "sha256:2b6afca88c4f7d6912c044d3b114d17af56104a4fce95ca7dc14cf0f04ec3a8f",
+    "clientPortableSha256": "f087f7d229e9dc0dc9f45dd0525e2c13317b0c3e5b482e98463ca81ec7a77b34",
+    "clientActualAsarSha256": "53b2a592115e159dd279610da5c895be0be0db6b2794406d1c9a7d4a8cef142a",
+    "backendActivated": true,
+    "clientNormalStarted": true,
+    "credentialWritesEnabled": false,
+    "memberVerified": false,
+    "windowsNativeAccepted": false,
+    "physicalDirectVerified": false,
+    "ready": false,
+    "finalPackage": null
   }
 }

@@ -1,0 +1,80 @@
+{
+  "schema": 1,
+  "status": "REAL-BACKEND-DEPLOYED-EXACT-CLIENT-NORMAL-STARTED-MEMBER-CHECK-PENDING",
+  "sourceCommit": "9db53f79ec1cbf9408b51e0733e6071b00f192a1",
+  "artifactMetadataFreeze": "c8b645a3dd0b9302b69463c1143a2ad954c9c7ea",
+  "artifactManifestSha256": "ad542efb65174d7068de071385b58922206c26fdd1aeb5643c22e8a7327ced16",
+  "sealedFilesVerified": 414,
+  "deliveryManifestSha256": "89e708a6d2cb51b52b1195fce5be2bddcccafdc496c7bc98f0a345535731ef09",
+  "backend": {
+    "activated": true,
+    "imageId": "sha256:3c11acf9c0c76a44793e42513574c0de7a6ff182b333d4071e8927a91769acfc",
+    "sfuImageId": "sha256:2b6afca88c4f7d6912c044d3b114d17af56104a4fce95ca7dc14cf0f04ec3a8f",
+    "configuredVersion": "1.0.76-laokuai.community.9db53f79",
+    "runtimeIdentityBefore": {
+      "inputs": {
+        "serverName": "老蒯聊",
+        "port": "5000",
+        "instanceId": null
+      },
+      "serverId": "老蒯聊_5000_default"
+    },
+    "runtimeIdentityAfter": {
+      "inputs": {
+        "serverName": "老蒯聊",
+        "port": "5000",
+        "instanceId": null
+      },
+      "serverId": "老蒯聊_5000_default"
+    },
+    "publicHealthPassed": true,
+    "nullableDiscoveryIdRetained": true,
+    "originalDataRetained": true,
+    "originalJwtConfigPreserved": true,
+    "consistentBackupOnTargetOnly": true,
+    "elapsedSeconds": 11.545,
+    "credentialWritesEnabled": false,
+    "newPublicPorts": [],
+    "managementMountReadOnly": true
+  },
+  "client": {
+    "normalStarted": true,
+    "portableSha256": "f087f7d229e9dc0dc9f45dd0525e2c13317b0c3e5b482e98463ca81ec7a77b34",
+    "actualExeSha256": "ddc06e0dd8bd599828462fafb39c192c9a0df894668e0051993a1e90bf59bcd6",
+    "actualAsarSha256": "53b2a592115e159dd279610da5c895be0be0db6b2794406d1c9a7d4a8cef142a",
+    "originalAdministratorShortcutArgumentsPreserved": true,
+    "originalProfileContentsNotImported": true,
+    "tokenOrPasswordReadByOperator": false,
+    "adminLaunch": false,
+    "uacInitiated": false,
+    "memberAuthenticatedVerified": false,
+    "oldNonforceCloseExit": 128,
+    "oldExactOwnedForceCleanupExit": 0,
+    "oldCleanQuitAccepted": false
+  },
+  "operator": {
+    "path": "release/deployment/community-real-9db53f79/backend-deploy9db-reviewed.py",
+    "sha256": "d4aad2918b4b0c627a6769336b6f4c93e36409df12385b16a20b917f6c52b0b5",
+    "executedOperatorSha256": "6dea501f15874b14a75b4cd329e611cb56b3ada26edf2b73a9a3a94a433ea747",
+    "repositoryFormattingOnly": "Removed trailing blank EOF whitespace; exact executed original preserved outside Git.",
+    "pureContractChecks": 16,
+    "privateEtQueried": false,
+    "privateEtChanged": false
+  },
+  "pending": {
+    "normalMemberReadOnlyCheckRejectedByAutomaticReview": true,
+    "checkExecuted": false,
+    "reason": "Private cloud session/member state and derived identifiers would be returned locally; explicit source/destination disclosure approval requested.",
+    "credentialWritesMustStayDisabled": true,
+    "oneCredentialTtlSeconds": 300,
+    "maxSameKeyRenewals": 1,
+    "maxExpiryFromFirstIssuanceSeconds": 600,
+    "ownedCoreMaxSeconds": 330,
+    "windowsNativeStartedByOperator": false,
+    "physicalDirectVerified": false,
+    "accountOrDeviceOrAudioAcceptance": false,
+    "fullMainImportSortLintKnownFailure": true
+  },
+  "ready": false,
+  "finalPackage": null
+}
