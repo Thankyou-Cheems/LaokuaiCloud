@@ -1,0 +1,347 @@
+{
+  "schema": 1,
+  "status": "REAL-CONTROL-30-PASS;PURE-13-AND-LEASE-1-PASS;PHYSICAL-APPLIED-ACK-PENDING",
+  "reviewedFromCommit": "8296c8f6a17214c45c62a173fe8081b103bb6daf",
+  "candidateSourceCommit": "85ec3b9c60d49881ba9ad5cd48c9a17d59c1772d",
+  "serverTree": "96db8312488c4f399904192f3a932232cf6130ad",
+  "sfuTree": "24c3669c4ca13d39f8132225ae1cb4a450750729",
+  "actual": {
+    "schema": 1,
+    "imageId": "sha256:e45e9c27fe391aa9281365745a54c34529b502f09fa79a2d8e68fcc5486d1eba",
+    "candidateSourceCommit": "85ec3b9c60d49881ba9ad5cd48c9a17d59c1772d",
+    "serverTree": "96db8312488c4f399904192f3a932232cf6130ad",
+    "sfuElfSha256": "47378f28e35a4a9a95aced3c3d4f21f028e13e6552721e1a814ed7492203afb2",
+    "sfuSourceTree": "24c3669c4ca13d39f8132225ae1cb4a450750729",
+    "name": "laokuai-task6-control-1497e4145ead",
+    "passed": true,
+    "productionTouched": false,
+    "realCredentials": false,
+    "scripts": {
+      "image-control.cjs": "b23b4b6a5f4e652946a9ec8bb5b79c747e4dfe1901d8b87dd2a5db4b78844fef",
+      "run-image-control.py": "d91aeea31533ce6b4a6161778f8458c7e097ec3b3cf26c865d88b87a5efbe778"
+    },
+    "isolation": {
+      "network": "none",
+      "portBindings": {},
+      "readonlyRootfs": true,
+      "readonlyFixtureAndExactSfuElfMountOnly": true,
+      "realDataMounts": 0,
+      "cpuCount": 1,
+      "memoryBytes": 1073741824,
+      "persistentTestCredentials": false
+    },
+    "containerId": "363ab0fa81ad6a1f91cc77bf1c6053dafc225100db1dcc6951884199d98e1f14",
+    "samples": [
+      {
+        "elapsedSeconds": 0.16,
+        "running": true,
+        "networkNone": true,
+        "hostPortBindingsEmpty": true
+      },
+      {
+        "elapsedSeconds": 1.31,
+        "running": true,
+        "networkNone": true,
+        "hostPortBindingsEmpty": true
+      },
+      {
+        "elapsedSeconds": 2.47,
+        "running": true,
+        "networkNone": true,
+        "hostPortBindingsEmpty": true
+      },
+      {
+        "elapsedSeconds": 3.64,
+        "running": true,
+        "networkNone": true,
+        "hostPortBindingsEmpty": true
+      },
+      {
+        "elapsedSeconds": 4.8,
+        "running": true,
+        "networkNone": true,
+        "hostPortBindingsEmpty": true
+      },
+      {
+        "elapsedSeconds": 5.96,
+        "running": true,
+        "networkNone": true,
+        "hostPortBindingsEmpty": true
+      },
+      {
+        "elapsedSeconds": 7.12,
+        "running": true,
+        "networkNone": true,
+        "hostPortBindingsEmpty": true
+      },
+      {
+        "elapsedSeconds": 8.28,
+        "running": true,
+        "networkNone": true,
+        "hostPortBindingsEmpty": true
+      },
+      {
+        "elapsedSeconds": 9.43,
+        "running": true,
+        "networkNone": true,
+        "hostPortBindingsEmpty": true
+      },
+      {
+        "elapsedSeconds": 10.59,
+        "running": true,
+        "networkNone": true,
+        "hostPortBindingsEmpty": true
+      },
+      {
+        "elapsedSeconds": 11.75,
+        "running": true,
+        "networkNone": true,
+        "hostPortBindingsEmpty": true
+      },
+      {
+        "elapsedSeconds": 12.91,
+        "running": false,
+        "networkNone": true,
+        "hostPortBindingsEmpty": true
+      }
+    ],
+    "fixtureResult": {
+      "passed": true,
+      "checks": [
+        "Exact SFU binary STUN-disabled localhost health",
+        "Legacy member 1 gets SFU grant without Hybrid declaration",
+        "Legacy member 2 gets SFU grant without Hybrid declaration",
+        "Legacy member 3 gets SFU grant without Hybrid declaration",
+        "Actual backend SFUClient probe receives real supported ACK",
+        "Wrong member identity rejected",
+        "Wrong serverInstanceId rejected before SFU forwarding",
+        "Wrong roomGeneration rejected before SFU forwarding",
+        "Wrong localSessionId rejected before SFU forwarding",
+        "Wrong roomId rejected before SFU forwarding",
+        "Cross-channel authenticated member rejected",
+        "Old publication rejected",
+        "Mismatched operation epoch rejected",
+        "Real SFU rejects pause without physical connected peers; backend no applied ACK",
+        "Real SFU rejects resume without physical peers; backend no applied ACK",
+        "Real backend pending control ACK times out fail-closed",
+        "Late old ACK does not settle replacement probe",
+        "Unregistered control socket cannot probe",
+        "Registered raw control probe has correlated supported ACK",
+        "Wrong SFU server password rejected",
+        "Wrong SFU server identity rejected",
+        "Correct credentials on unregistered connection rejected",
+        "Actual SFU wrong-room rejection",
+        "Actual SFU empty-epoch rejection",
+        "Actual SFU bad-pause rejection",
+        "Actual SFU missing-source-session rejection",
+        "Actual SFU old-physical-session rejection",
+        "Disconnected actual SFU falls back to unsupported, no success ACK",
+        "Ordinary legacy session remains refreshable after control failure",
+        "Actual backend terminates exit0"
+      ],
+      "actualBackendAndSfu": true,
+      "backendBundleSha256": "8181b0834bcb93937b567939f69b26e8719a15e2785f9fd5ea3be955dade3fe5",
+      "sfuElfSha256": "47378f28e35a4a9a95aced3c3d4f21f028e13e6552721e1a814ed7492203afb2",
+      "controlFrames": 11,
+      "timeoutMs": 5002,
+      "exits": [
+        {
+          "kind": "backend",
+          "code": 0,
+          "signal": null
+        },
+        {
+          "kind": "sfu",
+          "code": null,
+          "signal": "SIGTERM"
+        }
+      ],
+      "realPauseResumeSuccessAck": false,
+      "realConnectedPeerOrRtp": false,
+      "syntheticApplicationVoiceAnnouncements": true,
+      "legacyClientWireOnly": true,
+      "faultInjection": "Drop/delay real hybrid_result frames on in-container loopback proxy; no fabricated positive ACK",
+      "hostPortBindings": false,
+      "externalNetwork": false,
+      "realAccountOrCredentials": false,
+      "sfuGracefulExitAccepted": false
+    },
+    "exitCode": 0,
+    "oomKilled": false,
+    "stoppedExitCode": 0,
+    "ownedContainerRemoved": true,
+    "tmpfsDiscarded": true
+  },
+  "pure": {
+    "nodeTestsPassed": 13,
+    "goStateTestsPassed": 1,
+    "node": "24.10.0",
+    "go": "go version go1.27.0 windows/amd64",
+    "nodeNetworkDnsFetchProhibited": true,
+    "mockTransportAndPositiveAcks": true,
+    "realJwtDatabaseAndHandlers": true,
+    "goStandardLibraryOnly": true,
+    "nodeFiles": [
+      "src/socket/handlers/voiceHybrid.test.ts",
+      "src/sfu/hybridProtocol.test.ts"
+    ],
+    "goFiles": [
+      "internal/svc/audio_lease_state.go",
+      "internal/svc/audio_lease_test.go"
+    ],
+    "goEnvironment": {
+      "GOMAXPROCS": "1",
+      "GOPROXY": "off",
+      "GOSUMDB": "off",
+      "GOTOOLCHAIN": "local",
+      "GOCACHE": "Owner-local temporary cache"
+    }
+  },
+  "sourcePins": [
+    {
+      "path": "components/server/src/sfu/client.ts",
+      "sha256": "8e325dbaec7e97e2bb9a82419ed42fdab997491e79d3f7ce4f7266fb9ec8e429",
+      "gitBlob": "b4c79576ba2caeddbc02a39d77dabe072d78655e"
+    },
+    {
+      "path": "components/server/src/sfu/hybridProtocol.ts",
+      "sha256": "3f07748bb646ab1028b5529a243eb9d5d26b4ef60acffd56f8ea09fe885a7e2a",
+      "gitBlob": "c72b29fce03800cb52670443efb15102fdaf5319"
+    },
+    {
+      "path": "components/server/src/sfu/hybridProtocol.test.ts",
+      "sha256": "c03241e76986da006b5d74ee550004d6b626368b264b2b15954bd435346c3118",
+      "gitBlob": "0cd064028806bd6a2bdb34e8777c641499887a2f"
+    },
+    {
+      "path": "components/server/src/socket/handlers/voiceHybrid.ts",
+      "sha256": "e1702bb042e4de866bbf69e02c4f0d5092424974a13c8533b3da3d53ca50eef3",
+      "gitBlob": "82e42e3b1d9f32d9d72491bdafdd76daf51691c7"
+    },
+    {
+      "path": "components/server/src/socket/handlers/voiceHybrid.test.ts",
+      "sha256": "04d8fd981f43c64041c6f7b2261f05e967b7c11f373e71a962e974b129f44e0a",
+      "gitBlob": "37802b3943bcda99fe7d31d3f8f97e96fd0c0920"
+    },
+    {
+      "path": "components/server/src/socket/handlers/voice.ts",
+      "sha256": "0af4952e82cb83cadaf93efcfb65cf71937466c1fda6caec41a2db3fdf86ed15",
+      "gitBlob": "daf355f324f5348adced2fcdc79877e1dd735acd"
+    },
+    {
+      "path": "components/sfu/internal/websocket/handler_hybrid.go",
+      "sha256": "d70ffe8df9c43aa70d97ab1aec72b87ac80bf7605985f47a8dc67b0a405deddc",
+      "gitBlob": "ef2e612ec4a69fd2c841aae9fffb2694323f0fed"
+    },
+    {
+      "path": "components/sfu/internal/room/hybrid.go",
+      "sha256": "b1bc0a61f5f747dfb910ca0d17b05ef2e3e2875e534a802a474c097e7193e023",
+      "gitBlob": "faf05fa101cd91ab9c064f93786e7c9719c4da48"
+    },
+    {
+      "path": "components/sfu/internal/track/hybrid.go",
+      "sha256": "4ed60f8629b617dab28de118c87008521b29c23bc4d03085280234aaae0b7a20",
+      "gitBlob": "b623a08fe2aeaa8a9f9c56a173d2a2b5914c4e4f"
+    },
+    {
+      "path": "components/sfu/internal/svc/audio_lease_state.go",
+      "sha256": "d6f090e646d7eadfe9c9b261780ab04b45d241c52108c8401e45ec74de9fc2ab",
+      "gitBlob": "5ae8740a60fc56e7de9c23acee97bb3fe558a718"
+    },
+    {
+      "path": "components/sfu/internal/svc/audio_lease_test.go",
+      "sha256": "8a2ba86191b7418535ba015971264d8e051aa85154f368613efd14334da61b79",
+      "gitBlob": "20b0df5549136045b9ea6963390ee9c3a94b38bb"
+    }
+  ],
+  "localEvidence": [
+    {
+      "ownerLocalPath": "offline-backend-control-run1/RESULT.json",
+      "sha256": "dd6e37c832b75018e0d636d8f8d218625235ddcddfe2cac9d37b496e88bb4476",
+      "bytes": 1525
+    },
+    {
+      "ownerLocalPath": "offline-backend-control-run1/protocol.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "ownerLocalPath": "offline-backend-control-run2/RESULT.json",
+      "sha256": "598662283c8d74e7d3b16ee63c6f8c01c290e8404350177784a0e48f332024ff",
+      "bytes": 1525
+    },
+    {
+      "ownerLocalPath": "offline-backend-control-run2/protocol.stdout.log",
+      "sha256": "425859a9b25184959755d54ac78f4b95667cee657dcbdf49782cf5dbce2ccc3e",
+      "bytes": 872
+    },
+    {
+      "ownerLocalPath": "offline-backend-control-run3/RESULT.json",
+      "sha256": "ade84d603c4b7e696b58739a22a86b18f67536cead5ed1f17d8224ab0d9e94c2",
+      "bytes": 5588
+    },
+    {
+      "ownerLocalPath": "offline-backend-control-run3/protocol.stdout.log",
+      "sha256": "a1a12716637f235072ea76bf66a44352fbefc3f37261390650cb4b4e270bba85",
+      "bytes": 2398
+    },
+    {
+      "ownerLocalPath": "community-usability-review/control-pure-tests.log",
+      "sha256": "9db94249e7778bed237e37f131ecc8472bae6607723834814185005ce1aa241f",
+      "bytes": 1669
+    },
+    {
+      "ownerLocalPath": "community-usability-review/control-audio-lease-pure.log",
+      "sha256": "44167012869b2748bfef791dd14a07a1fe5e06d5a680706a3cfa925a3b1fa947",
+      "bytes": 132
+    },
+    {
+      "ownerLocalPath": "community-usability-review/backend-metadata-test-guard.cjs",
+      "sha256": "27ba1cbe74f8cf392097e14be564e4ea27063b671af25f73d11124891d9c2cb5",
+      "bytes": 530
+    }
+  ],
+  "report": "release/BACKEND-SFU-CONTROL-REVIEW.md",
+  "reportSha256": "cbb27ca4d0e6c326ce44288d777a12f34f65bf67bfc7f09b5a443845ce919af0",
+  "retainedFailedRuns": [
+    {
+      "run": 1,
+      "cause": "Recorder omitted stderr; no fixture JSON captured",
+      "ownedContainerRemoved": true
+    },
+    {
+      "run": 2,
+      "cause": "Fixture copied ELF into default noexec tmpfs; EACCES, product not started",
+      "ownedContainerRemoved": true
+    }
+  ],
+  "qualification": {
+    "sameContainerProcessControlOnly": true,
+    "noDockerInterconnectNetworkCreated": true,
+    "sfuElfInBackendLinuxEnvironment": true,
+    "originalSfuEntrypointPid1Qualified": false,
+    "syntheticClientVoiceAnnouncements": true,
+    "legacyActualClientBinaryTested": false,
+    "fakePositiveAckInActualProcessTest": false,
+    "physicalPauseResumeAckAccepted": false,
+    "actualMediaFallbackAccepted": false,
+    "sfuChildExitObserved": {
+      "kind": "sfu",
+      "code": null,
+      "signal": "SIGTERM"
+    },
+    "sfuPid1Exit2InvestigationOwnedByBuilder": true
+  },
+  "pending": [
+    "Actual connected-peer/publication pause/resume applied ACK and RTP stop/restore/expiry/fallback",
+    "Original SFU container PID1 TERM exit2 diagnosis",
+    "Real old account-client staging",
+    "Approved real consistent data-copy and old-image/data rollback rehearsal"
+  ],
+  "productSourceOrArtifactsChanged": false,
+  "rebuildRequiredForThisWork": false,
+  "productionTouched": false,
+  "productionDeploymentApproved": false,
+  "ready": false,
+  "finalPackage": null
+}

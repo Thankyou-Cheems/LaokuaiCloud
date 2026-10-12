@@ -2308,6 +2308,23 @@
       "sfuGracefulExitPassed": false,
       "rebuildNeededForThisBackendFixture": false,
       "productionDeploymentApproved": false
+    },
+    "backendSfuControlContract": {
+      "receipt": "release/acceptance/backend-sfu-control-contract.json",
+      "receiptSha256": "7880e4642ace7f1f07730e3b56e7524bb0f96bb1bbf1b77ceedfd18028941854",
+      "report": "release/BACKEND-SFU-CONTROL-REVIEW.md",
+      "reportSha256": "cbb27ca4d0e6c326ce44288d777a12f34f65bf67bfc7f09b5a443845ce919af0",
+      "candidateSourceCommit": "85ec3b9c60d49881ba9ad5cd48c9a17d59c1772d",
+      "serverTree": "96db8312488c4f399904192f3a932232cf6130ad",
+      "sfuTree": "24c3669c4ca13d39f8132225ae1cb4a450750729",
+      "actualControlChecksPassed": 30,
+      "nodePureTestsPassed": 13,
+      "goLeaseStateTestsPassed": 1,
+      "actualConnectedPeerPauseResumeAckAccepted": false,
+      "actualMediaFallbackAccepted": false,
+      "sfuPid1GracefulExitAccepted": false,
+      "rebuildRequiredForThisWork": false,
+      "productionDeploymentApproved": false
     }
   },
   "securityBoundary": {
