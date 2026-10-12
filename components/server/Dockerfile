@@ -11,7 +11,7 @@ FROM --platform=$TARGETPLATFORM node:22-bookworm AS deps
 WORKDIR /app
 
 COPY package.json yarn.lock ./
-RUN yarn install --production --ignore-engines --network-timeout 600000
+RUN yarn install --production --frozen-lockfile --ignore-engines --network-timeout 600000
 
 FROM node:22-bookworm-slim
 
