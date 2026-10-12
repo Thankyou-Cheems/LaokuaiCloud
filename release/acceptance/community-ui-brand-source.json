@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "status": "SOURCE-PURE-SSR-CHECKS-PASS-FRESH-PACKAGING-AND-ACTUAL-UI-PENDING",
+  "baseline": "bbf629fc33185237019c1142d43af62a5190bb55",
+  "source": {
+    "commit": "c75e6802ac9971b7d4139df8f97b99c7398efd7d",
+    "tree": "c772bf0235e4f1696a3bc12e69025517f2295cec",
+    "clientTree": "fdba7f4b377933411a5adb2c932e389ca8ec0d0e",
+    "filesChanged": 27
+  },
+  "checks": {
+    "typescript": {
+      "version": "5.9.3",
+      "appRoots": 655,
+      "appErrors": 0,
+      "nodeRoots": 56,
+      "nodeErrors": 0,
+      "dependencySource": "Readonly existing locked dependency tree via compiler host; no install or emit"
+    },
+    "lint": {
+      "files": 13,
+      "errors": 0,
+      "warnings": 0
+    },
+    "scenarios": {
+      "communityIsolation": 14,
+      "privateStartupAndTray": 18,
+      "syntheticPackageAudit": 18,
+      "approvedBrand": 22,
+      "total": 72
+    }
+  },
+  "brand": {
+    "originalSha256": "06b380ae3c6f155ba11551d6eeb8a97f21a528cf6a51d9a83d43a0d26ca5a415",
+    "rendererSha256": "ad5f67a0d5541f3a214b6ad7f46354de34d0497bdfd257339f06b5d085fed13d",
+    "icoSha256": "b95f8bd229b8f5c631bcb1bd6f628a7c0480aa9fd5e4c1659b17863226e1ffe7"
+  },
+  "scope": "Production join/room logic with fake signaling and stubbed identity guard; actual UI component SSR. No cryptographic, mounted-browser, pixel, runtime or media acceptance claimed.",
+  "failuresPreserved": [
+    "Initial no-emit dependency-map failure: 2440 app and 216 node errors; exact directory mapping fixed in test harness, final 0/0.",
+    "Initial UI CommonJS load failed in @phosphor-icons/react; test uses actual ESM per-component entries.",
+    "Expanded lint found three unused fixture arguments, corrected."
+  ],
+  "unchangedComponents": [
+    "voice",
+    "server",
+    "sfu",
+    "easytier"
+  ],
+  "unchangedClientLocksAndVendor": true,
+  "boundaries": {
+    "ready": false,
+    "finalPackage": null,
+    "newExeBuilt": false,
+    "actualUiLayoutAccepted": false,
+    "realCommunityJoinedVerified": false,
+    "actualP2P": false,
+    "productRun": false,
+    "nativeRun": false,
+    "deployment": false,
+    "userConfigurationTouched": false
+  }
+}

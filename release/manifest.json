@@ -1,23 +1,23 @@
 {
   "schema": 2,
   "id": "laokuai-cloud-receive-path-et-observation-frozen-20261011",
-  "stage": "lifecycle3-internal-candidate-built-release-verifier-scopes-corrected-real-acceptance-pending",
+  "stage": "community-ui-brand-source-checked-new-package-and-p2p-wiring-pending",
   "ready": false,
   "repository": {
     "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud",
     "owner": "Thankyou-Cheems",
     "visibility": "private",
-    "branch": "release/integration-20261011",
+    "branch": "integration/lifecycle3-20261012",
     "soleGitWriter": "task-6",
-    "codeCommit": "b68a4e2a03295a2a00ff6a0429f5ae5eb2476897",
-    "codeTree": "9ac1a6ab9f4582f7f421aaa3aa78fe107f7d5505",
+    "codeCommit": "c75e6802ac9971b7d4139df8f97b99c7398efd7d",
+    "codeTree": "c772bf0235e4f1696a3bc12e69025517f2295cec",
     "newRepositoryReason": "Authenticated private-repo metadata and explicitly scoped old local core/game remotes revealed no matching existing private integration repository",
     "historyPolicy": "Original client history preserved; no force push/reset/rewrite; other components imported as licensed source snapshots"
   },
   "components": {
     "client": {
       "path": "components/client",
-      "tree": "886ea498de4c7457dc94b245222cfd3e45da9b94",
+      "tree": "fdba7f4b377933411a5adb2c932e389ca8ec0d0e",
       "upstream": "Gryt-chat/client",
       "publicFork": "Thankyou-Cheems/gryt-client-i18n",
       "historyImportedFrom": "06ac43f51dbda3b9444c73270a126e10489110e9",
@@ -26,7 +26,8 @@
       "originalPreservation": "24 tracked modifications and 6 untracked files retained; all frozen snapshot blobs verified",
       "version": "1.13.22-laokuai.opus20.1",
       "dependencyLockSha256": "6b85a483ac898e251ea9f889136a6251b5f25ea1a3b87aa925313aaf96997cea",
-      "lifecycle3SourceCommit": "cb31e2e4ec044a2574f88321bc90cc01c3b51e0c"
+      "lifecycle3SourceCommit": "cb31e2e4ec044a2574f88321bc90cc01c3b51e0c",
+      "uiBrandSourceCommit": "c75e6802ac9971b7d4139df8f97b99c7398efd7d"
     },
     "voice": {
       "path": "components/voice",
@@ -2247,6 +2248,12 @@
       "scope": "Original payload, one hidden offline fresh empty-profile main/preload/renderer bootstrap and initial DOM only",
       "runtimeAndInteractionAccepted": false,
       "knownConsoleErrorsRetained": 3
+    },
+    "communityUiBrandSource": {
+      "receipt": "release/acceptance/community-ui-brand-source.json",
+      "receiptSha256": "e27610b8fb0ed8a9e639d8b0163156722c64b063f8828b6f67df6748c36b7b71",
+      "sourceCommit": "c75e6802ac9971b7d4139df8f97b99c7398efd7d",
+      "currentPackageAccepted": false
     }
   },
   "securityBoundary": {
@@ -2420,6 +2427,17 @@
     "publicDistributionApproved": false,
     "nativeActivationApproved": false,
     "hiddenOfflineBootstrapAccepted": true,
-    "hiddenOfflineBootstrapReceipt": "release/acceptance/lifecycle3-hidden-bootstrap.json"
+    "hiddenOfflineBootstrapReceipt": "release/acceptance/lifecycle3-hidden-bootstrap.json",
+    "includesCurrentUiBrandSource": false
+  },
+  "pendingUiBrandCandidate": {
+    "sourceCommit": "c75e6802ac9971b7d4139df8f97b99c7398efd7d",
+    "clientTree": "fdba7f4b377933411a5adb2c932e389ca8ec0d0e",
+    "package": null,
+    "buildAccepted": false,
+    "actualUiAccepted": false,
+    "p2pAccepted": false,
+    "buildHandoff": "release/COMMUNITY-UI-BRAND-BUILD-HANDOFF.md",
+    "wiringGaps": "release/P2P-WIRING-GAPS-20261012.md"
   }
 }
