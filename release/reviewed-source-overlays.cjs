@@ -1,5 +1,47 @@
 const assert=require('node:assert/strict'),crypto=require('node:crypto');
 const scopes={
+ 'community-et-real-wiring':[
+  "components/client/electron/communityEtBindingProjection.ts",
+  "components/client/electron/communityEtConfig.test.mjs",
+  "components/client/electron/communityEtConfig.ts",
+  "components/client/electron/communityEtCredentialObservation.ts",
+  "components/client/electron/communityEtGrantRuntime.ts",
+  "components/client/electron/communityEtGrantTransport.ts",
+  "components/client/electron/communityEtHttpContract.ts",
+  "components/client/electron/communityEtRuntime.test.mjs",
+  "components/client/electron/communityEtTrustedConfiguration.ts",
+  "components/client/electron/easyTierCommunityIpc.ts",
+  "components/client/electron/easyTierCommunityManager.ts",
+  "components/client/electron/easyTierExistingConfiguration.ts",
+  "components/client/electron/easyTierWindowsProcesses.ts",
+  "components/client/electron/easyTierWindowsProduction.ts",
+  "components/client/electron/main.ts",
+  "components/client/electron/preload.ts",
+  "components/client/electron/windowsEasyTierCliRuntime.ts",
+  "components/client/scripts/check-community-easytier-network.mjs",
+  "components/client/scripts/check-community-easytier-production.mjs",
+  "components/client/src/components/communityLanSession.tsx",
+  "components/client/src/lib/easyTierCommunity.ts",
+  "components/client/src/packages/common/src/utils/tokenStorage.ts",
+  "components/server/src/config/communityEt.test.ts",
+  "components/server/src/config/communityEt.ts",
+  "components/server/src/easytier/communityCredentialProvider.test.ts",
+  "components/server/src/easytier/communityCredentialProvider.ts",
+  "components/server/src/easytier/communityGrantApi.test.ts",
+  "components/server/src/easytier/communityGrantApi.ts",
+  "components/server/src/easytier/communityGrantAuth.ts",
+  "components/server/src/easytier/communityGrantFactory.ts",
+  "components/server/src/easytier/communityGrantRouter.test.ts",
+  "components/server/src/easytier/communityGrantRouter.ts",
+  "components/server/src/easytier/communityGrantService.test.ts",
+  "components/server/src/easytier/communityGrantService.ts",
+  "components/server/src/easytier/communityGrantStore.ts",
+  "components/server/src/easytier/communityRpcWire.test.ts",
+  "components/server/src/easytier/communityRpcWire.ts",
+  "components/server/src/index.ts",
+  "components/server/src/routes/ownJsonParsers.ts",
+  "components/server/src/routes/routeJsonLimits.test.ts"
+],
  'sfu-shutdown':[
   'cmd/sfu/main.go','cmd/sfu/main_test.go','cmd/sfu/replay_window_test.go','cmd/sfu/shutdown.go','cmd/sfu/shutdown_test.go',
   'internal/lifecycle/registry.go','internal/lifecycle/registry_test.go','internal/readiness/udp.go','internal/readiness/shutdown_test.go',
@@ -21,7 +63,7 @@ function verifyReviewedSourceOverlays(manifest,original,{git,sha,readFrozen,read
   return original.componentTrees;
  }
  assert.ok(readReceipt,'Reviewed source receipt reader required');
- assert.deepEqual(entries.map(e=>e.kind),['sfu-shutdown','easytier-pure-contract'],'Reviewed source chain changed');
+ assert.deepEqual(entries.map(e=>e.kind),['sfu-shutdown','easytier-pure-contract','community-et-real-wiring'],'Reviewed source chain changed');
  let baseline=original.sourceCommit,trees=original.componentTrees;
  for(const entry of entries){
   assert.equal(entry.receipt,'release/acceptance/'+entry.kind+'-source.json','Source receipt path changed');
@@ -38,13 +80,20 @@ function verifyReviewedSourceOverlays(manifest,original,{git,sha,readFrozen,read
    assert.ok(git(['diff','--name-status',baseline,r.sourceCommit,'--','components']).split('\n').every(x=>x.startsWith('A\t')),'Contract delta is not add-only');
    assert.equal(r.checks.serverTests,47);assert.equal(r.checks.clientTests,121);
    assert.equal(r.checks.strictServerTypesExit,0);assert.equal(r.checks.strictClientTypesExit,0);assert.equal(r.checks.lintExit,0);
+  }else if(entry.kind==='community-et-real-wiring'){
+   assert.equal(r.checks.mainTests,239);assert.equal(r.checks.serverTests,86);assert.equal(r.checks.serverEntryTests,19);
+   assert.equal(r.checks.strictClientTypesExit,0);assert.equal(r.checks.strictServerTypesExit,0);assert.equal(r.checks.lintExit,0);
+   assert.equal(r.checks.appRoots,655);assert.equal(r.checks.mainRoots,64);assert.equal(r.checks.serverRoots,229);
+   assert.equal(r.checks.canonicalHttpBlob,'21d7a4804b1b35d33197346b5b7098254c9a8701');
+   assert.equal(r.checks.serverOwnerFilesExact,9);
   }else{assert.equal(r.checks.shutdownTests,15);assert.equal(r.checks.compiledPackages,8);}
   for(const x of r.changes){
    assert.equal(git(['rev-parse',r.sourceCommit+':'+x.path]),x.gitBlob,'Reviewed Git blob changed');
    assert.equal(crypto.createHash('sha256').update(readFrozen(r.sourceCommit,x.path)).digest('hex'),x.sha256,'Reviewed source bytes changed');
   }
   for(const [name,c]of Object.entries(manifest.components))assert.equal(git(['rev-parse',r.sourceCommit+':'+c.path]),r.componentTrees[name],'Reviewed component tree changed');
-  for(const flag of ['realProviderWired','realIpcWired','nativeActivated','realMediaAccepted','physicalDirectVerified','activationReady','ready'])assert.equal(r.boundaries[flag],false,'Source evidence promoted to execution');
+  for(const flag of ['realProviderWired','realIpcWired'])assert.equal(r.boundaries[flag],entry.kind==='community-et-real-wiring','Wiring source boundary changed');
+  for(const flag of ['nativeActivated','realMediaAccepted','physicalDirectVerified','activationReady','ready'])assert.equal(r.boundaries[flag],false,'Source evidence promoted to execution');
   assert.equal(r.boundaries.finalPackage,null);
   baseline=r.sourceCommit;trees=r.componentTrees;
  }
@@ -74,4 +123,14 @@ function verifySfuShutdownImage(manifest,r,{git}){
  for(const k of ['realAuthenticatedConnections','activeRoomRTPLeaseDrain'])assert.equal(r.acceptance[k],false);
  assert.equal(r.ready,false);assert.equal(r.finalPackage,null);assert.equal(r.productionDeploymentApproved,false);
 }
-module.exports={verifyReviewedSourceOverlays,verifySfuShutdownImage};
+function verifyPublicListReadOnly(manifest,r){
+ const e=manifest.validation.public270ReadOnly;
+ assert.equal(e.customWireInteropPassed,true);assert.equal(e.credentialCount,0);
+ assert.equal(e.credentialMutationAccepted,false);assert.equal(e.completeProviderAccepted,false);
+ assert.equal(r.target,'TencentCloudPublic/root@124.221.119.113');assert.equal(r.publicContainer,'cheems-p2p');
+ assert.equal(r.instanceId,'e2a5bd9d-47bb-4120-8589-e6898112ae85');assert.equal(r.portal,'127.0.0.1:15890');
+ assert.equal(r.method,'CredentialManageRpc.ListCredentials');assert.equal(r.methodIndex,3);assert.equal(r.credentialCount,0);
+ for(const k of ['readOnly','customWireInteropPassed','sshChildExited'])assert.equal(r[k],true);
+ for(const k of ['nativeStarted','listenerCreated','tunOrCredentialsMutated','rawConfigOrCredentialSecretRequested','completeProviderAccepted'])assert.equal(r[k],false);
+}
+module.exports={verifyReviewedSourceOverlays,verifySfuShutdownImage,verifyPublicListReadOnly};

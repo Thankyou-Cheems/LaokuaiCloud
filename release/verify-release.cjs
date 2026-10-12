@@ -117,7 +117,12 @@ if(m.validation.uiIsolatedStartupSource){
   assert(sha(entry.receipt)===entry.receiptSha256,'UI source receipt changed');
   const receipt=JSON.parse(fs.readFileSync(path.join(root,entry.receipt),'utf8'));
   assert(receipt.sourceCommit===entry.sourceCommit&&receipt.validation.integrationPureAndTypeChecks===23&&receipt.validation.targetedEslint.startsWith('passed'),'UI reviewed source/check identity mismatch');
-  for(const file of receipt.files)assert(sha(file.path)===file.sha256&&git(['rev-parse',`${receipt.sourceCommit}:${file.path}`])===file.gitBlob,'UI source/check bytes drifted');
+  for(const file of receipt.files){
+    // The exact reviewed main wiring supersedes main.ts, not the old UI result.
+    const historicalMain=m.validation.reviewedSourceOverlays?.some(x=>x.kind==='community-et-real-wiring')&&file.path==='components/client/electron/main.ts';
+    const actual=historicalMain?crypto.createHash('sha256').update(readFrozen(receipt.sourceCommit,file.path)).digest('hex'):sha(file.path);
+    assert(actual===file.sha256&&git(['rev-parse',`${receipt.sourceCommit}:${file.path}`])===file.gitBlob,'UI source/check bytes drifted');
+  }
   assert(receipt.applicationExecuted===false&&receipt.compiledPackageVerified===false&&receipt.actualDomOrScreenshot===false&&receipt.actualNoListenerOrFocusVerified===false&&receipt.old83ArtifactContainsMode===false,'UI source promoted to actual startup');
 }
 if(m.validation.uiHiddenBootstrapActual){
@@ -329,6 +334,10 @@ if(m.validation.lifecycle3ReleaseVerifier){
  const e=m.validation.lifecycle3ReleaseVerifier,r=JSON.parse(fs.readFileSync(path.join(root,e.receipt)));
  assert(sha(e.receipt)===e.receiptSha256&&r.checks.scope.allPassed&&r.checks.scope.checks===e.scopeCases&&r.checks.cli.allPassed&&r.checks.cli.checks===e.cliCases,'Lifecycle verifier regression receipt changed');
  assert(e.requireReadyExit===2&&!r.ready&&r.finalPackage===null&&!r.publicDistributionApproved&&!r.nativeActivationApproved&&!r.productSourceChanged&&!r.windowsRepackageRequired,'Verifier checks promoted to product/release acceptance');
+}
+if(m.validation.public270ReadOnly){
+ const e=m.validation.public270ReadOnly;assert(sha(e.receipt)===e.receiptSha256,'Public readonly receipt changed');
+ require('./reviewed-source-overlays.cjs').verifyPublicListReadOnly(m,JSON.parse(fs.readFileSync(path.join(root,e.receipt))));
 }
 if(m.validation.currentPopupVerifier){
  const e=m.validation.currentPopupVerifier,r=JSON.parse(fs.readFileSync(path.join(root,e.receipt)));

@@ -1,0 +1,19 @@
+{
+  "readOnly": true,
+  "target": "TencentCloudPublic/root@124.221.119.113",
+  "publicContainer": "cheems-p2p",
+  "portal": "127.0.0.1:15890",
+  "instanceId": "e2a5bd9d-47bb-4120-8589-e6898112ae85",
+  "method": "CredentialManageRpc.ListCredentials",
+  "methodIndex": 3,
+  "sourceCommit": "d02aaecc4e73bcd946951cab103f44bc30ad17a1",
+  "wireSourceSha256": "4e7a5ef23639dc705af15dd3386281166c3a1314b03ff1862742a681fd2e1ebc",
+  "nativeStarted": false,
+  "listenerCreated": false,
+  "tunOrCredentialsMutated": false,
+  "rawConfigOrCredentialSecretRequested": false,
+  "customWireInteropPassed": true,
+  "completeProviderAccepted": false,
+  "credentialCount": 0,
+  "sshChildExited": true
+}

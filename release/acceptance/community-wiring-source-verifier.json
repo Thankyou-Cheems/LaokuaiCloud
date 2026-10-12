@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "sourceCommit": "a88f7d75066cf03d65d618bb49cabbff6e8d7884",
+  "codeFreeze": "8f8dd7c1f61f89a0e85bfa882a6ba13992fc4fdb",
+  "scopeChecks": {
+    "checks": 108,
+    "positive": 11,
+    "negative": 97,
+    "allPassed": true,
+    "realNetworkOrNativeExecuted": false
+  },
+  "cliChecks": [
+    {
+      "args": [],
+      "exit": 0
+    },
+    {
+      "args": [
+        "--require-ready"
+      ],
+      "exit": 2
+    }
+  ],
+  "verifierFiles": [
+    {
+      "path": "release/verify-release.cjs",
+      "sha256": "206c69fcd6c7979a482a31d473c3384ec94b3552510c7c891ac8eb81a648d3fb"
+    },
+    {
+      "path": "release/release-evidence-scope.cjs",
+      "sha256": "84afb68a9069ed81b9440fdd3f7d47b230a5814b1ec67cd37616f5a092dff0a4"
+    },
+    {
+      "path": "release/check-release-evidence-scope.cjs",
+      "sha256": "76c601c8f3e2d76e6dc628e3ce4f79ce6808ada6c46d92a060bd60c34ea7c758"
+    },
+    {
+      "path": "release/reviewed-source-overlays.cjs",
+      "sha256": "05f2a876bdfc6e3bbb2363295e040649494037c78dc89dff7f7736be3d47584c"
+    }
+  ],
+  "sourceScope": "Historical a88 UI proof remains exact. Only source SFU17 + contract8 + reviewed wiring40 supersede component trees. The old5d main source input is hashed from its exact Git blob after this reviewed overlay, never promoted to current runtime.",
+  "qualification": "Immutable Git-show byte memoization only avoids repeated subprocesses; no assertion dropped. Initial CLI rejected old UI main current-byte comparison; source-bound historical comparison repaired, both CLI exits then verified. Whitespace-only final cleanup did not change assertion semantics.",
+  "logs": [
+    {
+      "name": "release-wiring-scope-cached.log",
+      "sha256": "7e82b83543954f086e611983c7f85a937d60084f9797f283b60a743779552a6d"
+    },
+    {
+      "name": "release-final-normal.log",
+      "sha256": "47eed48ab2e77f2716e645698be5a0cd8f0616924d7c48942aeafce7ed36195e"
+    },
+    {
+      "name": "release-final-require-ready.log",
+      "sha256": "461cac5023288c257e1d5e904b3beade96b7e2c06442ba06ffd79ddcd671d65c"
+    }
+  ],
+  "actualRuntimeOrMediaAccepted": false,
+  "ready": false,
+  "finalPackage": null,
+  "remotePush": false
+}

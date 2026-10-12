@@ -1,0 +1,297 @@
+{
+  "schema": 1,
+  "kind": "community-et-real-wiring",
+  "status": "PASS-REVIEWED-SOURCE-ONLY",
+  "baseline": "20006cf1bad50e5331339710ae22ae6578fffed8",
+  "sourceCommit": "8f8dd7c1f61f89a0e85bfa882a6ba13992fc4fdb",
+  "sourceTree": "fcb347b9b07d268e6f4bc51f9b7efded25a74005",
+  "componentTrees": {
+    "client": "c418608a2afe02b7cd28839e2f64accf29b31304",
+    "voice": "45a5122b5480e37224987e74b898cfd4553f0cb4",
+    "server": "1cf6c787fadaaf21fb1216da5f7ed381b04fc164",
+    "sfu": "3d64d5904681d59590be940870ce045e5c1577ff",
+    "easytier": "1af35e8bef73da0a0c3eaddef464a714d8a4b2a2",
+    "landing": "e1215b01f703d2a2dba56ba9cb1261b55789220a"
+  },
+  "changes": [
+    {
+      "path": "components/client/electron/communityEtBindingProjection.ts",
+      "gitBlob": "03795052ab0837db65313b6998acdf878acd3a8d",
+      "sha256": "4a3ef813917b8b329ced7c6e792735f9b3684b85bc6e6cc529e504603493fd4b"
+    },
+    {
+      "path": "components/client/electron/communityEtConfig.test.mjs",
+      "gitBlob": "e539b46ff7c77c8cdf2841e9da5c77ab840780f7",
+      "sha256": "c3514ccc453a2c11f8e400e2b1bfd15d91295bbcce12bcb9f52c4d78bbcdddad"
+    },
+    {
+      "path": "components/client/electron/communityEtConfig.ts",
+      "gitBlob": "a463555d5a0863a5bf17d6476576fb7a5b31535d",
+      "sha256": "28a9c7a7e22510801d3a6318361c55d3f567fa2477ee154d6fb221f03d5b3101"
+    },
+    {
+      "path": "components/client/electron/communityEtCredentialObservation.ts",
+      "gitBlob": "ef320eebf298c0e9832971a9886269a6f8bac2d3",
+      "sha256": "fa0505bc2820c19960d0774ea2999d984bbd2cc64f5deab3ec609acd92f90bbe"
+    },
+    {
+      "path": "components/client/electron/communityEtGrantRuntime.ts",
+      "gitBlob": "9b1ad1014f0fc9c0a2474755540ac17b7de521ac",
+      "sha256": "214e276cc56bcbf9eeafae56c72c039cb8f0037ee2028ed7392048ead69af668"
+    },
+    {
+      "path": "components/client/electron/communityEtGrantTransport.ts",
+      "gitBlob": "8238c50bef5fa665f606ecc62e8429ea742b4e06",
+      "sha256": "4d7e29d3783c4726d844ceb98200c65f4ac6c8ace75899ea3616e9f74299b72b"
+    },
+    {
+      "path": "components/client/electron/communityEtHttpContract.ts",
+      "gitBlob": "ce211f7c4bda976ab7643b63f2a7e03e16a218c7",
+      "sha256": "9e9e95ffb62c8f6c26fa37dc8351da02e7ca7833d72c335ce6dceb1ce88d2fd4"
+    },
+    {
+      "path": "components/client/electron/communityEtRuntime.test.mjs",
+      "gitBlob": "ec0d8630d9530ef66e44f888500c38505d0c1a3b",
+      "sha256": "4a3d55bba81407e7a8e8ed8dba2fe8283fe2ac8ae5fda087138645a4cd864a8d"
+    },
+    {
+      "path": "components/client/electron/communityEtTrustedConfiguration.ts",
+      "gitBlob": "9e99ad469dbe02fb27a4b9a1aadef2cfe2d38248",
+      "sha256": "8e466b5f9fe7bd993fc7c925fd1223e11482af9fc1c1152e770c075045839849"
+    },
+    {
+      "path": "components/client/electron/easyTierCommunityIpc.ts",
+      "gitBlob": "d81d0386344b12a40cf0d8d44ae0a9e157b10c1c",
+      "sha256": "c532af6598761d0b27500279efd144cf48dd3243427e661ebb5904b35657cfef"
+    },
+    {
+      "path": "components/client/electron/easyTierCommunityManager.ts",
+      "gitBlob": "48d80721d3d1141b9d18c7935229f097d87b1202",
+      "sha256": "19d66a3b009e754fc8ffad0f26bc064f89ef4871953f7fa9b6f4c132ed00ae26"
+    },
+    {
+      "path": "components/client/electron/easyTierExistingConfiguration.ts",
+      "gitBlob": "f8cbe8d0dcac196c985e93dacae1491eb55fbcd9",
+      "sha256": "39e3681b019e62bb9698e15612fcd54d51b6fe5b9ba58eedb33e07794af8b3ae"
+    },
+    {
+      "path": "components/client/electron/easyTierWindowsProcesses.ts",
+      "gitBlob": "5274f0c2c7cc33e6183548732e53c6d8e4a14f3c",
+      "sha256": "ffc23e69608a53f543265087d4f71c3432795df1f1fac4477b9b69072dc42abb"
+    },
+    {
+      "path": "components/client/electron/easyTierWindowsProduction.ts",
+      "gitBlob": "2987595b4000c1108d1d8135357271903b401df5",
+      "sha256": "a89d3016cf09286350686f96f5fecfa4fd5e601f88aeef706516e084d5ff4624"
+    },
+    {
+      "path": "components/client/electron/main.ts",
+      "gitBlob": "888c0813cf972dea450f057a45d509f81685034c",
+      "sha256": "1823b5f17594179c19196af13ce497afb5214089a36156b815e4ad678600665d"
+    },
+    {
+      "path": "components/client/electron/preload.ts",
+      "gitBlob": "7d6090eb66b2ba4963d28a91c91977a618e823e1",
+      "sha256": "b5c4f050188eadc4ca62d15e177c1fb4de970a89cbcc659352a433448acd7f7c"
+    },
+    {
+      "path": "components/client/electron/windowsEasyTierCliRuntime.ts",
+      "gitBlob": "962d24336c2a49a5b84ee628452715942261b8fd",
+      "sha256": "9ade03c03b40e03c6e7561ee4f58fb496f9ab2ce69a4887a5123bcdf19297001"
+    },
+    {
+      "path": "components/client/scripts/check-community-easytier-network.mjs",
+      "gitBlob": "9b3735fec26946f4e303e7c0d4224c26220f5be9",
+      "sha256": "31b470c34bfcdc732d9d58d8dcdde0a6982bdceeb26c059d4385784f9c7aeadc"
+    },
+    {
+      "path": "components/client/scripts/check-community-easytier-production.mjs",
+      "gitBlob": "16de21866123463c970d31826faadb0dd82b8551",
+      "sha256": "5b038a28b27101163de338eeaccb1ec0ee443de0efd6287935fe00ffea44f4ae"
+    },
+    {
+      "path": "components/client/src/components/communityLanSession.tsx",
+      "gitBlob": "96235ebcbb2fd5d5f8c37523859ae3986767b30c",
+      "sha256": "5cdadc1800f393ab679aaf0ffba7b4023dc538114c525ed33d11d25d6f15a924"
+    },
+    {
+      "path": "components/client/src/lib/easyTierCommunity.ts",
+      "gitBlob": "de7503adab6d5aa3409c908029977d1688fda3a2",
+      "sha256": "573d7ce96e12369aac60e4bfaff99f22f51f89b8d58a75697c81fe23e01c580e"
+    },
+    {
+      "path": "components/client/src/packages/common/src/utils/tokenStorage.ts",
+      "gitBlob": "0445ced8c8e8ad44272718210c7cfb7b3b1eaedb",
+      "sha256": "78ff196596965a24ec16bce6aebabee43ca404de6473bf36330ae5a51cb57b3b"
+    },
+    {
+      "path": "components/server/src/config/communityEt.test.ts",
+      "gitBlob": "f57cbbf310a66fc312b59fdf80321adbe147604d",
+      "sha256": "7ad78c7c648eef8b73b34171b2fe26677bf3e49e44d4a4b7b9decaf248ccc56e"
+    },
+    {
+      "path": "components/server/src/config/communityEt.ts",
+      "gitBlob": "0dd2ab09be2b3a597c217eb5078de3bf1176121e",
+      "sha256": "6a1a6df074d64c89c85bc17abb9e60de0e1833d3e3d4f0a82bb64050123b1afe"
+    },
+    {
+      "path": "components/server/src/easytier/communityCredentialProvider.test.ts",
+      "gitBlob": "5145bd6bccffc2d3d1d1fff0b8fc10031223b480",
+      "sha256": "b7741d031be353406fb9c88782ec2ffdfa880c57c2bf65a1c3f670fc98620fc6"
+    },
+    {
+      "path": "components/server/src/easytier/communityCredentialProvider.ts",
+      "gitBlob": "66aa5d65f97cd21708161130c42563ec0ec7ac62",
+      "sha256": "a9e9230ede3d968d12c6b135f74393fca5853e3cae417f71457c0d7ca181cba8"
+    },
+    {
+      "path": "components/server/src/easytier/communityGrantApi.test.ts",
+      "gitBlob": "200df519eed4508c8affc05ce05e35f388549b54",
+      "sha256": "620991aa288108ab51d9d6881b07951c78e91b42ae0d37ff61f8a4e323a17297"
+    },
+    {
+      "path": "components/server/src/easytier/communityGrantApi.ts",
+      "gitBlob": "21d7a4804b1b35d33197346b5b7098254c9a8701",
+      "sha256": "fd3ee0484e1a82cabc195281dc5eb1b06c1ae8f8a609aed8b6a4c5c2675c73ab"
+    },
+    {
+      "path": "components/server/src/easytier/communityGrantAuth.ts",
+      "gitBlob": "dc32107d65c6a08b11dd61ea38b47670dd6c149f",
+      "sha256": "e8310a26a338da51971983c5a5deff0ac2f1683fe551666828ddab0264402daf"
+    },
+    {
+      "path": "components/server/src/easytier/communityGrantFactory.ts",
+      "gitBlob": "d3526dfeeee3748b1ce58d57ec0b1ded0049aee2",
+      "sha256": "1270f51af80927c3dcbc5052e274688f8c5fac620e28061093bd7d6f27aaa8dc"
+    },
+    {
+      "path": "components/server/src/easytier/communityGrantRouter.test.ts",
+      "gitBlob": "146a821abc7a9f24820543f1cd853fc9620f3d00",
+      "sha256": "c04c1c7fae16c646c7f928e3af39c27a89fd2d96675f1acea0d1882790f66dda"
+    },
+    {
+      "path": "components/server/src/easytier/communityGrantRouter.ts",
+      "gitBlob": "6b497c2e4aa2774fe353b2a957ded38020d1707e",
+      "sha256": "f02041162a23908aac128dc3aa742c73a38191833a4dc7e39b560e0e9ea4382b"
+    },
+    {
+      "path": "components/server/src/easytier/communityGrantService.test.ts",
+      "gitBlob": "72bb96f9a8e1a01dcd85959b2c228e3b5471fd9c",
+      "sha256": "abebe88d8d96ed3899c341d7d9a74a5206c027ebdf82e9c7265193211580eb84"
+    },
+    {
+      "path": "components/server/src/easytier/communityGrantService.ts",
+      "gitBlob": "c793f93bb3e77a3e0f7c6947378f84befc399433",
+      "sha256": "00762fc336e7e2837960c5b294d65c4aacc20f4d78042275c95e5312674f2e31"
+    },
+    {
+      "path": "components/server/src/easytier/communityGrantStore.ts",
+      "gitBlob": "4434ba9c2c9b86ea61b5b63e867c009d7f2d663f",
+      "sha256": "681f9197704f44f5f6524d056c49cffcddb9565a96c9aa03cd00b756327027c6"
+    },
+    {
+      "path": "components/server/src/easytier/communityRpcWire.test.ts",
+      "gitBlob": "770e65ec60a76ac957b1c03439ac1bd5728a91a8",
+      "sha256": "23471eacb0a4a7c078a7e86afbd1657606914a3ccc18f9416b6de9d5992fdfdf"
+    },
+    {
+      "path": "components/server/src/easytier/communityRpcWire.ts",
+      "gitBlob": "de3825573b4422d1f51d9566772fa7edc2333887",
+      "sha256": "4e7a5ef23639dc705af15dd3386281166c3a1314b03ff1862742a681fd2e1ebc"
+    },
+    {
+      "path": "components/server/src/index.ts",
+      "gitBlob": "a8951817a0e5f9ecd73c066714b65e92ec9f07cb",
+      "sha256": "c88447c322300c95c8c3e154479e36587ac703ebe7b88f66e27ffb1990304caf"
+    },
+    {
+      "path": "components/server/src/routes/ownJsonParsers.ts",
+      "gitBlob": "94a0af5d5d5c57f6e04b8d1bc74364751cfb23c0",
+      "sha256": "463e17d2e2ad16526a121174b0ed995b15e70e2ac0c80ea2b9ac65343734b52b"
+    },
+    {
+      "path": "components/server/src/routes/routeJsonLimits.test.ts",
+      "gitBlob": "adb1935793e4675d1420dcb977148d44fc01d19f",
+      "sha256": "754401e4ac8a3d682d830b12f58b8c7d640e986e894a13a099f9f56a4a46787d"
+    }
+  ],
+  "checks": {
+    "mainTests": 239,
+    "serverTests": 86,
+    "serverEntryTests": 19,
+    "strictClientTypesExit": 0,
+    "strictServerTypesExit": 0,
+    "lintExit": 0,
+    "appRoots": 655,
+    "mainRoots": 64,
+    "serverRoots": 229,
+    "canonicalHttpBlob": "21d7a4804b1b35d33197346b5b7098254c9a8701",
+    "serverOwnerCommit": "52f81677c94936767f158e0b1875a66a8c2afc79",
+    "serverOwnerFilesExact": 9,
+    "cherryPickConflicts": [],
+    "logs": [
+      {
+        "name": "grant-config-and-runtime.log",
+        "sha256": "033ee32e0306b02866c5e3341ae2632731219609bd060d53980fc80cde246f87"
+      },
+      {
+        "name": "community-lifecycle.log",
+        "sha256": "6efb55f6a35366a74b24974f81c1f9e8d1ab20ad2b12e67ab53121467a03b61d"
+      },
+      {
+        "name": "owned-cli-network.log",
+        "sha256": "7f240254376b42bd75aa767d8ac25a3c40ae939fbdff8ae519dc015c39ad76fb"
+      },
+      {
+        "name": "windows-production-pure.log",
+        "sha256": "c9a1d9331628202104bf1b0a4b491c5e4fa378dd7b3ceccf2de4d0644f144790"
+      },
+      {
+        "name": "server-owner-config-pure.tap",
+        "sha256": "bc6c6e001d0bb5bb12d27106d26d804b1342644bd3fb5de5e3d23c3b0dba6f6b"
+      },
+      {
+        "name": "server-owner86",
+        "sha256": "1b1c3b51b3a11a76c4e06c4f4be11e4471312f6c8236daf056aeb57070c4e20e"
+      }
+    ],
+    "types": [
+      {
+        "typescript": "5.9.3",
+        "results": [
+          {
+            "project": "tsconfig.app.json",
+            "roots": 655,
+            "errors": 0
+          },
+          {
+            "project": "tsconfig.node.json",
+            "roots": 64,
+            "errors": 0
+          }
+        ],
+        "dependencySource": "Readonly existing locked node_modules; no install or emit. Public SDK types identical except two private lifecycle hook declarations.",
+        "productExecuted": false
+      },
+      {
+        "roots": 229,
+        "errors": 0,
+        "typescript": "5.9.3",
+        "dependencySource": "C:\\Users\\cheb2\\Documents\\Codex\\2026-10-12\\task\\lifecycle3-b38566f-build\\source\\components\\server\\node_modules",
+        "emit": false,
+        "runtimeExecuted": false
+      }
+    ],
+    "qualification": "Pure fake-clock/PC/HTTP/filesystem/SQLite and readonly no-emit types. Runtime49 is included in main239, not counted twice. Server owner86 reused only after exact9 Git blobs matched. Initial manager error masking was fixed; stale fixture and loader setup failures are retained outside Git. No native, app, live credential mutation or listener."
+  },
+  "boundaries": {
+    "realProviderWired": true,
+    "realIpcWired": true,
+    "nativeActivated": false,
+    "realMediaAccepted": false,
+    "physicalDirectVerified": false,
+    "activationReady": false,
+    "ready": false,
+    "finalPackage": null
+  }
+}

@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "id": "laokuai-cloud-receive-path-et-observation-frozen-20261011",
-  "stage": "minimal-real-voice-media-pass-two-service-production-candidate-prepared-et-wiring-separate",
+  "stage": "authenticated-community-et-source-wired-live-readonly-list-pass-full-real-cutover-pending",
   "ready": false,
   "repository": {
     "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud",
@@ -9,15 +9,15 @@
     "visibility": "private",
     "branch": "integration/lifecycle3-20261012",
     "soleGitWriter": "task-6",
-    "codeCommit": "20006cf1bad50e5331339710ae22ae6578fffed8",
-    "codeTree": "a18f9310a9c66e3b40f6ab896ee63becea9de73e",
+    "codeCommit": "8f8dd7c1f61f89a0e85bfa882a6ba13992fc4fdb",
+    "codeTree": "fcb347b9b07d268e6f4bc51f9b7efded25a74005",
     "newRepositoryReason": "Authenticated private-repo metadata and explicitly scoped old local core/game remotes revealed no matching existing private integration repository",
     "historyPolicy": "Original client history preserved; no force push/reset/rewrite; other components imported as licensed source snapshots"
   },
   "components": {
     "client": {
       "path": "components/client",
-      "tree": "fbcc9d4e2db64348fc17704d486a421233f7513f",
+      "tree": "c418608a2afe02b7cd28839e2f64accf29b31304",
       "upstream": "Gryt-chat/client",
       "publicFork": "Thankyou-Cheems/gryt-client-i18n",
       "historyImportedFrom": "06ac43f51dbda3b9444c73270a126e10489110e9",
@@ -32,8 +32,12 @@
         "tree": "8123a71d99a101a3dce02027d476c7e8879ff48d",
         "sourceCommit": "a88f7d75066cf03d65d618bb49cabbff6e8d7884"
       },
-      "sourceCommit": "20006cf1bad50e5331339710ae22ae6578fffed8",
-      "communityContractWired": false
+      "sourceCommit": "8f8dd7c1f61f89a0e85bfa882a6ba13992fc4fdb",
+      "communityContractWired": true,
+      "preservedPreCommunityWiring": {
+        "tree": "fbcc9d4e2db64348fc17704d486a421233f7513f",
+        "sourceCommit": "20006cf1bad50e5331339710ae22ae6578fffed8"
+      }
     },
     "voice": {
       "path": "components/voice",
@@ -141,10 +145,10 @@
     },
     "server": {
       "path": "components/server",
-      "tree": "9e7b2a54df362e6039106bb809447ae6515de797",
+      "tree": "1cf6c787fadaaf21fb1216da5f7ed381b04fc164",
       "upstream": "Gryt-chat/server",
       "userFork": null,
-      "sourceCommit": "20006cf1bad50e5331339710ae22ae6578fffed8",
+      "sourceCommit": "8f8dd7c1f61f89a0e85bfa882a6ba13992fc4fdb",
       "archivedSourceFilesVerified": 462,
       "importedSourceFiles": 460,
       "excluded": [
@@ -164,7 +168,11 @@
         "tree": "96db8312488c4f399904192f3a932232cf6130ad",
         "sourceCommit": "cb31e2e4ec044a2574f88321bc90cc01c3b51e0c"
       },
-      "communityContractWired": false
+      "communityContractWired": true,
+      "preservedPreCommunityWiring": {
+        "tree": "9e7b2a54df362e6039106bb809447ae6515de797",
+        "sourceCommit": "20006cf1bad50e5331339710ae22ae6578fffed8"
+      }
     },
     "sfu": {
       "path": "components/sfu",
@@ -710,7 +718,7 @@
     "privateCoreSha256": "f716a1139d66800bbc75daa200b1c0c6eecccb97e88e13167fafb8d7d38bb81d",
     "nativeCoreCompilationPassed": true,
     "coreExecuted": false,
-    "localObservationStatus": "owned route/peer producer and scoped passive Provider facts source-integrated; authenticated member mapping absent",
+    "localObservationStatus": "Single owned CLI sample and authenticated local-device binding source-wired; remote member/forwarding/RTT/physical-direct acceptance pending",
     "noNpcapBuildProfile": "components/client/scripts/easytier-windows-feature-profile.json",
     "privateCliSha256": "1ad46380937aab6dd7385ebb37bb458c94f8d1a3e68baf2e6c24ea973adc6411",
     "cliExecuted": false,
@@ -721,8 +729,22 @@
       "strictModuleTypesPassed": true,
       "realProviderWired": false,
       "realIpcWired": false,
+      "activationReady": false,
+      "historical": true,
+      "supersededBy": "8f8dd7c1f61f89a0e85bfa882a6ba13992fc4fdb"
+    },
+    "communityGrantWiring": {
+      "sourceCommit": "8f8dd7c1f61f89a0e85bfa882a6ba13992fc4fdb",
+      "mainTests": 239,
+      "serverTests": 86,
+      "serverEntryTests": 19,
+      "realProviderWired": true,
+      "realIpcWired": true,
+      "completeProviderAccepted": false,
+      "nativeActivated": false,
       "activationReady": false
-    }
+    },
+    "communityEnrollmentStatus": "Source wired; real public readonly List passes; secure Admin/write/TUN acceptance pending"
   },
   "validation": {
     "commit": "d5fe2946485f2004f9f7705118c759c3032f58f1",
@@ -2378,6 +2400,12 @@
         "receipt": "release/acceptance/easytier-pure-contract-source.json",
         "receiptSha256": "57914a033c22534205dc9d1d6ebd0969f3196d7f398db80c023a41c6bf869094",
         "sourceCommit": "20006cf1bad50e5331339710ae22ae6578fffed8"
+      },
+      {
+        "kind": "community-et-real-wiring",
+        "receipt": "release/acceptance/community-et-real-wiring-source.json",
+        "receiptSha256": "33a931a964750bcb6a29c52496ca68d54213e8cf84040d8cc5a34a4fd017340e",
+        "sourceCommit": "8f8dd7c1f61f89a0e85bfa882a6ba13992fc4fdb"
       }
     ],
     "sfuShutdownImage": {
@@ -2405,14 +2433,6 @@
       "scopeCases": 68,
       "requireReadyExit": 2
     },
-    "currentPopupVerifier": {
-      "receipt": "release/acceptance/current-source-overlay-verifier.json",
-      "receiptSha256": "306f9d5fdad6fb345d9fef66e9b0fb3925c0f055d5c0803532373105a4f831c7",
-      "sourceCommit": "a88f7d75066cf03d65d618bb49cabbff6e8d7884",
-      "codeFreeze": "20006cf1bad50e5331339710ae22ae6578fffed8",
-      "scopeCases": 86,
-      "requireReadyExit": 2
-    },
     "minimalActualMedia": {
       "receipt": "release/acceptance/minimal-media-d38ed22d-run3.json",
       "receiptSha256": "8da4ba2754461ced073052cfd968ed020672b6253f1ac78adeb9ca6e45fca1f8",
@@ -2425,6 +2445,38 @@
       "sdkAutomaticP2pFallbackAccepted": false,
       "realUserDeviceHearingAccepted": false,
       "task6CreatedMediaResources": false
+    },
+    "previousSourceOverlayVerifier": {
+      "receipt": "release/acceptance/current-source-overlay-verifier.json",
+      "receiptSha256": "306f9d5fdad6fb345d9fef66e9b0fb3925c0f055d5c0803532373105a4f831c7",
+      "sourceCommit": "a88f7d75066cf03d65d618bb49cabbff6e8d7884",
+      "codeFreeze": "20006cf1bad50e5331339710ae22ae6578fffed8",
+      "scopeCases": 86,
+      "requireReadyExit": 2
+    },
+    "public270ReadOnly": {
+      "receipt": "release/acceptance/public-270-list-readonly.json",
+      "receiptSha256": "efcf4ce4c67a74d480a775dd905c91935f3c0b0c2fbc815c2e21d6a053d606c7",
+      "customWireInteropPassed": true,
+      "credentialCount": 0,
+      "credentialMutationAccepted": false,
+      "completeProviderAccepted": false
+    },
+    "currentPopupVerifier": {
+      "receipt": "release/acceptance/community-wiring-source-verifier.json",
+      "receiptSha256": "322d4bec18d17b74eb5b877a09be16ecbab444ec025bc3f8702febc0bdf97ecd",
+      "sourceCommit": "a88f7d75066cf03d65d618bb49cabbff6e8d7884",
+      "codeFreeze": "8f8dd7c1f61f89a0e85bfa882a6ba13992fc4fdb",
+      "scopeCases": 108,
+      "requireReadyExit": 2
+    },
+    "communityFirstDeviceScope": {
+      "receipt": "release/acceptance/community-first-device-readonly-scope.json",
+      "receiptSha256": "ee7c29d0a9470700223e2a574c323a76b45bd4255779b5fe928f60ea2e12b01d",
+      "executed": false,
+      "managementPathApproved": false,
+      "credentialWritesApproved": false,
+      "nativeRunApproved": false
     }
   },
   "securityBoundary": {
@@ -2468,8 +2520,10 @@
     "Modern089b/f716+1ad4 minimum runtime handoff is now prepared:624 shared Rust files and lock identical, only Cargo.toml dependency/CRT selection changes. Strict original modern producer schema adaptation, re-pinned pwsh7 runner/new source+scope closure and fresh protected-object preflight/approval must precede one no-peer test. Real2-client community/device/media/fallback and optional chosen-game coexistence use separately explicit scopes; do not repeat passing old dbaf or unchanged UI/SDK/capacity checks.",
     "Lifecycle.3 Windows internal portable3a8065e5 from b38566f completed;411 sealed files rehashed,141 payload files exact, SDK212 installed/170 rebuilt dist and exact tgz repack reported. Root release verifier correctly separates historical Provider/842 scopes and current lifecycle SDK/relink evidence. Hidden offline empty-profile bootstrap now passed within its recorded scope; authentic device/media/native tests and source-recipient/license clearance remain pending; no public release.",
     "Exact lifecycle.3/b385 original payload passed one hidden offline empty-profile bootstrap/DOM, exit0/no residual,4 successful owned-endpoint/foreground samples. Three known disabled-IPC Promise errors persist as old842; console is not error-free. Tray8 pure branches only: real tray skipped and voice toolbar not mounted. Authentic settings/menu/room/device/native interaction and media remain unaccepted; no ready promotion or repack.",
-    "Real community issuer/provider, persistent grant transactions, main-only transport/IPC/runtime and issuer pin wiring",
-    "Full Client/SDK automatic P2P-to-SFU, real user/device/WAN hearing remain unaccepted; minimal run3 real RTP/pause/resume/lease safety/active TERM passed"
+    "Full Client/SDK automatic P2P-to-SFU, real user/device/WAN hearing remain unaccepted; minimal run3 real RTP/pause/resume/lease safety/active TERM passed",
+    "Source-wired real ET provider/main/server: public secure Admin policy and legacy impact approval, fixed protected Unix channel, actual credential Generate/one same-key renew/Revoke/List and owned Windows TUN coexistence/cleanup pending",
+    "Exact new backend image and complete client build/package from 8f8dd7c1 pending; old image/package/media/UI receipts remain historical",
+    "First real device trial only; second named account/device and actual SDK ET P2P/fallback/hearing acceptance not included or accepted"
   ],
   "finalPackage": null,
   "frozenPreviousHybrid": {
@@ -2709,6 +2763,10 @@
     "transferApproved": false,
     "transferBlockedByAutomaticReview": true,
     "existingProductionHealthy": true,
-    "target": "TencentCloudPublic / root@124.221.119.113:22"
+    "target": "TencentCloudPublic / root@124.221.119.113:22",
+    "status": "CANCELLED-ET-DISABLED-PARTIAL-CUTOVER",
+    "supersededBySource": "8f8dd7c1f61f89a0e85bfa882a6ba13992fc4fdb",
+    "executionPermitted": false,
+    "qualification": "Historical media-only images/operator preserved byte-for-byte; human requires unified ET enrollment. Do not execute the former two-service cutover, even if an older approval arrives. Fresh backend/client build must bind to new source."
   }
 }

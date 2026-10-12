@@ -2,7 +2,8 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const evidence=require('./release-evidence-scope.cjs'),root=path.resolve(__dirname,'..'),clone=x=>structuredClone(x),hash=b=>crypto.createHash('sha256').update(b).digest('hex');
 const manifest=JSON.parse(fs.readFileSync(path.join(__dirname,'manifest.json'))),entry=manifest.validation.lifecycle3LocalIntegration,lifecycle=JSON.parse(fs.readFileSync(path.join(root,entry.receipt))),relEntry=manifest.validation.recipientBuildPreparation,relink=JSON.parse(fs.readFileSync(path.join(root,relEntry.relinkReceipt)));
 const cache=new Map();const git=args=>{const key=JSON.stringify(args);if(!cache.has(key)){const r=spawnSync('git',args,{cwd:root,windowsHide:true,encoding:'utf8',maxBuffer:16*1024*1024});assert.equal(r.status,0,r.stderr);cache.set(key,r.stdout.trim());}return cache.get(key);};
-const services={git,sha:f=>hash(fs.readFileSync(path.join(root,f))),readFrozen:(commit,file)=>{const r=spawnSync('git',['show',commit+':'+file],{cwd:root,windowsHide:true,maxBuffer:16*1024*1024});assert.equal(r.status,0);return r.stdout;},currentSourceReceipt:manifest.validation.currentComponentSource?JSON.parse(fs.readFileSync(path.join(root,manifest.validation.currentComponentSource.receipt))):undefined};
+const frozenBytes=new Map();
+const services={git,sha:f=>hash(fs.readFileSync(path.join(root,f))),readFrozen:(commit,file)=>{const key=commit+':'+file;if(!frozenBytes.has(key)){const r=spawnSync('git',['show',key],{cwd:root,windowsHide:true,maxBuffer:16*1024*1024});assert.equal(r.status,0);frozenBytes.set(key,r.stdout);}return frozenBytes.get(key);},currentSourceReceipt:manifest.validation.currentComponentSource?JSON.parse(fs.readFileSync(path.join(root,manifest.validation.currentComponentSource.receipt))):undefined};
 services.readReceipt=file=>JSON.parse(fs.readFileSync(path.join(root,file)));
 const cases=[];let negatives=0;function test(name,fn){fn();cases.push(name);console.log('PASS '+name);}function rejects(name,fn){test(name,()=>assert.throws(fn));negatives++;}
 test('Current packedFiles schema preserves exact version/count',()=>evidence.verifyPackedInventory({version:'new'},{version:'new',packedFiles:212},212));
@@ -63,7 +64,7 @@ if(services.currentSourceReceipt){
 if(manifest.validation.reviewedSourceOverlays){
  const reviewed=require('./reviewed-source-overlays.cjs');
  const run=(m=manifest,s=services)=>reviewed.verifyReviewedSourceOverlays(m,services.currentSourceReceipt,s);
- test('Exact SFU17 and contract8 source chain accepted without UI proof promotion',()=>assert.equal(run().client,manifest.components.client.tree));
+ test('Exact SFU17, contract8 and real wiring40 chain accepted without UI proof promotion',()=>assert.equal(run().client,manifest.components.client.tree));
  for(const [name,mutate] of [
   ['missing-chain',m=>delete m.validation.reviewedSourceOverlays],
   ['reordered-chain',m=>m.validation.reviewedSourceOverlays.reverse()],
@@ -76,6 +77,18 @@ if(manifest.validation.reviewedSourceOverlays){
   ['wired-provider',r=>r.boundaries.realProviderWired=true],['wired-ipc',r=>r.boundaries.realIpcWired=true],
   ['activation',r=>r.boundaries.activationReady=true],['physical-direct',r=>r.boundaries.physicalDirectVerified=true],
  ])rejects('Reject '+name+' contract evidence forgery',()=>run(manifest,{...services,readReceipt:f=>{const r=services.readReceipt(f);if(r.kind==='easytier-pure-contract')mutate(r);return r;}}));
+ for(const [name,mutate]of [
+  ['missing-wiring-path',r=>r.changes.pop()],['wiring-byte',r=>r.changes[0].sha256='0'.repeat(64)],
+  ['wiring-blob',r=>r.changes[0].gitBlob='0'.repeat(40)],['wiring-owner-count',r=>r.checks.serverOwnerFilesExact=8],
+  ['wiring-main-types',r=>r.checks.mainRoots=63],['wiring-server-types',r=>r.checks.strictServerTypesExit=1],
+  ['wiring-http-identity',r=>r.checks.canonicalHttpBlob='0'.repeat(40)],['wiring-test-count',r=>r.checks.serverEntryTests=18],
+  ['missing-provider-source',r=>r.boundaries.realProviderWired=false],['missing-ipc-source',r=>r.boundaries.realIpcWired=false],
+  ...['nativeActivated','realMediaAccepted','physicalDirectVerified','activationReady','ready'].map(flag=>['wiring-'+flag,r=>r.boundaries[flag]=true]),
+  ['wiring-package',r=>r.boundaries.finalPackage='unbuilt.exe'],
+ ])rejects('Reject '+name+' real wiring forgery',()=>run(manifest,{...services,readReceipt:f=>{const r=services.readReceipt(f);if(r.kind==='community-et-real-wiring')mutate(r);return r;}}));
+ const live=services.readReceipt(manifest.validation.public270ReadOnly.receipt);
+ test('Public real ListCredentials proof remains readonly-only',()=>reviewed.verifyPublicListReadOnly(manifest,live));
+ for(const [name,mutate]of [['provider-acceptance',r=>r.completeProviderAccepted=true],['credential-mutation',r=>r.tunOrCredentialsMutated=true],['wrong-instance',r=>r.instanceId='other'],['wrong-portal',r=>r.portal='0.0.0.0:15890'],['unclosed-ssh',r=>r.sshChildExited=false]])rejects('Reject live '+name+' promotion',()=>{const r=clone(live);mutate(r);reviewed.verifyPublicListReadOnly(manifest,r);});
  const image=services.readReceipt(manifest.validation.sfuShutdownImage.receipt);
  test('New image PID1 signals bound to exact shutdown source',()=>reviewed.verifySfuShutdownImage(manifest,image,services));
  for(const [name,mutate]of [
