@@ -23,7 +23,7 @@ let sdkScope={current:m.components.voice,currentBoundary:m.repository.codeCommit
 if(m.validation.lifecycle3LocalIntegration){
   const entry=m.validation.lifecycle3LocalIntegration;
   assert(sha(entry.receipt)===entry.receiptSha256,'Lifecycle integration receipt changed');
-  sdkScope=evidence.verifyLifecycleScope(m,JSON.parse(fs.readFileSync(path.join(root,entry.receipt))),{git,sha,readFrozen,currentSourceReceipt:m.validation.currentComponentSource?JSON.parse(fs.readFileSync(path.join(root,m.validation.currentComponentSource.receipt))):undefined});
+  sdkScope=evidence.verifyLifecycleScope(m,JSON.parse(fs.readFileSync(path.join(root,entry.receipt))),{git,sha,readFrozen,readReceipt:file=>JSON.parse(fs.readFileSync(path.join(root,file))),currentSourceReceipt:m.validation.currentComponentSource?JSON.parse(fs.readFileSync(path.join(root,m.validation.currentComponentSource.receipt))):undefined});
 }
 assert(m.easytier.tag==='v2.7.0'&&m.easytier.prerelease&&m.easytier.tagCommit==='8b7f1f0196edb5b580829ed5f135050fb5853478','ET source target mismatch');
 assert(m.validation.clientPure.checks.every(x=>x.exit===0),'Recorded checks not green');
@@ -67,7 +67,8 @@ if(m.validation.sfuMicrophone48Candidate){
   const candidate=m.validation.sfuMicrophone48Candidate;
   assert(sha(candidate.receipt)===candidate.receiptSha256,'SFU48 candidate/failure receipt changed');
   const receipt=JSON.parse(fs.readFileSync(path.join(root,candidate.receipt),'utf8'));
-  assert(receipt.candidateSourceCommit===m.components.sfu.sourceCommit&&receipt.sfuTree===m.components.sfu.tree,'SFU48 exact source mismatch');
+  const frozen=m.components.sfu.preservedPreShutdown||m.components.sfu;
+  assert(receipt.candidateSourceCommit===frozen.sourceCommit&&receipt.sfuTree===frozen.tree,'SFU48 exact historical source mismatch');
 }
 if(m.validation.receivePathIntegration){
   const candidate=m.validation.receivePathIntegration;
@@ -86,7 +87,7 @@ if(m.validation.capacity.sfu48Sdk3Isolated){
   const candidate=m.validation.capacity.sfu48Sdk3Isolated;
   assert(sha(candidate.receipt)===candidate.receiptSha256,'Version-pinned SFU48 real acceptance receipt changed');
   const receipt=JSON.parse(fs.readFileSync(path.join(root,candidate.receipt),'utf8'));
-  assert(receipt.sourcePin===candidate.sourcePin&&receipt.sfuTree===m.components.sfu.tree,'SFU48 real acceptance source mismatch');
+  assert(receipt.sourcePin===candidate.sourcePin&&receipt.sfuTree===(m.components.sfu.preservedPreShutdown||m.components.sfu).tree,'SFU48 real acceptance historical source mismatch');
   assert(receipt.sdkSourceCommit===candidate.sdkSourceCommit&&receipt.notAccepted.currentReceivePath1Provider===true,'SDK3 media acceptance incorrectly promoted to current Provider');
 }
 if(m.validation.providerActualInstanceBinding){
@@ -336,6 +337,18 @@ if(m.validation.currentPopupVerifier){
  assert(r.cliChecks.length===2&&r.cliChecks[0].exit===0&&r.cliChecks[1].exit===2&&e.requireReadyExit===2,'Current readiness CLI regression changed');
  for(const x of r.verifierFiles)assert(sha(x.path)===x.sha256,'Current verifier source changed');
  assert(!r.actualRuntimeOrMediaAccepted&&!r.ready&&r.finalPackage===null,'Current verifier proof promoted to media/release');
+ if(m.validation.reviewedSourceOverlays)assert(r.codeFreeze===m.repository.codeCommit,'Reviewed source verifier freeze changed');
+}
+if(m.validation.sfuShutdownImage){
+ const e=m.validation.sfuShutdownImage;
+ assert(sha(e.receipt)===e.receiptSha256,'SFU image receipt changed');
+ require('./reviewed-source-overlays.cjs').verifySfuShutdownImage(m,JSON.parse(fs.readFileSync(path.join(root,e.receipt))),{git});
+}
+if(m.validation.etContractPrototype){
+ const e=m.validation.etContractPrototype,r=JSON.parse(fs.readFileSync(path.join(root,e.receipt)));
+ assert(sha(e.receipt)===e.receiptSha256&&r.localTests===97&&r.archiveSha256===e.archiveSha256,'Prototype receipt changed');
+ for(const x of r.files)assert(sha(x.path)===x.sha256,'Archived prototype byte mismatch');
+ assert(r.productIntegrated===false&&r.mediaPlanExecuted===false,'Prototype promoted to runtime implementation');
 }
 console.log(JSON.stringify({id:m.id,codeCommit:m.repository.codeCommit,sdkSourceBoundary:sdkScope.currentBoundary,historicalSdkSourceBoundary:sdkScope.historicalBoundary,sourceConsistent:true,components:Object.keys(m.components),sdkVersion:packed.version,historicalSdkReceiptsApplicableToCurrentSdk:!sdkScope.historical,ready:m.ready,easytier:m.easytier.implementationStatus,actualNetworkVerified:m.easytier.actualNetworkVerified}));
 if(process.argv.includes('--require-ready')&&!m.ready){console.error('Release blocked: '+m.pending.join('; '));process.exitCode=2;}

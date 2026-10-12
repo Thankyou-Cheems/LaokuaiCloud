@@ -3,6 +3,7 @@ const evidence=require('./release-evidence-scope.cjs'),root=path.resolve(__dirna
 const manifest=JSON.parse(fs.readFileSync(path.join(__dirname,'manifest.json'))),entry=manifest.validation.lifecycle3LocalIntegration,lifecycle=JSON.parse(fs.readFileSync(path.join(root,entry.receipt))),relEntry=manifest.validation.recipientBuildPreparation,relink=JSON.parse(fs.readFileSync(path.join(root,relEntry.relinkReceipt)));
 const cache=new Map();const git=args=>{const key=JSON.stringify(args);if(!cache.has(key)){const r=spawnSync('git',args,{cwd:root,windowsHide:true,encoding:'utf8',maxBuffer:16*1024*1024});assert.equal(r.status,0,r.stderr);cache.set(key,r.stdout.trim());}return cache.get(key);};
 const services={git,sha:f=>hash(fs.readFileSync(path.join(root,f))),readFrozen:(commit,file)=>{const r=spawnSync('git',['show',commit+':'+file],{cwd:root,windowsHide:true,maxBuffer:16*1024*1024});assert.equal(r.status,0);return r.stdout;},currentSourceReceipt:manifest.validation.currentComponentSource?JSON.parse(fs.readFileSync(path.join(root,manifest.validation.currentComponentSource.receipt))):undefined};
+services.readReceipt=file=>JSON.parse(fs.readFileSync(path.join(root,file)));
 const cases=[];let negatives=0;function test(name,fn){fn();cases.push(name);console.log('PASS '+name);}function rejects(name,fn){test(name,()=>assert.throws(fn));negatives++;}
 test('Current packedFiles schema preserves exact version/count',()=>evidence.verifyPackedInventory({version:'new'},{version:'new',packedFiles:212},212));
 test('Historical installedPackedFiles schema preserves exact version/count',()=>evidence.verifyPackedInventory({version:'old'},{version:'old',installedPackedFiles:212},212));
@@ -58,5 +59,30 @@ if(services.currentSourceReceipt){
  ['ready-promotion',r=>r.boundaries.ready=true]])rejects('Reject '+name+' current-scope forgery',()=>{const r=clone(services.currentSourceReceipt);mutate(r);evidence.verifyCurrentComponentSource(manifest,r,services);});
  rejects('Reject missing current source receipt',()=>evidence.verifyLifecycleScope(manifest,lifecycle,{...services,currentSourceReceipt:undefined}));
  rejects('Reject missing current source receipt hash pin',()=>{const m=clone(manifest);m.validation.currentComponentSource.receiptSha256='0'.repeat(64);evidence.verifyCurrentComponentSource(m,services.currentSourceReceipt,services);});
+}
+if(manifest.validation.reviewedSourceOverlays){
+ const reviewed=require('./reviewed-source-overlays.cjs');
+ const run=(m=manifest,s=services)=>reviewed.verifyReviewedSourceOverlays(m,services.currentSourceReceipt,s);
+ test('Exact SFU17 and contract8 source chain accepted without UI proof promotion',()=>assert.equal(run().client,manifest.components.client.tree));
+ for(const [name,mutate] of [
+  ['missing-chain',m=>delete m.validation.reviewedSourceOverlays],
+  ['reordered-chain',m=>m.validation.reviewedSourceOverlays.reverse()],
+  ['receipt-hash',m=>m.validation.reviewedSourceOverlays[0].receiptSha256='0'.repeat(64)],
+  ['wrong-code-freeze',m=>m.repository.codeCommit=m.validation.currentComponentSource.sourceCommit],
+ ])rejects('Reject '+name+' reviewed source forgery',()=>{const m=clone(manifest);mutate(m);run(m);});
+ for(const [name,mutate]of [
+  ['lost-path',r=>r.changes.pop()],['changed-source-byte',r=>r.changes[0].sha256='0'.repeat(64)],
+  ['wrong-baseline',r=>r.baseline=r.sourceCommit],['fake-types',r=>r.checks.strictClientTypesExit=1],
+  ['wired-provider',r=>r.boundaries.realProviderWired=true],['wired-ipc',r=>r.boundaries.realIpcWired=true],
+  ['activation',r=>r.boundaries.activationReady=true],['physical-direct',r=>r.boundaries.physicalDirectVerified=true],
+ ])rejects('Reject '+name+' contract evidence forgery',()=>run(manifest,{...services,readReceipt:f=>{const r=services.readReceipt(f);if(r.kind==='easytier-pure-contract')mutate(r);return r;}}));
+ const image=services.readReceipt(manifest.validation.sfuShutdownImage.receipt);
+ test('New image PID1 signals bound to exact shutdown source',()=>reviewed.verifySfuShutdownImage(manifest,image,services));
+ for(const [name,mutate]of [
+  ['image-digest',r=>r.candidate.manifestDigest='sha256:'+'0'.repeat(64)],
+  ['pid1-nonzero',r=>r.acceptance.offlinePid1Signals[0].exitCode=2],
+  ['missing-pid1-case',r=>r.acceptance.offlinePid1Signals.pop()],
+  ['active-media-claim',r=>r.acceptance.activeRoomRTPLeaseDrain=true],
+ ])rejects('Reject '+name+' image forgery',()=>{const r=clone(image);mutate(r);reviewed.verifySfuShutdownImage(manifest,r,services);});
 }
 console.log(JSON.stringify({checks:cases.length,positive:cases.length-negatives,negative:negatives,allPassed:true,realNetworkOrNativeExecuted:false}));

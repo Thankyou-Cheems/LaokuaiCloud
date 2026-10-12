@@ -199,6 +199,17 @@ still blocks exit2. No component/product input change, no repack needed. Old
 receipts/artifacts/failures stay frozen; real runtime/media and license/recipient
 acceptance pending. See release/LIFECYCLE3-VERIFIER-REVIEW.md.
 
+The sole owner integrated immutable ab1246dc eight add-only ET pure-contract files
+at20006cf1 without conflict.47 server+121 main tests and strict module types pass;
+real issuer/provider/store/auth transport/IPC/runtime wiring remains next-turn work.
+No fake provider or native activation is implied. The exact011f12b9 SFU image
+d38ed22d now has independent static and three network=none PID1 exit0 checks;
+Task6 rehashed TAR/ELF only. Active authenticated room/RTP/lease drain is pending.
+Reviewed source overlays preserve immutable a88 UI and old SDK/media/build evidence.
+Parent transferred narrow human-approved max3-container internal-bridge media
+execution to buildowner01a12dd7. Task6 creates no media resources; four-container
+V2/HTTP8080/wide-UDP remains unapproved. ready=false/finalPackage=null; no push.
+
 Exact original b385 lifecycle.3 payload now passed one independent-owner hidden
 offline empty-profile bootstrap/DOM, exit0/residual0;4 successful queries observed
 no owned TCP/UDP or foreground. See release/acceptance/lifecycle3-hidden-bootstrap.json.

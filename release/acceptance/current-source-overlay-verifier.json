@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "sourceCommit": "a88f7d75066cf03d65d618bb49cabbff6e8d7884",
+  "codeFreeze": "20006cf1bad50e5331339710ae22ae6578fffed8",
+  "scopeChecks": {
+    "checks": 86,
+    "positive": 10,
+    "negative": 76,
+    "allPassed": true,
+    "realNetworkOrNativeExecuted": false
+  },
+  "cliChecks": [
+    {
+      "args": [],
+      "exit": 0
+    },
+    {
+      "args": [
+        "--require-ready"
+      ],
+      "exit": 2
+    }
+  ],
+  "verifierFiles": [
+    {
+      "path": "release/verify-release.cjs",
+      "sha256": "2309ad1a41a0e8a9486c9d54e8210baa1e8e2997356e34c035509afc65449954"
+    },
+    {
+      "path": "release/release-evidence-scope.cjs",
+      "sha256": "84afb68a9069ed81b9440fdd3f7d47b230a5814b1ec67cd37616f5a092dff0a4"
+    },
+    {
+      "path": "release/check-release-evidence-scope.cjs",
+      "sha256": "db1c63e05700761c2f719712b6e4f6ea5f2eafaae2345407305a51a6eef69b36"
+    },
+    {
+      "path": "release/reviewed-source-overlays.cjs",
+      "sha256": "57f8bc8013c3a987cb22295a16f6e7e0c21f2ef653d55465a3209d220c18c453"
+    }
+  ],
+  "oldAssertionPreservation": "The immutable a88 source/UI receipt still checks all original inputs and13 render cases. Only exact SFU17 then add-only ET8 Git-byte deltas supersede component trees. Old SFU48 and old build/runtime evidence remain historical. New image proof is static plus offline PID1, never active media.",
+  "actualRuntimeOrMediaAccepted": false,
+  "ready": false,
+  "finalPackage": null,
+  "remotePush": false
+}

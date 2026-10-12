@@ -1,0 +1,94 @@
+{
+  "schema": 1,
+  "kind": "easytier-pure-contract",
+  "status": "PASS-REVIEWED-SOURCE-ONLY",
+  "baseline": "011f12b92af2732cc6a86a088c5f753dfd5c1a14",
+  "sourceCommit": "20006cf1bad50e5331339710ae22ae6578fffed8",
+  "sourceTree": "a18f9310a9c66e3b40f6ab896ee63becea9de73e",
+  "componentTrees": {
+    "client": "fbcc9d4e2db64348fc17704d486a421233f7513f",
+    "voice": "45a5122b5480e37224987e74b898cfd4553f0cb4",
+    "server": "9e7b2a54df362e6039106bb809447ae6515de797",
+    "sfu": "3d64d5904681d59590be940870ce045e5c1577ff",
+    "easytier": "1af35e8bef73da0a0c3eaddef464a714d8a4b2a2",
+    "landing": "e1215b01f703d2a2dba56ba9cb1261b55789220a"
+  },
+  "changes": [
+    {
+      "path": "components/client/electron/communityEtConfig.test.mjs",
+      "gitBlob": "4b1fd1c1ddb35bcb562641d1f9897069be1a62d6",
+      "sha256": "9f6358c210788c24a7b924441c526dd193c03d5ddeeb7cc6fe3fd47da412f1f7"
+    },
+    {
+      "path": "components/client/electron/communityEtConfig.ts",
+      "gitBlob": "82a3d0384dcfd3513fe754bc37cf5e1bfa75e108",
+      "sha256": "021426648de1269caeb0609313937931bb3e1e3b50159c538937d6a5abf2c59f"
+    },
+    {
+      "path": "components/client/electron/communityEtGrant.test.mjs",
+      "gitBlob": "7073b08294051c5dbf8bcd5c444810ae006d3237",
+      "sha256": "38b476dbf97505b34183bd61d99848a9040cc4313e6e21a19eead2a47f653f2d"
+    },
+    {
+      "path": "components/client/electron/communityEtGrant.ts",
+      "gitBlob": "c5a98345a1876878b265de03eef2e554484c7b76",
+      "sha256": "fd73940f88ff36a79b9890785afae30ad5b721a418d119f3d33e5cbc9bb19e48"
+    },
+    {
+      "path": "components/server/src/easytier/communityDeviceBinding.test.ts",
+      "gitBlob": "07c910d1f7d5c68286630b58fd6ad8a320c595bf",
+      "sha256": "f51832960f7aafcfaefbf639b3f36dd61e2f5147d4363f3f6ecaa9ab49b30904"
+    },
+    {
+      "path": "components/server/src/easytier/communityDeviceBinding.ts",
+      "gitBlob": "7bb291c235a1c1f7f7d7a6b2e896f4625b13b4d0",
+      "sha256": "eb753a8c132e68d385471a6cb2e04c74eb21dececa8bd0b124a854b7c8a97079"
+    },
+    {
+      "path": "components/server/src/easytier/communityGrant.test.ts",
+      "gitBlob": "4fb01366eeb38801d88247e426889dd3403eb3d7",
+      "sha256": "e5fb6bfab843d8e36313faa55a3f7b7fad9b547ed7b216684b14f70f605899f0"
+    },
+    {
+      "path": "components/server/src/easytier/communityGrant.ts",
+      "gitBlob": "e3ca61798a1cbc336b8e37792b7395f2237b74c0",
+      "sha256": "3deacfc52befb66f52f3c72b4f1ba0dd78fed138f7e19d2a2ca51780a707d7b3"
+    }
+  ],
+  "checks": {
+    "serverTests": 47,
+    "clientTests": 121,
+    "strictServerTypesExit": 0,
+    "strictClientTypesExit": 0,
+    "lintExit": 0,
+    "logs": {
+      "server-pure": {
+        "sha256": "c0e3f625a51058a54ff1632469d5a1070b8d2f21ca7ae4948b81a8605b184f57"
+      },
+      "client-pure": {
+        "sha256": "b8d53fe08f48b52e0ee7fd6ffda45b994b8846b71b41009e877e790eb2102a6d"
+      },
+      "server-strict-compile": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "client-strict-types": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "lintQualification": "ESLint9 recommended TypeScript/Node rules, max-warnings0: exit0. Two process-level eslint-env deprecation notices retained; no lint diagnostics. Initial Windows ESM path setup failed then corrected; source unchanged.",
+    "ownerCommit": "ab1246dc286816270b67f602e0848319d7917cfa",
+    "ownerPatchSha256": "55c38c410c5fb3ccbe6c5a1c80f84f7be110bac0a7cb0885394032bd3882a023",
+    "cherryPickConflicts": [],
+    "scope": "Strict isolated modules and four test files; not full product compile, RPC, storage, auth or activation. Initial local totals parser expected TAP but Node emitted spec: all168 passed; parser failure retained outside Git."
+  },
+  "boundaries": {
+    "realProviderWired": false,
+    "realIpcWired": false,
+    "nativeActivated": false,
+    "realMediaAccepted": false,
+    "physicalDirectVerified": false,
+    "activationReady": false,
+    "ready": false,
+    "finalPackage": null
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "status": "FROZEN-CANDIDATES-MEDIA-EXECUTION-TRANSFERRED",
+  "backendImageId": "sha256:e45e9c27fe391aa9281365745a54c34529b502f09fa79a2d8e68fcc5486d1eba",
+  "sfuImageId": "sha256:e0f67b7c7dc5985993d0edd17efd0ea52dd591cdff668f1a1fa342ca87d64db4",
+  "serviceSourceCommit": "85ec3b9c60d49881ba9ad5cd48c9a17d59c1772d",
+  "backendBundleSha256": "8181b0834bcb93937b567939f69b26e8719a15e2785f9fd5ea3be955dade3fe5",
+  "sfuElfSha256": "47378f28e35a4a9a95aced3c3d4f21f028e13e6552721e1a814ed7492203afb2",
+  "sdk": {
+    "version": "0.6.2-laokuai.lifecycle.3",
+    "path": "components/client/vendor/gryt-voice-0.6.2-laokuai.lifecycle.3.tgz",
+    "sha256": "897b597926cad23447f057e2b45e95f47806ddfba2f6808e6beb32f80eec49ae"
+  },
+  "cachedRealSdkRuntime": "sha256:63c27620a368974c2c1dabb018e7badc7f0e98c8895aac00a0c4143ca8f8b582",
+  "previousHarness": "task-2/integration12-linux-provider-instance-binding/source/hybrid-runner.cjs",
+  "previousHarnessSourceSha256": "3dbc834af3dcc8c2655bcf6cb9987f7015b5c22d36d524255514f20b0a5ac548",
+  "previousResultsApplyToCurrentSdk": false,
+  "termFix": {
+    "sourceCommit": "011f12b92af2732cc6a86a088c5f753dfd5c1a14",
+    "stableSource": true,
+    "firstMediaHardGate": false,
+    "parallelBuilderFollowup": true
+  },
+  "networkProposal": "release/media/internal-bridge-media-first-v2.json",
+  "netCreated": false,
+  "realMediaAccepted": false,
+  "automaticEnrollmentAccepted": false,
+  "ready": false,
+  "approvedScope": "release/media/internal-bridge-scope.json",
+  "v2Approved": false,
+  "executionOwner": "parent-designated buildowner01a12dd7",
+  "task6NetworkCreated": false,
+  "alternativeShutdownSfu": {
+    "sourceCommit": "011f12b92af2732cc6a86a088c5f753dfd5c1a14",
+    "imageId": "sha256:d38ed22ddbed419661ba20b2c0bf008b18d07e05446c0c813c05a022883aafc6",
+    "elfSha256": "4232d60e7967ca7edcd10ca188e6fdcf941683da71884fd6680bd6da38897a77",
+    "offlinePid1SignalsPassed": 3,
+    "activeRtpAccepted": false
+  }
+}

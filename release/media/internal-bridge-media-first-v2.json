@@ -1,0 +1,160 @@
+{
+  "schema": 1,
+  "status": "HISTORICAL-V2-PROPOSAL-NOT-APPROVED-NOT-EXECUTED",
+  "approved": false,
+  "prerequisite": "Restore existing Docker Engine; verify frozen image IDs/tar payloads and pin the current SDK peer harness. TERM011f12b9 rebuild/exit perfection is parallel follow-up, not a first-media gate.",
+  "network": {
+    "name": "laokuai-media-first-20261012",
+    "driver": "bridge",
+    "internal": true,
+    "attachExistingNetworks": false,
+    "hostNetwork": false,
+    "ipam": "Docker default allocation; record actual CIDR/gateway/network ID before starting any process, reject unexpected/overlapping assignment",
+    "ownershipLabel": "local.laokuai.owner=task6-approved-media",
+    "gatewayAccessQualification": "Internal bridge is not a host-egress firewall or absolute air gap; harness endpoints are restricted to exact owned container IPs, with no host/gateway/service targets",
+    "enableIPv6": false
+  },
+  "containers": [
+    {
+      "name": "laokuai-media-backend",
+      "alias": "backend",
+      "imageId": "sha256:e45e9c27fe391aa9281365745a54c34529b502f09fa79a2d8e68fcc5486d1eba",
+      "cpu": 0.25,
+      "memoryMiB": 256
+    },
+    {
+      "name": "laokuai-media-sfu",
+      "alias": "sfu",
+      "imageId": "sha256:e0f67b7c7dc5985993d0edd17efd0ea52dd591cdff668f1a1fa342ca87d64db4",
+      "sourceCommit": "85ec3b9c60d49881ba9ad5cd48c9a17d59c1772d",
+      "cpu": 0.75,
+      "memoryMiB": 768
+    },
+    {
+      "name": "laokuai-media-peer-a",
+      "alias": "peer-a",
+      "imageId": "sha256:63c27620a368974c2c1dabb018e7badc7f0e98c8895aac00a0c4143ca8f8b582",
+      "qualification": "Historical real-SDK Chromium runtime; availability must be checked after Engine restart. Fresh current SDK bundle/endpoint adapter required.",
+      "cpu": 0.5,
+      "memoryMiB": 1536
+    },
+    {
+      "name": "laokuai-media-peer-b",
+      "alias": "peer-b",
+      "imageId": "sha256:63c27620a368974c2c1dabb018e7badc7f0e98c8895aac00a0c4143ca8f8b582",
+      "qualification": "Separate authenticated real SDK and network namespace, synthetic audio only",
+      "cpu": 0.5,
+      "memoryMiB": 1536
+    }
+  ],
+  "containerInternalListeners": [
+    {
+      "owner": "backend",
+      "transport": "TCP",
+      "port": 5000,
+      "purpose": "Existing real authenticated join and Hybrid authority"
+    },
+    {
+      "owner": "sfu",
+      "transport": "TCP",
+      "port": 5005,
+      "purpose": "Existing SFU client signaling/health"
+    },
+    {
+      "owner": "sfu",
+      "transport": "TCP",
+      "port": 9092,
+      "purpose": "Existing authenticated backend control"
+    },
+    {
+      "owner": "sfu",
+      "transport": "UDP",
+      "port": 3478,
+      "purpose": "Original mux on actual owned bridge interface"
+    },
+    {
+      "owner": "peer-a and peer-b",
+      "transport": "TCP",
+      "port": 8080,
+      "bind": "127.0.0.1 only inside each peer container",
+      "purpose": "Local Chromium SDK fixture/worker/wasm assets, no host publish"
+    },
+    {
+      "owner": "peer-a and peer-b",
+      "transport": "UDP",
+      "portRange": [
+        1024,
+        65535
+      ],
+      "purpose": "Chromium dynamic WebRTC ports inside the two isolated namespaces; endpoint/candidate filter permits only exact owned peer/SFU addresses, multicast/external ICE disabled"
+    },
+    {
+      "owner": "peer-a",
+      "transport": "TCP",
+      "port": 9093,
+      "purpose": "Optional temporary test-only actual control-frame drop/delay proxy"
+    }
+  ],
+  "limits": {
+    "totalCpu": 2,
+    "totalMemoryMiB": 4096,
+    "testDeadlineSeconds": 180,
+    "externalWatchdogSeconds": 240,
+    "stopTimeoutSeconds": 8,
+    "publishedHostPorts": [],
+    "restart": "no",
+    "privileged": false,
+    "addedCapabilities": [],
+    "capDrop": [
+      "ALL"
+    ],
+    "dockerSocketMounted": false
+  },
+  "dataAndIdentity": {
+    "tmpfsSyntheticOnly": true,
+    "readOnlyFrozenSourceAndBinariesOnly": true,
+    "realMicrophoneOrCapture": false,
+    "realAccountOrCredentials": false,
+    "productionDatabaseOrProfile": false,
+    "stunTurnExternal": false,
+    "easytierTunOrVpn": false,
+    "persistTestSecretsOnHost": false
+  },
+  "requiredObservations": [
+    "Two separate real current-SDK peers have authenticated same-room/session/publication context",
+    "Actual peer-A to peer-B selected candidate addresses equal the owned container IPs and decode fresh known synthetic PCM",
+    "Real backend/SFU applied pause ACK and stopped SFU per-edge fanout while peer decode advances",
+    "Break direct PeerConnection while auth and SFU leg stay live: actual SDK restores SFU with real ACK and fresh decode; no fixture-manual audio selection",
+    "No cross-room/old-epoch authorization shortcut or issued administrator identity",
+    "All owned containers/network endpoints removed within cleanup deadline; known original SFU TERM exit2 is retained as an exit limitation, not used to reject an otherwise proven media path"
+  ],
+  "cleanup": {
+    "ownedOnly": true,
+    "removeByExactContainerIds": true,
+    "removeNetworkByExactIdAndMatchingOwnershipLabel": true,
+    "verifyNoForeignEndpointsBeforeNetworkRemoval": true,
+    "verifyNoOwnedRunningContainersOrEndpointsAfter": true,
+    "discardTmpfs": true,
+    "deleteImagesOrOldArtifacts": false,
+    "existingServicesProfilesRoutesFirewallTouched": false,
+    "dockerManagedBridgeObjects": "Creation/removal of this approved network includes Docker's normal owned bridge/network plumbing; no manual route/firewall/TUN edits"
+  },
+  "qualification": {
+    "publicNatP2pAccepted": false,
+    "realDeviceHearingAccepted": false,
+    "etIdentityAutoEnrollmentAccepted": false,
+    "productionDeploymentApproved": false,
+    "ready": false,
+    "originalSfuGracefulExitAccepted": false,
+    "fullAppDeviceOrWanAccepted": false
+  },
+  "approvalDeltaFromEarlierV1": [
+    "Original frozen SFU used immediately; remove TERM-rebuild prerequisite",
+    "Four containers with separate real SDK peer namespaces, replacing one Pion harness container",
+    "Peer local HTTP8080, Chromium dynamic UDP1024-65535 and 4GiB total memory replace earlier narrow Pion-only range/2.5GiB"
+  ],
+  "currentBlockers": [
+    "V2 four-container/HTTP8080/wide dynamic UDP scope is not authorized; only parent-approved narrow V1 is delegated"
+  ],
+  "task6ExecutionAuthorized": false
+}

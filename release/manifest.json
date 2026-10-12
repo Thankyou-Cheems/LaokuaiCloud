@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "id": "laokuai-cloud-receive-path-et-observation-frozen-20261011",
-  "stage": "popup-current-source-render-pass-fresh-package-and-real-media-pending",
+  "stage": "pure-community-contract-integrated-sfu-shutdown-image-pid1-pass-real-wiring-pending",
   "ready": false,
   "repository": {
     "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud",
@@ -9,15 +9,15 @@
     "visibility": "private",
     "branch": "integration/lifecycle3-20261012",
     "soleGitWriter": "task-6",
-    "codeCommit": "a88f7d75066cf03d65d618bb49cabbff6e8d7884",
-    "codeTree": "ac62e1bfda50664bb35f5ff532109369ab824b1d",
+    "codeCommit": "20006cf1bad50e5331339710ae22ae6578fffed8",
+    "codeTree": "a18f9310a9c66e3b40f6ab896ee63becea9de73e",
     "newRepositoryReason": "Authenticated private-repo metadata and explicitly scoped old local core/game remotes revealed no matching existing private integration repository",
     "historyPolicy": "Original client history preserved; no force push/reset/rewrite; other components imported as licensed source snapshots"
   },
   "components": {
     "client": {
       "path": "components/client",
-      "tree": "8123a71d99a101a3dce02027d476c7e8879ff48d",
+      "tree": "fbcc9d4e2db64348fc17704d486a421233f7513f",
       "upstream": "Gryt-chat/client",
       "publicFork": "Thankyou-Cheems/gryt-client-i18n",
       "historyImportedFrom": "06ac43f51dbda3b9444c73270a126e10489110e9",
@@ -27,7 +27,13 @@
       "version": "1.13.22-laokuai.opus20.1",
       "dependencyLockSha256": "6b85a483ac898e251ea9f889136a6251b5f25ea1a3b87aa925313aaf96997cea",
       "lifecycle3SourceCommit": "cb31e2e4ec044a2574f88321bc90cc01c3b51e0c",
-      "uiBrandSourceCommit": "c75e6802ac9971b7d4139df8f97b99c7398efd7d"
+      "uiBrandSourceCommit": "c75e6802ac9971b7d4139df8f97b99c7398efd7d",
+      "preservedPreEtContract": {
+        "tree": "8123a71d99a101a3dce02027d476c7e8879ff48d",
+        "sourceCommit": "a88f7d75066cf03d65d618bb49cabbff6e8d7884"
+      },
+      "sourceCommit": "20006cf1bad50e5331339710ae22ae6578fffed8",
+      "communityContractWired": false
     },
     "voice": {
       "path": "components/voice",
@@ -135,10 +141,10 @@
     },
     "server": {
       "path": "components/server",
-      "tree": "96db8312488c4f399904192f3a932232cf6130ad",
+      "tree": "9e7b2a54df362e6039106bb809447ae6515de797",
       "upstream": "Gryt-chat/server",
       "userFork": null,
-      "sourceCommit": "cb31e2e4ec044a2574f88321bc90cc01c3b51e0c",
+      "sourceCommit": "20006cf1bad50e5331339710ae22ae6578fffed8",
       "archivedSourceFilesVerified": 462,
       "importedSourceFiles": 460,
       "excluded": [
@@ -153,22 +159,42 @@
         "sourceZipSha256": "18fc1d8ab97972b57a2fa02d40b9bb6086f243f29291e0b51be694c62e3657d4"
       },
       "lifecycle3": "Per-socket room request revision guards; exact delivered source. Existing auth/permissions preserved; no server deployment.",
-      "deploymentPreparationSourceCommit": "85ec3b9c60d49881ba9ad5cd48c9a17d59c1772d"
+      "deploymentPreparationSourceCommit": "85ec3b9c60d49881ba9ad5cd48c9a17d59c1772d",
+      "preservedPreEtContract": {
+        "tree": "96db8312488c4f399904192f3a932232cf6130ad",
+        "sourceCommit": "cb31e2e4ec044a2574f88321bc90cc01c3b51e0c"
+      },
+      "communityContractWired": false
     },
     "sfu": {
       "path": "components/sfu",
-      "tree": "24c3669c4ca13d39f8132225ae1cb4a450750729",
+      "tree": "3d64d5904681d59590be940870ce045e5c1577ff",
       "upstream": "Gryt-chat/sfu",
       "userFork": null,
-      "sourceCommit": "8d4ae5aaac270d7e8e37ba5b1e7c579405a59dce",
-      "sourceFiles": 93,
+      "sourceCommit": "011f12b92af2732cc6a86a088c5f753dfd5c1a14",
+      "sourceFiles": 99,
       "modified": true,
       "preservedBaseSnapshot": {
         "sourceCommit": "a6bf86ada2f31da85cc644f78e307f3ef0088e82",
         "sourceZipSha256": "4ae3b662d26606b7c9faf95cacebd8e8fe6dc5eeeb42d14e0f7ac600ed4ca9be",
         "sourceFiles": 90
       },
-      "modification": "Minimal reserved microphone receive ceiling48 with lower-cap preservation; existing base snapshot preserved"
+      "modification": "Preserved microphone48 source plus bounded TERM/INT shutdown17-path source delta; actual active media cleanup pending",
+      "preservedPreShutdown": {
+        "path": "components/sfu",
+        "tree": "24c3669c4ca13d39f8132225ae1cb4a450750729",
+        "upstream": "Gryt-chat/sfu",
+        "userFork": null,
+        "sourceCommit": "8d4ae5aaac270d7e8e37ba5b1e7c579405a59dce",
+        "sourceFiles": 93,
+        "modified": true,
+        "preservedBaseSnapshot": {
+          "sourceCommit": "a6bf86ada2f31da85cc644f78e307f3ef0088e82",
+          "sourceZipSha256": "4ae3b662d26606b7c9faf95cacebd8e8fe6dc5eeeb42d14e0f7ac600ed4ca9be",
+          "sourceFiles": 90
+        },
+        "modification": "Minimal reserved microphone receive ceiling48 with lower-cap preservation; existing base snapshot preserved"
+      }
     },
     "easytier": {
       "path": "components/easytier",
@@ -687,7 +713,16 @@
     "localObservationStatus": "owned route/peer producer and scoped passive Provider facts source-integrated; authenticated member mapping absent",
     "noNpcapBuildProfile": "components/client/scripts/easytier-windows-feature-profile.json",
     "privateCliSha256": "1ad46380937aab6dd7385ebb37bb458c94f8d1a3e68baf2e6c24ea973adc6411",
-    "cliExecuted": false
+    "cliExecuted": false,
+    "communityGrantContract": {
+      "sourceCommit": "20006cf1bad50e5331339710ae22ae6578fffed8",
+      "serverTests": 47,
+      "mainTests": 121,
+      "strictModuleTypesPassed": true,
+      "realProviderWired": false,
+      "realIpcWired": false,
+      "activationReady": false
+    }
   },
   "validation": {
     "commit": "d5fe2946485f2004f9f7705118c759c3032f58f1",
@@ -2270,13 +2305,6 @@
       "sourceCommit": "a88f7d75066cf03d65d618bb49cabbff6e8d7884",
       "status": "PASS-CURRENT-SOURCE-AND-POPUP-RENDER-PACKAGE-PENDING"
     },
-    "currentPopupVerifier": {
-      "receipt": "release/acceptance/current-popup-verifier.json",
-      "receiptSha256": "4fffe2bfd14e81da786f215b3411eff2e68cd70d993bd1cb8e84099ea18c046e",
-      "sourceCommit": "a88f7d75066cf03d65d618bb49cabbff6e8d7884",
-      "scopeCases": 68,
-      "requireReadyExit": 2
-    },
     "backendVersionBaseline": {
       "receipt": "release/acceptance/backend-version-baseline-review.json",
       "receiptSha256": "4e787da320010edd17010715dcccbd14ce518455910a7faf8912397552c7f48c",
@@ -2337,6 +2365,53 @@
       "actualRtpAccepted": false,
       "actualPauseResumeAckAccepted": false,
       "productionDeploymentApproved": false
+    },
+    "reviewedSourceOverlays": [
+      {
+        "kind": "sfu-shutdown",
+        "receipt": "release/acceptance/sfu-shutdown-source.json",
+        "receiptSha256": "52e1fd0f268168f1344a6c72947b944f5bbf770e42da450ea4b5cb0052ad7373",
+        "sourceCommit": "011f12b92af2732cc6a86a088c5f753dfd5c1a14"
+      },
+      {
+        "kind": "easytier-pure-contract",
+        "receipt": "release/acceptance/easytier-pure-contract-source.json",
+        "receiptSha256": "57914a033c22534205dc9d1d6ebd0969f3196d7f398db80c023a41c6bf869094",
+        "sourceCommit": "20006cf1bad50e5331339710ae22ae6578fffed8"
+      }
+    ],
+    "sfuShutdownImage": {
+      "receipt": "release/acceptance/sfu-shutdown-image.json",
+      "receiptSha256": "020a8df6cc276b245322ea9de004391376705f3caa8ff1fc95a52cd43c0cf9be",
+      "sourceCommit": "011f12b92af2732cc6a86a088c5f753dfd5c1a14",
+      "manifestDigest": "sha256:d38ed22ddbed419661ba20b2c0bf008b18d07e05446c0c813c05a022883aafc6",
+      "configDigest": "sha256:2b6afca88c4f7d6912c044d3b114d17af56104a4fce95ca7dc14cf0f04ec3a8f",
+      "tarSha256": "102fba9de73bb8eb9cb5e47171e5938330635a9dc827e27085ea800a632ceaaf",
+      "elfSha256": "4232d60e7967ca7edcd10ca188e6fdcf941683da71884fd6680bd6da38897a77",
+      "offlinePid1SignalsPassed": 3,
+      "activeRtpAccepted": false
+    },
+    "etContractPrototype": {
+      "receipt": "release/acceptance/easytier-contract-prototype.json",
+      "receiptSha256": "1e8bd114a3e0eee29e0b2e51b1cf936c04eca562f4daae274ba9f64cac78eb35",
+      "archiveSha256": "6d8976ec9cabb70c85e4a5b0955d2c6a4e4b3fd3f75eacc9d3d9b6eaf9af25c3",
+      "localTests": 97,
+      "productImplementation": false
+    },
+    "historicalPopupVerifier": {
+      "receipt": "release/acceptance/current-popup-verifier.json",
+      "receiptSha256": "4fffe2bfd14e81da786f215b3411eff2e68cd70d993bd1cb8e84099ea18c046e",
+      "sourceCommit": "a88f7d75066cf03d65d618bb49cabbff6e8d7884",
+      "scopeCases": 68,
+      "requireReadyExit": 2
+    },
+    "currentPopupVerifier": {
+      "receipt": "release/acceptance/current-source-overlay-verifier.json",
+      "receiptSha256": "306f9d5fdad6fb345d9fef66e9b0fb3925c0f055d5c0803532373105a4f831c7",
+      "sourceCommit": "a88f7d75066cf03d65d618bb49cabbff6e8d7884",
+      "codeFreeze": "20006cf1bad50e5331339710ae22ae6578fffed8",
+      "scopeCases": 86,
+      "requireReadyExit": 2
     }
   },
   "securityBoundary": {
@@ -2379,7 +2454,9 @@
     "Private source offer: exact842 client/Voice plus405-file custom UI source and RNNoise wrapper/native/model archives are sealed with acquisition/lock/notices/SHA and no Git history. No external transfer or public URL; absence of public URL is not an internal-test blocker. User must choose concrete recipients/channel or screened public target/brand scope before sharing; current private integration repository stays private.",
     "Modern089b/f716+1ad4 minimum runtime handoff is now prepared:624 shared Rust files and lock identical, only Cargo.toml dependency/CRT selection changes. Strict original modern producer schema adaptation, re-pinned pwsh7 runner/new source+scope closure and fresh protected-object preflight/approval must precede one no-peer test. Real2-client community/device/media/fallback and optional chosen-game coexistence use separately explicit scopes; do not repeat passing old dbaf or unchanged UI/SDK/capacity checks.",
     "Lifecycle.3 Windows internal portable3a8065e5 from b38566f completed;411 sealed files rehashed,141 payload files exact, SDK212 installed/170 rebuilt dist and exact tgz repack reported. Root release verifier correctly separates historical Provider/842 scopes and current lifecycle SDK/relink evidence. Hidden offline empty-profile bootstrap now passed within its recorded scope; authentic device/media/native tests and source-recipient/license clearance remain pending; no public release.",
-    "Exact lifecycle.3/b385 original payload passed one hidden offline empty-profile bootstrap/DOM, exit0/no residual,4 successful owned-endpoint/foreground samples. Three known disabled-IPC Promise errors persist as old842; console is not error-free. Tray8 pure branches only: real tray skipped and voice toolbar not mounted. Authentic settings/menu/room/device/native interaction and media remain unaccepted; no ready promotion or repack."
+    "Exact lifecycle.3/b385 original payload passed one hidden offline empty-profile bootstrap/DOM, exit0/no residual,4 successful owned-endpoint/foreground samples. Three known disabled-IPC Promise errors persist as old842; console is not error-free. Tray8 pure branches only: real tray skipped and voice toolbar not mounted. Authentic settings/menu/room/device/native interaction and media remain unaccepted; no ready promotion or repack.",
+    "Real community issuer/provider, persistent grant transactions, main-only transport/IPC/runtime and issuer pin wiring",
+    "New SFU active authenticated room/RTP/lease drain acceptance"
   ],
   "finalPackage": null,
   "frozenPreviousHybrid": {
@@ -2523,5 +2600,65 @@
     "buildHandoff": "release/COMMUNITY-UI-BRAND-BUILD-HANDOFF.md",
     "wiringGaps": "release/P2P-WIRING-GAPS-20261012.md",
     "componentPopupRendered": true
+  },
+  "sfuShutdownCandidate": {
+    "component": "sfu",
+    "tag": "laokuai-hybrid-sfu:shutdown-011f12b9-local-candidate",
+    "imageID": "sha256:d38ed22ddbed419661ba20b2c0bf008b18d07e05446c0c813c05a022883aafc6",
+    "manifestDigest": "sha256:d38ed22ddbed419661ba20b2c0bf008b18d07e05446c0c813c05a022883aafc6",
+    "configDigest": "sha256:2b6afca88c4f7d6912c044d3b114d17af56104a4fce95ca7dc14cf0f04ec3a8f",
+    "versionBuildArg": "laokuai.hybrid.shutdown.011f12b9",
+    "sourceCommit": "011f12b92af2732cc6a86a088c5f753dfd5c1a14",
+    "componentTree": "3d64d5904681d59590be940870ce045e5c1577ff",
+    "platform": "linux/amd64",
+    "bytes": 36553838,
+    "sourceLabels": {
+      "local.laokuai.component-tree": "3d64d5904681d59590be940870ce045e5c1577ff",
+      "org.opencontainers.image.revision": "011f12b92af2732cc6a86a088c5f753dfd5c1a14"
+    },
+    "imageStoreDescriptor": {
+      "mediaType": "application/vnd.oci.image.manifest.v1+json",
+      "digest": "sha256:d38ed22ddbed419661ba20b2c0bf008b18d07e05446c0c813c05a022883aafc6",
+      "size": 1053,
+      "annotations": {
+        "io.containerd.image.name": "docker.io/library/laokuai-hybrid-sfu:shutdown-011f12b9-local-candidate",
+        "org.opencontainers.image.created": "2026-10-12T08:23:10Z",
+        "org.opencontainers.image.ref.name": "shutdown-011f12b9-local-candidate"
+      }
+    },
+    "publicPushed": false,
+    "imageNeverStarted": false,
+    "compiledArtifactsPendingExtraction": false,
+    "tar": {
+      "path": "C:\\Users\\cheb2\\Documents\\Codex\\2026-10-12\\task\\sfu-shutdown-011f12b9-build\\artifacts\\sfu-011f12b9-linux-amd64.docker.tar",
+      "bytes": 10624000,
+      "sha256": "102fba9de73bb8eb9cb5e47171e5938330635a9dc827e27085ea800a632ceaaf"
+    },
+    "compiledArtifacts": {
+      "usr/local/bin/sfu": {
+        "path": "C:\\Users\\cheb2\\Documents\\Codex\\2026-10-12\\task\\sfu-shutdown-011f12b9-build\\artifacts\\sfu-linux-amd64",
+        "bytes": 13365432,
+        "sha256": "4232d60e7967ca7edcd10ca188e6fdcf941683da71884fd6680bd6da38897a77"
+      }
+    },
+    "markersMatched": [
+      "SFU_HYBRID_ENABLED",
+      "SFU_AUDIO_ONLY",
+      "SFU_REQUIRE_CLIENT_TOKEN",
+      "laokuai.hybrid.shutdown.011f12b9"
+    ],
+    "tarConfigDigest": "sha256:2b6afca88c4f7d6912c044d3b114d17af56104a4fce95ca7dc14cf0f04ec3a8f",
+    "archiveIdentityBlobs": {
+      "sha256:2b6afca88c4f7d6912c044d3b114d17af56104a4fce95ca7dc14cf0f04ec3a8f": "blobs/sha256/2b6afca88c4f7d6912c044d3b114d17af56104a4fce95ca7dc14cf0f04ec3a8f",
+      "sha256:d38ed22ddbed419661ba20b2c0bf008b18d07e05446c0c813c05a022883aafc6": "blobs/sha256/d38ed22ddbed419661ba20b2c0bf008b18d07e05446c0c813c05a022883aafc6"
+    },
+    "DockerSaveLayerCompiledBytesExact": true,
+    "staticTemporaryContainerNeverStarted": true,
+    "temporaryContainerRemovedByExactOwnID": true,
+    "classicDockerConfigImageID": "sha256:2b6afca88c4f7d6912c044d3b114d17af56104a4fce95ca7dc14cf0f04ec3a8f",
+    "portableLoadIdentityNote": "Containerd index/manifest image ID and classic config image ID differ. Receiver must verify the actual local image ID after docker load before any approval/cutover; no target load/deployment performed.",
+    "staticExportOccurredBeforeApplicationExecution": true,
+    "authorizedOfflineSFUAcceptanceExecuted": true,
+    "allStaticImageChecksPassed": true
   }
 }

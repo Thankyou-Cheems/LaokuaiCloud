@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "preparedAtUtc": "2026-10-12T07:12:00Z",
+  "upstream": {
+    "repo": "EasyTier/EasyTier",
+    "commit": "8b7f1f0196edb5b580829ed5f135050fb5853478",
+    "tag": "v2.7.0",
+    "prerelease": true
+  },
+  "productObserved": {
+    "repo": "Thankyou-Cheems/LaokuaiCloud",
+    "commit": "cb209bd24fd47f2d0ff6841e5032c118678c441f"
+  },
+  "implementationBase": {
+    "commit": "71b4f57ad2931e32690efbd8e9940122a112550d",
+    "source": "owner report",
+    "readInCloud": false
+  },
+  "executed": {
+    "purePrototypeOnly": true,
+    "realCredentialsIssued": false,
+    "nativeLaunched": false,
+    "networkActivated": false,
+    "deployed": false,
+    "productIntegrated": false
+  },
+  "facts": [
+    {
+      "id": "credential-wire",
+      "path": "easytier-proto/proto/api_instance.proto",
+      "lines": "355-420",
+      "finding": "Generate returns credential_id, credential_secret, expiry_unix only. List returns fingerprint. Upsert is an actual API.",
+      "url": "https://github.com/EasyTier/EasyTier/blob/8b7f1f0196edb5b580829ed5f135050fb5853478/easytier-proto/proto/api_instance.proto#L355-L420"
+    },
+    {
+      "id": "credential-handler",
+      "path": "easytier-core/src/management/instance_rpc/full.rs",
+      "lines": "322-388",
+      "finding": "Generate and Upsert call instance methods; reusable omitted defaults true.",
+      "url": "https://github.com/EasyTier/EasyTier/blob/8b7f1f0196edb5b580829ed5f135050fb5853478/easytier-core/src/management/instance_rpc/full.rs#L322-L388"
+    },
+    {
+      "id": "generate-idempotence",
+      "path": "easytier-core/src/peers/credential_manager.rs",
+      "lines": "305-338",
+      "finding": "Existing live custom ID returns unchanged secret and expiry. This is not renewal.",
+      "url": "https://github.com/EasyTier/EasyTier/blob/8b7f1f0196edb5b580829ed5f135050fb5853478/easytier-core/src/peers/credential_manager.rs#L305-L338"
+    },
+    {
+      "id": "upsert-storage",
+      "path": "easytier-core/src/peers/credential_manager.rs",
+      "lines": "468-542",
+      "finding": "Upsert reuses secret, validates future expiry, rejects managed ID and duplicate key, stores before publishing state.",
+      "url": "https://github.com/EasyTier/EasyTier/blob/8b7f1f0196edb5b580829ed5f135050fb5853478/easytier-core/src/peers/credential_manager.rs#L468-L542"
+    },
+    {
+      "id": "fingerprint",
+      "path": "easytier-core/src/peers/credential_manager.rs",
+      "lines": "741-748",
+      "finding": "SHA256 decoded 32-byte public key; lowercase hex.",
+      "url": "https://github.com/EasyTier/EasyTier/blob/8b7f1f0196edb5b580829ed5f135050fb5853478/easytier-core/src/peers/credential_manager.rs#L741-L748"
+    },
+    {
+      "id": "auth-enums",
+      "path": "easytier-proto/proto/peer_rpc.proto",
+      "lines": "329-340",
+      "finding": "SecureAuthLevel 0 None, 1 EncryptedUnauthenticated, 2 PeerVerified, 3 NetworkSecretConfirmed. PeerIdentityType 0 Admin, 1 Credential, 2 SharedNode.",
+      "url": "https://github.com/EasyTier/EasyTier/blob/8b7f1f0196edb5b580829ed5f135050fb5853478/easytier-proto/proto/peer_rpc.proto#L329-L340"
+    },
+    {
+      "id": "connection-evidence",
+      "path": "easytier-proto/proto/core_peer.proto",
+      "lines": "18-64",
+      "finding": "PeerConnInfo includes raw Noise keys/auth; Route has peer ID/instance/IP/next hop but no key.",
+      "url": "https://github.com/EasyTier/EasyTier/blob/8b7f1f0196edb5b580829ed5f135050fb5853478/easytier-proto/proto/core_peer.proto#L18-L64"
+    },
+    {
+      "id": "non-reusable",
+      "path": "easytier-core/src/peers/route/peer_ospf_route.rs",
+      "lines": "1071-1119",
+      "finding": "Non-reusable ownership is over active PeerIds per public key, not a hardware identity or single-use token.",
+      "url": "https://github.com/EasyTier/EasyTier/blob/8b7f1f0196edb5b580829ed5f135050fb5853478/easytier-core/src/peers/route/peer_ospf_route.rs#L1071-L1119"
+    },
+    {
+      "id": "credential-cli",
+      "path": "easytier/src/easytier-cli.rs",
+      "lines": "446-486",
+      "finding": "Only Generate, Revoke, List subcommands; no renew/upsert CLI command.",
+      "url": "https://github.com/EasyTier/EasyTier/blob/8b7f1f0196edb5b580829ed5f135050fb5853478/easytier/src/easytier-cli.rs#L446-L486"
+    },
+    {
+      "id": "credential-toml",
+      "path": "easytier-core/src/config/toml.rs",
+      "lines": "726-741",
+      "finding": "With network_identity and secure mode enabled, empty/absent network_secret enters credential mode.",
+      "url": "https://github.com/EasyTier/EasyTier/blob/8b7f1f0196edb5b580829ed5f135050fb5853478/easytier-core/src/config/toml.rs#L726-L741"
+    },
+    {
+      "id": "peer-connection-consistency",
+      "path": "easytier-core/src/peers/conn/peer.rs",
+      "lines": "160-189",
+      "finding": "add_peer_conn rejects different identity type or Noise public key for the same peer. Prototype conflicting-sample rejection is adapter hardening, not an ET vulnerability.",
+      "url": "https://github.com/EasyTier/EasyTier/blob/8b7f1f0196edb5b580829ed5f135050fb5853478/easytier-core/src/peers/conn/peer.rs#L160-L189"
+    }
+  ],
+  "limitations": [
+    "No live RPC/schema output sampled.",
+    "No credential keypair or Noise cryptography validation in prototype.",
+    "No native caller/process authentication or real renderer isolation tested.",
+    "No private unpushed source read.",
+    "No screen-media transport proof."
+  ],
+  "reviewRevision": {
+    "scope": "Two prototype state-machine fixes and one adapter evidence consistency hardening",
+    "oldRevocationPreservesNewAcquire": true,
+    "closedIsTerminal": true,
+    "disabledIntentPreserved": true,
+    "conflictingPeerIdentityIsUpstreamVulnerability": false
+  }
+}

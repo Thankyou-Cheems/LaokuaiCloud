@@ -5,3 +5,5 @@ release/candidates/windows-service-manager-no-encoding.patch -text -whitespace
 
 components/client/release/licenses/native-transitive/MODERN-NATIVE-THIRD-PARTY-LICENSES.txt -text -whitespace
 components/easytier/patches/laokuai-modern-static-cumulative-code.patch -text -whitespace
+# Preserve the nine immutable prototype handoff files byte for byte.
+release/prototypes/easytier-contract-20261012/** -text -whitespace

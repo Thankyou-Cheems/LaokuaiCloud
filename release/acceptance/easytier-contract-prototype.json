@@ -1,0 +1,55 @@
+{
+  "archiveSha256": "6d8976ec9cabb70c85e4a5b0955d2c6a4e4b3fd3f75eacc9d3d9b6eaf9af25c3",
+  "archiveBytes": 43217,
+  "files": [
+    {
+      "path": "release/prototypes/easytier-contract-20261012/astra-contract/contract-prototype.mjs",
+      "bytes": 15757,
+      "sha256": "97467fb583d8536a283efa383fca18d7d436d62523fa6f81e6e2ca177566f5c3"
+    },
+    {
+      "path": "release/prototypes/easytier-contract-20261012/astra-contract/contract-prototype.test.mjs",
+      "bytes": 20392,
+      "sha256": "9144c456a8153f65279cc35673743cee7a9a9bc24ffd11a4c3e0a45db866ec99"
+    },
+    {
+      "path": "release/prototypes/easytier-contract-20261012/astra-contract/INTERFACE-CONTRACT.md",
+      "bytes": 21133,
+      "sha256": "98ef83f1e4cd77cd1e49a73e33505bd0a429954fca0c5b976a36338dfefe787b"
+    },
+    {
+      "path": "release/prototypes/easytier-contract-20261012/astra-contract/README.md",
+      "bytes": 3265,
+      "sha256": "9d18ceedc13a4337cf05cf0e64b4257d624c3d42ff6c3fd0d510224c960f155e"
+    },
+    {
+      "path": "release/prototypes/easytier-contract-20261012/astra-contract/SHA256SUMS",
+      "bytes": 600,
+      "sha256": "bd1a00d7a699ca8a277dfc33a3268c5348f91651b3b0b564eb64b7d327f35ff2"
+    },
+    {
+      "path": "release/prototypes/easytier-contract-20261012/astra-contract/TEST-MATRIX.md",
+      "bytes": 9372,
+      "sha256": "28afabd6881f8b487ebcc1f74e67e0e366b5c8fcf3dd76988aafdb4a81d13270"
+    },
+    {
+      "path": "release/prototypes/easytier-contract-20261012/astra-contract/test-results.tap",
+      "bytes": 16205,
+      "sha256": "a66067e5cb7001ba28f92fa8dccf046624ce5c12dd1c5f37cef7ed041cb80a4e"
+    },
+    {
+      "path": "release/prototypes/easytier-contract-20261012/astra-contract/upstream-evidence.json",
+      "bytes": 5722,
+      "sha256": "791cafc54acbe59d2c9c428e6506bc8a5dd00a2a14762e74f94ee0f9b1dd0b2e"
+    },
+    {
+      "path": "release/prototypes/easytier-contract-20261012/media-acceptance.md",
+      "bytes": 21816,
+      "sha256": "fb51a9131a1e90a62841a1437ac993ff80cedd55f4ecc51076d53d31ffeeefdf"
+    }
+  ],
+  "localTests": 97,
+  "localLogSha256": "d03c6c038d7562428a679dc6157a823e0123afd1b4b9e27e80b75e5c78c9e8a3",
+  "productIntegrated": false,
+  "mediaPlanExecuted": false
+}

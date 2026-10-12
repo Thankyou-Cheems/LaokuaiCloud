@@ -1,0 +1,592 @@
+TAP version 13
+# Subtest: valid acquire gives redacted state and never physical-direct proof
+ok 1 - valid acquire gives redacted state and never physical-direct proof
+  ---
+  duration_ms: 4.922185
+  type: 'test'
+  ...
+# Subtest: renderer intent is only community and enabled
+ok 2 - renderer intent is only community and enabled
+  ---
+  duration_ms: 0.167206
+  type: 'test'
+  ...
+# Subtest: renderer rejects credentialSecretB64
+ok 3 - renderer rejects credentialSecretB64
+  ---
+  duration_ms: 0.357818
+  type: 'test'
+  ...
+# Subtest: renderer rejects config
+ok 4 - renderer rejects config
+  ---
+  duration_ms: 0.098776
+  type: 'test'
+  ...
+# Subtest: renderer rejects configFile
+ok 5 - renderer rejects configFile
+  ---
+  duration_ms: 0.185504
+  type: 'test'
+  ...
+# Subtest: renderer rejects command
+ok 6 - renderer rejects command
+  ---
+  duration_ms: 0.201467
+  type: 'test'
+  ...
+# Subtest: renderer rejects nativeInstanceId
+ok 7 - renderer rejects nativeInstanceId
+  ---
+  duration_ms: 0.208808
+  type: 'test'
+  ...
+# Subtest: renderer rejects accountId
+ok 8 - renderer rejects accountId
+  ---
+  duration_ms: 0.088431
+  type: 'test'
+  ...
+# Subtest: renderer rejects deviceId
+ok 9 - renderer rejects deviceId
+  ---
+  duration_ms: 0.112106
+  type: 'test'
+  ...
+# Subtest: renderer rejects peerUri
+ok 10 - renderer rejects peerUri
+  ---
+  duration_ms: 0.287064
+  type: 'test'
+  ...
+# Subtest: grant cannot cross serverInstanceId
+ok 11 - grant cannot cross serverInstanceId
+  ---
+  duration_ms: 0.368904
+  type: 'test'
+  ...
+# Subtest: grant cannot cross accountId
+ok 12 - grant cannot cross accountId
+  ---
+  duration_ms: 0.298861
+  type: 'test'
+  ...
+# Subtest: grant cannot cross communityId
+ok 13 - grant cannot cross communityId
+  ---
+  duration_ms: 0.164003
+  type: 'test'
+  ...
+# Subtest: grant cannot cross deviceId
+ok 14 - grant cannot cross deviceId
+  ---
+  duration_ms: 0.358019
+  type: 'test'
+  ...
+# Subtest: grant cannot cross nativeInstanceId
+ok 15 - grant cannot cross nativeInstanceId
+  ---
+  duration_ms: 0.178984
+  type: 'test'
+  ...
+# Subtest: grant cannot replace main-owned networkName
+ok 16 - grant cannot replace main-owned networkName
+  ---
+  duration_ms: 0.272162
+  type: 'test'
+  ...
+# Subtest: grant cannot replace main-owned networkRevision
+ok 17 - grant cannot replace main-owned networkRevision
+  ---
+  duration_ms: 0.137242
+  type: 'test'
+  ...
+# Subtest: grant cannot replace main-owned virtualIp
+ok 18 - grant cannot replace main-owned virtualIp
+  ---
+  duration_ms: 0.215598
+  type: 'test'
+  ...
+# Subtest: grant cannot replace main-owned bootstrapProfileId
+ok 19 - grant cannot replace main-owned bootstrapProfileId
+  ---
+  duration_ms: 0.160267
+  type: 'test'
+  ...
+# Subtest: unknown grant field rejected
+ok 20 - unknown grant field rejected
+  ---
+  duration_ms: 0.294635
+  type: 'test'
+  ...
+# Subtest: unknown nested scope field rejected
+ok 21 - unknown nested scope field rejected
+  ---
+  duration_ms: 0.218763
+  type: 'test'
+  ...
+# Subtest: unknown policy field rejected
+ok 22 - unknown policy field rejected
+  ---
+  duration_ms: 0.139806
+  type: 'test'
+  ...
+# Subtest: accessor properties rejected without evaluating getter
+ok 23 - accessor properties rejected without evaluating getter
+  ---
+  duration_ms: 0.150983
+  type: 'test'
+  ...
+# Subtest: non-plain prototype rejected
+ok 24 - non-plain prototype rejected
+  ---
+  duration_ms: 0.648918
+  type: 'test'
+  ...
+# Subtest: reject expanded credential policy {"reusable":true}
+ok 25 - reject expanded credential policy {"reusable":true}
+  ---
+  duration_ms: 0.167537
+  type: 'test'
+  ...
+# Subtest: reject expanded credential policy {"allowRelay":true}
+ok 26 - reject expanded credential policy {"allowRelay":true}
+  ---
+  duration_ms: 0.096443
+  type: 'test'
+  ...
+# Subtest: reject expanded credential policy {"allowedProxyCidrs":["0.0.0.0/0"]}
+ok 27 - reject expanded credential policy {"allowedProxyCidrs":["0.0.0.0/0"]}
+  ---
+  duration_ms: 1.570698
+  type: 'test'
+  ...
+# Subtest: request mismatch rejected
+ok 28 - request mismatch rejected
+  ---
+  duration_ms: 0.177001
+  type: 'test'
+  ...
+# Subtest: ticket identity cannot be reconstructed
+ok 29 - ticket identity cannot be reconstructed
+  ---
+  duration_ms: 0.1622
+  type: 'test'
+  ...
+# Subtest: late first response cannot overwrite newer request
+ok 30 - late first response cannot overwrite newer request
+  ---
+  duration_ms: 0.109993
+  type: 'test'
+  ...
+# Subtest: duplicate accepted response cannot replay
+ok 31 - duplicate accepted response cannot replay
+  ---
+  duration_ms: 0.146006
+  type: 'test'
+  ...
+# Subtest: disable cancels outstanding response
+ok 32 - disable cancels outstanding response
+  ---
+  duration_ms: 0.172164
+  type: 'test'
+  ...
+# Subtest: disable then enable does not revive old response
+ok 33 - disable then enable does not revive old response
+  ---
+  duration_ms: 0.110673
+  type: 'test'
+  ...
+# Subtest: close/account change rejects late response
+ok 34 - close/account change rejects late response
+  ---
+  duration_ms: 0.159866
+  type: 'test'
+  ...
+# Subtest: invalid expiry or time rejected {"issuedAtMs":2000001}
+ok 35 - invalid expiry or time rejected {"issuedAtMs":2000001}
+  ---
+  duration_ms: 0.308396
+  type: 'test'
+  ...
+# Subtest: invalid expiry or time rejected {"expiresAtMs":2000000}
+ok 36 - invalid expiry or time rejected {"expiresAtMs":2000000}
+  ---
+  duration_ms: 0.171143
+  type: 'test'
+  ...
+# Subtest: invalid expiry or time rejected {"renewAfterMs":2060000}
+ok 37 - invalid expiry or time rejected {"renewAfterMs":2060000}
+  ---
+  duration_ms: 0.118475
+  type: 'test'
+  ...
+# Subtest: invalid expiry or time rejected {"expiresAtMs":6000000}
+ok 38 - invalid expiry or time rejected {"expiresAtMs":6000000}
+  ---
+  duration_ms: 0.189099
+  type: 'test'
+  ...
+# Subtest: TTL wall-clock rollback cannot extend monotonic deadline
+ok 39 - TTL wall-clock rollback cannot extend monotonic deadline
+  ---
+  duration_ms: 0.136091
+  type: 'test'
+  ...
+# Subtest: client clock skew does not require matching server wall clock
+ok 40 - client clock skew does not require matching server wall clock
+  ---
+  duration_ms: 0.268646
+  type: 'test'
+  ...
+# Subtest: long request cannot reset an old grant TTL
+ok 41 - long request cannot reset an old grant TTL
+  ---
+  duration_ms: 0.136091
+  type: 'test'
+  ...
+# Subtest: wall-clock expiry is inclusive
+ok 42 - wall-clock expiry is inclusive
+  ---
+  duration_ms: 0.387903
+  type: 'test'
+  ...
+# Subtest: renewal response after expiry rejected
+ok 43 - renewal response after expiry rejected
+  ---
+  duration_ms: 0.20975
+  type: 'test'
+  ...
+# Subtest: same-grant tombstone rejects in-flight acquire response
+ok 44 - same-grant tombstone rejects in-flight acquire response
+  ---
+  duration_ms: 0.23042
+  type: 'test'
+  ...
+# Subtest: old revocation does not cancel new acquire without an active grant
+ok 45 - old revocation does not cancel new acquire without an active grant
+  ---
+  duration_ms: 0.123211
+  type: 'test'
+  ...
+# Subtest: tombstone blocks revoked grant on new request
+ok 46 - tombstone blocks revoked grant on new request
+  ---
+  duration_ms: 0.227535
+  type: 'test'
+  ...
+# Subtest: revocation drops active state and binding
+ok 47 - revocation drops active state and binding
+  ---
+  duration_ms: 0.266984
+  type: 'test'
+  ...
+# Subtest: late revocation cannot reopen or relabel closed gate
+ok 48 - late revocation cannot reopen or relabel closed gate
+  ---
+  duration_ms: 0.119136
+  type: 'test'
+  ...
+# Subtest: closed remains terminal after enable and disable toggles
+ok 49 - closed remains terminal after enable and disable toggles
+  ---
+  duration_ms: 0.185504
+  type: 'test'
+  ...
+# Subtest: disabled keeps precedence when old revocation arrives
+ok 50 - disabled keeps precedence when old revocation arrives
+  ---
+  duration_ms: 0.118836
+  type: 'test'
+  ...
+# Subtest: disabled stores matching tombstone without relabeling intent
+ok 51 - disabled stores matching tombstone without relabeling intent
+  ---
+  duration_ms: 0.167497
+  type: 'test'
+  ...
+# Subtest: matching revocation cancels active renewal
+ok 52 - matching revocation cancels active renewal
+  ---
+  duration_ms: 0.183641
+  type: 'test'
+  ...
+# Subtest: cross-community revocation cannot affect gate
+ok 53 - cross-community revocation cannot affect gate
+  ---
+  duration_ms: 0.139987
+  type: 'test'
+  ...
+# Subtest: old grant revocation preserves current renewal ticket
+ok 54 - old grant revocation preserves current renewal ticket
+  ---
+  duration_ms: 0.145585
+  type: 'test'
+  ...
+# Subtest: real renewal requires same identity and a later expiry
+ok 55 - real renewal requires same identity and a later expiry
+  ---
+  duration_ms: 0.126707
+  type: 'test'
+  ...
+# Subtest: Generate with old expiry cannot masquerade as renew
+ok 56 - Generate with old expiry cannot masquerade as renew
+  ---
+  duration_ms: 0.212704
+  type: 'test'
+  ...
+# Subtest: renew cannot silently rotate grantId
+ok 57 - renew cannot silently rotate grantId
+  ---
+  duration_ms: 0.302336
+  type: 'test'
+  ...
+# Subtest: renew cannot silently rotate credentialId
+ok 58 - renew cannot silently rotate credentialId
+  ---
+  duration_ms: 0.145965
+  type: 'test'
+  ...
+# Subtest: renew cannot silently rotate publicKeyFingerprint
+ok 59 - renew cannot silently rotate publicKeyFingerprint
+  ---
+  duration_ms: 0.133978
+  type: 'test'
+  ...
+# Subtest: renew cannot silently rotate credentialSecretB64
+ok 60 - renew cannot silently rotate credentialSecretB64
+  ---
+  duration_ms: 0.123833
+  type: 'test'
+  ...
+# Subtest: revision floor blocks old response after restart
+ok 61 - revision floor blocks old response after restart
+  ---
+  duration_ms: 0.160907
+  type: 'test'
+  ...
+# Subtest: response object mutation cannot alter accepted state
+ok 62 - response object mutation cannot alter accepted state
+  ---
+  duration_ms: 0.11552
+  type: 'test'
+  ...
+# Subtest: independent communities do not share tickets
+ok 63 - independent communities do not share tickets
+  ---
+  duration_ms: 0.209469
+  type: 'test'
+  ...
+# Subtest: invalid base64 secret rejected without echo
+ok 64 - invalid base64 secret rejected without echo
+  ---
+  duration_ms: 0.394983
+  type: 'test'
+  ...
+# Subtest: noncanonical base64 rejected
+ok 65 - noncanonical base64 rejected
+  ---
+  duration_ms: 0.348755
+  type: 'test'
+  ...
+# Subtest: owned observation still does not prove member or media path
+ok 66 - owned observation still does not prove member or media path
+  ---
+  duration_ms: 0.148959
+  type: 'test'
+  ...
+# Subtest: reject stale/wrong local observation {"nativeInstanceId":"22222222-2222-4222-8222-222222222222"}
+ok 67 - reject stale/wrong local observation {"nativeInstanceId":"22222222-2222-4222-8222-222222222222"}
+  ---
+  duration_ms: 0.153607
+  type: 'test'
+  ...
+# Subtest: reject stale/wrong local observation {"runtimeGeneration":2}
+ok 68 - reject stale/wrong local observation {"runtimeGeneration":2}
+  ---
+  duration_ms: 0.092186
+  type: 'test'
+  ...
+# Subtest: reject stale/wrong local observation {"virtualIp":"10.77.1.9"}
+ok 69 - reject stale/wrong local observation {"virtualIp":"10.77.1.9"}
+  ---
+  duration_ms: 0.294445
+  type: 'test'
+  ...
+# Subtest: reject stale/wrong local observation {"networkName":"other"}
+ok 70 - reject stale/wrong local observation {"networkName":"other"}
+  ---
+  duration_ms: 0.263529
+  type: 'test'
+  ...
+# Subtest: reject stale/wrong local observation {"peerId":0}
+ok 71 - reject stale/wrong local observation {"peerId":0}
+  ---
+  duration_ms: 0.225322
+  type: 'test'
+  ...
+# Subtest: reject stale/wrong local observation {"observedMonoMs":1}
+ok 72 - reject stale/wrong local observation {"observedMonoMs":1}
+  ---
+  duration_ms: 0.246624
+  type: 'test'
+  ...
+# Subtest: reject stale/wrong local observation {"observedMonoMs":10001}
+ok 73 - reject stale/wrong local observation {"observedMonoMs":10001}
+  ---
+  duration_ms: 0.330218
+  type: 'test'
+  ...
+# Subtest: wrong local public key rejected
+ok 74 - wrong local public key rejected
+  ---
+  duration_ms: 0.396495
+  type: 'test'
+  ...
+# Subtest: restart invalidates local observations and pending replies
+ok 75 - restart invalidates local observations and pending replies
+  ---
+  duration_ms: 0.382314
+  type: 'test'
+  ...
+# Subtest: observation TTL expires even when grant remains valid
+ok 76 - observation TTL expires even when grant remains valid
+  ---
+  duration_ms: 0.177472
+  type: 'test'
+  ...
+# Subtest: provider joins exact authenticated key with route
+ok 77 - provider joins exact authenticated key with route
+  ---
+  duration_ms: 0.390667
+  type: 'test'
+  ...
+# Subtest: route-only observation cannot authenticate device
+ok 78 - route-only observation cannot authenticate device
+  ---
+  duration_ms: 0.137653
+  type: 'test'
+  ...
+# Subtest: credential binding rejects unsuitable auth level 0
+ok 79 - credential binding rejects unsuitable auth level 0
+  ---
+  duration_ms: 0.190962
+  type: 'test'
+  ...
+# Subtest: credential binding rejects unsuitable auth level 1
+ok 80 - credential binding rejects unsuitable auth level 1
+  ---
+  duration_ms: 0.314063
+  type: 'test'
+  ...
+# Subtest: credential binding rejects unsuitable auth level 3
+ok 81 - credential binding rejects unsuitable auth level 3
+  ---
+  duration_ms: 0.164944
+  type: 'test'
+  ...
+# Subtest: nonexistent CredentialAuthenticated enum rejected
+ok 82 - nonexistent CredentialAuthenticated enum rejected
+  ---
+  duration_ms: 0.157462
+  type: 'test'
+  ...
+# Subtest: admin identity cannot impersonate ordinary device
+ok 83 - admin identity cannot impersonate ordinary device
+  ---
+  duration_ms: 0.217601
+  type: 'test'
+  ...
+# Subtest: closed connection cannot bind
+ok 84 - closed connection cannot bind
+  ---
+  duration_ms: 0.148559
+  type: 'test'
+  ...
+# Subtest: duplicate key on two peer IDs cannot bind
+ok 85 - duplicate key on two peer IDs cannot bind
+  ---
+  duration_ms: 0.369635
+  type: 'test'
+  ...
+# Subtest: two authenticated connections of same peer are not two devices
+ok 86 - two authenticated connections of same peer are not two devices
+  ---
+  duration_ms: 0.323047
+  type: 'test'
+  ...
+# Subtest: contradictory adapter sample with two keys for one peer fails closed
+ok 87 - contradictory adapter sample with two keys for one peer fails closed
+  ---
+  duration_ms: 0.368854
+  type: 'test'
+  ...
+# Subtest: contradictory adapter sample with two identity types for one peer fails closed
+ok 88 - contradictory adapter sample with two identity types for one peer fails closed
+  ---
+  duration_ms: 0.240955
+  type: 'test'
+  ...
+# Subtest: closed old-key connection does not conflict with current active evidence
+ok 89 - closed old-key connection does not conflict with current active evidence
+  ---
+  duration_ms: 0.30483
+  type: 'test'
+  ...
+# Subtest: route association rejects {"peerId":72}
+ok 90 - route association rejects {"peerId":72}
+  ---
+  duration_ms: 0.267235
+  type: 'test'
+  ...
+# Subtest: route association rejects {"nativeInstanceId":"22222222-2222-4222-8222-222222222222"}
+ok 91 - route association rejects {"nativeInstanceId":"22222222-2222-4222-8222-222222222222"}
+  ---
+  duration_ms: 0.207386
+  type: 'test'
+  ...
+# Subtest: route association rejects {"virtualIp":"10.77.1.9"}
+ok 92 - route association rejects {"virtualIp":"10.77.1.9"}
+  ---
+  duration_ms: 0.251461
+  type: 'test'
+  ...
+# Subtest: duplicate virtual IP cannot bind
+ok 93 - duplicate virtual IP cannot bind
+  ---
+  duration_ms: 0.287204
+  type: 'test'
+  ...
+# Subtest: provider restart invalidates old observation
+ok 94 - provider restart invalidates old observation
+  ---
+  duration_ms: 0.200255
+  type: 'test'
+  ...
+# Subtest: old provider observation cannot bind
+ok 95 - old provider observation cannot bind
+  ---
+  duration_ms: 0.274856
+  type: 'test'
+  ...
+# Subtest: direct and relay next hop both remain unverified physical media
+ok 96 - direct and relay next hop both remain unverified physical media
+  ---
+  duration_ms: 0.408933
+  type: 'test'
+  ...
+# Subtest: unknown provider field rejected rather than treated as evidence
+ok 97 - unknown provider field rejected rather than treated as evidence
+  ---
+  duration_ms: 0.286543
+  type: 'test'
+  ...
+1..97
+# tests 97
+# suites 0
+# pass 97
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 149.560863

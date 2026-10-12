@@ -1,0 +1,118 @@
+{
+  "schema": 1,
+  "kind": "sfu-shutdown",
+  "status": "PASS-REVIEWED-SOURCE-ONLY",
+  "baseline": "a88f7d75066cf03d65d618bb49cabbff6e8d7884",
+  "sourceCommit": "011f12b92af2732cc6a86a088c5f753dfd5c1a14",
+  "sourceTree": "779023ac476250e71a8c56ce5ce6e37db121c6a4",
+  "componentTrees": {
+    "client": "8123a71d99a101a3dce02027d476c7e8879ff48d",
+    "voice": "45a5122b5480e37224987e74b898cfd4553f0cb4",
+    "server": "96db8312488c4f399904192f3a932232cf6130ad",
+    "sfu": "3d64d5904681d59590be940870ce045e5c1577ff",
+    "easytier": "1af35e8bef73da0a0c3eaddef464a714d8a4b2a2",
+    "landing": "e1215b01f703d2a2dba56ba9cb1261b55789220a"
+  },
+  "changes": [
+    {
+      "path": "components/sfu/cmd/sfu/main.go",
+      "gitBlob": "8fa20100b06915ff53ebeccf99cc69545a11e5a5",
+      "sha256": "6e80fc23241398d167306b1edf7db8f77124aefb6ecffd603397b12ef65a1b52"
+    },
+    {
+      "path": "components/sfu/cmd/sfu/main_test.go",
+      "gitBlob": "05c8657d0cfd7806f8820bb807f74389c8d0b7dd",
+      "sha256": "91a9b27ea7e4c297b691e342441de8368d97ae91af7659688e71191eb180083d"
+    },
+    {
+      "path": "components/sfu/cmd/sfu/replay_window_test.go",
+      "gitBlob": "ddb2673371419620d22e18744ac65347e0a98531",
+      "sha256": "62ba74d0ea688c158029c02782f03a150e102006ba26a140672399cf8e17b073"
+    },
+    {
+      "path": "components/sfu/cmd/sfu/shutdown.go",
+      "gitBlob": "20e1272f6c485c834c854283356086bbd791d09a",
+      "sha256": "ce3c0fd3ad63dc7039bef0029d3546f737177f1f46654523a9f36360cfbc4607"
+    },
+    {
+      "path": "components/sfu/cmd/sfu/shutdown_test.go",
+      "gitBlob": "475efd6cb467b5e80e7e3c3ee0843a2c1bf83401",
+      "sha256": "947fa40cef53773971a9375d34640da150eec9e4879d2d7668949394229d1aec"
+    },
+    {
+      "path": "components/sfu/internal/lifecycle/registry.go",
+      "gitBlob": "b69230c071d55e5c5eef198d45d6358ad5432eb6",
+      "sha256": "260cf0d5a5998b9e1d40884f2683fb350712ae9c59995d0949429bbb675eb06a"
+    },
+    {
+      "path": "components/sfu/internal/lifecycle/registry_test.go",
+      "gitBlob": "4233defa7eb944f854ead4f4d1a1923fdce323b1",
+      "sha256": "f363905439f1bb2618a55876fbae6a59c7941649d887f27a3c61b5f2111c6cf8"
+    },
+    {
+      "path": "components/sfu/internal/readiness/shutdown_test.go",
+      "gitBlob": "c26d9a8df3b719b4c51deb0138bef726e004ad04",
+      "sha256": "e1ff698efcd681e930a738d64ec6b10fe1244c374d1dde44f818bb68df04a21e"
+    },
+    {
+      "path": "components/sfu/internal/readiness/udp.go",
+      "gitBlob": "448d0757ec8235ff435d7f45e8d8fc20ccac2019",
+      "sha256": "a7bf2e9132d74aaa858f8ea766efada41198e52ddcdf20b8ef391f2b682e8c3e"
+    },
+    {
+      "path": "components/sfu/internal/recovery/recovery.go",
+      "gitBlob": "0da75214eb93766647402d8ace602620ebd30142",
+      "sha256": "3744d2f8fc21b332c337782e4b405b6a9cc41e48f45fa85bd0a0bd0debeaf8d6"
+    },
+    {
+      "path": "components/sfu/internal/svc/forwarder.go",
+      "gitBlob": "0f5497ec8ebca7ab5d8f86a77c52a8395b5209d9",
+      "sha256": "dcfaad694c2da3345e2ed25716373563d8dc882e8bb3f56e2fef935140e7bad6"
+    },
+    {
+      "path": "components/sfu/internal/track/manager.go",
+      "gitBlob": "16c81e0822f8c7a8c44642c1fff78e9d749a791a",
+      "sha256": "5403bbdceb487595e358ff0515558c8219b679a04250d747bc9035c3555691f0"
+    },
+    {
+      "path": "components/sfu/internal/webrtc/peer.go",
+      "gitBlob": "09dc0e4e446f6fdda23baa78da2ae74d39bbc194",
+      "sha256": "b6a1476dad236fd2fd560b819b0b231b9cae0ee0be3090251f9dfd441428ef15"
+    },
+    {
+      "path": "components/sfu/internal/websocket/connection.go",
+      "gitBlob": "f8e984c22731e94d0f4fbc86fb4aaf9e8df6a45d",
+      "sha256": "5c33bb625370fd659970fed0444624bc2b4791e44dd5947f4729002e21378e90"
+    },
+    {
+      "path": "components/sfu/internal/websocket/handler.go",
+      "gitBlob": "186b9f54f1c19fe9b8cc3a5dfa4d83458ebd8b8e",
+      "sha256": "a410288599640a6a900a6e21555ac0fc0b1377ffa83760932f8cbbe2fe87fe21"
+    },
+    {
+      "path": "components/sfu/internal/websocket/keepalive.go",
+      "gitBlob": "7bbe03cb3f946f30aa8768314264dcad2622ae7a",
+      "sha256": "5811c8b2fbd73cda2ddbb65732e6f4a59c8a55e749eee653b96881f3a7835513"
+    },
+    {
+      "path": "components/sfu/internal/websocket/shutdown_pure_test.go",
+      "gitBlob": "235026bc471ac7970250428da8786d221c05ee30",
+      "sha256": "9fb145b8df540c31f128545b5b61a14ed2470e4ffe1ac701bd1f68ed968292a8"
+    }
+  ],
+  "checks": {
+    "shutdownTests": 15,
+    "compiledPackages": 8,
+    "logSha256": "f91a80002e93f86200e684e4095ebf19520155f0d81175342483c78a264aca2b"
+  },
+  "boundaries": {
+    "realProviderWired": false,
+    "realIpcWired": false,
+    "nativeActivated": false,
+    "realMediaAccepted": false,
+    "physicalDirectVerified": false,
+    "activationReady": false,
+    "ready": false,
+    "finalPackage": null
+  }
+}

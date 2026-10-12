@@ -1,0 +1,137 @@
+{
+  "schema": 1,
+  "status": "PARENT-APPROVED-NARROW-SCOPE-TRANSFERRED-TO-BUILD-OWNER",
+  "approved": true,
+  "prerequisite": "New exact SFU image static/PID1 evidence complete; runtime/harness source and acceptance belong to designated build owner",
+  "network": {
+    "name": "laokuai-media-shutdown-20261012",
+    "driver": "bridge",
+    "internal": true,
+    "attachExistingNetworks": false,
+    "hostNetwork": false,
+    "ipam": "Docker default allocation; record actual CIDR/gateway/network ID before starting any process, reject unexpected/overlapping assignment",
+    "ownershipLabel": "local.laokuai.owner=task6-approved-media",
+    "gatewayAccessQualification": "Internal bridge is not a host-egress firewall or absolute air gap; harness endpoints are restricted to exact owned container IPs, with no host/gateway/service targets"
+  },
+  "containers": [
+    {
+      "name": "laokuai-media-backend",
+      "alias": "backend",
+      "imageId": "sha256:e45e9c27fe391aa9281365745a54c34529b502f09fa79a2d8e68fcc5486d1eba",
+      "cpu": 0.5,
+      "memoryMiB": 512
+    },
+    {
+      "name": "laokuai-media-sfu",
+      "alias": "sfu",
+      "imageId": "sha256:d38ed22ddbed419661ba20b2c0bf008b18d07e05446c0c813c05a022883aafc6",
+      "sourceCommit": "011f12b92af2732cc6a86a088c5f753dfd5c1a14",
+      "cpu": 1,
+      "memoryMiB": 1024
+    },
+    {
+      "name": "laokuai-media-peers",
+      "alias": "peers",
+      "imageId": null,
+      "qualification": "Test-only Node/Pion harness using existing pinned dependencies; source/binary hashes must be frozen before start",
+      "cpu": 0.5,
+      "memoryMiB": 1024
+    }
+  ],
+  "containerInternalListeners": [
+    {
+      "owner": "backend",
+      "transport": "TCP",
+      "port": 5000,
+      "purpose": "Actual authenticated Socket.IO/community contract, reached by owned peers only"
+    },
+    {
+      "owner": "sfu",
+      "transport": "TCP",
+      "port": 5005,
+      "purpose": "Actual SFU client WebSocket/health, owned peers only"
+    },
+    {
+      "owner": "sfu",
+      "transport": "TCP",
+      "port": 9092,
+      "purpose": "Actual authenticated backend control, owned backend/proxy only"
+    },
+    {
+      "owner": "sfu",
+      "transport": "UDP",
+      "port": 3478,
+      "purpose": "Original ICE mux on owned bridge interface, no localhost rewrite"
+    },
+    {
+      "owner": "peers",
+      "transport": "UDP",
+      "portRange": [
+        40000,
+        40031
+      ],
+      "purpose": "Bounded synthetic WebRTC peer ICE/DTLS/SRTP ports"
+    },
+    {
+      "owner": "peers",
+      "transport": "TCP",
+      "port": 9093,
+      "purpose": "Optional test-only proxy drops/delays actual control ACK frames; no fabricated positive ACK"
+    }
+  ],
+  "limits": {
+    "totalCpu": 2,
+    "totalMemoryMiB": 2560,
+    "testDeadlineSeconds": 180,
+    "externalWatchdogSeconds": 240,
+    "stopTimeoutSeconds": 8,
+    "publishedHostPorts": [],
+    "restart": "no",
+    "privileged": false,
+    "addedCapabilities": [],
+    "capDrop": [
+      "ALL"
+    ],
+    "dockerSocketMounted": false
+  },
+  "dataAndIdentity": {
+    "tmpfsSyntheticOnly": true,
+    "readOnlyFrozenSourceAndBinariesOnly": true,
+    "realMicrophoneOrCapture": false,
+    "realAccountOrCredentials": false,
+    "productionDatabaseOrProfile": false,
+    "stunTurnExternal": false,
+    "easytierTunOrVpn": false,
+    "persistTestSecretsOnHost": false
+  },
+  "requiredObservations": [
+    "Connected selected candidate pair uses exact owned container addresses",
+    "Receiver validates known synthetic payload/watermark and advancing RTP sequence",
+    "Real pause applied ACK precedes per-edge RTP stop while independent receiver/direction continues",
+    "Real resume applied ACK and lease expiry restore RTP",
+    "Wrong identity/channel/epoch, old ACK, lost ACK/control link fail closed and cannot prolong media hold",
+    "Pending/authenticated/active peer cleanup and PID1 exit0 without SIGKILL/OOM/panic"
+  ],
+  "cleanup": {
+    "ownedOnly": true,
+    "removeByExactContainerIds": true,
+    "removeNetworkByExactIdAndMatchingOwnershipLabel": true,
+    "verifyNoForeignEndpointsBeforeNetworkRemoval": true,
+    "verifyNoOwnedRunningContainersOrEndpointsAfter": true,
+    "discardTmpfs": true,
+    "deleteImagesOrOldArtifacts": false,
+    "existingServicesProfilesRoutesFirewallTouched": false,
+    "dockerManagedBridgeObjects": "Creation/removal of this approved network includes Docker's normal owned bridge/network plumbing; no manual route/firewall/TUN edits"
+  },
+  "qualification": {
+    "publicNatP2pAccepted": false,
+    "realDeviceHearingAccepted": false,
+    "etIdentityAutoEnrollmentAccepted": false,
+    "productionDeploymentApproved": false,
+    "ready": false
+  },
+  "executionOwner": "parent-designated buildowner01a12dd7",
+  "task6ExecutionAuthorized": false,
+  "task6NetworkCreated": false,
+  "approvalQualification": "Parent relayed actual human allow for max3 containers, internal bridge, TCP5000/5005/9092 optional9093, UDP3478/40000-40031, no host ports/prod/ET/TUN. This does not approve V2."
+}

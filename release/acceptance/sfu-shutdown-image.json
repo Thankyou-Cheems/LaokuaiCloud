@@ -1,0 +1,125 @@
+{
+  "schema": 1,
+  "status": "PASS-STATIC-IMAGE-AND-OFFLINE-PID1-SIGNALS-ONLY",
+  "sourceCommit": "011f12b92af2732cc6a86a088c5f753dfd5c1a14",
+  "componentTree": "3d64d5904681d59590be940870ce045e5c1577ff",
+  "candidate": {
+    "component": "sfu",
+    "tag": "laokuai-hybrid-sfu:shutdown-011f12b9-local-candidate",
+    "imageID": "sha256:d38ed22ddbed419661ba20b2c0bf008b18d07e05446c0c813c05a022883aafc6",
+    "manifestDigest": "sha256:d38ed22ddbed419661ba20b2c0bf008b18d07e05446c0c813c05a022883aafc6",
+    "configDigest": "sha256:2b6afca88c4f7d6912c044d3b114d17af56104a4fce95ca7dc14cf0f04ec3a8f",
+    "versionBuildArg": "laokuai.hybrid.shutdown.011f12b9",
+    "sourceCommit": "011f12b92af2732cc6a86a088c5f753dfd5c1a14",
+    "componentTree": "3d64d5904681d59590be940870ce045e5c1577ff",
+    "platform": "linux/amd64",
+    "bytes": 36553838,
+    "sourceLabels": {
+      "local.laokuai.component-tree": "3d64d5904681d59590be940870ce045e5c1577ff",
+      "org.opencontainers.image.revision": "011f12b92af2732cc6a86a088c5f753dfd5c1a14"
+    },
+    "imageStoreDescriptor": {
+      "mediaType": "application/vnd.oci.image.manifest.v1+json",
+      "digest": "sha256:d38ed22ddbed419661ba20b2c0bf008b18d07e05446c0c813c05a022883aafc6",
+      "size": 1053,
+      "annotations": {
+        "io.containerd.image.name": "docker.io/library/laokuai-hybrid-sfu:shutdown-011f12b9-local-candidate",
+        "org.opencontainers.image.created": "2026-10-12T08:23:10Z",
+        "org.opencontainers.image.ref.name": "shutdown-011f12b9-local-candidate"
+      }
+    },
+    "publicPushed": false,
+    "imageNeverStarted": false,
+    "compiledArtifactsPendingExtraction": false,
+    "tar": {
+      "path": "C:\\Users\\cheb2\\Documents\\Codex\\2026-10-12\\task\\sfu-shutdown-011f12b9-build\\artifacts\\sfu-011f12b9-linux-amd64.docker.tar",
+      "bytes": 10624000,
+      "sha256": "102fba9de73bb8eb9cb5e47171e5938330635a9dc827e27085ea800a632ceaaf"
+    },
+    "compiledArtifacts": {
+      "usr/local/bin/sfu": {
+        "path": "C:\\Users\\cheb2\\Documents\\Codex\\2026-10-12\\task\\sfu-shutdown-011f12b9-build\\artifacts\\sfu-linux-amd64",
+        "bytes": 13365432,
+        "sha256": "4232d60e7967ca7edcd10ca188e6fdcf941683da71884fd6680bd6da38897a77"
+      }
+    },
+    "markersMatched": [
+      "SFU_HYBRID_ENABLED",
+      "SFU_AUDIO_ONLY",
+      "SFU_REQUIRE_CLIENT_TOKEN",
+      "laokuai.hybrid.shutdown.011f12b9"
+    ],
+    "tarConfigDigest": "sha256:2b6afca88c4f7d6912c044d3b114d17af56104a4fce95ca7dc14cf0f04ec3a8f",
+    "archiveIdentityBlobs": {
+      "sha256:2b6afca88c4f7d6912c044d3b114d17af56104a4fce95ca7dc14cf0f04ec3a8f": "blobs/sha256/2b6afca88c4f7d6912c044d3b114d17af56104a4fce95ca7dc14cf0f04ec3a8f",
+      "sha256:d38ed22ddbed419661ba20b2c0bf008b18d07e05446c0c813c05a022883aafc6": "blobs/sha256/d38ed22ddbed419661ba20b2c0bf008b18d07e05446c0c813c05a022883aafc6"
+    },
+    "DockerSaveLayerCompiledBytesExact": true,
+    "staticTemporaryContainerNeverStarted": true,
+    "temporaryContainerRemovedByExactOwnID": true,
+    "classicDockerConfigImageID": "sha256:2b6afca88c4f7d6912c044d3b114d17af56104a4fce95ca7dc14cf0f04ec3a8f",
+    "portableLoadIdentityNote": "Containerd index/manifest image ID and classic config image ID differ. Receiver must verify the actual local image ID after docker load before any approval/cutover; no target load/deployment performed.",
+    "staticExportOccurredBeforeApplicationExecution": true,
+    "authorizedOfflineSFUAcceptanceExecuted": true,
+    "allStaticImageChecksPassed": true
+  },
+  "acceptance": {
+    "offlinePid1Signals": [
+      {
+        "variant": "pid1-term",
+        "namespacePID1": "sfu",
+        "runtimeIdentity": "uid=1001(gryt) gid=1001(gryt) groups=1001(gryt)",
+        "exitCode": 0,
+        "signalToDieSeconds": 0.065607684,
+        "shutdownComplete": true,
+        "panicLogged": false,
+        "OOMKilled": false,
+        "signal9Event": false,
+        "cleanup": "removed-exact-own-stopped-ID",
+        "passed": true
+      },
+      {
+        "variant": "pid1-int",
+        "namespacePID1": "sfu",
+        "runtimeIdentity": "uid=1001(gryt) gid=1001(gryt) groups=1001(gryt)",
+        "exitCode": 0,
+        "signalToDieSeconds": 0.054558311,
+        "shutdownComplete": true,
+        "panicLogged": false,
+        "OOMKilled": false,
+        "signal9Event": false,
+        "cleanup": "removed-exact-own-stopped-ID",
+        "passed": true
+      },
+      {
+        "variant": "normal-docker-stop",
+        "namespacePID1": "sfu",
+        "runtimeIdentity": "uid=1001(gryt) gid=1001(gryt) groups=1001(gryt)",
+        "exitCode": 0,
+        "signalToDieSeconds": 0.070703506,
+        "shutdownComplete": true,
+        "panicLogged": false,
+        "OOMKilled": false,
+        "signal9Event": false,
+        "cleanup": "removed-exact-own-stopped-ID",
+        "passed": true
+      }
+    ],
+    "cleanupResidual": 0,
+    "realAuthenticatedConnections": false,
+    "activeRoomRTPLeaseDrain": false
+  },
+  "builderReport": {
+    "path": "2026-10-12/task/sfu-shutdown-011f12b9-build/REPORT.md",
+    "sha256": "97231fa55fce5e4239804ec35a2f4525648148c859c347b0dbc4e775dd7b0bcd"
+  },
+  "ownerManifestUpdateSha256": "1ff0b62d3c6e708358563365f617ce4a08638b5fbdb906756a11652781f19f10",
+  "task6ReadOnly": {
+    "tarHashMatched": true,
+    "elfHashMatched": true,
+    "containerOrNetworkRun": false
+  },
+  "ready": false,
+  "finalPackage": null,
+  "productionDeploymentApproved": false
+}

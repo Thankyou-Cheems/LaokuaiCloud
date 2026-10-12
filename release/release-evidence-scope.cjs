@@ -7,7 +7,7 @@ function verifyPackedInventory(packed,info,files){
 }
 
 
-function verifyCurrentComponentSource(manifest,receipt,{git,sha,readFrozen}){
+function verifyCurrentComponentSource(manifest,receipt,{git,sha,readFrozen,readReceipt}){
   const entry=manifest.validation.currentComponentSource;
   assert.ok(entry&&receipt,'Current component source receipt required');
   assert.equal(sha(entry.receipt),entry.receiptSha256,'Current source receipt changed');
@@ -25,9 +25,10 @@ function verifyCurrentComponentSource(manifest,receipt,{git,sha,readFrozen}){
     assert.equal(git(['rev-parse',entry.sourceCommit+':'+x.path]),x.gitBlob,'Superseding Git blob mismatch');
     assert.equal(require('node:crypto').createHash('sha256').update(readFrozen(entry.sourceCommit,x.path)).digest('hex'),x.sha256,'Superseding source byte mismatch');
   }
+  const effectiveTrees=require('./reviewed-source-overlays.cjs').verifyReviewedSourceOverlays(manifest,receipt,{git,sha,readFrozen,readReceipt});
   for(const [name,c]of Object.entries(manifest.components)){
     assert.equal(git(['rev-parse',entry.sourceCommit+':'+c.path]),receipt.componentTrees[name],'Current frozen component tree mismatch');
-    assert.equal(c.tree,receipt.componentTrees[name],'Current manifest component tree mismatch');
+    assert.equal(c.tree,effectiveTrees[name],'Current manifest component tree mismatch');
     assert.equal(git(['rev-parse','HEAD:'+c.path]),c.tree,'Current HEAD component mismatch');
   }
   const popupBase=manifest.validation.hybridDeploymentPreparation.sourceCommit;
@@ -47,11 +48,11 @@ function verifyCurrentComponentSource(manifest,receipt,{git,sha,readFrozen}){
   for(const [file,hash]of Object.entries(ui.sourceInputHashes))assert.equal(require('node:crypto').createHash('sha256').update(readFrozen(entry.sourceCommit,'components/client/'+file)).digest('hex'),hash,'Rendered input/source mismatch');
   for(const flag of ['newPackageBuilt','actualWholeAppAccepted','realAccountAccepted','realMediaAccepted','nativeAccepted','deployed','ready'])assert.equal(receipt.boundaries[flag],false,'Source/render evidence promoted to runtime/release');
   assert.equal(receipt.boundaries.finalPackage,null);
-  return receipt;
+  return {...receipt,componentTrees:effectiveTrees};
 }
 
-function verifyLifecycleScope(manifest,receipt,{git,sha,readFrozen,currentSourceReceipt}){
-  const currentScope=manifest.validation.currentComponentSource?verifyCurrentComponentSource(manifest,currentSourceReceipt,{git,sha,readFrozen}):null;
+function verifyLifecycleScope(manifest,receipt,{git,sha,readFrozen,currentSourceReceipt,readReceipt}){
+  const currentScope=manifest.validation.currentComponentSource?verifyCurrentComponentSource(manifest,currentSourceReceipt,{git,sha,readFrozen,readReceipt}):null;
   const entry=manifest.validation.lifecycle3LocalIntegration;
   assert.equal(receipt.status,'LOCAL-SOURCE-INTEGRATED-PURE-CHECKS-PASS-WINDOWS-BUILD-PENDING');
   assert.equal(receipt.candidate.sourceCommit,entry.sourceCommit);
@@ -61,7 +62,7 @@ function verifyLifecycleScope(manifest,receipt,{git,sha,readFrozen,currentSource
   assert.equal(git(['rev-parse',entry.sourceCommit+'^{tree}']),receipt.candidate.sourceTree,'Lifecycle source tree mismatch');
   for(const [name,pin] of Object.entries(receipt.candidate.componentTrees)){
     assert.equal(git(['rev-parse',entry.sourceCommit+':components/'+name]),pin.tree,'Lifecycle frozen component mismatch');
-    if(currentScope&&['client','server'].includes(name)){assert.equal(manifest.components[name].tree,currentScope.componentTrees[name],'Lifecycle superseding component mismatch');}
+    if(currentScope&&['client','server','sfu'].includes(name)){assert.equal(manifest.components[name].tree,currentScope.componentTrees[name],'Lifecycle superseding component mismatch');}
     else assert.equal(manifest.components[name].tree,pin.tree,'Lifecycle current component mismatch');
   }
   assert.equal(receipt.sdkArchive.tgzSha256,manifest.components.voice.package.sha256,'Lifecycle archive receipt mismatch');

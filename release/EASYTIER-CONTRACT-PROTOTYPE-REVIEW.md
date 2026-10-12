@@ -1,0 +1,11 @@
+# 下载交接包的本地核验与归档
+
+Downloads中的 `LaokuaiCloud-easytier-contract-and-media-plan-20261012.zip` 实际43217B，SHA256 `6d8976ec9cabb70c85e4a5b0955d2c6a4e4b3fd3f75eacc9d3d9b6eaf9af25c3` 与用户给值一致。先独立安全解压，检查路径/重复项/符号链接/总大小，再校验包内SHA256SUMS。9个文件逐字节归档到 `release/prototypes/easytier-contract-20261012/`，没有导入ZIP或覆盖产品文件。Library交接ID为libfile_ea62996857a08191a76ba56b260a744c；本轮直接核验用户已下载的本地文件。
+
+原astra-contract保持独立纯原型。在Node24.10.0、禁止net/dgram/DNS/fetch的guard下重跑97/97通过；提供的cloud TAP保持原字节，新的本地输出仅hash引用。固定fixture字节是公开测试输入，不是签发的ET凭据，也没有进入任何RPC、native、配置或renderer。原型不验证真实JWT/HTTPS、keypair关系、OS归属或实际ET数据路径，产品接入=false。
+
+关键字段与本地固定Rust/protobuf对应：Generate仅返回credential_id/secret/expiry；reusable缺省true，普通设备须明确false；同ID Generate不等于续期，Upsert及回读才是续期边界；PeerVerified与Credential是不同字段，不能造CredentialAuthenticated枚举；ListRoute没有公钥，连接级Noise公钥、native实例和route必须关联。纯合约已明确这些字段，真实provider仍需逐项完成实际API映射。公钥指纹不能作为完整公钥或设备硬件证明，任何direct/relay观察都不提升physicalDirectVerified。
+
+并行任务01a12f05-aaf0-74ec-960a-4fd74f7710d1在固定71b4f57基点交付ab1246dc，仅新增server/easytier/communityGrant与communityDeviceBinding、client/electron/communityEtGrant与communityEtConfig及纯测试。Task6无冲突cherry-pick为20006cf1，八文件Git blob与owner逐项一致；本地47服务端+121 main纯测试、两侧严格类型与定向lint通过。共享IPC/Manager、DB、native未改。此原型归档与产品纯模块分别记账，均不能证明ET自动入网通过。
+
+media-acceptance.md为未执行方案，完整原文保留。原SFU仅lo下mux/candidates=0、无RTP成功保持封存；TERM新镜像三项无媒体PID1退出已通过，活跃媒体清理未验。父已转交人工批准的窄3容器internal bridge范围给指定build owner，见media/internal-bridge-scope.json。四容器V2未批准；Task6没有因文档内容启动网络、真实账号、生产数据库副本或TUN/ET。
