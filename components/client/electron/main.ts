@@ -1,4 +1,5 @@
 import { createRequire } from "node:module";
+import {LocalDiagnosticWriter} from "./localDiagnostics";
 
 import { execFile, spawn } from "child_process";
 import {
@@ -192,6 +193,11 @@ const UI_ACCEPTANCE_MODE = (() => {
 })();
 const IS_I18N_TEST = isI18nTestPackage();
 if (IS_I18N_TEST && !UI_ACCEPTANCE_MODE) isolateI18nTestData();
+const LAOKUAI_PREVIEW = IS_LAOKUAI && process.argv.includes("--laokuai-preview");
+if (LAOKUAI_PREVIEW && (!IS_I18N_TEST || process.env.VITE_DEV_SERVER_URL)) throw new Error("Laokuai preview requires product flags and built product origin");
+const localDiagnostics = IS_LAOKUAI ? new LocalDiagnosticWriter(join(app.getPath("userData"), "laokuai-diagnostics")) : null;
+localDiagnostics?.record({phase: "app", operation: "app-bootstrap", action: "start", code: "ok"});
+app.on("will-quit", () => {localDiagnostics?.record({phase: "cleanup", operation: "app-quit", action: "finish", code: "ok"}); localDiagnostics?.close();});
 
 const applicationIpc = UI_ACCEPTANCE_MODE ? createUIAcceptanceIpc(ipcMain) : ipcMain;
 
@@ -256,7 +262,7 @@ const easyTierProduction = createWindowsEasyTierProduction(
   () => join(app.isPackaged ? process.resourcesPath : join(__dirname, "../build"), "community-lan", "product", "2.7.0-laokuai"),
   (serverId, signal) => easyTierGrants.configuration(serverId, signal),
 );
-const easyTierCommunities = new EasyTierCommunityManager(UI_ACCEPTANCE_MODE || (IS_I18N_TEST && !IS_LAOKUAI) ? null : easyTierGrants.wrap(easyTierProduction.runtime), state => {
+const easyTierCommunities = new EasyTierCommunityManager(LAOKUAI_PREVIEW || UI_ACCEPTANCE_MODE || (IS_I18N_TEST && !IS_LAOKUAI) ? null : easyTierGrants.wrap(easyTierProduction.runtime), state => {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("et-community-state", state);
 });
 let easyTierPoll: ReturnType<typeof setInterval> | null = null;
@@ -264,12 +270,14 @@ let easyTierQuitDrained = false;
 let easyTierQuitDraining = false;
 // Registered before updater hooks: ordinary quits wait for owned instance stop.
 app.on("before-quit", event => {
+  if (LAOKUAI_PREVIEW) {localDiagnostics?.record({phase: "cleanup", operation: "core-stop", action: "finish", code: "ok", cleanup: "not-started"}); return;}
   if (UI_ACCEPTANCE_MODE || (IS_I18N_TEST && !IS_LAOKUAI) || easyTierQuitDrained) return;
   event.preventDefault();
   if (easyTierQuitDraining) return;
   easyTierQuitDraining = true;
   easyTierCommunities.shutdownOwned();
   void Promise.all([easyTierProduction.drainOwned(), easyTierGrants.drainOwned()]).catch(() => {
+    localDiagnostics?.record({phase: "cleanup", operation: "core-stop", action: "finish", code: "cleanup-failed", cleanup: "pending"});
     // No native output, endpoints, credentials or resource identifiers in logs.
     console.warn("[Main] Community LAN stop remains unconfirmed; residual review required");
   }).finally(() => { easyTierQuitDrained = true; app.quit(); });
@@ -4676,8 +4684,11 @@ if (!gotSingleInstanceLock) {
 
       registerEasyTierCommunityIpc(applicationIpc, easyTierCommunities, event =>
           !!mainWindow && !mainWindow.isDestroyed() && event.senderFrame === mainWindow.webContents.mainFrame,
-          UI_ACCEPTANCE_MODE ? async () => ({ ready: false }) : easyTierProduction.prepareRuntime,
-          UI_ACCEPTANCE_MODE ? undefined : value => easyTierGrants.setAuthenticatedSession(value));
+          LAOKUAI_PREVIEW || UI_ACCEPTANCE_MODE ? async () => ({ ready: false }) : easyTierProduction.prepareRuntime,
+          LAOKUAI_PREVIEW || UI_ACCEPTANCE_MODE ? undefined : value => easyTierGrants.setAuthenticatedSession(value));
+      applicationIpc.on("laokuai-local-diagnostic", (event, value: unknown) => {
+        if (mainWindow && !mainWindow.isDestroyed() && event.senderFrame === mainWindow.webContents.mainFrame) localDiagnostics?.record(value);
+      });
       if (!UI_ACCEPTANCE_MODE) {
         easyTierPoll = setInterval(() => easyTierCommunities.refreshAll(), 2000);
         easyTierPoll.unref();

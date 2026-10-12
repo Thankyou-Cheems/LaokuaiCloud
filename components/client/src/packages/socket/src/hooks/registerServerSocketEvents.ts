@@ -1,4 +1,5 @@
 import { warmSfuSelection } from "@gryt/voice";
+import {attachSocketDiagnostics} from "../utils/socketDiagnostics";
 import { createElement, Dispatch, MutableRefObject, SetStateAction } from "react";
 import toast from "react-hot-toast";
 import { Socket } from "socket.io-client";
@@ -198,6 +199,7 @@ subscribeToPrefs(() => {
 });
 
 export function registerServerSocketEvents(socket: Socket, host: string, ctx: ServerEventContext) {
+  attachSocketDiagnostics(socket, host);
   mentionSockets.set(host, socket);
   suppressSeen.set(host, getSuppressEveryone(host));
   attachServerMls(socket, host);

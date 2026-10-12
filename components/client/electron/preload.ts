@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer, webFrame } from "electron";
+import {safeDiagnostic} from "../src/lib/localDiagnostics";
 
 import type { EasyTierCommunityAPI, EasyTierCommunityState } from "../src/lib/easyTierCommunity";
 import type { SquadConfig, SquadSnapshot } from "../src/lib/squadMode";
@@ -19,6 +20,9 @@ const easyTierCommunity: EasyTierCommunityAPI = {
   },
 };
 contextBridge.exposeInMainWorld("easyTierCommunity", easyTierCommunity);
+contextBridge.exposeInMainWorld("laokuaiDiagnostics", {
+  record: (value: unknown) => {const clean = safeDiagnostic(value); if (clean) ipcRenderer.send("laokuai-local-diagnostic", clean);},
+});
 
 type EmbeddedServerConfigShape = {
   id: string;

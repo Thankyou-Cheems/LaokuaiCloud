@@ -1,6 +1,8 @@
 {
   "name": "gryt-chat",
   "private": true,
+  "grytLaokuai": true,
+  "grytI18nTest": true,
   "version": "1.13.22-laokuai.opus20.1",
   "description": "唠蒯云 — real-time voice chat desktop client",
   "author": {
@@ -136,6 +138,7 @@
     "electron:publish:slim": "cross-env GRYT_VARIANT=slim npm run electron:publish",
     "build:embedded-server": "node scripts/build-embedded-server.mjs",
     "electron:preview": "npm run build:native && cross-env ELECTRON=1 vite build && electron .",
+    "electron:preview:laokuai": "node scripts/laokuai-preview.mjs",
     "electron:preview:full": "npm run build:native && npm run build:embedded-server && cross-env ELECTRON=1 vite build && electron .",
     "game-list:update": "node scripts/update-game-list.mjs",
     "icons:generate": "node scripts/generate-icons.mjs && node scripts/generate-tray-icon.mjs",

@@ -2,6 +2,8 @@ import type { RoomAccess, RoomCoordinator } from "@gryt/voice";
 import type { Socket } from "socket.io-client";
 
 import { handleRateLimitError } from "@/socket/src/utils/rateLimitHandler";
+import {RoomAccessCooldown} from "../../../../lib/roomAccessCooldown";
+import {diagnosticHostSlot, localDiagnostic} from "../../../../lib/localDiagnostics";
 
 
 /**
@@ -32,6 +34,15 @@ interface AccessSocketScope { id: string | undefined; ambiguous: boolean; pendin
 // Retained coordinators can share a reconnected socket. Legacy errors have no
 // request/room identity, so an ambiguous socket generation must fail closed.
 const accessScopes = new WeakMap<Socket, AccessSocketScope>();
+const cooldowns = new WeakMap<Socket, RoomAccessCooldown>();
+function socketCooldown(socket: Socket): RoomAccessCooldown {
+  const previous = cooldowns.get(socket); if (previous) return previous;
+  const cooldown = new RoomAccessCooldown(); cooldowns.set(socket, cooldown);
+  // Observe late refusals after a grant listener was removed. Coordinator
+  // replacement/reconnect must not reset a server's unexpired cooldown.
+  socket.on("voice:room:error", value => cooldown.observe(value));
+  return cooldown;
+}
 
 type ClientAuthority=NonNullable<RoomCoordinator["moveAuthority"]> & {invalidate?:(reason:string)=>void};
 export function createRoomCoordinator(socketSource: Socket|(()=>Socket|undefined), host: string, moveAuthority?:ClientAuthority|(()=>ClientAuthority|undefined), serverId?: string): RoomCoordinator {
@@ -45,6 +56,11 @@ export function createRoomCoordinator(socketSource: Socket|(()=>Socket|undefined
       const socket=currentSocket();
       if(!socket?.connected || !socket.id)return Promise.resolve({granted:false,reason:"Server socket disconnected",retryAfterMs:RETRY_SOON_MS});
       if (!serverId) return Promise.resolve({ granted: false, reason: "Server identity unavailable", retryAfterMs: RETRY_SOON_MS });
+      const remaining = socketCooldown(socket).remaining();
+      if (remaining > 0) {
+        localDiagnostic({phase: "socket", operation: "voice:room:request", action: "suppress", code: "rate_limited", hostSlot: diagnosticHostSlot(host), nextRetryMs: remaining, suppressed: 1});
+        return Promise.resolve({granted: false, reason: "Voice connection is cooling down", retryAfterMs: remaining});
+      }
       const socketId = socket.id;
       let scope = accessScopes.get(socket);
       if (!scope || scope.id !== socketId) {

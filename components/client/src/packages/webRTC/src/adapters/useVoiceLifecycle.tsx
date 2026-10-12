@@ -6,6 +6,7 @@ import { ServerErrorToast, serverIconSrc } from "@/common";
 import { useServerManagement, useSockets } from "@/socket";
 
 import { useVoiceSounds } from "./useVoiceSounds";
+import {diagnosticCode, localDiagnostic} from "../../../../lib/localDiagnostics";
 
 /**
  * The parts of a voice call that are the app's business rather than the engine's:
@@ -22,6 +23,14 @@ export function useVoiceLifecycle() {
   const { servers, currentlyViewingServer } = useServerManagement();
   const { serverDetailsList } = useSockets();
   const { playConnect } = useVoiceSounds();
+  useEffect(() => {
+    localDiagnostic({phase: "socket", operation: "voice-state", action: "finish", code: diagnosticCode(connectionState)});
+    if (connectionError) {
+      const code = connectionError === "Media policy changed; reconnecting" ? "media-policy-changed" :
+        connectionError === "Connection lost" ? "connection-lost" : diagnosticCode(connectionError);
+      localDiagnostic({phase: "socket", operation: "voice-state", action: "receive", code});
+    }
+  }, [connectionState, connectionError]);
 
   // The connect sound. The engine used to play it partway through the flow; it
   // now plays when the call is actually up.

@@ -75,6 +75,7 @@ const MEDIA_SANDBOX_HTML = `<!doctype html><meta charset="utf-8"><meta http-equi
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  cacheDir: resolve(__dirname, ".cache/vite"),
   optimizeDeps: {
     // @gryt/voice constructs its RNNoise worker with
     // new URL("./rnnoiseWorker.js", import.meta.url).

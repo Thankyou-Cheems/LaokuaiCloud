@@ -13,7 +13,7 @@ export const handleRateLimitError = (
   context: string = "operation"
 ) => {
   if (typeof error === 'object' && error.error === 'rate_limited' && error.message) {
-    const messageKey = `${context}-${error.message}`;
+    const messageKey = `${context}-rate_limited`;
     
     if (recentRateLimitMessages.has(messageKey)) {
       return;
@@ -36,7 +36,7 @@ export const handleRateLimitError = (
           : socketHooksI18n.t("socketHooksFull.rateLimitedMoment", { message });
       }
       return message;
-    }));
+    }), {id: `rate-limited:${context}`});
     return;
   }
   

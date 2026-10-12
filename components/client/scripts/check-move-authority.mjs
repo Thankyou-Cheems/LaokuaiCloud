@@ -1,3 +1,4 @@
+import {RoomAccessCooldown} from "./room-coordinator-test-deps.mjs";
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {stripTypeScriptTypes} from 'node:module';
@@ -86,7 +87,7 @@ console.log('Authority challenge/authentication/normal rejoin lifecycle checks p
 
 const roomSource=stripTypeScriptTypes(readFileSync(new URL('../src/packages/webRTC/src/adapters/roomCoordinator.ts',import.meta.url),'utf8'),{mode:'transform'})
  .replace(/^import .*;$/gm,'').replace('export function createRoomCoordinator','function createRoomCoordinator');
-const coordinatorFactory=new Function('handleRateLimitError',roomSource+';return createRoomCoordinator;')(()=>{});
+const coordinatorFactory=new Function('handleRateLimitError','RoomAccessCooldown','localDiagnostic','diagnosticHostSlot',roomSource+';return createRoomCoordinator;')(()=>{},RoomAccessCooldown,()=>{},()=>0);
 socket.emit=()=>{};
 const resumedSession=createMoveAuthoritySession('server-id',[socket,true,send],()=>{});
 const coordinator=coordinatorFactory(socket,'fixture',()=>resumedSession.authority);
@@ -107,7 +108,7 @@ function freshSocket(id) {
 let activeSocket=freshSocket('first');
 let activeSession=createMoveAuthoritySession('server-id',[activeSocket,true,async()=>true],()=>{});
 let logicalIdentity=true;
-const retained=coordinatorFactory(()=>logicalIdentity?activeSocket:undefined,'fixture',()=>logicalIdentity?activeSession.authority:undefined);
+const retained=coordinatorFactory(()=>logicalIdentity?activeSocket:undefined,'fixture',()=>logicalIdentity?activeSession.authority:undefined,'server-id');
 const old=retained.moveAuthority;
 activeSocket.connected=false;activeSocket.reply('disconnect');activeSession.dispose();
 assert.equal(old.valid,false);assert.equal(retained.connected,false);
@@ -116,8 +117,8 @@ activeSocket=freshSocket('replacement');activeSession=createMoveAuthoritySession
 assert.equal(retained.connected,true);assert.equal(retained.moveAuthority,activeSession.authority);assert.notEqual(retained.moveAuthority,old);
 await assert.rejects(old.confirmCommit('old'),/authority_invalidated/);
 const rejoin=retained.requestAccess('destination');assert.deepEqual(activeSocket.sent,[['voice:room:request','destination']]);
-activeSocket.reply('voice:room:granted',{room_id:'destination',join_token:{fixtureOnly:true},sfu_url:'ws://fixture',timestamp:Date.now()});
-assert.equal((await rejoin).roomId,'destination');
+activeSocket.reply('voice:room:granted',{room_id:'server-id_destination',join_token:{fixtureOnly:true},sfu_url:'ws://fixture',timestamp:Date.now()});
+assert.equal((await rejoin).roomId,'server-id_destination');
 logicalIdentity=false;assert.equal(retained.connected,false);assert.equal(retained.moveAuthority,undefined);
 assert.equal((await retained.requestAccess('other-account')).granted,false);
 activeSession.dispose();
