@@ -2276,6 +2276,20 @@
       "sourceCommit": "a88f7d75066cf03d65d618bb49cabbff6e8d7884",
       "scopeCases": 68,
       "requireReadyExit": 2
+    },
+    "backendVersionBaseline": {
+      "receipt": "release/acceptance/backend-version-baseline-review.json",
+      "receiptSha256": "4e787da320010edd17010715dcccbd14ce518455910a7faf8912397552c7f48c",
+      "report": "release/BACKEND-VERSION-BASELINE-REVIEW.md",
+      "reportSha256": "5f9b1c069f4dc242053be608195afc95cbc449022f9374504735c20a9a17a99b",
+      "candidateSourceCommit": "85ec3b9c60d49881ba9ad5cd48c9a17d59c1772d",
+      "serverTree": "96db8312488c4f399904192f3a932232cf6130ad",
+      "structuralTablesMatched": 42,
+      "schemaVersion": 10,
+      "oldJoinSyntheticPassed": true,
+      "exactProductionGitBaseProven": false,
+      "rebuildSolelyForVersionNumber": false,
+      "productionDeploymentApproved": false
     }
   },
   "securityBoundary": {

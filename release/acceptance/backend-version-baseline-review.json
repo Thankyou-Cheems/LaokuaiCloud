@@ -1,0 +1,239 @@
+{
+  "schema": 1,
+  "status": "NO-SCHEMA-DOWNGRADE-EVIDENCE-LEGACY-WIRE-SYNTHETIC-PASS-DEPLOYMENT-BLOCKED",
+  "reviewedFromCommit": "99165b2e9333c8b743a0431cde06cb2c36c2a180",
+  "candidateSourceCommit": "85ec3b9c60d49881ba9ad5cd48c9a17d59c1772d",
+  "serverTree": "96db8312488c4f399904192f3a932232cf6130ad",
+  "candidatePackageVersion": "1.0.76",
+  "candidateRuntimeVersion": "1.0.76-laokuai.hybrid.85ec3b9c",
+  "productionRuntimeVersion": "1.10.58",
+  "candidateOciImageId": "sha256:e45e9c27fe391aa9281365745a54c34529b502f09fa79a2d8e68fcc5486d1eba",
+  "candidateDockerTarSha256": "9dde30f81c4daf6cffa0e5d63a98b37951b55e55f5d19fda76fda17bda944453",
+  "candidateClassicConfigId": "sha256:e8747cede11f23df31cb9c190362a63dcf2873c12d7162926934a67e32372367",
+  "productionImageId": "sha256:b6f4bf5db57493a06307e1cfaefd1c92d6c90ccc26e46c9ba05a8fab53d093e8",
+  "productionBundleSha256": "1350981826a74691d94942ea46f7ebbea862efee79ae810adc2a87e17b01f5f9",
+  "provenance": {
+    "productionImageTag": "local/gryt-server:voice-mode-6ea9930",
+    "sourceDocsClaimedBase": "6ea9930765a6aed92cc4e5d9f5cce6e8a0a1e45c",
+    "exactGitBaseProven": false,
+    "reason": "Image hint and two source documents agree; revision label absent, local old Git object missing, two owner Git queries denied. No bypass."
+  },
+  "schemaComparison": {
+    "productionTables": 42,
+    "candidateTables": 42,
+    "definitionDiffs": [],
+    "migrationsEqual": true,
+    "productionMigrations": {
+      "permission_schema_version": {
+        "present": true,
+        "version": 10
+      },
+      "channel_rank_gates_migrated": {
+        "present": true
+      },
+      "access_token_reissue_gryt1239": {
+        "present": true
+      }
+    },
+    "candidateMigrations": {
+      "permission_schema_version": {
+        "present": true,
+        "version": 10
+      },
+      "channel_rank_gates_migrated": {
+        "present": true
+      },
+      "access_token_reissue_gryt1239": {
+        "present": true
+      }
+    },
+    "comparison": "Column name/type/notnull/PK/default-presence; index name/unique/origin/partial; foreign key metadata. No values/default expression/partial predicate/trigger semantics inspected."
+  },
+  "existingSyntheticDatabase": {
+    "passed": true,
+    "criticalTablesPreserved": [
+      "server_config",
+      "users",
+      "roles",
+      "role_definitions",
+      "refresh_tokens"
+    ],
+    "ownerSfuKeyTokenVersionAndRefreshPreserved": true,
+    "markerReplayNoOp": true,
+    "knownNormalization": {
+      "field": "server_config.avatar_thumb_px",
+      "from": null,
+      "to": 128
+    },
+    "configuredDisplayAndVisibilityPreserved": true,
+    "syntheticOnly": true,
+    "productionDatabaseReadOrWritten": false,
+    "tempDirectory": "Owner-local synthetic temporary directory; retained outside Git",
+    "thirdInitializationFixedPoint": true
+  },
+  "legacyJoin": {
+    "passed": true,
+    "checks": [
+      "Real legacy certificate/assertion joins existing member with tokenVersion7 and owner unchanged",
+      "Refresh token returned without any Hybrid client declaration",
+      "Wrong nonce is rejected by actual handler"
+    ],
+    "actualHandlerAndIdentityCrypto": true,
+    "fakeSocketIo": true,
+    "actualNetworkOrMedia": false,
+    "realProductionData": false,
+    "oldWireFields": [
+      "nickname",
+      "certificate",
+      "assertion"
+    ],
+    "joinedFieldNames": [
+      "accessToken",
+      "fileToken",
+      "fileKey",
+      "refreshToken",
+      "nickname",
+      "avatarFileId",
+      "avatarWorn",
+      "cardStyle",
+      "bio",
+      "pronouns",
+      "statusLine",
+      "isOwner",
+      "setupRequired"
+    ],
+    "badNonceError": "identity_verification_failed",
+    "sourceRoot": "components/server",
+    "explicitlyEnabledTiers": [
+      "account",
+      "local"
+    ],
+    "certificateType": "ES256 self-signed local; allowed by explicit test policy",
+    "oldClientNetworkE2e": false,
+    "defaultAccountExternalCaE2e": false
+  },
+  "selectedIdentityTests": {
+    "passed": 20,
+    "suites": 4,
+    "failures": 0,
+    "externalCaNetworkTestsRun": false
+  },
+  "localRehearsalRuntime": {
+    "node": "24.10.0",
+    "sqlite": "3.50.4",
+    "productionNode": "22.23.3",
+    "productionSqlite": "3.51.3",
+    "candidateBundleStartedByTask6": false
+  },
+  "recommendation": {
+    "rebuildSolelyForVersionNumber": false,
+    "productionDeploymentApproved": false,
+    "exactCandidateStartupRequired": true,
+    "preserveCandidateUntilFailureIsDiagnosed": true
+  },
+  "candidateStartup": {
+    "status": "PARENT-REPORTED-FIRST-ISOLATED-EMPTY-DATA-OFFLINE-EXIT-1-BEFORE-HEALTH",
+    "independentlyReproducedByTask6": false,
+    "cause": "Unknown; configuration versus code is under builder review",
+    "productionIncompatibilityProven": false
+  },
+  "pending": [
+    "Exact production Git/source provenance",
+    "Exact candidate bundle startup and config qualification",
+    "Approved isolated consistent data-copy migration/restart",
+    "Real old account-client join and refresh",
+    "Backend/SFU token and control interoperability",
+    "Image and data rollback rehearsal"
+  ],
+  "boundaries": {
+    "productionUserRowsRead": false,
+    "productionDatabaseExported": false,
+    "fullProductionBundleExported": false,
+    "productionModified": false,
+    "task6ProductListenersStarted": false,
+    "task6MediaOrEtExecuted": false,
+    "syntheticJwtOnly": true,
+    "ready": false,
+    "finalPackage": null,
+    "grantImplementationDeferred": true
+  },
+  "report": "release/BACKEND-VERSION-BASELINE-REVIEW.md",
+  "reportSha256": "5f9b1c069f4dc242053be608195afc95cbc449022f9374504735c20a9a17a99b",
+  "localEvidence": [
+    {
+      "ownerLocalPath": "community-usability-review/PRODUCTION-SCHEMA-METADATA-20261012.json",
+      "sha256": "100e5440a010eb7de163381fd7d0d3a6e7332681e88efd47858455d10c8c7250",
+      "bytes": 42797
+    },
+    {
+      "ownerLocalPath": "community-usability-review/PRODUCTION-BACKEND-PROVENANCE-MARKERS.json",
+      "sha256": "fbfb68cde8aae7e3599b089a59bb0344a3fcc98531a1e0b635ea49f188847a66",
+      "bytes": 725
+    },
+    {
+      "ownerLocalPath": "community-usability-review/CANDIDATE-SCHEMA-METADATA.json",
+      "sha256": "558d937e8dee2d0ab7167e050f7a2dbefcbe286065e967f2ce4fdca70c1b37b6",
+      "bytes": 74352
+    },
+    {
+      "ownerLocalPath": "community-usability-review/SCHEMA-COMPARISON.json",
+      "sha256": "d4196f94a0ff5b0abd7a0b062451de92101de852b51e97475e4cefe4f0703b30",
+      "bytes": 804
+    },
+    {
+      "ownerLocalPath": "community-usability-review/EXISTING-SCHEMA-REHEARSAL.json",
+      "sha256": "8fb6329c4b85e6251dbe0c26d017abf58c66b9fc2f883bead2c94b3676ea5a91",
+      "bytes": 654
+    },
+    {
+      "ownerLocalPath": "community-usability-review/LEGACY-JOIN-REHEARSAL.json",
+      "sha256": "3ac4db40ad2c58eb78328cc24d1db2c15d09c37c58ae3e98a821a56a26276da9",
+      "bytes": 899
+    },
+    {
+      "ownerLocalPath": "community-usability-review/rehearse-candidate-schema.cjs",
+      "sha256": "b8bb495a8bf7ad9527945cb81f36e4378ca510efd1f1130d06c30c5026914cb6",
+      "bytes": 2292
+    },
+    {
+      "ownerLocalPath": "community-usability-review/compare-backend-schemas.cjs",
+      "sha256": "df04404b7580a9e3a408fd62a688e18fdfa8f73f12d84325e5b0e59c2ddd1246",
+      "bytes": 1686
+    },
+    {
+      "ownerLocalPath": "community-usability-review/rehearse-existing-schema-final.cjs",
+      "sha256": "79cf7f687a2890a28b74bbdf20014a6e83d993da674bc7e0da1afedd67abcccc",
+      "bytes": 3422
+    },
+    {
+      "ownerLocalPath": "community-usability-review/rehearse-legacy-join.cjs",
+      "sha256": "5a4f148dbd0396a518321fd704fd85d488901101f4ef2a13cbe8159c51222b38",
+      "bytes": 4873
+    },
+    {
+      "ownerLocalPath": "community-usability-review/backend-metadata-test-guard.cjs",
+      "sha256": "27ba1cbe74f8cf392097e14be564e4ea27063b671af25f73d11124891d9c2cb5",
+      "bytes": 530
+    },
+    {
+      "ownerLocalPath": "community-usability-review/existing-schema-rehearsal-final.log",
+      "sha256": "e1fbb3877d4d803e9c363bd5b3448cc8d4be3d50539e442f56434dd78633c82e",
+      "bytes": 736
+    },
+    {
+      "ownerLocalPath": "community-usability-review/legacy-join-rehearsal.log",
+      "sha256": "b1d6da7f5df0c9624add9b930e193fcbb79ae2b721484862b890096b24929748",
+      "bytes": 926
+    },
+    {
+      "ownerLocalPath": "community-usability-review/legacy-identity-selected-tests-retry.log",
+      "sha256": "a0a94e12f914816ff8618a2f470c392d414060a91e688710f497d0958d705f63",
+      "bytes": 1742
+    },
+    {
+      "ownerLocalPath": "community-usability-review/legacy-identity-selected-tests.log",
+      "sha256": "40ba70856c4484df3b657756be52bd91b90859ad59fc05e02413fda2929f5ecf",
+      "bytes": 807
+    }
+  ]
+}
