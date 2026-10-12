@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "id": "laokuai-cloud-receive-path-et-observation-frozen-20261011",
-  "stage": "voice-user-join-switch-pass-native-exact-application-scope-pending",
+  "stage": "voice-user-pass-first-device-native-admission-and-bounded-cleanup-pass",
   "ready": false,
   "repository": {
     "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud",
@@ -2824,8 +2824,8 @@
     "backendActivated": true,
     "clientNormalStarted": true,
     "credentialWritesEnabled": false,
-    "memberVerified": false,
-    "windowsNativeAccepted": false,
+    "memberVerified": true,
+    "windowsNativeAccepted": true,
     "physicalDirectVerified": false,
     "ready": false,
     "finalPackage": null,
@@ -2849,7 +2849,8 @@
       "permissionQueryApprovedAndExecuted": true,
       "membershipLogNoMatchNotProofOfLogout": true,
       "secondEndpointStarted": false
-    }
+    },
+    "windowsNativeAcceptanceScope": "first-device grant/RPC/issuer-verified connection/VIP/bounded retirement only"
   },
   "voiceRateLimitPreview": {
     "sourceCommit": "701200d01e8a898f857ba222ef34a3b1af532f01",
@@ -2878,13 +2879,20 @@
   },
   "nativeFirstDevicePreflight": {
     "receipt": "release/acceptance/native-first-device-a3-preflight.json",
-    "receiptSha256": "2b3a364156121007f084cf7dd9a7e461073e2067d67335b73531dadbf6ca7b5a",
+    "receiptSha256": "91f26f3db88fedb040d0769df8e6aee97cb3f9ce4a0c5b8be293aaa0f384fa91",
     "preparedLauncher": true,
-    "nativeStarted": false,
-    "credentialIssued": false,
+    "nativeStarted": true,
+    "credentialIssued": true,
     "applicationScopeDifference": true,
     "firewallChanged": false,
     "ready": false,
-    "finalPackage": null
+    "finalPackage": null,
+    "actualRpcPassed": true,
+    "actualIssuerVerifiedConnectionPassed": true,
+    "actualWindowsVirtualIpPassed": true,
+    "revocationAndListAbsenceConfirmed": true,
+    "ownedCleanupPassed": true,
+    "temporaryWriteWindowClosed": true,
+    "firstDeviceScopePassed": true
   }
 }
