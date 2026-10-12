@@ -150,6 +150,9 @@ export function AddNewServer({
 
   /** A code typed by hand, when the link carried none or carried a bad one. */
   const [manualCode, setManualCode] = useState("");
+  const [communityPassword, setCommunityPassword] = useState("");
+  const [passwordRequired, setPasswordRequired] = useState(false);
+  useEffect(() => {setCommunityPassword("");setPasswordRequired(false);}, [showAddServer, serverHost]);
   const [inviteRequired, setInviteRequired] = useState(false);
   const [joinNote, setJoinNote] = useState("");
   const [awaitingApproval, setAwaitingApproval] = useState(false);
@@ -256,10 +259,12 @@ export function AddNewServer({
       host: serverHost,
       info: serverInfo,
       inviteCode,
+      communityPassword: communityPassword || undefined,
       note: joinNote,
     });
 
     if (outcome.ok) {
+      setCommunityPassword("");
       closeDialog();
       return;
     }
@@ -272,6 +277,7 @@ export function AddNewServer({
     }
 
     if (outcome.kind === "invite_required") setInviteRequired(true);
+    if (outcome.kind === "password_required") setPasswordRequired(true);
     setJoinError(outcome.message); setJoinErrorSource(outcome); setJoinErrorKey(outcome.messageKey);
   }
 
@@ -477,6 +483,10 @@ export function AddNewServer({
 
             {step === "join" && (
               <div className="flex flex-col gap-4">
+                {(passwordRequired || serverInfo?.joinPolicy === "password") && <div className="flex flex-col gap-2">
+                  <label className="text-sm font-bold">社区共享密码 · {serverHost}</label>
+                  <TextField type="password" autoComplete="off" aria-label="社区共享密码" value={communityPassword} maxLength={128} disabled={isJoining} onChange={e=>setCommunityPassword(e.target.value)}/>
+                </div>}
                 {/* No label and no asterisk: it is the only field on the
                     screen, so it is both obvious and required. The examples
                     are the placeholder. */}

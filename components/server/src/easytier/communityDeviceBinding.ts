@@ -59,7 +59,7 @@ export function verifyDeviceBinding(expected: unknown, observation: unknown, now
   if (!positive(expectedProviderGeneration) || observation.providerGeneration !== expectedProviderGeneration ||
       !natural(nowMonoMs) || !natural(observation.observedMonoMs) || observation.observedMonoMs > nowMonoMs ||
       nowMonoMs - observation.observedMonoMs > 5_000 || observation.networkName !== expected.networkName ||
-      !safeArray(observation.connections, 64) || !safeArray(observation.routes, 64))
+      !safeArray(observation.connections, 4096) || !safeArray(observation.routes, 254))
     fail('provider-observation-mismatch');
   const peers = new Set<number>();
   const authenticatedIdentities = new Map<number, string>();

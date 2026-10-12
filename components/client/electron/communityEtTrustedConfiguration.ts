@@ -1,17 +1,17 @@
 import { execFile } from 'node:child_process';
-import { randomUUID, createHash } from 'node:crypto';
+import { createHash,randomUUID } from 'node:crypto';
 import { lstat, mkdir, open, readFile, realpath, rename, unlink } from 'node:fs/promises';
-import { join, relative, isAbsolute } from 'node:path';
+import { isAbsolute,join, relative } from 'node:path';
 
-import { communityIdentity, exact, uuid, publicKeyFingerprint } from './communityEtGrant';
-import { trustedHttpsOrigin, type TrustedCommunityTarget } from './communityEtGrantTransport';
+import { type PrivateCommunityEtConfig,validateBootstrap } from './communityEtConfig';
+import { communityIdentity, exact, publicKeyFingerprint,uuid } from './communityEtGrant';
+import { type TrustedCommunityTarget,trustedHttpsOrigin } from './communityEtGrantTransport';
 import { EasyTierOperationError } from './easyTierCommunityManager';
 import type { EasyTierExistingConfiguration } from './easyTierExistingConfiguration';
-import { validateBootstrap, type PrivateCommunityEtConfig } from './communityEtConfig';
 
-interface CommunityGrantPolicy {
-  schemaVersion: 2; approved: true; credentialOperationsApproved: true; driverPermissionApproved: true;
-  localManagementApproved: true; expiresAtUnixMs: number; grantCommunities: TrustedCommunityTarget[];
+export interface CommunityGrantPolicy {
+  schemaVersion: 2 | 3; approved: true; credentialOperationsApproved: true; driverPermissionApproved: true;
+  localManagementApproved: true; expiresAtUnixMs: number | null; grantCommunities: TrustedCommunityTarget[];
 }
 /** Main-owned provisioner policy; renderer cannot supply URL, issuer, config or approval. */
 export async function readCommunityGrantTarget(root: string, serverId: string): Promise<TrustedCommunityTarget> {
@@ -22,8 +22,10 @@ export async function readCommunityGrantTarget(root: string, serverId: string): 
     const value: unknown = JSON.parse(await readFile(file, 'utf8'));
     exact<CommunityGrantPolicy>(value, ['schemaVersion', 'approved', 'credentialOperationsApproved', 'driverPermissionApproved',
       'localManagementApproved', 'expiresAtUnixMs', 'grantCommunities'], 'invalid-grant-policy');
-    if (value.schemaVersion !== 2 || value.approved !== true || value.credentialOperationsApproved !== true || value.driverPermissionApproved !== true ||
-        value.localManagementApproved !== true || !Number.isSafeInteger(value.expiresAtUnixMs) || value.expiresAtUnixMs <= Date.now() ||
+    const lifetimeValid = value.schemaVersion === 3 ? value.expiresAtUnixMs === null :
+      value.schemaVersion === 2 && typeof value.expiresAtUnixMs === 'number' && Number.isSafeInteger(value.expiresAtUnixMs) && value.expiresAtUnixMs > Date.now();
+    if (!lifetimeValid || value.approved !== true || value.credentialOperationsApproved !== true || value.driverPermissionApproved !== true ||
+        value.localManagementApproved !== true ||
         !Array.isArray(value.grantCommunities) || value.grantCommunities.length > 64)
       throw new Error('grant-approval-required');
     const seen = new Set<string>();
@@ -42,7 +44,7 @@ export async function readCommunityGrantTarget(root: string, serverId: string): 
 }
 
 /** Exact current user+SYSTEM ACL, never UAC, wildcard grants or credential output. */
-async function protectOwnedFile(file: string): Promise<void> {
+export async function protectOwnedFile(file: string): Promise<void> {
   if (process.platform !== 'win32') throw new EasyTierOperationError('unsupported-target');
   const system = join(process.env.SystemRoot ?? 'C:\\Windows', 'System32');
   const run = (binary: string, args: string[]) => new Promise<string>((resolve, reject) => {

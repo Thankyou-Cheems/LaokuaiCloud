@@ -39,6 +39,7 @@ import {
   claimBotRegistration,
   recordBotKnock,
   insertServerAudit,
+  verifyServerPassword,
 } from "../../db";
 import type { BotRecord } from "../../db";
 import { isPrivateIp } from "../../utils/isPrivateIp";
@@ -290,6 +291,7 @@ export function registerJoinHandlers(ctx: HandlerContext): EventHandlerMap {
       assertion?: string;
       link?: string;
       note?: string;
+      communityPassword?: string;
     }) => {
       try {
         const joinNote = typeof payload?.note === "string" ? payload.note : null;
@@ -436,7 +438,7 @@ export function registerJoinHandlers(ctx: HandlerContext): EventHandlerMap {
           });
           return;
         }
-        let cfg = await getServerConfig().catch(() => null);
+        let cfg = await getServerConfig();
 
         // Ahead of invite consumption, so a banned user does not burn a code.
         // The refusal is deliberately uninformative; the audit log has the why.
@@ -498,10 +500,30 @@ export function registerJoinHandlers(ctx: HandlerContext): EventHandlerMap {
         const isActiveMember = !!(existingMember && existingMember.is_active);
         let claimedOwnerGrytUserId: string | null | undefined;
         let usedInviteCode: string | undefined;
+        const passwordAdmission = !isActiveMember && cfg?.owner_gryt_user_id !== grytUserId &&
+          (cfg?.join_policy === "password" || !!cfg?.password_hash);
+        if (passwordAdmission) {
+          const ip = getClientIp(), key = getInviteCooldownKey(ip, grytUserId), now = Date.now();
+          const identityLimit = getInviteCooldownState(key, now), addressLimit = getInviteIpCooldownState(ip, now);
+          const retryAfterMs = Math.max(0, (identityLimit.cooldownUntilMs ?? 0) - now, (addressLimit.cooldownUntilMs ?? 0) - now);
+          if (retryAfterMs > 0) {
+            socket.emit("server:error", {error: "rate_limited", message: "请稍后再试。", retryAfterMs}); return;
+          }
+          if (!cfg?.password_hash || !cfg.password_salt || cfg.password_algo !== "scrypt") {
+            socket.emit("server:error", {error: "password_not_configured", message: "社区管理员尚未设置共享密码。"}); return;
+          }
+          const password = payload?.communityPassword;
+          if (typeof password !== "string" || password.length === 0 || password.length > 128 ||
+              !(await verifyServerPassword(password, cfg.password_salt, cfg.password_hash))) {
+            applyInviteFailure(key, now); applyInviteIpFailure(ip, now);
+            socket.emit("server:error", {error: "password_required", message: "请输入正确的社区共享密码。", canReapply: true}); return;
+          }
+          clearInviteCooldown(key); clearInviteIpCooldown(ip);
+        }
 
         // A bot's admission is its registration, so requiring an invite as well
         // would lock an approved bot out of a server on the default policy.
-        if (!isActiveMember && !botRegistration) {
+        if (!isActiveMember && !botRegistration && !passwordAdmission) {
           const ip = getClientIp();
           const inviteKey = getInviteCooldownKey(ip, grytUserId);
           const now = Date.now();
@@ -649,7 +671,7 @@ export function registerJoinHandlers(ctx: HandlerContext): EventHandlerMap {
           const existingRoles = await listMemberRoles(user.server_user_id);
           // First-time joiners land on their tier's default; existing members
           // keep what they were given, so a default change re-sorts nobody.
-          const joinRole = defaultRoleForTier(identityTierOf(grytUserId), cfg);
+          const joinRole = passwordAdmission ? "member" : defaultRoleForTier(identityTierOf(grytUserId), cfg);
           if (existingRoles.length === 0) {
             await setServerRole(user.server_user_id, isOwner ? "owner" : joinRole);
             // First join only, never a reconnect on the stored code. Added
@@ -665,7 +687,7 @@ export function registerJoinHandlers(ctx: HandlerContext): EventHandlerMap {
 
           // Joining and sending are the two moments the answer can change, so
           // there is no timer here to fail quietly.
-          await applyAutoRoles(user.server_user_id, grytUserId);
+          if (!passwordAdmission) await applyAutoRoles(user.server_user_id, grytUserId);
         } catch (e) {
           if (!(e instanceof BotHoldsNoRole)) consola.warn("Failed to ensure role row:", e);
         }
@@ -714,6 +736,7 @@ export function registerJoinHandlers(ctx: HandlerContext): EventHandlerMap {
         }
 
         socket.emit("server:joined", {
+          serverId,
           accessToken,
           fileToken,
           fileKey,

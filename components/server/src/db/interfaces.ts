@@ -11,7 +11,7 @@ export type { CensorStyle, ProfanityMode, SpamSensitivity };
  * Not about identity tiers. A list, because the reader and the writer both check
  * against it and drifted when they each had their own.
  */
-export const JOIN_POLICIES = ["invite", "open", "request"] as const;
+export const JOIN_POLICIES = ["invite", "open", "request", "password"] as const;
 
 export type JoinPolicy = (typeof JOIN_POLICIES)[number];
 
@@ -603,6 +603,7 @@ export async function verifyServerPassword(password: string, saltB64: string, ha
   try {
     const salt = Buffer.from(saltB64, "base64");
     const expected = Buffer.from(hashB64, "base64");
+    if (salt.length !== 16 || expected.length !== 32 || salt.toString("base64") !== saltB64 || expected.toString("base64") !== hashB64) return false;
     const actual = (await scrypt(password, salt, expected.length)) as Buffer;
     if (actual.length !== expected.length) return false;
     return timingSafeEqual(actual, expected);

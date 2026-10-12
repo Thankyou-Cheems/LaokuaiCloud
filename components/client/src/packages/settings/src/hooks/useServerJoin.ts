@@ -30,7 +30,7 @@ export type FetchInfo = {
   members: string;
   lanOpen?: boolean;
   identityTiers?: ("account" | "local")[];
-  joinPolicy?: "invite" | "request" | "open";
+  joinPolicy?: "invite" | "request" | "open" | "password";
 };
 
 /**
@@ -136,6 +136,7 @@ export type JoinOutcome = (
   | { ok: false; kind: "approval_pending"; message: string }
   /** The server wants a code, or the one given was wrong. */
   | { ok: false; kind: "invite_required"; message: string }
+  | { ok: false; kind: "password_required"; message: string }
   /** The server takes accounts only, and this join went without one. */
   | { ok: false; kind: "account_required"; message: string }
   /** Already a member. The caller has been switched to it. */
@@ -148,6 +149,8 @@ export type JoinOutcome = (
  */
 function describeJoinErrorRaw(error: { error: string; message?: string }): JoinOutcome {
   switch (error.error) {
+    case "password_required":
+      return {ok: false, kind: "password_required", message: error.message || "请输入正确的社区共享密码。"};
     case "approval_pending":
       return {
         ok: false,
@@ -232,6 +235,7 @@ export interface JoinRequest {
   /** From /info, when it answered. Supplies the name and the id we store. */
   info?: FetchInfo | null;
   inviteCode?: string;
+  communityPassword?: string;
   note?: string;
 }
 
@@ -246,7 +250,7 @@ export function useServerJoin() {
   const [joiningHost, setJoiningHost] = useState<string | null>(null);
 
   const join = useCallback(
-    async ({ host, info, inviteCode, note }: JoinRequest): Promise<JoinOutcome> => {
+    async ({ host, info, inviteCode, communityPassword, note }: JoinRequest): Promise<JoinOutcome> => {
       const normalizedHost = normalizeHost(host);
       if (!normalizedHost) {
         return { ok: false, kind: "error", message: "No address" };
@@ -285,6 +289,7 @@ export function useServerJoin() {
           host: normalizedHost,
           nickname,
           inviteCode: code.length > 0 ? code : undefined,
+          communityPassword,
           note: note && note.trim().length > 0 ? note.trim() : undefined,
         });
 
@@ -316,7 +321,7 @@ export function useServerJoin() {
           {
             name: info?.name || normalizedHost,
             host: normalizedHost,
-            serverId: info?.serverId,
+            serverId: result.joinInfo.serverId || info?.serverId,
             // Explicitly absent rather than left alone: getting in is what ends
             // the wait, and a stale mark would keep the rail saying otherwise.
             approvalRequestedAt: undefined,

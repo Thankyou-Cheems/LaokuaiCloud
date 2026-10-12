@@ -36,6 +36,17 @@ function assertPatchedEasyTierPayload(root, config) {
   const provenance = JSON.parse(fs.readFileSync(path.resolve(root, "../easytier/provenance.json"), "utf8"));
   assertPrivatePayloadContract(provenance);
   const digest = bytes => crypto.createHash("sha256").update(bytes).digest("hex");
+  if (provenance.payload.approvalScope === "user-authorized-friend-beta-with-corresponding-source") {
+    const offer = JSON.parse(fs.readFileSync(path.join(root, "build/legal/SOURCE-OFFER.json"), "utf8"));
+    assert.equal(offer.version, JSON.parse(fs.readFileSync(path.join(root,"package.json"),"utf8")).version);
+    assert.match(offer.sourceCommit, /^[a-f0-9]{40}$/);
+    assert.equal(offer.publicReleaseApproved, false);
+    assert.deepEqual(offer.files.map(f=>f.file).sort(), ["Client-Voice-Server-SFU-Corresponding-Source.zip", "EasyTier-Corresponding-Source.zip", "EasyTier-Build-Tools.zip", "EasyTier-Build-Tools-Fix.zip", "UI-Preferred-Source.zip", "RNNoise-Preferred-Source.zip"].sort());
+    for (const file of offer.files) {
+      const bytes=fs.readFileSync(path.join(root,"build/recipient-source",file.file));
+      assert.equal(bytes.length,file.bytes);assert.equal(digest(bytes),file.sha256);
+    }
+  }
   const readOwned = relative => {
     assert.ok(typeof relative === "string" && !path.isAbsolute(relative));
     const absolute = path.resolve(root, relative);

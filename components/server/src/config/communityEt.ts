@@ -8,7 +8,7 @@ import {CommunityTcpRpcTransport, type RpcDialer} from '../easytier/communityRpc
 
 type FixedService = Omit<CommunityGrantFactoryOptions['service'], 'enabled' | 'credentialWritesEnabled' | 'runtimeGeneration'>;
 export interface CommunityEtDeployment {
-  schemaVersion: 1; approved: true; expiresAtUnixMs: number; credentialWritesApproved: boolean;
+  schemaVersion: 1 | 2; approved: true; expiresAtUnixMs: number | null; credentialWritesApproved: boolean;
   trustedServerOrigin: string; nativeRuntimeGeneration: number;
   service: FixedService; provider: CommunityGrantFactoryOptions['provider'];
   /** Pre-existing owner-approved local socket. This code never creates a proxy. */
@@ -20,7 +20,9 @@ export function parseCommunityEtDeployment(value: unknown, nowMs = Date.now()): 
   exact<CommunityEtDeployment>(value, ['schemaVersion', 'approved', 'expiresAtUnixMs', 'credentialWritesApproved',
     'trustedServerOrigin', 'nativeRuntimeGeneration', 'service', 'provider', 'managementSocketPath'], 'invalid-community-et-deployment');
   const c = value;
-  if (c.schemaVersion !== 1 || c.approved !== true || !Number.isSafeInteger(c.expiresAtUnixMs) || c.expiresAtUnixMs <= nowMs ||
+  const lifetimeValid = c.schemaVersion === 2 ? c.expiresAtUnixMs === null :
+    c.schemaVersion === 1 && typeof c.expiresAtUnixMs === 'number' && Number.isSafeInteger(c.expiresAtUnixMs) && c.expiresAtUnixMs > nowMs;
+  if (!lifetimeValid || c.approved !== true ||
       typeof c.credentialWritesApproved !== 'boolean' || !positive(c.nativeRuntimeGeneration) ||
       (c.managementSocketPath !== null && c.managementSocketPath !== PUBLIC_MANAGEMENT_SOCKET)) fail('invalid-community-et-deployment');
   const origin = new URL(c.trustedServerOrigin);
@@ -30,7 +32,7 @@ export function parseCommunityEtDeployment(value: unknown, nowMs = Date.now()): 
     'virtualIpPool', 'authority', 'ttlSeconds'], 'invalid-community-et-deployment');
   const s = c.service;
   if (!communityIdentity(s.serverInstanceId) || !communityIdentity(s.communityId) || ![s.networkName, s.bootstrapProfileId].every(id) || !positive(s.networkRevision) ||
-      !positive(s.ttlSeconds) || s.ttlSeconds > 300 || !safeArray(s.virtualIpPool, 64) || s.virtualIpPool.length < 1 ||
+      !positive(s.ttlSeconds) || s.ttlSeconds > 300 || !safeArray(s.virtualIpPool, 254) || s.virtualIpPool.length < 1 ||
       !s.virtualIpPool.every(privateIpv4) || new Set(s.virtualIpPool).size !== s.virtualIpPool.length) fail('invalid-community-et-deployment');
   exact(s.authority, ['adminInstanceId', 'upstreamCommit', 'groups'], 'invalid-community-et-deployment');
   exact(c.provider, ['adminInstanceId', 'expectedVersion', 'endpoint'], 'invalid-community-et-deployment');

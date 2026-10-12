@@ -10,6 +10,7 @@ export type JoinServerOnceRequest = {
   host: string;
   nickname?: string;
   inviteCode?: string;
+  communityPassword?: string;
   /**
    * A line for whoever decides, on a server that admits people by request. Sent
    * with the assertion, because the challenge binds what must not change.
@@ -18,6 +19,7 @@ export type JoinServerOnceRequest = {
 };
 
 export type JoinServerOnceSuccess = {
+  serverId?: string;
   accessToken: string;
   /** Reads uploads on this server, and nothing else. GRYT-740. */
   fileToken?: string;
@@ -232,7 +234,7 @@ async function attemptJoin(
       try {
         const { certificate, assertion, tier, link } = await answerChallenge(req.host, challenge);
         console.log(`[JoinServer] Answering as ${tier} identity`);
-        socket.emit("server:verify", { certificate, assertion, link, note: req.note });
+        socket.emit("server:verify", { certificate, assertion, link, note: req.note, ...(req.communityPassword !== undefined ? {communityPassword: req.communityPassword} : {}) });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         console.error(`[JoinServer] Failed to answer challenge for ${req.host}:`, msg);

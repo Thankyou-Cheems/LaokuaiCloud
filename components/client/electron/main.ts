@@ -1,5 +1,6 @@
 import { createRequire } from "node:module";
 import {LocalDiagnosticWriter} from "./localDiagnostics";
+import {approvePublicCommunity,publicCommunityMode} from "./publicCommunityProvisioning";
 
 import { execFile, spawn } from "child_process";
 import {
@@ -4685,7 +4686,9 @@ if (!gotSingleInstanceLock) {
       registerEasyTierCommunityIpc(applicationIpc, easyTierCommunities, event =>
           !!mainWindow && !mainWindow.isDestroyed() && event.senderFrame === mainWindow.webContents.mainFrame,
           LAOKUAI_PREVIEW || UI_ACCEPTANCE_MODE ? async () => ({ ready: false }) : easyTierProduction.prepareRuntime,
-          LAOKUAI_PREVIEW || UI_ACCEPTANCE_MODE ? undefined : value => easyTierGrants.setAuthenticatedSession(value), LAOKUAI_PREVIEW);
+          LAOKUAI_PREVIEW || UI_ACCEPTANCE_MODE ? undefined : value => easyTierGrants.setAuthenticatedSession(value), LAOKUAI_PREVIEW,
+          IS_LAOKUAI && !UI_ACCEPTANCE_MODE ? {mode:()=>publicCommunityMode(easyTierProductRoot(app.getPath("userData"))),
+            approve:serverId=>approvePublicCommunity(easyTierProductRoot(app.getPath("userData")),serverId,mainWindow??undefined)} : undefined);
       applicationIpc.on("laokuai-local-diagnostic", (event, value: unknown) => {
         if (mainWindow && !mainWindow.isDestroyed() && event.senderFrame === mainWindow.webContents.mainFrame) localDiagnostics?.record(value);
       });

@@ -145,7 +145,7 @@ export class FixedInstanceCredentialProvider implements CredentialProvider {
           peerIdentityType: pbGetNumber(c, 14), remotePublicKeyB64: key.toString('base64')});
       }
     }
-    if (connections.length > 64) fail('provider-observation-mismatch'); return connections;
+    if (connections.length > 4096) fail('provider-observation-mismatch'); return connections;
   }
   async #routes(): Promise<ProviderPeerObservation['routes']> {
     const reply = await this.#wire.call({service:'PeerManageRpc', index: 3}, pbBytes(1, this.#select(this.#config.adminInstanceId)));
@@ -158,7 +158,7 @@ export class FixedInstanceCredentialProvider implements CredentialProvider {
       if (!privateIpv4(virtualIp)) continue; // No DHCP/public-address claim in this contract.
       routes.push({peerId: pbGetNumber(r, 1), nativeInstanceId: pbGetString(r, 8), virtualIp, nextHopPeerId: pbGetNumber(r, 3)});
     }
-    if (routes.length > 64) fail('provider-observation-mismatch'); return routes;
+    if (routes.length > 254) fail('provider-observation-mismatch'); return routes;
   }
   async observeAuthenticatedPeer(request: {instance: string; expectedProviderGeneration: number; scope: CommunityGrantScope}) {
     this.#select(request.instance);

@@ -9,9 +9,11 @@ interface IpcPort {
 /** Only the trusted top-level renderer may request community leases. */
 export function registerEasyTierCommunityIpc(ipc: IpcPort, manager: EasyTierCommunityManager, trusted: (event: IpcEvent) => boolean,
   prepareRuntime: () => Promise<{ ready: boolean }> = async () => ({ ready: false }),
-  authenticate?: (value: unknown) => Promise<{serverId: string; changed: boolean; authenticated: boolean}>, previewDisabled = false): () => void {
+  authenticate?: (value: unknown) => Promise<{serverId: string; changed: boolean; authenticated: boolean}>, previewDisabled = false,
+  provisioning?: {mode():Promise<"normal"|"needs-consent">;approve(serverId:string):Promise<{accepted:boolean;reason?:"needs-permission"}>}): () => void {
   const handlers: Record<string, (value: unknown) => unknown> = {
-    "et-community-mode": () => previewDisabled ? "preview-disabled" : "normal",
+    "et-community-mode": () => previewDisabled ? "preview-disabled" : provisioning?.mode() ?? "normal",
+    "et-community-consent": value => {if(previewDisabled||!provisioning||!validEasyTierId(value))throw Error("community-consent-unavailable");return provisioning.approve(value);},
     "et-community-connect": value => { if (!validEasyTierLease(value)) throw new Error("invalid-community-lease"); return manager.connect(value as EasyTierCommunityLease); },
     "et-community-disconnect": value => { if (!validEasyTierLease(value)) throw new Error("invalid-community-lease"); return manager.disconnect(value as EasyTierCommunityLease); },
     "et-community-disconnect-all": value => { if (!validEasyTierId(value)) throw new Error("invalid-community-id"); return manager.disconnectCommunity(value); },

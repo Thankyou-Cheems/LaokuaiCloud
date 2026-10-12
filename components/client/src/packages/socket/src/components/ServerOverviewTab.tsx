@@ -10,6 +10,7 @@ import type { Channel } from "@/settings/src/types/server";
 
 import { PiCameraFill, PiTrashFill } from "../../../../lib/icons";
 import { useServerPermissions } from "../hooks/usePermissions";
+import {CommunityPasswordSettings} from "./CommunityPasswordSettings";
 import { ConfirmDialog } from "./ConfirmDialog";
 
 type ProfanityMode = "off" | "flag" | "censor" | "block";
@@ -21,14 +22,14 @@ function normalizeSpamSensitivity(v: unknown): SpamSensitivity {
 }
 
 /** Mirrors the server's `JoinPolicy`. `approval` exists there as room to grow. */
-type JoinPolicy = "invite" | "request" | "open";
+type JoinPolicy = "invite" | "request" | "open" | "password";
 
 /**
  * Anything unrecognised reads as `invite`, matching the server's own
  * normaliseJoinPolicy. A newer value must leave a server harder to get into.
  */
 function normalizeJoinPolicy(v: unknown): JoinPolicy {
-  return v === "open" ? "open" : v === "request" ? "request" : "invite";
+  return v === "password" ? "password" : v === "open" ? "open" : v === "request" ? "request" : "invite";
 }
 type CensorStyle = "grawlix" | "emoji" | "asterisks" | "block" | "hearts";
 
@@ -441,6 +442,7 @@ export function ServerOverviewTab({
 
   return (
     <div className="flex flex-col gap-4">
+      <CommunityPasswordSettings host={host} socket={socket} accessToken={effectiveAccessToken} canEdit={canEdit}/>
       <span className="text-sm">
         {canEdit
           ? socketI18n.t("socketFull.serverOverviewTab_2d5a0f2556")
@@ -778,6 +780,7 @@ export function ServerOverviewTab({
           }}
           disabled={!canEdit}
           options={[
+            {label: "共享密码", value: "password"},
             { label: socketI18n.t("socketFull.serverOverviewTab_0e56106ca5"), value: "invite" },
             { label: socketI18n.t("socketFull.serverOverviewTab_bfe4da3545"), value: "request" },
             { label: socketI18n.t("socketFull.serverOverviewTab_1dcb6d8cc9"), value: "open" },

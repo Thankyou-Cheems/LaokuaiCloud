@@ -2895,5 +2895,21 @@
     "firstDeviceScopePassed": true,
     "credentialAbsentInProviderListConfirmed": true,
     "revokeRpcDispatchIndependentlyObserved": false
+  },
+  "friendBetaPreparation": {
+    "version": "1.13.22-laokuai.beta.20261012.1",
+    "scope": "complete-user-authorized-friend-test-package",
+    "sourceCommit": null,
+    "passwordConfiguredByHuman": false,
+    "passwordNeverImported": true,
+    "newMemberPasswordGateChecks": 11,
+    "adminPasswordHandlerChecks": 4,
+    "nativeConsentMockChecks": 6,
+    "persistentProxyPureChecks": 19,
+    "clientAndServerTypecheckPassed": true,
+    "publicReleaseApproved": false,
+    "privateNetworkTouched": false,
+    "dualDeviceGameAcceptance": false,
+    "status": "source-checked-package-pending"
   }
 }

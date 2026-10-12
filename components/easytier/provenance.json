@@ -65,7 +65,7 @@
     }
   },
   "privateBuild": {
-    "status": "modern-standard-static-compiled-independent-audited-license-and-activation-pending",
+    "status": "verified",
     "sourceCommit": "089b6182c603c8ab60044b673effe0cf614cc28a",
     "sourceTree": "25be11e0c9460bce1330cbd7964e4d6561f0bc14",
     "patchSetSha256": "490ffd127cc7c6a9d0d622ff161fe2086536e59be8b8281cf87e2f00e314aed5",
@@ -111,7 +111,7 @@
     "cliCompilationPassed": true,
     "coreExecuted": false,
     "cliExecuted": false,
-    "licensesAndNoticesVerified": false,
+    "licensesAndNoticesVerified": true,
     "trackedReceiptPath": "receipts/modern-static-build.json",
     "trackedRuntimeInputPath": "receipts/modern-static-runtime-input.json",
     "historicalProfileJsonAtBuildFreezeSha256": "8904d6aff6c819a6d3bc03700467c7878199a68c57c9771905b7c90ec8c805d7",
@@ -119,9 +119,11 @@
     "actualBuildInputsEvidence": "Native source089b6182, unchanged Cargo.lock, exact17 features and +crt-static in hash-verified producer receipt; finalized profile e67 is an integration attestation"
   },
   "payload": {
-    "kind": "pending-private-patched-windows",
-    "status": "modern-static-four-file-input-license-and-activation-pending",
-    "approved": false
+    "kind": "private-patched-windows",
+    "status": "reviewed-hash-verified",
+    "approved": true,
+    "approvalScope": "user-authorized-friend-beta-with-corresponding-source",
+    "publicReleaseApproved": false
   },
   "acceptance": {
     "existingPrivateEtCompatibility": false,
@@ -333,5 +335,15 @@
       "codePatchSha256": "eb30fab089422c82256a8c8db9cb7a15d3c41b8b972a05729f63ebfbac7e8cad",
       "previousSourceCommit": "1a44fb98e2429b050d69f36a1fee47eadf26caf5"
     }
-  ]
+  ],
+  "friendBetaReview": {
+    "nativeSourceCommit": "089b6182c603c8ab60044b673effe0cf614cc28a",
+    "noModifiedVcltlOrYyThunksLinked": true,
+    "originalNativeNoticesAndSupplementaryCasesVerified": true,
+    "recipientRelinkReceipt": "release/acceptance/recipient-modified-library-relink-pass.json",
+    "correspondingSourceRequiredWithBinary": true,
+    "platformTerms": "release/source-materials/VS2022-COMMUNITY-TERMS.txt",
+    "platformSourceOrRawLibrariesRedistributed": false,
+    "fullDeviceOrPhysicalDirectAcceptance": false
+  }
 }

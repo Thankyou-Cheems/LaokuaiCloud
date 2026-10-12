@@ -17,6 +17,7 @@ export interface InviteJoinRequest {
   code: string;
   info: FetchInfo | null;
   note?: string;
+  communityPassword?: string;
 }
 
 interface InviteAcceptModalProps {
@@ -56,9 +57,13 @@ export function InviteAcceptModal({
   const { t: tr } = useTranslation();
   const host = invite?.host ?? "";
   const linkCode = invite?.code ?? "";
+  const inviteClosed = invite === null;
 
   const [lookup, setLookup] = useState<Lookup>({ kind: "loading" });
   const [typedCode, setTypedCode] = useState("");
+  const [communityPassword, setCommunityPassword] = useState("");
+  const [passwordRequired, setPasswordRequired] = useState(false);
+  useEffect(()=>{setCommunityPassword("");setPasswordRequired(false);},[host, linkCode, inviteClosed]);
   const [note, setNote] = useState("");
   const [joining, setJoining] = useState(false);
   const [joinError, setJoinError] = useState("");
@@ -107,13 +112,14 @@ export function InviteAcceptModal({
     setJoining(true);
     setJoinError(""); setJoinErrorSource(null); setJoinErrorKey(undefined);
     try {
-      const outcome = await onJoin({ code: view.code, info, note: note.trim() || undefined });
+      const outcome = await onJoin({ code: view.code, info, note: note.trim() || undefined, communityPassword: communityPassword || undefined });
       if (outcome.ok) return;
       if (outcome.kind === "approval_pending") {
         setAwaitingApproval(true);
         return;
       }
       if (outcome.kind === "invite_required") setInviteRequired(true);
+      if (outcome.kind === "password_required") setPasswordRequired(true);
       if (outcome.kind === "account_required") setAccountRequired(true);
       setJoinError(outcome.message); setJoinErrorSource(outcome); setJoinErrorKey(outcome.messageKey);
     } finally {
@@ -136,6 +142,10 @@ export function InviteAcceptModal({
       <Dialog.Portal>
         <Dialog.Backdrop />
         <Dialog.Popup className="w-[26.25rem]">
+          {(passwordRequired || info?.joinPolicy === "password") && <div className="flex flex-col gap-2">
+            <label>社区共享密码 · {host}</label>
+            <TextField type="password" autoComplete="off" aria-label="社区共享密码" value={communityPassword} maxLength={128} disabled={joining} onChange={e=>setCommunityPassword(e.target.value)}/>
+          </div>}
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">

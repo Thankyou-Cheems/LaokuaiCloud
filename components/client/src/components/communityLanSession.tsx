@@ -1,7 +1,7 @@
 import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from "react";
 
-import { useServerManagement, useSockets } from "@/socket";
 import { getServerAccessToken } from "@/common";
+import { useServerManagement, useSockets } from "@/socket";
 
 import { publishCommunityLanState as publish, useEasyTierCommunityState } from "../lib/communityLanState";
 import { easyTierCommunityAction, EasyTierCommunitySubscriptions } from "../lib/easyTierCommunitySubscriptions";
@@ -14,9 +14,10 @@ export function CommunityLanSession({ children }: { children?: ReactNode }) {
   const { servers, currentlyViewingServer } = useServerManagement();
   const { sockets, serverConnectionStatus, serverDetailsList } = useSockets();
   const [previewDisabled, setPreviewDisabled] = useState(false);
+  const [consentNeeded, setConsentNeeded] = useState(false);
   useEffect(() => {
     let retired = false;
-    void window.easyTierCommunity?.getRuntimeMode?.().then(mode => {if (!retired) setPreviewDisabled(mode === "preview-disabled");}).catch(() => {});
+    void window.easyTierCommunity?.getRuntimeMode?.().then(mode => {if (!retired) {setPreviewDisabled(mode === "preview-disabled");setConsentNeeded(mode === "needs-consent");}}).catch(() => {});
     return () => {retired = true;};
   }, []);
   const [enabled, setEnabled] = useState(() => {
@@ -79,6 +80,16 @@ export function CommunityLanSession({ children }: { children?: ReactNode }) {
     return () => { retired = true; };
   }, [enabled]);
   const serverId = currentlyViewingServer?.serverId;
+  const publicConsentNeeded = consentNeeded && currentlyViewingServer?.host === "voice.ruikang.wang";
+  const consent = async () => {
+    if (!serverId || !window.easyTierCommunity?.approveCommunity) return;
+    try {
+      const result = await window.easyTierCommunity.approveCommunity(serverId);
+      if (!result.accepted) return;
+      setConsentNeeded(false);setEnabled(true);setOperationFailed(false);setPrepareFailed(false);
+      authInputs.current.delete(serverId);authSync.current?.();subscription.current?.retry(serverId);
+    } catch {setOperationFailed(true);}
+  };
   const state = useEasyTierCommunityState(serverId);
   const action = easyTierCommunityAction(state, enabled);
   useEffect(() => { setPrepareFailed(false); }, [serverId]);
@@ -92,7 +103,9 @@ export function CommunityLanSession({ children }: { children?: ReactNode }) {
     } catch { setPrepareFailed(true); }
     finally { setPreparing(false); }
   };
-  const shownAction = previewDisabled ? { ...action, label: "测试模式：联机未启用", kind: "disabled" as const,
+  const shownAction = publicConsentNeeded ? { ...action, label: "待本人授权", kind: "attention" as const,
+    message: "首次联机请以同一 Windows 用户的管理员权限启动，再点击开启联机并确认本机授权。设备使用自己的登录身份与短期凭据。", prepare: false, retry: false }
+    : previewDisabled ? { ...action, label: "测试模式：联机未启用", kind: "disabled" as const,
     message: "本轮测试预览未启用联机。联机入口已禁用，不会尝试连接。", prepare: false, retry: false }
     : operationFailed || subscriptionFailed ? { ...action, label: "组件不可用", kind: "error" as const,
     message: "联机组件操作未完成，请重试。社区与语音鉴权不依赖此组件，请分别查看社区和频道状态。", prepare: false, retry: true }
@@ -106,8 +119,8 @@ export function CommunityLanSession({ children }: { children?: ReactNode }) {
     ? "社区服务已连接" : connection === "connecting" || connection === "reconnecting" ? "社区服务连接中" : "社区服务未连接";
   const channelsReceived = Boolean(host && Array.isArray(serverDetailsList[host]?.channels));
   return <CommunityLanControlsContext.Provider value={window.easyTierCommunity && serverId ? {
-    enabled: previewDisabled ? false : enabled, toggleDisabled: previewDisabled, preparing, action: shownAction, communityLabel, channelsReceived,
-    onToggle: () => setEnabled(value => !value), onPrepare: () => void prepare(),
+    enabled: previewDisabled || publicConsentNeeded ? false : enabled, toggleDisabled: previewDisabled, preparing, action: shownAction, communityLabel, channelsReceived,
+    onToggle: () => {if(publicConsentNeeded)void consent();else setEnabled(value => !value);}, onPrepare: () => void prepare(),
     onRetry: () => { authInputs.current.delete(serverId); authSync.current?.(); subscription.current?.retry(serverId); },
   } : null}>{children}</CommunityLanControlsContext.Provider>;
 }

@@ -11194,7 +11194,8 @@
   },
   "historicalModifiedCrtLinked": false,
   "actualRecipientSourceDelivered": false,
-  "relinkAccepted": false,
+  "relinkAccepted": true,
   "publicDistributionApproved": false,
-  "sourceLicenseReviewComplete": false
+  "sourceLicenseReviewComplete": true,
+  "friendBetaSourceIncludedRequired": true
 }

@@ -101,7 +101,8 @@ async function initializeCommunityEt(): Promise<void> {
   try {
     const deployment = await readCommunityEtDeployment(process.env.DATA_DIR || "./data");
     if (!deployment) return;
-    const enabled = () => deployment.approved === true && Date.now() < deployment.expiresAtUnixMs;
+    const enabled = () => deployment.approved === true &&
+      (deployment.schemaVersion === 2 ? deployment.expiresAtUnixMs === null : Date.now() < (deployment.expiresAtUnixMs ?? 0));
     const factory = createCommunityGrantFactory({db: getSqliteDb(), serverSecret: getJwtSecret(),
       trustedServerOrigin: deployment.trustedServerOrigin,
       existingAuth: {verifyAccessToken, getServerConfig, checkSessionAllowed},

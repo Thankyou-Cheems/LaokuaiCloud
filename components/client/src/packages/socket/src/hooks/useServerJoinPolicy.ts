@@ -1,10 +1,10 @@
 import { useSyncExternalStore } from "react";
 
-export type JoinPolicy = "invite" | "request" | "open";
+export type JoinPolicy = "invite" | "request" | "open" | "password";
 
 /** Only the three words the server sends. Anything else is unknown, not open. */
 export function readJoinPolicy(value: unknown): JoinPolicy | null {
-  return value === "invite" || value === "request" || value === "open" ? value : null;
+  return value === "invite" || value === "request" || value === "open" || value === "password" ? value : null;
 }
 
 /* From `server:info`, which every server sends on connect and again after a settings change. */

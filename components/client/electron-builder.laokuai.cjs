@@ -5,12 +5,12 @@ config.appId = "local.laokuai.chat";
 config.productName = "唠蒯云";
 config.extraMetadata = { name: "laokuai-chat", productName: config.productName,
   grytI18nTest: true, grytLaokuai: true };
-config.directories.output = "release-laokuai-opus20-1";
+config.directories.output = "release-laokuai-beta-20261012";
 config.win.icon = "private-brand/icon.ico";
 config.win.executableName = "唠蒯云";
 // The i18n test variant replaces win; restore the real private product's sidecar.
 config.win.extraResources = require("./scripts/community-easytier-resources.cjs");
-config.portable.artifactName = "唠蒯云-${version}-zh-CN-win-x64-slim-portable.exe";
+config.portable.artifactName = "唠蒯云-${version}-zh-CN-win-x64-portable.exe";
 config.extraResources = config.extraResources.filter(entry => entry.to !== "legal/I18N-PORTABLE-TEST.md");
 config.extraResources = config.extraResources.map(entry => entry.to === "icon.png"
   ? { from: "private-brand/icon.png", to: "icon.png" } : entry);
@@ -33,6 +33,7 @@ config.extraResources.push(
   { from: "node_modules/@gryt/voice/third-party/Signalsmith-DSP-LICENSE.txt", to: "legal/Signalsmith-DSP-LICENSE.txt" },
   { from: "node_modules/@gryt/voice/third-party/receive-rnn/licenses", to: "legal/receive-rnn" },
 );
+config.extraResources.push({from:"release/BETA-NOTICES.md",to:"legal/BETA-NOTICES.md"}, {from:"build/legal/SOURCE-OFFER.json",to:"legal/SOURCE-OFFER.json"});
 config.win.signtoolOptions.sign = async () => { console.log("Local LaoKuai build: unsigned artifact"); };
 const prepare = config.beforeBuild;
 config.beforeBuild = async (...args) => {

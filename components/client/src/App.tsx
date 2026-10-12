@@ -111,9 +111,9 @@ export function App() {
 
   // A link's code goes with the join even on an open server, so a role bound to it is still given.
   const handleJoinInvite = useCallback(
-    async ({ code, info, note }: InviteJoinRequest): Promise<JoinOutcome> => {
+    async ({ code, info, note, communityPassword }: InviteJoinRequest): Promise<JoinOutcome> => {
       if (!pendingInvite) return { ok: false, kind: "error", message: "The invite is gone.", messageKey: "shellThird.inviteGone" };
-      const outcome = await join({ host: pendingInvite.host, info, inviteCode: code, note });
+      const outcome = await join({ host: pendingInvite.host, info, inviteCode: code, note, communityPassword });
       if (outcome.ok || outcome.kind === "already_member") forgetInvite();
       return outcome;
     },

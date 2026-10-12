@@ -44,7 +44,8 @@ export interface EasyTierCommunityLease {
 }
 
 export interface EasyTierCommunityAPI {
-  getRuntimeMode?(): Promise<"normal" | "preview-disabled">;
+  getRuntimeMode?(): Promise<"normal" | "preview-disabled" | "needs-consent">;
+  approveCommunity?(serverId: string): Promise<{accepted: boolean; reason?: "needs-permission"}>;
   connect(lease: EasyTierCommunityLease): Promise<EasyTierCommunityState>;
   disconnect(lease: EasyTierCommunityLease): Promise<EasyTierCommunityState>;
   disconnectCommunity(serverId: string): Promise<EasyTierCommunityState>;

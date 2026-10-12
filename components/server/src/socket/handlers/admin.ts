@@ -50,6 +50,7 @@ import {
   normalizeBotName,
   normalizeBotDescription,
   getUserByGrytId,
+  hashServerPassword,
 } from "../../db";
 import { deleteFilesNow } from "../../jobs/mediaSweep";
 import { checkRateLimit, RateLimitRule } from "../../utils/rateLimiter";
@@ -241,6 +242,25 @@ export function registerAdminHandlers(ctx: HandlerContext): EventHandlerMap {
   }
 
   return {
+    'server:password:set': async (payload: {accessToken: string; password?: string}) => {
+      const rl = rlCheck("server:password:set", ctx, RL_SETTINGS);
+      if (!rl.allowed) { emitRateLimited(ctx, rl); return; }
+      const auth = await requireAuth(socket, payload, {permission: "manage_server"});
+      if (!auth) return;
+      if (typeof payload?.password !== "string" || payload.password.length === 0 || payload.password.length > 128) {
+        socket.emit("server:error", {error: "invalid_password", message: "密码长度须为 1–128 个字符。"}); return;
+      }
+      try {
+        const hashed = await hashServerPassword(payload.password);
+        await updateServerConfig({passwordSalt: hashed.saltB64, passwordHash: hashed.hashB64, passwordAlgo: hashed.algo, joinPolicy: "password", lanOpen: false});
+        await insertServerAudit({actorServerUserId: auth.tokenPayload.serverUserId, action: "settings_update", target: null, meta: {communityPasswordConfigured: true}});
+        broadcastServerUiUpdate("settings");
+        socket.emit("server:password:updated", {configured: true});
+      } catch {
+        consola.error("Community password setup failed");
+        socket.emit("server:error", {error: "password_setup_failed", message: "共享密码设置未完成，请重试。"});
+      }
+    },
     'server:settings:get': async () => {
       try {
         const client = clientsInfo[clientId];
