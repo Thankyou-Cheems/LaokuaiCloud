@@ -1,28 +1,37 @@
-import { useEffect, useRef, useState } from "react";
+import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from "react";
 
-import { useServerManagement } from "@/socket";
+import { useServerManagement, useSockets } from "@/socket";
 
 import { publishCommunityLanState as publish, useEasyTierCommunityState } from "../lib/communityLanState";
 import { easyTierCommunityAction, EasyTierCommunitySubscriptions } from "../lib/easyTierCommunitySubscriptions";
+import { CommunityLanStatusControl, type CommunityLanStatusControlProps } from "./CommunityLanStatusControl";
 
-export function CommunityLanSession() {
+const CommunityLanControlsContext = createContext<CommunityLanStatusControlProps | null>(null);
+
+/** One app-wide membership owner, independent of viewing server, rooms and voice. */
+export function CommunityLanSession({ children }: { children?: ReactNode }) {
   const { servers, currentlyViewingServer } = useServerManagement();
+  const { sockets, serverConnectionStatus, serverDetailsList } = useSockets();
   const [enabled, setEnabled] = useState(() => {
     try { return localStorage.getItem("community-lan-enabled") !== "off"; } catch { return true; }
   });
   const [preparing, setPreparing] = useState(false);
   const [prepareFailed, setPrepareFailed] = useState(false);
+  const [operationFailed, setOperationFailed] = useState(false);
+  const [subscriptionFailed, setSubscriptionFailed] = useState(false);
   const subscription = useRef<EasyTierCommunitySubscriptions | null>(null);
   // Persist through signaling reconnects. Pending approval entries are not memberships.
   const key = JSON.stringify([...new Set(Object.values(servers).filter(s => !s.approvalRequestedAt && s.serverId).map(s => s.serverId!))].sort());
   useEffect(() => {
     const api = window.easyTierCommunity;
     if (!api) return;
-    const owner = new EasyTierCommunitySubscriptions(api, publish);
+    const observed = (state: Parameters<typeof publish>[0]) => { publish(state); setOperationFailed(false); };
+    const owner = new EasyTierCommunitySubscriptions(api, observed, () => setOperationFailed(true));
     subscription.current = owner;
-    const unlisten = api.onState(publish);
+    let unlisten: () => void = () => undefined;
+    try { unlisten = api.onState(observed); } catch { setSubscriptionFailed(true); }
     owner.reconcile(JSON.parse(key) as string[]);
-    return () => { unlisten(); owner.dispose(); subscription.current = null; };
+    return () => { try { unlisten(); } catch { /* Unavailable ET must not tear down community/voice. */ } owner.dispose(); subscription.current = null; };
     // One owner for the application. Membership changes reconcile below, never in cleanup.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -30,14 +39,18 @@ export function CommunityLanSession() {
   useEffect(() => {
     const api = window.easyTierCommunity;
     if (!api) return;
-    void api.setEnabled(enabled).then(values => values.forEach(publish), () => undefined);
+    let retired = false;
+    try { void api.setEnabled(enabled).then(values => { if (!retired) values.forEach(publish); }).catch(() => { if (!retired) setOperationFailed(true); }); }
+    catch { setOperationFailed(true); }
     try { localStorage.setItem("community-lan-enabled", enabled ? "on" : "off"); } catch { /* Preference storage does not affect voice. */ }
+    return () => { retired = true; };
   }, [enabled]);
   const serverId = currentlyViewingServer?.serverId;
   const state = useEasyTierCommunityState(serverId);
-  if (!window.easyTierCommunity || !serverId) return null;
-  const action = easyTierCommunityAction(state);
+  const action = easyTierCommunityAction(state, enabled);
+  useEffect(() => { setPrepareFailed(false); }, [serverId]);
   const prepare = async () => {
+    if (!serverId || !window.easyTierCommunity) return;
     setPreparing(true); setPrepareFailed(false);
     try {
       const result = await window.easyTierCommunity!.prepareRuntime();
@@ -46,12 +59,25 @@ export function CommunityLanSession() {
     } catch { setPrepareFailed(true); }
     finally { setPreparing(false); }
   };
-  return <aside aria-label="社区联机" className="fixed bottom-3 left-3 z-30 max-w-sm rounded-lg bg-gryt-background p-3 text-sm shadow">
-    <p role="status">{preparing ? "正在准备联机组件…" : prepareFailed ? "组件下载未完成，请检查网络后重试。语音聊天可继续使用。" : action.message}</p>
-    <div className="mt-2 flex gap-3">
-      <button type="button" onClick={() => setEnabled(value => !value)}>{enabled ? "关闭联机" : "开启联机"}</button>
-      {enabled && action.prepare && <button type="button" disabled={preparing} onClick={() => void prepare()}>准备组件</button>}
-      {enabled && action.retry && !action.prepare && <button type="button" onClick={() => subscription.current?.retry(serverId)}>重试</button>}
-    </div>
-  </aside>;
+  const shownAction = operationFailed || subscriptionFailed ? { ...action, label: "组件不可用", kind: "error" as const,
+    message: "联机组件操作未完成，请重试。社区与语音鉴权不依赖此组件，请分别查看社区和频道状态。", prepare: false, retry: true }
+    : preparing ? { ...action, label: "准备中", kind: "pending" as const, message: "正在准备联机组件…联机与社区语音独立。" }
+    : prepareFailed && enabled ? { ...action, label: "准备失败", kind: "error" as const,
+      message: "组件下载未完成，请检查网络后重试。联机与社区语音独立。", prepare: true }
+    : action;
+  const host = currentlyViewingServer?.host;
+  const connection = host ? serverConnectionStatus[host] : undefined;
+  const communityLabel = connection === "refused" ? "社区认证或权限被拒绝" : host && sockets[host]?.connected
+    ? "社区服务已连接" : connection === "connecting" || connection === "reconnecting" ? "社区服务连接中" : "社区服务未连接";
+  const channelsReceived = Boolean(host && Array.isArray(serverDetailsList[host]?.channels));
+  return <CommunityLanControlsContext.Provider value={window.easyTierCommunity && serverId ? {
+    enabled, preparing, action: shownAction, communityLabel, channelsReceived,
+    onToggle: () => setEnabled(value => !value), onPrepare: () => void prepare(),
+    onRetry: () => subscription.current?.retry(serverId),
+  } : null}>{children}</CommunityLanControlsContext.Provider>;
+}
+
+export function CommunityLanControls() {
+  const controls = useContext(CommunityLanControlsContext);
+  return controls ? <CommunityLanStatusControl {...controls} /> : null;
 }

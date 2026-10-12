@@ -141,8 +141,7 @@ export function App() {
     <ErrorBoundary>
       {!ready ? null : (
         <>
-          <MainApp />
-          <CommunityLanSession />
+          <CommunityLanSession><MainApp /></CommunityLanSession>
           <Settings />
           <Welcome />
           <LinkDeviceDialog />

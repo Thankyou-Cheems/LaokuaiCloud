@@ -75,7 +75,7 @@ try {
   const payload = path.join(temp,"payload");
   check("minimal synthetic archive metadata/resources pass",()=>assert.equal(verifyPayload(payload,manifest).status,"passed"));
   check("PE icon tree payload matches authorized hashes",()=>{assert.deepEqual(iconPayloads(iconPe),manifest.appIconPayloads);assert.equal(verifyPortable(path.join(payload,"唠蒯云.exe"),manifest).iconPayloads.length,1);});
-  check("replaced PE icon is rejected",()=>{const changed=Buffer.from(iconPe);changed[600]=0;write("payload/唠蒯云.exe",changed);assert.throws(()=>verifyPayload(payload,manifest),/Cheems ICO/);write("payload/唠蒯云.exe",iconPe);});
+  check("replaced PE icon is rejected",()=>{const changed=Buffer.from(iconPe);changed[600]=0;write("payload/唠蒯云.exe",changed);assert.throws(()=>verifyPayload(payload,manifest),/approved brand ICO/);write("payload/唠蒯云.exe",iconPe);});
   check("changed renderer bytes are rejected",()=>{packed({...entries,"dist/index.html":"old renderer"});assert.throws(()=>verifyPayload(payload,manifest),/dist\/index.html/);packed(entries);});
   check("missing resource is rejected",()=>{fs.unlinkSync(path.join(payload,"resources/squad/squad-scope.exe"));assert.throws(()=>verifyPayload(payload,manifest),/ENOENT/);write("payload/resources/squad/squad-scope.exe",pe);});
   check("official updater feed is rejected",()=>{write("payload/resources/app-update.yml","provider: github");assert.throws(()=>verifyPayload(payload,manifest));fs.unlinkSync(path.join(payload,"resources/app-update.yml"));});

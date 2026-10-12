@@ -19,6 +19,7 @@ import {
   useAccount,
   useMentionTracker,
 } from "@/common";
+import { LogoIcon } from "@/common/src/components/logo";
 import { i18n,useTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 import { useEmbeddedServer } from "@/settings/src/hooks/useEmbeddedServer";
@@ -42,6 +43,7 @@ import { useIdentityClaim } from "../hooks/useIdentityClaim";
 import { PiChatsFill } from "../lib/icons";
 import { PiBroadcastFill, PiBugFill, PiChatCircleDotsFill, PiGearFill, PiMicrophoneFill, PiMicrophoneSlashFill, PiPencilSimpleFill, PiPlus, PiSignInFill } from "../lib/icons";
 import { useReportForm } from "../lib/reports/useReportForm";
+import { CommunityLanControls } from "./communityLanSession";
 import { inVoiceLine, voiceNicknames } from "./serverVoiceLine";
 
 
@@ -136,8 +138,8 @@ export function Sidebar({ setShowAddServer }: SidebarProps) {
   const { total: dmUnread } = useDirectoryUnread();
 
   return (
-    <div className="flex flex-col h-full gap-4 items-center justify-between" data-gryt="sidebar">
-      <div className="flex flex-col gap-4 pt-2">
+    <div className="flex min-h-0 flex-col h-full gap-4 items-center justify-between" data-gryt="sidebar">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pt-2 pb-1">
         {/* Above the servers, because a conversation is not one of them. The
             count is every unread direct message anywhere (GRYT-1134). */}
         <Tooltip title={tr("ui.directMessages")} side="right">
@@ -265,9 +267,10 @@ export function Sidebar({ setShowAddServer }: SidebarProps) {
             </div>
           </Tooltip>
         )}
+        <CommunityLanControls />
       </div>
 
-      <div className="flex justify-center items-center flex-col gap-3 pb-3">
+      <div className="flex shrink-0 justify-center items-center flex-col gap-3 pb-3">
         <button type="button" data-gryt="edit-nickname" className="flex flex-col items-center gap-1 rounded px-1 py-1 text-xs text-gryt-muted hover:text-gryt-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-gryt-accent"
           aria-label={tr("nicknameScope.editNickname")} onClick={() => openSettings("profile/profile/nickname")}>
           <PiPencilSimpleFill size={16} aria-hidden="true" />
@@ -281,14 +284,16 @@ export function Sidebar({ setShowAddServer }: SidebarProps) {
           <Menu.Trigger
             render={<IconButton size="xsmall" data-tour="profile" aria-label={tr("ui.settingsAndAccount")} />}
           >
-            <Avatar
-              fallback={displayNickname[0]}
-              src={displayAvatarUrl || undefined}
-            />
+            <LogoIcon size={32} />
           </Menu.Trigger>
           <Menu.Portal>
             <Menu.Positioner>
               <Menu.Popup>
+            <div className="flex min-w-0 items-center gap-2 px-3 py-2">
+              <Avatar fallback={displayNickname[0]} src={displayAvatarUrl || undefined} />
+              <span className="max-w-48 truncate text-sm">{displayNickname}</span>
+            </div>
+            <Menu.Separator />
             <Menu.Item
               data-tour="menu-edit-nickname"
               onClick={() => openSettings("profile/profile/nickname")}

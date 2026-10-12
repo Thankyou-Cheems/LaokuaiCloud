@@ -14,7 +14,7 @@ config.portable.artifactName = "唠蒯云-${version}-zh-CN-win-x64-slim-portable
 config.extraResources = config.extraResources.filter(entry => entry.to !== "legal/I18N-PORTABLE-TEST.md");
 config.extraResources = config.extraResources.map(entry => entry.to === "icon.png"
   ? { from: "private-brand/icon.png", to: "icon.png" } : entry);
-// Every runtime tray state uses the same authorized transparent Cheems source.
+// Every runtime tray state uses the exact approved Kiriye artwork, resized only.
 config.extraResources = config.extraResources.map(entry => /^tray.*\.png$/.test(entry.to)
   ? { from: `private-brand/icon-${entry.to.includes("@3x") ? 48 : entry.to.includes("@2x") ? 32 : 16}.png`, to: entry.to }
   : entry);
@@ -22,7 +22,8 @@ config.extraResources.push(
   { from: "build/squad/squad-scope.exe", to: "squad/squad-scope.exe" },
   { from: "PRIVATE-PROFILE-REUSE.md", to: "legal/PRIVATE-PROFILE-REUSE.md" },
   { from: "SQUAD-KEY-LIST.md", to: "legal/SQUAD-KEY-LIST.md" },
-  { from: "SQUAD-MODE.md", to: "legal/SQUAD-MODE.md" },{ from: "LAOKUAI-SELF-USE.md", to: "legal/LAOKUAI-SELF-USE.md" });
+  { from: "SQUAD-MODE.md", to: "legal/SQUAD-MODE.md" },{ from: "LAOKUAI-SELF-USE.md", to: "legal/LAOKUAI-SELF-USE.md" },
+  { from: "LAOKUAI-BRAND-NOTICES.md", to: "legal/LAOKUAI-BRAND-NOTICES.md" });
 config.extraResources.push(
   { from: "release/licenses", to: "legal/easytier" },
   { from: "release/easytier-native-input-inventory.json", to: "legal/EASYTIER-NATIVE-INPUTS.json" },

@@ -14,7 +14,8 @@ const cases = [];
 const check = (name, fn) => { fn(); cases.push(name); };
 const sha = file => createHash("sha256").update(fs.readFileSync(file)).digest("hex");
 const iconSource = JSON.parse(read("private-brand/ICON-SOURCE.json"));
-assert.equal(sha(path.join(root, "private-brand/CheemsBurger_transparent.png")), iconSource.sourceSha256);
+assert.match(iconSource.sourceName,/^[A-Za-z0-9_-]+\.png$/);
+assert.equal(sha(path.join(root, "private-brand", iconSource.sourceName)), iconSource.sourceSha256);
 const trayAssets = config.extraResources.filter(entry => /^tray.*\.png$/.test(entry.to));
 assert.equal(trayAssets.length, 11);
 for (const entry of trayAssets) {
@@ -109,7 +110,7 @@ check("original non-private unsigned-in behavior stays compatible", () => {
   control.set({ quitting: false, private: false, signedIn: false }); assert.equal(close(), false);
   control.set({ signedIn: true }); assert.equal(close(), true);
 });
-check("all Windows idle/live/muted/deafened paths select Cheems packaged resources", () => {
+check("all Windows idle/live/muted/deafened paths select approved brand packaged resources", () => {
   control.set({ private: true });
   for (const [voice, name] of [[{inVoice:false,muted:false,deafened:false},"idle"],
     [{inVoice:true},"live"], [{muted:true},"muted"], [{deafened:true},"deafened"]]) {

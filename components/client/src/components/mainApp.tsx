@@ -16,6 +16,7 @@ import { useIsTinyWindow } from "@/socket/src/hooks/useNarrowWindow";
 
 import { useRememberPlace } from "../lib/reports/session";
 import { useOverlayViewportBounds } from "../lib/useOverlayViewportBounds";
+import { CommunityLanControls } from "./communityLanSession";
 import { Discovery } from "./discovery";
 import { OnboardingTour } from "./onboarding/OnboardingTour";
 import { Sidebar } from "./sidebar";
@@ -128,6 +129,7 @@ export function MainApp() {
       )}
 
       </div>
+      {isTiny && <div className="flex shrink-0 justify-end" aria-label="社区联机操作"><CommunityLanControls /></div>}
       <GlobalCallBar />
       </div>
 

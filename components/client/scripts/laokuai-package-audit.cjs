@@ -73,7 +73,7 @@ function verifyPortable(file,manifest) {
   assert.ok([0x14c,0x8664].includes(pe.machine),"Portable wrapper must be x86/AMD64");
   assert.equal(pe.certificateBytes,0,"Private portable wrapper must be unsigned");
   const icons=iconPayloads(bytes);
-  for(const hash of manifest.appIconPayloads) assert.ok(icons.includes(hash),"Portable wrapper misses authorized Cheems ICO payload");
+  for(const hash of manifest.appIconPayloads) assert.ok(icons.includes(hash),"Portable wrapper misses approved brand ICO payload");
   return {...describe(bytes),machine:pe.machine,iconPayloads:icons};
 }
 
@@ -141,7 +141,8 @@ function inventory(root,config,{ sourceOnly = false } = {}) {
     }
   }
   const iconSource = JSON.parse(read("private-brand/ICON-SOURCE.json"));
-  assert.equal(sha(read("private-brand/CheemsBurger_transparent.png")),iconSource.sourceSha256);
+  assert.ok(typeof iconSource.sourceName==="string"&&/^[A-Za-z0-9_-]+\.png$/.test(iconSource.sourceName),"Unsafe brand source name");
+  assert.equal(sha(read(`private-brand/${iconSource.sourceName}`)),iconSource.sourceSha256,"Approved original brand source changed");
   assert.equal(sha(read("public/laokuai-icon.png")),sha(read("private-brand/icon-256.png")));
   const trays = config.extraResources.filter(e => /^tray.*\.png$/.test(e.to));
   assert.equal(trays.length,11);
@@ -260,7 +261,7 @@ function verifyPayload(payload,manifest) {
   const pe = inspectPe(fs.readFileSync(path.join(payload,manifest.executable)));
   assert.equal(pe.machine,0x8664); assert.equal(pe.certificateBytes,0,"Private EXE must remain unsigned");
   const icons=iconPayloads(fs.readFileSync(path.join(payload,manifest.executable)));
-  for(const hash of manifest.appIconPayloads) assert.ok(icons.includes(hash),"App EXE misses authorized Cheems ICO payload");
+  for(const hash of manifest.appIconPayloads) assert.ok(icons.includes(hash),"App EXE misses approved brand ICO payload");
   return { status:"passed",version:manifest.version,voiceVersion:manifest.voice.version,appAsarSha256:archive.sha256,
     payloadFiles:Object.fromEntries(walk(payload).map(file => [slash(path.relative(payload,file)),describe(fs.readFileSync(file))])),
     applicationExecuted:false,realProfileRead:false,scope:"Exact final build files/resources and extracted portable archive; no runtime acceptance" };

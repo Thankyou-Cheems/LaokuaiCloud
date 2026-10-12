@@ -1,9 +1,23 @@
 {
-  "sourceName": "CheemsBurger_transparent.png",
-  "sourceSha256": "4352e18f092dd34ebb33e5e6a2c354d749a338244ed36c06cf6e5073da878123",
-  "width": 1000,
-  "height": 1000,
+  "sourceName": "kiriye-approved.png",
+  "sourceSha256": "06b380ae3c6f155ba11551d6eeb8a97f21a528cf6a51d9a83d43a0d26ca5a415",
+  "sourceBytes": 1602283,
+  "width": 1254,
+  "height": 1254,
   "hasAlpha": true,
-  "conversion": "sharp contain resize only; alpha preserved; ICO sizes 16, 32, 48, 256",
-  "distribution": "Private self-use asset. Do not upload to upstream i18n PR."
+  "sourceLibraryFileId": "libfile_e4f794e64ab0819185ecf6e8bbac5248",
+  "approvedSource": {
+    "originalName": "唠蒯云-奇丽叶手绘Logo-v1.png",
+    "landingHtmlSha256": "519faa9074d5331efae9642f010973ef86b51e7e81abeb40420b3c3a6b65e139",
+    "landingImageSha256": "06b380ae3c6f155ba11551d6eeb8a97f21a528cf6a51d9a83d43a0d26ca5a415",
+    "personallyViewedByIntegrator": true,
+    "originalPngAndEmbeddedProvenanceUnchanged": true
+  },
+  "conversion": "sharp contain resize only; alpha preserved; ICO sizes16,32,48,256. Derived images differ from original pixels; original PNG retained unchanged.",
+  "distribution": "User-approved existing private application branding; retain original source/provenance. No new license or authorship assertion.",
+  "historicalSource": {
+    "sourceName": "CheemsBurger_transparent.png",
+    "sourceSha256": "4352e18f092dd34ebb33e5e6a2c354d749a338244ed36c06cf6e5073da878123",
+    "originalPngRetained": true
+  }
 }
