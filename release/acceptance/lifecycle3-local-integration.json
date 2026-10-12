@@ -1,0 +1,228 @@
+{
+  "schema": 1,
+  "status": "LOCAL-SOURCE-INTEGRATED-PURE-CHECKS-PASS-WINDOWS-BUILD-PENDING",
+  "input": {
+    "libraryFileId": "libfile_e9e5203a37108191ae6a020f819c8848",
+    "route": "User manually downloaded exact local attachment",
+    "filename": "LaokuaiCloud-experience-recovery-lifecycle3-20261012.zip",
+    "bytes": 3873427,
+    "sha256": "6a32e682df1d71843968eb86183f1b3dd7885408e6c1a43d037f19a2ad953537",
+    "manifestMembersVerified": 16,
+    "zipCrcVerified": true
+  },
+  "baseline": "3a6c794fe6e904ad195fafcd70a8a51d65632b60",
+  "prior": {
+    "publishedCommitReference": "cb209bd24fd47f2d0ff6841e5032c118678c441f",
+    "localEquivalentCommit": "1574d1bcfcf9225ff4a2b9cb82429378c5c30ffd",
+    "exactDeliveredBlobs": 8,
+    "appliedOnce": true,
+    "originalRemoteObjectFetched": false
+  },
+  "candidate": {
+    "sourceCommit": "cb31e2e4ec044a2574f88321bc90cc01c3b51e0c",
+    "sourceTree": "5c526da271470077e716de26f34eb6cb668ce3da",
+    "branch": "integration/lifecycle3-20261012",
+    "exactLifecycleManifestFiles": 24,
+    "totalProductPathsChanged": 32,
+    "componentTrees": {
+      "client": {
+        "tree": "886ea498de4c7457dc94b245222cfd3e45da9b94",
+        "trackedFiles": 1311
+      },
+      "voice": {
+        "tree": "45a5122b5480e37224987e74b898cfd4553f0cb4",
+        "trackedFiles": 311
+      },
+      "server": {
+        "tree": "64d94112ac4969823875522bfc6698e81eca5d3b",
+        "trackedFiles": 461
+      },
+      "sfu": {
+        "tree": "24c3669c4ca13d39f8132225ae1cb4a450750729",
+        "trackedFiles": 93
+      },
+      "easytier": {
+        "tree": "1af35e8bef73da0a0c3eaddef464a714d8a4b2a2",
+        "trackedFiles": 1298
+      }
+    },
+    "conflicts": []
+  },
+  "sdkArchive": {
+    "schema": 1,
+    "packedFiles": 212,
+    "distFiles": 170,
+    "changedPackedFiles": [
+      "package/dist/webrtc/hooks/sfuCleanup.js",
+      "package/dist/webrtc/hooks/sfuConnectFlow.js",
+      "package/dist/webrtc/hooks/sfuConnection.js",
+      "package/dist/webrtc/hooks/useSFU.js",
+      "package/package.json",
+      "package/dist/webrtc/hooks/sfuCleanup.d.ts",
+      "package/dist/webrtc/hooks/sfuConnectFlow.d.ts"
+    ],
+    "retainedNonDistStaticFilesExact": 41,
+    "packageJsonEqualsPreferredSource": true,
+    "clientDependencyAndLockMatchArchive": true,
+    "tgzBytes": 3779305,
+    "tgzSha256": "897b597926cad23447f057e2b45e95f47806ddfba2f6808e6beb32f80eec49ae",
+    "tgzSha1": "586b11c4382ff326a25ff555e9f94f50ddca9de8",
+    "oldReceivePathArchiveRetained": true,
+    "buildOrProductExecuted": false,
+    "initialCheckFailure": "Integrator expected second declaration sfuConnection.d.ts; actual sfuConnectFlow.d.ts corresponds to delivered source sfuDisposeRef type. Corrected check only; archive/source unchanged."
+  },
+  "localValidation": {
+    "schema": 1,
+    "nodeVersion": "v22.23.2",
+    "typescriptVersion": "5.9.3",
+    "suites": [
+      {
+        "script": "components/client/scripts/check-receive-prior-cache.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "spawnError": null,
+        "log": "check-receive-prior-cache.mjs.log"
+      },
+      {
+        "script": "components/client/scripts/check-receive-prior-session.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "spawnError": null,
+        "log": "check-receive-prior-session.mjs.log"
+      },
+      {
+        "script": "components/client/scripts/check-receive-prior-audio-cursor.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "spawnError": null,
+        "log": "check-receive-prior-audio-cursor.mjs.log"
+      },
+      {
+        "script": "components/client/scripts/check-receive-prior-persistence.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "spawnError": null,
+        "log": "check-receive-prior-persistence.mjs.log"
+      },
+      {
+        "script": "components/voice/scripts/check-lifecycle-epochs.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "spawnError": null,
+        "log": "check-lifecycle-epochs.mjs.log"
+      },
+      {
+        "script": "components/voice/scripts/check-connector-ownership.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "spawnError": null,
+        "log": "check-connector-ownership.mjs.log"
+      },
+      {
+        "script": "components/client/scripts/check-room-access.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "spawnError": null,
+        "log": "check-room-access.mjs.log"
+      },
+      {
+        "script": "components/server/scripts/check-room-request-epochs.mjs",
+        "exitCode": 0,
+        "passed": true,
+        "spawnError": null,
+        "log": "check-room-request-epochs.mjs.log"
+      }
+    ],
+    "syntaxCheckedScripts": 14,
+    "passedSuites": 8,
+    "guard": "Denies real network/listeners/fetch/WebSocket/RTCPeerConnection/child processes; harness uses deterministic VM fakes.",
+    "dependencySetup": "Read-only TypeScript module URL via Node ESM loader; no install or lifecycle scripts.",
+    "initialSetupFailure": "Windows junction creation EPERM; no tests ran in that attempt. No elevation or permission change. First ESM harness launch used Windows paths in --import and failed before tests; fixed only wrapper arguments to file URLs. Original eight failure logs retained. Archive-check expectation fixed to sfuConnectFlow declaration and existing devDependencies group; product/package untouched.",
+    "fullBuildRun": false,
+    "realReactMountedChecksRun": false,
+    "windowsPackagingRun": false,
+    "productRun": false,
+    "actualProductPathsUnchangedOutsideDelivered32": true,
+    "sourcePackageManifestPinsVerified": true
+  },
+  "cloudReportedValidation": {
+    "evidenceSha256": "31e0f3e0e94212da6eb846de0dfa3b97bcdd123c735acb3ffc9d62ba5c7776b8",
+    "sdk": {
+      "typecheck": "PASS",
+      "build": "PASS",
+      "offlineChecksPassed": 52,
+      "otherRegisteredChecksUnrun": 16
+    },
+    "client": {
+      "frozenLockInstall": "PASS",
+      "rendererAndElectronTypecheck": "PASS",
+      "webProductionBuild": "PASS",
+      "targetedESLintModules": 6,
+      "lintWarnings": 0,
+      "combinedFocusedRegressionScriptsPassed": 14
+    },
+    "server": {
+      "baselineNoEmit": "PASS",
+      "baselineEmit": "PASS",
+      "candidateNoEmit": "PASS",
+      "candidateEmit": "PASS",
+      "diagnostics": 0,
+      "originalInputsGitBlobVerified": 226,
+      "outputFilesPerTree": 218,
+      "onlyChangedOutput": "socket/handlers/voice.js",
+      "formalEvidenceSHA256": "769dbb23fed95d837b44715ee066eb7f65730562c45e7edc9bbe823b7aaea6c5"
+    },
+    "package": {
+      "sha256": "897b597926cad23447f057e2b45e95f47806ddfba2f6808e6beb32f80eec49ae",
+      "distByteMatchesAcrossSourceRebuildArchiveAndInstalledSDK": 170,
+      "independentWholeArchiveRepackSameSHA256": true,
+      "retainedStaticFilesByteIdentical": 41
+    },
+    "toolchain": {
+      "node": "24.19.0",
+      "npm": "11.9.0",
+      "yarn": "1.22.22",
+      "serverTypeScript": "5.9.3"
+    },
+    "locallyRebuilt": false,
+    "fullRawHarnessNotInDelivery": true
+  },
+  "cloudReportedSoak": {
+    "evidenceSha256": "fa0fc01a19b41e9dd1551b206112c733dfbe7acffb3f1bddfdd0a04c9e54e0b0",
+    "result": "PASS_COMPLETED_OFFLINE_WINDOW",
+    "elapsedMs": 21140061,
+    "batches": 352,
+    "logicalUserScenarios": 42240,
+    "observedFailures": 0,
+    "expectedDiagnostics": 70400,
+    "unknownDiagnostics": 0,
+    "model": "real-source offline harness with fake transport; 20 logical users split across rooms",
+    "limits": [
+      "20 logical users using controlled fake transports/browser effects, not 20 real client devices.",
+      "No real media, listener, network, native helper, DB, or deployment.",
+      "Tracked resource zero and heap trend are bounded evidence, not proof that every possible leak is absent.",
+      "Checkpoint metadata is intentionally accumulated; prior traces are written to disk and only current-batch trace remains in process.",
+      "The .2 failure that motivated .3 and previous smoke attempts remain separate preserved evidence; their elapsed time is excluded."
+    ],
+    "locallyReplayed": false
+  },
+  "boundaries": {
+    "ready": false,
+    "finalPackage": null,
+    "windowsPackagingRun": false,
+    "productRun": false,
+    "nativeRun": false,
+    "listenersStarted": false,
+    "realNetworkTrial": false,
+    "deployment": false,
+    "remoteGitReadOrWrite": false,
+    "userConfigurationTouched": false,
+    "baselineWorktreeChanged": false
+  },
+  "pending": [
+    "Parent assigns one Windows build owner from final local freeze; Task6 starts no build",
+    "Fresh isolated dependency installation/typecheck/SDK byte parity and Windows internal packaging for this source",
+    "Real device/two-person media/listening/TUN/modern payload authorization and acceptance remain separate",
+    "No remote Git sync while platform approval is pending; original release branch remains3a6c794f"
+  ]
+}

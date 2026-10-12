@@ -183,3 +183,11 @@ checks pass. No marker edit/test EXE/product payload change or runtime execution
 The old tools/source-offer ZIPs stay immutable; repair is a separate supplement.
 Actual recipient/source access/export/license/platform/native/media acceptance
 remains pending; ready=false/finalPackage=null.
+
+Lifecycle.3 is integrated locally on integration/lifecycle3-20261012 from3a6c794f.
+Prior cb209bd eight-file equivalent is applied once;24 lifecycle source/vendor
+paths match exact delivery. See release/acceptance/lifecycle3-local-integration.json
+and release/LIFECYCLE3-BUILD-HANDOFF.md.8 guarded pure suites/14 script syntax
+checks pass; full cloud build/soak are delivered summaries, not local Windows
+acceptance. Parent assigns the sole next builder. No remote sync/build/product
+launch/user config change by Task6; old packages/freeze preserved.

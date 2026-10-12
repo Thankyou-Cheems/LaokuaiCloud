@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "id": "laokuai-cloud-receive-path-et-observation-frozen-20261011",
-  "stage": "private-source-offer-prepared-dbaf-single-no-peer-udp-runtime-pass-modern-runtime-and-product-acceptance-pending",
+  "stage": "local-lifecycle3-source-integrated-windows-build-and-actual-acceptance-pending",
   "ready": false,
   "repository": {
     "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud",
@@ -17,7 +17,7 @@
   "components": {
     "client": {
       "path": "components/client",
-      "tree": "a39695ee2725894a532e834418060b0cfd94fdc5",
+      "tree": "886ea498de4c7457dc94b245222cfd3e45da9b94",
       "upstream": "Gryt-chat/client",
       "publicFork": "Thankyou-Cheems/gryt-client-i18n",
       "historyImportedFrom": "06ac43f51dbda3b9444c73270a126e10489110e9",
@@ -25,26 +25,30 @@
       "completeDirtySourceSnapshot": "2b9f02076051e3a445bfa99e79d1fc7ac421e19f",
       "originalPreservation": "24 tracked modifications and 6 untracked files retained; all frozen snapshot blobs verified",
       "version": "1.13.22-laokuai.opus20.1",
-      "dependencyLockSha256": "d2d38246a119b974b724d96846c11dfb191c2b177786316d82238180e1ba5032"
+      "dependencyLockSha256": "6b85a483ac898e251ea9f889136a6251b5f25ea1a3b87aa925313aaf96997cea",
+      "lifecycle3SourceCommit": "cb31e2e4ec044a2574f88321bc90cc01c3b51e0c"
     },
     "voice": {
       "path": "components/voice",
-      "tree": "647578eb66cfc154283b758f38b065c10b72364d",
+      "tree": "45a5122b5480e37224987e74b898cfd4553f0cb4",
       "upstream": "Gryt-chat/voice",
       "publicFork": "Thankyou-Cheems/voice",
-      "sourceCommit": "b8f16d0eac49c2fb09a92f6298d8cbb9eaed7bc1",
-      "sourceZipSha256": "c1b98510416c8b56dd41e5cde90009d0eeafb42e96d0db6398a9401e5a5ccf2b",
-      "sourceFiles": 305,
-      "importCorrespondence": "304 exact Git-blob archive files plus retained optional portable probe override; production source exact",
+      "sourceCommit": "cb31e2e4ec044a2574f88321bc90cc01c3b51e0c",
+      "sourceFiles": 311,
+      "importCorrespondence": "Tracked preferred source retains the previous baseline plus exact lifecycle.3 delivered source/tests/docs; changed file SHA256/Git blobs independently verified. Audit source supplement hash is reported metadata, not a downloaded local archive.",
       "license": "AGPL-3.0-only; Signalsmith MIT and all receive-rnn notices preserved",
       "package": {
-        "path": "components/client/vendor/gryt-voice-0.6.2-laokuai.receive-path.1.tgz",
-        "version": "0.6.2-laokuai.receive-path.1",
-        "sha256": "8abea479d053b6310e8c97746ae8b07f153a17d691dc20bdd5a241b6fe90caed",
-        "sha1": "31933fb5791bf6d28b56e152ffea4f207127f77f",
-        "installedPackedFiles": 212,
-        "installedByteVerification": "all 212 tar and installed files match frozen owner manifest",
-        "frozenOfflineInstall": "Yarn 1.22.22 frozen/offline/ignore-scripts passed after locked public cache fill; lock diff only SDK entry"
+        "path": "components/client/vendor/gryt-voice-0.6.2-laokuai.lifecycle.3.tgz",
+        "version": "0.6.2-laokuai.lifecycle.3",
+        "bytes": 3779305,
+        "sha256": "897b597926cad23447f057e2b45e95f47806ddfba2f6808e6beb32f80eec49ae",
+        "sha1": "586b11c4382ff326a25ff555e9f94f50ddca9de8",
+        "packedFiles": 212,
+        "distFiles": 170,
+        "retainedNonDistStaticFilesExact": 41,
+        "clientDependencyAndLockExact": true,
+        "localInstalledByteVerification": "Pending fresh build-owner install; local archive/content pins verified",
+        "cloudInstalledAndSourceRebuildByteParity": "Reported170dist files and independently reproduced archive; exact delivered evidence referenced in local integration receipt"
       },
       "closedPcFix": {
         "sourceCommit": "114a9ad0ba2d9e1e83b9a762a150dba6a54e0ee4",
@@ -102,15 +106,38 @@
         "patchSha256": "103b9a56447c0b04f68b97ae29fd551bda553714b9137ddd4eaf8f506f61c9b3",
         "appliedOnce": true,
         "actualMediaAcceptance": false
+      },
+      "preservedReceivePath1": {
+        "sourceCommit": "b8f16d0eac49c2fb09a92f6298d8cbb9eaed7bc1",
+        "tree": "647578eb66cfc154283b758f38b065c10b72364d",
+        "sourceZipSha256": "c1b98510416c8b56dd41e5cde90009d0eeafb42e96d0db6398a9401e5a5ccf2b",
+        "sourceFiles": 305,
+        "importCorrespondence": "304 exact Git-blob archive files plus retained optional portable probe override; production source exact",
+        "package": {
+          "path": "components/client/vendor/gryt-voice-0.6.2-laokuai.receive-path.1.tgz",
+          "version": "0.6.2-laokuai.receive-path.1",
+          "sha256": "8abea479d053b6310e8c97746ae8b07f153a17d691dc20bdd5a241b6fe90caed",
+          "sha1": "31933fb5791bf6d28b56e152ffea4f207127f77f",
+          "installedPackedFiles": 212,
+          "installedByteVerification": "all 212 tar and installed files match frozen owner manifest",
+          "frozenOfflineInstall": "Yarn 1.22.22 frozen/offline/ignore-scripts passed after locked public cache fill; lock diff only SDK entry"
+        },
+        "stillPresent": true
+      },
+      "lifecycle3": {
+        "sourceCommit": "cb31e2e4ec044a2574f88321bc90cc01c3b51e0c",
+        "priorLocalEquivalentCommit": "1574d1bcfcf9225ff4a2b9cb82429378c5c30ffd",
+        "deliveryManifestSha256": "347192a0945cb3fb4889eddb7cca30d163cbdd38f2d294242c106fdf2d9b1850",
+        "auditSourceSupplementReportedSha256": "ba1a901a0618b0728f58b9c329e80f0547f35a9b1177d37886ed0b09ada85a8d",
+        "receipt": "release/acceptance/lifecycle3-local-integration.json"
       }
     },
     "server": {
       "path": "components/server",
-      "tree": "20534c8de8afb7f191ad05b553bdf520cd51c73c",
+      "tree": "64d94112ac4969823875522bfc6698e81eca5d3b",
       "upstream": "Gryt-chat/server",
       "userFork": null,
-      "sourceCommit": "e84e1ca5f7130bdc33528a9b563691267e7cb598",
-      "sourceZipSha256": "18fc1d8ab97972b57a2fa02d40b9bb6086f243f29291e0b51be694c62e3657d4",
+      "sourceCommit": "cb31e2e4ec044a2574f88321bc90cc01c3b51e0c",
       "archivedSourceFilesVerified": 462,
       "importedSourceFiles": 460,
       "excluded": [
@@ -118,7 +145,13 @@
         "dist-selfhosted/start.bat"
       ],
       "exclusionReason": "Legacy generated/selfhosted distribution files ignored by original source contract; runtime config not promoted",
-      "historyMode": "Frozen source import; owner history has missing older ancestor; private integration history is healthy"
+      "historyMode": "Frozen source import; owner history has missing older ancestor; private integration history is healthy",
+      "preservedPreLifecycle3": {
+        "sourceCommit": "e84e1ca5f7130bdc33528a9b563691267e7cb598",
+        "tree": "20534c8de8afb7f191ad05b553bdf520cd51c73c",
+        "sourceZipSha256": "18fc1d8ab97972b57a2fa02d40b9bb6086f243f29291e0b51be694c62e3657d4"
+      },
+      "lifecycle3": "Per-socket room request revision guards; exact delivered source. Existing auth/permissions preserved; no server deployment."
     },
     "sfu": {
       "path": "components/sfu",
@@ -2174,6 +2207,15 @@
       "runnableScopeSha256": null,
       "activationApproved": false,
       "nativeExecuted": false
+    },
+    "lifecycle3LocalIntegration": {
+      "receipt": "release/acceptance/lifecycle3-local-integration.json",
+      "receiptSha256": "4beab373baa61cbb9ecfe4b9c8b756f1daba8dc06b83e3992534f7b8f94c3466",
+      "sourceCommit": "cb31e2e4ec044a2574f88321bc90cc01c3b51e0c",
+      "localPureSuitesPassed": 8,
+      "syntaxScriptsChecked": 14,
+      "cloudFullBuildAndOfflineSoak": "Delivered summary evidence only; not local Windows build/real network acceptance",
+      "previousValidationEntriesRetainTheirOriginalFrozenScope": true
     }
   },
   "securityBoundary": {
@@ -2214,7 +2256,8 @@
     "Screened1262-file native source excludes15 prebuilt assets; fresh offline865archives/7snapshots restoration and modified-library compile/link passed with the corrected helper.1129 lock versions/checksums preserved with6 transport changes. Actual recipient transfer/access/platform license and distribution review remain pending; no public export.",
     "Recipient engineering proof completed: original helper failed; one reviewed environment-key removal fixes it, and one fresh-target offline screened-kit modified-library core/CLI compile+link passed. Test-only EXEs do not replace product. Actual recipient transfer/access, external export/platform/license review and recipient app acquisition/rebuild instructions remain separate. No additional engineering compile requested.",
     "Private source offer: exact842 client/Voice plus405-file custom UI source and RNNoise wrapper/native/model archives are sealed with acquisition/lock/notices/SHA and no Git history. No external transfer or public URL; absence of public URL is not an internal-test blocker. User must choose concrete recipients/channel or screened public target/brand scope before sharing; current private integration repository stays private.",
-    "Modern089b/f716+1ad4 minimum runtime handoff is now prepared:624 shared Rust files and lock identical, only Cargo.toml dependency/CRT selection changes. Strict original modern producer schema adaptation, re-pinned pwsh7 runner/new source+scope closure and fresh protected-object preflight/approval must precede one no-peer test. Real2-client community/device/media/fallback and optional chosen-game coexistence use separately explicit scopes; do not repeat passing old dbaf or unchanged UI/SDK/capacity checks."
+    "Modern089b/f716+1ad4 minimum runtime handoff is now prepared:624 shared Rust files and lock identical, only Cargo.toml dependency/CRT selection changes. Strict original modern producer schema adaptation, re-pinned pwsh7 runner/new source+scope closure and fresh protected-object preflight/approval must precede one no-peer test. Real2-client community/device/media/fallback and optional chosen-game coexistence use separately explicit scopes; do not repeat passing old dbaf or unchanged UI/SDK/capacity checks.",
+    "Local lifecycle.3 source recovered from exact user-downloaded v2. Prior8+new24 paths match delivery. Local8 guarded pure suites/14 script syntax checks pass. Cloud complete SDK/client/server and352-batch offline-soak summary retained separately. New Windows build/install/package/real-media acceptance pending; old842/5d/83 executables remain unchanged. No remote push/deployment approved for this turn."
   ],
   "finalPackage": null,
   "frozenPreviousHybrid": {
