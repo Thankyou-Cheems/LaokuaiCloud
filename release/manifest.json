@@ -2290,6 +2290,24 @@
       "exactProductionGitBaseProven": false,
       "rebuildSolelyForVersionNumber": false,
       "productionDeploymentApproved": false
+    },
+    "backendImageProtocol": {
+      "receipt": "release/acceptance/backend-image-protocol.json",
+      "receiptSha256": "0825cab5e50adce8259c65bf7240a2748b5085dea38e493c096d5acfd1170888",
+      "report": "release/BACKEND-OFFLINE-PROTOCOL-REVIEW.md",
+      "reportSha256": "42a9bfe7d4892551818f9792b275f75c11fdde186608f2054c11048ebd7d6ed8",
+      "candidateSourceCommit": "85ec3b9c60d49881ba9ad5cd48c9a17d59c1772d",
+      "serverTree": "96db8312488c4f399904192f3a932232cf6130ad",
+      "imageId": "sha256:e45e9c27fe391aa9281365745a54c34529b502f09fa79a2d8e68fcc5486d1eba",
+      "syntheticChecksPassed": 20,
+      "exactBundleHealthy": true,
+      "backendTermExitZero": true,
+      "sameImageSnapshotRestorePassed": true,
+      "oldProductionBinaryRollbackPassed": false,
+      "realAccountCaAndClientPassed": false,
+      "sfuGracefulExitPassed": false,
+      "rebuildNeededForThisBackendFixture": false,
+      "productionDeploymentApproved": false
     }
   },
   "securityBoundary": {

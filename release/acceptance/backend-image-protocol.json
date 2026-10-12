@@ -1,0 +1,189 @@
+{
+  "schema": 1,
+  "status": "EXACT-IMAGE-OFFLINE-SYNTHETIC-PROTOCOL-20-PASS;REAL-ACCOUNT-AND-OLD-BINARY-ROLLBACK-PENDING",
+  "reviewedFromCommit": "e20bc6eb54e90a1b585af6315fc4982d55b2fc5c",
+  "candidateSourceCommit": "85ec3b9c60d49881ba9ad5cd48c9a17d59c1772d",
+  "serverTree": "96db8312488c4f399904192f3a932232cf6130ad",
+  "imageId": "sha256:e45e9c27fe391aa9281365745a54c34529b502f09fa79a2d8e68fcc5486d1eba",
+  "report": "release/BACKEND-OFFLINE-PROTOCOL-REVIEW.md",
+  "reportSha256": "42a9bfe7d4892551818f9792b275f75c11fdde186608f2054c11048ebd7d6ed8",
+  "actual": {
+    "schema": 1,
+    "imageId": "sha256:e45e9c27fe391aa9281365745a54c34529b502f09fa79a2d8e68fcc5486d1eba",
+    "candidateSourceCommit": "85ec3b9c60d49881ba9ad5cd48c9a17d59c1772d",
+    "serverTree": "96db8312488c4f399904192f3a932232cf6130ad",
+    "name": "laokuai-task6-protocol-8180357c3b51",
+    "passed": true,
+    "productionTouched": false,
+    "realCredentials": false,
+    "scripts": {
+      "image-protocol.cjs": "dbe3ec102f2e9adb1bb038e6c0eac9609c3486e6c240538778ac80cc79caf030",
+      "run-image-protocol.py": "708b68d04915e4fcfbd878ea4fdcccf9c98dd65a4025380b12399771b3276648"
+    },
+    "isolation": {
+      "network": "none",
+      "portBindings": {},
+      "readonlyRootfs": true,
+      "readonlyFixtureMountOnly": true,
+      "realDataMounts": 0,
+      "cpuCount": 1,
+      "memoryBytes": 1073741824,
+      "persistentTestCredentials": false
+    },
+    "containerId": "7bc99cf8510c82ad5795c60ec134b3811d96ff26e39c8904aa59e9615c9f1adf",
+    "samples": [
+      {
+        "elapsedSeconds": 0.15,
+        "running": true,
+        "networkNone": true,
+        "hostPortBindingsEmpty": true
+      },
+      {
+        "elapsedSeconds": 1.29,
+        "running": true,
+        "networkNone": true,
+        "hostPortBindingsEmpty": true
+      },
+      {
+        "elapsedSeconds": 2.47,
+        "running": true,
+        "networkNone": true,
+        "hostPortBindingsEmpty": true
+      },
+      {
+        "elapsedSeconds": 3.61,
+        "running": true,
+        "networkNone": true,
+        "hostPortBindingsEmpty": true
+      },
+      {
+        "elapsedSeconds": 4.75,
+        "running": true,
+        "networkNone": true,
+        "hostPortBindingsEmpty": true
+      },
+      {
+        "elapsedSeconds": 5.89,
+        "running": true,
+        "networkNone": true,
+        "hostPortBindingsEmpty": true
+      },
+      {
+        "elapsedSeconds": 7.03,
+        "running": true,
+        "networkNone": true,
+        "hostPortBindingsEmpty": true
+      },
+      {
+        "elapsedSeconds": 8.17,
+        "running": true,
+        "networkNone": true,
+        "hostPortBindingsEmpty": true
+      },
+      {
+        "elapsedSeconds": 9.32,
+        "running": false,
+        "networkNone": true,
+        "hostPortBindingsEmpty": true
+      }
+    ],
+    "fixtureResult": {
+      "passed": true,
+      "checks": [
+        "Exact production bundle healthy with ephemeral synthetic JWT, UID1001",
+        "Stopped consistent synthetic baseline copied byte-for-byte",
+        "Candidate init preserves owner/SFU key/tokenVersion/config/markers",
+        "Actual legacy wire join keeps prior member ID and tokenVersion7",
+        "Actual refresh-token branch returns signed access/file tokens",
+        "Actual access-token branch preserves token version",
+        "Legacy access token without userTokenVersion still refreshes",
+        "Fresh socket resumes with pre-copy refresh token",
+        "Reject not-a-real-token",
+        "Reject synthetic-expired-refresh",
+        "Reject synthetic-revoked-refresh",
+        "Stale server-wide access-token version rejected",
+        "Wrong-host access-token refresh rejected",
+        "Wrong nonce rejected by real bundled handler",
+        "Original synthetic rollback directory never modified by candidate",
+        "Restored pre-trial snapshot byte-for-byte",
+        "Restored data resumes original token on exact candidate bundle",
+        "Candidate-only refresh token absent after snapshot restoration",
+        "Default account policy does not admit test local certificate",
+        "All backend runs stop with TERM exit0"
+      ],
+      "backendExits": [
+        {
+          "code": 0,
+          "signal": null
+        },
+        {
+          "code": 0,
+          "signal": null
+        },
+        {
+          "code": 0,
+          "signal": null
+        },
+        {
+          "code": 0,
+          "signal": null
+        }
+      ],
+      "node": "22.23.3",
+      "sqlite": "3.51.3",
+      "bundleSha256": "8181b0834bcb93937b567939f69b26e8719a15e2785f9fd5ea3be955dade3fe5",
+      "syntheticOnly": true,
+      "network": "container-none-loopback-only",
+      "hostListeners": false,
+      "productionNodeEnv": true,
+      "realAccountOrCredentials": false,
+      "externalAccountCaE2e": false,
+      "oldBinaryRollbackTested": false,
+      "dataRollback": "Pre-trial synthetic snapshot restored and resumed on same exact candidate image",
+      "originalRollbackBytesUnchanged": true,
+      "sourceOrImageModified": false
+    },
+    "exitCode": 0,
+    "oomKilled": false,
+    "stoppedExitCode": 0,
+    "ownedContainerRemoved": true,
+    "tmpfsDiscarded": true
+  },
+  "localEvidence": [
+    {
+      "ownerLocalPath": "offline-backend-protocol-run1/RESULT.json",
+      "sha256": "a386e10231ee6051785387e6ba0017cea08a562428c52def088e9bb566034f55"
+    },
+    {
+      "ownerLocalPath": "offline-backend-protocol-run1/protocol.stdout.log",
+      "sha256": "b37a2dc50982313c2cef3bef23e36e3e94495799a5e68ca7b881488dd04d7086"
+    }
+  ],
+  "priorBuilderReadOnlyEvidence": [
+    {
+      "path": "hybrid-backend-sfu-85ec3b9c-offline-selfcheck/REPORT.md",
+      "sha256": "328c7b1221050109912a5a4573f775c5ff23b7ec2de2174e0ed16a0e7214fa30"
+    },
+    {
+      "path": "hybrid-backend-sfu-85ec3b9c-offline-selfcheck/HANDOFF.json",
+      "sha256": "dc9df9bf756f826b2566222559c05a725bd59731ae594e89d68d2993a24fb84c"
+    }
+  ],
+  "firstEmptyConfigExit": {
+    "expectedProductionJwtGuard": true,
+    "beforeDatabaseInitialization": true,
+    "oom": false,
+    "backendSourceFixNeeded": false
+  },
+  "sfuPriorTermExit": {
+    "code": 2,
+    "gracefulExitAccepted": false,
+    "causeProven": false,
+    "sourceFixApplied": false
+  },
+  "candidateSourceOrImageChanged": false,
+  "rebuildNeededForThisBackendFixture": false,
+  "productionDeploymentApproved": false,
+  "ready": false,
+  "finalPackage": null
+}
