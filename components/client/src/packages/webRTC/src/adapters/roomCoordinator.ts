@@ -27,29 +27,67 @@ const RETRY_SOON_MS = 2_000;
  * Gryt's half of joining a channel, over the socket the client already has. The
  * rate-limit toast is here because saying it out loud is the app's job.
  */
+interface PendingAccess { cancel(reason: string): void; }
+interface AccessSocketScope { id: string | undefined; ambiguous: boolean; pending: Set<PendingAccess>; }
+// Retained coordinators can share a reconnected socket. Legacy errors have no
+// request/room identity, so an ambiguous socket generation must fail closed.
+const accessScopes = new WeakMap<Socket, AccessSocketScope>();
+
 type ClientAuthority=NonNullable<RoomCoordinator["moveAuthority"]> & {invalidate?:(reason:string)=>void};
-export function createRoomCoordinator(socketSource: Socket|(()=>Socket|undefined), host: string, moveAuthority?:ClientAuthority|(()=>ClientAuthority|undefined)): RoomCoordinator {
+export function createRoomCoordinator(socketSource: Socket|(()=>Socket|undefined), host: string, moveAuthority?:ClientAuthority|(()=>ClientAuthority|undefined), serverId?: string): RoomCoordinator {
   const currentSocket=()=>typeof socketSource==="function" ? socketSource() : socketSource;
   const authority=()=>typeof moveAuthority==="function" ? moveAuthority() : moveAuthority;
+  const ownedRequests = new Set<PendingAccess>();
   return {
     get moveAuthority(){return authority();},
     requestAccess(channelId: string): Promise<RoomAccess> {
       // Capture the current authenticated socket for this request's listener cleanup.
       const socket=currentSocket();
-      if(!socket?.connected)return Promise.resolve({granted:false,reason:"Server socket disconnected",retryAfterMs:RETRY_SOON_MS});
+      if(!socket?.connected || !socket.id)return Promise.resolve({granted:false,reason:"Server socket disconnected",retryAfterMs:RETRY_SOON_MS});
+      if (!serverId) return Promise.resolve({ granted: false, reason: "Server identity unavailable", retryAfterMs: RETRY_SOON_MS });
+      const socketId = socket.id;
+      let scope = accessScopes.get(socket);
+      if (!scope || scope.id !== socketId) {
+        for (const pending of scope?.pending ?? []) pending.cancel("Server socket changed");
+        scope = { id: socketId, ambiguous: false, pending: new Set() };
+        accessScopes.set(socket, scope);
+      }
+      const currentScope = scope;
+      if (scope.pending.size) scope.ambiguous = true;
+      const expectedRoomId = `${serverId}_${channelId}`;
+      const isCurrent = () => currentSocket() === socket && socket.connected && socket.id === socketId;
       return new Promise((resolve) => {
-        const timeout = setTimeout(() => {
+        const request: PendingAccess = { cancel: reason => {
+          currentScope.ambiguous = true;
           cleanup();
-          resolve({ granted: false, reason: "Room access request timed out", retryAfterMs: RETRY_SOON_MS });
+          resolve({ granted: false, reason, retryAfterMs: RETRY_SOON_MS });
+        } };
+        let receivedUncorrelatedError = false;
+        const timeout = setTimeout(() => {
+          if (receivedUncorrelatedError) {
+            cleanup();
+            // Do not attribute an unknown refusal to this target, or repeatedly
+            // retry a decision that this protocol cannot correlate. A matching
+            // grant remains usable immediately until this request's deadline.
+            resolve({ granted: false, reason: "Room access could not be confirmed. Please try joining again." });
+            return;
+          }
+          request.cancel("Room access request timed out");
         }, ACCESS_TIMEOUT_MS);
 
         const cleanup = () => {
           clearTimeout(timeout);
           socket.off("voice:room:granted", onGranted);
           socket.off("voice:room:error", onError);
+          socket.off("disconnect", onDisconnect);
+          currentScope.pending.delete(request);
+          ownedRequests.delete(request);
         };
+        const onDisconnect = () => request.cancel("Server socket disconnected");
 
         const onGranted = (data: RoomAccessData) => {
+          if (!isCurrent()) { request.cancel("Server socket changed"); return; }
+          if (data?.room_id !== expectedRoomId) return;
           cleanup();
           resolve({
             granted: true,
@@ -67,6 +105,10 @@ export function createRoomCoordinator(socketSource: Socket|(()=>Socket|undefined
             | string
             | { error: string; message?: string; retryAfterMs?: number },
         ) => {
+          if (!isCurrent()) { request.cancel("Server socket changed"); return; }
+          // No target field exists on legacy errors. Never let an old request's
+          // refusal reject a different request; its own timeout still resolves it.
+          if (currentScope.ambiguous) { receivedUncorrelatedError = true; return; }
           cleanup();
 
           if (typeof error === "object" && error.error === "rate_limited" && error.message) {
@@ -92,13 +134,18 @@ export function createRoomCoordinator(socketSource: Socket|(()=>Socket|undefined
           });
         };
 
-        socket.once("voice:room:granted", onGranted);
-        socket.once("voice:room:error", onError);
+        currentScope.pending.add(request); ownedRequests.add(request);
+        socket.on("voice:room:granted", onGranted);
+        socket.on("voice:room:error", onError);
+        socket.on("disconnect", onDisconnect);
         socket.emit("voice:room:request", channelId);
       });
     },
 
-    leave: () => {authority()?.invalidate?.("voice:room:leave");currentSocket()?.emit("voice:room:leave");},
+    leave: () => {
+      for (const request of ownedRequests) request.cancel("Room access request cancelled");
+      authority()?.invalidate?.("voice:room:leave");currentSocket()?.emit("voice:room:leave");
+    },
     announceJoined: (joined) => currentSocket()?.emit("voice:channel:joined", joined),
     setLocalStream: (streamId) => currentSocket()?.emit("voice:stream:set", streamId ?? ""),
     peerChanged: (streamId, present) =>

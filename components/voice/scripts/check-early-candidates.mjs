@@ -216,7 +216,8 @@ const answers = (ws) => ws.sent.filter((m) => m.event === "answer").length;
   ws.drop();
 }
 
-// The call is rebuilt before the offer lands. A candidate held for one peer connection stays there.
+// The call is rebuilt before the offer lands. The retired socket cannot adopt
+// the new PC; its early and late candidates both belong to its captured owner.
 for (const laterCandidates of [[], [B]]) {
   const first = new FakePeer();
   const second = new FakePeer();
@@ -229,11 +230,17 @@ for (const laterCandidates of [[], [B]]) {
 
   assert.deepEqual(
     second.added,
-    laterCandidates.map((c) => c.candidate),
-    "a candidate held for one peer connection was added to another, or the new one lost its own",
+    [],
+    "a retired connector applied ICE to a replacement PC",
   );
   assert.deepEqual(first.added, [], "a candidate was added to a peer connection that had been replaced");
   ws.drop();
+  const current = await joined(second);
+  for (const c of laterCandidates) current.ws.receive("candidate", c);
+  current.ws.receive("offer", offer);
+  await settle();
+  assert.deepEqual(second.added, laterCandidates.map(c => c.candidate), "current connector lost its own early candidates");
+  current.ws.drop();
 }
 
 // The SFU connection closes while its offer is being applied. What it held goes with it.

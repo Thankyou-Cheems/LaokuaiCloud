@@ -108,6 +108,13 @@ export async function connectToSfuWebSocket(
 
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(sfuUrl);
+    // A signaling socket negotiates exactly the PC that created it. A later room
+    // may reuse these refs, but must never inherit this socket's queued SDP/ICE.
+    const ownedPeerConnection = peerConnectionRef.current;
+    let disposed = false;
+    const isOwnedConnection = () => !disposed && !isDisconnectingRef.current &&
+      ownedPeerConnection !== null && peerConnectionRef.current === ownedPeerConnection;
+    const isCurrentConnection = () => isOwnedConnection() && ownedPeerConnection?.connectionState !== "closed";
 
     let isResolved = false;
     let offerProcessingInProgress = false;
@@ -127,6 +134,7 @@ export async function connectToSfuWebSocket(
     const timeout = setTimeout(() => {
       if (!isResolved) {
         voiceLog.fail("SFU-WS", "7a", "WebSocket connection timed out (15s)");
+        isResolved = true;
         cleanup();
         ws.close();
         reject(new Error("SFU WebSocket connection timeout"));
@@ -134,6 +142,9 @@ export async function connectToSfuWebSocket(
     }, 15_000);
 
     const cleanup = () => {
+      disposed = true;
+      clearTimeout(timeout);
+      pendingOffer = null;
       if (connectionMonitor) {
         clearInterval(connectionMonitor);
         connectionMonitor = null;
@@ -163,8 +174,11 @@ export async function connectToSfuWebSocket(
       }
     });
 
+    // The registration may synchronously dispose an already-retired attempt.
+    if (disposed) return;
+
     const handleAbnormalClose = (event: CloseEvent) => {
-      if (isDisconnectingRef.current) return;
+      if (isDisconnectingRef.current || peerConnectionRef.current !== ownedPeerConnection) return;
       if (sfuWebSocketRef.current && sfuWebSocketRef.current !== ws) return;
       if (options.interceptDisconnect?.()) return;
 
@@ -185,7 +199,7 @@ export async function connectToSfuWebSocket(
 
     const startConnectionMonitor = () => {
       connectionMonitor = setInterval(() => {
-        if (isDisconnectingRef.current) {
+        if (!isCurrentConnection()) {
           cleanup();
           return;
         }
@@ -229,17 +243,16 @@ export async function connectToSfuWebSocket(
     };
 
     const attemptReconnection = () => {
-      if (isDisconnectingRef.current) return;
+      if (!isCurrentConnection()) return;
       if (sfuWebSocketRef.current && sfuWebSocketRef.current !== ws) return;
 
       reconnectAttempt++;
 
       setTimeout(() => {
         if (
+          isCurrentConnection() &&
           (!sfuWebSocketRef.current || sfuWebSocketRef.current === ws) &&
-          peerConnectionRef.current &&
-          peerConnectionRef.current.connectionState === "connected" &&
-          !isDisconnectingRef.current
+          ownedPeerConnection?.connectionState === "connected"
         ) {
           // A full SFU reconnect requires a fresh room token, so the outer
           // useSFU recovery path handles it after this socket is marked failed.
@@ -251,10 +264,11 @@ export async function connectToSfuWebSocket(
       pc: RTCPeerConnection,
       candidate: RTCIceCandidateInit,
     ) => {
+      if (!isCurrentConnection() || pc !== ownedPeerConnection) return;
       pc.addIceCandidate(new RTCIceCandidate(candidate)).catch((error) => {
         // Closing mid-add is expected. Anything else loses an address for the SFU, and losing
         // one quietly is how GRYT-1263 went unnoticed.
-        if (pc.signalingState === "closed") return;
+        if (disposed || pc !== peerConnectionRef.current || pc.signalingState === "closed") return;
         voiceLog.fail(
           "SFU-WS",
           "ICE",
@@ -278,42 +292,32 @@ export async function connectToSfuWebSocket(
     };
 
     const processOffer = (offer: RTCSessionDescriptionInit) => {
+      if (!isCurrentConnection() || !ownedPeerConnection) return;
+      const pc = ownedPeerConnection;
       voiceLog.step("SFU-WS", "7d", "Processing SFU offer", {
         sdpLength: offer.sdp?.length || 0,
-        signalingState: peerConnectionRef.current?.signalingState,
-        connectionState: peerConnectionRef.current?.connectionState,
+        signalingState: pc.signalingState,
+        connectionState: pc.connectionState,
       });
 
-      if (
-        !peerConnectionRef.current ||
-        peerConnectionRef.current.connectionState === "closed"
-      ) {
+      if (pc.signalingState !== "stable" && pc.signalingState !== "have-remote-offer") {
         voiceLog.warn(
           "SFU-WS",
-          "Cannot process offer — peer connection closed or null",
-        );
-        return;
-      }
-
-      if (
-        peerConnectionRef.current.signalingState !== "stable" &&
-        peerConnectionRef.current.signalingState !== "have-remote-offer"
-      ) {
-        voiceLog.warn(
-          "SFU-WS",
-          `Cannot process offer — signaling state: ${peerConnectionRef.current.signalingState}, queuing`,
+          `Cannot process offer — signaling state: ${pc.signalingState}, queuing`,
         );
         pendingOffer = offer;
         return;
       }
 
       offerProcessingInProgress = true;
-      const pc = peerConnectionRef.current;
 
       const policy = options.getMediaPolicy?.() ?? {};
       const policyKey = JSON.stringify(policy);
-      const ensureCurrent = () => {
-        if (pc !== peerConnectionRef.current || JSON.stringify(options.getMediaPolicy?.() ?? {}) !== policyKey) {
+      const ensureCurrent = (allowTerminalClose = false) => {
+        if (!isOwnedConnection() || (!allowTerminalClose && !isCurrentConnection())) {
+          throw new Error("SFU connection retired during negotiation");
+        }
+        if (JSON.stringify(options.getMediaPolicy?.() ?? {}) !== policyKey) {
           pc.close();
           throw new Error("Media policy changed during negotiation; reconnect required");
         }
@@ -331,11 +335,8 @@ export async function connectToSfuWebSocket(
           );
           addHeldCandidates(pc);
 
-          if (
-            peerConnectionRef.current &&
-            peerConnectionRef.current.connectionState !== "closed"
-          ) {
-            return peerConnectionRef.current.createAnswer({
+          if (isCurrentConnection()) {
+            return pc.createAnswer({
               offerToReceiveAudio: true,
               offerToReceiveVideo: !isAudioOnly(policy),
             });
@@ -362,11 +363,8 @@ export async function connectToSfuWebSocket(
             `Answer created (${answer.sdp?.length || 0} bytes SDP)`,
           );
 
-          if (
-            peerConnectionRef.current &&
-            peerConnectionRef.current.connectionState !== "closed"
-          ) {
-            return peerConnectionRef.current.setLocalDescription(answer);
+          if (isCurrentConnection()) {
+            return pc.setLocalDescription(answer);
           }
 
           throw new Error("Peer connection closed during answer creation");
@@ -375,20 +373,21 @@ export async function connectToSfuWebSocket(
           ensureCurrent();
           if (options.microphoneCodec) {
             const state = await applyMicrophoneCodec(pc, options.getMicrophoneSenders?.() ?? [], options.microphoneCodec, remoteSdp, options.channelMaxBitrateBps);
-            ensureCurrent();
+            // A minimum-bitrate refusal closes this PC on purpose. It may report
+            // its current terminal reason, but may never send an answer afterward.
+            ensureCurrent(state.reason === "bitrate_below_opus_minimum");
             options.onMicrophoneCodecState?.(state);
             if (state.reason) voiceLog.warn("SFU-WS", `Microphone codec: ${state.reason}`);
             if (state.reason === "bitrate_below_opus_minimum") { ws.close(1008, state.reason); throw new Error(state.reason); }
           }
           if (
             ws.readyState !== WebSocket.OPEN ||
-            !peerConnectionRef.current ||
-            isDisconnectingRef.current
+            !isCurrentConnection()
           ) {
             return;
           }
 
-          const answer = peerConnectionRef.current.localDescription;
+          const answer = pc.localDescription;
           if (!answer) {
             throw new Error("No local description available");
           }
@@ -402,7 +401,7 @@ export async function connectToSfuWebSocket(
             }),
           );
 
-          const transceivers = peerConnectionRef.current.getTransceivers();
+          const transceivers = pc.getTransceivers();
 
           for (const t of transceivers) {
             if (t.sender?.track && t.mid) {
@@ -427,6 +426,7 @@ export async function connectToSfuWebSocket(
           }
         })
         .catch((error) => {
+          if (disposed || pc !== peerConnectionRef.current || isDisconnectingRef.current) return;
           voiceLog.fail(
             "SFU-WS",
             "7d",
@@ -437,6 +437,10 @@ export async function connectToSfuWebSocket(
         .finally(() => {
           offerProcessingInProgress = false;
 
+          if (!isCurrentConnection()) {
+            pendingOffer = null;
+            return;
+          }
           if (pendingOffer) {
             voiceLog.info("SFU-WS", "Processing queued offer…");
             const next = pendingOffer;
@@ -449,13 +453,17 @@ export async function connectToSfuWebSocket(
     ws.onopen = () => {
       voiceLog.ok("SFU-WS", "7a", "WebSocket TCP connection open");
 
-      if (isDisconnectingRef.current) {
+      if (!isCurrentConnection()) {
         voiceLog.warn(
           "SFU-WS",
-          "Disconnecting — closing newly opened WebSocket",
+          "Retired connection — closing newly opened WebSocket",
         );
         cleanup();
         ws.close();
+        if (!isResolved) {
+          isResolved = true;
+          reject(new Error("SFU connection retired before opening"));
+        }
         return;
       }
 
@@ -490,7 +498,7 @@ export async function connectToSfuWebSocket(
     };
 
     ws.onmessage = (event) => {
-      if (isDisconnectingRef.current) return;
+      if (!isCurrentConnection()) return;
 
       try {
         const message = JSON.parse(event.data);
@@ -561,7 +569,7 @@ export async function connectToSfuWebSocket(
               `Remote ICE candidate: ${candidate.candidate?.substring(0, 60)}…`,
             );
 
-            const pc = peerConnectionRef.current;
+            const pc = ownedPeerConnection;
             if (
               !pc ||
               pc.connectionState === "closed" ||
@@ -597,6 +605,7 @@ export async function connectToSfuWebSocket(
     };
 
     ws.onclose = (event) => {
+      if (disposed) return;
       voiceLog.warn(
         "SFU-WS",
         `WebSocket closed: code=${event.code} reason="${event.reason || "(none)"}" wasClean=${event.wasClean}`,
@@ -616,6 +625,7 @@ export async function connectToSfuWebSocket(
     };
 
     ws.onerror = (event) => {
+      if (disposed) return;
       voiceLog.fail("SFU-WS", "7a", "WebSocket connection error", event);
 
       cleanup();

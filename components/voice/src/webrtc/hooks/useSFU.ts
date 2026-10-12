@@ -41,6 +41,7 @@ function useSfuHook(): SFUInterface {
   // Core WebRTC references
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const sfuWebSocketRef = useRef<WebSocket | null>(null);
+  const sfuDisposeRef = useRef<(() => void) | null>(null);
   const registeredTracksRef = useRef<RTCRtpSender[]>([]);
   const reconnectAttemptRef = useRef<NodeJS.Timeout | null>(null);
   const previousRemoteStreamsRef = useRef<Set<string>>(new Set());
@@ -179,7 +180,7 @@ function useSfuHook(): SFUInterface {
   }, [microphoneBuffer.publicationStream, microphoneBuffer.processedStream]);
 
   const cleanupRefs: CleanupRefs = useMemo(() => ({
-    peerConnectionRef, sfuWebSocketRef, registeredTracksRef,
+    peerConnectionRef, sfuWebSocketRef, sfuDisposeRef, registeredTracksRef,
     reconnectAttemptRef, connectionTimeoutRef,
     isDisconnectingRef, isConnectingRef, previousRemoteStreamsRef,
     announcedStreamIdRef,
@@ -217,7 +218,7 @@ function useSfuHook(): SFUInterface {
 
   // Cleanup on unmount
   useEffect(() => {
-    return () => { setTransmitConnected(false); moveControllerRef.current?.dispose(); performUnmountCleanup(cleanupRefs); };
+    return () => { ++connectSeqRef.current; setTransmitConnected(false); moveControllerRef.current?.dispose(); performUnmountCleanup(cleanupRefs); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -279,6 +280,7 @@ function useSfuHook(): SFUInterface {
       reconnectTimerRef.current = null; reconnectAttemptsRef.current = 0;
       if (connectionTimeoutRef.current) clearTimeout(connectionTimeoutRef.current);
       connectionTimeoutRef.current = null;
+      sfuDisposeRef.current?.(); sfuDisposeRef.current = null;
       peerConnectionRef.current = staged.pc; sfuWebSocketRef.current = staged.ws;
       activeMicrophoneCodecKeyRef.current = codecKey(microphoneCodecRef.current);
       setMicrophoneCodecState(staged.microphoneCodecState);
@@ -370,7 +372,7 @@ function useSfuHook(): SFUInterface {
       connectSeqRef,
       refs: {
         isConnectingRef, isDisconnectingRef, peerConnectionRef,
-        sfuWebSocketRef, registeredTracksRef, connectionTimeoutRef,
+        sfuWebSocketRef, sfuDisposeRef, registeredTracksRef, connectionTimeoutRef,
         microphoneBufferRef, micAcquiringRef, activeSfuUrlRef, announcedStreamIdRef,
       },
       connectionState,
@@ -407,6 +409,8 @@ function useSfuHook(): SFUInterface {
   // Optimistic, with cleanup in the background. `recovering` tears down for a reconnect, and
   // reports RECONNECTING so an embedder does not read it as the call ending (GRYT-1362).
   const tearDown = useCallback(async (recovering: boolean, onDisconnect?: () => void): Promise<void> => {
+    // Retire pending grants/negotiation before asynchronous cleanup can yield.
+    ++connectSeqRef.current;
     moveControllerRef.current?.reset();
     intentionalDisconnectRef.current = true;
     reconnectAttemptsRef.current = 0;
@@ -766,6 +770,8 @@ function useSfuHook(): SFUInterface {
     if (!room) return false;
 
     const streamId = announcedStreamIdRef.current;
+    const seq = connectSeqRef.current;
+    const isCurrent = () => connectSeqRef.current === seq && !intentionalDisconnectRef.current;
     if (!streamId) {
       // Nothing was ever announced, so there is no presence to restore. The connection did
       // not come through the connect flow — say so rather than guessing a stream id.
@@ -775,12 +781,14 @@ function useSfuHook(): SFUInterface {
 
     for (const delay of REANNOUNCE_BACKOFF_MS) {
       if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
-      if (intentionalDisconnectRef.current) return false;
+      if (!isCurrent()) return false;
 
       const access = await room.requestAccess(channelId);
+      if (!isCurrent()) return false;
       if (access.granted) {
         room.setLocalStream(streamId);
         await new Promise((resolve) => setTimeout(resolve, 10));
+        if (!isCurrent()) return false;
         room.announceJoined(true);
         console.info("[Voice Recovery] Presence re-announced for channel:", channelId);
         return true;
@@ -813,6 +821,8 @@ function useSfuHook(): SFUInterface {
 
       const channelId = lastChannelIdRef.current;
       if (!channelId || intentionalDisconnectRef.current) return;
+      let recoverySeq = connectSeqRef.current;
+      const recoveryCurrent = () => connectSeqRef.current === recoverySeq;
 
       const cs = connectionStateRef.current;
 
@@ -832,11 +842,22 @@ function useSfuHook(): SFUInterface {
       // Runs half a second after a disconnect, so connect sees it rendered. A hang-up in
       // that half second wins.
       const doReconnect = () => {
-        if (intentionalDisconnectRef.current) return;
+        if (!recoveryCurrent() || intentionalDisconnectRef.current) return;
         console.info("[Voice Recovery] Attempting voice reconnect to channel:", channelId);
         const { eSportsMode, maxBitrate } = lastChannelSettingsRef.current;
         connectRef.current(channelId, eSportsMode, maxBitrate, activeCallRef.current).catch((error) => {
           console.error("[Voice Recovery] Failed to reconnect voice:", error);
+        });
+      };
+
+      const reconnectAfterTeardown = () => {
+        const retiring = tearDownRef.current(true);
+        // This teardown starts a recovery generation; later user actions retire it.
+        recoverySeq = connectSeqRef.current;
+        return retiring.then(() => {
+          if (!recoveryCurrent()) return;
+          intentionalDisconnectRef.current = false;
+          setTimeout(doReconnect, 500);
         });
       };
 
@@ -858,15 +879,11 @@ function useSfuHook(): SFUInterface {
           channelId, ")",
         );
         reannouncePresence(channelId).then((announced) => {
-          if (announced || intentionalDisconnectRef.current) return;
+          if (announced || !recoveryCurrent() || intentionalDisconnectRef.current) return;
           // The media plane is fine and the server still has no record of us, so rebuild
           // the lot. Silently staying is the one outcome to avoid.
           console.warn("[Voice Recovery] Re-announce did not take — falling back to a full reconnect");
-          tearDownRef.current(true)
-            .then(() => {
-              intentionalDisconnectRef.current = false;
-              setTimeout(doReconnect, 500);
-            })
+          reconnectAfterTeardown()
             .catch((error) => {
               console.error("[Voice Recovery] Fallback reconnect failed:", error);
             });
@@ -884,10 +901,7 @@ function useSfuHook(): SFUInterface {
         cs.serverId === host;
 
       if (voiceStillActive) {
-        tearDownRef.current(true).then(() => {
-          intentionalDisconnectRef.current = false;
-          setTimeout(doReconnect, 500);
-        }).catch((error) => {
+        reconnectAfterTeardown().catch((error) => {
           console.error("[Voice Recovery] Error during disconnect:", error);
         });
       } else {

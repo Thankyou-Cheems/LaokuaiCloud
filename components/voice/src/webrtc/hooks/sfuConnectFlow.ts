@@ -355,9 +355,15 @@ export function setupPeerConnection(
         `Remote track ended: streamId=${remoteStream.id} trackId=${event.track.id}`,
       );
       setStreams((prev) => {
-        const next = { ...prev };
-        delete next[remoteStream.id];
-        if (aliasStreamId) delete next[aliasStreamId];
+        // An ended event may belong to a replaced track or an earlier room.
+        // Keep a reused stream while any replacement track is still live.
+        if (remoteStream.getTracks().some(track => track.readyState === "live")) return prev;
+        let next = prev;
+        for (const id of [remoteStream.id, aliasStreamId]) {
+          if (!id || prev[id]?.isLocal || prev[id]?.stream !== remoteStream) continue;
+          if (next === prev) next = { ...prev };
+          delete next[id];
+        }
         return next;
       });
     };
@@ -495,6 +501,7 @@ export interface ConnectParams {
     isDisconnectingRef: MutableRefObject<boolean>;
     peerConnectionRef: MutableRefObject<RTCPeerConnection | null>;
     sfuWebSocketRef: MutableRefObject<WebSocket | null>;
+    sfuDisposeRef?: MutableRefObject<(() => void) | null>;
     registeredTracksRef: MutableRefObject<RTCRtpSender[]>;
     connectionTimeoutRef: MutableRefObject<NodeJS.Timeout | null>;
     microphoneBufferRef: MutableRefObject<{
@@ -611,8 +618,11 @@ export async function sfuConnect(params: ConnectParams): Promise<void> {
       return;
     }
 
-    // If another connection is in progress, tear it down first
-    if (isConnectingRef.current) {
+    // Signaling can finish before ICE: isConnecting/isConnected may both be false.
+    // Retire any still-owned transport before replacing the shared resource refs.
+    if (isConnectingRef.current || (!isConnected && (
+      peerConnectionRef.current || sfuWebSocketRef.current || refs.sfuDisposeRef?.current
+    ))) {
       voiceLog.info(
         "CONNECT",
         "Superseding in-progress connection — cleaning up",
@@ -658,6 +668,10 @@ export async function sfuConnect(params: ConnectParams): Promise<void> {
           voiceLog.fail("CONNECT", 1, "Error notifying old server", error);
         }
       }
+
+      const disposeSocket = refs.sfuDisposeRef?.current;
+      if (refs.sfuDisposeRef) refs.sfuDisposeRef.current = null;
+      disposeSocket?.();
 
       if (sfuWebSocketRef.current) {
         const oldWs = sfuWebSocketRef.current;
@@ -907,6 +921,9 @@ export async function sfuConnect(params: ConnectParams): Promise<void> {
       eSportsModeEnabled,
     );
     peerConnectionRef.current = peerConnection;
+    const isOwnedConnection = () => !isStale() && peerConnectionRef.current === peerConnection &&
+      !isDisconnectingRef.current;
+    const isCurrentConnection = () => isOwnedConnection() && peerConnection.connectionState !== "closed";
     voiceLog.ok("CONNECT", 5, "RTCPeerConnection created", {
       signalingState: peerConnection.signalingState,
       connectionState: peerConnection.connectionState,
@@ -938,13 +955,13 @@ export async function sfuConnect(params: ConnectParams): Promise<void> {
       }
     }, 20000);
 
-    if (isStale()) {
+    if (!isCurrentConnection()) {
       voiceLog.info(
         "CONNECT",
         "Superseded after peer connection setup — aborting",
       );
       peerConnection.close();
-      peerConnectionRef.current = null;
+      if (peerConnectionRef.current === peerConnection) peerConnectionRef.current = null;
       return;
     }
 
@@ -988,7 +1005,14 @@ export async function sfuConnect(params: ConnectParams): Promise<void> {
     );
     if (microphoneCodec) {
       const state = await applyMicrophoneCodec(peerConnection, tracks, microphoneCodec, undefined, channelMaxBitrateBps);
-      if (!isStale()) params.onMicrophoneCodecState?.(state);
+      // This policy failure deliberately closes its own PC. Preserve the current
+      // attempt's terminal reason, while rejecting every retired attempt's result.
+      if (!isOwnedConnection() || (!isCurrentConnection() && state.reason !== "bitrate_below_opus_minimum")) {
+        peerConnection.close();
+        if (peerConnectionRef.current === peerConnection) peerConnectionRef.current = null;
+        return;
+      }
+      params.onMicrophoneCodecState?.(state);
       if (state.reason === "bitrate_below_opus_minimum") throw new Error(state.reason);
     } else tracks.forEach((sender) => {
       try {
@@ -1027,10 +1051,10 @@ export async function sfuConnect(params: ConnectParams): Promise<void> {
     const sfuUrl =
       getCachedSfuUrl(cacheKey) ??
       (await selectBestSfuUrl(sfuCandidates, cacheKey));
-    if (isStale()) {
+    if (!isCurrentConnection()) {
       voiceLog.info("CONNECT", "Superseded before SFU WebSocket — aborting");
       peerConnection.close();
-      peerConnectionRef.current = null;
+      if (peerConnectionRef.current === peerConnection) peerConnectionRef.current = null;
       return;
     }
     activeSfuUrlRef.current = sfuUrl;
@@ -1043,6 +1067,7 @@ export async function sfuConnect(params: ConnectParams): Promise<void> {
     let callAloneTimeoutSeconds: number | null = null;
 
     let sfuWebSocket: WebSocket;
+    let disposeSfu: (() => void) | undefined;
     try {
       sfuWebSocket = await connectToSfuWebSocket(
         sfuUrl,
@@ -1052,6 +1077,11 @@ export async function sfuConnect(params: ConnectParams): Promise<void> {
         {
           microphoneCodec,
           channelMaxBitrateBps,
+          onDisposeAvailable: dispose => {
+            disposeSfu = dispose;
+            if (!isCurrentConnection()) { dispose(); return; }
+            if (refs.sfuDisposeRef) refs.sfuDisposeRef.current = dispose;
+          },
           onMicrophoneCodecState: state => { if (!isStale()) params.onMicrophoneCodecState?.(state); },
           getMediaPolicy: params.getMediaPolicy,
           getMicrophoneSenders: () => registeredTracksRef.current,
@@ -1091,21 +1121,24 @@ export async function sfuConnect(params: ConnectParams): Promise<void> {
           },
         },
       );
-      sfuWebSocketRef.current = sfuWebSocket;
       voiceLog.ok("CONNECT", 7, "SFU WebSocket connected & room joined");
     } catch (error) {
       voiceLog.fail("CONNECT", 7, "SFU WebSocket connection failed", error);
       throw new Error("Failed to connect to SFU server");
     }
 
-    if (isStale()) {
+    if (!isCurrentConnection()) {
       voiceLog.info("CONNECT", "Superseded after SFU WebSocket — aborting");
+      disposeSfu?.();
+      if (refs.sfuDisposeRef && refs.sfuDisposeRef.current === disposeSfu) refs.sfuDisposeRef.current = null;
       sfuWebSocket.close(1000, "Superseded");
-      sfuWebSocketRef.current = null;
+      if (sfuWebSocketRef.current === sfuWebSocket) sfuWebSocketRef.current = null;
       peerConnection.close();
-      peerConnectionRef.current = null;
+      if (peerConnectionRef.current === peerConnection) peerConnectionRef.current = null;
       return;
     }
+
+    sfuWebSocketRef.current = sfuWebSocket;
 
     // ---- Step 8: Notify signaling server ----
     voiceLog.step(
@@ -1119,6 +1152,7 @@ export async function sfuConnect(params: ConnectParams): Promise<void> {
     refs.announcedStreamIdRef.current = localStream.id;
     room.setLocalStream(localStream.id);
     await new Promise((resolve) => setTimeout(resolve, 10));
+    if (!isCurrentConnection()) return;
     room.announceJoined(true);
     voiceLog.ok("CONNECT", 8, "Signaling server notified");
 

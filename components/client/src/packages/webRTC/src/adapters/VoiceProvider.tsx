@@ -145,7 +145,7 @@ export function VoiceProvider({ children, hybrid }: { children?: ReactNode; hybr
         logicalScopes.current.servers[serverHost]?.epoch===serverEpoch && detailsRef.current[serverHost]?.server_info?.server_id===serverId;
       next[serverHost]={scope,session,room:createRoomCoordinator(
         ()=>sameIdentity() ? socketsRef.current[serverHost] : undefined,serverHost,
-        ()=>sameIdentity() ? entriesRef.current[serverHost]?.session.authority : undefined)};
+        ()=>sameIdentity() ? entriesRef.current[serverHost]?.session.authority : undefined, serverId)};
     }
     for(const [serverHost,old] of Object.entries(entriesRef.current))if(!next[serverHost])old.session.dispose();
     if(Object.keys(next).length!==Object.keys(entriesRef.current).length || Object.entries(next).some(([key,entry])=>entriesRef.current[key]!==entry)) { entriesRef.current=next;setEntries(next); }

@@ -1,6 +1,6 @@
 {
   "name": "@gryt/voice",
-  "version": "0.6.2-laokuai.receive-path.1",
+  "version": "0.6.2-laokuai.lifecycle.3",
   "description": "Gryt's voice engine: signalling, ICE, tracks and audio, with web and React Native adapters.",
   "license": "AGPL-3.0-only",
   "repository": {
@@ -89,7 +89,12 @@
     "check-hybrid-session": "node scripts/check-hybrid-session.mjs",
     "check-closed-pc-cleanup": "node scripts/check-closed-pc-cleanup.mjs",
     "check-hybrid-auth-recovery": "node scripts/check-hybrid-auth-recovery.mjs",
-    "check-receive-path": "node scripts/check-receive-path.mjs"
+    "check-receive-path": "node scripts/check-receive-path.mjs",
+    "check-lifecycle-epochs": "node scripts/check-lifecycle-epochs.mjs",
+    "check-connector-ownership": "node scripts/check-connector-ownership.mjs",
+    "check-mounted-connector-ownership": "node scripts/check-mounted-connector-ownership.mjs",
+    "check-mounted-codec-terminal": "node scripts/check-mounted-codec-terminal.mjs",
+    "check-mounted-connecting-switch": "node scripts/check-mounted-connecting-switch.mjs"
   },
   "devDependencies": {
     "@mediapipe/tasks-vision": "^1.0.1",

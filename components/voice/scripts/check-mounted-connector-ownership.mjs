@@ -1,0 +1,34 @@
+import assert from 'node:assert/strict';
+import path from 'node:path';
+import {pathToFileURL} from 'node:url';
+const root=path.resolve(process.argv[2]??new URL('../../../',import.meta.url).pathname),sdk=path.join(root,'components/voice');
+const {advance,fakePhonePlatform,fakeRoom,log,mountEngine,settle,voiceConfig,FakeSocket,sfuOffer}=await import(pathToFileURL(path.join(sdk,'scripts/engine-harness.mjs')));
+const {VoiceConfigProvider}=await import(pathToFileURL(path.join(sdk,'dist/config/index.js')));
+const {setVoicePlatform}=await import(pathToFileURL(path.join(sdk,'dist/platform/index.js')));
+const {VoiceSingletonHooks}=await import(pathToFileURL(path.join(sdk,'dist/shared/SingletonHooks.js')));
+const {useSFU}=await import(pathToFileURL(path.join(sdk,'dist/webrtc/hooks/useSFU.js')));
+const defer=()=>{let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b;});return {promise,resolve,reject};};
+const phone=fakePhonePlatform(),room=fakeRoom('server-a');setVoicePlatform(phone);
+const engine=await mountEngine({provider:VoiceConfigProvider,runner:VoiceSingletonHooks,read:()=>useSFU(),config:voiceConfig({stunHosts:['stun:a.test']}),target:{id:'server-a',room}});
+try {
+  let joinA;await settle(()=>{joinA=engine.current.connect('room-a');});await advance(1000);await joinA;
+  const pcA=phone.peers[0],wsA=FakeSocket.all.at(-1);await settle(()=>pcA.reach('connected'));
+  assert.equal(pcA.signalingState,'stable');
+  const d=defer();let oldCalls=0;pcA.setRemoteDescription=()=>{oldCalls++;return d.promise;};
+  const active=sfuOffer(),queued=sfuOffer();queued.sdp+='a=x-audit-retired-queued-offer\r\n';
+  await settle(()=>wsA.deliver('offer',active));assert.equal(oldCalls,1);
+  await settle(()=>wsA.deliver('offer',queued));assert.equal(oldCalls,1,'second offer must queue while first is pending');
+  let joinB;await settle(()=>{joinB=engine.current.connect('room-b');});await advance(1000);await joinB;
+  const pcB=phone.peers.at(-1),wsB=FakeSocket.all.at(-1);assert.notEqual(pcA,pcB);assert.notEqual(wsA,wsB);
+  assert.equal(wsA.readyState,FakeSocket.CLOSED);assert.equal(pcA.connectionState,'closed');
+  assert.equal(engine.current.currentChannelConnected,'room-b');assert.equal(pcB.signalingState,'stable');
+  const before=pcB.remoteDescription.sdp;const trace=[];const original=pcB.setRemoteDescription.bind(pcB);
+  pcB.setRemoteDescription=description=>{trace.push(description.sdp);return original(description);};
+  await settle(()=>d.reject(new Error('old connection closed while SDP operation was pending')));
+  await advance(100);
+  const result={sourceRoot:root,room:engine.current.currentChannelConnected,oldSocketClosed:wsA.readyState===3,newSocketOpen:wsB.readyState===1,newPeerReceivedRetiredOffer:trace.some(s=>s.includes('x-audit-retired-queued-offer')),newPeerDescriptionChanged:pcB.remoteDescription.sdp!==before,appliedAfterRetirement:trace.length};
+  log(JSON.stringify(result,null,2));
+  assert.equal(result.newPeerReceivedRetiredOffer,false,'retired room A offer was applied to current room B peer');
+  assert.equal(result.newPeerDescriptionChanged,false,'retired connector mutated current peer SDP');
+  log('PASS retired connector cannot drain queued offers into the next room');
+} finally {await engine.unmount();}

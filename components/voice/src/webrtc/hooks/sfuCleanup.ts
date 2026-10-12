@@ -7,6 +7,8 @@ import { voiceLog } from "./voiceLogger";
 export interface CleanupRefs {
   peerConnectionRef: MutableRefObject<RTCPeerConnection | null>;
   sfuWebSocketRef: MutableRefObject<WebSocket | null>;
+  /** Owns pending socket handshakes as well as an established socket. */
+  sfuDisposeRef?: MutableRefObject<(() => void) | null>;
   registeredTracksRef: MutableRefObject<RTCRtpSender[]>;
   reconnectAttemptRef: MutableRefObject<NodeJS.Timeout | null>;
   connectionTimeoutRef: MutableRefObject<NodeJS.Timeout | null>;
@@ -60,6 +62,10 @@ export async function performSfuCleanup(
 
   previousRemoteStreamsRef.current.clear();
   announcedStreamIdRef.current = null;
+
+  const disposeSocket = refs.sfuDisposeRef?.current;
+  if (refs.sfuDisposeRef) refs.sfuDisposeRef.current = null;
+  disposeSocket?.();
 
   // Step 1: Remove tracks
   const tracksToRemove = [...registeredTracksRef.current];
@@ -189,7 +195,7 @@ export async function performSfuCleanup(
  */
 export function performUnmountCleanup(
   refs: Pick<CleanupRefs,
-    'sfuWebSocketRef' | 'peerConnectionRef' | 'reconnectAttemptRef' |
+    'sfuWebSocketRef' | 'sfuDisposeRef' | 'peerConnectionRef' | 'reconnectAttemptRef' |
     'connectionTimeoutRef' | 'registeredTracksRef' | 'previousRemoteStreamsRef'
   >,
 ): void {
@@ -197,6 +203,10 @@ export function performUnmountCleanup(
     sfuWebSocketRef, peerConnectionRef, reconnectAttemptRef,
     connectionTimeoutRef, registeredTracksRef, previousRemoteStreamsRef,
   } = refs;
+
+  const disposeSocket = refs.sfuDisposeRef?.current;
+  if (refs.sfuDisposeRef) refs.sfuDisposeRef.current = null;
+  disposeSocket?.();
 
   if (sfuWebSocketRef.current) {
     const ws = sfuWebSocketRef.current;

@@ -35,6 +35,8 @@ const RL_DOCTOR_ROOM: RateLimitRule = { limit: 3, windowMs: 60_000, scorePerActi
 
 export function registerVoiceHandlers(ctx: HandlerContext): EventHandlerMap {
   const { io, socket, clientId, serverId, clientsInfo, sfuClient, getClientIp } = ctx;
+  // Per-socket request lifetime; never shared between members or devices.
+  let roomRequestRevision = 0;
 
   /** Voice events carry no access token, so the socket's identity in
       `clientsInfo` is what answers. */
@@ -200,6 +202,10 @@ export function registerVoiceHandlers(ctx: HandlerContext): EventHandlerMap {
     },
 
     'voice:stream:set': (streamID: string) => {
+      if (streamID === "") {
+        ++roomRequestRevision;
+        if (clientsInfo[clientId] && !clientsInfo[clientId].hasJoinedChannel) clientsInfo[clientId].voiceChannelId = "";
+      }
       if (!clientsInfo[clientId]) return;
       const wasInChannel = clientsInfo[clientId].hasJoinedChannel;
       const newJoinedState = streamID.length > 0;
@@ -332,7 +338,13 @@ export function registerVoiceHandlers(ctx: HandlerContext): EventHandlerMap {
     },
 
     'voice:room:request': async (roomId: string) => {
-      const userId = clientsInfo[clientId]?.serverUserId;
+      const revision = ++roomRequestRevision;
+      const requestClient = clientsInfo[clientId];
+      const userId = requestClient?.serverUserId;
+      const accountId = requestClient?.grytUserId;
+      const isCurrent = () => revision === roomRequestRevision && socket.connected !== false && socket.id === clientId &&
+        requestClient !== undefined && clientsInfo[clientId] === requestClient &&
+        requestClient.serverUserId === userId && requestClient.grytUserId === accountId;
       consola.info(`[Voice:Step 1] voice:room:request from client=${clientId} user=${userId} room=${roomId}`);
       try {
         const ip = getClientIp();
@@ -354,6 +366,7 @@ export function registerVoiceHandlers(ctx: HandlerContext): EventHandlerMap {
         /* A DM's id is computable from a member list, so whether the room is
            theirs to see comes first. Same answer chat gets. */
         const access = await resolveConversationAccess(roomId, userId);
+        if (!isCurrent()) return;
         if (!access.allowed) {
           const denial = DENIAL_RESPONSES[access.reason];
           consola.warn(`[Voice:Step 1] REFUSED client=${clientId} user=${userId} room=${roomId} reason=${access.reason}`);
@@ -370,6 +383,7 @@ export function registerVoiceHandlers(ctx: HandlerContext): EventHandlerMap {
            stranger gets. A group's call stays open, as its messages do. */
         if (access.kind === "dm" && !access.group && userId) {
           const unreachable = await unreachableFrom(userId, access);
+          if (!isCurrent()) return;
           if (access.memberIds.some((id) => id !== userId && unreachable.has(id))) {
             const denial = DENIAL_RESPONSES.not_a_member;
             consola.warn(`[Voice:Step 1] REFUSED client=${clientId} user=${userId} room=${roomId} reason=blocked`);
@@ -380,7 +394,9 @@ export function registerVoiceHandlers(ctx: HandlerContext): EventHandlerMap {
           const peerIsWaiting = (peer: string) =>
             getRing(roomId)?.fromServerUserId === peer
             || Object.values(clientsInfo).some((ci) => ci.serverUserId === peer && ci.hasJoinedChannel && ci.voiceChannelId === roomId);
-          if (!(await mayJoinOneToOneCall(access.memberIds, userId, peerIsWaiting))) {
+          const mayJoinCall = await mayJoinOneToOneCall(access.memberIds, userId, peerIsWaiting);
+          if (!isCurrent()) return;
+          if (!mayJoinCall) {
             consola.warn(`[Voice:Step 1] REFUSED client=${clientId} user=${userId} room=${roomId} reason=contact_prefs`);
             socket.emit("voice:room:error", CONTACT_REFUSALS.calls);
             return;
@@ -388,7 +404,9 @@ export function registerVoiceHandlers(ctx: HandlerContext): EventHandlerMap {
         }
         // The room's answer alone, so an allow opens a room to a role without
         // join_voice elsewhere (GRYT-1418). A call has no scope: the server's.
-        if (!(await mayInRoom("join_voice", roomId))) {
+        const mayJoin = await mayInRoom("join_voice", roomId);
+        if (!isCurrent()) return;
+        if (!mayJoin) {
           consola.warn(`[Voice:Step 1] REFUSED client=${clientId} user=${userId} room=${roomId} reason=join_voice`);
           socket.emit("voice:room:error", {
             error: "forbidden",
@@ -437,6 +455,7 @@ export function registerVoiceHandlers(ctx: HandlerContext): EventHandlerMap {
         const uniqueRoomId = sfuRoomId(serverId, roomId);
         consola.info(`[Voice:Step 3] Registering room ${uniqueRoomId} with SFU…`);
         await sfuClient.registerRoom(uniqueRoomId);
+        if (!isCurrent()) return;
         consola.info(`[Voice:Step 3] Room registered: ${uniqueRoomId}`);
 
         const serverUserId = clientsInfo[clientId]?.serverUserId;
@@ -444,6 +463,7 @@ export function registerVoiceHandlers(ctx: HandlerContext): EventHandlerMap {
         /* Audio never reaches this server, so the token is the whole mechanism.
            Against the channel id: `uniqueRoomId` matches no scope. */
         const capabilities = await voiceCapabilities(roomId, serverUserId, clientsInfo[clientId]?.grytUserId);
+        if (!isCurrent()) return;
 
         consola.info(`[Voice:Step 4] Generating join token for client=${clientId} user=${serverUserId} room=${uniqueRoomId} caps=[${capabilities.join(",")}]`);
         const joinToken = sfuClient.generateClientJoinToken(uniqueRoomId, serverUserId, capabilities, clientId);
@@ -457,11 +477,15 @@ export function registerVoiceHandlers(ctx: HandlerContext): EventHandlerMap {
         /* A camera or share carried in from the last room answers to this one.
            Quietly: an error before the grant reads to the client as a failed join. */
         const carried = clientsInfo[clientId];
-        if (carried?.cameraEnabled && !(await mayInRoom("share_video", roomId))) {
+        const mayCarryCamera = !carried?.cameraEnabled || await mayInRoom("share_video", roomId);
+        if (!isCurrent()) return;
+        if (!mayCarryCamera) {
           carried.cameraEnabled = false;
           carried.cameraStreamID = "";
         }
-        if (carried?.screenShareEnabled && !(await mayInRoom("share_screen", roomId))) {
+        const mayCarryScreen = !carried?.screenShareEnabled || await mayInRoom("share_screen", roomId);
+        if (!isCurrent()) return;
+        if (!mayCarryScreen) {
           carried.screenShareEnabled = false;
           carried.screenShareVideoStreamID = "";
           carried.screenShareAudioStreamID = "";
@@ -470,15 +494,23 @@ export function registerVoiceHandlers(ctx: HandlerContext): EventHandlerMap {
         consola.success(`[Voice:Step 5] Granting room access: client=${clientId} room=${uniqueRoomId} sfu_urls=${sfuPublicUrls.join(", ")}`);
         socket.emit("voice:room:granted", { room_id: uniqueRoomId, join_token: joinToken, sfu_url: sfuPublicUrl, sfu_urls: sfuPublicUrls, timestamp: Date.now() });
       } catch (error) {
+        if (!isCurrent()) return;
         consola.error(`[Voice:FAIL] Room access error for client=${clientId} room=${roomId}:`, error);
         socket.emit("voice:room:error", error instanceof Error ? error.message : "Failed to grant room access");
       }
     },
 
     'voice:channel:joined': async (hasJoined: boolean) => {
+      if (!hasJoined) {
+        ++roomRequestRevision;
+        if (clientsInfo[clientId] && !clientsInfo[clientId].hasJoinedChannel) clientsInfo[clientId].voiceChannelId = "";
+      }
       if (!clientsInfo[clientId]) return;
+      const revision = roomRequestRevision;
+      const joiningClient = clientsInfo[clientId];
       const ip = getClientIp();
-      const userId = clientsInfo[clientId]?.serverUserId;
+      const userId = joiningClient.serverUserId;
+      const accountId = joiningClient.grytUserId;
       consola.info(`[Voice:channel:joined] client=${clientId} user=${userId} hasJoined=${hasJoined}`);
       const rl = checkRateLimit("voice:channel:joined", userId, ip, RL_JOINED_CHANNEL);
       if (!rl.allowed) {
@@ -501,7 +533,11 @@ export function registerVoiceHandlers(ctx: HandlerContext): EventHandlerMap {
 
       // The room's answer, as at the grant: server-wide here refused a room
       // that allows join_voice after granting it (GRYT-1418).
-      if (newJoinedState && !(await mayInRoom("join_voice", channelId))) {
+      const mayJoin = !newJoinedState || await mayInRoom("join_voice", channelId);
+      if (newJoinedState && (revision !== roomRequestRevision || socket.connected === false || socket.id !== clientId ||
+        clientsInfo[clientId] !== joiningClient || joiningClient.voiceChannelId !== channelId ||
+        joiningClient.serverUserId !== userId || joiningClient.grytUserId !== accountId)) return;
+      if (!mayJoin) {
         socket.emit("voice:room:error", {
           error: "forbidden",
           message: "You don't have permission to join voice here.",

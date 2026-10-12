@@ -51,7 +51,9 @@ await settle(()=>resolveScreen({getTracks:()=>[lateScreen,lateScreenAudio]}));
 assert.equal(lateScreen.readyState,'ended');assert.equal(lateScreenAudio.readyState,'ended');
 assert.equal(engine.current.screen.screenVideoStream,null);assert.equal(engine.current.screen.screenAudioStream,null);
 assert.equal(pc.connectionState,'closed','policy changes revoke the existing transport immediately');
-await advance(3000);const rebuilt=phone.peers.at(-1);assert.notEqual(rebuilt,pc);
+await advance(3000);
+// React commits recovery after advance() returns; then drain the owned 50ms cleanup.
+await advance(100);const rebuilt=phone.peers.at(-1);assert.notEqual(rebuilt,pc);
 await settle(()=>rebuilt.reach('connected'));
 assert.ok(answered(FakeSocket.all.at(-1)).every(s=>s.kind!=='video'||s.direction==='inactive'));
 // A config update while createAnswer is pending must never send the stale answer.
