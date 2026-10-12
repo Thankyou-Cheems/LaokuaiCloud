@@ -122,12 +122,13 @@
     "serviceCleanupRows": 1,
     "serviceCleanupConfirmed": 1,
     "serviceCleanupUnconfirmed": 0,
-    "revocationAndListAbsenceConfirmed": true,
-    "revocationEvidence": "communityGrantService confirms cleanup only after successful provider Revoke and provider.read/List returns null; previously zero cleanup rows became one confirmed row",
+    "revocationEvidence": "Original cleanup pipeline conditionally calls Revoke if the credential still exists, then confirms only after provider.read/List returns null. One confirmed cleanup row and zero pending rows prove absence; explicit Revoke dispatch versus already-expired absence was not independently observed.",
     "publicCredentialWritesClosed": true,
     "publicTechnicalWindowExpired": true,
     "finalServiceHealthStatus": 200,
     "publicCoreRuntimeGenerationUnchanged": 134118291,
-    "privateEtTouched": false
+    "privateEtTouched": false,
+    "credentialAbsentInProviderListConfirmed": true,
+    "revokeRpcDispatchIndependentlyObserved": false
   }
 }

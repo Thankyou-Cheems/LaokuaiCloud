@@ -2879,7 +2879,7 @@
   },
   "nativeFirstDevicePreflight": {
     "receipt": "release/acceptance/native-first-device-a3-preflight.json",
-    "receiptSha256": "91f26f3db88fedb040d0769df8e6aee97cb3f9ce4a0c5b8be293aaa0f384fa91",
+    "receiptSha256": "45719ca20d3e2226d7bed02f5c771d8a0a6f239691e98fd457819c32a7d9829e",
     "preparedLauncher": true,
     "nativeStarted": true,
     "credentialIssued": true,
@@ -2890,9 +2890,10 @@
     "actualRpcPassed": true,
     "actualIssuerVerifiedConnectionPassed": true,
     "actualWindowsVirtualIpPassed": true,
-    "revocationAndListAbsenceConfirmed": true,
     "ownedCleanupPassed": true,
     "temporaryWriteWindowClosed": true,
-    "firstDeviceScopePassed": true
+    "firstDeviceScopePassed": true,
+    "credentialAbsentInProviderListConfirmed": true,
+    "revokeRpcDispatchIndependentlyObserved": false
   }
 }
