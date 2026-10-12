@@ -1,0 +1,23 @@
+{
+  "version": "1.13.22-laokuai.beta.20261012.1",
+  "sourceCommit": "2526db9081567da13f246be801a3b4662cb38102",
+  "portable": {
+    "file": "唠蒯云-1.13.22-laokuai.beta.20261012.1-zh-CN-win-x64-portable.exe",
+    "bytes": 97846494,
+    "sha256": "43a630df55d965048632f9bd13b3febeb357419f3d9ea49b28ca5f4330b98ade"
+  },
+  "distributionZip": {
+    "file": "唠蒯云-1.13.22-laokuai.beta.20261012.1-win-x64-朋友测试.zip",
+    "bytes": 331548094,
+    "sha256": "0a3cdd87a2eb869f11ae1fc3d27e25b9b060c02e8a7cd67059770facb8aa2102"
+  },
+  "customerFiles": 16,
+  "customerZipNoProfileOrLogByAllowlist": true,
+  "eightSourceArchivesCrcVerified": true,
+  "finalZipCrcAndAllFileShaVerified": true,
+  "newMemberAdmissionOpen": false,
+  "passwordConfigured": false,
+  "readyForUserAuthorizedFriendTestDistribution": true,
+  "publicReleaseApproved": false,
+  "fullDeviceOrGameAcceptance": false
+}

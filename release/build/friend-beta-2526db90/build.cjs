@@ -1,0 +1,5 @@
+const fs=require('node:fs'),p=require('node:path'),cp=require('node:child_process');
+const stage=p.resolve(__dirname,'..'),client=p.join(stage,'source/components/client'),results=[];
+const env={...process.env,ELECTRON_BUILDER_CACHE:p.join(stage,'builder-cache'),GRYT_VARIANT:'slim'};
+const jobs=[['typecheck',['node_modules/typescript/bin/tsc','-b','--pretty','false'],{}],['desktop-build',['node_modules/vite/bin/vite.js','build'],{ELECTRON:'1'}],['portable',['node_modules/electron-builder/cli.js','--config=../../../operations/builder.cjs','--win','portable','--x64','--publish','never'],{}]];
+for(const[label,args,extra]of jobs){console.log('START '+label);const child=cp.spawnSync(process.execPath,args,{cwd:client,env:{...env,...extra},windowsHide:true,shell:false,encoding:'utf8',maxBuffer:32*1024*1024});fs.writeFileSync(p.join(stage,'logs',label+'.log'),(child.stdout||'')+(child.stderr||''));results.push({label,exit:child.status,error:child.error?.code??null});fs.writeFileSync(p.join(stage,'BUILD.json'),JSON.stringify(results,null,2));console.log('END '+label+' '+child.status);if(child.status!==0)process.exit(child.status??1);}

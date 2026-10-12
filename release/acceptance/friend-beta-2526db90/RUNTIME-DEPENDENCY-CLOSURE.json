@@ -1,0 +1,207 @@
+{
+  "sourceCommit": "2526db9081567da13f246be801a3b4662cb38102",
+  "packages": 28,
+  "rows": [
+    {
+      "name": "electron-updater",
+      "version": "6.8.3",
+      "destination": "node_modules/electron-updater",
+      "sourceBytesReused": true,
+      "installScriptsExecuted": false
+    },
+    {
+      "name": "fs-extra",
+      "version": "10.1.0",
+      "destination": "node_modules/fs-extra",
+      "sourceBytesReused": true,
+      "installScriptsExecuted": false
+    },
+    {
+      "name": "graceful-fs",
+      "version": "4.2.11",
+      "destination": "node_modules/graceful-fs",
+      "sourceBytesReused": true,
+      "installScriptsExecuted": false
+    },
+    {
+      "name": "jsonfile",
+      "version": "6.2.0",
+      "destination": "node_modules/jsonfile",
+      "sourceBytesReused": true,
+      "installScriptsExecuted": false
+    },
+    {
+      "name": "universalify",
+      "version": "2.0.1",
+      "destination": "node_modules/universalify",
+      "sourceBytesReused": true,
+      "installScriptsExecuted": false
+    },
+    {
+      "name": "js-yaml",
+      "version": "4.1.1",
+      "destination": "node_modules/js-yaml",
+      "sourceBytesReused": true,
+      "installScriptsExecuted": false
+    },
+    {
+      "name": "argparse",
+      "version": "2.0.1",
+      "destination": "node_modules/argparse",
+      "sourceBytesReused": true,
+      "installScriptsExecuted": false
+    },
+    {
+      "name": "lazy-val",
+      "version": "1.0.5",
+      "destination": "node_modules/lazy-val",
+      "sourceBytesReused": true,
+      "installScriptsExecuted": false
+    },
+    {
+      "name": "lodash.escaperegexp",
+      "version": "4.1.2",
+      "destination": "node_modules/lodash.escaperegexp",
+      "sourceBytesReused": true,
+      "installScriptsExecuted": false
+    },
+    {
+      "name": "lodash.isequal",
+      "version": "4.5.0",
+      "destination": "node_modules/lodash.isequal",
+      "sourceBytesReused": true,
+      "installScriptsExecuted": false
+    },
+    {
+      "name": "semver",
+      "version": "7.7.4",
+      "destination": "node_modules/semver",
+      "sourceBytesReused": true,
+      "installScriptsExecuted": false
+    },
+    {
+      "name": "tiny-typed-emitter",
+      "version": "2.1.0",
+      "destination": "node_modules/tiny-typed-emitter",
+      "sourceBytesReused": true,
+      "installScriptsExecuted": false
+    },
+    {
+      "name": "builder-util-runtime",
+      "version": "9.5.1",
+      "destination": "node_modules/builder-util-runtime",
+      "sourceBytesReused": true,
+      "installScriptsExecuted": false
+    },
+    {
+      "name": "debug",
+      "version": "4.4.3",
+      "destination": "node_modules/debug",
+      "sourceBytesReused": true,
+      "installScriptsExecuted": false
+    },
+    {
+      "name": "ms",
+      "version": "2.1.3",
+      "destination": "node_modules/ms",
+      "sourceBytesReused": true,
+      "installScriptsExecuted": false
+    },
+    {
+      "name": "sax",
+      "version": "1.4.4",
+      "destination": "node_modules/sax",
+      "sourceBytesReused": true,
+      "installScriptsExecuted": false
+    },
+    {
+      "name": "mediabunny",
+      "version": "1.61.1",
+      "destination": "node_modules/mediabunny",
+      "sourceBytesReused": true,
+      "installScriptsExecuted": false
+    },
+    {
+      "name": "@types/dom-mediacapture-transform",
+      "version": "0.1.12",
+      "destination": "node_modules/@types/dom-mediacapture-transform",
+      "sourceBytesReused": true,
+      "installScriptsExecuted": false
+    },
+    {
+      "name": "@types/dom-webcodecs",
+      "version": "0.1.19",
+      "destination": "node_modules/@types/dom-webcodecs",
+      "sourceBytesReused": true,
+      "installScriptsExecuted": false
+    },
+    {
+      "name": "@types/dom-webcodecs",
+      "version": "0.1.13",
+      "destination": "node_modules/mediabunny/node_modules/@types/dom-webcodecs",
+      "sourceBytesReused": true,
+      "installScriptsExecuted": false
+    },
+    {
+      "name": "tar",
+      "version": "7.5.22",
+      "destination": "node_modules/tar",
+      "sourceBytesReused": true,
+      "installScriptsExecuted": false
+    },
+    {
+      "name": "@isaacs/fs-minipass",
+      "version": "4.0.1",
+      "destination": "node_modules/@isaacs/fs-minipass",
+      "sourceBytesReused": true,
+      "installScriptsExecuted": false
+    },
+    {
+      "name": "minipass",
+      "version": "7.1.3",
+      "destination": "node_modules/minipass",
+      "sourceBytesReused": true,
+      "installScriptsExecuted": false
+    },
+    {
+      "name": "chownr",
+      "version": "3.0.0",
+      "destination": "node_modules/chownr",
+      "sourceBytesReused": true,
+      "installScriptsExecuted": false
+    },
+    {
+      "name": "minizlib",
+      "version": "3.1.0",
+      "destination": "node_modules/minizlib",
+      "sourceBytesReused": true,
+      "installScriptsExecuted": false
+    },
+    {
+      "name": "yallist",
+      "version": "5.0.0",
+      "destination": "node_modules/yallist",
+      "sourceBytesReused": true,
+      "installScriptsExecuted": false
+    },
+    {
+      "name": "uiohook-napi",
+      "version": "1.5.4",
+      "destination": "node_modules/uiohook-napi",
+      "sourceBytesReused": true,
+      "installScriptsExecuted": false
+    },
+    {
+      "name": "node-gyp-build",
+      "version": "4.8.4",
+      "destination": "node_modules/node-gyp-build",
+      "sourceBytesReused": true,
+      "installScriptsExecuted": false
+    }
+  ],
+  "nativeHookSha256": "a4e18d5896c5889635efe31c6f1a0ce8ccafeabe9521e0f92c46a5861e8c290b",
+  "existingFrozenBytesOnly": true,
+  "newDependenciesAcquired": false,
+  "nodeOrNativeRebuilt": false,
+  "originalLinksPreserved": true
+}

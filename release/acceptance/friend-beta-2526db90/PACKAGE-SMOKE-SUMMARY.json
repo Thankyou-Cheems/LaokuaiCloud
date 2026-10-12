@@ -1,0 +1,20 @@
+{
+  "scope": "PASS-bootstrap-and-exact-package-only",
+  "sourceCommit": "2526db9081567da13f246be801a3b4662cb38102",
+  "appAsarSha256": "715cc61c90199e3c213bc997499ff9b15e63a7363ec5294c3d015d8ec813374e",
+  "payloadFilesByteIdentical": 146,
+  "endpointSamplesSuccessful": 13,
+  "ownedEndpointsZero": true,
+  "ownedForegroundFalse": true,
+  "ownedProcessCount": 6,
+  "hiddenSnapshot": true,
+  "showOrFocusOrLoadOrPreloadOrCrashFailureEvents": 0,
+  "exitCode": 0,
+  "residualProcessCount": 0,
+  "rootChildren": 1,
+  "language": "zh-CN",
+  "preloadApisPresent": true,
+  "accountCommunityVoiceNativeGameAcceptance": false,
+  "failedPreparationRetained": "two invalid-directory rejected attempts code2; no app/profile initialization; earlier incomplete notice/runtime-dependency packaging checkpoints retained",
+  "realProfilesOrCredentialsExported": false
+}

@@ -1,0 +1,40 @@
+{
+  "version": "1.13.22-laokuai.beta.20261012.1",
+  "sourceCommit": "2526db9081567da13f246be801a3b4662cb38102",
+  "publicReleaseApproved": false,
+  "files": [
+    {
+      "file": "Client-Voice-Server-SFU-Corresponding-Source.zip",
+      "bytes": 18192363,
+      "sha256": "33001f5515324157382c35c284c148c4762be8bbd40029a6f1d82a9674a8ed93"
+    },
+    {
+      "file": "EasyTier-Build-Tools-Fix.zip",
+      "bytes": 3461,
+      "sha256": "87d32e98f56009e36932593159aa181940e38839a22cba97a459e401a92e1782"
+    },
+    {
+      "file": "EasyTier-Build-Tools.zip",
+      "bytes": 161269,
+      "sha256": "24879c3a920fc4a12d2b30baa2c779ff8b9ebed3e13411861b563d8372560688"
+    },
+    {
+      "file": "EasyTier-Corresponding-Source.zip",
+      "bytes": 151940089,
+      "sha256": "bad7e5e4b3a666d63876eaa5910cf6e3aaafc927330521682adb5a80267c6205"
+    },
+    {
+      "file": "RNNoise-Preferred-Source.zip",
+      "bytes": 61940085,
+      "sha256": "a79be9beb3936f652a404e3961e1915733d6e9e88498de20cbf2b15f8dc2d76d"
+    },
+    {
+      "file": "UI-Preferred-Source.zip",
+      "bytes": 1099658,
+      "sha256": "d0933073f4915594021bad3940ac61079241546cdfeb74a347085fdc46bc69e3"
+    }
+  ],
+  "sourcesMustAccompanyBinary": true,
+  "recipientCanModifyAndRebuild": true,
+  "profileOrSecretIncluded": false
+}
