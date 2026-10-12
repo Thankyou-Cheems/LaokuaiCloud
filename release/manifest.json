@@ -2325,6 +2325,18 @@
       "sfuPid1GracefulExitAccepted": false,
       "rebuildRequiredForThisWork": false,
       "productionDeploymentApproved": false
+    },
+    "sfuLoopbackMediaFeasibility": {
+      "receipt": "release/acceptance/sfu-loopback-media-feasibility.json",
+      "receiptSha256": "4d097d311fda6529f9cfcbd4e202d27061e4285f79f5191ca720df87168a2191",
+      "report": "release/SFU-LOOPBACK-MEDIA-FEASIBILITY.md",
+      "reportSha256": "3922b065b484a4ac6ef82ac5ba5c45a065f87e0ff74d7f6ec57f06af285fba60",
+      "checksPassed": 7,
+      "evaluationComplete": true,
+      "originalSfuMediaPossibleInLoopbackOnlyNamespace": false,
+      "actualRtpAccepted": false,
+      "actualPauseResumeAckAccepted": false,
+      "productionDeploymentApproved": false
     }
   },
   "securityBoundary": {

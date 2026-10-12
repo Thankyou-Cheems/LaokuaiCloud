@@ -1,0 +1,190 @@
+{
+  "schema": 1,
+  "status": "FEASIBILITY-COMPLETE;ORIGINAL-SFU-LOOPBACK-MEDIA-BLOCKED",
+  "sourceReviewCommit": "71b4f57ad2931e32690efbd8e9940122a112550d",
+  "originalCandidateSourceCommit": "85ec3b9c60d49881ba9ad5cd48c9a17d59c1772d",
+  "originalSfuTree": "24c3669c4ca13d39f8132225ae1cb4a450750729",
+  "actual": {
+    "schema": 1,
+    "imageId": "sha256:e45e9c27fe391aa9281365745a54c34529b502f09fa79a2d8e68fcc5486d1eba",
+    "candidateSourceCommit": "85ec3b9c60d49881ba9ad5cd48c9a17d59c1772d",
+    "serverTree": "96db8312488c4f399904192f3a932232cf6130ad",
+    "sfuElfSha256": "47378f28e35a4a9a95aced3c3d4f21f028e13e6552721e1a814ed7492203afb2",
+    "sfuSourceTree": "24c3669c4ca13d39f8132225ae1cb4a450750729",
+    "name": "laokuai-task6-feasibility-cee2b44252bb",
+    "passed": true,
+    "productionTouched": false,
+    "realCredentials": false,
+    "scripts": {
+      "image-media-feasibility.cjs": "afda57135fb8c8d3d6c2bf584980a1cf06aa1f150dae7728da3c6b5745ae0b8c",
+      "run-media-feasibility.py": "720f350c46e0335ae8b83b83a99b868787ebe5e33ab96d6fef301a6132fb4b62"
+    },
+    "isolation": {
+      "network": "none",
+      "portBindings": {},
+      "readonlyRootfs": true,
+      "readonlyFixtureAndExactSfuElfMountOnly": true,
+      "realDataMounts": 0,
+      "cpuCount": 1,
+      "memoryBytes": 1073741824,
+      "persistentTestCredentials": false
+    },
+    "containerId": "28d7a23850f1a2e0de91fe91138eb28a5c1dd30194d50ab65c46d84364ea1991",
+    "samples": [
+      {
+        "elapsedSeconds": 0.15,
+        "running": true,
+        "networkNone": true,
+        "hostPortBindingsEmpty": true
+      },
+      {
+        "elapsedSeconds": 1.31,
+        "running": true,
+        "networkNone": true,
+        "hostPortBindingsEmpty": true
+      },
+      {
+        "elapsedSeconds": 2.46,
+        "running": true,
+        "networkNone": true,
+        "hostPortBindingsEmpty": true
+      },
+      {
+        "elapsedSeconds": 3.61,
+        "running": true,
+        "networkNone": true,
+        "hostPortBindingsEmpty": true
+      },
+      {
+        "elapsedSeconds": 4.77,
+        "running": true,
+        "networkNone": true,
+        "hostPortBindingsEmpty": true
+      },
+      {
+        "elapsedSeconds": 5.93,
+        "running": true,
+        "networkNone": true,
+        "hostPortBindingsEmpty": true
+      },
+      {
+        "elapsedSeconds": 7.08,
+        "running": true,
+        "networkNone": true,
+        "hostPortBindingsEmpty": true
+      },
+      {
+        "elapsedSeconds": 8.24,
+        "running": true,
+        "networkNone": true,
+        "hostPortBindingsEmpty": true
+      },
+      {
+        "elapsedSeconds": 9.4,
+        "running": false,
+        "networkNone": true,
+        "hostPortBindingsEmpty": true
+      }
+    ],
+    "fixtureResult": {
+      "passed": true,
+      "checks": [
+        "Original ELF healthy with STUN disabled and loopback advertised",
+        "Network namespace exposes only internal loopback addresses",
+        "Synthetic server registers through original control handler",
+        "Valid synthetic signed client join produces original audio offer",
+        "No original SFU UDP3478 mux listener in loopback-only namespace",
+        "No host candidates emitted despite loopback advertise configuration",
+        "Original runtime explicitly reports no usable UDP mux interface"
+      ],
+      "status": "BLOCKED-ORIGINAL-SFU-LOOPBACK-MUX-EXCLUDED",
+      "interfaces": [
+        {
+          "name": "lo",
+          "address": "127.0.0.1",
+          "internal": true
+        },
+        {
+          "name": "lo",
+          "address": "::1",
+          "internal": true
+        }
+      ],
+      "candidateFrames": 0,
+      "offerCandidates": 0,
+      "udp3478Listeners": 0,
+      "muxBoundNone": true,
+      "originalSfuElfSha256": "47378f28e35a4a9a95aced3c3d4f21f028e13e6552721e1a814ed7492203afb2",
+      "config": {
+        "ICE_ADVERTISE_IP": "127.0.0.1",
+        "ICE_UDP_MUX_PORT": 3478,
+        "DISABLE_STUN": true
+      },
+      "syntheticAuthenticatedOffer": true,
+      "actualPeerConnected": false,
+      "actualRtp": false,
+      "actualPauseResumeAck": false,
+      "productModified": false,
+      "sfuExit": {
+        "code": null,
+        "signal": "SIGTERM"
+      }
+    },
+    "exitCode": 0,
+    "oomKilled": false,
+    "stoppedExitCode": 0,
+    "ownedContainerRemoved": true,
+    "tmpfsDiscarded": true
+  },
+  "cause": "Original UDP mux excludes loopback by default and SettingEngine does not include loopback candidates; network=none namespace only has lo",
+  "originalMain": {
+    "gitBlob": "4e53d43bb26632365452fdc4ef30dffd9caa7964",
+    "sha256": "97b28b1a482bb712bcd1bf3290b324860acf06d7b26ac3991794559919bfe34a"
+  },
+  "runtimeDeps": {
+    "ice": "v4.4.1",
+    "webrtc": "v4.2.19",
+    "gorillaWebsocket": "v1.5.3",
+    "verifiedInFrozenElfBuildinfo": true
+  },
+  "cachedCoreArchivesPresent": true,
+  "entireHelperDependencyClosureVerified": false,
+  "newHelperCompiled": false,
+  "existingTestEntry": "components/sfu/cmd/integration-probe",
+  "existingTestEntryEquivalentToOriginalRuntime": false,
+  "minimalNextOptions": [
+    "Explicitly approve isolated non-loopback network environment for original ELF",
+    "Review a default-off explicit test-only loopback mux/API option and freeze/rebuild before using it"
+  ],
+  "localEvidence": [
+    {
+      "ownerLocalPath": "offline-media-feasibility-run1/RESULT.json",
+      "sha256": "d0c4a9f032a1023e385a5545159bc2300b20531719d68b2fa9fbec24ce2ebe78",
+      "bytes": 3920
+    },
+    {
+      "ownerLocalPath": "offline-media-feasibility-run1/protocol.stdout.log",
+      "sha256": "727a4f27c2da62df62a588aafb5fee5e677eb8a07634b19318815fe07dfc6768",
+      "bytes": 1087
+    },
+    {
+      "ownerLocalPath": "media-feasibility-fixture-source/image-media-feasibility.cjs",
+      "sha256": "afda57135fb8c8d3d6c2bf584980a1cf06aa1f150dae7728da3c6b5745ae0b8c",
+      "bytes": 5677
+    },
+    {
+      "ownerLocalPath": "media-feasibility-fixture-source/run-media-feasibility.py",
+      "sha256": "720f350c46e0335ae8b83b83a99b868787ebe5e33ab96d6fef301a6132fb4b62",
+      "bytes": 8228
+    }
+  ],
+  "report": "release/SFU-LOOPBACK-MEDIA-FEASIBILITY.md",
+  "reportSha256": "3922b065b484a4ac6ef82ac5ba5c45a065f87e0ff74d7f6ec57f06af285fba60",
+  "productionTouched": false,
+  "productCodeChanged": false,
+  "actualRtpAccepted": false,
+  "actualPauseResumeAckAccepted": false,
+  "publicNatOrP2pAccepted": false,
+  "ready": false,
+  "finalPackage": null
+}
