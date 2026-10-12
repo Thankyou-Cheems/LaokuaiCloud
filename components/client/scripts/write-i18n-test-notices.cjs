@@ -5,11 +5,16 @@ const path = require("node:path");
 
 function writeNotices(root) {
   const entries = [];
+  const visited = new Set();
   const visit = (nm) => {
     if (!fs.existsSync(nm)) return;
+    const resolved = fs.realpathSync(nm);
+    if (visited.has(resolved)) return;
+    visited.add(resolved);
     for (const item of fs.readdirSync(nm, { withFileTypes: true })) {
-      if (!item.isDirectory() || item.name.startsWith(".")) continue;
+      if (item.name.startsWith(".") || (!item.isDirectory() && !item.isSymbolicLink())) continue;
       const folder = path.join(nm, item.name);
+      if (!fs.statSync(folder).isDirectory()) continue;
       const packages = item.name.startsWith("@") ? fs.readdirSync(folder).map((name) => path.join(folder, name)) : [folder];
       for (const pkg of packages) {
         const metadataPath = path.join(pkg, "package.json");
@@ -29,7 +34,7 @@ function writeNotices(root) {
   visit(path.join(root, "node_modules"));
   const out = path.join(root, "build/legal/THIRD-PARTY-NOTICES.txt");
   fs.mkdirSync(path.dirname(out), { recursive: true });
-  fs.writeFileSync(out, "Installed dependency license texts for the isolated test build. Electron and Chromium notices accompany the runtime separately.\n" + entries.sort().join(""));
+  fs.writeFileSync(out, "Original installed dependency license texts for this exact build. Electron and Chromium notices accompany the runtime separately.\n" + entries.sort().join(""));
   return out;
 }
 module.exports = { writeNotices };
