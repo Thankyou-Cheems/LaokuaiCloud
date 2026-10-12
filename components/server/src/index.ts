@@ -26,7 +26,11 @@ import {
 import { getAcceptedIdentityTiers } from "./auth/identity";
 import { logServerIdentity } from "./auth/serverIdentity";
 import type { JoinPolicy } from "./db/interfaces";
-import { verifyAccessToken } from "./utils/jwt";
+import { getJwtSecret, verifyAccessToken } from "./utils/jwt";
+import { getSqliteDb } from "./db/sqlite/connection";
+import { checkSessionAllowed } from "./moderation/sessionGate";
+import { createCommunityGrantFactory } from "./easytier/communityGrantFactory";
+import { communityEtManagementTransport, readCommunityEtDeployment } from "./config/communityEt";
 import { probeSqliteWrite } from "./db/sqlite/connection";
 import { createDatabaseHealth } from "./utils/databaseHealth";
 
@@ -87,6 +91,31 @@ app.use(jsonBodyExcept(parsesOwnJson, { limit: "2mb" }));
 app.use(metricsMiddleware);
 
 const databaseHealth = createDatabaseHealth(probeSqliteWrite);
+let communityEtRouter: express.RequestHandler = (_req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.status(503).json({v: 1, error: "community-et-disabled"});
+};
+// The normal SQLite/auth services own identity; no separate account system or listener.
+app.use("/api/community-et", (req, res, next) => communityEtRouter(req, res, next));
+async function initializeCommunityEt(): Promise<void> {
+  try {
+    const deployment = await readCommunityEtDeployment(process.env.DATA_DIR || "./data");
+    if (!deployment) return;
+    const enabled = () => deployment.approved === true && Date.now() < deployment.expiresAtUnixMs;
+    const factory = createCommunityGrantFactory({db: getSqliteDb(), serverSecret: getJwtSecret(),
+      trustedServerOrigin: deployment.trustedServerOrigin,
+      existingAuth: {verifyAccessToken, getServerConfig, checkSessionAllowed},
+      service: {...deployment.service, enabled,
+        credentialWritesEnabled: () => enabled() && deployment.credentialWritesApproved === true,
+        runtimeGeneration: () => deployment.nativeRuntimeGeneration},
+      provider: deployment.provider, managementTransport: communityEtManagementTransport(deployment),
+      rateLimit: httpRateLimit("http:community-et", RL_HTTP_API)});
+    factory.initializeSchema(); communityEtRouter = factory.router;
+  } catch {
+    // Raw parser/RPC/config text can contain private data; do not log it.
+    consola.warn("Community ET configuration unavailable; enrollment remains disabled");
+  }
+}
 
 // Used by the Docker healthcheck, so a database we can't write answers 503.
 app.get("/health", (_req, res) => {
@@ -149,6 +178,7 @@ initSqlite()
       description: process.env.SERVER_DESCRIPTION || undefined,
       discoverable: (process.env.SERVER_DISCOVERABLE || "").toLowerCase() !== "false",
     });
+    await initializeCommunityEt();
     // Now that the config is readable, advertise if `discoverable` allows it.
     await syncMdnsAdvertising(PORT);
     // And the SFU signing key can be read, which is why this waits for here

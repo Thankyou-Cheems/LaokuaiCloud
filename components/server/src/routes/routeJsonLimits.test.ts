@@ -18,6 +18,7 @@ import { generateAccessToken } from "../utils/jwt";
 import { emojisRouter } from "./emojis";
 import { OWN_JSON_PARSERS, parsesOwnJson } from "./ownJsonParsers";
 import { webhooksRouter } from "./webhooks";
+import { createCommunityGrantRouter } from "../easytier/communityGrantRouter";
 
 /** GRYT-1200: the app-wide 2 MB parser read these bodies first, so the routes' own 100 KB limit never applied. */
 
@@ -176,14 +177,22 @@ describe("parsesOwnJson", () => {
 });
 
 describe("the skip list", () => {
-  type RouteLayer = { route?: { path: string; methods: Record<string, boolean>; stack: Array<{ name?: string }> } };
-  const parsing = (router: unknown, mount: string) =>
-    ((router as { stack: RouteLayer[] }).stack ?? [])
-      .filter((l) => l.route?.stack.some((h) => h.name === "jsonParser"))
-      .flatMap((l) => Object.keys(l.route!.methods).map((m) => `${m.toUpperCase()} ${`${mount}${l.route!.path}`.replace(/\/$/, "")}`));
+  type RouteLayer = { name?: string; route?: { path: string; methods: Record<string, boolean>; stack: Array<{ name?: string }> } };
+  const parsing = (router: unknown, mount: string) => {
+    let sharedParser = false;
+    return ((router as { stack: RouteLayer[] }).stack ?? []).flatMap(l => {
+      if (!l.route) { if (l.name === "jsonParser") sharedParser = true; return []; }
+      if (!sharedParser && !l.route.stack.some(h => h.name === "jsonParser")) return [];
+      return Object.keys(l.route.methods).map(m => `${m.toUpperCase()} ${`${mount}${l.route!.path}`.replace(/\/$/, "")}`);
+    });
+  };
 
   it("names exactly the routes that bring their own JSON parser", () => {
-    const actual = [...parsing(emojisRouter, "/api/emojis"), ...parsing(webhooksRouter, "/api/webhooks")].sort();
+    const unavailable = async (): Promise<never> => { throw new Error("pure-router-inventory-only"); };
+    const community = createCommunityGrantRouter({session: unavailable, acquire: unavailable, renew: unavailable,
+      revoke: unavailable, binding: unavailable});
+    const actual = [...parsing(emojisRouter, "/api/emojis"), ...parsing(webhooksRouter, "/api/webhooks"),
+      ...parsing(community, "/api/community-et")].sort();
     assert.deepEqual(actual, OWN_JSON_PARSERS.map((r) => `${r.method} ${r.path}`).sort());
   });
 
