@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "id": "laokuai-cloud-receive-path-et-observation-frozen-20261011",
-  "stage": "voice-policy-feedback-source-fixed-live-stability-pending",
+  "stage": "voice-user-join-switch-pass-native-exact-application-scope-pending",
   "ready": false,
   "repository": {
     "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud",
@@ -2865,12 +2865,25 @@
   "voicePolicyFeedback": {
     "sourceCommit": "a3dda7367927833dd9258dc05c8f3ef036d0666b",
     "receipt": "release/acceptance/voice-policy-stability-a3dda736.json",
-    "receiptSha256": "9ef204625517e44468d0f003272f67439afd8d2ad9638fd3b35052ad61c07410",
+    "receiptSha256": "00eb8e33e19d09584c65926765480a093f7f9cef4b1ed9a96befb4a53260d051",
     "observedPolicyReconnectLoop": true,
     "oldSourceFeedbackReproduced": true,
     "sourceFixChecked": true,
-    "liveStabilityPassed": false,
+    "liveStabilityPassed": true,
     "tunEnabled": false,
+    "ready": false,
+    "finalPackage": null,
+    "userJoinAndMultipleRoomSwitchesPassed": true,
+    "voiceSourceFrozen": true
+  },
+  "nativeFirstDevicePreflight": {
+    "receipt": "release/acceptance/native-first-device-a3-preflight.json",
+    "receiptSha256": "2b3a364156121007f084cf7dd9a7e461073e2067d67335b73531dadbf6ca7b5a",
+    "preparedLauncher": true,
+    "nativeStarted": false,
+    "credentialIssued": false,
+    "applicationScopeDifference": true,
+    "firewallChanged": false,
     "ready": false,
     "finalPackage": null
   }

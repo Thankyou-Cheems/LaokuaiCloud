@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "clientSourceCommit": "a3dda7367927833dd9258dc05c8f3ef036d0666b",
+  "voiceUserAcceptancePassed": true,
+  "ready": false,
+  "launchedNative": false,
+  "credentialIssued": false,
+  "currentClient": {
+    "pidVerified": 30576,
+    "visibleTitle": "唠蒯云",
+    "runtime": "Electron preview",
+    "originalProfilePreserved": true,
+    "tunDisabled": true,
+    "origin": "http://127.0.0.1:15738"
+  },
+  "publicPreflight": {
+    "passed": true,
+    "corePid": 1457878,
+    "runtimeGeneration": 134118291,
+    "version": "2.7.0-8b7f1f01",
+    "unixManagementUid": 1001,
+    "unixManagementMode": "0600",
+    "managementPort": 15890,
+    "peerEndpoint": "tcp://124.221.119.113:11014",
+    "communityScopeMatched": true,
+    "serverRunning": true,
+    "credentialWritesApproved": false,
+    "executionWindowExpired": true,
+    "localActivationExpired": true,
+    "memberTtlSeconds": 300
+  },
+  "exactApplicationScopeDifference": {
+    "originalProgram": "community-real-9db53f79-build/artifacts/win-unpacked/唠蒯云.exe",
+    "originalRules": "Inbound Allow TCP/UDP; Private, Public",
+    "newProgram": "components/client/node_modules/electron/dist/electron.exe",
+    "newProgramMatchedRules": 0,
+    "ruleAbsenceAloneProvesNetworkBlocked": false,
+    "firewallChanged": false,
+    "scopeNotAutomaticallyExpanded": true
+  },
+  "boundedLauncher": {
+    "prepared": true,
+    "executed": false,
+    "localDirectory": "community-native-a3-bounded",
+    "script": "run-bounded-community-client.ps1",
+    "source": "Existing c8 bounded activation/Job watchdog adapted to pin the corrected built application",
+    "builtFilesPinned": 1416,
+    "exeSha256": "28f3330c766aac1f8f8f7e1b472c720dc7cb1efc352d8ef30271335e0c7fa4d8",
+    "pinManifestSha256": "cfcdeceb832c00e063be16604ade4ef5fb75ca901eb9557e25721ed3ab71dea1",
+    "watchdogSha256": "ef9e5b392fb861958c53b4538b0a6bc5d5888291e016e288daab42523a4be85c",
+    "sameWindowsUserAdministratorRequired": true,
+    "currentControllerElevated": false,
+    "normalProductRuntime": true,
+    "localPolicySeconds": 310,
+    "ownedHardLimitSeconds": 330,
+    "killOnCloseJob": true,
+    "oldSnapshotsRetained": true
+  },
+  "remaining": [
+    "Switch current disabled preview to the prepared same-user administrator normal product runtime with exact new executable scope reviewed",
+    "Refresh the expired original local/public technical execution window and temporarily enable only the approved public credential write scope",
+    "Grant 300s, at most one renewal, owned stop <=330s; verify Revoke/List and owned cleanup"
+  ],
+  "configurationModified": false,
+  "firewallModified": false,
+  "nativeRebuilt": false,
+  "finalPortableBuilt": false
+}

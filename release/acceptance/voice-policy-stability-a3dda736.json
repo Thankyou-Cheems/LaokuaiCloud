@@ -4,7 +4,7 @@
   "clientTree": "59f4395ea8dcc8d18a9e050b7af4f5488f4033d3",
   "ready": false,
   "finalPackage": null,
-  "status": "POLICY-FEEDBACK-SOURCE-FIXED-LIVE-STABILITY-PENDING",
+  "status": "USER-REAL-JOIN-AND-MULTI-ROOM-SWITCH-PASS-NATIVE-PENDING",
   "previousPreview": {
     "sourceCommit": "701200d01e8a898f857ba222ef34a3b1af532f01",
     "roomRequestsSent": 10,
@@ -48,12 +48,21 @@
     "mainSha256": "c5e58a1d15e47e33bcbad8943f5f2d82768ca36642f6d2704a0c598d262cc06b",
     "preloadSha256": "79eac964e841d0e80e364e692102178ccd51bbcc9a3959b52000d95c4f216619",
     "indexHtmlSha256": "09114f5327abebe5217c26dfb28fe8578a3a37d7cc99c76ee7fc6431f2154daf",
-    "liveSingleJoinStabilityPassed": false
+    "liveSingleJoinStabilityPassed": true
   },
   "pending": [
-    "One real user join and sustained connected state without the policy loop",
     "After voice stability, native public enrollment under the previously scoped grant TTL/watchdog; current preview remains non-TUN",
     "Electron executable versus portable application firewall scope must be checked; no silent scope expansion",
     "No final portable until real flow passes"
-  ]
+  ],
+  "userAcceptance": {
+    "source": "parent-relayed explicit human test result",
+    "reportedTime": "2026-10-12 17:43",
+    "feedback": "我测试觉得Ok 在多个语音房间中反复切换也没问题",
+    "actualJoinPassed": true,
+    "multipleRoomSwitchesPassed": true,
+    "elapsedSecondsMeasured": null,
+    "voiceSourceFrozen": true,
+    "repeatVoiceTestingOrPackagingRequested": false
+  }
 }
