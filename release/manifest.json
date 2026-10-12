@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "id": "laokuai-cloud-receive-path-et-observation-frozen-20261011",
-  "stage": "authenticated-community-et-source-wired-live-readonly-list-pass-full-real-cutover-pending",
+  "stage": "existing-real-unicode-community-source-fixed-public-admin-unix-readonly-pass-new-build-and-member-login-pending",
   "ready": false,
   "repository": {
     "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud",
@@ -9,15 +9,15 @@
     "visibility": "private",
     "branch": "integration/lifecycle3-20261012",
     "soleGitWriter": "task-6",
-    "codeCommit": "8f8dd7c1f61f89a0e85bfa882a6ba13992fc4fdb",
-    "codeTree": "fcb347b9b07d268e6f4bc51f9b7efded25a74005",
+    "codeCommit": "9db53f79ec1cbf9408b51e0733e6071b00f192a1",
+    "codeTree": "6e74380914ea978ebf40a0edd1efd004ed30c5fb",
     "newRepositoryReason": "Authenticated private-repo metadata and explicitly scoped old local core/game remotes revealed no matching existing private integration repository",
     "historyPolicy": "Original client history preserved; no force push/reset/rewrite; other components imported as licensed source snapshots"
   },
   "components": {
     "client": {
       "path": "components/client",
-      "tree": "c418608a2afe02b7cd28839e2f64accf29b31304",
+      "tree": "b34b377816482b1f544b811aad76015541b24004",
       "upstream": "Gryt-chat/client",
       "publicFork": "Thankyou-Cheems/gryt-client-i18n",
       "historyImportedFrom": "06ac43f51dbda3b9444c73270a126e10489110e9",
@@ -32,11 +32,15 @@
         "tree": "8123a71d99a101a3dce02027d476c7e8879ff48d",
         "sourceCommit": "a88f7d75066cf03d65d618bb49cabbff6e8d7884"
       },
-      "sourceCommit": "8f8dd7c1f61f89a0e85bfa882a6ba13992fc4fdb",
+      "sourceCommit": "9db53f79ec1cbf9408b51e0733e6071b00f192a1",
       "communityContractWired": true,
       "preservedPreCommunityWiring": {
         "tree": "fbcc9d4e2db64348fc17704d486a421233f7513f",
         "sourceCommit": "20006cf1bad50e5331339710ae22ae6578fffed8"
+      },
+      "preservedPreRealIdentityFix": {
+        "tree": "c418608a2afe02b7cd28839e2f64accf29b31304",
+        "sourceCommit": "8f8dd7c1f61f89a0e85bfa882a6ba13992fc4fdb"
       }
     },
     "voice": {
@@ -145,10 +149,10 @@
     },
     "server": {
       "path": "components/server",
-      "tree": "1cf6c787fadaaf21fb1216da5f7ed381b04fc164",
+      "tree": "33c7d06425607a5f93e4ed3d41453cb3f9ff8c10",
       "upstream": "Gryt-chat/server",
       "userFork": null,
-      "sourceCommit": "8f8dd7c1f61f89a0e85bfa882a6ba13992fc4fdb",
+      "sourceCommit": "9db53f79ec1cbf9408b51e0733e6071b00f192a1",
       "archivedSourceFilesVerified": 462,
       "importedSourceFiles": 460,
       "excluded": [
@@ -172,6 +176,10 @@
       "preservedPreCommunityWiring": {
         "tree": "9e7b2a54df362e6039106bb809447ae6515de797",
         "sourceCommit": "20006cf1bad50e5331339710ae22ae6578fffed8"
+      },
+      "preservedPreRealIdentityFix": {
+        "tree": "1cf6c787fadaaf21fb1216da5f7ed381b04fc164",
+        "sourceCommit": "8f8dd7c1f61f89a0e85bfa882a6ba13992fc4fdb"
       }
     },
     "sfu": {
@@ -734,7 +742,7 @@
       "supersededBy": "8f8dd7c1f61f89a0e85bfa882a6ba13992fc4fdb"
     },
     "communityGrantWiring": {
-      "sourceCommit": "8f8dd7c1f61f89a0e85bfa882a6ba13992fc4fdb",
+      "sourceCommit": "9db53f79ec1cbf9408b51e0733e6071b00f192a1",
       "mainTests": 239,
       "serverTests": 86,
       "serverEntryTests": 19,
@@ -742,7 +750,9 @@
       "realIpcWired": true,
       "completeProviderAccepted": false,
       "nativeActivated": false,
-      "activationReady": false
+      "activationReady": false,
+      "actualNamespaceUtf8Preserved": true,
+      "permissionBeforeCredential": true
     },
     "communityEnrollmentStatus": "Source wired; real public readonly List passes; secure Admin/write/TUN acceptance pending"
   },
@@ -2406,6 +2416,12 @@
         "receipt": "release/acceptance/community-et-real-wiring-source.json",
         "receiptSha256": "33a931a964750bcb6a29c52496ca68d54213e8cf84040d8cc5a34a4fd017340e",
         "sourceCommit": "8f8dd7c1f61f89a0e85bfa882a6ba13992fc4fdb"
+      },
+      {
+        "kind": "community-et-real-identity-fix",
+        "receipt": "release/acceptance/community-et-real-identity-fix-source.json",
+        "receiptSha256": "dc4d11e07382ae0bb6d2d73609b569b31a1a518d0ee889bdd0d46c305859022f",
+        "sourceCommit": "9db53f79ec1cbf9408b51e0733e6071b00f192a1"
       }
     ],
     "sfuShutdownImage": {
@@ -2462,14 +2478,6 @@
       "credentialMutationAccepted": false,
       "completeProviderAccepted": false
     },
-    "currentPopupVerifier": {
-      "receipt": "release/acceptance/community-wiring-source-verifier.json",
-      "receiptSha256": "322d4bec18d17b74eb5b877a09be16ecbab444ec025bc3f8702febc0bdf97ecd",
-      "sourceCommit": "a88f7d75066cf03d65d618bb49cabbff6e8d7884",
-      "codeFreeze": "8f8dd7c1f61f89a0e85bfa882a6ba13992fc4fdb",
-      "scopeCases": 108,
-      "requireReadyExit": 2
-    },
     "communityFirstDeviceScope": {
       "receipt": "release/acceptance/community-first-device-readonly-scope.json",
       "receiptSha256": "ee7c29d0a9470700223e2a574c323a76b45bd4255779b5fe928f60ea2e12b01d",
@@ -2477,6 +2485,40 @@
       "managementPathApproved": false,
       "credentialWritesApproved": false,
       "nativeRunApproved": false
+    },
+    "previousCommunityWiringVerifier": {
+      "receipt": "release/acceptance/community-wiring-source-verifier.json",
+      "receiptSha256": "322d4bec18d17b74eb5b877a09be16ecbab444ec025bc3f8702febc0bdf97ecd",
+      "sourceCommit": "a88f7d75066cf03d65d618bb49cabbff6e8d7884",
+      "codeFreeze": "8f8dd7c1f61f89a0e85bfa882a6ba13992fc4fdb",
+      "scopeCases": 108,
+      "requireReadyExit": 2
+    },
+    "realDeploymentProgress": {
+      "publicAdminActivated": true,
+      "managementUnixServiceActive": true,
+      "readOnlyProviderPassed": true,
+      "backendNewImageLoaded": true,
+      "backendCutoverStarted": false,
+      "memberCredentialIssued": false,
+      "windowsTunStarted": false,
+      "existingServerId": "老蒯聊_5000_default",
+      "existingIdentityReplaced": false,
+      "infoDiscoveryId": null,
+      "oldApiMissingIdResolvedByExistingSocketGetter": true,
+      "currentMemberTokenExpired": true,
+      "uacInitiated": false,
+      "privateEtQueried": false,
+      "receipt": "release/acceptance/community-real-cloud-progress.json",
+      "receiptSha256": "caea70b85140e4d2c2c665aa55e27af1aa7bf00bdcc8a916a52863fb560c77df"
+    },
+    "currentPopupVerifier": {
+      "receipt": "release/acceptance/community-real-identity-source-verifier.json",
+      "receiptSha256": "708ac2e3147d683f7472c2392dbdd2e2880fbb4c708ef7b15e1c64692adbf6df",
+      "sourceCommit": "a88f7d75066cf03d65d618bb49cabbff6e8d7884",
+      "codeFreeze": "9db53f79ec1cbf9408b51e0733e6071b00f192a1",
+      "scopeCases": 115,
+      "requireReadyExit": 2
     }
   },
   "securityBoundary": {
@@ -2522,8 +2564,9 @@
     "Exact lifecycle.3/b385 original payload passed one hidden offline empty-profile bootstrap/DOM, exit0/no residual,4 successful owned-endpoint/foreground samples. Three known disabled-IPC Promise errors persist as old842; console is not error-free. Tray8 pure branches only: real tray skipped and voice toolbar not mounted. Authentic settings/menu/room/device/native interaction and media remain unaccepted; no ready promotion or repack.",
     "Full Client/SDK automatic P2P-to-SFU, real user/device/WAN hearing remain unaccepted; minimal run3 real RTP/pause/resume/lease safety/active TERM passed",
     "Source-wired real ET provider/main/server: public secure Admin policy and legacy impact approval, fixed protected Unix channel, actual credential Generate/one same-key renew/Revoke/List and owned Windows TUN coexistence/cleanup pending",
-    "Exact new backend image and complete client build/package from 8f8dd7c1 pending; old image/package/media/UI receipts remain historical",
-    "First real device trial only; second named account/device and actual SDK ET P2P/fallback/hearing acceptance not included or accepted"
+    "First real device trial only; second named account/device and actual SDK ET P2P/fallback/hearing acceptance not included or accepted",
+    "9db53f79 real Unicode namespace/permission-order fix requires exact client/backend rebuild; immutable8f candidates preserved, not substituted for new source",
+    "Current target real member token expired; normal client refresh/login required. UAC not started; no member credential or Windows owned TUN exists"
   ],
   "finalPackage": null,
   "frozenPreviousHybrid": {

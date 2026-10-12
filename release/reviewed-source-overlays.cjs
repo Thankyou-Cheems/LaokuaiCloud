@@ -1,5 +1,26 @@
 const assert=require('node:assert/strict'),crypto=require('node:crypto');
 const scopes={
+ 'community-et-real-identity-fix':[
+  "components/client/electron/communityEtConfig.test.mjs",
+  "components/client/electron/communityEtGrant.test.mjs",
+  "components/client/electron/communityEtGrant.ts",
+  "components/client/electron/communityEtGrantRuntime.ts",
+  "components/client/electron/communityEtHttpContract.ts",
+  "components/client/electron/communityEtTrustedConfiguration.ts",
+  "components/client/electron/windowsEasyTierCliRuntime.ts",
+  "components/client/scripts/check-community-easytier-network.mjs",
+  "components/server/src/config/communityEt.test.ts",
+  "components/server/src/config/communityEt.ts",
+  "components/server/src/easytier/communityGrant.test.ts",
+  "components/server/src/easytier/communityGrant.ts",
+  "components/server/src/easytier/communityGrantApi.test.ts",
+  "components/server/src/easytier/communityGrantApi.ts",
+  "components/server/src/easytier/communityGrantAuth.ts",
+  "components/server/src/easytier/communityGrantService.test.ts",
+  "components/server/src/easytier/communityGrantService.ts",
+  "components/server/src/easytier/communityGrantStore.ts"
+],
+
  'community-et-real-wiring':[
   "components/client/electron/communityEtBindingProjection.ts",
   "components/client/electron/communityEtConfig.test.mjs",
@@ -63,7 +84,7 @@ function verifyReviewedSourceOverlays(manifest,original,{git,sha,readFrozen,read
   return original.componentTrees;
  }
  assert.ok(readReceipt,'Reviewed source receipt reader required');
- assert.deepEqual(entries.map(e=>e.kind),['sfu-shutdown','easytier-pure-contract','community-et-real-wiring'],'Reviewed source chain changed');
+ assert.deepEqual(entries.map(e=>e.kind),['sfu-shutdown','easytier-pure-contract','community-et-real-wiring','community-et-real-identity-fix'],'Reviewed source chain changed');
  let baseline=original.sourceCommit,trees=original.componentTrees;
  for(const entry of entries){
   assert.equal(entry.receipt,'release/acceptance/'+entry.kind+'-source.json','Source receipt path changed');
@@ -86,13 +107,18 @@ function verifyReviewedSourceOverlays(manifest,original,{git,sha,readFrozen,read
    assert.equal(r.checks.appRoots,655);assert.equal(r.checks.mainRoots,64);assert.equal(r.checks.serverRoots,229);
    assert.equal(r.checks.canonicalHttpBlob,'21d7a4804b1b35d33197346b5b7098254c9a8701');
    assert.equal(r.checks.serverOwnerFilesExact,9);
+  }else if(entry.kind==='community-et-real-identity-fix'){
+   for(const [key,value]of Object.entries({mainTests:172,serverTests:89,serverEntryTests:20,ownedNetworkTests:11,strictClientTypesExit:0,strictServerTypesExit:0,lintExit:0,appRoots:655,mainRoots:64,serverRoots:229}))assert.equal(r.checks[key],value);
+   assert.equal(r.checks.canonicalHttpBlob,'3725a571222d8897ea10eb2d1c0a662072f2a719');
+   for(const k of ['exactScopeEqualityPreserved','accountDeviceRequestKeyGrammarUnchanged','permissionCheckedBeforeCredential'])assert.equal(r.checks[k],true);
+   assert.equal(r.checks.accountRestorationAndNativeRunAccepted,false);
   }else{assert.equal(r.checks.shutdownTests,15);assert.equal(r.checks.compiledPackages,8);}
   for(const x of r.changes){
    assert.equal(git(['rev-parse',r.sourceCommit+':'+x.path]),x.gitBlob,'Reviewed Git blob changed');
    assert.equal(crypto.createHash('sha256').update(readFrozen(r.sourceCommit,x.path)).digest('hex'),x.sha256,'Reviewed source bytes changed');
   }
   for(const [name,c]of Object.entries(manifest.components))assert.equal(git(['rev-parse',r.sourceCommit+':'+c.path]),r.componentTrees[name],'Reviewed component tree changed');
-  for(const flag of ['realProviderWired','realIpcWired'])assert.equal(r.boundaries[flag],entry.kind==='community-et-real-wiring','Wiring source boundary changed');
+  for(const flag of ['realProviderWired','realIpcWired'])assert.equal(r.boundaries[flag],['community-et-real-wiring','community-et-real-identity-fix'].includes(entry.kind),'Wiring source boundary changed');
   for(const flag of ['nativeActivated','realMediaAccepted','physicalDirectVerified','activationReady','ready'])assert.equal(r.boundaries[flag],false,'Source evidence promoted to execution');
   assert.equal(r.boundaries.finalPackage,null);
   baseline=r.sourceCommit;trees=r.componentTrees;

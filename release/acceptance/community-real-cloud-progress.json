@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "status": "PUBLIC-ADMIN-UNIX-READONLY-PASS-BACKEND-CUTOVER-AND-WINDOWS-TRIAL-PENDING",
+  "publicAdminActivated": true,
+  "publicVersion": "2.7.0-8b7f1f01",
+  "publicContainerId": "2f45feba5ae044675aa1dc3e9a98b708288caaa931c38ef68c7eaf272e3b3801",
+  "publicCorePid": 1457878,
+  "publicNativeInstanceId": "e2a5bd9d-47bb-4120-8589-e6898112ae85",
+  "publicCoreSha256": "f55f7b2116afc6ebe18f86ebf37802ce9991e71fd0053978522932c45218aec5",
+  "managementSocket": "/run/laokuai-community-et/public-management.sock",
+  "managementUid": 1001,
+  "managementGid": 1001,
+  "managementSocketMode": "0600",
+  "readOnlyProviderPassed": true,
+  "nodeInfoConfigRemoved": true,
+  "backend125cAndSfuD38Loaded": true,
+  "backendCutoverStarted": false,
+  "memberCredentials": 0,
+  "windowsOwnedTunStarted": false,
+  "uacInitiated": false,
+  "privateEtQueried": false,
+  "privateEtChanged": false,
+  "discoveryId": null,
+  "databaseServerIdColumnExists": false,
+  "serverInstanceIdEnv": null,
+  "actualExistingSocketSfuId": "老蒯聊_5000_default",
+  "runtimeGetterSource": "utils/serverId.ts getServerIdFromEnv",
+  "oldServerIdentityReplaced": false,
+  "startupLogMatchAvailable": false,
+  "currentMemberHostMatches": true,
+  "currentMemberIdentityFieldsPresent": true,
+  "currentMemberTokenExpired": true,
+  "operationalFailures": [
+    "First public activation health passed, raw Mounts ordering comparison stopped before helper start; canonical mounts/image/env/caps/devices confirmed equal, continuation started only helper without second recreate",
+    "Backend prepare stopped before any data write/start: nullable discovery ID was wrongly used; existing socket/SFU getter semantics now identified",
+    "Current target cached member token expired; no authenticated request/account creation/ET credential performed"
+  ],
+  "evidence": [
+    {
+      "name": "PUBLIC-PREPARE.json",
+      "sha256": "0478bb2e968ad05480f956c8b7148ece9ea7a651c979499bff38a2bf05d44649"
+    },
+    {
+      "name": "PUBLIC-ACTIVATE.json",
+      "sha256": "92986ee3d5a9b4133409509cc0178565d49a6e2cdecbfa3452bc17a7326da289"
+    },
+    {
+      "name": "PUBLIC-ACTIVATION-SCOPE-DIAGNOSTIC.json",
+      "sha256": "4898a84035f573b3d75a02d91578b80d6f59c30b266145a3c78e03cdfee608b3"
+    },
+    {
+      "name": "PUBLIC-CONTINUE.json",
+      "sha256": "2456f10f3e78952d79973f53006bb5189b2895063acbf2c05d02d61f4abb724a"
+    },
+    {
+      "name": "G0-UNIX-PROVIDER.json",
+      "sha256": "efacd446f1ad87418ee1f500da0af7be8c317e8519692d543e0de5bfe7ddd698"
+    },
+    {
+      "name": "BACKEND-LOAD.json",
+      "sha256": "8ba16dc01079715d9a643f633be80e26e6b7d1e36c154f12657fadffb67a2b69"
+    },
+    {
+      "name": "REAL-SERVER-IDENTITY-READONLY.json",
+      "sha256": "ea9307d93666b18d689813a5368c7fea4226f03fd87dca48a398d71015ee1f40"
+    },
+    {
+      "name": "EXISTING-RUNTIME-SERVER-ID-UNICODE.json",
+      "sha256": "a71558320247254c799c99d9b441119b6a9d51be7e8e94061bd456fd3ea300a2"
+    },
+    {
+      "name": "AUTHENTICATED-SERVER-ID.json",
+      "sha256": "7840f30829534ca523a0a59242d603a62a215298622d5b1968b317aa20440baa"
+    }
+  ],
+  "ready": false,
+  "finalPackage": null
+}

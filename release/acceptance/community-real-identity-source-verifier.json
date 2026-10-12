@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "sourceCommit": "a88f7d75066cf03d65d618bb49cabbff6e8d7884",
+  "codeFreeze": "9db53f79ec1cbf9408b51e0733e6071b00f192a1",
+  "scopeChecks": {
+    "checks": 115,
+    "positive": 11,
+    "negative": 104,
+    "allPassed": true,
+    "realNetworkOrNativeExecuted": false
+  },
+  "cliChecks": [
+    {
+      "args": [],
+      "exit": 0
+    },
+    {
+      "args": [
+        "--require-ready"
+      ],
+      "exit": 2
+    }
+  ],
+  "verifierFiles": [
+    {
+      "path": "release/verify-release.cjs",
+      "sha256": "206c69fcd6c7979a482a31d473c3384ec94b3552510c7c891ac8eb81a648d3fb"
+    },
+    {
+      "path": "release/release-evidence-scope.cjs",
+      "sha256": "84afb68a9069ed81b9440fdd3f7d47b230a5814b1ec67cd37616f5a092dff0a4"
+    },
+    {
+      "path": "release/check-release-evidence-scope.cjs",
+      "sha256": "746219620581c1ec2c05805199a704feac712eadae4b92d6ec39d9c8930edcd7"
+    },
+    {
+      "path": "release/reviewed-source-overlays.cjs",
+      "sha256": "d7548e2b853123f310b09de62be2516303077b0757b39b3f519bc0729615a04a"
+    }
+  ],
+  "qualification": "Exact18-path Unicode community-only and permission-before-credential delta. Original scope equality and account/request/key grammar retained. Old8f build/lint limitations remain historical. No current account login, credential or Windows native proof is promoted.",
+  "actualRuntimeOrMediaAccepted": false,
+  "ready": false,
+  "finalPackage": null,
+  "remotePush": false
+}

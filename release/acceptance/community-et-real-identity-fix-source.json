@@ -1,0 +1,161 @@
+{
+  "schema": 1,
+  "kind": "community-et-real-identity-fix",
+  "status": "PASS-REVIEWED-SOURCE-ONLY",
+  "baseline": "8f8dd7c1f61f89a0e85bfa882a6ba13992fc4fdb",
+  "sourceCommit": "9db53f79ec1cbf9408b51e0733e6071b00f192a1",
+  "sourceTree": "6e74380914ea978ebf40a0edd1efd004ed30c5fb",
+  "componentTrees": {
+    "client": "b34b377816482b1f544b811aad76015541b24004",
+    "voice": "45a5122b5480e37224987e74b898cfd4553f0cb4",
+    "server": "33c7d06425607a5f93e4ed3d41453cb3f9ff8c10",
+    "sfu": "3d64d5904681d59590be940870ce045e5c1577ff",
+    "easytier": "1af35e8bef73da0a0c3eaddef464a714d8a4b2a2",
+    "landing": "e1215b01f703d2a2dba56ba9cb1261b55789220a"
+  },
+  "changes": [
+    {
+      "path": "components/client/electron/communityEtConfig.test.mjs",
+      "gitBlob": "70c05dfa7b1488ce8b05f1f574d0f4b918a2c403",
+      "sha256": "83ac6418c4e98d45a096f591f9455d1ec98e3060bd75a1106a6ffcdeff25c087"
+    },
+    {
+      "path": "components/client/electron/communityEtGrant.test.mjs",
+      "gitBlob": "11a6685013d2c6fd00825c223cad89994a3fb412",
+      "sha256": "cdb90efde6641611d3659f3a5bade5a3e52026b13aebbc345ce7e979f2c6f344"
+    },
+    {
+      "path": "components/client/electron/communityEtGrant.ts",
+      "gitBlob": "a0ffe387fb7ab55f4c3b873691c6418cfde49897",
+      "sha256": "587b901f6ce2fe2f75ecfa41101247856305d5ca951a6471724aab784f11f936"
+    },
+    {
+      "path": "components/client/electron/communityEtGrantRuntime.ts",
+      "gitBlob": "2fc3e7ecd32f5032af248970201abf1d31ccba4b",
+      "sha256": "b6cdf8ebc7d0997c706666502221a9dec2de9560011c07b7a2453398e736a334"
+    },
+    {
+      "path": "components/client/electron/communityEtHttpContract.ts",
+      "gitBlob": "beca86e80222dad8a1905efbaa8b0d3b66963bc4",
+      "sha256": "c942667e1c1e6728e4ed522ad13643b38e99d4650a97aa85d7d9f34cb0ed2942"
+    },
+    {
+      "path": "components/client/electron/communityEtTrustedConfiguration.ts",
+      "gitBlob": "a9c49bbcd1639f29be4bb8118abd1e9ca7ddbfa9",
+      "sha256": "35a1be65fe649c0bc1500f52e075d515c7d18719978a461dcf1152d3d3668470"
+    },
+    {
+      "path": "components/client/electron/windowsEasyTierCliRuntime.ts",
+      "gitBlob": "fbb9a21335a9e4b53811ca6c7de09feeb16fa6c9",
+      "sha256": "b890cc9f7390e94dbea0098489a1b1ed03af7c395df0586751abddfa7d4593d8"
+    },
+    {
+      "path": "components/client/scripts/check-community-easytier-network.mjs",
+      "gitBlob": "b3cdebb537fbb4c1b4cb3cbf94a953b1144fe896",
+      "sha256": "ba9fc2409217b0c1db7781ddb69933407d7f91076ab48c515dbcadc47c2472ee"
+    },
+    {
+      "path": "components/server/src/config/communityEt.test.ts",
+      "gitBlob": "29c0881c4c32ec4ade40b927055ab866a9f99c84",
+      "sha256": "a214c2702f5c6b1e59cffebf8ec35c39740158ef5db33dfd6c78dd36eba63001"
+    },
+    {
+      "path": "components/server/src/config/communityEt.ts",
+      "gitBlob": "c211eb6e070f594436ee87264432c9f467132547",
+      "sha256": "ff6b6169710f5f84f3d532097670bfea3b6564f4c268c7a39b404634203ea26a"
+    },
+    {
+      "path": "components/server/src/easytier/communityGrant.test.ts",
+      "gitBlob": "10b9cff46d2c0236b2996bbe471564fba82d96c8",
+      "sha256": "8f734947cb125b390992d1b98fa2f57e09949426f9cfdc3cc6a2ed39d7e1c5ac"
+    },
+    {
+      "path": "components/server/src/easytier/communityGrant.ts",
+      "gitBlob": "f37c8dfcf0a2571c9eca5d32adcbc0f333cd5755",
+      "sha256": "6745e1ecab7acea4c984c42174c86db5ba0d34e1573dd0fc47cb5d3027c6e80a"
+    },
+    {
+      "path": "components/server/src/easytier/communityGrantApi.test.ts",
+      "gitBlob": "9e29967219051016cd97c42f1325cc9102178514",
+      "sha256": "048cde51e95bf45e4828ae8194e00e4a313ddc93238f70ef7fcfc6b3a34228e1"
+    },
+    {
+      "path": "components/server/src/easytier/communityGrantApi.ts",
+      "gitBlob": "3725a571222d8897ea10eb2d1c0a662072f2a719",
+      "sha256": "57365ff814d7af80ae88f1d774757edf6432a0a015b70eb754de3c9cfd9f35d3"
+    },
+    {
+      "path": "components/server/src/easytier/communityGrantAuth.ts",
+      "gitBlob": "38f698ed6a670aa01b4881aa120e5142afb98f17",
+      "sha256": "ed8ef32fbe4a977e4283aa827774bcc766c8c1d8b0e7f6be7be201f11459df50"
+    },
+    {
+      "path": "components/server/src/easytier/communityGrantService.test.ts",
+      "gitBlob": "170a271d54bc1b336bc6cd46a091dd0167e04ee6",
+      "sha256": "b0f8ecc0f53e282769f700b1dbd9be7dd50f2ecc5e6e1880d70b8d6058a0a298"
+    },
+    {
+      "path": "components/server/src/easytier/communityGrantService.ts",
+      "gitBlob": "a317988d18e2e3daf2e737b568ea8aeb0d3d00cf",
+      "sha256": "cc681406e014b63f44537d9ca03f0a8c7eae6c1a20fcaa8d2c26d531c88cc6c6"
+    },
+    {
+      "path": "components/server/src/easytier/communityGrantStore.ts",
+      "gitBlob": "eb7c6df954f69a62d4948cc044d4b50f11195efb",
+      "sha256": "b779c3610898d9c55992f3f437e51bc2bbee97adaa403f06aaa26856d93a13ac"
+    }
+  ],
+  "checks": {
+    "mainTests": 172,
+    "serverTests": 89,
+    "serverEntryTests": 20,
+    "ownedNetworkTests": 11,
+    "mainWithUnchangedLegacy": 242,
+    "strictClientTypesExit": 0,
+    "strictServerTypesExit": 0,
+    "lintExit": 0,
+    "appRoots": 655,
+    "mainRoots": 64,
+    "serverRoots": 229,
+    "canonicalHttpBlob": "3725a571222d8897ea10eb2d1c0a662072f2a719",
+    "logs": [
+      {
+        "name": "main.log",
+        "sha256": "8c90a21bf5fd2656586de1609eb5bbe47a12c2429e66a6dc039b6315de3c935d"
+      },
+      {
+        "name": "server.log",
+        "sha256": "ff880832be71df03964756f080920cd710c632b4f35319420995b32c0061d0d3"
+      },
+      {
+        "name": "server-entry.log",
+        "sha256": "96fa115ee1791f7275bc2f36fe837670473e7382b425c5434a6f8d6f5519693d"
+      },
+      {
+        "name": "network.log",
+        "sha256": "452b75bf522024127b91ee6f5c19503f0958152c61dbef327cafa858e0179225"
+      },
+      {
+        "name": "lint-final.log",
+        "sha256": "2f44b834ea273cc94af4c89844746255a466789dd777b909c22f482c138f6bed"
+      }
+    ],
+    "actualIdentity": "老蒯聊_5000_default",
+    "discoveryIdNullIsAllowed": true,
+    "sourceGetter": "getServerIdFromEnv",
+    "exactScopeEqualityPreserved": true,
+    "accountDeviceRequestKeyGrammarUnchanged": true,
+    "permissionCheckedBeforeCredential": true,
+    "accountRestorationAndNativeRunAccepted": false
+  },
+  "boundaries": {
+    "realProviderWired": true,
+    "realIpcWired": true,
+    "nativeActivated": false,
+    "realMediaAccepted": false,
+    "physicalDirectVerified": false,
+    "activationReady": false,
+    "ready": false,
+    "finalPackage": null
+  }
+}

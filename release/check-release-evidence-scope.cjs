@@ -86,6 +86,12 @@ if(manifest.validation.reviewedSourceOverlays){
   ...['nativeActivated','realMediaAccepted','physicalDirectVerified','activationReady','ready'].map(flag=>['wiring-'+flag,r=>r.boundaries[flag]=true]),
   ['wiring-package',r=>r.boundaries.finalPackage='unbuilt.exe'],
  ])rejects('Reject '+name+' real wiring forgery',()=>run(manifest,{...services,readReceipt:f=>{const r=services.readReceipt(f);if(r.kind==='community-et-real-wiring')mutate(r);return r;}}));
+ for(const[name,mutate]of [
+  ['lost-real-id-path',r=>r.changes.pop()],['changed-canonical-api',r=>r.checks.canonicalHttpBlob='0'.repeat(40)],
+  ['loosened-scope-match',r=>r.checks.exactScopeEqualityPreserved=false],['loosened-account-grammar',r=>r.checks.accountDeviceRequestKeyGrammarUnchanged=false],
+  ['credential-before-permission',r=>r.checks.permissionCheckedBeforeCredential=false],['unrun-login-promotion',r=>r.checks.accountRestorationAndNativeRunAccepted=true],
+  ['real-id-native-promotion',r=>r.boundaries.nativeActivated=true],
+ ])rejects('Reject '+name+' identity-fix forgery',()=>run(manifest,{...services,readReceipt:f=>{const r=services.readReceipt(f);if(r.kind==='community-et-real-identity-fix')mutate(r);return r;}}));
  const live=services.readReceipt(manifest.validation.public270ReadOnly.receipt);
  test('Public real ListCredentials proof remains readonly-only',()=>reviewed.verifyPublicListReadOnly(manifest,live));
  for(const [name,mutate]of [['provider-acceptance',r=>r.completeProviderAccepted=true],['credential-mutation',r=>r.tunOrCredentialsMutated=true],['wrong-instance',r=>r.instanceId='other'],['wrong-portal',r=>r.portal='0.0.0.0:15890'],['unclosed-ssh',r=>r.sshChildExited=false]])rejects('Reject live '+name+' promotion',()=>{const r=clone(live);mutate(r);reviewed.verifyPublicListReadOnly(manifest,r);});

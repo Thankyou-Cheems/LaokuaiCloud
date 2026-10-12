@@ -83,12 +83,18 @@ def prepare(payload):
  compile(helper,str(PROGRAM),'exec');run(['systemd-analyze','verify',str(UNIT)])
  receipt={'prepared':True,'activated':False,'instanceId':INSTANCE,'coreBefore':core,'publicKeyB64':public_b64,'publicKeySha256':sha(public[12:]),'configSha256':sha(config.encode()),'configMode':oct(CONFIG.stat().st_mode&0o777),'proxySha256':sha(helper),'unitSha256':sha(unit),'overrideSha256':sha(OVERRIDE.read_bytes()),'privateEtRead':False,'privateEtChanged':False}
  write_new(STAGE/'PREPARATION.json',json.dumps(receipt,indent=2));return receipt
-def activate():
+def canonical_mounts(container):
+ return sorted([(m['Type'],m['Source'],m['Destination'],m['RW'],m.get('Propagation')) for m in container['Mounts']],key=lambda m:m[2])
+def activate(continue_only=False):
  receipt=json.loads((STAGE/'PREPARATION.json').read_text())
  if sha(CONFIG.read_bytes())!=receipt['configSha256'] or sha(PROGRAM.read_bytes())!=receipt['proxySha256'] or sha(UNIT.read_bytes())!=receipt['unitSha256'] or sha(OVERRIDE.read_bytes())!=receipt['overrideSha256']:raise RuntimeError('prepared-source-drift')
  before=json.loads((STAGE/'public-before.private.json').read_text());d=inspect()
- if d['Id']!=before['Id'] or d['State']['Pid']!=before['State']['Pid']:raise RuntimeError('public-changed-since-prepare')
- run(['docker','compose','-p','homelab','-f','/opt/docker-compose.yml','-f',str(OVERRIDE),'up','-d','--no-deps','--no-build','--pull','never','--force-recreate','cheems-p2p'],timeout=60)
+ expected_command=json.loads(OVERRIDE.read_text())['services']['cheems-p2p']['command']
+ if continue_only:
+  if d['Id']==before['Id'] or d['Config']['Cmd']!=expected_command:raise RuntimeError('approved-activation-not-observed')
+ else:
+  if d['Id']!=before['Id'] or d['State']['Pid']!=before['State']['Pid']:raise RuntimeError('public-changed-since-prepare')
+  run(['docker','compose','-p','homelab','-f','/opt/docker-compose.yml','-f',str(OVERRIDE),'up','-d','--no-deps','--no-build','--pull','never','--force-recreate','cheems-p2p'],timeout=60)
  deadline=time.monotonic()+20
  while True:
   try: core=actual_core();listeners=listener_check(core['pid']);nodes=public_nodes();assert len(nodes)==1;break
@@ -97,7 +103,7 @@ def activate():
    time.sleep(.5)
  d=inspect()
  # Core/image/mount/host permissions retained. No queries to private containers.
- if d['Image']!=before['Image'] or d['HostConfig']['NetworkMode']!=before['HostConfig']['NetworkMode'] or d['Mounts']!=before['Mounts']:raise RuntimeError('public-runtime-scope-drift')
+ if d['Image']!=before['Image'] or d['HostConfig']['NetworkMode']!=before['HostConfig']['NetworkMode'] or canonical_mounts(d)!=canonical_mounts(before) or sorted(d['Config']['Env'])!=sorted(before['Config']['Env']) or d['Config']['Entrypoint']!=before['Config']['Entrypoint'] or d['Config']['Cmd']!=expected_command or sorted(d['HostConfig']['CapAdd'])!=sorted(before['HostConfig']['CapAdd']) or d['HostConfig']['Devices']!=before['HostConfig']['Devices']:raise RuntimeError('public-runtime-scope-drift')
  run(['systemctl','daemon-reload']);run(['systemctl','start','laokuai-community-et-management.service'])
  socket_file=pathlib.Path('/run/laokuai-community-et/public-management.sock');deadline=time.monotonic()+5
  while not socket_file.exists():
@@ -111,6 +117,7 @@ try:
  payload=json.load(sys.stdin)
  if payload['mode']=='prepare':result=prepare(payload)
  elif payload['mode']=='activate':result=activate()
+ elif payload['mode']=='continue':result=activate(True)
  else:raise RuntimeError('unsupported-operation')
  print(json.dumps(result))
 except Exception as error:
