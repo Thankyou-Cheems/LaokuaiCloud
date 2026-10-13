@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-13",
+  "sourceCommit": "49f774b64f2535336f8a8e0f8ee3a50decd704a5",
+  "build": {
+    "sourceCommit": "49f774b64f2535336f8a8e0f8ee3a50decd704a5",
+    "bundleSha256": "7f7c3c58b251ae69dafaea2ccb4b45c182bf23ae574e23f8ab22d3b60a361684",
+    "base": "sha256:9ddd8f97831436c5b4cae46b04e4c0a9b9afb34961aab5ce4c7d0a9fc80dfc81",
+    "candidate": "sha256:347936c2229fb796c79d6b4897e787e02a13617aab269c41368b1e516358595c",
+    "runtimeStarted": false,
+    "network": "none",
+    "onlyServerImageChanges": true
+  },
+  "activation": {
+    "activated": true,
+    "serverImage": "sha256:347936c2229fb796c79d6b4897e787e02a13617aab269c41368b1e516358595c",
+    "serverHealth": "healthy",
+    "environmentChanged": false,
+    "portsChanged": false,
+    "mountsChanged": false,
+    "dataPreserved": true,
+    "sfuRestarted": false,
+    "etTouched": false,
+    "oldImageKept": true,
+    "rollbackAvailable": true
+  },
+  "publicProbe": {
+    "unauthenticatedDirectoryStatus": 401,
+    "healthStatus": 200
+  },
+  "activeOverlay": "/opt/stacks/gryt/member-address-directory-20261013-r3/activation.overlay.json",
+  "previousSfuOverlayRetained": "/opt/stacks/gryt/sfu-12-fallback-16k60/activation.overlay.json",
+  "failedAttempts": [
+    {
+      "directory": "/opt/stacks/gryt/member-address-directory-20261013",
+      "result": "automatic rollback; order-sensitive comparison",
+      "oldServerHealthyAfterRollback": true
+    },
+    {
+      "directory": "/opt/stacks/gryt/member-address-directory-20261013-r2",
+      "result": "automatic rollback; captured difference only Mounts list order; sorted full entries equal",
+      "oldServerHealthyAfterRollback": true
+    }
+  ],
+  "rawEvidencePreservedOnServer": true,
+  "privateConfigExported": false,
+  "operatorSha256": "92d7870ba8bbd7f09601f7fa9b8cfa7b295db7dadbe8dbee703c2cd5dbfdddaa",
+  "operatorReceiptCorrection": "Final operator now reports runtimeStarted=true on activation. The unchanged r3 remote receipt inherited runtimeStarted=false from its build portion; activated=true and actual new healthy container were independently verified.",
+  "authenticatedProductDirectoryAccepted": false,
+  "dualDeviceGameAccepted": false
+}

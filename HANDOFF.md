@@ -1,5 +1,29 @@
 # 当前开发交接
 
+2026-10-13 最新：固定目录 ZIP 绿色测试包 .6 已交付，源
+`49f774b64f2535336f8a8e0f8ee3a50decd704a5`，159015382 B，SHA256
+`77614061c4ab8566f61e541f6b4fefd9127fc75a85f3fd30ed6cbe540f2c7ef7`。
+目录 `.local/artifacts/autojoin-test-20261013/`。管理员启动通过现有 helper COM
+幂等准备本体/实际 ET cache core 两项程序规则；托盘清理先 drain，再只删账本+
+随机归属标记+完整属性吻合的规则，保留系统提示旧规则与第三方规则，不安装服务。
+唠蒯云取消 Gryt mDNS 发现入口与扫描，保留游戏 ET；成员行可点击复制认证虚拟 IP，
+同账号多设备逐个显示；仅分配的地址不冒称已入网。MagicDNS/成员互助中继未开启。
+SDK routing.2 新增实际自动门观测，默认自动门/RNNoise/接收平衡开，发送AGC/压缩关，
+保留用户偏好；个人音量在均衡后，不被补回，仍有峰值限幅。详情见本轮两份 docs。
+25组核心、runtime58、成员16、后端50、编译、152文件精确ZIP、隐藏离线新配置
+启动退出通过，仍保留23条既有离线/禁用IPC错误。未真实改防火墙/录音/运行ET/TUN，
+真实管理员弹窗抑制、双设备IP复制/游戏及12完整客户端仍待用户测试。
+见 `release/acceptance/green-package-portable-20261013.json`，旧 .5 包保持原样。
+
+用户明确批准后端目录立即更新：现 Gryt image347936c2（源同49f774b6），健康，
+公开health200/未认证directory401；环境、端口、挂载不变，SFU未重启、ET未触碰。
+前两次严格比较误将环境/挂载排序当漂移，均自动回滚，失败和私有证据保留；
+修正后-r3完成。后续Compose必须保留
+`/opt/stacks/gryt/member-address-directory-20261013-r3/activation.overlay.json` 及既有
+`sfu-12-fallback-16k60/activation.overlay.json`。原始r3 activated回执的runtimeStarted
+继承了build false字段，实际新容器healthy；后续生成器已改，不改写原始记录。
+见 `release/acceptance/member-address-directory-deployment-20261013.json`。
+
 2026-10-13 后续：用户报告 .4 无 UAC 且联机失败，随后明确改为整个 Windows 应用必须管理员启动。
 新 .5 源码在任何 profile/主窗口启动前只读检查当前 token；普通权限提示右键管理员运行并退出，
 不自动提权。生产 ET 改走直接自有子进程，不再构造按需 UAC broker；helper 仅用于 `--check`。

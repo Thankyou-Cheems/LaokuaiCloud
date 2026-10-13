@@ -8,7 +8,8 @@ from pathlib import Path
 import subprocess
 import time
 
-WORK = Path('/opt/stacks/gryt/member-address-directory-20261013')
+WORK = Path('/opt/stacks/gryt/member-address-directory-20261013-r3')
+PREVIOUS_WORK = Path('/opt/stacks/gryt/member-address-directory-20261013-r2')
 BASE = 'sha256:9ddd8f97831436c5b4cae46b04e4c0a9b9afb34961aab5ce4c7d0a9fc80dfc81'
 SFU = 'sha256:585f0a76df9420f228f7b47020c35247cb76524f63125ea7c5bf49bb8ee9cd7b'
 FILES = ['/opt/stacks/gryt/compose.yml',
@@ -35,9 +36,15 @@ def compose(extra, command):
     for file in FILES + extra: args += ['-f', str(file)]
     return run(args + command, 120)
 def config(extra=()): return json.loads(compose(list(extra), ['config','--format','json']))
+def environment(row):
+    items = [value.split('=',1) for value in row['Config']['Env']]
+    if len(dict(items)) != len(items): raise RuntimeError('duplicate-environment-key')
+    return dict(items)
 def shape(row):
-    return {key: row[key] for key in ['HostConfig','Mounts']} | {
-        'env': row['Config']['Env'], 'cmd': row['Config']['Cmd'],
+    mounts = row['Mounts']
+    if len({value['Destination'] for value in mounts}) != len(mounts): raise RuntimeError('duplicate-mount-target')
+    return {'HostConfig':row['HostConfig'], 'Mounts':sorted(mounts,key=lambda value:value['Destination'])} | {
+        'env': environment(row), 'cmd': row['Config']['Cmd'],
         'entrypoint': row['Config']['Entrypoint'], 'user': row['Config']['User'],
         'workdir': row['Config']['WorkingDir']}
 
@@ -54,8 +61,12 @@ def build():
     sfu = inspect('laokuailiao-sfu')
     if row['Image'] != BASE or sfu['Image'] != SFU: raise RuntimeError('base-image-changed')
     if row['Config']['WorkingDir'] != '/app' or row['Config']['Cmd'] != ['node','bundle.js']: raise RuntimeError('unknown-server-entrypoint')
-    if row['Config']['Labels'].get('com.docker.compose.project.config_files') != ','.join(FILES): raise RuntimeError('compose-files-changed')
     original = config()
+    live_files = row['Config']['Labels'].get('com.docker.compose.project.config_files')
+    if live_files != ','.join(FILES):
+        # The recorded first attempt restored the exact merged private config.
+        if live_files != str(PREVIOUS_WORK/'compose.before.private.json') or json.loads((PREVIOUS_WORK/'compose.before.private.json').read_text()) != original:
+            raise RuntimeError('compose-files-changed')
     if original['services']['server']['environment'].get('VOICE_MAX_USERS') != '12': raise RuntimeError('capacity-config-changed')
     save('compose.before.private.json', original)
     save('containers.before.private.json', {'server': row, 'sfu': sfu})
@@ -111,9 +122,11 @@ def activate():
         a, b = shape(old), shape(current)
         for item in (a,b):
             item['HostConfig'] = {k:v for k,v in item['HostConfig'].items() if k not in ['ContainerIDFile']}
-        if a != b: raise RuntimeError('runtime-config-drift')
+        if a != b:
+            save('runtime-drift.private.json', {'before':a, 'after':b})
+            raise RuntimeError('runtime-config-drift')
         unchanged_sfu()
-        receipt = {**built, 'activated':True,'serverHealth':'healthy','sfuRestarted':False,
+        receipt = {**built, 'runtimeStarted':True, 'activated':True,'serverHealth':'healthy','sfuRestarted':False,
           'etTouched':False,'portsChanged':False,'mountsChanged':False,'environmentChanged':False,
           'dataPreserved':True,'oldImageKept':True,'rollbackAvailable':True}
         save('ACTIVATED.json', receipt)

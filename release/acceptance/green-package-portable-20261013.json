@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-13",
+  "version": "1.13.22-laokuai.beta.20261013.6",
+  "sourceCommit": "49f774b64f2535336f8a8e0f8ee3a50decd704a5",
+  "file": "唠蒯云-1.13.22-laokuai.beta.20261013.6-zh-CN-win-x64-green.zip",
+  "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261013.6-zh-CN-win-x64-green.zip",
+  "bytes": 159015382,
+  "sha256": "77614061c4ab8566f61e541f6b4fefd9127fc75a85f3fd30ed6cbe540f2c7ef7",
+  "appAsarSha256": "8dedf3843fc25b8f0c458b33af399cc9b36afaddee41411ca0e64b88242f0324",
+  "staticPayloadFiles": 152,
+  "staticPayloadPassed": true,
+  "coreContractSuites": 25,
+  "sourceReceipt": "release/acceptance/green-package-source-20261013.json",
+  "bootstrap": {
+    "status": "passed",
+    "exitCode": 0,
+    "rootChildren": 1,
+    "preload": {
+      "electronAPI": "object",
+      "easyTierCommunity": "object"
+    },
+    "visible": false,
+    "focused": false,
+    "unexpectedEvents": 0,
+    "residualOwnedProcesses": 0,
+    "socketSamples": [
+      {
+        "seconds": 4.58,
+        "ownedProcesses": 3,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 9.131,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 13.624,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      }
+    ],
+    "consoleErrors": 23,
+    "realElectronExecuted": true,
+    "isolatedFreshProfile": true,
+    "nativeEtExecuted": false,
+    "realCommunityOrDeviceMediaTest": false
+  },
+  "tokenGate": {
+    "passed": true,
+    "realPackagedTokenHelperExecuted": true,
+    "result": "ordinary-rejected",
+    "actualDialogOpened": false,
+    "gateSourceExecuted": true,
+    "nativeEtExecuted": false,
+    "userProfileWritten": false
+  },
+  "fixedDirectory": true,
+  "administratorRequired": true,
+  "automaticElevation": false,
+  "persistentService": false,
+  "firewallRules": "two program-scoped owned inbound rules; cleanup requires ledger plus matching ownership and attributes",
+  "actualWindowsFirewallMutationTested": false,
+  "actualFirewallPromptsAccepted": false,
+  "memberAddressDirectoryDeployed": true,
+  "magicDnsEnabled": false,
+  "memberRelayEnabled": false,
+  "oldUserProfilePreserved": true,
+  "npcapAbsent": true,
+  "sourceArchivesBundled": false,
+  "publicBinaryRelease": false,
+  "realDeviceMediaAccepted": false,
+  "dualDeviceGameAccepted": false,
+  "twelveFullAppWanAccepted": false,
+  "note": "Exact ZIP and hidden offline fresh-profile bootstrap passed; 23 known offline/disabled IPC errors retained. No native ET/TUN, microphone, real firewall mutation or actual member-copy UI trial executed in this acceptance."
+}

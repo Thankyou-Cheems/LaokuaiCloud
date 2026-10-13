@@ -1,5 +1,10 @@
 # 成员虚拟局域网地址
 
+后续部署：用户明确批准后，源49f774b6已部署至Gryt server image347936c2，
+health200，未认证目录401；环境、端口、挂载不变，SFU/ET未重启。
+见 `release/acceptance/member-address-directory-deployment-20261013.json`；
+以下“未部署”是部署前源码审视记录。真实双设备目录复制与游戏仍未验收。
+
 2026-10-13 本地源码实施与轻量验证记录。未部署后端，未启动真实 ET/TUN、修改系统 DNS 或验收双设备游戏连接。
 
 ## 本轮行为
