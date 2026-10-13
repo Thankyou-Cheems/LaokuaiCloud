@@ -18,7 +18,8 @@ const compile = (path, dependencies = {}, extra = "") => {
   } });
   return exports;
 };
-const model = compile("src/lib/memberLanStatus.ts");
+const dnsNames = compile("src/lib/communityDnsNames.ts");
+const model = compile("src/lib/memberLanStatus.ts", {"./communityDnsNames":dnsNames});
 const now = 1_800_000_000_000;
 const binding = (user, peer) => ({ authenticatedUserId: user, peerId: peer, confidence: "verified", source: "authenticated-community", observedAtMs: now });
 const enrollment = state => ({ state, source: "authenticated-community", observedAtMs: now });
@@ -124,6 +125,7 @@ const jsx=(type,props)=>({type,props});
 const {MemberLanStatus}=compile("src/packages/socket/src/components/MemberLanStatus.tsx",{
   "react/jsx-runtime":{jsx,jsxs:jsx},"react-hot-toast":{default:{success(){},error(){}}},"@gryt/ui":{Tooltip:"Tooltip"},"@/i18n":{useTranslation:()=>({t})},"../../../../lib/memberLanStatus":model,
   "../../../../components/ConnectionTopologyIcon":{ConnectionTopologyIcon:"TopologyIcon"},
+  "../../../../lib/communityDnsNames":dnsNames,
 });
 check("compact presentation preserves full keyboard/screenreader detail while truncating only visual text",()=>{
   const tree=MemberLanStatus(input(fixture()));const span=tree.props.children;
@@ -197,11 +199,33 @@ check("DNS names copy per device only after readiness and expire independently f
   const span=MemberLanStatus(input(snapshot)).props.children, buttons=span.props.children[3];
   assert.equal(buttons.length,2);assert.doesNotMatch(span.props.style.color,/success/);
   for(const button of buttons){button.props.onClick({stopPropagation(){}});assert.match(button.props['aria-label'],/复制社区设备域名/);}
-  assert.deepEqual(copied,remote(snapshot).dnsAddresses.map(address=>address.dnsName));
+  assert.deepEqual(copied,remote(snapshot).dnsAddresses.map(address=>address.dnsName.slice(0,-1)));
   const expired=model.readMemberLanStatus({...input(snapshot),nowMs:now+5000});
   assert.equal(expired.dnsAddresses,undefined);assert.deepEqual([...expired.virtualIps],["10.77.1.8","10.77.1.9"]);
   snapshot.dnsReady=false;assert.equal(evaluate(snapshot).dnsAddresses,undefined);
   delete snapshot.dnsReady;assert.equal(evaluate(snapshot).dnsAddresses,undefined);
+});
+check("friendly names show and copy full readable addresses, with distinct IPs for each device",()=>{
+  for(const zone of ['lk.internal.','lk-0123abcd.internal.']) {
+    copied.length=0;const snapshot=fixture();snapshot.dnsReady=true;
+    remote(snapshot).enrollment.state='assigned';remote(snapshot).binding.peerId=null;
+    remote(snapshot).virtualIps=['10.77.1.8','10.77.1.9'];remote(snapshot).virtualIpObservedAtMs=now;
+    remote(snapshot).dnsAddresses=remote(snapshot).virtualIps.map((virtualIp,index)=>({dnsName:`shizi-${12+index}.${zone}`,virtualIp,expiresAtUnixMs:now+5000}));
+    const reading=evaluate(snapshot);assert.equal(reading.dnsAddresses.length,2);
+    const span=MemberLanStatus(input(snapshot)).props.children,buttons=span.props.children[3];
+    for(const [index,button] of buttons.entries()) {
+      const name=remote(snapshot).dnsAddresses[index].dnsName.slice(0,-1),ip=remote(snapshot).virtualIps[index];
+      assert.equal(button.props.children.join(''),`${name} → ${ip}`);
+      assert.match(button.props.className,/break-all/);assert.doesNotMatch(button.props.className,/truncate/);
+      assert.ok(button.props.title.endsWith(`${name} → ${ip}`));
+      let stopped=0;button.props.onClick({stopPropagation(){stopped++;}});
+      button.props.onPointerDown({stopPropagation(){stopped++;}});assert.equal(stopped,2);
+    }
+    assert.deepEqual(copied,remote(snapshot).dnsAddresses.map(address=>address.dnsName.slice(0,-1)));
+    assert.equal(reading.dnsAddresses[0].dnsName,`shizi-12.${zone}`,'canonical resolver value remains dotted');
+    const invalid=structuredClone(snapshot);invalid.members[1].dnsAddresses[1].dnsName='shizi-13.lk-ffffffff.internal.';
+    assert.equal(evaluate(invalid).dnsAddresses,undefined,'cross-zone addresses fail together');
+  }
 });
 check("DNS display rejects malformed unassigned excessive expiry and ambiguous device names",()=>{
   for(const mutate of [member=>member.dnsAddresses[0].dnsName="foreign.example",member=>member.dnsAddresses[0].virtualIp="10.77.1.9",

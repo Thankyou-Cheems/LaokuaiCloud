@@ -358,7 +358,8 @@ export class CommunityGrantService implements CommunityGrantApi {
     const body = parseCommunityGrantRequest('directory', raw);
     if (body.communityId !== this.#config.communityId) fail('community-forbidden');
     const identity = await this.#identity(bearer, body.communityId);
-    const directory = body.includeDnsNames === true ? this.#store.dnsDirectory(body.communityId, this.#clock.wallMs()) : null;
+    const style = body.dnsNameStyle ?? 'legacy';
+    const directory = body.includeDnsNames === true ? this.#store.dnsDirectory(body.communityId, this.#clock.wallMs(), style) : null;
     const members = directory?.members ?? this.#store.directory(body.communityId, this.#clock.wallMs());
     const allowedSessions = new Map<string, string>();
     if (directory) {
@@ -377,7 +378,7 @@ export class CommunityGrantService implements CommunityGrantApi {
     if (directory) {
       // Recheck grants and scope after asynchronous membership reads; do not
       // carry an old authorization decision into a replaced session or address.
-      const fresh = this.#store.dnsDirectory(body.communityId, this.#clock.wallMs());
+      const fresh = this.#store.dnsDirectory(body.communityId, this.#clock.wallMs(), style);
       const liveNames = new Set(fresh.authorizations.filter(session => allowedSessions.get(session.dnsName) === `${session.sessionId}:${session.authorizationEpoch}`).map(session => session.dnsName));
       const liveMembers = new Map(fresh.members.map(member => [member.dnsName, member]));
       const names = directory.members.flatMap(member => {

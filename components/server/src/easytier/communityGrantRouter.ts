@@ -16,6 +16,7 @@ const ERROR_STATUS: Readonly<Record<string, number>> = {
   'connection-evidence-conflict':409,'renewal-not-extended':409,
   'provider-incompatible':503,'issuer-store-unavailable':503,'native-readback-mismatch':503,
   'unsafe-native-policy':503,'native-key-mismatch':503,'grant-store-corrupt':503,
+  'dns-alias-pool-exhausted':503,
   'relay-v2-disabled':503,'invalid-relay-request':400,'invalid-relay-consent':400,'relay-consent-conflict':409,'relay-readback-mismatch':503,
 };
 /** Owner mounts at /api/community-et after normal DB setup. This factory opens no

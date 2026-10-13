@@ -14,7 +14,7 @@ function load(url) {
   vm.runInThisContext('(function(require,module,exports){' + code + '\n})', {filename: url.pathname})(name => {
     if (name === 'node:https') return {request() { throw Error('network-forbidden'); }};
     if (name.startsWith('node:')) { assert.ok(['node:crypto'].includes(name)); return require(name); }
-    assert.ok(name.startsWith('./')); return load(new URL(name + '.ts', url));
+    assert.ok(name.startsWith('./') || name === '../src/lib/communityDnsNames'); return load(new URL(name + '.ts', url));
   }, module, module.exports);
   return module.exports;
 }

@@ -1,3 +1,4 @@
+import { communityDnsNameZone } from "../src/lib/communityDnsNames";
 import type { EasyTierPhase } from "../src/lib/easyTierCommunity";
 import type { LanCommunitySnapshot, LanDnsAddress, LanEnrollment, LanMemberEvidence } from "../src/lib/memberLanStatus";
 import { type EasyTierIdentityBinding, type EasyTierStatusSample, easyTierVirtualIp, projectEasyTierStatus } from "./easyTierStatus";
@@ -31,13 +32,13 @@ export function projectEasyTierMembers(sample: EasyTierStatusSample | null, scop
   const dnsByIp = new Map<string, LanDnsAddress>();
   const dnsNames = new Set<string>(), dnsZones = new Set<string>();
   for (const address of sample.dnsReady === true && validTime(sample.directoryObservedAtUnixMs ?? NaN) && Array.isArray(sample.dnsAddresses) && sample.dnsAddresses.length <= 256 ? sample.dnsAddresses : []) {
-    if (!address || typeof address.dnsName !== "string" || !/^d-[a-f0-9]{32}\.c-[a-f0-9]{32}\.lan\.voice\.ruikang\.wang\.$/.test(address.dnsName) ||
+    if (!address || !communityDnsNameZone(address.dnsName) ||
       !directoryAddresses.has(address.virtualIp) || dnsByIp.has(address.virtualIp) || dnsNames.has(address.dnsName) ||
       !Number.isSafeInteger(address.expiresAtUnixMs) || address.expiresAtUnixMs <= unixNowMs || address.expiresAtUnixMs > unixNowMs + Math.min(maxAgeMs, 10_000)) {
       dnsByIp.clear(); break;
     }
     dnsByIp.set(address.virtualIp, {dnsName: address.dnsName, virtualIp: address.virtualIp, expiresAtUnixMs: address.expiresAtUnixMs});
-    dnsNames.add(address.dnsName); dnsZones.add(address.dnsName.slice(35));
+    dnsNames.add(address.dnsName); dnsZones.add(communityDnsNameZone(address.dnsName)!);
   }
   if (dnsZones.size > 1) dnsByIp.clear();
   const memberDns = (virtualIps: readonly string[]) => virtualIps.flatMap(address => dnsByIp.has(address) ? [dnsByIp.get(address)!] : []);

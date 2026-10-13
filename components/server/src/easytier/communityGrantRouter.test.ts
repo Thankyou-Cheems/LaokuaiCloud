@@ -71,6 +71,23 @@ test('router never exposes raw exceptions or turns pending revoke into success; 
   const disabled=await request(createCommunityGrantRouter(api(),undefined,()=>false),'/session',{invalid:true});
   assert.equal(disabled.status,503);assert.deepEqual(disabled.body,{v:1,error:'community-et-disabled'});
 });
+
+test('friendly HTTP negotiation is exact and exhaustion remains a private stable 503',async()=>{
+  const body={v:1,communityId:'community',includeDnsNames:true,dnsNameStyle:'friendly'};
+  let calls=0;
+  const router=createCommunityGrantRouter({...api(),directory:async(_bearer,query)=>{
+    calls++;assert.deepEqual(query,body);throw new ContractError('dns-alias-pool-exhausted');
+  }});
+  for(const invalid of [{...body,includeDnsNames:false},{v:1,communityId:'community',dnsNameStyle:'friendly'},
+    {...body,dnsNameStyle:'legacy'},{...body,zone:'lk.internal.'}]){
+    const rejected=await request(router,'/directory',invalid,'member-bearer');
+    assert.equal(rejected.status,400);assert.deepEqual(rejected.body,{v:1,error:'invalid-directory-query'});
+  }
+  assert.equal(calls,0);
+  assert.equal((await request(router,'/directory',body)).status,401);
+  const exhausted=await request(router,'/directory',body,'member-bearer');
+  assert.equal(exhausted.status,503);assert.equal(exhausted.cache,'no-store');assert.deepEqual(exhausted.body,{v:1,error:'dns-alias-pool-exhausted'});
+});
 test('V2 relay routes authenticate, parse exact intent, preserve private caching, and expose only stable errors',async()=>{
   const body={...BODY,v:2,requestId:'relay-request',grantId:'grant',expectedConsentRevision:0,enabled:true,bytesPerSecond:65536};
   const response:CommunityRelayResponseV2={v:2,consent:{v:2,enabled:true,revision:1,bytesPerSecond:65536},grant:{
@@ -102,6 +119,16 @@ test('owner factory is inert, schema initialization is explicit and transport re
     const factory=createCommunityGrantFactory(options);
     assert.equal(db.prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE type='table'").get()!.n,0);
     factory.initializeSchema();assert.ok(Number(db.prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE type='table'").get()!.n)>0);
+    assert.equal(calls,0);
+    assert.match(factory.store.dnsDirectory('community',1000000,'friendly').zone,/^lk-[a-f0-9]{8}\.internal\.$/);
+    const production=createCommunityGrantFactory({...options,trustedServerOrigin:'https://voice.ruikang.wang',
+      service:{...options.service,communityId:'production-community'}});
+    assert.equal(production.store.dnsDirectory('production-community',1000000,'friendly').zone,'lk.internal.');
+    assert.match(production.store.dnsDirectory('other-community',1000000,'friendly').zone,/^lk-[a-f0-9]{8}\.internal\.$/);
+    const foreign=createCommunityGrantFactory({...options,trustedServerOrigin:'https://another.invalid'});
+    assert.throws(()=>foreign.store.dnsDirectory('production-community',1000000,'friendly'),/grant-store-corrupt/);
+    const alternatePort=createCommunityGrantFactory({...options,trustedServerOrigin:'https://voice.ruikang.wang:8443'});
+    assert.match(alternatePort.store.dnsDirectory('port-community',1000000,'friendly').zone,/^lk-[a-f0-9]{8}\.internal\.$/);
     assert.equal(calls,0);
     assert.throws(()=>createCommunityGrantFactory({...options,trustedServerOrigin:'http://test.invalid'}),/invalid-server-origin/);
   }finally {db.close();}

@@ -11,7 +11,7 @@ export type CommunityRevokeRequestV1 = CommunityRenewRequestV1;
 export interface CommunityBindingRequestV1 extends CommunitySessionRequestV1 { grantId: string }
 export interface CommunitySessionResponseV1 { v: 1; serverUserId: string; intent: TrustedCommunityIntent }
 export interface CommunityRevokeResponseV1 { v: 1; revoked: true }
-export interface CommunityDirectoryRequestV1 { v: 1; communityId: string; includeDnsNames?: true }
+export interface CommunityDirectoryRequestV1 { v: 1; communityId: string; includeDnsNames?: true; dnsNameStyle?: 'friendly' }
 /** A member may have several distinct device addresses; allocation is not connectivity. */
 export interface CommunityDirectoryMemberV1 { serverUserId: string; virtualIp: string }
 export interface CommunityDirectoryResponseV1 { v: 1; communityId: string; members: CommunityDirectoryMemberV1[] }

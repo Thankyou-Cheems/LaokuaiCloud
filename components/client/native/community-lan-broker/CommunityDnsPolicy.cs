@@ -41,7 +41,7 @@ static class CommunityDnsPolicy {
     internal static void Validate(CommunityDnsPolicyRequest request) {
         Require(request != null && request.schemaVersion == 1 && (request.operation == "ensure" || request.operation == "remove"));
         Require(request.ownershipId != null && Regex.IsMatch(request.ownershipId, @"\A[0-9a-f]{32}\z"));
-        Require(request.zone != null && Regex.IsMatch(request.zone, @"\Ac-[0-9a-f]{32}\.lan\.voice\.ruikang\.wang\.\z"));
+        Require(request.zone != null && Regex.IsMatch(request.zone, @"\A(?:c-[0-9a-f]{32}\.lan\.voice\.ruikang\.wang|lk(?:-[0-9a-f]{8})?\.internal)\.\z"));
     }
     static CommunityDnsPolicyResponse Result(bool ok, string code) { return new CommunityDnsPolicyResponse { schemaVersion = 1, ok = ok, code = code }; }
     static bool Empty(string[] values) { return values == null || values.Length == 0; }
@@ -168,7 +168,41 @@ static class CommunityDnsPolicy {
         return new CommunityDnsPolicyRule { Name = Guid.NewGuid().ToString("B"), DisplayName = Display(request), Comment = Comment(request), Namespaces = new[]{Namespace(request)}, NameServers = new[]{Resolver}, NameEncoding = "Disable", DirectAccessProxyType = "NoProxy", DirectAccessEncryption = "None", DnsSecEncryption = "None" };
     }
     internal static void SelfTest() {
+        // Real Windows returns a null method result for an empty rule list.
+        Require(WmiCommunityDnsPolicyBackend.ReadResult(null).Count == 0);
+        WmiCommunityDnsPolicyBackend.CheckResult(null);
+        Require(!WmiCommunityDnsPolicyBackend.ReadFeatureFlag(null, false));
+        Require(!WmiCommunityDnsPolicyBackend.ReadFeatureFlag(false, true));
+        Require(WmiCommunityDnsPolicyBackend.ReadFeatureFlag(true, true));
+        foreach (var value in new object[]{null, "false", 0}) {
+            bool failed = false;
+            try { WmiCommunityDnsPolicyBackend.ReadFeatureFlag(value, true); } catch (InvalidDataException) { failed = true; }
+            Require(failed);
+        }
+        using (var emptyResult = new ManagementClass()) {
+            emptyResult.Properties.Add("ReturnValue", (UInt32)0);
+            emptyResult.Properties.Add("cmdletOutput", CimType.Object, true);
+            Require(WmiCommunityDnsPolicyBackend.ReadResult(emptyResult).Count == 0);
+            emptyResult["ReturnValue"] = (UInt32)5;
+            bool failed = false;
+            try { WmiCommunityDnsPolicyBackend.ReadResult(emptyResult); } catch (InvalidDataException) { failed = true; }
+            Require(failed);
+        }
         var request = new CommunityDnsPolicyRequest { schemaVersion = 1, operation = "ensure", zone = "c-" + new String('a',32) + ".lan.voice.ruikang.wang.", ownershipId = new String('b',32) };
+        foreach (var zone in new[]{"lk.internal.", "lk-0123abcd.internal."}) {
+            var shortRequest = new CommunityDnsPolicyRequest {schemaVersion=1, operation="ensure", zone=zone, ownershipId=request.ownershipId};
+            Validate(shortRequest);
+            var shortBackend = new FakeBackend();
+            Require(Apply(shortBackend, shortRequest).ok);
+            shortRequest.operation="remove";
+            Require(Apply(shortBackend, shortRequest).ok && shortBackend.Rules.Count==0);
+        }
+        foreach (var zone in new[]{"internal.", "lk.internal.example.", "other.internal.", "lk-123.internal.", "lk.internal", "LK.internal.", "*.lk.internal."}) {
+            bool failed=false;
+            try { Validate(new CommunityDnsPolicyRequest {schemaVersion=1,operation="ensure",zone=zone,ownershipId=request.ownershipId}); }
+            catch (InvalidDataException) { failed=true; }
+            Require(failed);
+        }
         var fake = new FakeBackend();
         Require(Apply(fake, request).code == "prepared" && fake.Adds == 1);
         Require(Apply(fake, request).code == "prepared" && fake.Adds == 1);
@@ -231,6 +265,29 @@ static class CommunityDnsPolicy {
 }
 
 sealed class WmiCommunityDnsPolicyBackend : ICommunityDnsPolicyBackend {
+    // The DNS cmdlet provider can return no object for an empty Get or a
+    // non-PassThru mutation. Absence of output is not an HRESULT failure;
+    // exceptions and an explicit nonzero ReturnValue still fail closed. Apply
+    // independently reads back the exact owned rule after every mutation.
+    internal static void CheckResult(ManagementBaseObject result) {
+        if (result == null) return;
+        var status = result.Properties["ReturnValue"];
+        if (status != null && status.Value != null) CommunityDnsPolicy.Require(Convert.ToUInt32(status.Value) == 0);
+    }
+    internal static List<CommunityDnsPolicyRule> ReadResult(ManagementBaseObject result) {
+        CheckResult(result);
+        var rules = new List<CommunityDnsPolicyRule>();
+        if (result == null) return rules;
+        var output = result.Properties["cmdletOutput"];
+        CommunityDnsPolicy.Require(output != null);
+        if (output.Value == null) return rules;
+        var values = output.Value as Array; CommunityDnsPolicy.Require(values != null);
+        foreach (var value in values) {
+            var rule = value as ManagementBaseObject; CommunityDnsPolicy.Require(rule != null);
+            rules.Add(ConvertRule(rule));
+        }
+        return rules;
+    }
     // Official Windows DNS Client provider. All method parameters are fixed or
     // derived from the validated application zone. GPO/remote Server stay null.
     // https://learn.microsoft.com/en-us/previous-versions/windows/desktop/dnsclientpsprov/ps-dnsclientnrptrule
@@ -239,15 +296,23 @@ sealed class WmiCommunityDnsPolicyBackend : ICommunityDnsPolicyBackend {
     }
     static string Text(ManagementBaseObject rule, string name) { return Convert.ToString(rule[name]); }
     static bool Flag(ManagementBaseObject rule, string name) { CommunityDnsPolicy.Require(rule[name] is bool); return (bool)rule[name]; }
+    internal static bool ReadFeatureFlag(object value, bool enabled) {
+        // Disabled DNSSEC/DirectAccess omit their dependent boolean fields.
+        // Do not accept missing fields when the parent feature is enabled.
+        if (value == null && !enabled) return false;
+        CommunityDnsPolicy.Require(value is bool); return (bool)value;
+    }
     static string[] Strings(ManagementBaseObject rule, string name) {
         if (rule[name] == null) return new string[0];
         var array = rule[name] as string[]; CommunityDnsPolicy.Require(array != null); return array;
     }
     static CommunityDnsPolicyRule ConvertRule(ManagementBaseObject rule) {
+        var dnsSec = Flag(rule,"DnsSecEnabled");
+        var directAccess = Flag(rule,"DirectAccessEnabled");
         return new CommunityDnsPolicyRule { Name = Text(rule,"Name"), DisplayName = Text(rule,"DisplayName"), Comment = Text(rule,"Comment"),
             Namespaces = Strings(rule,"Namespace"), NameServers = Strings(rule,"NameServers"), NameEncoding = Text(rule,"NameEncoding"),
-            DnsSecEnabled = Flag(rule,"DnsSecEnabled"), DnsSecValidationRequired = Flag(rule,"DnsSecValidationRequired"), DnsSecIPsecRequired = Flag(rule,"DnsSecQueryIPsecRequired"), DnsSecEncryption = Text(rule,"DnsSecQueryIPsecEncryption"),
-            DirectAccessEnabled = Flag(rule,"DirectAccessEnabled"), DirectAccessIPsecRequired = Flag(rule,"DirectAccessQueryIPsecRequired"), DirectAccessEncryption = Text(rule,"DirectAccessQueryIPsecEncryption"),
+            DnsSecEnabled = dnsSec, DnsSecValidationRequired = ReadFeatureFlag(rule["DnsSecValidationRequired"],dnsSec), DnsSecIPsecRequired = ReadFeatureFlag(rule["DnsSecQueryIPsecRequired"],dnsSec), DnsSecEncryption = Text(rule,"DnsSecQueryIPsecEncryption"),
+            DirectAccessEnabled = directAccess, DirectAccessIPsecRequired = ReadFeatureFlag(rule["DirectAccessQueryIPsecRequired"],directAccess), DirectAccessEncryption = Text(rule,"DirectAccessQueryIPsecEncryption"),
             DirectAccessDnsServers = Strings(rule,"DirectAccessDnsServers"), DirectAccessProxyType = Text(rule,"DirectAccessProxyType"), DirectAccessProxyName = Text(rule,"DirectAccessProxyName"), IPsecCARestriction = Text(rule,"IPsecCARestriction") };
     }
     public List<CommunityDnsPolicyRule> Read() { return Read(null); }
@@ -255,15 +320,7 @@ sealed class WmiCommunityDnsPolicyBackend : ICommunityDnsPolicyBackend {
         using (var provider = Provider()) using (var input = provider.GetMethodParameters("Get")) {
             if (name != null) input["Name"] = new[]{name};
             using (var result = provider.InvokeMethod("Get", input, null)) {
-                CommunityDnsPolicy.Require(result != null && Convert.ToUInt32(result["ReturnValue"]) == 0);
-                var rules = new List<CommunityDnsPolicyRule>();
-                var values = result["cmdletOutput"] as Array;
-                if (result["cmdletOutput"] != null) CommunityDnsPolicy.Require(values != null);
-                if (values != null) foreach (var value in values) {
-                    var rule = value as ManagementBaseObject; CommunityDnsPolicy.Require(rule != null);
-                    rules.Add(ConvertRule(rule));
-                }
-                return rules;
+                return ReadResult(result);
             }
         }
     }
@@ -273,11 +330,11 @@ sealed class WmiCommunityDnsPolicyBackend : ICommunityDnsPolicyBackend {
             input["Namespace"] = new[]{CommunityDnsPolicy.Namespace(request)};
             input["NameServers"] = new[]{CommunityDnsPolicy.Resolver};
             input["DisplayName"] = CommunityDnsPolicy.Display(request); input["Comment"] = CommunityDnsPolicy.Comment(request);
-            input["DAEnable"] = false; input["DAIPsecRequired"] = false; input["DAIPsecEncryptionType"] = "None";
-            input["DAProxyType"] = "NoProxy"; input["DAProxyServerName"] = ""; input["DANameServers"] = new string[0];
-            input["DnsSecEnable"] = false; input["DnsSecValidationRequired"] = false; input["DnsSecIPsecRequired"] = false;
-            input["DnsSecIPsecEncryptionType"] = "None"; input["IPsecTrustAuthority"] = ""; input["NameEncoding"] = "Disable"; input["PassThru"] = false;
-            using (var result = provider.InvokeMethod("Add", input, null)) CommunityDnsPolicy.Require(result != null && Convert.ToUInt32(result["ReturnValue"]) == 0);
+            // Leave optional DirectAccess/IPsec arguments unset: the Windows
+            // provider rejects empty server/trust-authority strings even when
+            // their features are disabled. Readback checks all defaults.
+            input["NameEncoding"] = "Disable"; input["PassThru"] = false;
+            using (var result = provider.InvokeMethod("Add", input, null)) CheckResult(result);
         }
     }
     public void Remove(CommunityDnsPolicyRequest request, CommunityDnsPolicyRule rule) {
@@ -286,7 +343,7 @@ sealed class WmiCommunityDnsPolicyBackend : ICommunityDnsPolicyBackend {
         CommunityDnsPolicy.Require(latest.Count == 1 && latest[0].Name == rule.Name && CommunityDnsPolicy.Owned(latest[0],request));
         using (var provider = Provider()) using (var input = provider.GetMethodParameters("Remove")) {
             input["Name"] = rule.Name; input["Force"] = true; input["PassThru"] = false;
-            using (var result = provider.InvokeMethod("Remove", input, null)) CommunityDnsPolicy.Require(result != null && Convert.ToUInt32(result["ReturnValue"]) == 0);
+            using (var result = provider.InvokeMethod("Remove", input, null)) CheckResult(result);
         }
     }
 }

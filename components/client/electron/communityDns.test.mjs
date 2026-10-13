@@ -59,17 +59,38 @@ function load(file){
   const local=name=>{
     if(Object.hasOwn(mocked,name))return mocked[name];
     if(['node:fs','node:path','node:crypto'].includes(name))return require(name);
-    assert.ok(name.startsWith('./'),`unreviewed dependency ${name}`);return load(name+'.ts');
+    assert.ok(name.startsWith('./') || name === '../src/lib/communityDnsNames',`unreviewed dependency ${name}`);return load(name+'.ts');
   };
   vm.runInThisContext('(function(require,module,exports){'+compiled.outputText+'\n})',{filename:url.pathname})(local,mod,mod.exports);
   return mod.exports;
 }
 const {CommunityDnsRecords,CommunityDnsListener,parseCommunityDnsDirectory,COMMUNITY_DNS_ADDRESS}=load('./communityDnsResolver.ts');
 const {CommunityDnsPolicy,invokeDnsPolicy}=load('./communityDnsPolicy.ts');
+const {communityDnsZone,communityDnsNameZone,communityDnsDisplayName}=load('../src/lib/communityDnsNames.ts');
 const WALL=1_800_000_000_000,ZONE=`c-${'a'.repeat(32)}.lan.voice.ruikang.wang.`,ZONE_B=`c-${'b'.repeat(32)}.lan.voice.ruikang.wang.`;
 const directory=(scope='community',zone=ZONE,change={})=>({v:1,communityId:scope,dns:{zone,serverTimeMs:WALL,maxAgeMs:10000},
   members:[{serverUserId:'member',virtualIp:'10.77.0.2',dnsName:`d-${'1'.repeat(32)}.${zone}`,dnsExpiresAtMs:WALL+10000}],...change});
 const clone=value=>structuredClone(value);
+test('shared DNS grammar accepts only canonical legacy and friendly label/zone pairs',()=>{
+  for(const zone of ['lk.internal.','lk-0123abcd.internal.']) {
+    assert.equal(communityDnsZone(zone),true);
+    for(const label of ['shizi-12','yunbao-123','abcdefghijkl-999']) {
+      const name=label+'.'+zone;
+      assert.equal(communityDnsNameZone(name),zone);
+      assert.equal(communityDnsDisplayName(name),name.slice(0,-1));
+    }
+  }
+  assert.equal(communityDnsNameZone(`d-${'1'.repeat(32)}.${ZONE}`),ZONE);
+  for(const name of ['ab-12.lk.internal.','abcdefghijklm-12.lk.internal.','shizi-1.lk.internal.',
+    'shizi-1234.lk.internal.','Shizi-12.lk.internal.','shizi-12.lk-0123ABCD.internal.',
+    'shizi-12.lk-1234567.internal.','shizi-12.lk-123456789.internal.','shizi-12.lk.other.internal.',
+    'shizi-12.lk.internal','shizi-12.lk.internal.\n','shizi-12.lk.internal..','shizi-12.evil.lk.internal.',
+    `shizi-12.${ZONE}`,`d-${'1'.repeat(32)}.lk.internal.`,null,{},123]) {
+    assert.equal(communityDnsNameZone(name),null,String(name));
+  }
+  assert.equal(communityDnsZone('lk.internal.\n'),false);
+  assert.equal(communityDnsDisplayName('claimed.example.'),'');
+});
 function query(name,kind=1,klass=1){
   const labels=name.replace(/\.$/,'').split('.').flatMap(label=>[Buffer.from([label.length]),Buffer.from(label)]);
   const header=Buffer.alloc(12);header.writeUInt16BE(0x1234);header.writeUInt16BE(0x0100,2);header.writeUInt16BE(1,4);
@@ -126,6 +147,23 @@ test('getters, inherited objects, hidden fields and sparse arrays cannot cross t
   const hidden=directory();Object.defineProperty(hidden,'hostname',{value:'claimed'});assert.throws(()=>parseCommunityDnsDirectory(hidden,'community'));
   const inherited=Object.assign(Object.create({hostname:'claim'}),directory());assert.throws(()=>parseCommunityDnsDirectory(inherited,'community'));
   assert.throws(()=>parseCommunityDnsDirectory(directory('community',ZONE,{members:new Array(1)}),'community'));
+});
+test('friendly records stay per device, zone scoped and answer the complete canonical name',()=>{
+  for(const zone of ['lk.internal.','lk-0123abcd.internal.']) {
+    const raw=directory('community',zone);
+    raw.members[0].dnsName='shizi-12.'+zone;
+    raw.members.push({...raw.members[0],virtualIp:'10.77.0.3',dnsName:'shizi-123.'+zone});
+    assert.deepEqual(parseCommunityDnsDirectory(raw,'community'),raw);
+    const now={mono:1000,wall:WALL},records=new CommunityDnsRecords(()=>now.mono,()=>now.wall);
+    records.replace(raw,'community',now.mono,now.wall);
+    assert.deepEqual([...records.answer(query(raw.members[0].dnsName)).subarray(-4)],[10,77,0,2]);
+    assert.deepEqual([...records.answer(query(raw.members[1].dnsName.toUpperCase())).subarray(-4)],[10,77,0,3]);
+    assert.equal(rcode(records.answer(query('shizi-12.other.internal.'))),5);
+    const wrong=clone(raw);wrong.members[0].dnsName='shizi-12.lk-ffffffff.internal.';
+    assert.throws(()=>parseCommunityDnsDirectory(wrong,'community'));
+    now.mono+=10000;now.wall+=10000;
+    assert.equal(answers(records.answer(query(raw.members[0].dnsName))),0);
+  }
 });
 test('actual wire answer is authoritative IPv4 only, preserves ID/RD and caps positive TTL to one second',()=>{
   const f=recordsFixture(),request=query(f.name),answer=f.records.answer(request);

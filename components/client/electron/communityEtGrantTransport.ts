@@ -13,7 +13,7 @@ export interface CommunityEtHttpPort {
   post(origin: string, operation: string, bearer: string, body: unknown, signal: AbortSignal): Promise<unknown>;
 }
 export class CommunityEtTransportError extends Error {
-  constructor(readonly code: 'auth-unavailable' | 'provider-unavailable' | 'invalid-response' | 'request-cancelled') {
+  constructor(readonly code: 'auth-unavailable' | 'provider-unavailable' | 'invalid-response' | 'request-cancelled' | 'directory-extension-unsupported') {
     super(code);
   }
 }
@@ -49,6 +49,10 @@ export const communityEtHttpsPort: CommunityEtHttpPort = {
         res.once('end', () => {
           if (signal.aborted) { reject(new CommunityEtTransportError('request-cancelled')); return; }
           if (res.statusCode === 401 || res.statusCode === 403) { reject(new CommunityEtTransportError('auth-unavailable')); return; }
+          if (res.statusCode === 400 && operation === 'directory' && body && typeof body === 'object' &&
+              (body as {includeDnsNames?: unknown}).includeDnsNames === true) {
+            reject(new CommunityEtTransportError('directory-extension-unsupported')); return;
+          }
           if (res.statusCode !== 200) { reject(new CommunityEtTransportError('provider-unavailable')); return; }
           try { resolve(JSON.parse(Buffer.concat(chunks).toString('utf8'))); }
           catch { reject(new CommunityEtTransportError('invalid-response')); }

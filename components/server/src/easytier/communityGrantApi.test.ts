@@ -44,6 +44,17 @@ test('DNS names are explicit opt-in; a member can neither supply a hostname nor 
   Object.defineProperty(accessor,'includeDnsNames',{get:()=>{called=true;return true;}});
   assert.throws(()=>parseCommunityGrantRequest('directory',accessor),ContractError);assert.equal(called,false);
 });
+test('friendly DNS negotiation requires the exact style and explicit DNS opt-in', () => {
+  const base={v:1 as const,communityId:'community'},body={...base,includeDnsNames:true as const,dnsNameStyle:'friendly' as const};
+  assert.deepEqual(parseCommunityGrantRequest('directory',body),body);
+  assert.throws(()=>parseCommunityGrantRequest('directory',{...base,dnsNameStyle:'friendly'}),ContractError);
+  for(const dnsNameStyle of [undefined,null,false,1,'legacy','Friendly','friendly '])
+    assert.throws(()=>parseCommunityGrantRequest('directory',{...body,dnsNameStyle}),ContractError);
+  for(const includeDnsNames of [undefined,false,null,'true',1])
+    assert.throws(()=>parseCommunityGrantRequest('directory',{...body,includeDnsNames}),ContractError);
+  Object.defineProperty(body,'dnsNameStyle',{get:()=>assert.fail('style getter must not run')});
+  assert.throws(()=>parseCommunityGrantRequest('directory',body),ContractError);
+});
 for (const field of ['accountId','serverUserId','sessionId','networkName','adminInstanceId','credentialSecretB64','rpcUrl','bootstrap']) {
   test(`reject client-provided ${field}`, () => {
     assert.throws(() => parseCommunityGrantRequest('session',{...base,[field]:'untrusted'}), ContractError);

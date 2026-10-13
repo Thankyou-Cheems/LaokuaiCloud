@@ -16,5 +16,5 @@
   // Hotkey, Squad and LAN contracts are shared with the renderer, so their src
   // files are listed here. Both projects are noEmit, so compiling twice costs
   // nothing and keeps the main process from re-implementing the parsing.
-  "include": ["vite.config.ts", "electron/**/*.ts", "src/lib/hotkeys.ts", "src/lib/squadMode.ts", "src/lib/easyTierCommunity.ts", "src/lib/memberLanStatus.ts", "src/lib/localDiagnostics.ts", "src/lib/communityNetworkPreferences.ts", "src/lib/communityRelay.ts"]
+  "include": ["vite.config.ts", "electron/**/*.ts", "src/lib/hotkeys.ts", "src/lib/squadMode.ts", "src/lib/easyTierCommunity.ts", "src/lib/memberLanStatus.ts", "src/lib/localDiagnostics.ts", "src/lib/communityNetworkPreferences.ts", "src/lib/communityRelay.ts", "src/lib/communityDnsNames.ts"]
 }

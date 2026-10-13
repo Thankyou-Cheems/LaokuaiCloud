@@ -23,12 +23,14 @@ function compile(file) {
   });
   return exports;
 }
+deps["../src/lib/communityDnsNames"] = compile("src/lib/communityDnsNames.ts");
 const status = deps["./easyTierStatus"] = compile("electron/easyTierStatus.ts");
 deps["./easyTierMemberAdapter"] = compile("electron/easyTierMemberAdapter.ts");
 deps["./easyTierCommunityManager"] = compile("electron/easyTierCommunityManager.ts");
 const network = deps["./easyTierCliNetwork"] = compile("electron/easyTierCliNetwork.ts");
 deps["./communityEtGrant"] = compile("electron/communityEtGrant.ts");
 deps["./communityEtCredentialObservation"] = compile("electron/communityEtCredentialObservation.ts");
+deps["./communityRelayRuntime"] = compile("electron/communityRelayRuntime.ts");
 const processes = compile("electron/easyTierWindowsProcesses.ts");
 const { WindowsEasyTierCliRuntime } = compile("electron/windowsEasyTierCliRuntime.ts");
 const instanceId = "00000000-0000-4000-8000-000000000001";

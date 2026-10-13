@@ -21,6 +21,9 @@ function compile(path) {
 }
 const status = compile("electron/easyTierStatus.ts");
 dependencies["./easyTierStatus"] = status;
+const dnsNames = compile("src/lib/communityDnsNames.ts");
+dependencies["../src/lib/communityDnsNames"] = dnsNames;
+dependencies["./communityDnsNames"] = dnsNames;
 const memberAdapter = compile("electron/easyTierMemberAdapter.ts");
 dependencies["./easyTierMemberAdapter"] = memberAdapter;
 const memberContract = compile("src/lib/memberLanStatus.ts");
@@ -54,6 +57,24 @@ function enrolledSample() {
   const s = sample(); s.bindings.push({ ...s.bindings[0], userId: "local-user", deviceId: "local-device", peerId: 1 }); return s;
 }
 const projection = s => plain(status.projectEasyTierStatus(s, scope, time));
+await test("friendly DNS projection preserves authenticated device assignments and exact namespace boundaries",async()=>{
+  for(const zone of ['lk.internal.','lk-0123abcd.internal.']) {
+    const s=enrolledSample();s.directoryObservedAtUnixMs=time;
+    s.directory=[{serverUserId:'remote',virtualIp:'10.44.0.8'},{serverUserId:'remote',virtualIp:'10.44.0.9'}];
+    s.dnsReady=true;s.dnsAddresses=s.directory.map((entry,index)=>({virtualIp:entry.virtualIp,dnsName:`shizi-${12+index}.${zone}`,expiresAtUnixMs:time+5000}));
+    const project=()=>memberAdapter.projectEasyTierMembers(s,scope,'connected',time,time);
+    const remote=project().members.find(member=>member.binding.authenticatedUserId==='remote');
+    assert.deepEqual(plain(remote.dnsAddresses),s.dnsAddresses);assert.equal(remote.enrollment.state,'assigned');
+    for(const change of [row=>row.dnsName='shizi-12.lk.internal.\n',row=>row.dnsName='shizi-12.foreign.internal.',
+      row=>row.dnsName='shizi-12.lk.other.internal.',row=>row.virtualIp='10.44.0.99',
+      row=>row.expiresAtUnixMs=time,row=>row.expiresAtUnixMs=time+10001]) {
+      const original={...s.dnsAddresses[0]};change(s.dnsAddresses[0]);
+      assert.ok(project().members.every(member=>!member.dnsAddresses));s.dnsAddresses[0]=original;
+    }
+    s.dnsAddresses[1].dnsName='shizi-13.lk-ffffffff.internal.';
+    assert.ok(project().members.every(member=>!member.dnsAddresses));
+  }
+});
 function session(id = "instance-a", close = async () => {}) { return { instanceId: id, close, read: async () => sample() }; }
 function fakeRuntime(connect = async () => session()) { return { activationReason: () => null, connect, shutdownOwned() {} }; }
 

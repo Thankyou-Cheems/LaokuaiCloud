@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {Buffer} from 'node:buffer';
+import {EventEmitter} from 'node:events';
 import {readFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
 import test from 'node:test';
@@ -8,6 +9,7 @@ import vm from 'node:vm';
 
 const require = createRequire(import.meta.url), ts = require('typescript'), cache = new Map();
 const denied = () => { throw new Error('native-or-network-forbidden'); };
+let httpResponseStatus = null;
 function load(url) {
   if (cache.has(url.href)) return cache.get(url.href);
   const mod = {exports: {}}; cache.set(url.href, mod.exports);
@@ -16,12 +18,20 @@ function load(url) {
   }}).outputText;
   const local = name => {
     if (['node:crypto', 'node:path'].includes(name)) return require(name);
-    if (name === 'node:https') return {request: denied};
+    if (name === 'node:https') return {request: (_target, _options, callback) => {
+      if (httpResponseStatus === null) return denied();
+      const req = new EventEmitter(), statusCode = httpResponseStatus;
+      req.end = () => queueMicrotask(() => {
+        const res = new EventEmitter(); res.statusCode = statusCode; callback(res);
+        res.emit('data', Buffer.from('{}')); res.emit('end');
+      });
+      req.destroy = () => undefined; return req;
+    }};
     if (name === 'node:dgram') return {createSocket: denied};
     if (name === 'node:net') return {createServer: denied};
     if (name === 'node:child_process') return {execFile: denied, spawn: denied};
     if (name === 'node:fs/promises') return new Proxy({}, {get: () => denied});
-    assert.ok(name.startsWith('./') || name === '../src/lib/communityNetworkPreferences', 'Only reviewed local pure modules are loaded');
+    assert.ok(name.startsWith('./') || ['../src/lib/communityNetworkPreferences','../src/lib/communityDnsNames'].includes(name), 'Only reviewed local pure modules are loaded');
     return load(new URL(name + '.ts', url));
   };
   vm.runInThisContext('(function(require,module,exports){' + code + '\n})', {filename: url.pathname})(local, mod, mod.exports);
@@ -32,7 +42,7 @@ const {verifyOwnedCredentialObservation} = load(new URL('./communityEtCredential
 const {EASYTIER_V270_ROUTE_LIST_SOURCE} = load(new URL('./easyTierCliNetwork.ts', import.meta.url));
 const {projectCommunityEtBinding} = load(new URL('./communityEtBindingProjection.ts', import.meta.url));
 const {CommunityEtGrantRuntime} = load(new URL('./communityEtGrantRuntime.ts', import.meta.url));
-const {CommunityEtGrantTransport, CommunityEtTransportError, trustedHttpsOrigin} = load(new URL('./communityEtGrantTransport.ts', import.meta.url));
+const {CommunityEtGrantTransport, CommunityEtTransportError, trustedHttpsOrigin, communityEtHttpsPort} = load(new URL('./communityEtGrantTransport.ts', import.meta.url));
 const {EasyTierCommunityManager, EasyTierOperationError, EasyTierSessionRetiredError} = load(new URL('./easyTierCommunityManager.ts', import.meta.url));
 const {CommunityEnrollment} = load(new URL('./communityEnrollment.ts', import.meta.url));
 const {registerEasyTierCommunityIpc} = load(new URL('./easyTierCommunityIpc.ts', import.meta.url));
@@ -130,7 +140,7 @@ function runtimeFixture(options = {}) {
     if (op === 'session') return {v: 1, ...clone(f.verified)};
     if (op === 'revoke') { events.push('revoke'); return {v: 1, revoked: true}; }
     if (op === 'binding') {const reply = {...clone(f.proof), revision}; await options.beforeBindingReply?.(reply); return reply;}
-    if (op === 'directory') return options.directory ? options.directory(body, f) : {v: 1, communityId: 'community', members: [{serverUserId: 'member', virtualIp: '10.77.1.2'}]};
+    if (op === 'directory') return options.directory ? options.directory(body, f, signal) : {v: 1, communityId: 'community', members: [{serverUserId: 'member', virtualIp: '10.77.1.2'}]};
     if (op.startsWith('relay') && options.relayBackend) {
       const reply = await options.relayBackend(op, body, f, revision, signal);
       revision = reply.grant.revision; return reply;
@@ -323,6 +333,24 @@ function dnsDirectory(_body, f) {
   return {v: 1, communityId: 'community', dns: {zone: dnsZone, serverTimeMs: f.now.wall + 100_000, maxAgeMs: 10000},
     members: [{serverUserId: 'member', virtualIp: '10.77.1.2', dnsName, dnsExpiresAtMs: f.now.wall + 110_000}]};
 }
+test('HTTP extension negotiation distinguishes explicit directory 400 from auth and provider errors', async () => {
+  try {
+    for (const [status, operation, body, code] of [
+      [400,'directory',{v:1,communityId:'community',includeDnsNames:true,dnsNameStyle:'friendly'},'directory-extension-unsupported'],
+      [400,'directory',{v:1,communityId:'community',includeDnsNames:true},'directory-extension-unsupported'],
+      [400,'directory',{v:1,communityId:'community'},'provider-unavailable'],
+      [400,'session',{includeDnsNames:true},'provider-unavailable'],
+      [401,'directory',{includeDnsNames:true},'auth-unavailable'],
+      [403,'directory',{includeDnsNames:true},'auth-unavailable'],
+      [404,'directory',{includeDnsNames:true},'provider-unavailable'],
+      [503,'directory',{includeDnsNames:true},'provider-unavailable'],
+    ]) {
+      httpResponseStatus=status;
+      await assert.rejects(communityEtHttpsPort.post('https://test.invalid',operation,'fixture-bearer',body,new AbortController().signal),
+        error=>error instanceof CommunityEtTransportError && error.code===code);
+    }
+  } finally { httpResponseStatus=null; }
+});
 test('DNS is exposed only after local policy readiness; server clock offset does not extend its TTL', async () => {
   let ready = false; const published = [], cleared = [];
   const f = runtimeFixture({directory: dnsDirectory, dns: {publish: (...args) => published.push(args), clear: id => cleared.push(id), isReady: () => ready}});
@@ -330,6 +358,7 @@ test('DNS is exposed only after local policy readiness; server clock offset does
   const first = await s.read(new AbortController().signal);
   assert.equal(first.dnsReady, false); assert.deepEqual(first.dnsAddresses, []); assert.equal(published.length, 1);
   assert.equal(f.calls.find(call => call.op === 'directory').body.includeDnsNames, true);
+  assert.equal(f.calls.find(call => call.op === 'directory').body.dnsNameStyle, 'friendly');
   ready = true; f.now.mono += 100; f.now.wall += 100;
   const next = await s.read(new AbortController().signal);
   assert.deepEqual(next.dnsAddresses, [{dnsName, virtualIp: '10.77.1.2', expiresAtUnixMs: 2010000}]);
@@ -339,13 +368,72 @@ test('DNS is exposed only after local policy readiness; server clock offset does
 test('old backend DNS rejection falls back to authenticated numeric directory without restarting LAN', async () => {
   const cleared = [];
   const f = runtimeFixture({directory: body => {
-    if (body.includeDnsNames) throw new CommunityEtTransportError('provider-unavailable');
+    if (body.includeDnsNames) throw new CommunityEtTransportError('directory-extension-unsupported');
     return {v: 1, communityId: 'community', members: [{serverUserId: 'member', virtualIp: '10.77.1.2'}]};
   }, dns: {publish: denied, clear: id => cleared.push(id), isReady: () => false}});
   await f.authenticate('one'); const s = await f.connect(); const sample = await s.read(new AbortController().signal);
   assert.equal(sample.directory.length, 1); assert.deepEqual(sample.dnsAddresses, []); assert.equal(f.cores(), 1);
-  assert.deepEqual(f.calls.filter(call => call.op === 'directory').map(call => call.body.includeDnsNames), [true, undefined]);
+  assert.deepEqual(f.calls.filter(call => call.op === 'directory').map(call => call.body.includeDnsNames), [true, true, undefined]);
+  assert.deepEqual(f.calls.filter(call => call.op === 'directory').map(call => call.body.dnsNameStyle), ['friendly', undefined, undefined]);
   assert.ok(cleared.includes('community')); await s.close();
+});
+test('unsupported friendly style retains legacy DNS on an otherwise DNS-capable backend',async()=>{
+  const published=[];
+  const f=runtimeFixture({directory:(body,value)=>{
+    if(body.dnsNameStyle)throw new CommunityEtTransportError('directory-extension-unsupported');
+    return dnsDirectory(body,value);
+  },dns:{publish:(...args)=>published.push(args),clear:()=>undefined,isReady:()=>true}});
+  await f.authenticate('one');const s=await f.connect();const sample=await s.read(new AbortController().signal);
+  assert.equal(published.length,1);assert.equal(sample.dnsAddresses[0].dnsName,dnsName);assert.equal(f.cores(),1);
+  assert.deepEqual(f.calls.filter(call=>call.op==='directory').map(call=>call.body.dnsNameStyle),['friendly',undefined]);
+  await s.close();
+});
+test('friendly DNS names retain canonical resolver form in readiness-gated runtime samples',async()=>{
+  const published=[];
+  const f=runtimeFixture({directory:(body,value)=>{
+    assert.equal(body.dnsNameStyle,'friendly');const raw=dnsDirectory(body,value);
+    raw.dns.zone='lk.internal.';raw.members[0].dnsName='shizi-12.lk.internal.';return raw;
+  },dns:{publish:(...args)=>published.push(args),clear:()=>undefined,isReady:()=>true}});
+  await f.authenticate('one');const s=await f.connect();const sample=await s.read(new AbortController().signal);
+  assert.equal(sample.dnsAddresses[0].dnsName,'shizi-12.lk.internal.');assert.equal(published[0][1].dns.zone,'lk.internal.');
+  assert.equal(f.calls.filter(call=>call.op==='directory').length,1);await s.close();
+});
+test('DNS provider outage and expired friendly response have no negotiation fallback',async()=>{
+  for(const directory of [()=>{throw new CommunityEtTransportError('provider-unavailable');},(body,value)=>{
+    const raw=dnsDirectory(body,value);raw.members[0].dnsExpiresAtMs=raw.dns.serverTimeMs;return raw;
+  }]) {
+    const f=runtimeFixture({directory,dns:{publish:denied,clear:()=>undefined,isReady:()=>false}});
+    await f.authenticate('one');const s=await f.connect();const sample=await s.read(new AbortController().signal);
+    assert.deepEqual(sample.directory,[]);assert.deepEqual(sample.dnsAddresses,[]);
+    assert.equal(f.calls.filter(call=>call.op==='directory').length,1);assert.equal(f.events.includes('stop'),false);await s.close();
+  }
+});
+test('legacy negotiation auth failure retires membership without numeric fallback',async()=>{
+  const f=runtimeFixture({directory:body=>{
+    if(body.dnsNameStyle)throw new CommunityEtTransportError('directory-extension-unsupported');
+    throw new CommunityEtTransportError('auth-unavailable');
+  },dns:{publish:denied,clear:()=>undefined,isReady:()=>false}});
+  await f.authenticate('one');const s=await f.connect();
+  await assert.rejects(s.read(new AbortController().signal),error=>error instanceof EasyTierSessionRetiredError);
+  assert.equal(f.calls.filter(call=>call.op==='directory').length,2);assert.ok(f.events.includes('stop'));
+});
+test('negotiation shares one timeout budget and cannot retry after cancellation',async()=>{
+  const signals=[];
+  const f=runtimeFixture({directory:(body,_value,signal)=>{
+    signals.push(signal);
+    if(body.dnsNameStyle)throw new CommunityEtTransportError('directory-extension-unsupported');
+    return new Promise((_resolve,reject)=>signal.addEventListener('abort',()=>reject(new CommunityEtTransportError('request-cancelled')),{once:true}));
+  },dns:{publish:denied,clear:()=>undefined,isReady:()=>false}});
+  await f.authenticate('one');const s=await f.connect();const sample=await s.read(new AbortController().signal);
+  assert.deepEqual(sample.directory,[]);assert.deepEqual(sample.dnsAddresses,[]);
+  assert.equal(signals.length,2);assert.equal(signals[0],signals[1]);assert.equal(signals[1].aborted,true);
+  assert.equal(f.calls.filter(call=>call.op==='directory').length,2);assert.equal(f.events.includes('stop'),false);await s.close();
+});
+test('retired request clock from DNS publication hides names without negotiating or refreshing age',async()=>{
+  const f=runtimeFixture({directory:dnsDirectory,dns:{publish:()=>{throw Error('dns-request-retired');},clear:()=>undefined,isReady:()=>false}});
+  await f.authenticate('one');const s=await f.connect();const sample=await s.read(new AbortController().signal);
+  assert.deepEqual(sample.directory,[]);assert.equal(sample.directoryObservedAtUnixMs,0);assert.deepEqual(sample.dnsAddresses,[]);
+  assert.equal(f.calls.filter(call=>call.op==='directory').length,1);assert.equal(f.events.includes('stop'),false);await s.close();
 });
 test('invalid DNS directory is hidden without replacing it with unverified peer addresses or stopping LAN', async () => {
   const f = runtimeFixture({directory: (body, value) => ({...dnsDirectory(body, value), communityId: 'other'}),

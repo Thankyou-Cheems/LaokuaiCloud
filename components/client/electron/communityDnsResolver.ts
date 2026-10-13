@@ -1,9 +1,11 @@
 import { createSocket, type Socket as DatagramSocket } from 'node:dgram';
 import { createServer, type Server, type Socket } from 'node:net';
 
+import { communityDnsNameZone, communityDnsZone } from '../src/lib/communityDnsNames';
+
+export { communityDnsZone } from '../src/lib/communityDnsNames';
+
 export const COMMUNITY_DNS_ADDRESS = '127.0.0.153';
-export const communityDnsZone = (value: unknown): value is string =>
-  typeof value === 'string' && /^c-[0-9a-f]{32}\.lan\.voice\.ruikang\.wang\.$/.test(value);
 export interface CommunityDnsDirectory {
   v: 1; communityId: string;
   dns: {zone: string; serverTimeMs: number; maxAgeMs: number};
@@ -38,7 +40,7 @@ export function parseCommunityDnsDirectory(raw: unknown, communityId: string): C
     if (!exact(member, ['serverUserId', 'virtualIp', 'dnsName', 'dnsExpiresAtMs']) ||
         typeof member.serverUserId !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(member.serverUserId) ||
         !ipv4(member.virtualIp) || typeof member.dnsName !== 'string' ||
-        !/^d-[0-9a-f]{32}\./.test(member.dnsName) || member.dnsName.slice(35) !== raw.dns.zone ||
+        communityDnsNameZone(member.dnsName) !== raw.dns.zone ||
         !natural(member.dnsExpiresAtMs) || member.dnsExpiresAtMs <= raw.dns.serverTimeMs ||
         member.dnsExpiresAtMs - raw.dns.serverTimeMs > raw.dns.maxAgeMs ||
         names.has(member.dnsName) || addresses.has(member.virtualIp as string)) return fail();

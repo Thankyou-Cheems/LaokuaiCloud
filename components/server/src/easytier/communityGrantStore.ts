@@ -7,7 +7,11 @@ import {
   type CommunityGrantOperation, type CommunityGrantRecord, type CommunityGrantScope, type PrivateNativeCredentialReceipt,
   type TrustedCommunityIntent,
 } from './communityGrant';
-import { COMMUNITY_DNS_MAX_AGE_MS, communityDnsDeviceAlias, communityDnsZone, newCommunityDnsDeviceAlias, newCommunityDnsZone } from './communityDnsNames';
+import {
+  COMMUNITY_DNS_MAX_AGE_MS, COMMUNITY_FRIENDLY_DNS_ZONE, communityDnsDeviceAlias, communityDnsZone,
+  communityFriendlyDnsDeviceAlias, communityFriendlyDnsZone, newCommunityDnsDeviceAlias, newCommunityDnsZone,
+  newCommunityFriendlyDnsDeviceAlias, newCommunityFriendlyDnsZone, type CommunityDnsNameStyle,
+} from './communityDnsNames';
 import { emptyRelayState, storedRelayShape, type StoredRelayState } from './communityRelayPolicy';
 
 export interface StoredGrantOperation {
@@ -45,9 +49,13 @@ export function communityVaultKey(serverSecret: string): Buffer {
  * All private records/operations are authenticated encrypted; cleanup IDs are secret-free.
  */
 export class SqliteCommunityGrantStore {
-  #db: DatabaseSync; #key: Buffer;
-  constructor(db: DatabaseSync, vaultKey: Buffer) {
+  #db: DatabaseSync; #key: Buffer; #friendlyDnsCommunityId?: string;
+  /** Only the trusted factory may reserve lk.internal. for its configured
+   * voice.ruikang.wang community; request bodies cannot configure a zone. */
+  constructor(db: DatabaseSync, vaultKey: Buffer, friendlyDnsCommunityId?: string) {
     if (vaultKey.length !== 32) fail('invalid-vault-key'); this.#db = db; this.#key = Buffer.from(vaultKey);
+    if (friendlyDnsCommunityId !== undefined && !communityIdentity(friendlyDnsCommunityId)) fail('invalid-directory-query');
+    this.#friendlyDnsCommunityId = friendlyDnsCommunityId;
   }
   initSchema(): void {
     this.#db.exec(`
@@ -68,6 +76,11 @@ export class SqliteCommunityGrantStore {
       CREATE TABLE IF NOT EXISTS community_et_dns_zones (
         community_id TEXT PRIMARY KEY, zone TEXT NOT NULL UNIQUE);
       CREATE TABLE IF NOT EXISTS community_et_dns_devices (
+        account_id TEXT NOT NULL, community_id TEXT NOT NULL, device_id TEXT NOT NULL, alias TEXT NOT NULL,
+        PRIMARY KEY(account_id,community_id,device_id), UNIQUE(community_id,alias));
+      CREATE TABLE IF NOT EXISTS community_et_friendly_dns_zones (
+        community_id TEXT PRIMARY KEY, zone TEXT NOT NULL UNIQUE);
+      CREATE TABLE IF NOT EXISTS community_et_friendly_dns_devices (
         account_id TEXT NOT NULL, community_id TEXT NOT NULL, device_id TEXT NOT NULL, alias TEXT NOT NULL,
         PRIMARY KEY(account_id,community_id,device_id), UNIQUE(community_id,alias));
       CREATE TABLE IF NOT EXISTS community_et_relay_preferences (
@@ -188,12 +201,13 @@ export class SqliteCommunityGrantStore {
    * Existing device/IP rows are not rewritten. Absent/revoked entries disappear
    * from the full response, but their reserved aliases are never reassigned.
    */
-  dnsDirectory(communityId: string, nowMs: number): CommunityDnsDirectory {
-    if (!communityIdentity(communityId) || !positive(nowMs) || !Number.isSafeInteger(nowMs + COMMUNITY_DNS_MAX_AGE_MS)) fail('invalid-directory-query');
+  dnsDirectory(communityId: string, nowMs: number, style: CommunityDnsNameStyle = 'legacy'): CommunityDnsDirectory {
+    if (!communityIdentity(communityId) || !positive(nowMs) || !Number.isSafeInteger(nowMs + COMMUNITY_DNS_MAX_AGE_MS) ||
+        (style !== 'legacy' && style !== 'friendly')) fail('invalid-directory-query');
     return this.#transaction(() => {
-      const zone = this.#dnsZone(communityId);
+      const zone = style === 'friendly' ? this.#friendlyDnsZone(communityId) : this.#dnsZone(communityId);
       const authorizations: CommunityDnsSessionAuthorization[] = [];
-      const members = this.#directoryMembers(communityId, nowMs, zone, authorizations);
+      const members = this.#directoryMembers(communityId, nowMs, zone, authorizations, style);
       return {zone, serverTimeMs: nowMs, maxAgeMs: COMMUNITY_DNS_MAX_AGE_MS, members, authorizations};
     });
   }
@@ -222,9 +236,45 @@ export class SqliteCommunityGrantStore {
     }
     return fail('grant-store-corrupt');
   }
+  #friendlyDnsZone(communityId: string): string {
+    const existing = this.#db.prepare('SELECT zone FROM community_et_friendly_dns_zones WHERE community_id=?').get(communityId);
+    if (existing) {
+      if (!communityFriendlyDnsZone(existing.zone) ||
+          (existing.zone === COMMUNITY_FRIENDLY_DNS_ZONE && communityId !== this.#friendlyDnsCommunityId)) fail('grant-store-corrupt');
+      return existing.zone;
+    }
+    if (communityId === this.#friendlyDnsCommunityId) {
+      if (this.#db.prepare('INSERT OR IGNORE INTO community_et_friendly_dns_zones VALUES (?,?)')
+        .run(communityId, COMMUNITY_FRIENDLY_DNS_ZONE).changes !== 1) fail('grant-store-corrupt');
+      return COMMUNITY_FRIENDLY_DNS_ZONE;
+    }
+    for (let attempt = 0; attempt < 8; attempt++) {
+      const zone = newCommunityFriendlyDnsZone();
+      if (this.#db.prepare('INSERT OR IGNORE INTO community_et_friendly_dns_zones VALUES (?,?)').run(communityId, zone).changes === 1) return zone;
+    }
+    return fail('grant-store-corrupt');
+  }
+  #friendlyDnsDeviceAlias(accountId: string, communityId: string, deviceId: string): string {
+    const existing = this.#db.prepare('SELECT alias FROM community_et_friendly_dns_devices WHERE account_id=? AND community_id=? AND device_id=?')
+      .get(accountId,communityId,deviceId);
+    if (existing) {
+      if (!communityFriendlyDnsDeviceAlias(existing.alias)) fail('grant-store-corrupt');
+      return existing.alias;
+    }
+    const used = new Set(this.#db.prepare('SELECT alias FROM community_et_friendly_dns_devices WHERE community_id=?')
+      .all(communityId).map(row => {
+        if (!communityFriendlyDnsDeviceAlias(row.alias)) fail('grant-store-corrupt');
+        return row.alias;
+      }));
+    const alias = newCommunityFriendlyDnsDeviceAlias(used);
+    // BEGIN IMMEDIATE fences allocation; SQL uniqueness remains the final guard.
+    if (this.#db.prepare('INSERT OR IGNORE INTO community_et_friendly_dns_devices VALUES (?,?,?,?)')
+      .run(accountId,communityId,deviceId,alias).changes !== 1) fail('grant-store-corrupt');
+    return alias;
+  }
   #directoryMembers(communityId: string, nowMs: number): CommunityDirectoryMember[];
-  #directoryMembers(communityId: string, nowMs: number, zone: string, authorizations: CommunityDnsSessionAuthorization[]): CommunityDnsDirectoryMember[];
-  #directoryMembers(communityId: string, nowMs: number, zone?: string, authorizations?: CommunityDnsSessionAuthorization[]): Array<CommunityDirectoryMember | CommunityDnsDirectoryMember> {
+  #directoryMembers(communityId: string, nowMs: number, zone: string, authorizations: CommunityDnsSessionAuthorization[], style: CommunityDnsNameStyle): CommunityDnsDirectoryMember[];
+  #directoryMembers(communityId: string, nowMs: number, zone?: string, authorizations?: CommunityDnsSessionAuthorization[], style?: CommunityDnsNameStyle): Array<CommunityDirectoryMember | CommunityDnsDirectoryMember> {
     if (!communityIdentity(communityId) || !natural(nowMs)) fail('invalid-directory-query');
     const members: Array<CommunityDirectoryMember | CommunityDnsDirectoryMember> = [];
     for (const row of this.#db.prepare('SELECT session_id FROM community_et_sessions').all()) {
@@ -243,7 +293,9 @@ export class SqliteCommunityGrantStore {
       if (!device || device.native_instance_id !== session.intent.nativeInstanceId || device.virtual_ip !== session.intent.virtualIp || !privateIpv4(device.virtual_ip)) continue;
       const member = {serverUserId: session.serverUserId, virtualIp: session.intent.virtualIp};
       if (zone) {
-        const dnsName = `${this.#dnsDeviceAlias(session.intent.accountId, communityId, session.intent.deviceId)}.${zone}`;
+        const alias = style === 'friendly' ? this.#friendlyDnsDeviceAlias(session.intent.accountId, communityId, session.intent.deviceId)
+          : this.#dnsDeviceAlias(session.intent.accountId, communityId, session.intent.deviceId);
+        const dnsName = `${alias}.${zone}`;
         members.push({...member, dnsName, dnsExpiresAtMs: Math.min(nowMs + COMMUNITY_DNS_MAX_AGE_MS, session.expiresAtMs, grant.expiresAtMs)});
         authorizations!.push({dnsName, sessionId: session.sessionId, authorizationEpoch: session.authorizationEpoch,
           accountId: session.intent.accountId, serverUserId: session.serverUserId, ...this.#dnsSessionAuthorization(session.sessionId)});

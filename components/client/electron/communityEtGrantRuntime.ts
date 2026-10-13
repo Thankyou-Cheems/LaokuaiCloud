@@ -207,13 +207,18 @@ export class CommunityEtGrantRuntime {
         let value: unknown;
         try {
           value = await this.ports.transport.post(c.target, 'directory', c.bearer,
-            {...body, ...(withDns ? {includeDnsNames: true} : {})}, readSignal);
+            {...body, ...(withDns ? {includeDnsNames: true, dnsNameStyle: 'friendly'} : {})}, readSignal);
         } catch (error) {
-          // Older backends reject the optional extension. Keep their authenticated
-          // address directory usable; auth failures never fall back.
-          if (!withDns || readSignal.aborted || !(error instanceof CommunityEtTransportError) || error.code !== 'provider-unavailable') throw error;
-          withDns = false;
-          value = await this.ports.transport.post(c.target, 'directory', c.bearer, body, readSignal);
+          // Negotiate only an explicit optional-extension rejection. Authentication,
+          // outages, malformed replies and clock/TTL failures never downgrade.
+          if (!withDns || readSignal.aborted || !(error instanceof CommunityEtTransportError) || error.code !== 'directory-extension-unsupported') throw error;
+          try {
+            value = await this.ports.transport.post(c.target, 'directory', c.bearer, {...body, includeDnsNames: true}, readSignal);
+          } catch (legacyError) {
+            if (readSignal.aborted || !(legacyError instanceof CommunityEtTransportError) || legacyError.code !== 'directory-extension-unsupported') throw legacyError;
+            withDns = false;
+            value = await this.ports.transport.post(c.target, 'directory', c.bearer, body, readSignal);
+          }
         }
         if (signal.aborted || c.cancel.signal.aborted) throw new CommunityEtTransportError('request-cancelled');
         if (timeout.signal.aborted) throw new CommunityEtTransportError('provider-unavailable');

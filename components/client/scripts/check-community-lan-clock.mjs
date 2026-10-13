@@ -5,17 +5,19 @@ import fs from "node:fs";
 import vm from "node:vm";
 import ts from "typescript";
 
-const compile = path => {
+const compile = (path, dependencies = {}) => {
   const source = fs.readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
   const result = ts.transpileModule(source, { compilerOptions: {
     module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022,
   } });
   const exports = {};
-  vm.runInNewContext(result.outputText, { exports, Map, Set, Date });
+  vm.runInNewContext(result.outputText, { exports, Map, Set, Date, require: name => {
+    assert.ok(Object.hasOwn(dependencies, name), `unreviewed dependency ${name}`); return dependencies[name];
+  } });
   return exports;
 };
 
-const reader = compile("src/lib/memberLanStatus.ts");
+const reader = compile("src/lib/memberLanStatus.ts", {"./communityDnsNames":compile("src/lib/communityDnsNames.ts")});
 const hooks = {};
 let clock = 1000;
 let stateSlot = 0;

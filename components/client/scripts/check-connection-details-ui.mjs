@@ -17,7 +17,7 @@ const ui=Object.fromEntries(["ContextMenu","Dialog"].map(name=>[name,Object.from
 const eventDocument={fullscreenElement:null,addEventListener(){},removeEventListener(){}};
 function compile(file,dependencies){const r=ts.transpileModule(read(file),{reportDiagnostics:true,compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}});assert.deepEqual(r.diagnostics?.filter(d=>d.category===ts.DiagnosticCategory.Error),[],file);const exports={};vm.runInNewContext(r.outputText,{exports,document:eventDocument,HTMLElement:class{},MouseEvent:class{constructor(type,options){this.type=type;Object.assign(this,options);}},require:name=>{assert.ok(Object.hasOwn(dependencies,name),`${file}: ${name}`);return dependencies[name];}});return exports;}
 const model=compile(base+"connectionDetailsModel.ts",{});
-const pathModel=compile("src/lib/memberVoiceMediaPath.ts",{}),lanModel=compile("src/lib/memberLanStatus.ts",{});
+const pathModel=compile("src/lib/memberVoiceMediaPath.ts",{}),lanModel=compile("src/lib/memberLanStatus.ts",{"./communityDnsNames":compile("src/lib/communityDnsNames.ts",{})});
 const emptyPath=pathModel.readMemberVoiceMediaPath({});
 const emptyLan=lanModel.readMemberLanStatus({serverScope:"h",authenticatedUserId:"m"});
 const selfLan={enrollment:"joined",path:"unknown",pathReason:"self",rttMs:null,rttReason:"self",source:"authenticated-community",observedAtMs:1000};

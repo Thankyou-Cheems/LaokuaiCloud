@@ -21,7 +21,7 @@ export interface CommunityRevokeResponseV1 { v: 1; revoked: true }
  * A serverUserId may appear for several devices, each with a distinct address.
  * Active credential authorization never proves online/route connectivity.
  */
-export interface CommunityDirectoryRequestV1 { v: 1; communityId: string; includeDnsNames?: true }
+export interface CommunityDirectoryRequestV1 { v: 1; communityId: string; includeDnsNames?: true; dnsNameStyle?: 'friendly' }
 export interface CommunityDirectoryMemberV1 { serverUserId: string; virtualIp: string }
 export interface CommunityDirectoryResponseV1 {
   v: 1; communityId: string; members: CommunityDirectoryMemberV1[];
@@ -56,8 +56,10 @@ export function parseCommunityGrantRequest(kind: 'directory', raw: unknown): Com
 export function parseCommunityGrantRequest(kind: 'session' | 'acquire' | 'renew' | 'revoke' | 'binding' | 'directory', raw: unknown) {
   if (kind === 'directory') {
     const hasDns = !!raw && typeof raw === 'object' && Object.prototype.hasOwnProperty.call(raw, 'includeDnsNames');
-    exact<CommunityDirectoryRequestV1>(raw, ['v', 'communityId', ...(hasDns ? ['includeDnsNames'] : [])], 'invalid-directory-query');
-    if (raw.v !== 1 || !communityIdentity(raw.communityId) || (hasDns && raw.includeDnsNames !== true)) fail('invalid-directory-query');
+    const hasStyle = !!raw && typeof raw === 'object' && Object.prototype.hasOwnProperty.call(raw, 'dnsNameStyle');
+    exact<CommunityDirectoryRequestV1>(raw, ['v', 'communityId', ...(hasDns ? ['includeDnsNames'] : []), ...(hasStyle ? ['dnsNameStyle'] : [])], 'invalid-directory-query');
+    if (raw.v !== 1 || !communityIdentity(raw.communityId) || (hasDns && raw.includeDnsNames !== true) ||
+        (hasStyle && (!hasDns || raw.dnsNameStyle !== 'friendly'))) fail('invalid-directory-query');
     return structuredClone(raw);
   }
   const keys = ['v','communityId','deviceId','nativeInstanceId'];

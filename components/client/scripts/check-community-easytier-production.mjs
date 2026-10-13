@@ -30,6 +30,7 @@ function compile(file) {
   });
   return exports;
 }
+deps["../src/lib/communityDnsNames"] = compile("src/lib/communityDnsNames.ts");
 deps["./easyTierStatus"] = compile("electron/easyTierStatus.ts");
 deps["./easyTierMemberAdapter"] = compile("electron/easyTierMemberAdapter.ts");
 deps["./easyTierCommunityManager"] = compile("electron/easyTierCommunityManager.ts");

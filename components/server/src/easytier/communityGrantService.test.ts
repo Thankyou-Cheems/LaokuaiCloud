@@ -395,6 +395,129 @@ test('DNS alias follows the stable device rather than the current address',async
     assert.equal(f.db.prepare('SELECT alias FROM community_et_dns_devices').get()!.alias+'.'+first.zone,name);
   }finally{f.db.close();}
 });
+
+test('friendly negotiation preserves old response bytes and every existing allocation/session/grant table',async()=>{
+  const f=fixture();try{
+    await f.service.session('alice',BODY);await f.service.acquire('alice',{...BODY,requestId:'friendly-compat'});
+    const query={v:1 as const,communityId:'community',includeDnsNames:true as const};
+    const legacy=JSON.stringify(await f.service.directory('alice',query));
+    const tables=['community_et_devices','community_et_grants','community_et_sessions','community_et_dns_zones','community_et_dns_devices'];
+    const snapshots=tables.map(table=>f.db.prepare(`SELECT * FROM ${table}`).all());
+    const friendly=await f.service.directory('alice',{...query,dnsNameStyle:'friendly'});assert.ok('dns' in friendly);
+    assert.match(friendly.dns.zone,/^lk-[a-f0-9]{8}\.internal\.$/);
+    assert.match(friendly.members[0].dnsName,/^[a-z]{3,12}-[1-9][0-9]{1,2}\.lk-[a-f0-9]{8}\.internal\.$/);
+    assert.equal(friendly.dns.maxAgeMs,COMMUNITY_DNS_MAX_AGE_MS);
+    assert.equal(friendly.members[0].dnsExpiresAtMs,START+COMMUNITY_DNS_MAX_AGE_MS);
+    assert.equal(JSON.stringify(await f.service.directory('alice',query)),legacy);
+    tables.forEach((table,index)=>assert.deepEqual(f.db.prepare(`SELECT * FROM ${table}`).all(),snapshots[index],table));
+    for(const field of ['authorizations','accountId','deviceId','sessionId','nativeInstanceId','credentialId','tokenDigest','serverTokenVersion','userTokenVersion'])
+      assert.equal(JSON.stringify(friendly).includes('"'+field+'"'),false,field);
+  }finally{f.db.close();}
+});
+
+test('friendly names persist across real SQLite reopen, address and display identifier changes',async()=>{
+  const directory=mkdtempSync(join(tmpdir(),'laokuai-friendly-dns-test-')),f=fixture('community',join(directory,'fixture.db'));
+  let originalClosed=false,reopened:DatabaseSync|null=null;
+  try{
+    await f.service.session('alice',BODY);await f.service.acquire('alice',{...BODY,requestId:'friendly-before'});
+    const first=f.store.dnsDirectory('community',START,'friendly');
+    f.db.prepare('UPDATE community_et_devices SET virtual_ip=? WHERE account_id=?').run('10.77.0.3','alice');
+    f.control.wall+=1001;
+    const verify=f.services.verifyAccessToken;
+    f.services.verifyAccessToken=bearer=>{
+      const identity=verify(bearer);return identity?{...identity,serverUserId:'renamed-display-identifier'}:null;
+    };
+    await f.service.session('alice-next',BODY);await f.service.acquire('alice-next',{...BODY,requestId:'friendly-after'});
+    const after=await f.service.directory('alice-next',{v:1,communityId:'community',includeDnsNames:true,dnsNameStyle:'friendly'});assert.ok('dns' in after);
+    assert.equal(after.members[0].dnsName,first.members[0].dnsName);assert.equal(after.members[0].virtualIp,'10.77.0.3');
+    assert.equal(after.members[0].serverUserId,'renamed-display-identifier');assert.equal(after.dns.zone,first.zone);
+    const privateDirectory=f.store.dnsDirectory('community',f.control.wall,'friendly');
+    f.db.close();originalClosed=true;reopened=new DatabaseSync(join(directory,'fixture.db'));
+    const store=new SqliteCommunityGrantStore(reopened,communityVaultKey('PURE-TEST-VAULT-SECRET-01234567890123456789'));store.initSchema();
+    assert.deepEqual(store.dnsDirectory('community',f.control.wall,'friendly'),privateDirectory);
+  }finally{reopened?.close();if(!originalClosed)f.db.close();rmSync(directory,{recursive:true,force:true});}
+});
+
+test('friendly names distinguish devices and accounts and retain reservations through revoke and expiry',async()=>{
+  const f=fixture();try{
+    const second={...BODY,deviceId:'second-device',nativeInstanceId:'33333333-3333-4333-8333-333333333333'};
+    await f.service.session('alice',BODY);await f.service.session('bob',second);
+    const grant=await f.service.acquire('alice',{...BODY,requestId:'friendly-a'});
+    await f.service.acquire('bob',{...second,requestId:'friendly-b'});
+    const query={v:1 as const,communityId:'community',includeDnsNames:true as const,dnsNameStyle:'friendly' as const};
+    const first=await f.service.directory('alice',query);assert.ok('dns' in first);
+    assert.equal(new Set(first.members.map(member=>member.dnsName)).size,2);
+    const name=first.members.find(member=>member.serverUserId==='server-alice')!.dnsName;
+    f.control.wall=grant.expiresAtMs-1000;
+    const capped=await f.service.directory('alice',query);assert.ok('dns' in capped);assert.equal(capped.members[0].dnsExpiresAtMs,grant.expiresAtMs);
+    await f.service.revoke('alice',{...BODY,requestId:'friendly-revoke',grantId:grant.grantId});
+    const revoked=await f.service.directory('alice',query);assert.ok('dns' in revoked);assert.deepEqual(revoked.members.map(member=>member.serverUserId),['server-bob']);
+    assert.equal(f.db.prepare('SELECT COUNT(*) AS n FROM community_et_friendly_dns_devices').get()!.n,2);
+    await f.service.acquire('alice',{...BODY,requestId:'friendly-reacquire'});
+    const again=await f.service.directory('alice',query);assert.ok('dns' in again);assert.equal(again.members[0].dnsName,name);
+    f.control.wall+=120001;
+    const expired=await f.service.directory('alice',query);assert.ok('dns' in expired);assert.deepEqual(expired.members,[]);
+    assert.equal(f.db.prepare('SELECT COUNT(*) AS n FROM community_et_friendly_dns_devices').get()!.n,2);
+  }finally{f.db.close();}
+});
+
+test('friendly names distinguish two devices sharing one account without an account hostname shortcut',async()=>{
+  const f=fixture();try{
+    const second={...BODY,deviceId:'second-device',nativeInstanceId:'33333333-3333-4333-8333-333333333333'};
+    await f.service.session('alice',BODY);await f.service.session('alice',second);
+    await f.service.acquire('alice',{...BODY,requestId:'friendly-device-a'});await f.service.acquire('alice',{...second,requestId:'friendly-device-b'});
+    const result=await f.service.directory('alice',{v:1,communityId:'community',includeDnsNames:true,dnsNameStyle:'friendly'});assert.ok('dns' in result);
+    assert.equal(result.members.length,2);assert.equal(new Set(result.members.map(member=>member.dnsName)).size,2);
+    assert.equal(new Set(result.members.map(member=>member.serverUserId)).size,1);
+    assert.equal(new Set(result.members.map(member=>member.virtualIp)).size,2);
+  }finally{f.db.close();}
+});
+
+test('corrupt friendly reservations fail closed without affecting legacy DNS or numeric addresses',async()=>{
+  const f=fixture();try{
+    await f.service.session('alice',BODY);await f.service.acquire('alice',{...BODY,requestId:'friendly-corrupt'});
+    const old=f.store.dnsDirectory('community',START);
+    f.store.dnsDirectory('community',START,'friendly');
+    f.db.prepare('UPDATE community_et_friendly_dns_devices SET alias=?').run('account-name-27');
+    await assert.rejects(f.service.directory('alice',{v:1,communityId:'community',includeDnsNames:true,dnsNameStyle:'friendly'}),code('grant-store-corrupt'));
+    assert.deepEqual(f.store.dnsDirectory('community',START),old);
+    assert.equal((await f.service.directory('alice',{v:1,communityId:'community'})).members.length,1);
+  }finally{f.db.close();}
+});
+
+test('friendly publication rechecks membership and session epochs across asynchronous authorization',async()=>{
+  const f=fixture();try{
+    await f.service.session('alice',BODY);await f.service.acquire('alice',{...BODY,requestId:'friendly-race'});
+    const query={v:1 as const,communityId:'community',includeDnsNames:true as const,dnsNameStyle:'friendly' as const};
+    const check=f.services.checkSessionAllowed;let reads=0;
+    f.services.checkSessionAllowed=async identity=>{
+      const result=await check(identity);
+      if(++reads===2){f.control.wall+=1001;await f.service.session('alice-next',BODY);}
+      return result;
+    };
+    const retired=await f.service.directory('alice',query);assert.ok('dns' in retired);assert.deepEqual(retired.members,[]);
+    f.services.checkSessionAllowed=check;
+    const current=await f.service.directory('alice-next',query);assert.ok('dns' in current);assert.equal(current.members.length,1);
+    f.control.userVersion=1;
+    await assert.rejects(f.service.directory('alice-next',query),code('auth-retired'));
+    f.control.userVersion=0;f.control.member=false;
+    await assert.rejects(f.service.directory('alice-next',query),code('membership-required'));
+  }finally{f.db.close();}
+});
+
+test('fixed friendly zone is bound to one trusted community; generic scopes remain separately persisted',()=>{
+  const f=fixture();try{
+    const store=new SqliteCommunityGrantStore(f.db,communityVaultKey('PURE-TEST-VAULT-SECRET-01234567890123456789'),'trusted-community');store.initSchema();
+    const preferred=store.dnsDirectory('trusted-community',START,'friendly');assert.equal(preferred.zone,'lk.internal.');
+    const a=store.dnsDirectory('community-a',START,'friendly'),b=store.dnsDirectory('community-b',START,'friendly');
+    assert.notEqual(a.zone,b.zone);assert.match(a.zone,/^lk-[a-f0-9]{8}\.internal\.$/);
+    assert.deepEqual(store.dnsDirectory('community-a',START,'friendly'),a);
+    const rebound=new SqliteCommunityGrantStore(f.db,communityVaultKey('PURE-TEST-VAULT-SECRET-01234567890123456789'),'community-a');
+    assert.throws(()=>rebound.dnsDirectory('trusted-community',START,'friendly'),code('grant-store-corrupt'));
+    f.db.prepare('UPDATE community_et_friendly_dns_zones SET zone=? WHERE community_id=?').run('evil.internal.','community-b');
+    assert.throws(()=>store.dnsDirectory('community-b',START,'friendly'),code('grant-store-corrupt'));
+  }finally{f.db.close();}
+});
 test('current remote membership and token revocation are checked before DNS publication',async()=>{
   const f=fixture();try{
     const bob={...BODY,deviceId:'bob-device',nativeInstanceId:'33333333-3333-4333-8333-333333333333'};

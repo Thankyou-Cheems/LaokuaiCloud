@@ -33,7 +33,8 @@ export function createCommunityGrantFactory(options: CommunityGrantFactoryOption
   if (!uuid(options.provider.adminInstanceId) || options.provider.adminInstanceId !== options.service.authority.adminInstanceId ||
       options.service.authority.upstreamCommit !== COMMUNITY_ET_UPSTREAM_COMMIT) fail('invalid-provider-config');
   const wall=options.clock?.wallMs??Date.now;
-  const store=new SqliteCommunityGrantStore(options.db,communityVaultKey(options.serverSecret));
+  const store=new SqliteCommunityGrantStore(options.db,communityVaultKey(options.serverSecret),
+    origin.host === 'voice.ruikang.wang' ? options.service.communityId : undefined);
   const provider=new FixedInstanceCredentialProvider({...options.provider,upstreamCommit:COMMUNITY_ET_UPSTREAM_COMMIT,
     // Owner's trusted server configuration supplies the actual management plane
     // (public cheems-p2p host-loopback15890), never a request/renderer override.

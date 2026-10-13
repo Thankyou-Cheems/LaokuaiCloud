@@ -4,6 +4,8 @@
  * The host must advance nowMs while telemetry is idle so old readings expire.
  * Community scope survives voice-room changes. Do not store public IPs or keys here.
  */
+import { communityDnsNameZone } from "./communityDnsNames";
+
 export const MEMBER_LAN_MAX_AGE_MS = 10_000;
 export type LanEnrollment = "off" | "not-joined" | "joining" | "joined" | "assigned" | "error";
 export type LanPath = "direct" | "member-relay" | "server-relay" | "unknown";
@@ -134,13 +136,13 @@ export function readMemberLanStatus({ serverScope, authenticatedUserId, observer
   const validAddresses = addresses.length === addressValues.length && new Set(addresses).size === addresses.length ? addresses : [];
   const dnsCandidates: readonly LanDnsAddress[] = snapshot.dnsReady === true && Array.isArray(member.dnsAddresses) && member.dnsAddresses.length <= 254 ? member.dnsAddresses : [];
   const dnsAddresses = dnsCandidates.filter(address => address &&
-    typeof address.dnsName === "string" && /^d-[a-f0-9]{32}\.c-[a-f0-9]{32}\.lan\.voice\.ruikang\.wang\.$/.test(address.dnsName) &&
+    communityDnsNameZone(address.dnsName) &&
     validAddresses.includes(address.virtualIp) && Number.isSafeInteger(address.expiresAtUnixMs) &&
     address.expiresAtUnixMs > clock && address.expiresAtUnixMs <= clock + MEMBER_LAN_MAX_AGE_MS);
   const validDns = dnsAddresses.length === dnsCandidates.length &&
     new Set(dnsAddresses.map(address => address.dnsName)).size === dnsAddresses.length &&
     new Set(dnsAddresses.map(address => address.virtualIp)).size === dnsAddresses.length &&
-    new Set(dnsAddresses.map(address => address.dnsName.slice(35))).size <= 1 ? dnsAddresses : [];
+    new Set(dnsAddresses.map(address => communityDnsNameZone(address.dnsName))).size <= 1 ? dnsAddresses : [];
   const result: MemberLanReading = { enrollment: member.enrollment.state, path: "unknown", rttMs: null,
     virtualIp: validAddresses.length === 1 ? validAddresses[0] : undefined,
     virtualIps: validAddresses.length ? validAddresses : undefined,

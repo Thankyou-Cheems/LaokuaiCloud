@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import { useTranslation } from "@/i18n";
 
 import { ConnectionTopologyIcon, type ConnectionTopologyKind } from "../../../../components/ConnectionTopologyIcon";
+import { communityDnsDisplayName } from "../../../../lib/communityDnsNames";
 import { type LanCommunitySnapshot, readMemberLanStatus } from "../../../../lib/memberLanStatus";
 
 /** Caller supplies evidence; the address button only copies validated overlay IPs. */
@@ -30,7 +31,7 @@ export function MemberLanStatus({ serverScope, authenticatedUserId, observerAuth
     reading.source && `${t("memberLan.sourceTitle")}: ${t(`memberLan.source.${reading.source}`)}`,
     reading.observedAtMs !== undefined && `${t("memberLan.ageTitle")}: ${Math.floor(((nowMs ?? reading.observedAtMs) - reading.observedAtMs) / 1000)} s`,
     reading.virtualIps?.length && `${t("memberLan.virtualIpTitle")}: ${reading.virtualIps.join(", ")}`,
-    reading.dnsAddresses?.length && `${t("memberLan.dnsTitle")}: ${reading.dnsAddresses.map(address => `${address.dnsName} → ${address.virtualIp}`).join(", ")}`,
+    reading.dnsAddresses?.length && `${t("memberLan.dnsTitle")}: ${reading.dnsAddresses.map(address => `${communityDnsDisplayName(address.dnsName)} → ${address.virtualIp}`).join(", ")}`,
     reading.enrollment === "assigned" && t("memberLan.addressAssignmentBoundary"),
     (reading.virtualIps?.length ?? 0) > 1 && t("memberLan.multipleDeviceAddresses"),
     t("memberLan.voiceBoundary")].filter(Boolean).join("; ");
@@ -48,7 +49,7 @@ export function MemberLanStatus({ serverScope, authenticatedUserId, observerAuth
   const copyDnsName = (event: MouseEvent<HTMLButtonElement>, name: string) => {
     event.stopPropagation();
     if (!navigator.clipboard) { toast.error(t("memberLan.copyFailed")); return; }
-    void navigator.clipboard.writeText(name).then(() => toast.success(t("memberLan.dnsCopied")), () => toast.error(t("memberLan.copyFailed")));
+    void navigator.clipboard.writeText(communityDnsDisplayName(name)).then(() => toast.success(t("memberLan.dnsCopied")), () => toast.error(t("memberLan.copyFailed")));
   };
   return <Tooltip title={details}><span role="group" tabIndex={0} aria-label={details} title={details}
     data-gryt="member-lan-status" data-enrollment={reading.enrollment} data-lan-path={reading.path}
@@ -64,10 +65,10 @@ export function MemberLanStatus({ serverScope, authenticatedUserId, observerAuth
       {address}
     </button>)}
     {reading.dnsAddresses?.map(address => <button key={address.dnsName} type="button" data-gryt="member-lan-dns" data-virtual-ip={address.virtualIp}
-      aria-label={`${t("memberLan.copyDnsName")}: ${address.dnsName} → ${address.virtualIp}`} title={`${t("memberLan.copyDnsName")}: ${address.dnsName} → ${address.virtualIp}`}
+      aria-label={`${t("memberLan.copyDnsName")}: ${communityDnsDisplayName(address.dnsName)} → ${address.virtualIp}`} title={`${t("memberLan.copyDnsName")}: ${communityDnsDisplayName(address.dnsName)} → ${address.virtualIp}`}
       onClick={event => copyDnsName(event, address.dnsName)} onPointerDown={event => event.stopPropagation()}
-      className="min-w-0 max-w-full truncate text-[10px] underline decoration-dotted underline-offset-2 hover:text-gryt-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-gryt-accent">
-      {address.dnsName}
+      className="min-w-0 max-w-full break-all text-left text-[10px] underline decoration-dotted underline-offset-2 hover:text-gryt-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-gryt-accent">
+      {communityDnsDisplayName(address.dnsName)}{(reading.dnsAddresses?.length ?? 0) > 1 ? ` → ${address.virtualIp}` : ""}
     </button>)}
   </span></Tooltip>;
 }
