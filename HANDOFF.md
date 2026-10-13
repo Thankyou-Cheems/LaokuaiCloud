@@ -1,19 +1,19 @@
 # 当前开发交接
 
 更新：2026-10-13。唯一开发目录 `D:\Dev\LaokuaiCloud`，分支 `main`。
-最新可交付及桌面绿色测试包为 `1.13.22-laokuai.beta.20261013.9`；易记 MagicDNS
+最新可交付及桌面绿色测试包为 `1.13.22-laokuai.beta.20261013.10`；易记 MagicDNS
 已部署，用户确认短域名显示，本机直接解析和 Windows 系统解析均匹配虚拟 IP。
 生产成员中继两端开关已开启；真实多设备转发、游戏和 12 人 WAN 语音仍未验收。
 
 ## 当前包与源码
 
-- 文件：`唠蒯云-1.13.22-laokuai.beta.20261013.9-zh-CN-win-x64-green.zip`。
-- 应用源码：`23bd6281f34ca51dac998469c94f06fbd4d05fbb`。
-- 大小：160183694 B；SHA256：
-  `9a1f10254a29ea421ccdf09e93865b8c62bcf5b6b93fe5bbb1525bc96cfc6892`。
+- 文件：`唠蒯云-1.13.22-laokuai.beta.20261013.10-zh-CN-win-x64-green.zip`。
+- 应用源码：`812cc29b83ef7d4975794b94fcccc1d2fe6f0563`。
+- 大小：160184097 B；SHA256：
+  `b8ad95ee3ccee56fe1aa0631a5b7ee178d29bdfd821ba5693e2814686b736b06`。
 - 交付目录：`.local/artifacts/autojoin-test-20261013/`。
 - 精确版本、来源、许可证及对应源码以 [release/manifest.json](release/manifest.json)
-  和 [包回执](release/acceptance/kirilie-voice-portable-20261013.json) 为准。
+  和 [包回执](release/acceptance/admin-ready-portable-20261013.json) 为准。
   包不内嵌源码归档，SOURCE-OFFER 指向精确应用提交及 1263 项源码更新清单；
   旧六份对应源码附件保留。
 
@@ -90,6 +90,18 @@ WAN 语音。区分 ET 路径、WebRTC 媒体路径与物理直连；未知保�
 完整备份原目录，只替换152项程序文件，93项配置/账号数据文件前后哈希一致。
 桌面现为.9，未自动启动；私有更新回执和备份在`.local/kirilie-release-20261013/`。
 包回执中的“桌面未更新”描述打包时状态，此次后续桌面更新不修改冻结包身份。
+
+.9 普通双击实际失败：管理员提示在 Electron ready 前调用。旧隔离启动测试
+跳过该入口，不能覆盖普通启动。现由 .10 独立 ESM 启动入口修复；保留旧失败，
+详见 [修复说明](docs/STARTUP-AND-PRESENTATION-FIX-20261013.md)。实际 Electron
+ESM 及编译后入口时序测试、34组核心检查、19组包审计检查、类型/lint和隐藏
+整包启动通过；真实 UAC 点击尚待用户测试。曼波未设置的默认音量为75%，已保存
+手动值不覆盖；聊天消息区加入淡化插画，输入框保持清晰，9项隔离主题检查通过。
+
+用户确认退出后，清理三次旧报错留下的9个已核实无窗口、无renderer的进程，
+完整备份并更新桌面到 .10，152项程序文件核验，105项账号/配置数据哈希不变。
+未自动启动。私有更新回执、失败试验及备份保留在 `.local/admin-ready-20261013/`。
+此次生产服务、ET原生文件和九条音频均未更改。
 
 开发使用 PowerShell 7、UTF-8 无 BOM；入口 `tools/enter-local-dev.ps1`。入会、
 ET或语音接线改动先运行 `tools/check-core-contracts.ps1`，再做对应检查；纯契约
