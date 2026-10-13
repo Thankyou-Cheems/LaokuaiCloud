@@ -20,6 +20,22 @@ pub(crate) enum RelayBudgetDecision {
     Dropped,
 }
 
+/// Managed same-network relay admission must not inherit the foreign-network
+/// whitelist preference. Legacy instances keep their original advertisement.
+pub(crate) fn advertised_avoid_relay_data(
+    rate: Option<u64>,
+    disabled: bool,
+    legacy_preference: bool,
+    lease_active: bool,
+) -> bool {
+    disabled
+        || match rate {
+            None => legacy_preference,
+            Some(0) => true,
+            Some(_) => !lease_active,
+        }
+}
+
 /// Local injection with a local source is exempt. A remote peer cannot claim
 /// exemption merely by setting the packet's source ID to this instance.
 pub(crate) fn charges_forwarded_data(
@@ -212,6 +228,48 @@ impl BucketState {
 mod tests {
     use super::*;
     use std::{sync::Arc, thread, time::Duration};
+
+    #[test]
+    fn managed_advertisement_tracks_lease_zero_and_disable_without_foreign_whitelist() {
+        assert!(!advertised_avoid_relay_data(
+            Some(32_000),
+            false,
+            true,
+            true
+        ));
+        assert!(advertised_avoid_relay_data(
+            Some(32_000),
+            false,
+            false,
+            false
+        ));
+        assert!(advertised_avoid_relay_data(Some(0), false, false, true));
+        assert!(advertised_avoid_relay_data(Some(32_000), true, false, true));
+        for preference in [false, true] {
+            for lease in [false, true] {
+                assert_eq!(
+                    advertised_avoid_relay_data(None, false, preference, lease),
+                    preference
+                );
+                assert!(advertised_avoid_relay_data(None, true, preference, lease));
+            }
+        }
+        let budget = MemberRelayBudget::default();
+        let start = Instant::now();
+        budget.renew_lease_at(10_000, start).unwrap();
+        assert!(budget.lease_remaining_ms() > 0);
+        assert_eq!(
+            budget.try_admit_at(Some(32_000), 1, start + Duration::from_millis(10_000)),
+            RelayBudgetDecision::Dropped
+        );
+        assert_eq!(budget.lease_remaining_ms(), 0);
+        assert!(advertised_avoid_relay_data(
+            Some(32_000),
+            false,
+            true,
+            budget.lease_remaining_ms() > 0
+        ));
+    }
 
     #[test]
     fn local_data_and_all_control_bypass_even_when_stopped() {

@@ -32,7 +32,7 @@ use crate::{
     foundation::token_bucket::{ArcByteLimiter, BucketConfig, TokenBucketManager},
     peers::{
         credential_manager::{CredentialManager, CredentialStorage},
-        relay_budget::{MemberRelayBudget, RelayBudgetDecision},
+        relay_budget::{MemberRelayBudget, RelayBudgetDecision, advertised_avoid_relay_data},
         util::shrink_dashmap,
         whitelist::check_network_in_relay_whitelist,
     },
@@ -854,8 +854,12 @@ impl PeerContext for CorePeerContext {
     fn feature_flags(&self) -> PeerFeatureFlag {
         let snapshot = self.snapshot();
         let mut flags = snapshot.runtime.feature_flags;
-        flags.avoid_relay_data = snapshot.flags.disable_relay_data
-            || self.avoid_relay_data_preference.load(Ordering::Acquire);
+        flags.avoid_relay_data = advertised_avoid_relay_data(
+            snapshot.runtime.core.traffic.member_relay_bytes_per_sec,
+            snapshot.flags.disable_relay_data,
+            self.avoid_relay_data_preference.load(Ordering::Acquire),
+            self.member_relay_budget.lease_remaining_ms() > 0,
+        );
         flags.ipv6_public_addr_provider |= self.public_ipv6_state.public_ipv6_provider_enabled();
         flags
     }
@@ -1367,6 +1371,38 @@ pub(crate) mod tests {
 
     fn submitted_config(snapshot: PeerRuntimeSnapshot) -> CoreRuntimeConfigStore {
         CoreRuntimeConfigStore::new(CoreRuntimeConfig::default(), Arc::new(snapshot))
+    }
+
+    #[tokio::test]
+    async fn member_relay_budget_advertisement_reads_current_native_lease_and_runtime() {
+        let mut snapshot = submitted_snapshot("relay-advertisement", false);
+        snapshot.runtime.core.traffic.member_relay_bytes_per_sec = Some(32_000);
+        snapshot.avoid_relay_data_preference = true;
+        let config = submitted_config(snapshot);
+        let context = CorePeerContext::new(
+            config.clone(),
+            Arc::new(()),
+            test_core_context_adapters(Arc::new(())),
+        );
+        assert!(context.feature_flags().avoid_relay_data);
+        context.renew_member_relay_lease(10_000).unwrap();
+        assert!(!context.feature_flags().avoid_relay_data);
+        config.update_peer_with(|peer| peer.flags.disable_relay_data = true);
+        assert!(context.feature_flags().avoid_relay_data);
+        config.update_peer_with(|peer| peer.flags.disable_relay_data = false);
+        assert!(!context.feature_flags().avoid_relay_data);
+        context.revoke_member_relay_lease();
+        assert!(context.feature_flags().avoid_relay_data);
+        context.renew_member_relay_lease(10_000).unwrap();
+        config.update_peer_with(|peer| {
+            peer.runtime.core.traffic.member_relay_bytes_per_sec = Some(0)
+        });
+        assert!(context.feature_flags().avoid_relay_data);
+        config.update_peer_with(|peer| peer.runtime.core.traffic.member_relay_bytes_per_sec = None);
+        assert!(context.feature_flags().avoid_relay_data);
+        context.set_avoid_relay_data_preference(false);
+        assert!(!context.feature_flags().avoid_relay_data);
+        context.stop().await;
     }
 
     #[tokio::test]
