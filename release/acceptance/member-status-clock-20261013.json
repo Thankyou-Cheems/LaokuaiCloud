@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-13",
+  "testedPortableVersion": "1.13.22-laokuai.beta.20261013.2",
+  "userObservation": "Community connected with virtual IPv4, but own member status alternates between joined and unknown",
+  "readOnlyRuntimeChecks": {
+    "ownedCoreStableAcrossObservation": true,
+    "consecutiveScopedRouteReads": 10,
+    "allReadsPassedProductionSchema": true,
+    "sameLocalPeerAndVirtualIp": true,
+    "preferredVirtualIpv4AddressWith24Prefix": true,
+    "routeCount": 1,
+    "peerCount": 1,
+    "tcpConnectionEntryCount": 1,
+    "connectionClosedFlag": "unavailable in the observed CLI schema; do not infer an open flag",
+    "credentialsOrConfigurationPrinted": false,
+    "newCoreOrDriverStarted": false
+  },
+  "diagnosis": "Fresh telemetry can arrive between renderer clock ticks; strict future-time validation rejects it against the previous render clock until a timer catches up",
+  "fix": "Read the local wall clock on every render; one interval only triggers rerenders for expiry and does not restart for each new snapshot",
+  "regression": {
+    "command": "node components/client/scripts/check-community-lan-clock.mjs",
+    "immutableOldHook": "FAIL first fresh render: retained clock 1000 versus current 1001",
+    "fixedHook": "PASS first fresh render, strict future rejection, continuous samples, idle expiry and timer cleanup",
+    "coreContractSuites": 10,
+    "targetedLint": "passed"
+  },
+  "scope": "Local member enrollment presentation; no change to authentication, ET lifetime, Windows consent or voice media",
+  "limitations": [
+    "Local TUN address and scoped RPC do not prove a remote member path or device media",
+    "Self path and RTT are not applicable; unknown does not establish a connection failure",
+    "LAN server discovery uses separate mDNS and is not an ET acceptance check",
+    "Dual-device P2P/SFU voice acceptance remains pending"
+  ]
+}

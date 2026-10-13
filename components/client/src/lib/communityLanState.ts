@@ -19,11 +19,15 @@ export function useEasyTierCommunityState(serverId: string | undefined) {
 /** Advance the Unix clock even when telemetry stalls, so member evidence expires. */
 export function useEasyTierMemberSnapshot(serverId: string | undefined) {
   const state = useEasyTierCommunityState(serverId);
-  const [nowMs, setNowMs] = useState(Date.now);
+  const [, setClockTick] = useState(0);
+  const hasSnapshot = Boolean(state?.lanSnapshot);
   useEffect(() => {
-    if (!state?.lanSnapshot) return;
-    const timer = setInterval(() => setNowMs(Date.now()), 1000);
+    if (!hasSnapshot) return;
+    // The timer only causes a render. Read the wall clock in that render so a
+    // newly published snapshot is evaluated against the current local time
+    // immediately, without advancing the clock from remote telemetry.
+    const timer = setInterval(() => setClockTick(tick => tick + 1), 1000);
     return () => clearInterval(timer);
-  }, [state?.lanSnapshot]);
-  return { snapshot: state?.lanSnapshot ?? undefined, nowMs };
+  }, [hasSnapshot]);
+  return { snapshot: state?.lanSnapshot ?? undefined, nowMs: Date.now() };
 }
