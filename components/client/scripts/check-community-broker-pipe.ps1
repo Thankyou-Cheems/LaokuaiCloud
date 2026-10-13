@@ -8,7 +8,7 @@ New-Item -ItemType Directory -Path $fixtureDirectory | Out-Null
 $binary = Join-Path $fixtureDirectory 'BrokerPipeTests.exe'
 $compiler = Join-Path $env:SystemRoot 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
 try {
-    & $compiler /nologo /target:exe /main:BrokerPipeTests /platform:x64 /utf8output /reference:System.Web.Extensions.dll "/out:$binary" (Join-Path $client 'native/community-lan-broker/Program.cs') (Join-Path $client 'native/community-lan-broker/PipeTests.cs')
+    & $compiler /nologo /target:exe /main:BrokerPipeTests /platform:x64 /utf8output /reference:System.Web.Extensions.dll /reference:System.Management.dll "/out:$binary" (Join-Path $client 'native/community-lan-broker/Program.cs') (Join-Path $client 'native/community-lan-broker/CommunityDnsPolicy.cs') (Join-Path $client 'native/community-lan-broker/PipeTests.cs')
     if ($LASTEXITCODE -ne 0) { throw 'Broker pipe fixture compilation failed' }
     & $binary
     if ($LASTEXITCODE -ne 0) { throw 'Broker pipe regression failed' }

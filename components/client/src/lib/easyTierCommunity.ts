@@ -1,3 +1,5 @@
+import type { CommunityNetworkPreferences } from "./communityNetworkPreferences";
+import type { CommunityRelayState, RelayPreferenceV1 } from "./communityRelay";
 import type { LanCommunitySnapshot } from "./memberLanStatus";
 
 /** Renderer contract. Network credentials and physical endpoints stay in main. */
@@ -44,6 +46,10 @@ export interface EasyTierCommunityLease {
 }
 
 export interface EasyTierCommunityAPI {
+  getRelayState?(serverId: string): Promise<CommunityRelayState>;
+  setRelayPreference?(preference: RelayPreferenceV1): Promise<CommunityRelayState>;
+  getNetworkPreferences?(): Promise<CommunityNetworkPreferences>;
+  setNetworkPreferences?(preferences: CommunityNetworkPreferences): Promise<{preferences: CommunityNetworkPreferences; reconnectRequired: true}>;
   reconcileEnrollment?(snapshot: CommunityEnrollmentSnapshot): Promise<EasyTierCommunityState[]>;
   getRuntimeMode?(): Promise<"normal" | "preview-disabled" | "needs-consent">;
   approveCommunity?(serverId: string): Promise<{accepted: boolean; reason?: "needs-permission"}>;

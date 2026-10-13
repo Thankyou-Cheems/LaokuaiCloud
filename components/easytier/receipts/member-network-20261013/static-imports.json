@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "10b76471abb043709c9dc1fd321e845258976213",
+  "sourceTree": "381c14c582c3f05cd0db13a75f9b905c9d17b1bf",
+  "files": [
+    {
+      "name": "easytier-core.exe",
+      "bytes": 20247040,
+      "sha256": "d1634bf0fdfa4b151a836b5ba121c68b1e7da65f62363048628f2f16c13b548a",
+      "machine": "AMD64",
+      "normalImports": [
+        "kernel32.dll",
+        "advapi32.dll",
+        "bcryptprimitives.dll",
+        "ws2_32.dll",
+        "iphlpapi.dll",
+        "ntdll.dll",
+        "oleaut32.dll",
+        "rpcrt4.dll",
+        "api-ms-win-core-synch-l1-2-0.dll",
+        "crypt32.dll",
+        "bcrypt.dll",
+        "KERNEL32.dll",
+        "wintrust.dll"
+      ],
+      "delayImports": [],
+      "captureDllImports": [],
+      "noCaptureDllNormalOrDelayImports": true,
+      "executed": false
+    },
+    {
+      "name": "easytier-cli.exe",
+      "bytes": 6178304,
+      "sha256": "1638d7f1aa654255a541b98a6dd5a3466c382aa42f851eeb7f863bad2905ab43",
+      "machine": "AMD64",
+      "normalImports": [
+        "kernel32.dll",
+        "advapi32.dll",
+        "bcryptprimitives.dll",
+        "ws2_32.dll",
+        "ntdll.dll",
+        "iphlpapi.dll",
+        "oleaut32.dll",
+        "combase.dll",
+        "api-ms-win-core-synch-l1-2-0.dll",
+        "bcrypt.dll",
+        "shell32.dll",
+        "KERNEL32.dll"
+      ],
+      "delayImports": [],
+      "captureDllImports": [],
+      "noCaptureDllNormalOrDelayImports": true,
+      "executed": false
+    }
+  ],
+  "normalAndDelayImportsVerified": true,
+  "noDynamicCrtImports": true,
+  "nativeExecuted": false
+}

@@ -39,6 +39,8 @@ const configuration = compile("electron/easyTierExistingConfiguration.ts");
 deps["./easyTierCliNetwork"] = compile("electron/easyTierCliNetwork.ts");
 deps["./communityEtGrant"] = compile("electron/communityEtGrant.ts");
 deps["./communityEtCredentialObservation"] = compile("electron/communityEtCredentialObservation.ts");
+// Exercise the actual relay receipt validator; only its external ports stay mocked.
+deps["./communityRelayRuntime"] = compile("electron/communityRelayRuntime.ts");
 const processes = compile("electron/easyTierWindowsProcesses.ts");
 const { WindowsEasyTierCliRuntime } = compile("electron/windowsEasyTierCliRuntime.ts");
 const { EasyTierCommunitySubscriptions, easyTierCommunityAction } = compile("src/lib/easyTierCommunitySubscriptions.ts");
@@ -148,7 +150,10 @@ await test("actionable missing permission/config copy preserves independent SFU 
     const action = easyTierCommunityAction({ phase: "activation-required", reason });
     assert.ok(action.message.length > 10); assert.ok(!action.message.includes("network_secret"));
   }
-  assert.ok(easyTierCommunityAction({ reason: "needs-permission" }).message.includes("不会自行提权"));
+  const permission = easyTierCommunityAction({ reason: "needs-permission" });
+  assert.ok(permission.message.includes("请退出应用") && permission.message.includes("以管理员身份运行"));
+  assert.ok(permission.message.includes("联机与社区语音独立"));
+  assert.equal(permission.prepare, false); assert.equal(permission.retry, false);
 });
 await test("existing config path/hash is read only inside the product-owned root", async () => {
   const io = deps["node:fs/promises"], saved = { ...io };
@@ -289,7 +294,8 @@ await test("unconfirmed forced exit retains the owned core until cleanup can be 
 await test("downstream identity requires reviewed host policy and owned-stop contract; official core hash is forbidden", async () => {
   const manifest = { schemaVersion: 2, version: "2.7.0-laokuai", upstreamCommit: "8b7f1f0196edb5b580829ed5f135050fb5853478",
     hostPolicy: "externally-managed", ownedStopProtocol: 1, sourcePatchSha256: assets.EASYTIER_LAOKUAI_SOURCE_PATCH_SHA256,
-    sourceCommit:"089b6182c603c8ab60044b673effe0cf614cc28a",sourceTree:"25be11e0c9460bce1330cbd7964e4d6561f0bc14",
+    sourceCommit:"10b76471abb043709c9dc1fd321e845258976213",sourceTree:"381c14c582c3f05cd0db13a75f9b905c9d17b1bf",
+    sourcePatchKind:"ordered-code-patch-set-index",
     cargoLockSha256:"e3ee41507e7a8ef94470b70f4639140e67aadae646ada82dfd23b0beeb0e7fb2",buildProfile:"windows-std-static-minus-faketcp-v2",
     buildProfileSha256:assets.EASYTIER_LAOKUAI_PROFILE_SHA256,noDefaultFeatures:true,target:"x86_64-pc-windows-msvc",toolchain:"1.95.0",normalAndDelayImportsVerified:true,
     coreSha256:assets.EASYTIER_PRODUCT_FILES["easytier-core.exe"].sha256,cliSha256:assets.EASYTIER_PRODUCT_FILES["easytier-cli.exe"].sha256,files:assets.EASYTIER_PRODUCT_FILES };

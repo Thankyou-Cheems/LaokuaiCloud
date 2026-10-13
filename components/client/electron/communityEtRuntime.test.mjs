@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
+import {Buffer} from 'node:buffer';
 import {readFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
 import test from 'node:test';
+import {setImmediate} from 'node:timers';
 import vm from 'node:vm';
 
 const require = createRequire(import.meta.url), ts = require('typescript'), cache = new Map();
@@ -15,9 +17,11 @@ function load(url) {
   const local = name => {
     if (['node:crypto', 'node:path'].includes(name)) return require(name);
     if (name === 'node:https') return {request: denied};
+    if (name === 'node:dgram') return {createSocket: denied};
+    if (name === 'node:net') return {createServer: denied};
     if (name === 'node:child_process') return {execFile: denied, spawn: denied};
     if (name === 'node:fs/promises') return new Proxy({}, {get: () => denied});
-    assert.ok(name.startsWith('./'), 'Only reviewed local pure modules are loaded');
+    assert.ok(name.startsWith('./') || name === '../src/lib/communityNetworkPreferences', 'Only reviewed local pure modules are loaded');
     return load(new URL(name + '.ts', url));
   };
   vm.runInThisContext('(function(require,module,exports){' + code + '\n})', {filename: url.pathname})(local, mod, mod.exports);
@@ -111,7 +115,7 @@ test('binding rejects delayed responses and expired grants', () => {
 });
 for (const origin of ['http://test.invalid', 'https://user@test.invalid', 'https://test.invalid/api', 'https://test.invalid?x=1', 'https://test.invalid#x'])
   test('transport rejects untrusted origin ' + origin, () => assert.throws(() => trustedHttpsOrigin(origin)));
-function runtimeFixture() {
+function runtimeFixture(options = {}) {
   const f = fixture(), calls = [], events = [];
   const target = {communityId: 'community', serverHost: 'test.invalid', origin: 'https://test.invalid', serverInstanceId: 'backend',
     bootstrap: {bootstrapProfileId: 'profile', upstreamCommit: COMMUNITY_ET_UPSTREAM_COMMIT, peerEndpoints: ['tcp://test.invalid:11020'],
@@ -125,15 +129,20 @@ function runtimeFixture() {
     if (failure?.op === op) throw new CommunityEtTransportError(failure.code);
     if (op === 'session') return {v: 1, ...clone(f.verified)};
     if (op === 'revoke') { events.push('revoke'); return {v: 1, revoked: true}; }
-    if (op === 'binding') return {...clone(f.proof), revision};
-    if (op === 'directory') return {v: 1, communityId: 'community', members: [{serverUserId: 'member', virtualIp: '10.77.1.2'}]};
-    if (op === 'acquire' || op === 'renew') return {...clone(f.grant), requestId: body.requestId, revision: ++revision,
+    if (op === 'binding') {const reply = {...clone(f.proof), revision}; await options.beforeBindingReply?.(reply); return reply;}
+    if (op === 'directory') return options.directory ? options.directory(body, f) : {v: 1, communityId: 'community', members: [{serverUserId: 'member', virtualIp: '10.77.1.2'}]};
+    if (op.startsWith('relay') && options.relayBackend) {
+      const reply = await options.relayBackend(op, body, f, revision, signal);
+      revision = reply.grant.revision; return reply;
+    }
+    if (op === 'acquire' || op === 'renew') {const reply = {...clone(f.grant), requestId: body.requestId, revision: ++revision,
       issuedAtMs: f.now.wall, serverTimeMs: f.now.wall, renewAfterMs: f.now.wall + 30000, expiresAtMs: f.now.wall + 60000};
+      if (op === 'renew') await options.beforeRenewReply?.(reply); return reply;}
     throw Error('unexpected operation');
   }};
   const coordinator = new CommunityEtGrantRuntime({target: async () => { if (!policy) throw Error('expired-policy'); return clone(target); },
     identities: async () => ({deviceId: 'device', nativeInstanceId: UUID}), transport: new CommunityEtGrantTransport(port),
-    wallMs: () => f.now.wall, monoMs: () => f.now.mono,
+    wallMs: () => f.now.wall, monoMs: () => f.now.mono, dns: options.dns, relayPreferences: options.relayPreferences,
     write: async (_id, _uuid, _network, draft, signal) => {
       assert.equal(signal.aborted, false); draft.withPrivateToml(text => assert.ok(text.includes('peer_public_key')));
       events.push('write'); return {config: {serverId: 'community', instanceId: UUID, networkName: f.intent.networkName,
@@ -142,6 +151,7 @@ function runtimeFixture() {
   const physical = {activationReason: () => null, shutdownOwned: () => events.push('shutdown'), connect: async scope => {
     cores++; assert.ok(await coordinator.configuration(scope.serverId, scope.signal)); events.push('start');
     let closed = false; return {instanceId: UUID, close: async () => { if (!closed) {events.push('stop'); closed = true;} },
+      applyRelayBudget: options.applyRelayBudget,
       read: denied, readCredentialSample: async () => {
         if (sampleFailure) throw new EasyTierOperationError(sampleFailure);
         assert.equal(closed, false); events.push('sample'); return {observation: clone(f.observation),
@@ -163,6 +173,141 @@ test('real wiring reaches private config, same-sample proof and public binding t
   assert.deepEqual(f.events.slice(-3), ['stop', 'remove', 'revoke']);
 });
 
+test('real coordinator joins V2 qualification to V1 LAN gate and zeroes relay on telemetry failure without stopping LAN', async () => {
+  const budgets = [], keys = [], saved = [];
+  let consent = {v: 2, enabled: false, revision: 0, bytesPerSecond: 0}, relayGrant = null;
+  const f = runtimeFixture({
+    relayPreferences: {read: key => {keys.push(key); return {enabled: true, bytesPerSecond: 32000};}, write: (key, value) => saved.push({key, value})},
+    applyRelayBudget: async (budget, lease) => {budgets.push([budget, lease]); return {schemaVersion: 1, capability: 'member-relay-budget-lease-v1',
+      instanceId: UUID, bytesPerSec: budget, leaseRemainingMs: lease, maxLeaseMs: 15000, applied: true};},
+    relayBackend: (op, body, fixture, revision) => {
+      if (!relayGrant) relayGrant = {...clone(fixture.grant), revision};
+      if (op === 'relay') { consent = {v: 2, enabled: body.enabled, revision: consent.revision + 1, bytesPerSecond: body.bytesPerSecond}; relayGrant.revision++; }
+      if (op === 'relay-renew') {relayGrant.revision++; relayGrant.issuedAtMs = fixture.now.wall; relayGrant.renewAfterMs = fixture.now.wall + 30000; relayGrant.expiresAtMs = fixture.now.wall + 60000;}
+      return {v: 2, consent: clone(consent), grant: {...clone(relayGrant), v: 2, requestId: body.requestId, serverTimeMs: fixture.now.wall,
+        policy: {reusable: false, allowRelay: consent.enabled, allowedProxyCidrs: [], relay: clone(consent)}}};
+    },
+  });
+  await f.authenticate('opaque'); const session = await f.connect(); await new Promise(setImmediate); assert.deepEqual(budgets, [[0, 0]]);
+  await session.read(new AbortController().signal); await new Promise(setImmediate); assert.equal(f.coordinator.getRelayState('community').status, 'active');
+  assert.equal(keys.length, 1); assert.match(keys[0], /^[a-f0-9]{64}$/); assert.equal(keys[0].includes('account'), false);
+  f.now.mono += 4000; f.now.wall += 4000; await session.read(new AbortController().signal); await new Promise(setImmediate);
+  assert.ok(f.calls.some(c => c.op === 'relay-renew')); assert.equal(f.cores(), 1);
+  f.setSampleFailure('status-unavailable'); await assert.rejects(session.read(new AbortController().signal));
+  await new Promise(setImmediate);
+  assert.deepEqual(budgets.at(-1), [0, 0]); assert.equal(f.events.includes('stop'), false);
+  f.setSampleFailure(null); await session.read(new AbortController().signal); await new Promise(setImmediate);
+  await f.coordinator.setRelayPreference({v: 1, serverId: 'community', enabled: false, bytesPerSecond: 0});
+  assert.deepEqual(budgets.at(-1), [0, 0]); assert.equal(f.coordinator.getRelayState('community').desiredEnabled, false);
+  assert.deepEqual(saved, [{key: keys[0], value: {enabled: false, bytesPerSecond: 0}}]);
+  await session.read(new AbortController().signal); assert.equal(consent.enabled, false); await session.close();
+});
+
+test('old backend optional relay rejection keeps authenticated binding and native core alive', async () => {
+  const budgets = [];
+  const f = runtimeFixture({relayPreferences: {read: () => ({enabled: true, bytesPerSecond: 32000}), write: denied},
+    applyRelayBudget: async (budget, lease) => {budgets.push([budget, lease]); return {schemaVersion: 1, capability: 'member-relay-budget-lease-v1',
+      instanceId: UUID, bytesPerSec: budget, leaseRemainingMs: lease, maxLeaseMs: 15000, applied: true};}});
+  await f.authenticate('opaque'); const session = await f.connect(); const sample = await session.read(new AbortController().signal);
+  await new Promise(setImmediate);
+  assert.equal(sample.bindings[0].authenticated, true); assert.equal(f.coordinator.getRelayState('community').reason, 'backend-unavailable');
+  assert.equal(f.events.includes('stop'), false); assert.ok(budgets.every(([budget]) => budget === 0)); await session.close();
+});
+
+function relayRuntimeFixture(options = {}) {
+  const budgets = [], keys = []; let remote = null, consent = {v: 2, enabled: false, revision: 0, bytesPerSecond: 0};
+  const f = runtimeFixture({...options,
+    relayPreferences: options.relayPreferences ?? {read: key => {keys.push(key); return {enabled: true, bytesPerSecond: 32000};}, write: () => undefined},
+    applyRelayBudget: async (budget, lease, signal) => {budgets.push([budget, lease]); await options.nativeHook?.(budget, lease, signal);
+      return {schemaVersion: 1, capability: 'member-relay-budget-lease-v1', instanceId: UUID, bytesPerSec: budget,
+        leaseRemainingMs: lease, maxLeaseMs: 15000, applied: true};},
+    beforeRenewReply: async reply => {remote = clone(reply); await options.beforeRenewReply?.(reply);},
+    relayBackend: async (op, body, fixture, revision, signal) => {
+      if (!remote) remote = {...clone(fixture.grant), revision};
+      if (op === 'relay') {consent = {v: 2, enabled: body.enabled, revision: consent.revision + 1, bytesPerSecond: body.bytesPerSecond}; remote.revision++;}
+      if (op === 'relay-renew') {remote.revision++; remote.issuedAtMs = fixture.now.wall; remote.renewAfterMs = fixture.now.wall + 30000; remote.expiresAtMs = fixture.now.wall + 60000;}
+      const reply = {v: 2, consent: clone(consent), grant: {...clone(remote), v: 2, requestId: body.requestId, serverTimeMs: fixture.now.wall,
+        policy: {reusable: false, allowRelay: consent.enabled, allowedProxyCidrs: [], relay: clone(consent)}}};
+      await options.afterRelayReply?.(op, reply, signal); return reply;
+    }});
+  return {...f, budgets, keys, consent: () => clone(consent)};
+}
+const flush = () => new Promise(setImmediate);
+test('optional native startup probe and drain cannot hold LAN connect or owned core stop', async () => {
+  let release; const pending = new Promise(r => release = r);
+  const f = relayRuntimeFixture({nativeHook: () => pending}); await f.authenticate('opaque');
+  const session = await f.connect(); const sample = await session.read(new AbortController().signal);
+  assert.equal(sample.bindings[0].authenticated, true); assert.equal(f.coordinator.getRelayState('community').localBudgetApplied, false);
+  const close = session.close(); await flush(); assert.ok(f.events.includes('stop'));
+  release(); await close;
+});
+test('optional positive native ACK is background and cannot delay a required LAN sample', async () => {
+  let release, entered; const started = new Promise(r => entered = r), pending = new Promise(r => release = r);
+  const f = relayRuntimeFixture({nativeHook: async budget => {if (budget) {entered(); await pending;}}});
+  await f.authenticate('opaque'); const session = await f.connect(); await flush();
+  const sample = await session.read(new AbortController().signal); await started;
+  assert.equal(sample.bindings[0].authenticated, true); assert.equal(f.coordinator.getRelayState('community').localBudgetApplied, false);
+  release(); await flush(); assert.equal(f.coordinator.getRelayState('community').status, 'active'); await session.close();
+});
+test('ordinary renew response and concurrent disable cannot cross gate tickets or restart LAN', async () => {
+  let release, entered; const started = new Promise(r => entered = r), pending = new Promise(r => release = r);
+  const f = relayRuntimeFixture({beforeRenewReply: async () => {entered(); await pending;}});
+  await f.authenticate('opaque'); const session = await f.connect(); await flush(); await session.read(new AbortController().signal); await flush();
+  f.now.mono += 31000; f.now.wall += 31000;
+  const read = session.read(new AbortController().signal); await started;
+  const disable = f.coordinator.setRelayPreference({v: 1, serverId: 'community', enabled: false, bytesPerSecond: 0});
+  await flush(); assert.deepEqual(f.budgets.at(-1), [0, 0]); assert.equal(f.calls.at(-1).op, 'renew');
+  release(); const [sample] = await Promise.all([read, disable]); await flush();
+  assert.equal(sample.bindings[0].authenticated, true); assert.equal(f.consent().enabled, false); assert.equal(f.cores(), 1);
+  assert.equal(f.events.includes('stop'), false); await session.close();
+});
+test('optional queued withdrawal has bounded cancellation and cannot dispatch after its deadline', async t => {
+  t.mock.timers.enable({apis: ['setTimeout']});
+  let release, entered; const started = new Promise(r => entered = r), pending = new Promise(r => release = r);
+  const f = relayRuntimeFixture({beforeRenewReply: async () => {entered(); await pending;}});
+  await f.authenticate('opaque'); const session = await f.connect(); await flush(); await session.read(new AbortController().signal); await flush();
+  f.now.mono += 31000; f.now.wall += 31000; const read = session.read(new AbortController().signal); await started;
+  const disable = f.coordinator.setRelayPreference({v: 1, serverId: 'community', enabled: false, bytesPerSecond: 0}); await flush();
+  const count = f.calls.length; t.mock.timers.tick(1000); await disable;
+  // Suppress a legitimate new reconciliation from a later fresh sample so this
+  // assertion observes only the cancelled queued job.
+  f.setSampleFailure('status-unavailable'); release(); await assert.rejects(read); await flush();
+  assert.equal(f.calls.slice(count).some(c => c.op.startsWith('relay')), false);
+  assert.equal(f.coordinator.getRelayState('community').desiredEnabled, false); await session.close();
+});
+test('required LAN renewal cancels optional HTTPS instead of waiting for its one-second window', async () => {
+  let entered, hold = false, cancelled = false; const started = new Promise(r => entered = r);
+  const f = relayRuntimeFixture({afterRelayReply: async (op, _reply, signal) => {
+    if (hold && op === 'relay-status') {entered(); await new Promise((_resolve, reject) => signal.addEventListener('abort', () => {
+      cancelled = true; reject(new CommunityEtTransportError('request-cancelled'));
+    }, {once: true}));}
+  }});
+  await f.authenticate('opaque'); const session = await f.connect(); await flush(); await session.read(new AbortController().signal); await flush();
+  hold = true; f.now.mono += 4000; f.now.wall += 4000; await session.read(new AbortController().signal); await started;
+  f.now.mono += 27000; f.now.wall += 27000; const sample = await session.read(new AbortController().signal);
+  assert.equal(cancelled, true); assert.equal(sample.bindings[0].authenticated, true); assert.equal(f.events.includes('stop'), false); await session.close();
+});
+test('late old binding uses its actually accepted old grant and cannot borrow renewed expiry', async () => {
+  let release, entered, hold = false; const started = new Promise(r => entered = r), pending = new Promise(r => release = r);
+  const f = relayRuntimeFixture({beforeBindingReply: async () => {if (hold) {entered(); await pending;}}});
+  await f.authenticate('opaque'); const session = await f.connect(); await flush(); await session.read(new AbortController().signal); await flush();
+  hold = true; const read = session.read(new AbortController().signal); await started;
+  await f.coordinator.setRelayPreference({v: 1, serverId: 'community', enabled: false, bytesPerSecond: 0});
+  release(); const sample = await read; assert.equal(sample.bindings[0].authenticated, true);
+  assert.ok(sample.bindings[0].expiresAtMs <= f.now.mono + 5000); assert.equal(f.events.includes('stop'), false); await session.close();
+});
+test('pending old-account relay reply cannot survive authenticated account replacement', async () => {
+  let entered; const started = new Promise(r => entered = r);
+  const keys = [];
+  const f = relayRuntimeFixture({relayPreferences: {read: key => {keys.push(key); return keys.length === 1 ? {enabled: true, bytesPerSecond: 32000} : null;}, write: () => undefined},
+    afterRelayReply: async (op, _reply, signal) => {if (op === 'relay-status') {entered(); await new Promise((_resolve, reject) =>
+      signal.addEventListener('abort', () => reject(new CommunityEtTransportError('request-cancelled')), {once: true}));}}});
+  await f.authenticate('opaque'); const session = await f.connect(); await flush(); await session.read(new AbortController().signal); await started;
+  f.verified.intent.accountId = 'new-account'; await f.authenticate('replacement'); await flush();
+  const state = f.coordinator.getRelayState('community'); assert.equal(state.desiredEnabled, false); assert.equal(state.localBudgetApplied, false);
+  assert.notEqual(keys[0], keys[1]); assert.equal(f.events.filter(e => e === 'stop').length, 1); assert.ok(f.budgets.every(([budget]) => budget === 0));
+});
+
 test('directory parser keeps all device addresses but rejects cross-community, duplicates and client claims',()=>{
   const transport=new CommunityEtGrantTransport();
   const response={v:1,communityId:'community',members:[{serverUserId:'member',virtualIp:'10.77.1.2'},{serverUserId:'member',virtualIp:'10.77.1.3'}]};
@@ -170,6 +315,51 @@ test('directory parser keeps all device addresses but rejects cross-community, d
   for(const mutate of [r=>r.communityId='other',r=>r.members[1].virtualIp='10.77.1.2',r=>r.members[0].virtualIp='198.51.100.1',r=>r.members[0].deviceId='untrusted']){
     const r=clone(response);mutate(r);assert.throws(()=>transport.parseDirectory(r,'community'));
   }
+});
+
+const dnsZone = 'c-' + 'a'.repeat(32) + '.lan.voice.ruikang.wang.';
+const dnsName = 'd-' + 'b'.repeat(32) + '.' + dnsZone;
+function dnsDirectory(_body, f) {
+  return {v: 1, communityId: 'community', dns: {zone: dnsZone, serverTimeMs: f.now.wall + 100_000, maxAgeMs: 10000},
+    members: [{serverUserId: 'member', virtualIp: '10.77.1.2', dnsName, dnsExpiresAtMs: f.now.wall + 110_000}]};
+}
+test('DNS is exposed only after local policy readiness; server clock offset does not extend its TTL', async () => {
+  let ready = false; const published = [], cleared = [];
+  const f = runtimeFixture({directory: dnsDirectory, dns: {publish: (...args) => published.push(args), clear: id => cleared.push(id), isReady: () => ready}});
+  await f.authenticate('one'); const s = await f.connect();
+  const first = await s.read(new AbortController().signal);
+  assert.equal(first.dnsReady, false); assert.deepEqual(first.dnsAddresses, []); assert.equal(published.length, 1);
+  assert.equal(f.calls.find(call => call.op === 'directory').body.includeDnsNames, true);
+  ready = true; f.now.mono += 100; f.now.wall += 100;
+  const next = await s.read(new AbortController().signal);
+  assert.deepEqual(next.dnsAddresses, [{dnsName, virtualIp: '10.77.1.2', expiresAtUnixMs: 2010000}]);
+  assert.equal(next.directoryObservedAtUnixMs, first.directoryObservedAtUnixMs);
+  await s.close(); assert.ok(cleared.includes('community'));
+});
+test('old backend DNS rejection falls back to authenticated numeric directory without restarting LAN', async () => {
+  const cleared = [];
+  const f = runtimeFixture({directory: body => {
+    if (body.includeDnsNames) throw new CommunityEtTransportError('provider-unavailable');
+    return {v: 1, communityId: 'community', members: [{serverUserId: 'member', virtualIp: '10.77.1.2'}]};
+  }, dns: {publish: denied, clear: id => cleared.push(id), isReady: () => false}});
+  await f.authenticate('one'); const s = await f.connect(); const sample = await s.read(new AbortController().signal);
+  assert.equal(sample.directory.length, 1); assert.deepEqual(sample.dnsAddresses, []); assert.equal(f.cores(), 1);
+  assert.deepEqual(f.calls.filter(call => call.op === 'directory').map(call => call.body.includeDnsNames), [true, undefined]);
+  assert.ok(cleared.includes('community')); await s.close();
+});
+test('invalid DNS directory is hidden without replacing it with unverified peer addresses or stopping LAN', async () => {
+  const f = runtimeFixture({directory: (body, value) => ({...dnsDirectory(body, value), communityId: 'other'}),
+    dns: {publish: denied, clear: () => undefined, isReady: () => false}});
+  await f.authenticate('one'); const s = await f.connect(); const sample = await s.read(new AbortController().signal);
+  assert.deepEqual(sample.directory, []); assert.deepEqual(sample.dnsAddresses, []);
+  assert.equal(sample.bindings[0].enrollment, 'joined'); assert.equal(f.events.includes('stop'), false); await s.close();
+});
+test('DNS auth refusal has no legacy fallback and retires local membership', async () => {
+  const f = runtimeFixture({directory: () => {throw new CommunityEtTransportError('auth-unavailable');},
+    dns: {publish: denied, clear: () => undefined, isReady: () => false}});
+  await f.authenticate('one'); const s = await f.connect();
+  await assert.rejects(s.read(new AbortController().signal), e => e instanceof EasyTierSessionRetiredError);
+  assert.equal(f.calls.filter(call => call.op === 'directory').length, 1); assert.ok(f.events.includes('stop'));
 });
 test('directory cache preserves its age; roster outage hides addresses without stopping LAN',async()=>{
   const f=runtimeFixture();await f.authenticate('one');const s=await f.connect();

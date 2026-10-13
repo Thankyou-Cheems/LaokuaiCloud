@@ -11,16 +11,19 @@ const config = require("../electron-builder.laokuai.cjs");
 const source = fs.readFileSync(new URL("../electron/main.ts", import.meta.url), "utf8");
 const argument = source.match(/new EasyTierCommunityManager\(([^,]+), state =>/)[1];
 const runtime = {};
-const select = (metadata, uiAcceptanceMode = false) => vm.runInNewContext(argument, {
+const select = (metadata, uiAcceptanceMode = false, preview = false) => vm.runInNewContext(argument, {
+  LAOKUAI_PREVIEW: preview,
   UI_ACCEPTANCE_MODE: uiAcceptanceMode,
   IS_I18N_TEST: metadata.grytI18nTest === true,
   IS_LAOKUAI: metadata.grytLaokuai === true,
   easyTierProduction: { runtime },
+  easyTierGrants: { wrap: value => value },
 });
 assert.equal(select(config.extraMetadata), runtime, "Actual private package metadata must inject production ports");
 assert.equal(select({ grytI18nTest: true }), null, "Isolated i18n package must keep null runtime");
 assert.equal(select({}), runtime, "Ordinary desktop must inject production ports");
 assert.equal(select(config.extraMetadata, true), null, "UI acceptance mode must keep native runtime unavailable");
+assert.equal(select(config.extraMetadata, false, true), null, "Preview must keep native runtime unavailable");
 const exports = {};
 const pins = ts.transpileModule(fs.readFileSync(new URL("../electron/easyTierWindowsAssets.ts", import.meta.url), "utf8"), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
@@ -37,7 +40,7 @@ assert.equal(config.win.requestedExecutionLevel, "asInvoker");
 assert.equal(config.publish, null);
 // Exercise the actual hook/store with deterministic React and timer ports.
 const hooks = {};
-let observedState, clock = 1000, tick, cleaned = false;
+let observedState = 0, clock = 1000, tick, cleaned = false;
 const snapshot = { serverScope: "server-a", observedAtMs: 1000 };
 const hookCode = ts.transpileModule(fs.readFileSync(new URL("../src/lib/communityLanState.ts", import.meta.url), "utf8"), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
@@ -46,7 +49,7 @@ vm.runInNewContext(hookCode, { exports: hooks, Map, Set, Date: { now: () => cloc
   setInterval: callback => { tick = callback; return 1; }, clearInterval: () => { cleaned = true; },
   require: key => { assert.equal(key, "react"); return {
     useSyncExternalStore: (_subscribe, getSnapshot) => getSnapshot(),
-    useState: initial => [initial(), value => { observedState = value; }],
+    useState: initial => [typeof initial === "function" ? initial() : initial, value => { observedState = typeof value === "function" ? value(observedState) : value; }],
     useEffect: effect => { hooks.cleanup = effect(); },
   }; },
 });
@@ -56,7 +59,8 @@ hooks.publishCommunityLanState({ serverId: "server-a", generation: 2, lanSnapsho
 hooks.publishCommunityLanState({ serverId: "server-a", generation: 1, lanSnapshot: null });
 assert.equal(hooks.useEasyTierMemberSnapshot("server-a").snapshot, snapshot, "Older generation cannot replace evidence");
 clock = 12001; tick();
-assert.equal(observedState, clock, "Clock advances past TTL without new telemetry");
+assert.equal(observedState, 1, "Telemetry timer requests a new render");
+assert.equal(hooks.useEasyTierMemberSnapshot("server-a").nowMs, clock, "Render reads current clock past TTL without new telemetry");
 hooks.cleanup(); assert.equal(cleaned, true);
 assert.equal(hooks.useEasyTierMemberSnapshot("server-b").snapshot, undefined, "No cross-community snapshot");
 console.log("Private metadata/runtime, exact four-file product resources and permission/update isolation passed; no native execution");

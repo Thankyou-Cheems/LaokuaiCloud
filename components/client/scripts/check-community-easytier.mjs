@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
+
 import ts from "typescript";
 
 // Pure source tests. Every import is explicitly supplied; no Electron/core/driver,
@@ -253,6 +254,31 @@ await test("directory timestamps expire independently; each remote account keeps
   assert.equal(memberAdapter.projectEasyTierMembers(s, scope, "connected", time, time).members.some(m => m.binding.authenticatedUserId === "remote"), false);
 });
 
+await test("prepared DNS names bind to authenticated device IPs and local row stays on this device", async () => {
+  const s = enrolledSample(), zone = `c-${"a".repeat(32)}.lan.voice.ruikang.wang.`;
+  const name = digit => `d-${digit.repeat(32)}.${zone}`;
+  s.directoryObservedAtUnixMs = time;
+  s.directory = [{serverUserId:"local-user",virtualIp:"10.44.0.2"},{serverUserId:"local-user",virtualIp:"10.44.0.3"},
+    {serverUserId:"remote",virtualIp:"10.44.0.8"},{serverUserId:"remote",virtualIp:"10.44.0.9"}];
+  s.dnsReady = true;
+  s.dnsAddresses = ["10.44.0.2","10.44.0.3","10.44.0.8","10.44.0.9"].map((virtualIp,index)=>({dnsName:name(String(index+1)),virtualIp,expiresAtUnixMs:time+5000}));
+  const snap = snapshot(s), local = snap.members.find(m=>m.binding.authenticatedUserId==="local-user"), remote = snap.members.find(m=>m.binding.authenticatedUserId==="remote");
+  assert.equal(snap.dnsReady,true);assert.deepEqual(plain(local.dnsAddresses),[s.dnsAddresses[0]]);
+  assert.deepEqual(plain(remote.dnsAddresses),s.dnsAddresses.slice(2));assert.equal(remote.enrollment.state,"assigned");assert.equal(remote.path,undefined);
+  s.dnsReady=false;const disabled=snapshot(s);assert.ok(disabled.members.every(member=>!member.dnsAddresses));
+  delete s.dnsReady;delete s.dnsAddresses;assert.deepEqual(plain(snapshot(s).members.find(m=>m.binding.authenticatedUserId==="remote").virtualIps),["10.44.0.8","10.44.0.9"]);
+});
+await test("DNS projection rejects stale unknown duplicated foreign-zone or unassigned names", async () => {
+  for(const change of [s=>s.directoryObservedAtUnixMs=time-10001,s=>s.dnsAddresses[0].expiresAtUnixMs=time,
+    s=>s.dnsAddresses[0].expiresAtUnixMs=time+10001,s=>s.dnsAddresses[0].dnsName="claimed.example",
+    s=>s.dnsAddresses[0].virtualIp="10.44.0.99",s=>s.dnsAddresses.push({...s.dnsAddresses[0]}),
+    s=>s.dnsAddresses.push({dnsName:`d-${"e".repeat(32)}.c-${"f".repeat(32)}.lan.voice.ruikang.wang.`,virtualIp:"10.44.0.8",expiresAtUnixMs:time+5000})]) {
+    const s=enrolledSample();s.directoryObservedAtUnixMs=time;s.directory=[{serverUserId:"local-user",virtualIp:"10.44.0.2"},{serverUserId:"remote",virtualIp:"10.44.0.8"}];
+    s.dnsReady=true;s.dnsAddresses=[{dnsName:`d-${"b".repeat(32)}.c-${"a".repeat(32)}.lan.voice.ruikang.wang.`,virtualIp:"10.44.0.2",expiresAtUnixMs:time+5000}];
+    change(s);assert.ok(snapshot(s).members.every(member=>!member.dnsAddresses));
+  }
+});
+
 function ports(overrides = {}) {
   const ids = new Set(); let starts = 0, stops = 0, runs = 0; const deleted = [], released = [], policies = [];
   let alive = true;
@@ -328,6 +354,21 @@ await test("IPC validates payload and trusts only the main renderer frame", asyn
   assert.throws(() => handlers.get("et-community-connect")({ senderFrame: frame }, { serverId: "a", leaseId: "" }), /invalid/);
   assert.throws(() => handlers.get("et-community-enabled")({ senderFrame: frame }, "true"), /invalid/);
   const state = await handlers.get("et-community-connect")({ senderFrame: frame }, lease()); assert.equal(state.phase, "disabled");
+  unregister(); assert.equal(handlers.size, 0);
+});
+await test("network preferences and relay IPC reject untrusted frames before any side effect", async () => {
+  const handlers = new Map(), frame = {}, calls = [];
+  const settings = {get: () => {calls.push('settings-get'); return {};}, set: value => {calls.push(value); return {};}};
+  const relay = {getRelayState: value => {calls.push(value); return {};}, setRelayPreference: async value => {calls.push(value); return {};}};
+  const unregister = registerEasyTierCommunityIpc({handle: (key, fn) => handlers.set(key, fn), removeHandler: key => handlers.delete(key)},
+    new EasyTierCommunityManager(null), event => event.senderFrame === frame, undefined, undefined, false, undefined, undefined, settings, relay);
+  for (const channel of ['et-community-network-preferences-get', 'et-community-network-preferences-set', 'et-community-relay-get', 'et-community-relay-set']) {
+    assert.throws(() => handlers.get(channel)({senderFrame: {}}, 'community-a'), /untrusted/);
+  }
+  assert.equal(calls.length, 0);
+  assert.throws(() => handlers.get('et-community-relay-get')({senderFrame: frame}, ''), /unavailable/);
+  await handlers.get('et-community-relay-get')({senderFrame: frame}, 'community-a');
+  assert.deepEqual(calls, ['community-a']);
   unregister(); assert.equal(handlers.size, 0);
 });
 

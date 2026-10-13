@@ -22,6 +22,8 @@ export interface InviteDialogInput {
   accountRequired: boolean;
   /** Asked on a server that lets people in by hand. Nothing to press until somebody answers. */
   awaitingApproval: boolean;
+  /** A legacy invite may still require the shared password. */
+  passwordRequired?: boolean;
 }
 
 export type InviteDialogMessage = "member" | "invited" | "needs-code" | "request" | "open" | "private" | "none";
@@ -41,7 +43,12 @@ export interface InviteDialogView {
   code: string;
   /** The optional line for whoever lets people in, on a server that admits by request. */
   showNote: boolean;
+  showPasswordField: boolean;
   action: InviteDialogAction;
+}
+
+export function showCommunityPassword(policy: string | undefined, code: string, passwordRequired: boolean, inviteRequired: boolean): boolean {
+  return passwordRequired || (policy === "password" && !code && !inviteRequired);
 }
 
 export function inviteDialogView(input: InviteDialogInput): InviteDialogView {
@@ -92,6 +99,10 @@ export function inviteDialogView(input: InviteDialogInput): InviteDialogView {
     needsAccount,
     showCodeField: showCodeField && !input.alreadyMember,
     code,
+    // A code is tried on its own. Only a legacy invite's explicit response asks
+    // for a password; a password community's ordinary invite needs none.
+    showPasswordField: !input.alreadyMember && !input.awaitingApproval &&
+      showCommunityPassword(policy, code, !!input.passwordRequired, input.inviteRequired),
     showNote: !invited && policy === "request" && !input.awaitingApproval && !input.alreadyMember,
     action,
   };

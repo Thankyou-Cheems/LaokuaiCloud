@@ -31,7 +31,7 @@ export function trustedHttpsOrigin(raw: unknown): string {
 /** Production HTTP; no redirect, alternate destination, disabled TLS or secret logging. */
 export const communityEtHttpsPort: CommunityEtHttpPort = {
   post(origin, operation, bearer, body, signal) {
-    if (!['session', 'acquire', 'renew', 'revoke', 'binding', 'directory'].includes(operation) || !validCommunityBearer(bearer))
+    if (!['session', 'acquire', 'renew', 'revoke', 'binding', 'directory', 'relay', 'relay-renew', 'relay-status'].includes(operation) || !validCommunityBearer(bearer))
       return Promise.reject(new CommunityEtTransportError('auth-unavailable'));
     const target = new URL('/api/community-et/' + operation, trustedHttpsOrigin(origin));
     const bytes = Buffer.from(JSON.stringify(body));

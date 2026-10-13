@@ -1,4 +1,4 @@
-import { Button, Select, Surface, Switch, TextField } from "@gryt/ui";
+import { Button, Surface, Switch, TextField } from "@gryt/ui";
 import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Trans } from "react-i18next";
@@ -19,9 +19,11 @@ import { PiCopyFill, PiInfoFill, PiPlus } from "../../../../lib/icons";
 import { useOpenInviteLink } from "../hooks/useOpenInviteLink";
 import { useServerJoinPolicy } from "../hooks/useServerJoinPolicy";
 import { useSocketEvent } from "../hooks/useSocketEvent";
-
-/** Stands in for "no role" so the row is not mistaken for the placeholder. */
-const NO_ROLE = "__none__";
+import {
+  DEFAULT_INVITE_HOURS,
+  invitationLimits,
+  inviteAvailability,
+} from "../lib/inviteManagement";
 
 export type InviteItem = {
   code: string;
@@ -31,6 +33,7 @@ export type InviteItem = {
   usesRemaining?: number;
   usesConsumed?: number;
   revoked?: boolean;
+  passwordBypass?: boolean;
   note?: string | null;
 };
 
@@ -83,28 +86,6 @@ export function ServerInvitesTab({
   useSocketTranslation();
   const { servers: embeddedServers } = useEmbeddedServer();
 
-  /* Roles an invite may be bound to, already filtered by the server — admin,
-     owner and anything handing out permissions are refused outright. */
-  const [grantableRoles, setGrantableRoles] = useState<
-    { id: string; name: string }[]
-  >([]);
-  const [grantsRole, setGrantsRole] = useState("");
-
-  useEffect(() => {
-    if (!socket || !accessToken) return;
-    socket.emit("server:roles:definitions:list", { accessToken });
-  }, [socket, accessToken]);
-
-  useSocketEvent<{
-    roles?: { id: string; name: string; grantableByInvite?: boolean }[];
-  }>(socket, "server:roles:definitions", (payload) => {
-    setGrantableRoles(
-      (payload?.roles ?? [])
-        .filter((r) => r.grantableByInvite)
-        .map((r) => ({ id: r.id, name: r.name })),
-    );
-  });
-
   /* The embedded server this host is, if it is one. Matched on the port, since a
      locally hosted server is only reached over loopback. */
   const advertised = useMemo(
@@ -123,9 +104,8 @@ export function ServerInvitesTab({
 
   const [maxUses, setMaxUses] = useState<string>("1");
   const [infiniteUses, setInfiniteUses] = useState(false);
-  const [expiresInHours, setExpiresInHours] = useState<string>("");
+  const [expiresInHours, setExpiresInHours] = useState<string>(String(DEFAULT_INVITE_HOURS));
   const [note, setNote] = useState<string>("");
-  const [customCode, setCustomCode] = useState<string>("");
   const [, setTick] = useState(0);
 
   useEffect(() => {
@@ -184,21 +164,18 @@ export function ServerInvitesTab({
     if (!socket || !socket.connected) return toast.error(socketI18n.t("socketFull.serverInvitesTab_213e89eca7"));
     if (!accessToken) return toast.error(socketI18n.t("socketFull.serverInvitesTab_097a88ed92"));
 
-    const mu = Math.max(1, Math.min(1000, parseInt(maxUses || "1", 10) || 1));
-    const ehRaw = expiresInHours.trim();
-    const eh = ehRaw.length ? (parseFloat(ehRaw) || 0) : undefined;
-
-    const cc = customCode.trim().toLowerCase();
+    const limits = invitationLimits(maxUses, expiresInHours, infiniteUses);
+    if (!limits.ok) return toast.error(socketI18n.t(limits.messageKey));
 
     setCreating(true);
     try {
       socket.emit("server:invites:create", {
         accessToken,
-        ...(infiniteUses ? { infinite: true } : { maxUses: mu }),
-        expiresInHours: typeof eh === "number" && eh > 0 ? eh : undefined,
+        ...(limits.infinite ? { infinite: true } : { maxUses: limits.maxUses }),
+        expiresInHours: limits.expiresInHours,
         note: note.trim().length ? note.trim() : null,
-        customCode: cc.length ? cc : null,
-        grantsRole: grantsRole || null,
+        passwordBypass: true,
+        grantsRole: null,
       });
     } finally {
       setCreating(false);
@@ -241,9 +218,7 @@ export function ServerInvitesTab({
   return (
     <div className="flex flex-col gap-4">
       <span className="text-sm">
-        {isOpen
-          ? socketI18n.t("socketFull.serverInvitesTab_b8c8208f0d")
-          : socketI18n.t("socketFull.serverInvitesTab_d5e498a496")}
+        {socketI18n.t("invite.adminAdmission")}
       </span>
 
       {isOpen && (
@@ -291,15 +266,7 @@ export function ServerInvitesTab({
               <TextField
                 value={expiresInHours}
                 onChange={(e) => setExpiresInHours(e.target.value)}
-                placeholder={socketI18n.t("socketFull.serverInvitesTab_212f37909b")}
-              />
-            </div>
-            <div className="flex flex-col gap-1" style={{ minWidth: 180 }}>
-              <span className="text-sm font-medium">{socketI18n.t("socketFull.serverInvitesTab_100a64e5d5")}</span>
-              <TextField
-                value={customCode}
-                onChange={(e) => setCustomCode(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ""))}
-                placeholder={socketI18n.t("socketFull.serverInvitesTab_46d95f1fc3")}
+                placeholder={String(DEFAULT_INVITE_HOURS)}
               />
             </div>
             <div className="flex flex-col gap-1" style={{ flex: 1, minWidth: 220 }}>
@@ -307,37 +274,7 @@ export function ServerInvitesTab({
               <TextField value={note} onChange={(e) => setNote(e.target.value)} placeholder={socketI18n.t("ui.optional")} />
             </div>
           </div>
-          {/* The empty case says so instead of rendering nothing.
-              The one sentence explaining why there is no picker lived inside
-              the picker, so somebody with no invite-grantable role saw an
-              invite form with no mention of roles at all — and no way to tell
-              whether the feature was missing, broken, or simply off. */}
-          {grantableRoles.length === 0 && (
-            <div className="flex flex-col gap-1" style={{ minWidth: 220 }}>
-              <span className="text-sm font-medium">{socketI18n.t("socketFull.serverInvitesTab_33d9303b1c")}</span>
-              <span className="text-xs text-gryt-muted">{socketI18n.t("socketFull.serverInvitesTab_9f0d695c2b")}</span>
-            </div>
-          )}
-          {grantableRoles.length > 0 && (
-            <div className="flex flex-col gap-1" style={{ minWidth: 220 }}>
-              <span className="text-sm font-medium">{socketI18n.t("socketFull.serverInvitesTab_33d9303b1c")}</span>
-              {/* NO_ROLE rather than "": Base UI renders an option whose value
-                  is the empty string as the placeholder, so the choice
-                  somebody made would show as no choice at all. */}
-              <Select
-                size="small"
-                value={grantsRole || NO_ROLE}
-                onValueChange={(value) =>
-                  setGrantsRole(value === NO_ROLE ? "" : String(value))
-                }
-                options={[
-                  { label: socketI18n.t("socketFull.serverInvitesTab_af33bfcef2"), value: NO_ROLE },
-                  ...grantableRoles.map((r) => ({ label: r.name, value: r.id })),
-                ]}
-              />
-              <span className="text-xs text-gryt-muted">{socketI18n.t("socketFull.serverInvitesTab_c4885ffadc")}</span>
-            </div>
-          )}
+          <span className="text-xs text-gryt-muted">{socketI18n.t("invite.ordinaryMember")}</span>
           <div className="flex justify-end gap-2">
             <Button size="small" onClick={refresh} disabled={creating || loading}>{socketI18n.t("settingsFull.m56e3badc4e")}</Button>
             <Button size="small" onClick={create} disabled={creating}>
@@ -353,6 +290,7 @@ export function ServerInvitesTab({
         ) : (
           invites.map((i) => {
             const expiry = formatExpiry(toDate(i.expiresAt));
+            const availability = inviteAvailability(i);
             const isInfinite = typeof i.maxUses === "number" && i.maxUses < 0;
             const uses = isInfinite
               ? `${typeof i.usesConsumed === "number" ? i.usesConsumed : 0} / ∞`
@@ -366,6 +304,7 @@ export function ServerInvitesTab({
                         {i.code}
                       </span>
                       <span className="text-xs"><Trans i18n={socketI18n} i18nKey="socketFull.inviteUsageAndExpiry" values={{ uses, expiry, revoked: i.revoked ? socketI18n.t("socketFull.serverInvitesTab_2ee887aa5f") : "" }} /></span>
+                      <span className="text-xs">{socketI18n.t(`invite.status.${availability}`)}{i.passwordBypass ? ` · ${socketI18n.t("invite.passwordFree")}` : ""}</span>
                       {i.note ? (
                         <span className="text-xs">
                           {i.note}
@@ -373,7 +312,7 @@ export function ServerInvitesTab({
                       ) : null}
                     </div>
                     <div className="flex gap-2">
-                      <Button size="small" onClick={() => copy(i.code)}>
+                      <Button size="small" disabled={availability !== "active"} onClick={() => copy(i.code)}>
                         <PiCopyFill size={16} />{socketI18n.t("settingsFull.maf74f7c536")}</Button>
                       <Button size="small"
                         disabled={!!i.revoked}

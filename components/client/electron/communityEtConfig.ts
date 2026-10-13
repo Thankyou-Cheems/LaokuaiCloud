@@ -1,3 +1,4 @@
+import { type CommunityNetworkPreferences,DEFAULT_COMMUNITY_NETWORK_PREFERENCES, parseCommunityNetworkPreferences } from '../src/lib/communityNetworkPreferences';
 import {
   COMMUNITY_ET_UPSTREAM_COMMIT, exact, fail, fingerprint, grantShape, intent,
   MainGrantGate, positive,   type PrivateCommunityGrantV1, publicKeyFingerprint, safeArray, sameScope,
@@ -41,8 +42,10 @@ export class PrivateCommunityEtConfig {
   #toml: string;
   #issuerFingerprint: string;
   #isCurrent: () => boolean;
-  constructor(toml: string, issuerFingerprint: string, isCurrent: () => boolean) {
+  #latencyFirst: boolean;
+  constructor(toml: string, issuerFingerprint: string, isCurrent: () => boolean, latencyFirst = false) {
     this.#toml = toml; this.#issuerFingerprint = issuerFingerprint; this.#isCurrent = isCurrent;
+    this.#latencyFirst = latencyFirst;
   }
   withPrivateToml<T>(ownedWriter: (toml: string) => T): T {
     if (!this.#isCurrent()) fail('stale-config');
@@ -52,9 +55,11 @@ export class PrivateCommunityEtConfig {
     return Object.freeze({issuerPublicKeyFingerprint: this.#issuerFingerprint, issuerPinMustBeVerified: true, activationReady: false});
   }
   toJSON(): {kind: string} { return {kind: 'private-community-et-config'}; }
+  routingPreferences(): {latencyFirst: boolean} { return {latencyFirst: this.#latencyFirst}; }
 }
 function buildValidated(grant: PrivateCommunityGrantV1, trusted: TrustedCommunityIntent, profile: TrustedCommunityBootstrap,
-  isCurrent: () => boolean): PrivateCommunityEtConfig {
+  isCurrent: () => boolean, preferences: CommunityNetworkPreferences): PrivateCommunityEtConfig {
+  const settings = parseCommunityNetworkPreferences(preferences);
   grantShape(grant); intent(trusted); validateBootstrap(profile);
   if (!sameScope(grant.scope, trusted) || profile.bootstrapProfileId !== trusted.bootstrapProfileId ||
       (['networkName', 'networkRevision', 'virtualIp', 'bootstrapProfileId'] as const).some(k => grant[k] !== trusted[k]))
@@ -65,27 +70,31 @@ function buildValidated(grant: PrivateCommunityGrantV1, trusted: TrustedCommunit
     `instance_id = ${quote(trusted.nativeInstanceId)}`,
     `instance_name = ${quote('laokuai-' + trusted.communityId)}`,
     `ipv4 = ${quote(trusted.virtualIp + '/' + profile.ipv4PrefixLength)}`,
-    'dhcp = false', 'listeners = []', '',
+    'dhcp = false', 'listeners = []', 'member_relay_bytes_per_sec = 0', '',
     '[network_identity]', `network_name = ${quote(trusted.networkName)}`, '',
     '[secure_mode]', 'enabled = true', `local_private_key = ${quote(grant.credentialSecretB64)}`, '',
-    '[flags]', 'latency_first = false', `dev_name = ${quote('lkc-' + trusted.nativeInstanceId.replace(/-/g, ''))}`,
+    '[flags]', `latency_first = ${settings.latencyFirst}`, `dev_name = ${quote('lkc-' + trusted.nativeInstanceId.replace(/-/g, ''))}`,
+    `enable_ipv6 = ${settings.ipv6}`, `disable_upnp = ${!settings.upnp}`,
+    `disable_udp_hole_punching = ${!settings.udpHolePunching}`, `disable_tcp_hole_punching = ${!settings.tcpHolePunching}`,
+    `enable_udp_broadcast_relay = ${settings.udpBroadcast}`, 'accept_dns = false',
     'enable_exit_node = false', 'relay_network_whitelist = ""', '',
   ];
   for (const endpoint of profile.peerEndpoints) lines.push('[[peer]]', `uri = ${quote(endpoint)}`,
     `peer_public_key = ${quote(profile.issuerPublicKeyB64)}`, '');
   // reusable=false is verified issuer policy; adding it to TOML would not enforce it.
-  return new PrivateCommunityEtConfig(lines.join('\n'), profile.issuerPublicKeyFingerprint, isCurrent);
+  return new PrivateCommunityEtConfig(lines.join('\n'), profile.issuerPublicKeyFingerprint, isCurrent, settings.latencyFirst);
 }
 /** Consume only the live main gate, so disable/close/revoke/expiry cannot produce config.
  * trusted/profile must come from authenticated community metadata and product template.
  * There is deliberately no path, raw TOML, helper or process parameter API here.
  */
-export function buildCommunityEtConfig(gate: MainGrantGate, trusted: TrustedCommunityIntent, profile: TrustedCommunityBootstrap): PrivateCommunityEtConfig {
+export function buildCommunityEtConfig(gate: MainGrantGate, trusted: TrustedCommunityIntent, profile: TrustedCommunityBootstrap,
+  preferences: CommunityNetworkPreferences = DEFAULT_COMMUNITY_NETWORK_PREFERENCES): PrivateCommunityEtConfig {
   const grant = gate.privateGrantForConfig();
   if (!grant) fail('no-active-grant');
   return buildValidated(grant, trusted, profile, () => {
     const current = gate.privateGrantForConfig();
     return !!current && current.grantId === grant.grantId && current.credentialId === grant.credentialId &&
       current.revision === grant.revision && current.requestId === grant.requestId;
-  });
+  }, preferences);
 }

@@ -3,6 +3,8 @@ import { createServer } from "node:net";
 import { join } from "node:path";
 
 import { type OwnedCredentialObservation,verifyOwnedCredentialObservation } from "./communityEtCredentialObservation";
+import { uuid } from './communityEtGrant';
+import { type ApplyRelayBudget,parseRelayBudgetReceipt, validRelayBudget } from './communityRelayRuntime';
 import { EASYTIER_V270_ROUTE_LIST_SOURCE, type EasyTierCliNetwork,sanitizedEasyTierV270CliNetwork } from "./easyTierCliNetwork";
 import { EasyTierOperationError } from "./easyTierCommunityManager";
 import type { BrokerCoreProcess, EasyTierElevationBroker } from "./easyTierElevationBroker";
@@ -15,6 +17,7 @@ export interface EasyTierCliCore {
   readNetwork(signal: AbortSignal): Promise<EasyTierCliNetwork>;
   readCredentialObservation?(signal: AbortSignal): Promise<OwnedCredentialObservation>;
   readCredentialNetwork?(signal: AbortSignal): Promise<{network: EasyTierCliNetwork; observation: OwnedCredentialObservation}>;
+  applyRelayBudget?: ApplyRelayBudget;
   close(): Promise<void>;
   terminateOwned(): void;
   /** Main-only diagnostics; this receipt alone never authorizes OS deletion. */
@@ -45,6 +48,13 @@ export function easyTierCliArguments(instanceId: string, portal: string): string
 }
 export function easyTierCliNetworkArguments(instanceId: string, portal: string): string[] {
   return ["--rpc-portal", portal, "--instance-id", instanceId, "--verbose", "--output", "json", "route", "list"];
+}
+export function easyTierCliRelayArguments(instanceId: string, portal: string, budget: number, lease: number): string[] {
+  if (!uuid(instanceId) || !/^127\.0\.0\.1:([1-9][0-9]{0,4})$/.test(portal) || Number(portal.split(':')[1]) > 65535 ||
+      (budget === 0 ? lease !== 0 : !validRelayBudget(budget) || !Number.isInteger(lease) || lease < 1 || lease > 15000))
+    throw new EasyTierOperationError('status-unavailable');
+  return ['--rpc-portal', portal, '--instance-id', instanceId, '--output', 'json',
+    'member-relay', 'apply', '--bytes-per-sec', String(budget), '--lease-ms', String(lease)];
 }
 export function sanitizedEasyTierCliNode(value: unknown, instanceId?: string): { peerId: number; virtualIp: string | null } {
   const v = value as Record<string, unknown>;
@@ -234,6 +244,11 @@ export class EasyTierWindowsProcesses {
     };
     return {
       isAlive, terminateOwned, close,
+      applyRelayBudget: async (budget, lease, readSignal) => {
+        const value = await readJson(readSignal, easyTierCliRelayArguments(config.instanceId, portal, budget, lease));
+        if (!isAlive() || readSignal.aborted) throw new EasyTierOperationError('runtime-exited');
+        return parseRelayBudgetReceipt(value, config.instanceId, budget, lease);
+      },
       ownedResources: () => ({ pid: ownedPid, interfaces: interfaces.map(value => ({ ...value })) }),
       readNode: async readSignal => {
         const node = await readJson(readSignal, easyTierCliArguments(config.instanceId, portal));

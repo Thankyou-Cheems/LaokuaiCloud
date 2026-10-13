@@ -1,5 +1,5 @@
 import type { EasyTierLocalNetworkDetails,EasyTierRoute } from "../src/lib/easyTierCommunity";
-import type { LanEnrollment } from "../src/lib/memberLanStatus";
+import type { LanDnsAddress, LanEnrollment } from "../src/lib/memberLanStatus";
 import type { CommunityDirectoryMemberV1 } from "./communityEtHttpContract";
 
 interface EasyTierPeerState { userId: string; virtualIp: string | null; route: EasyTierRoute; rttMs: number | null }
@@ -44,6 +44,10 @@ export interface EasyTierStatusSample {
   directory?: CommunityDirectoryMemberV1[];
   /** Independent local request-start timestamp; ET polls cannot refresh a cached roster. */
   directoryObservedAtUnixMs?: number;
+  /** Local policy and resolver registration have both been verified for this scope. */
+  dnsReady?: boolean;
+  /** Authenticated per-device names with a local bounded expiration; never peer-advertised. */
+  dnsAddresses?: LanDnsAddress[];
   /** Bare PeerConnStats.latency_us has no measurement timestamp: leave absent. */
   rtt?: EasyTierRttObservation[];
   /** Verified data-forwarding decision, including packet policy and foreign-network routing. */

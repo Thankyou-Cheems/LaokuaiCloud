@@ -9,6 +9,7 @@ export type LanEnrollment = "off" | "not-joined" | "joining" | "joined" | "assig
 export type LanPath = "direct" | "member-relay" | "server-relay" | "unknown";
 export type LanBindingConfidence = "verified" | "unverified" | "ambiguous";
 export type LanEvidenceSource = "authenticated-community" | "easytier-local";
+export interface LanDnsAddress { dnsName: string; virtualIp: string; expiresAtUnixMs: number }
 export interface LanIdentityBinding {
   /** Authenticated server-scoped member ID (serverUserId), never a display name. */
   authenticatedUserId: string;
@@ -44,6 +45,8 @@ export interface LanMemberEvidence {
   /** Distinct server-issued addresses when the account has several devices. */
   virtualIps?: readonly string[];
   virtualIpObservedAtMs?: number;
+  /** Names become copyable only after the local DNS policy/resolver is ready. */
+  dnsAddresses?: readonly LanDnsAddress[];
   path?: LanPeerPathEvidence;
 }
 export interface LanCommunitySnapshot {
@@ -55,6 +58,7 @@ export interface LanCommunitySnapshot {
   observedAtMs: number;
   observer: LanIdentityBinding;
   members: readonly LanMemberEvidence[];
+  dnsReady?: boolean;
 }
 export type LanReadingReason = "not-integrated" | "scope-mismatch" | "missing" | "unverified" | "ambiguous" | "stale" | "invalid" | "not-joined" | "self";
 export interface MemberLanReading {
@@ -70,6 +74,7 @@ export interface MemberLanReading {
   /** Safe RFC1918 address for LAN/game connection; absent when evidence is stale or invalid. */
   virtualIp?: string;
   virtualIps?: readonly string[];
+  dnsAddresses?: readonly LanDnsAddress[];
 }
 const sources = new Set(["authenticated-community", "easytier-local"]);
 const enrollments = new Set(["off", "not-joined", "joining", "joined", "assigned", "error"]);
@@ -127,9 +132,19 @@ export function readMemberLanStatus({ serverScope, authenticatedUserId, observer
   const addresses = ["joined", "assigned"].includes(member.enrollment.state) && !ageReason(addressTime, clock) && Array.isArray(addressValues) && addressValues.length <= 254
     ? addressValues.map(virtualIpv4).filter((value): value is string => value !== undefined) : [];
   const validAddresses = addresses.length === addressValues.length && new Set(addresses).size === addresses.length ? addresses : [];
+  const dnsCandidates: readonly LanDnsAddress[] = snapshot.dnsReady === true && Array.isArray(member.dnsAddresses) && member.dnsAddresses.length <= 254 ? member.dnsAddresses : [];
+  const dnsAddresses = dnsCandidates.filter(address => address &&
+    typeof address.dnsName === "string" && /^d-[a-f0-9]{32}\.c-[a-f0-9]{32}\.lan\.voice\.ruikang\.wang\.$/.test(address.dnsName) &&
+    validAddresses.includes(address.virtualIp) && Number.isSafeInteger(address.expiresAtUnixMs) &&
+    address.expiresAtUnixMs > clock && address.expiresAtUnixMs <= clock + MEMBER_LAN_MAX_AGE_MS);
+  const validDns = dnsAddresses.length === dnsCandidates.length &&
+    new Set(dnsAddresses.map(address => address.dnsName)).size === dnsAddresses.length &&
+    new Set(dnsAddresses.map(address => address.virtualIp)).size === dnsAddresses.length &&
+    new Set(dnsAddresses.map(address => address.dnsName.slice(35))).size <= 1 ? dnsAddresses : [];
   const result: MemberLanReading = { enrollment: member.enrollment.state, path: "unknown", rttMs: null,
     virtualIp: validAddresses.length === 1 ? validAddresses[0] : undefined,
     virtualIps: validAddresses.length ? validAddresses : undefined,
+    dnsAddresses: validDns.length ? validDns.map(address => ({dnsName: address.dnsName, virtualIp: address.virtualIp, expiresAtUnixMs: address.expiresAtUnixMs})) : undefined,
     source: member.enrollment.source, observedAtMs: member.enrollment.observedAtMs };
   // A server allocation never proves joined/online membership by itself.
   if (member.enrollment.state === "joined" && !peer) return { ...result, enrollment: "unknown", enrollmentReason: "unverified", pathReason: "unverified", rttReason: "unverified" };

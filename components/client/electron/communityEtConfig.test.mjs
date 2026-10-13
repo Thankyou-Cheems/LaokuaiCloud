@@ -17,7 +17,7 @@ function load(url) {
   const mod = {exports: {}};
   const localRequire = name => {
     if (name === 'node:crypto') return require(name);
-    assert.equal(name, './communityEtGrant', 'No product/native/I/O imports allowed');
+    assert.ok(['./communityEtGrant', '../src/lib/communityNetworkPreferences'].includes(name), 'No product/native/I/O imports allowed');
     return load(new URL(name + '.ts', url));
   };
   vm.runInThisContext('(function(require,module,exports){' + js + '\n})', {filename: url.pathname})(localRequire, mod, mod.exports);
@@ -26,6 +26,8 @@ function load(url) {
 }
 const {MainGrantGate, publicKeyFingerprint, COMMUNITY_ET_UPSTREAM_COMMIT, ContractError} = load(new URL('./communityEtGrant.ts', import.meta.url));
 const {buildCommunityEtConfig} = load(new URL('./communityEtConfig.ts', import.meta.url));
+const {CommunityNetworkSettings} = load(new URL('./communityNetworkSettings.ts', import.meta.url));
+const {DEFAULT_COMMUNITY_NETWORK_PREFERENCES} = load(new URL('../src/lib/communityNetworkPreferences.ts', import.meta.url));
 const SECRET = Buffer.alloc(32, 0x42).toString('base64'); // Unissued, intentionally not a keypair.
 function fixture(communityIdentity = null) {
   const scope = {serverInstanceId: 'backend', accountId: 'a', communityId: 'c', deviceId: 'd', nativeInstanceId: '11111111-1111-4111-8111-111111111111'};
@@ -47,6 +49,33 @@ function fixture(communityIdentity = null) {
 }
 function rejects(fn, code) { assert.throws(fn, e => e instanceof ContractError && e.code === code && !e.message.includes(SECRET)); }
 function build(f) { return buildCommunityEtConfig(f.gate, f.trusted, f.profile); }
+
+test('portable network preferences reach exact native flags without overriding membership or issuer', () => {
+  const f = fixture();
+  const preferences = {...DEFAULT_COMMUNITY_NETWORK_PREFERENCES, latencyFirst: true, ipv6: false, upnp: false,
+    udpHolePunching: false, tcpHolePunching: false, udpBroadcast: true};
+  const draft = buildCommunityEtConfig(f.gate, f.trusted, f.profile, preferences);
+  draft.withPrivateToml(toml => {
+    for (const line of ['latency_first = true', 'enable_ipv6 = false', 'disable_upnp = true',
+      'disable_udp_hole_punching = true', 'disable_tcp_hole_punching = true', 'enable_udp_broadcast_relay = true',
+      'accept_dns = false', 'enable_exit_node = false', 'relay_network_whitelist = ""']) assert.ok(toml.includes(line), line);
+    assert.ok(toml.includes('ipv4 = "10.77.1.2/24"')); assert.ok(toml.includes('peer_public_key'));
+  });
+  assert.equal(draft.routingPreferences().latencyFirst, true);
+  assert.throws(() => buildCommunityEtConfig(f.gate, f.trusted, f.profile, {...preferences, peerEndpoints: ['tcp://other:1']}));
+});
+test('settings save is exact, portable and deferred until a fresh app session', () => {
+  let stored; const settings = new CommunityNetworkSettings(() => stored, value => {stored = value;});
+  assert.deepEqual(settings.get(), DEFAULT_COMMUNITY_NETWORK_PREFERENCES);
+  const saved = settings.set({...DEFAULT_COMMUNITY_NETWORK_PREFERENCES, ipv6: false});
+  assert.equal(saved.reconnectRequired, true); assert.equal(settings.get().ipv6, false);
+  assert.equal(settings.forSession().ipv6, true);
+  const restarted = new CommunityNetworkSettings(() => stored, denied => {throw Error(denied);});
+  assert.equal(restarted.forSession().ipv6, false);
+  assert.throws(() => settings.set({...stored, credentialSecretB64: SECRET}));
+  assert.equal(JSON.stringify(stored).includes(SECRET), false);
+  stored = {schemaVersion: 99}; assert.deepEqual(settings.get(), DEFAULT_COMMUNITY_NETWORK_PREFERENCES);
+});
 test('real CJK identity survives main grant gate and private TOML without identity substitution', () => {
   const f=fixture('老蒯聊_5000_default');
   assert.equal(f.grant.scope.communityId,'老蒯聊_5000_default');
@@ -61,6 +90,7 @@ test('config uses credential secure-mode and exact instance/network/IP without a
     assert.ok(toml.includes('[network_identity]\nnetwork_name = "network"'));
     assert.ok(toml.includes('ipv4 = "10.77.1.2/24"'));
     assert.ok(toml.includes('dhcp = false')); assert.ok(toml.includes('listeners = []')); assert.ok(toml.includes('latency_first = false'));
+    assert.ok(toml.includes('member_relay_bytes_per_sec = 0'), 'member forwarding must start closed independently of LAN membership');
     for (const forbidden of ['network_secret', 'managed_credentials', 'credential_file', 'reusable', 'issuer_pin']) assert.equal(toml.includes(forbidden), false);
     assert.equal((toml.match(/\[\[peer\]\]/g) ?? []).length, 3);
     assert.equal((toml.match(/peer_public_key = /g) ?? []).length, 3);

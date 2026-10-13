@@ -171,6 +171,14 @@ function describeJoinErrorRaw(error: { error: string; message?: string }): JoinO
         kind: "invite_required",
         message: error.message || "Invalid invite code.",
       };
+    case "invite_expired":
+      return { ok: false, kind: "invite_required", message: "邀请已过期，请向管理员索取新邀请。" };
+    case "invite_revoked":
+      return { ok: false, kind: "invite_required", message: "邀请已撤销，请向管理员索取新邀请。" };
+    case "invite_exhausted":
+      return { ok: false, kind: "invite_required", message: "邀请次数已用完，请向管理员索取新邀请。" };
+    case "invite_password_required":
+      return { ok: false, kind: "invite_required", message: "此邀请不支持免密码加入，请向管理员索取新邀请，或使用社区地址和共享密码加入。" };
     case "identity_tier_refused":
       return {
         ok: false,
@@ -213,13 +221,16 @@ function describeJoinErrorRaw(error: { error: string; message?: string }): JoinO
 const JOIN_ERROR_KEYS: Record<string, string> = {
   approval_pending: "ui.askedSomebodyWhoRunsThisServerHasTo", invite_required: "errors.inviteRequired",
   invalid_invite: "errors.invalidInvite", identity_tier_refused: "errors.accountRequired",
+  invite_expired: "errors.inviteExpired", invite_revoked: "errors.inviteRevoked", invite_exhausted: "errors.inviteExhausted",
+  invite_password_required: "errors.invitePasswordRequired",
   invite_rate_limited: "errors.rateLimited", rate_limited: "errors.rateLimited",
   connect_error: "errors.connect", timeout: "errors.joinTimeout",
 };
 
 function describeJoinError(error: { error: string; message?: string }): JoinOutcome {
   const outcome = describeJoinErrorRaw(error);
-  const clientCopy = !error.message || error.error === "identity_tier_refused" || error.error === "approval_pending";
+  const clientCopy = !error.message || error.error === "identity_tier_refused" || error.error === "approval_pending" ||
+    ["invite_expired", "invite_revoked", "invite_exhausted", "invite_password_required"].includes(error.error);
   if (outcome.ok) return outcome;
   return {
     ...outcome,

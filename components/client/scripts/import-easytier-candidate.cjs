@@ -1,0 +1,100 @@
+/* eslint-env node */
+/* eslint-disable @typescript-eslint/no-var-requires */
+// Imports a separately verified candidate. No native process is started.
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const {createHash} = require("node:crypto");
+const {zipSync} = require("fflate");
+const {inspectPeImports} = require("./inspect-pe-imports.cjs");
+const sha = value => createHash("sha256").update(value).digest("hex");
+const root = path.resolve(__dirname, "../../..");
+const client = path.join(root, "components/client");
+const et = path.join(root, "components/easytier");
+const stage = path.resolve(process.argv[2] || "");
+assert.ok(stage.startsWith(path.join(root, ".local") + path.sep));
+const read = file => JSON.parse(fs.readFileSync(file, "utf8"));
+const write = (file, value) => { fs.mkdirSync(path.dirname(file), {recursive:true}); fs.writeFileSync(file, JSON.stringify(value, null, 2) + "\n"); return sha(fs.readFileSync(file)); };
+const evidence = read(path.join(stage, "candidate-evidence.json"));
+assert.equal(evidence.status, "source-and-static-candidate-verified");
+assert.equal(evidence.sourceCommit, "10b76471abb043709c9dc1fd321e845258976213");
+assert.equal(evidence.sourceTree, "381c14c582c3f05cd0db13a75f9b905c9d17b1bf");
+assert.equal(evidence.sourceFileSetSha256, "618c32de0ac8d84eb27f6cebca1aab4bd15de5bc2433f4c2fbcb4099894ef70c");
+assert.equal(evidence.coreExecuted, false); assert.equal(evidence.cliExecuted, false);
+const producerBytes = fs.readFileSync(path.join(stage, "producer-receipt.original.json"));
+assert.equal(sha(producerBytes), evidence.producerReceiptSha256);
+const producer = JSON.parse(producerBytes);
+assert.equal(producer.exitCode, 0); assert.equal(producer.toolchain, "1.95.0");
+const provenance = read(path.join(et, "provenance.json"));
+const profilePath = path.join(client, "scripts/easytier-windows-feature-profile.json");
+const profileBytes = fs.readFileSync(profilePath), profile = JSON.parse(profileBytes);
+assert.equal(sha(profileBytes), "e67bde65ff0afe846854e31b60562b15ba774df33eda6b0540c5d0a395faae02");
+assert.deepEqual(producer.features, profile.features); assert.equal(producer.rustflags, "-C target-feature=+crt-static");
+const indexPath = "patches/laokuai-member-network-20261013.patch-set.json";
+const patchHash = sha(fs.readFileSync(path.join(et,indexPath)));
+assert.equal(patchHash, "d70f6dfb1902aee26529b413b74ebffc47dde8f2bfe3b8b0ae36aa118b3a3e4e");
+const imports = [];
+for (const [name, expected] of Object.entries(evidence.runtimeFiles)) {
+  const bytes = fs.readFileSync(path.join(stage,"runtime",name));
+  assert.equal(bytes.length,expected.bytes); assert.equal(sha(bytes),expected.sha256);
+  if (name.endsWith(".exe")) {
+    const inspected = inspectPeImports(bytes); assert.equal(inspected.machine,"AMD64");
+    assert.equal(inspected.noCaptureDllNormalOrDelayImports,true);
+    assert.ok(![...inspected.normalImports,...inspected.delayImports].some(value => /(?:vcruntime|msvcp|ucrtbase|msvcr|yy.?thunk|vc.?ltl)/i.test(value)));
+    imports.push({name,...expected,...inspected,executed:false});
+  }
+}
+const receiptDirectory = path.join(et,"receipts/member-network-20261013");
+assert.ok(!fs.existsSync(receiptDirectory),"Never overwrite an integration receipt");
+const active = path.join(client,"build/community-lan/product/2.7.0-laokuai");
+const backup = path.join(client,"build/community-lan/product/history/modern-static-f716a113");
+assert.ok(!fs.existsSync(backup),"Preserve the old active input once");
+for (const [name, expected] of Object.entries(provenance.privateBuild.windowsRuntimeFiles)) {
+  assert.equal(sha(fs.readFileSync(path.join(active,name))),expected.sha256);
+}
+fs.cpSync(active,backup,{recursive:true,errorOnExist:true,force:false});
+fs.mkdirSync(receiptDirectory,{recursive:true});
+fs.writeFileSync(path.join(receiptDirectory,"previous-feature-profile.json"),profileBytes);
+const importHash = write(path.join(receiptDirectory,"static-imports.json"),{schemaVersion:1,sourceCommit:evidence.sourceCommit,sourceTree:evidence.sourceTree,files:imports,normalAndDelayImportsVerified:true,noDynamicCrtImports:true,nativeExecuted:false});
+const origin = name => name.endsWith(".exe") ? "Exact monorepo native source10b76471, unchanged 17-feature static CRT build" : "Unchanged pinned signed companion reference";
+const runtimeFiles = Object.fromEntries(Object.entries(evidence.runtimeFiles).map(([name,value])=>[name,{...value,origin:origin(name)}]));
+Object.assign(profile,{sourceCommit:evidence.sourceCommit,sourceTree:evidence.sourceTree,sourceTreeScope:evidence.sourceTreeScope,sourcePatchSha256:patchHash,sourcePatchKind:"ordered-code-patch-set-index"});
+profile.actualBinaryEvidence = {files:Object.entries(runtimeFiles).map(([name,value])=>({name,...value})),normalAndDelayImportsBothPassed:true,noDynamicCrtImports:true,buildReceiptSha256:evidence.producerReceiptSha256,importAuditSha256:importHash,coreOrCliExecuted:false};
+profile.attestation = {semanticFeaturesAndFlagsUnchanged:true,historicalProfileJsonAtBuildFreezeSha256:sha(profileBytes),finalizedAfterBuild:true,reason:"Source, ordered patch index and actual binary evidence bindings changed; build features/target/static CRT flags did not"};
+const profileHash = write(profilePath,profile);
+const build = {schemaVersion:2,status:"source-static-build-integrated-runtime-unaccepted",sourceCommit:evidence.sourceCommit,sourceTree:evidence.sourceTree,sourceTreeScope:evidence.sourceTreeScope,sourceFileSetSha256:evidence.sourceFileSetSha256,sourceFiles:evidence.sourceFiles,normalizedLineEndingFiles:evidence.normalizedLineEndingFiles,cargoLockRawSha256:evidence.cargoLockRawSha256,cargoLockGitBlobSha256:evidence.cargoLockGitBlobSha256,patchSetSha256:patchHash,sourcePatchKind:"ordered-code-patch-set-index",featureProfileSha256:profileHash,originalProducerReceiptSha256:evidence.producerReceiptSha256,toolchain:producer.toolchain,rustcVersion:producer.rustcVersion,cargoVersion:producer.cargoVersion,protocVersion:producer.protocVersion,target:producer.target,features:producer.features,noDefaultFeatures:true,rustflags:producer.rustflags,locked:true,offline:true,releaseProfileUnchanged:true,exitCode:0,durationSeconds:producer.durationSeconds,artifacts:producer.artifacts,pdbFiles:producer.pdbFiles,staticImportAuditSha256:importHash,coreExecuted:false,cliExecuted:false,nativeRuntimeAccepted:false};
+const receiptHash = write(path.join(receiptDirectory,"build.json"),build);
+write(path.join(active,"build-receipt.json"),build);
+const manifest = read(path.join(active,"laokuai-build.json"));
+Object.assign(manifest,{sourceCommit:evidence.sourceCommit,sourceTree:evidence.sourceTree,sourcePatchSha256:patchHash,sourcePatchKind:"ordered-code-patch-set-index",buildProfileSha256:profileHash,coreSha256:runtimeFiles["easytier-core.exe"].sha256,cliSha256:runtimeFiles["easytier-cli.exe"].sha256,files:evidence.runtimeFiles});
+const manifestHash = write(path.join(active,"laokuai-build.json"),manifest);
+for (const name of Object.keys(runtimeFiles)) fs.copyFileSync(path.join(stage,"runtime",name),path.join(active,name));
+const zipPath = "build/community-lan/product/laokuai-member-network-runtime-input.zip";
+assert.ok(!fs.existsSync(path.join(client,zipPath)));
+fs.writeFileSync(path.join(client,zipPath),zipSync(Object.fromEntries([...Object.keys(runtimeFiles),"laokuai-build.json","build-receipt.json"].map(name=>[name,new Uint8Array(fs.readFileSync(path.join(active,name)))])),{level:6}));
+const old = structuredClone(provenance.privateBuild); old.status="historical-modern-static-input-preserved";
+old.buildReceiptPath="build/community-lan/product/history/modern-static-f716a113/build-receipt.json";
+old.runtimeManifestPath="build/community-lan/product/history/modern-static-f716a113/laokuai-build.json";
+provenance.historicalBuilds.push(old); provenance.historicalPatchSets.push(structuredClone(provenance.patchSet));
+const index = read(path.join(et,indexPath));
+Object.assign(provenance.patchSet,{status:"ordered-patch-set-source-and-static-build-verified",sourceCommit:evidence.sourceCommit,sourceTree:evidence.sourceTree,sourceTreeScope:evidence.sourceTreeScope,cumulativeSha256:patchHash,codePatchSha256:patchHash,hashSemantics:"SHA256 of ordered code patch index; apply its two patches in order",indexPath,patches:index.patches});
+Object.assign(provenance.patchSet.review,{reviewedCommit:evidence.sourceCommit,reviewedTree:evidence.sourceTree,acceptanceScope:"Exact preferred source restoration, native relay module tests and static build/import contracts; native runtime, drivers and network remain unaccepted",reverseApplyCheckPassed:false});
+Object.assign(provenance.privateBuild,{sourceCommit:evidence.sourceCommit,sourceTree:evidence.sourceTree,sourceTreeScope:evidence.sourceTreeScope,patchSetSha256:patchHash,buildReceiptSha256:receiptHash,packageSha256:sha(fs.readFileSync(path.join(client,zipPath))),packagePath:zipPath,windowsRuntimeFiles:runtimeFiles,runtimeManifestSha256:manifestHash,featureProfileSha256:profileHash,trackedReceiptPath:"receipts/member-network-20261013/build.json",trackedRuntimeInputPath:"receipts/member-network-20261013/runtime-input.json",historicalProfileJsonAtBuildFreezeSha256:sha(profileBytes),finalProfileAttestationCreatedAfterBuild:true,actualBuildInputsEvidence:"Exact native subtree10b76471, unchanged lock/17 features/+crt-static in original producer; public receipt is sanitized integration attestation",originalProducerReceiptSha256:evidence.producerReceiptSha256,sourceFileSetSha256:evidence.sourceFileSetSha256});
+provenance.friendBetaReview.previousNativeSourceCommit=provenance.friendBetaReview.nativeSourceCommit;
+provenance.friendBetaReview.nativeSourceCommit=evidence.sourceCommit;
+provenance.friendBetaReview.nativeUpdateScope="Same toolchain/dependency lock/features/companions; exact preferred source update recipe supplements immutable six old attachments";
+write(path.join(receiptDirectory,"runtime-input.json"),{schemaVersion:1,...provenance.privateBuild,nativeRuntimeAccepted:false});
+write(path.join(et,"provenance.json"),provenance);
+const pins = path.join(client,"electron/easyTierWindowsAssets.ts");
+let text = fs.readFileSync(pins,"utf8");
+for(const [from,to] of [[old.sourceCommit,evidence.sourceCommit],[old.sourceTree,evidence.sourceTree],[old.patchSetSha256,patchHash],[old.featureProfileSha256,profileHash],[old.windowsRuntimeFiles["easytier-core.exe"].sha256,runtimeFiles["easytier-core.exe"].sha256],[old.windowsRuntimeFiles["easytier-cli.exe"].sha256,runtimeFiles["easytier-cli.exe"].sha256],["20284928","20247040"],["6160896","6178304"]]) text=text.replaceAll(from,to);
+text=text.replace("export const EASYTIER_LAOKUAI_SOURCE_PATCH_SHA256", "/** Hash of the ordered two-patch index, not a single cumulative diff. */\nexport const EASYTIER_LAOKUAI_SOURCE_PATCH_SHA256");
+fs.writeFileSync(pins,text);
+const gatePath=path.join(client,"scripts/check-easytier-patched-payload.cjs");
+fs.writeFileSync(gatePath,fs.readFileSync(gatePath,"utf8").replaceAll(old.featureProfileSha256,profileHash));
+const inventoryPath=path.join(client,"release/easytier-native-input-inventory.json");
+const inventory=read(inventoryPath); inventory.nativeSourceCommit=evidence.sourceCommit;
+inventory.stage="member-network-static-four-file-integrated-runtime-unaccepted";
+inventory.memberNetworkCandidate={sourceCommit:evidence.sourceCommit,sourceTree:evidence.sourceTree,files:Object.entries(runtimeFiles).map(([name,value])=>({name,...value})),featureProfileSha256:profileHash,sourcePatchSha256:patchHash,sourcePatchKind:"ordered-code-patch-set-index",buildReceiptPath:"components/easytier/receipts/member-network-20261013/build.json",buildReceiptSha256:receiptHash,importAuditPath:"components/easytier/receipts/member-network-20261013/static-imports.json",importAuditSha256:importHash,normalAndDelayImportsBothPassed:true,executed:false,unchangedDependencies:true,sourceMaterials:"release/source-materials/member-network-20261013/source-update-manifest.json"};
+write(inventoryPath,inventory);
+console.log(JSON.stringify({sourceCommit:evidence.sourceCommit,sourceTree:evidence.sourceTree,profileHash,receiptHash,manifestHash,packageHash:provenance.privateBuild.packageSha256,importHash,files:runtimeFiles,nativeExecuted:false}));

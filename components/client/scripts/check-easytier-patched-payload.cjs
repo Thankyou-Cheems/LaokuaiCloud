@@ -25,11 +25,31 @@ function assertPrivatePayloadContract(provenance) {
   assert.deepEqual(Object.keys(files).sort(), ["easytier-core.exe", "easytier-cli.exe", "WinDivert64.sys", "wintun.dll"].sort(), fail);
   assert.equal(build.runtimeManifestSchemaVersion, 2, fail);
   assert.equal(build.normalAndDelayImportsVerified, true, fail);
-  assert.equal(build.featureProfileSha256, "e67bde65ff0afe846854e31b60562b15ba774df33eda6b0540c5d0a395faae02", fail);
+  assert.equal(build.featureProfileSha256, "5dbf82a73189da2e3f251d3ff16b80d79ec38e0d84fa7a3785e03f578b873f68", fail);
   for (const value of Object.values(files)) assert.ok(/^[a-f0-9]{64}$/.test(value.sha256 ?? "") && Number.isSafeInteger(value.bytes) && value.bytes > 0, fail);
   assert.notEqual(files["easytier-core.exe"].sha256, provenance.officialWindowsReference.files["easytier-core.exe"], fail);
   assert.notEqual(files["easytier-cli.exe"].sha256, provenance.officialWindowsReference.files["easytier-cli.exe"], fail);
   for (const key of ["buildReceipt", "package", "runtimeManifest"]) assert.ok(/^[a-f0-9]{64}$/.test(build[key + "Sha256"] ?? "") && typeof build[key + "Path"] === "string", fail);
+}
+
+function assertNativeSourceOffer(offer, build) {
+  if (build.sourceCommit === "089b6182c603c8ab60044b673effe0cf614cc28a") return;
+  const update = offer.nativeSourceUpdate;
+  assert.equal(offer.schemaVersion, 2, "New native payload needs the supplemental source offer");
+  assert.equal(update?.schemaVersion, 1);
+  assert.equal(update.nativeSourceCommit, build.sourceCommit);
+  assert.equal(update.nativeSourceTree, build.sourceTree);
+  assert.equal(update.sourceTreeScope, "components/easytier/source subtree in monorepo commit");
+  assert.equal(update.sourceSnapshot, offer.sourceArchive);
+  assert.equal(update.sourceFiles, 1263);
+  assert.equal(update.originalSourceAttachmentsRetained, true);
+  const required = ["release/source-materials/member-network-20261013/source-update-manifest.json", "release/source-materials/apply-native-source-update.cjs", "release/source-materials/build-updated-recipient-native.ps1"];
+  assert.deepEqual(update.files.map(file => file.path).sort(), required.sort());
+  for (const file of update.files) {
+    assert.match(file.sha256, /^[a-f0-9]{64}$/);
+    assert.ok(Number.isSafeInteger(file.bytes) && file.bytes > 0);
+    assert.equal(file.url, offer.sourceRepository + "/blob/" + offer.sourceCommit + "/" + file.path);
+  }
 }
 
 function assertPatchedEasyTierPayload(root, config) {
@@ -41,6 +61,7 @@ function assertPatchedEasyTierPayload(root, config) {
     assert.equal(offer.version, JSON.parse(fs.readFileSync(path.join(root,"package.json"),"utf8")).version);
     assert.match(offer.sourceCommit, /^[a-f0-9]{40}$/);
     assert.equal(offer.publicReleaseApproved, false);
+    assertNativeSourceOffer(offer, provenance.privateBuild);
     if (offer.schemaVersion === 2) {
       const repository = "https://github.com/Thankyou-Cheems/LaokuaiCloud";
       assert.equal(offer.publicSourceApproved,true);
@@ -57,6 +78,18 @@ function assertPatchedEasyTierPayload(root, config) {
       const bytes=fs.readFileSync(path.join(root,"build/recipient-source",file.file));
       assert.equal(bytes.length,file.bytes);assert.equal(digest(bytes),file.sha256);
     }
+  }
+  const indexBytes = fs.readFileSync(path.resolve(root, "../easytier/" + provenance.patchSet.indexPath));
+  assert.equal(digest(indexBytes), provenance.patchSet.cumulativeSha256);
+  const index = JSON.parse(indexBytes);
+  assert.equal(index.kind, "ordered-code-patch-set-index");
+  assert.equal(index.sourceCommit, provenance.privateBuild.sourceCommit);
+  assert.equal(index.sourceTree, provenance.privateBuild.sourceTree);
+  assert.deepEqual(index.patches.map(patch => patch.order), [1, 2]);
+  for (const patch of index.patches) {
+    assert.match(patch.path, /^laokuai-[a-z0-9-]+\.patch$/);
+    const bytes = fs.readFileSync(path.resolve(root, "../easytier/patches", patch.path));
+    assert.equal(bytes.length, patch.bytes); assert.equal(digest(bytes), patch.sha256);
   }
   const readOwned = relative => {
     assert.ok(typeof relative === "string" && !path.isAbsolute(relative));
@@ -75,6 +108,7 @@ function assertPatchedEasyTierPayload(root, config) {
   assert.equal(manifest.version, "2.7.0-laokuai");
   assert.equal(manifest.upstreamCommit, provenance.upstream.commit);
   assert.equal(manifest.sourcePatchSha256, provenance.patchSet.codePatchSha256);
+  assert.equal(manifest.sourcePatchKind, "ordered-code-patch-set-index");
   assert.equal(manifest.hostPolicy, "externally-managed");
   assert.equal(manifest.ownedStopProtocol, 1);
   assert.equal(manifest.coreSha256, provenance.privateBuild.windowsRuntimeFiles["easytier-core.exe"].sha256);
@@ -98,4 +132,4 @@ function assertPatchedEasyTierPayload(root, config) {
     assert.equal(digest(bytes), expected.sha256, name);
   }
 }
-module.exports = { assertPrivatePayloadContract, assertPatchedEasyTierPayload };
+module.exports = { assertPrivatePayloadContract, assertPatchedEasyTierPayload, assertNativeSourceOffer };

@@ -5,6 +5,8 @@ dist-electron/
 *.tsbuildinfo
 *.local.json
 *.local.log
+__pycache__/
+*.py[cod]
 
 # Local development materials; never publish profiles, archives or binaries.
 /.local/

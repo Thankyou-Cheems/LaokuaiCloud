@@ -9,3 +9,8 @@ components/easytier/patches/laokuai-modern-static-cumulative-code.patch -text -w
 release/prototypes/easytier-contract-20261012/** -text -whitespace
 # Keep the hash-pinned cross-platform operator inputs exact on checkout.
 release/deployment/hybrid-d38ed22d/*.py -text
+# Preserve the new native patch and hash-pinned attestations on Windows checkout.
+components/easytier/patches/laokuai-member-network-20261013.patch -text -whitespace
+components/easytier/patches/laokuai-member-network-20261013.patch-set.json -text
+components/easytier/receipts/member-network-20261013/*.json -text
+components/client/scripts/easytier-windows-feature-profile.json -text

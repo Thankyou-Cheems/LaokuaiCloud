@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
   "name": "windows-std-static-minus-faketcp-v2",
-  "sourceCommit": "089b6182c603c8ab60044b673effe0cf614cc28a",
-  "sourceTree": "25be11e0c9460bce1330cbd7964e4d6561f0bc14",
-  "sourcePatchSha256": "490ffd127cc7c6a9d0d622ff161fe2086536e59be8b8281cf87e2f00e314aed5",
+  "sourceCommit": "10b76471abb043709c9dc1fd321e845258976213",
+  "sourceTree": "381c14c582c3f05cd0db13a75f9b905c9d17b1bf",
+  "sourcePatchSha256": "d70f6dfb1902aee26529b413b74ebffc47dde8f2bfe3b8b0ae36aa118b3a3e4e",
   "cargoLockSha256": "e3ee41507e7a8ef94470b70f4639140e67aadae646ada82dfd23b0beeb0e7fb2",
   "toolchain": "1.95.0",
   "target": "x86_64-pc-windows-msvc",
@@ -58,36 +58,44 @@
     "files": [
       {
         "name": "easytier-core.exe",
-        "bytes": 20284928,
-        "sha256": "f716a1139d66800bbc75daa200b1c0c6eecccb97e88e13167fafb8d7d38bb81d",
-        "origin": "Exact source089b6182 standard-static producer build"
+        "bytes": 20247040,
+        "sha256": "d1634bf0fdfa4b151a836b5ba121c68b1e7da65f62363048628f2f16c13b548a",
+        "origin": "Exact monorepo native source10b76471, unchanged 17-feature static CRT build"
       },
       {
         "name": "easytier-cli.exe",
-        "bytes": 6160896,
-        "sha256": "1ad46380937aab6dd7385ebb37bb458c94f8d1a3e68baf2e6c24ea973adc6411",
-        "origin": "Exact source089b6182 standard-static producer build"
+        "bytes": 6178304,
+        "sha256": "1638d7f1aa654255a541b98a6dd5a3466c382aa42f851eeb7f863bad2905ab43",
+        "origin": "Exact monorepo native source10b76471, unchanged 17-feature static CRT build"
       },
       {
         "name": "WinDivert64.sys",
         "bytes": 94144,
         "sha256": "8da085332782708d8767bcace5327a6ec7283c17cfb85e40b03cd2323a90ddc2",
-        "origin": "Unchanged signed companion reference"
+        "origin": "Unchanged pinned signed companion reference"
       },
       {
         "name": "wintun.dll",
         "bytes": 427552,
         "sha256": "e5da8447dc2c320edc0fc52fa01885c103de8c118481f683643cacc3220dafce",
-        "origin": "Unchanged signed companion reference"
+        "origin": "Unchanged pinned signed companion reference"
       }
     ],
     "normalAndDelayImportsBothPassed": true,
-    "identifierScansBothPassed": true,
-    "buildReceiptSha256": "89228165290b8218dc0ba8e2dc797b50f74064bce2b3fdd8b91db52a59660926",
-    "importAuditSha256": "837ce491253c0c89589b3ee96a37105eed7757c71ea0d08324b79fe883172803",
+    "noDynamicCrtImports": true,
+    "buildReceiptSha256": "788dc7f28363981aa6dd63ad13af90ec3ef2c6f605bfe91e87d0bbf14909cad8",
+    "importAuditSha256": "ec9a798a4d53975955018640bd3493f319d36657b395b3635fac0a93ef9048ce",
     "coreOrCliExecuted": false
   },
   "crtStatic": true,
   "thunkFeatures": [],
-  "windowsServiceManagerFeatures": []
+  "windowsServiceManagerFeatures": [],
+  "sourceTreeScope": "components/easytier/source subtree in monorepo commit",
+  "sourcePatchKind": "ordered-code-patch-set-index",
+  "attestation": {
+    "semanticFeaturesAndFlagsUnchanged": true,
+    "historicalProfileJsonAtBuildFreezeSha256": "e67bde65ff0afe846854e31b60562b15ba774df33eda6b0540c5d0a395faae02",
+    "finalizedAfterBuild": true,
+    "reason": "Source, ordered patch index and actual binary evidence bindings changed; build features/target/static CRT flags did not"
+  }
 }

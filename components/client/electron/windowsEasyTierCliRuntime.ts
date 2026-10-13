@@ -79,6 +79,7 @@ export class WindowsEasyTierCliRuntime implements EasyTierRuntime {
       const core = owner.core;
       return {
         instanceId: config.instanceId, close,
+        applyRelayBudget: core.applyRelayBudget ? (budget, lease, signal) => core.applyRelayBudget!(budget, lease, signal) : undefined,
         readCredentialObservation: core.readCredentialObservation ? signal => core.readCredentialObservation!(signal) : undefined,
         readCredentialSample: core.readCredentialNetwork ? async signal => {
           if (closed || closing || this.stopped || !core.isAlive() || signal.aborted) throw new EasyTierOperationError("runtime-exited");

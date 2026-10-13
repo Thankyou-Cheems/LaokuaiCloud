@@ -44,7 +44,8 @@ const {
 } = await import("../src/packages/common/src/utils/invite.ts");
 const { isPublicHost, pickPublicHost } = await import("../src/packages/common/src/utils/shareableHost.ts");
 const { hostedAdvertisement, openServerLink } = await import("../src/packages/common/src/utils/openServerLink.ts");
-const { inviteDialogView } = await import("../src/packages/socket/src/lib/inviteDialog.ts");
+const { inviteDialogView, showCommunityPassword } = await import("../src/packages/socket/src/lib/inviteDialog.ts");
+const { invitationLimits, inviteAvailability } = await import("../src/packages/socket/src/lib/inviteManagement.ts");
 const { readJoinPolicy } = await import("../src/packages/socket/src/hooks/useServerJoinPolicy.ts");
 
 /* ── pasting a link ─────────────────────────────────────────────────────────── */
@@ -149,7 +150,7 @@ for (const url of ["https://app.gryt.chat/invite?code=abc", "https://app.gryt.ch
 /* ── the join policy a server announces ────────────────────────────────────── */
 
 {
-  for (const policy of ["invite", "request", "open"]) assert.equal(readJoinPolicy(policy), policy);
+  for (const policy of ["invite", "request", "open", "password"]) assert.equal(readJoinPolicy(policy), policy);
   for (const junk of [undefined, null, "", "OPEN", "anyone", 1]) assert.equal(readJoinPolicy(junk), null, `${junk} read as a policy`);
 }
 
@@ -250,6 +251,39 @@ assert.deepEqual(view({ lookup: "private", info: null, accountRequired: true }).
 
 assert.deepEqual(view({ alreadyMember: true }).action, { kind: "go-to-server" });
 assert.equal(view({ lookup: "loading", info: null }).action.kind === "join" && view({ lookup: "loading", info: null }).action.disabled, true);
+
+/* Password admission and invitation admission remain separate. */
+{
+  const passwordInfo = { identityTiers: ["local"], joinPolicy: "password" };
+  const invited = view({ linkCode: "friend", info: passwordInfo });
+  assert.equal(invited.showPasswordField, false, "a valid invitation must be tried without asking for a password");
+  assert.equal(invited.code, "friend");
+  assert.deepEqual(invited.action, { kind: "join", label: "Accept Invite", disabled: false });
+  assert.equal(view({ info: passwordInfo }).showPasswordField, true, "normal address admission still needs the password");
+  const refused = view({ linkCode: "expired", info: passwordInfo, inviteRequired: true });
+  assert.equal(refused.showPasswordField, false, "a refused invitation cannot silently fall back to password admission");
+  assert.equal(refused.action.disabled, true);
+  assert.equal(view({ info: passwordInfo, linkCode: "expired", inviteRequired: true, typedCode: "replacement" }).code, "replacement");
+  assert.equal(view({ alreadyMember: true, info: passwordInfo }).showPasswordField, false);
+  assert.equal(showCommunityPassword("password", "replacement", false, true), false);
+}
+
+/* Explicit limits stay intact; absent limits are safe and invalid input is rejected. */
+{
+  assert.deepEqual(invitationLimits("", "", false), { ok: true, maxUses: 1, expiresInHours: 24 });
+  assert.deepEqual(invitationLimits("6", "72", false), { ok: true, maxUses: 6, expiresInHours: 72 });
+  assert.deepEqual(invitationLimits("", "0.5", true), { ok: true, infinite: true, expiresInHours: 0.5 });
+  for (const input of ["0", "-1", "1.5", "1001", "abc", "Infinity"]) assert.equal(invitationLimits(input, "24", false).ok, false);
+  for (const input of ["0", "-1", "abc", "Infinity"]) assert.equal(invitationLimits("1", input, false).ok, false);
+  const live = { maxUses: 2, usesRemaining: 1, usesConsumed: 1, expiresAt: "2026-10-14T00:00:00Z" };
+  const now = Date.parse("2026-10-13T00:00:00Z");
+  assert.equal(inviteAvailability(live, now), "active");
+  assert.equal(inviteAvailability({ ...live, revoked: true }, now), "revoked");
+  assert.equal(inviteAvailability({ ...live, expiresAt: "2026-10-13T00:00:00Z" }, now), "expired");
+  assert.equal(inviteAvailability({ ...live, usesRemaining: 0 }, now), "exhausted");
+  assert.equal(inviteAvailability({ ...live, usesRemaining: undefined, usesConsumed: 2 }, now), "exhausted");
+  assert.equal(inviteAvailability({ ...live, maxUses: -1, usesConsumed: 100 }, now), "active");
+}
 
 /* ── the desktop's gryt://invite ───────────────────────────────────────────── */
 

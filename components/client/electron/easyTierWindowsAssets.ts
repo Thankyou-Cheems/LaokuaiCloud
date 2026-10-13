@@ -17,12 +17,13 @@ export const EASYTIER_WINDOWS_FILES = Object.freeze({
 });
 export const easyTierSha256 = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
 
-export const EASYTIER_LAOKUAI_SOURCE_PATCH_SHA256 = "490ffd127cc7c6a9d0d622ff161fe2086536e59be8b8281cf87e2f00e314aed5";
-export const EASYTIER_LAOKUAI_PROFILE_SHA256 = "e67bde65ff0afe846854e31b60562b15ba774df33eda6b0540c5d0a395faae02";
+/** Hash of the ordered two-patch index, not a single cumulative diff. */
+export const EASYTIER_LAOKUAI_SOURCE_PATCH_SHA256 = "d70f6dfb1902aee26529b413b74ebffc47dde8f2bfe3b8b0ae36aa118b3a3e4e";
+export const EASYTIER_LAOKUAI_PROFILE_SHA256 = "5dbf82a73189da2e3f251d3ff16b80d79ec38e0d84fa7a3785e03f578b873f68";
 /** Exact private no-Npcap build; official core/CLI remain reference only. */
 export const EASYTIER_PRODUCT_FILES = Object.freeze({
-  "easytier-core.exe": { sha256: "f716a1139d66800bbc75daa200b1c0c6eecccb97e88e13167fafb8d7d38bb81d", bytes: 20284928 },
-  "easytier-cli.exe": { sha256: "1ad46380937aab6dd7385ebb37bb458c94f8d1a3e68baf2e6c24ea973adc6411", bytes: 6160896 },
+  "easytier-core.exe": { sha256: "d1634bf0fdfa4b151a836b5ba121c68b1e7da65f62363048628f2f16c13b548a", bytes: 20247040 },
+  "easytier-cli.exe": { sha256: "1638d7f1aa654255a541b98a6dd5a3466c382aa42f851eeb7f863bad2905ab43", bytes: 6178304 },
   "WinDivert64.sys": { sha256: EASYTIER_WINDOWS_FILES["WinDivert64.sys"], bytes: 94144 },
   "wintun.dll": { sha256: EASYTIER_WINDOWS_FILES["wintun.dll"], bytes: 427552 },
 });
@@ -33,8 +34,9 @@ export function verifiedEasyTierProductManifest(value: unknown): { coreSha256: s
     || manifest.upstreamCommit !== "8b7f1f0196edb5b580829ed5f135050fb5853478"
     || manifest.ownedStopProtocol !== 1 || manifest.hostPolicy !== "externally-managed"
     || manifest.sourcePatchSha256 !== EASYTIER_LAOKUAI_SOURCE_PATCH_SHA256
-    || manifest.sourceCommit !== "089b6182c603c8ab60044b673effe0cf614cc28a"
-    || manifest.sourceTree !== "25be11e0c9460bce1330cbd7964e4d6561f0bc14"
+    || manifest.sourcePatchKind !== "ordered-code-patch-set-index"
+    || manifest.sourceCommit !== "10b76471abb043709c9dc1fd321e845258976213"
+    || manifest.sourceTree !== "381c14c582c3f05cd0db13a75f9b905c9d17b1bf"
     || manifest.cargoLockSha256 !== "e3ee41507e7a8ef94470b70f4639140e67aadae646ada82dfd23b0beeb0e7fb2"
     || manifest.buildProfile !== "windows-std-static-minus-faketcp-v2" || manifest.buildProfileSha256 !== EASYTIER_LAOKUAI_PROFILE_SHA256
     || manifest.noDefaultFeatures !== true || manifest.target !== "x86_64-pc-windows-msvc" || manifest.toolchain !== "1.95.0"

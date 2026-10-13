@@ -30,6 +30,7 @@ export function MemberLanStatus({ serverScope, authenticatedUserId, observerAuth
     reading.source && `${t("memberLan.sourceTitle")}: ${t(`memberLan.source.${reading.source}`)}`,
     reading.observedAtMs !== undefined && `${t("memberLan.ageTitle")}: ${Math.floor(((nowMs ?? reading.observedAtMs) - reading.observedAtMs) / 1000)} s`,
     reading.virtualIps?.length && `${t("memberLan.virtualIpTitle")}: ${reading.virtualIps.join(", ")}`,
+    reading.dnsAddresses?.length && `${t("memberLan.dnsTitle")}: ${reading.dnsAddresses.map(address => `${address.dnsName} → ${address.virtualIp}`).join(", ")}`,
     reading.enrollment === "assigned" && t("memberLan.addressAssignmentBoundary"),
     (reading.virtualIps?.length ?? 0) > 1 && t("memberLan.multipleDeviceAddresses"),
     t("memberLan.voiceBoundary")].filter(Boolean).join("; ");
@@ -44,6 +45,11 @@ export function MemberLanStatus({ serverScope, authenticatedUserId, observerAuth
     if (!navigator.clipboard) { toast.error(t("memberLan.copyFailed")); return; }
     void navigator.clipboard.writeText(address).then(() => toast.success(t("memberLan.addressCopied")), () => toast.error(t("memberLan.copyFailed")));
   };
+  const copyDnsName = (event: MouseEvent<HTMLButtonElement>, name: string) => {
+    event.stopPropagation();
+    if (!navigator.clipboard) { toast.error(t("memberLan.copyFailed")); return; }
+    void navigator.clipboard.writeText(name).then(() => toast.success(t("memberLan.dnsCopied")), () => toast.error(t("memberLan.copyFailed")));
+  };
   return <Tooltip title={details}><span role="group" tabIndex={0} aria-label={details} title={details}
     data-gryt="member-lan-status" data-enrollment={reading.enrollment} data-lan-path={reading.path}
     onKeyDown={event => { if (event.key === "Enter" || event.key === " ") event.stopPropagation(); }}
@@ -56,6 +62,12 @@ export function MemberLanStatus({ serverScope, authenticatedUserId, observerAuth
       onClick={event => copyVirtualIp(event, address)} onPointerDown={event => event.stopPropagation()}
       className="shrink-0 truncate text-[10px] underline decoration-dotted underline-offset-2 hover:text-gryt-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-gryt-accent">
       {address}
+    </button>)}
+    {reading.dnsAddresses?.map(address => <button key={address.dnsName} type="button" data-gryt="member-lan-dns" data-virtual-ip={address.virtualIp}
+      aria-label={`${t("memberLan.copyDnsName")}: ${address.dnsName} → ${address.virtualIp}`} title={`${t("memberLan.copyDnsName")}: ${address.dnsName} → ${address.virtualIp}`}
+      onClick={event => copyDnsName(event, address.dnsName)} onPointerDown={event => event.stopPropagation()}
+      className="min-w-0 max-w-full truncate text-[10px] underline decoration-dotted underline-offset-2 hover:text-gryt-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-gryt-accent">
+      {address.dnsName}
     </button>)}
   </span></Tooltip>;
 }

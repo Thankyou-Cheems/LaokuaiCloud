@@ -1,0 +1,1511 @@
+diff --git a/easytier-core/src/config/api.rs b/easytier-core/src/config/api.rs
+index 47b58b85a8a70f667ed554944f9e43fc6f9606c9..8cb02708ceb5175d61c003b906cc40936b9edd1a 100644
+--- a/easytier-core/src/config/api.rs
++++ b/easytier-core/src/config/api.rs
+@@ -155,6 +155,7 @@ pub fn network_config_from_toml(config: &TomlConfig) -> NetworkConfig {
+     result.disable_upnp = Some(flags.disable_upnp);
+     result.disable_relay_data = Some(flags.disable_relay_data);
+     result.prefer_peer_relay = Some(flags.prefer_peer_relay);
++    result.member_relay_bytes_per_sec = config.get_member_relay_bytes_per_sec();
+     result.enable_udp_broadcast_relay = Some(flags.enable_udp_broadcast_relay);
+     result.disable_sym_hole_punching = Some(flags.disable_sym_hole_punching);
+     result.enable_magic_dns = Some(flags.accept_dns);
+@@ -186,6 +187,22 @@ pub fn network_config_from_toml(config: &TomlConfig) -> NetworkConfig {
+ #[cfg(test)]
+ mod tests {
+     use super::*;
++
++    #[test]
++    fn member_relay_budget_readback_preserves_none_and_zero() {
++        let config = TomlConfig::default();
++        assert_eq!(
++            network_config_from_toml(&config).member_relay_bytes_per_sec,
++            None
++        );
++        for rate in [0, 32_000] {
++            config.set_member_relay_bytes_per_sec(Some(rate));
++            assert_eq!(
++                network_config_from_toml(&config).member_relay_bytes_per_sec,
++                Some(rate)
++            );
++        }
++    }
+     use crate::config::toml::ManagedCredentialConfig;
+ 
+     #[test]
+diff --git a/easytier-core/src/config/api_input.rs b/easytier-core/src/config/api_input.rs
+index 62dd96c02b9ab582a389d14e9441c186e6dc6a9c..ac9719b8cb8318340cb770e553330fa720c7f852 100644
+--- a/easytier-core/src/config/api_input.rs
++++ b/easytier-core/src/config/api_input.rs
+@@ -110,6 +110,7 @@ const FORM_MANAGED_TOML_FIELDS: &[&str] = &[
+     "acl",
+     "credential_file",
+     "managed_credentials",
++    "member_relay_bytes_per_sec",
+ ];
+ 
+ #[cfg(all(
+@@ -447,6 +448,7 @@ impl NetworkConfigExt for NetworkConfig {
+                 .map(managed_credential_from_proto)
+                 .collect(),
+         );
++        cfg.set_member_relay_bytes_per_sec(self.member_relay_bytes_per_sec);
+ 
+         if let Some(credential_secret) = credential_secret {
+             cfg.set_secure_mode(Some(normalize_secure_mode_config(
+@@ -793,6 +795,7 @@ impl NetworkConfigExt for NetworkConfig {
+         result.disable_upnp = Some(flags.disable_upnp);
+         result.disable_relay_data = Some(flags.disable_relay_data);
+         result.prefer_peer_relay = Some(flags.prefer_peer_relay);
++        result.member_relay_bytes_per_sec = config.get_member_relay_bytes_per_sec();
+         result.enable_udp_broadcast_relay = Some(flags.enable_udp_broadcast_relay);
+         result.disable_sym_hole_punching = Some(flags.disable_sym_hole_punching);
+         result.enable_magic_dns = Some(flags.accept_dns);
+@@ -941,6 +944,24 @@ mod tests {
+         assert_eq!(output.prefer_peer_relay, Some(true));
+     }
+ 
++    #[test]
++    fn member_relay_budget_network_config_roundtrip_preserves_zero() {
++        for rate in [None, Some(0), Some(32_000)] {
++            let input = NetworkConfig {
++                member_relay_bytes_per_sec: rate,
++                ..standalone_config()
++            };
++            let config = input.gen_config().unwrap();
++            assert_eq!(config.get_member_relay_bytes_per_sec(), rate);
++            assert_eq!(
++                NetworkConfig::new_from_config(&config)
++                    .unwrap()
++                    .member_relay_bytes_per_sec,
++                rate
++            );
++        }
++    }
++
+     #[test]
+     fn legacy_enabled_vpn_portal_config_reports_migration_error() {
+         let error = NetworkConfig {
+diff --git a/easytier-core/src/config/mod.rs b/easytier-core/src/config/mod.rs
+index 4b3e39eb65a1f73e0ebb40784628944a8f83b3b0..b57b116865a78e904181a2f418a4536d67b7c789 100644
+--- a/easytier-core/src/config/mod.rs
++++ b/easytier-core/src/config/mod.rs
+@@ -316,6 +316,10 @@ pub struct TrafficConfig {
+     pub mtu: Option<u16>,
+     pub instance_recv_bps_limit: Option<u64>,
+     pub foreign_relay_bps_limit: Option<u64>,
++    /// Same-network forwarded data only, in bytes per second. None is legacy;
++    /// zero rejects forwarding. Older binaries do not understand this field.
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    pub member_relay_bytes_per_sec: Option<u64>,
+ }
+ 
+ #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+@@ -558,6 +562,7 @@ impl TryFrom<pb::TrafficConfig> for TrafficConfig {
+                 .transpose()?,
+             instance_recv_bps_limit: value.instance_recv_bps_limit,
+             foreign_relay_bps_limit: value.foreign_relay_bps_limit,
++            member_relay_bytes_per_sec: value.member_relay_bytes_per_sec,
+         })
+     }
+ }
+@@ -568,6 +573,7 @@ impl From<TrafficConfig> for pb::TrafficConfig {
+             mtu: value.mtu.map(Into::into),
+             instance_recv_bps_limit: value.instance_recv_bps_limit,
+             foreign_relay_bps_limit: value.foreign_relay_bps_limit,
++            member_relay_bytes_per_sec: value.member_relay_bytes_per_sec,
+         }
+     }
+ }
+@@ -608,6 +614,18 @@ fn uuid_from_bytes(bytes: [u8; 16]) -> common_pb::Uuid {
+ #[cfg(test)]
+ mod tests {
+     use super::*;
++
++    #[test]
++    fn member_relay_budget_portable_proto_roundtrip_preserves_zero() {
++        for rate in [None, Some(0), Some(32_000)] {
++            let config = TrafficConfig {
++                member_relay_bytes_per_sec: rate,
++                ..Default::default()
++            };
++            let wire: pb::TrafficConfig = config.clone().into();
++            assert_eq!(TrafficConfig::try_from(wire).unwrap(), config);
++        }
++    }
+     use base64::prelude::BASE64_STANDARD;
+     use x25519_dalek::{PublicKey, StaticSecret};
+ 
+@@ -808,6 +826,7 @@ mod tests {
+                 mtu: Some(1380),
+                 instance_recv_bps_limit: Some(100),
+                 foreign_relay_bps_limit: None,
++                member_relay_bytes_per_sec: None,
+             }),
+         })
+         .unwrap();
+diff --git a/easytier-core/src/config/toml.rs b/easytier-core/src/config/toml.rs
+index 81692860334e6e1547d6953d2b9df9e197a56382..24d083d46d32fb4c4d5df297d99811e8954601da 100644
+--- a/easytier-core/src/config/toml.rs
++++ b/easytier-core/src/config/toml.rs
+@@ -278,6 +278,11 @@ pub trait ConfigLoader: Send + Sync {
+     }
+     fn set_managed_credentials(&self, _credentials: Vec<ManagedCredentialConfig>) {}
+ 
++    fn get_member_relay_bytes_per_sec(&self) -> Option<u64> {
++        None
++    }
++    fn set_member_relay_bytes_per_sec(&self, _bytes_per_sec: Option<u64>) {}
++
+     fn get_network_config_source(&self) -> ConfigSource {
+         ConfigSource::User
+     }
+@@ -564,6 +569,8 @@ struct Config {
+     credential_file: Option<PathBuf>,
+     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+     managed_credentials: Vec<ManagedCredentialConfig>,
++    #[serde(default, skip_serializing_if = "Option::is_none")]
++    member_relay_bytes_per_sec: Option<u64>,
+     source: Option<ConfigSourceConfig>,
+ }
+ 
+@@ -1155,6 +1162,14 @@ impl ConfigLoader for TomlConfig {
+         self.config.lock().unwrap().managed_credentials = credentials;
+     }
+ 
++    fn get_member_relay_bytes_per_sec(&self) -> Option<u64> {
++        self.config.lock().unwrap().member_relay_bytes_per_sec
++    }
++
++    fn set_member_relay_bytes_per_sec(&self, bytes_per_sec: Option<u64>) {
++        self.config.lock().unwrap().member_relay_bytes_per_sec = bytes_per_sec;
++    }
++
+     fn get_network_config_source(&self) -> ConfigSource {
+         self.config
+             .lock()
+@@ -1204,6 +1219,35 @@ pub type TomlConfigLoader = TomlConfig;
+ mod tests {
+     use super::*;
+ 
++    #[test]
++    fn member_relay_budget_absent_positive_and_zero_are_distinct() {
++        assert_eq!(TomlConfig::default().get_member_relay_bytes_per_sec(), None);
++        for rate in [0, 32_000] {
++            let config =
++                TomlConfig::new_from_str(&format!("member_relay_bytes_per_sec = {rate}")).unwrap();
++            assert_eq!(config.get_member_relay_bytes_per_sec(), Some(rate));
++            config.set_member_relay_bytes_per_sec(None);
++            assert_eq!(config.get_member_relay_bytes_per_sec(), None);
++        }
++        assert!(TomlConfig::new_from_str("member_relay_bytes_per_sec = -1").is_err());
++    }
++
++    #[cfg(feature = "config-write")]
++    #[test]
++    fn member_relay_budget_toml_roundtrip_preserves_zero() {
++        for rate in [0, 32_000] {
++            let config =
++                TomlConfig::new_from_str(&format!("member_relay_bytes_per_sec = {rate}")).unwrap();
++            let restored = TomlConfig::new_from_str(&config.dump()).unwrap();
++            assert_eq!(restored.get_member_relay_bytes_per_sec(), Some(rate));
++        }
++        assert!(
++            !TomlConfig::default()
++                .dump()
++                .contains("member_relay_bytes_per_sec")
++        );
++    }
++
+     #[test]
+     fn parse_error_preserves_source_and_location() {
+         let error =
+diff --git a/easytier-core/src/foundation/stats.rs b/easytier-core/src/foundation/stats.rs
+index 228fcfa5281e154a61ef6b411b11407f821fbd7a..b319e1b803c73da62cae08b669952197e985e95b 100644
+--- a/easytier-core/src/foundation/stats.rs
++++ b/easytier-core/src/foundation/stats.rs
+@@ -125,6 +125,12 @@ pub enum MetricName {
+     TrafficControlBytesRxByInstance,
+     /// Traffic bytes forwarded
+     TrafficBytesForwarded,
++    /// Same-network forwarded data admitted by the configured member budget.
++    MemberRelayBudgetAdmittedBytes,
++    /// Same-network forwarded data dropped before transmission by the budget.
++    MemberRelayBudgetDroppedBytes,
++    MemberRelayBudgetAdmittedPackets,
++    MemberRelayBudgetDroppedPackets,
+     /// Control-plane traffic bytes forwarded
+     TrafficControlBytesForwarded,
+     /// Traffic bytes sent to self
+@@ -222,6 +228,18 @@ impl fmt::Display for MetricName {
+                 write!(f, "traffic_control_bytes_rx_by_instance")
+             }
+             MetricName::TrafficBytesForwarded => write!(f, "traffic_bytes_forwarded"),
++            MetricName::MemberRelayBudgetAdmittedBytes => {
++                write!(f, "member_relay_budget_admitted_bytes")
++            }
++            MetricName::MemberRelayBudgetDroppedBytes => {
++                write!(f, "member_relay_budget_dropped_bytes")
++            }
++            MetricName::MemberRelayBudgetAdmittedPackets => {
++                write!(f, "member_relay_budget_admitted_packets")
++            }
++            MetricName::MemberRelayBudgetDroppedPackets => {
++                write!(f, "member_relay_budget_dropped_packets")
++            }
+             MetricName::TrafficControlBytesForwarded => {
+                 write!(f, "traffic_control_bytes_forwarded")
+             }
+diff --git a/easytier-core/src/instance/config.rs b/easytier-core/src/instance/config.rs
+index 7bfdd23a10f719ce1a0c02938c80c1e0e35c8d42..7cac69b19cd0f872d7ebf45421af3d33b7673c36 100644
+--- a/easytier-core/src/instance/config.rs
++++ b/easytier-core/src/instance/config.rs
+@@ -250,6 +250,7 @@ impl CoreInstanceConfig {
+                 max_direct_conns_per_peer_in_foreign_network:
+                     MAX_DIRECT_CONNS_PER_PEER_IN_FOREIGN_NETWORK,
+                 hmac_secret_digest: false,
++                member_relay_bytes_per_sec: config.get_member_relay_bytes_per_sec(),
+             });
+         let peer = PortablePeerManagerConfig {
+             snapshot: peer_snapshot,
+@@ -407,6 +408,25 @@ mod tests {
+ 
+     use super::*;
+ 
++    #[test]
++    fn member_relay_budget_reaches_atomic_peer_snapshot_from_toml() {
++        for rate in [0, 32_000] {
++            let toml =
++                TomlConfig::new_from_str(&format!("member_relay_bytes_per_sec = {rate}")).unwrap();
++            let config = CoreInstanceConfig::from_toml(&toml).unwrap();
++            assert_eq!(
++                config
++                    .peer
++                    .snapshot
++                    .runtime
++                    .core
++                    .traffic
++                    .member_relay_bytes_per_sec,
++                Some(rate)
++            );
++        }
++    }
++
+     #[test]
+     fn tcp_stun_servers_follow_toml_override_rules() {
+         let fallback = TomlConfig::new_from_str(
+diff --git a/easytier-core/src/instance/management.rs b/easytier-core/src/instance/management.rs
+index b8ec79ec78be720251b268f9a142fe62769ee6f3..d874d758e445fcaf8de8d7ae81c37404970c26af 100644
+--- a/easytier-core/src/instance/management.rs
++++ b/easytier-core/src/instance/management.rs
+@@ -220,6 +220,23 @@ where
+         self.peer_manager.notify_credential_changed();
+     }
+ 
++    #[cfg(feature = "web-client")]
++    pub(crate) fn renew_member_relay_lease(&self, lease_ms: u32) -> anyhow::Result<()> {
++        self.peer_manager
++            .renew_member_relay_lease(lease_ms)
++            .map_err(anyhow::Error::msg)
++    }
++
++    #[cfg(feature = "web-client")]
++    pub(crate) fn revoke_member_relay_lease(&self) {
++        self.peer_manager.revoke_member_relay_lease();
++    }
++
++    #[cfg(feature = "web-client")]
++    pub(crate) fn member_relay_lease_remaining_ms(&self) -> u32 {
++        self.peer_manager.member_relay_lease_remaining_ms()
++    }
++
+     pub fn metric_snapshots(&self) -> Vec<MetricSnapshot> {
+         self.peer_manager.stats_manager().get_all_metrics()
+     }
+diff --git a/easytier-core/src/instance/tests.rs b/easytier-core/src/instance/tests.rs
+index 773993ad56d404753c83859ca3b3b442303aa9ae..f347089568613d9c5a0ffb23d0ffd79ff08bf793 100644
+--- a/easytier-core/src/instance/tests.rs
++++ b/easytier-core/src/instance/tests.rs
+@@ -833,6 +833,144 @@ network_secret = "network-secret"
+         assert!(error.to_string().contains("instance is not ready"));
+     }
+ 
++    #[cfg(feature = "management")]
++    #[tokio::test]
++    async fn member_relay_budget_hot_patch_preserves_lan_and_zero_wire_presence() {
++        use crate::peers::relay_budget::RelayBudgetDecision;
++        use easytier_proto::api::config::InstanceConfigPatch;
++        use prost::Message as _;
++
++        let (packet_sink, _packet_receiver) = tokio::sync::mpsc::channel(16);
++        let config = TomlConfig::new_from_str(
++            r#"
++instance_name = "fixture-relay-hot-patch"
++ipv4 = "10.83.0.1/24"
++member_relay_bytes_per_sec = 32000
++[flags]
++encryption_algorithm = "xor"
++[network_identity]
++network_name = "fixture-relay-hot-patch"
++network_secret = "fixture-network-secret"
++"#,
++        )
++        .unwrap();
++        let instance =
++            CoreInstance::from_toml(config, adapters(None, Arc::new(packet_sink))).unwrap();
++        // Construction-only OS-free fixture: do not start connectivity, core
++        // process, host adapters, TUN, listeners or any real network transport.
++        instance.set_state(CoreInstanceState::Running);
++        let original_peer_id = instance.peer_id();
++        let original_routes = instance
++            .runtime_config
++            .snapshot()
++            .peer
++            .runtime
++            .core
++            .routes
++            .clone();
++        assert_eq!(
++            instance.peer_manager.test_admit_member_relay_data(1),
++            RelayBudgetDecision::Dropped
++        );
++        crate::management::apply_config_patch(
++            &instance,
++            InstanceConfigPatch {
++                member_relay_lease_ms: Some(10_000),
++                ..Default::default()
++            },
++            None,
++        )
++        .await
++        .unwrap();
++        assert!(instance.member_relay_lease_remaining_ms() > 0);
++
++        let off = InstanceConfigPatch {
++            member_relay_bytes_per_sec: Some(0),
++            ..Default::default()
++        };
++        let wire = off.encode_to_vec();
++        let decoded = InstanceConfigPatch::decode(wire.as_slice()).unwrap();
++        assert_eq!(decoded.member_relay_bytes_per_sec, Some(0));
++        crate::management::apply_config_patch(&instance, decoded, None)
++            .await
++            .unwrap();
++        assert_eq!(
++            instance.peer_manager.test_admit_member_relay_data(1),
++            RelayBudgetDecision::Dropped
++        );
++        crate::management::apply_config_patch(&instance, InstanceConfigPatch::default(), None)
++            .await
++            .unwrap();
++        assert_eq!(
++            instance
++                .runtime_config
++                .snapshot()
++                .peer
++                .runtime
++                .core
++                .traffic
++                .member_relay_bytes_per_sec,
++            Some(0)
++        );
++
++        let on = InstanceConfigPatch {
++            member_relay_bytes_per_sec: Some(32_000),
++            member_relay_lease_ms: Some(10_000),
++            ..Default::default()
++        };
++        crate::management::apply_config_patch(&instance, on, None)
++            .await
++            .unwrap();
++        assert_eq!(
++            instance
++                .runtime_config
++                .snapshot()
++                .peer
++                .runtime
++                .core
++                .traffic
++                .member_relay_bytes_per_sec,
++            Some(32_000)
++        );
++        assert_eq!(
++            instance.peer_manager.test_admit_member_relay_data(8_000),
++            RelayBudgetDecision::Dropped
++        );
++        let readback =
++            crate::config::api::network_config_from_toml(&instance.toml_config().unwrap());
++        assert_eq!(readback.member_relay_bytes_per_sec, Some(32_000));
++        assert_eq!(instance.state(), CoreInstanceState::Running);
++        assert_eq!(instance.peer_id(), original_peer_id);
++        assert_eq!(
++            instance.runtime_config.snapshot().peer.runtime.core.routes,
++            original_routes
++        );
++        assert!(
++            !instance
++                .runtime_config
++                .snapshot()
++                .peer
++                .flags
++                .disable_relay_data
++        );
++        crate::management::apply_config_patch(
++            &instance,
++            InstanceConfigPatch {
++                member_relay_lease_ms: Some(0),
++                ..Default::default()
++            },
++            None,
++        )
++        .await
++        .unwrap();
++        assert_eq!(instance.member_relay_lease_remaining_ms(), 0);
++        assert_eq!(
++            instance.peer_manager.test_admit_member_relay_data(1),
++            RelayBudgetDecision::Dropped
++        );
++        instance.peer_manager.clear_resources().await;
++    }
++
+     #[cfg(feature = "management")]
+     #[tokio::test]
+     async fn managed_credential_patch_is_durable_atomic_and_does_not_restart() {
+diff --git a/easytier-core/src/management/full/config_patch.rs b/easytier-core/src/management/full/config_patch.rs
+index ed261ce622de0ebb1a710ef2d7c088045ed1020f..7555a553241c8fb8d52c8a045d1c7a6fcf2496a9 100644
+--- a/easytier-core/src/management/full/config_patch.rs
++++ b/easytier-core/src/management/full/config_patch.rs
+@@ -35,6 +35,19 @@ where
+         anyhow::bail!("instance is not ready; config patch rejected");
+     }
+ 
++    let member_relay_lease_ms = patch.member_relay_lease_ms;
++    if member_relay_lease_ms
++        .is_some_and(|ttl| ttl > crate::peers::relay_budget::MAX_MEMBER_RELAY_LEASE_MS)
++    {
++        anyhow::bail!("member relay lease exceeds 15000ms");
++    }
++    // Security-off closes the local gate before any durable-write await.
++    // A failed/cancelled persistence may keep the old rate, but cannot keep
++    // granting new forwarded packets until somebody explicitly renews.
++    if patch.member_relay_bytes_per_sec == Some(0) || member_relay_lease_ms == Some(0) {
++        instance.revoke_member_relay_lease();
++    }
++
+     let config = instance
+         .toml_config()
+         .ok_or_else(|| anyhow::anyhow!("shared TOML configuration is not available"))?;
+@@ -103,6 +116,9 @@ where
+             flags.prefer_peer_relay = prefer_peer_relay;
+             candidate.set_flags(flags);
+         }
++        if let Some(bytes_per_sec) = patch.member_relay_bytes_per_sec {
++            candidate.set_member_relay_bytes_per_sec(Some(bytes_per_sec));
++        }
+         if let Some(enabled) = patch.ipv6_public_addr_provider {
+             candidate.set_ipv6_public_addr_provider(enabled);
+             provider_config_changed = true;
+@@ -224,6 +240,16 @@ where
+         .update_runtime_config_under_operation(runtime_config_from_toml(instance, &config)?)
+         .await?;
+     let (provider_config_changed, managed_credentials_changed) = patch_result?;
++    if let Some(lease_ms) = member_relay_lease_ms {
++        if lease_ms > 0
++            && config
++                .get_member_relay_bytes_per_sec()
++                .is_none_or(|rate| rate == 0)
++        {
++            anyhow::bail!("member relay lease requires a configured positive budget");
++        }
++        instance.renew_member_relay_lease(lease_ms)?;
++    }
+     if patch_for_host != InstanceConfigPatch::default() {
+         instance
+             .instance_runtime
+diff --git a/easytier-core/src/management/instance_rpc/config.rs b/easytier-core/src/management/instance_rpc/config.rs
+index 6cc6057d31f3b94645b00d07c2bf3137bcf4d553..e678461b3ef8168ecbb71044e4593124ca23dfc6 100644
+--- a/easytier-core/src/management/instance_rpc/config.rs
++++ b/easytier-core/src/management/instance_rpc/config.rs
+@@ -36,12 +36,14 @@ where
+         _: BaseController,
+         request: GetConfigRequest,
+     ) -> rpc_types::error::Result<GetConfigResponse> {
+-        let config = self
+-            .instance(request.instance.as_ref())?
++        let instance = self.instance(request.instance.as_ref())?;
++        let config = instance
+             .toml_config()
+             .ok_or_else(|| anyhow::anyhow!("shared TOML configuration is not available"))?;
++        let mut readback = network_config_from_toml(&config);
++        readback.member_relay_lease_remaining_ms = Some(instance.member_relay_lease_remaining_ms());
+         Ok(GetConfigResponse {
+-            config: Some(network_config_from_toml(&config)),
++            config: Some(readback),
+             toml_config: config.dump(),
+         })
+     }
+diff --git a/easytier-core/src/peers/context.rs b/easytier-core/src/peers/context.rs
+index e1757af4480c7ea37e759eb56beac1bda432cedc..ec626656c6e42b444c6d4a516aa9781ae5f3288a 100644
+--- a/easytier-core/src/peers/context.rs
++++ b/easytier-core/src/peers/context.rs
+@@ -32,6 +32,7 @@ use crate::{
+     foundation::token_bucket::{ArcByteLimiter, BucketConfig, TokenBucketManager},
+     peers::{
+         credential_manager::{CredentialManager, CredentialStorage},
++        relay_budget::{MemberRelayBudget, RelayBudgetDecision, advertised_avoid_relay_data},
+         util::shrink_dashmap,
+         whitelist::check_network_in_relay_whitelist,
+     },
+@@ -80,6 +81,7 @@ pub struct PeerRuntimeSnapshotInput {
+     pub ospf_update_my_foreign_network_interval_sec: u64,
+     pub max_direct_conns_per_peer_in_foreign_network: usize,
+     pub hmac_secret_digest: bool,
++    pub member_relay_bytes_per_sec: Option<u64>,
+ }
+ 
+ #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+@@ -129,6 +131,7 @@ impl PeerRuntimeSnapshot {
+             ospf_update_my_foreign_network_interval_sec,
+             max_direct_conns_per_peer_in_foreign_network,
+             hmac_secret_digest,
++            member_relay_bytes_per_sec,
+         } = input;
+         let feature_flags = PeerFeatureFlag {
+             kcp_input: !flags.disable_kcp_input,
+@@ -156,6 +159,7 @@ impl PeerRuntimeSnapshot {
+                 .then_some(flags.instance_recv_bps_limit),
+             foreign_relay_bps_limit: (flags.foreign_relay_bps_limit != u64::MAX)
+                 .then_some(flags.foreign_relay_bps_limit),
++            member_relay_bytes_per_sec,
+         };
+         let avoid_relay_data_preference = check_network_in_relay_whitelist(
+             &flags.relay_network_whitelist,
+@@ -265,6 +269,7 @@ pub(crate) struct CorePeerContext {
+     stun_info_source: Option<Arc<dyn PeerStunInfoSource>>,
+     public_ipv6_state: Arc<dyn PeerPublicIpv6State>,
+     limiter_state: Mutex<CoreLimiterState>,
++    member_relay_budget: MemberRelayBudget,
+     stats_manager: Arc<StatsManager>,
+     credentials: Arc<CredentialManager>,
+     trusted_keys: Arc<TrustedKeyMapManager>,
+@@ -316,6 +321,7 @@ impl CorePeerContext {
+             stun_info_source: adapters.stun_info_source,
+             public_ipv6_state,
+             limiter_state: Mutex::new(CoreLimiterState::default()),
++            member_relay_budget: MemberRelayBudget::default(),
+             stats_manager,
+             credentials,
+             trusted_keys: Arc::new(TrustedKeyMapManager::new()),
+@@ -365,6 +371,7 @@ impl CorePeerContext {
+     }
+ 
+     pub(crate) async fn stop(&self) {
++        self.member_relay_budget.stop();
+         let manager = {
+             let mut state = self.limiter_state.lock().unwrap();
+             state.stopped = true;
+@@ -718,6 +725,20 @@ pub(crate) trait PeerContext: Send + Sync {
+         None
+     }
+ 
++    fn admit_member_relay_data(&self, _bytes: u64) -> RelayBudgetDecision {
++        RelayBudgetDecision::Legacy
++    }
++
++    fn renew_member_relay_lease(&self, _lease_ms: u32) -> Result<(), &'static str> {
++        Err("member relay lease is unsupported")
++    }
++
++    fn revoke_member_relay_lease(&self) {}
++
++    fn member_relay_lease_remaining_ms(&self) -> u32 {
++        0
++    }
++
+     fn issue_event(&self, _event: PeerEvent) {}
+ 
+     fn subscribe_peer_events(&self) -> Option<PeerContextEventSubscriber> {
+@@ -833,8 +854,12 @@ impl PeerContext for CorePeerContext {
+     fn feature_flags(&self) -> PeerFeatureFlag {
+         let snapshot = self.snapshot();
+         let mut flags = snapshot.runtime.feature_flags;
+-        flags.avoid_relay_data = snapshot.flags.disable_relay_data
+-            || self.avoid_relay_data_preference.load(Ordering::Acquire);
++        flags.avoid_relay_data = advertised_avoid_relay_data(
++            snapshot.runtime.core.traffic.member_relay_bytes_per_sec,
++            snapshot.flags.disable_relay_data,
++            self.avoid_relay_data_preference.load(Ordering::Acquire),
++            self.member_relay_budget.lease_remaining_ms() > 0,
++        );
+         flags.ipv6_public_addr_provider |= self.public_ipv6_state.public_ipv6_provider_enabled();
+         flags
+     }
+@@ -1007,6 +1032,29 @@ impl PeerContext for CorePeerContext {
+         self.get_or_create_limiter(&format!("peer:foreign:{network_name}:forward"), bps)
+     }
+ 
++    fn admit_member_relay_data(&self, bytes: u64) -> RelayBudgetDecision {
++        self.member_relay_budget.try_admit(
++            self.snapshot()
++                .runtime
++                .core
++                .traffic
++                .member_relay_bytes_per_sec,
++            bytes,
++        )
++    }
++
++    fn renew_member_relay_lease(&self, lease_ms: u32) -> Result<(), &'static str> {
++        self.member_relay_budget.renew_lease(lease_ms)
++    }
++
++    fn revoke_member_relay_lease(&self) {
++        self.member_relay_budget.revoke_lease();
++    }
++
++    fn member_relay_lease_remaining_ms(&self) -> u32 {
++        self.member_relay_budget.lease_remaining_ms()
++    }
++
+     fn issue_event(&self, event: PeerEvent) {
+         let context_event = match &event {
+             PeerEvent::PeerAdded(peer_id) => PeerContextEvent::PeerAdded(*peer_id),
+@@ -1131,6 +1179,7 @@ pub(crate) mod tests {
+             ospf_update_my_foreign_network_interval_sec: 17,
+             max_direct_conns_per_peer_in_foreign_network: 5,
+             hmac_secret_digest: true,
++            member_relay_bytes_per_sec: None,
+         }
+     }
+ 
+@@ -1324,6 +1373,78 @@ pub(crate) mod tests {
+         CoreRuntimeConfigStore::new(CoreRuntimeConfig::default(), Arc::new(snapshot))
+     }
+ 
++    #[tokio::test]
++    async fn member_relay_budget_advertisement_reads_current_native_lease_and_runtime() {
++        let mut snapshot = submitted_snapshot("relay-advertisement", false);
++        snapshot.runtime.core.traffic.member_relay_bytes_per_sec = Some(32_000);
++        snapshot.avoid_relay_data_preference = true;
++        let config = submitted_config(snapshot);
++        let context = CorePeerContext::new(
++            config.clone(),
++            Arc::new(()),
++            test_core_context_adapters(Arc::new(())),
++        );
++        assert!(context.feature_flags().avoid_relay_data);
++        context.renew_member_relay_lease(10_000).unwrap();
++        assert!(!context.feature_flags().avoid_relay_data);
++        config.update_peer_with(|peer| peer.flags.disable_relay_data = true);
++        assert!(context.feature_flags().avoid_relay_data);
++        config.update_peer_with(|peer| peer.flags.disable_relay_data = false);
++        assert!(!context.feature_flags().avoid_relay_data);
++        context.revoke_member_relay_lease();
++        assert!(context.feature_flags().avoid_relay_data);
++        context.renew_member_relay_lease(10_000).unwrap();
++        config.update_peer_with(|peer| {
++            peer.runtime.core.traffic.member_relay_bytes_per_sec = Some(0)
++        });
++        assert!(context.feature_flags().avoid_relay_data);
++        config.update_peer_with(|peer| peer.runtime.core.traffic.member_relay_bytes_per_sec = None);
++        assert!(context.feature_flags().avoid_relay_data);
++        context.set_avoid_relay_data_preference(false);
++        assert!(!context.feature_flags().avoid_relay_data);
++        context.stop().await;
++    }
++
++    #[tokio::test]
++    async fn member_relay_budget_is_shared_and_zero_or_stop_clears_forwarding() {
++        let mut snapshot = submitted_snapshot("relay-budget", false);
++        snapshot.runtime.core.traffic.member_relay_bytes_per_sec = Some(32_000);
++        let config = submitted_config(snapshot);
++        let context = CorePeerContext::new(
++            config.clone(),
++            Arc::new(()),
++            test_core_context_adapters(Arc::new(())),
++        );
++        context.renew_member_relay_lease(10_000).unwrap();
++        assert_eq!(
++            context.admit_member_relay_data(8_000),
++            RelayBudgetDecision::Admitted
++        );
++        assert_eq!(
++            context.admit_member_relay_data(8_001),
++            RelayBudgetDecision::Dropped
++        );
++        config.update_peer_with(|peer| {
++            peer.runtime.core.traffic.member_relay_bytes_per_sec = Some(0)
++        });
++        assert_eq!(
++            context.admit_member_relay_data(1),
++            RelayBudgetDecision::Dropped
++        );
++        config.update_peer_with(|peer| {
++            peer.runtime.core.traffic.member_relay_bytes_per_sec = Some(32_000)
++        });
++        assert_eq!(
++            context.admit_member_relay_data(8_000),
++            RelayBudgetDecision::Dropped
++        );
++        context.stop().await;
++        assert_eq!(
++            context.admit_member_relay_data(1),
++            RelayBudgetDecision::Dropped
++        );
++    }
++
+     #[test]
+     fn core_peer_context_separates_config_versions_from_live_support() {
+         let config = submitted_config(submitted_snapshot("before", false));
+diff --git a/easytier-core/src/peers/mod.rs b/easytier-core/src/peers/mod.rs
+index abd980b7985b6854ebf586480b2a452970b21229..36e4a6f2cadb59df93da4513b57cec67c78ad43d 100644
+--- a/easytier-core/src/peers/mod.rs
++++ b/easytier-core/src/peers/mod.rs
+@@ -10,6 +10,7 @@ pub mod peer_center;
+ pub mod peer_manager;
+ pub(crate) mod peer_rpc;
+ pub mod public_ipv6;
++pub(crate) mod relay_budget;
+ pub(crate) mod relay_peer_map;
+ pub(crate) mod route;
+ pub(crate) mod traffic_metrics;
+diff --git a/easytier-core/src/peers/peer_manager.rs b/easytier-core/src/peers/peer_manager.rs
+index e630126fb11e8d9841919a5ae5ef84003570b203..e4555841aa5d0368cbce3ff7795547e7ac76a074 100644
+--- a/easytier-core/src/peers/peer_manager.rs
++++ b/easytier-core/src/peers/peer_manager.rs
+@@ -69,6 +69,7 @@ use super::{
+     peer_rpc::{PeerRpcManager, PeerRpcManagerTransport},
+     public_ipv6::{CorePublicIpv6Runtime, PublicIpv6Runtime},
+     recv_packet_envelope_from_chan,
++    relay_budget::{RelayBudgetDecision, charges_forwarded_data},
+     relay_peer_map::RelayPeerMap,
+     route::{
+         ArcRoute, DisabledRoute, ForeignNetworkRouteInfoMap, NextHopPolicy, Route, RouteInterface,
+@@ -1228,6 +1229,23 @@ impl PeerManagerCore {
+         self.context.issue_credential_changed();
+     }
+ 
++    pub(crate) fn renew_member_relay_lease(&self, lease_ms: u32) -> Result<(), &'static str> {
++        self.context.renew_member_relay_lease(lease_ms)
++    }
++
++    pub(crate) fn revoke_member_relay_lease(&self) {
++        self.context.revoke_member_relay_lease();
++    }
++
++    pub(crate) fn member_relay_lease_remaining_ms(&self) -> u32 {
++        self.context.member_relay_lease_remaining_ms()
++    }
++
++    #[cfg(test)]
++    pub(crate) fn test_admit_member_relay_data(&self, bytes: u64) -> RelayBudgetDecision {
++        self.context.admit_member_relay_data(bytes)
++    }
++
+     pub async fn list_peer_snapshots(&self) -> Vec<PeerSnapshot> {
+         let foreign_peer_map = self.foreign_network_client.get_peer_map();
+         let mut peers = self.peers.list_peers();
+@@ -2881,6 +2899,10 @@ struct PeerPacketRouterCounters {
+     forward_data_tx_bytes: CounterHandle,
+     forward_control_tx_packets: CounterHandle,
+     forward_control_tx_bytes: CounterHandle,
++    member_relay_budget_admitted_bytes: CounterHandle,
++    member_relay_budget_admitted_packets: CounterHandle,
++    member_relay_budget_dropped_bytes: CounterHandle,
++    member_relay_budget_dropped_packets: CounterHandle,
+     compress_tx_bytes_before: CounterHandle,
+     compress_tx_bytes_after: CounterHandle,
+     compress_rx_bytes_before: CounterHandle,
+@@ -2967,6 +2989,20 @@ impl PeerPacketRouter {
+                     MetricName::TrafficControlPacketsForwarded,
+                     label_set.clone(),
+                 ),
++                member_relay_budget_admitted_bytes: stats_mgr.get_counter(
++                    MetricName::MemberRelayBudgetAdmittedBytes,
++                    label_set.clone(),
++                ),
++                member_relay_budget_admitted_packets: stats_mgr.get_counter(
++                    MetricName::MemberRelayBudgetAdmittedPackets,
++                    label_set.clone(),
++                ),
++                member_relay_budget_dropped_bytes: stats_mgr
++                    .get_counter(MetricName::MemberRelayBudgetDroppedBytes, label_set.clone()),
++                member_relay_budget_dropped_packets: stats_mgr.get_counter(
++                    MetricName::MemberRelayBudgetDroppedPackets,
++                    label_set.clone(),
++                ),
+                 compress_tx_bytes_before,
+                 compress_tx_bytes_after,
+                 compress_rx_bytes_before: stats_mgr
+@@ -3052,6 +3088,33 @@ impl PeerPacketRouter {
+                 return;
+             }
+ 
++            // This shared instance bucket is after foreign-network dispatch and
++            // before every same-network next-hop send. Never await quota here:
++            // doing so would stall local/control packets behind forwarded data.
++            if charges_forwarded_data(
++                matches!(ingress, PeerPacketIngress::Local),
++                from_peer_id == self.my_peer_id,
++                to_peer_id == self.my_peer_id,
++                traffic_kind(packet_type) == TrafficKind::Data,
++            ) {
++                match self.context.admit_member_relay_data(buf_len as u64) {
++                    RelayBudgetDecision::Legacy => {}
++                    RelayBudgetDecision::Admitted => {
++                        self.counters
++                            .member_relay_budget_admitted_bytes
++                            .add(buf_len as u64);
++                        self.counters.member_relay_budget_admitted_packets.inc();
++                    }
++                    RelayBudgetDecision::Dropped => {
++                        self.counters
++                            .member_relay_budget_dropped_bytes
++                            .add(buf_len as u64);
++                        self.counters.member_relay_budget_dropped_packets.inc();
++                        return;
++                    }
++                }
++            }
++
+             // Step 10b: credential nodes don't forward handshake packets
+             if self.is_credential_node
+                 && (packet_type == PacketType::HandShake as u8
+diff --git a/easytier-core/src/peers/relay_budget.rs b/easytier-core/src/peers/relay_budget.rs
+new file mode 100644
+index 0000000000000000000000000000000000000000..a616a17e6e15503efa0de2e94d8d107e2ba48355
+--- /dev/null
++++ b/easytier-core/src/peers/relay_budget.rs
+@@ -0,0 +1,488 @@
++//! Strict instance-wide admission for same-network forwarded data only.
++//! No sleeps, queued packets, peer-specific buckets or audio dependencies.
++
++use std::{
++    sync::{
++        Mutex,
++        atomic::{AtomicBool, Ordering},
++    },
++    time::{Duration, Instant},
++};
++
++const NANOS_PER_SECOND: u128 = 1_000_000_000;
++const BURST_DIVISOR: u64 = 4; // At most 250 ms of configured bytes/second.
++pub(crate) const MAX_MEMBER_RELAY_LEASE_MS: u32 = 15_000;
++
++#[derive(Clone, Copy, Debug, Eq, PartialEq)]
++pub(crate) enum RelayBudgetDecision {
++    Legacy,
++    Admitted,
++    Dropped,
++}
++
++/// Managed same-network relay admission must not inherit the foreign-network
++/// whitelist preference. Legacy instances keep their original advertisement.
++pub(crate) fn advertised_avoid_relay_data(
++    rate: Option<u64>,
++    disabled: bool,
++    legacy_preference: bool,
++    lease_active: bool,
++) -> bool {
++    disabled
++        || match rate {
++            None => legacy_preference,
++            Some(0) => true,
++            Some(_) => !lease_active,
++        }
++}
++
++/// Local injection with a local source is exempt. A remote peer cannot claim
++/// exemption merely by setting the packet's source ID to this instance.
++pub(crate) fn charges_forwarded_data(
++    local_ingress: bool,
++    local_source: bool,
++    local_destination: bool,
++    data: bool,
++) -> bool {
++    data && !local_destination && !(local_ingress && local_source)
++}
++
++#[derive(Default)]
++pub(crate) struct MemberRelayBudget {
++    state: Mutex<BucketState>,
++    stopped: AtomicBool,
++    lease_revoked: AtomicBool,
++}
++
++#[derive(Default)]
++struct BucketState {
++    initialized: bool,
++    rate: Option<u64>,
++    available: u64,
++    remainder: u64,
++    last: Option<Instant>,
++    lease_deadline: Option<Instant>,
++}
++
++impl MemberRelayBudget {
++    pub(crate) fn try_admit(&self, rate: Option<u64>, bytes: u64) -> RelayBudgetDecision {
++        self.try_admit_at(rate, bytes, Instant::now())
++    }
++
++    fn try_admit_at(&self, rate: Option<u64>, bytes: u64, now: Instant) -> RelayBudgetDecision {
++        if self.stopped.load(Ordering::Acquire) {
++            return RelayBudgetDecision::Dropped;
++        }
++        // Absence is legacy behavior, including when a concurrent reader owns
++        // the bucket. It is not a revoke operation; revoke must use zero/stop.
++        if rate.is_none() {
++            if let Ok(mut state) = self.state.try_lock() {
++                let deadline = state.lease_deadline;
++                *state = BucketState {
++                    initialized: true,
++                    lease_deadline: deadline,
++                    ..Default::default()
++                };
++            }
++            return RelayBudgetDecision::Legacy;
++        }
++        let Ok(mut state) = self.state.try_lock() else {
++            return RelayBudgetDecision::Dropped;
++        };
++        if self.stopped.load(Ordering::Acquire) {
++            return RelayBudgetDecision::Dropped;
++        }
++        if rate == Some(0)
++            || self.lease_revoked.load(Ordering::Acquire)
++            || !state.lease_deadline.is_some_and(|deadline| now < deadline)
++        {
++            state.available = 0;
++            state.remainder = 0;
++            state.last = Some(now);
++            state.initialized = true;
++            state.rate = rate;
++            self.lease_revoked.store(true, Ordering::Release);
++            return RelayBudgetDecision::Dropped;
++        }
++        state.admit(rate, bytes, now)
++    }
++
++    pub(crate) fn renew_lease(&self, lease_ms: u32) -> Result<(), &'static str> {
++        self.renew_lease_at(lease_ms, Instant::now())
++    }
++
++    fn renew_lease_at(&self, lease_ms: u32, now: Instant) -> Result<(), &'static str> {
++        if lease_ms > MAX_MEMBER_RELAY_LEASE_MS {
++            return Err("member relay lease exceeds 15000ms");
++        }
++        if lease_ms == 0 {
++            self.revoke_lease();
++            return Ok(());
++        }
++        if self.stopped.load(Ordering::Acquire) {
++            return Err("member relay budget is stopped");
++        }
++        let Ok(mut state) = self.state.try_lock() else {
++            return Err("member relay budget is busy");
++        };
++        if self.stopped.load(Ordering::Acquire) {
++            return Err("member relay budget is stopped");
++        }
++        if self.lease_revoked.load(Ordering::Acquire)
++            || !state.lease_deadline.is_some_and(|deadline| now < deadline)
++        {
++            state.available = 0;
++            state.remainder = 0;
++            state.last = Some(now);
++        }
++        state.lease_deadline = Some(now + Duration::from_millis(u64::from(lease_ms)));
++        self.lease_revoked.store(false, Ordering::Release);
++        Ok(())
++    }
++
++    pub(crate) fn revoke_lease(&self) {
++        // Revoke never waits for the quota mutex; the atomic gate closes first.
++        self.lease_revoked.store(true, Ordering::Release);
++        if let Ok(mut state) = self.state.try_lock() {
++            state.lease_deadline = None;
++            state.available = 0;
++            state.remainder = 0;
++            state.initialized = true;
++            state.last = Some(Instant::now());
++        }
++    }
++
++    pub(crate) fn lease_remaining_ms(&self) -> u32 {
++        if self.stopped.load(Ordering::Acquire) || self.lease_revoked.load(Ordering::Acquire) {
++            return 0;
++        }
++        let Ok(state) = self.state.try_lock() else {
++            return 0;
++        };
++        state.lease_deadline.map_or(0, |deadline| {
++            deadline
++                .saturating_duration_since(Instant::now())
++                .as_millis()
++                .min(u128::from(MAX_MEMBER_RELAY_LEASE_MS)) as u32
++        })
++    }
++
++    pub(crate) fn stop(&self) {
++        self.stopped.store(true, Ordering::Release);
++        self.revoke_lease();
++        if let Ok(mut state) = self.state.try_lock() {
++            *state = BucketState::default();
++        }
++    }
++}
++
++impl BucketState {
++    fn admit(&mut self, rate: Option<u64>, bytes: u64, now: Instant) -> RelayBudgetDecision {
++        let Some(rate_value) = rate else {
++            *self = Self {
++                initialized: true,
++                ..Default::default()
++            };
++            return RelayBudgetDecision::Legacy;
++        };
++        let capacity = rate_value / BURST_DIVISOR;
++        if !self.initialized || self.rate != rate {
++            // Only the very first configured use receives a starting burst.
++            // Changes/re-enabling cannot mint another burst from old credit.
++            self.available = if self.initialized { 0 } else { capacity };
++            self.initialized = true;
++            self.rate = rate;
++            self.remainder = 0;
++            self.last = Some(now);
++        } else if let Some(last) = self.last {
++            let Some(elapsed) = now.checked_duration_since(last) else {
++                self.available = 0;
++                self.remainder = 0;
++                self.last = Some(now);
++                return RelayBudgetDecision::Dropped;
++            };
++            let credit = u128::from(rate_value)
++                .saturating_mul(elapsed.as_nanos())
++                .saturating_add(u128::from(self.remainder));
++            let generated = credit / NANOS_PER_SECOND;
++            let room = capacity.saturating_sub(self.available);
++            if generated >= u128::from(room) {
++                self.available = capacity;
++                self.remainder = 0;
++            } else {
++                self.available += generated as u64;
++                self.remainder = (credit % NANOS_PER_SECOND) as u64;
++            }
++            self.last = Some(now);
++        }
++        // Zero denies; packets larger than the burst are never undercharged.
++        if rate_value == 0 || bytes == 0 || bytes > self.available {
++            return RelayBudgetDecision::Dropped;
++        }
++        self.available -= bytes;
++        RelayBudgetDecision::Admitted
++    }
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use std::{sync::Arc, thread, time::Duration};
++
++    #[test]
++    fn managed_advertisement_tracks_lease_zero_and_disable_without_foreign_whitelist() {
++        assert!(!advertised_avoid_relay_data(
++            Some(32_000),
++            false,
++            true,
++            true
++        ));
++        assert!(advertised_avoid_relay_data(
++            Some(32_000),
++            false,
++            false,
++            false
++        ));
++        assert!(advertised_avoid_relay_data(Some(0), false, false, true));
++        assert!(advertised_avoid_relay_data(Some(32_000), true, false, true));
++        for preference in [false, true] {
++            for lease in [false, true] {
++                assert_eq!(
++                    advertised_avoid_relay_data(None, false, preference, lease),
++                    preference
++                );
++                assert!(advertised_avoid_relay_data(None, true, preference, lease));
++            }
++        }
++        let budget = MemberRelayBudget::default();
++        let start = Instant::now();
++        budget.renew_lease_at(10_000, start).unwrap();
++        assert!(budget.lease_remaining_ms() > 0);
++        assert_eq!(
++            budget.try_admit_at(Some(32_000), 1, start + Duration::from_millis(10_000)),
++            RelayBudgetDecision::Dropped
++        );
++        assert_eq!(budget.lease_remaining_ms(), 0);
++        assert!(advertised_avoid_relay_data(
++            Some(32_000),
++            false,
++            true,
++            budget.lease_remaining_ms() > 0
++        ));
++    }
++
++    #[test]
++    fn local_data_and_all_control_bypass_even_when_stopped() {
++        for local_ingress in [false, true] {
++            for local_source in [false, true] {
++                assert!(!charges_forwarded_data(
++                    local_ingress,
++                    local_source,
++                    false,
++                    false
++                ));
++                assert!(!charges_forwarded_data(
++                    local_ingress,
++                    local_source,
++                    true,
++                    true
++                ));
++            }
++        }
++        assert!(!charges_forwarded_data(true, true, false, true));
++        assert!(charges_forwarded_data(false, false, false, true));
++        assert!(charges_forwarded_data(false, true, false, true));
++        assert!(charges_forwarded_data(true, false, false, true));
++        let budget = MemberRelayBudget::default();
++        budget.stop();
++        assert_eq!(budget.try_admit(None, 1), RelayBudgetDecision::Dropped);
++        // Router invokes the stopped bucket only for charges_forwarded_data.
++    }
++
++    #[test]
++    fn missing_config_is_legacy_zero_denies_and_stop_fails_closed() {
++        let budget = MemberRelayBudget::default();
++        assert_eq!(
++            budget.try_admit(None, u64::MAX),
++            RelayBudgetDecision::Legacy
++        );
++        assert_eq!(budget.try_admit(Some(0), 1), RelayBudgetDecision::Dropped);
++        budget.stop();
++        assert_eq!(
++            budget.try_admit(Some(32_000), 1),
++            RelayBudgetDecision::Dropped
++        );
++    }
++
++    #[test]
++    fn complete_bytes_across_destinations_share_one_strict_burst() {
++        let now = Instant::now();
++        let mut state = BucketState::default();
++        assert_eq!(
++            state.admit(Some(32_000), 4_000, now),
++            RelayBudgetDecision::Admitted
++        );
++        assert_eq!(
++            state.admit(Some(32_000), 4_000, now),
++            RelayBudgetDecision::Admitted
++        );
++        assert_eq!(
++            state.admit(Some(32_000), 1, now),
++            RelayBudgetDecision::Dropped
++        );
++        assert_eq!(
++            state.admit(Some(32_000), 4_000, now + Duration::from_millis(125)),
++            RelayBudgetDecision::Admitted
++        );
++        assert_eq!(
++            state.admit(Some(32_000), 8_001, now + Duration::from_secs(1)),
++            RelayBudgetDecision::Dropped
++        );
++        assert_eq!(state.available, 8_000);
++    }
++
++    #[test]
++    fn fraction_carry_and_long_idle_credit_are_bounded() {
++        let start = Instant::now();
++        let mut state = BucketState::default();
++        assert_eq!(
++            state.admit(Some(100), 25, start),
++            RelayBudgetDecision::Admitted
++        );
++        for step in 1..=10 {
++            state.admit(
++                Some(100),
++                u64::MAX,
++                start + Duration::from_millis(step * 15),
++            );
++        }
++        assert_eq!(state.available, 15);
++        state.admit(Some(100), u64::MAX, start + Duration::from_secs(1_000));
++        assert_eq!(state.available, 25);
++        assert_eq!(state.remainder, 0);
++    }
++
++    #[test]
++    fn zero_reenable_and_rate_change_discard_prior_credit() {
++        let start = Instant::now();
++        let mut state = BucketState::default();
++        assert_eq!(
++            state.admit(Some(32_000), 1, start),
++            RelayBudgetDecision::Admitted
++        );
++        assert_eq!(state.admit(Some(0), 1, start), RelayBudgetDecision::Dropped);
++        assert_eq!(
++            state.admit(Some(32_000), 1, start),
++            RelayBudgetDecision::Dropped
++        );
++        assert_eq!(
++            state.admit(Some(32_000), 4_000, start + Duration::from_millis(125)),
++            RelayBudgetDecision::Admitted
++        );
++        assert_eq!(
++            state.admit(Some(64_000), 1, start + Duration::from_millis(125)),
++            RelayBudgetDecision::Dropped
++        );
++        state.admit(None, 1, start);
++        assert_eq!(
++            state.admit(Some(32_000), 1, start),
++            RelayBudgetDecision::Dropped
++        );
++    }
++
++    #[test]
++    fn clock_regression_clears_credit_and_large_rates_do_not_overflow() {
++        let start = Instant::now();
++        let mut state = BucketState::default();
++        state.admit(Some(u64::MAX), 1, start + Duration::from_secs(1));
++        assert_eq!(
++            state.admit(Some(u64::MAX), 1, start),
++            RelayBudgetDecision::Dropped
++        );
++        assert_eq!(state.available, 0);
++        state.admit(
++            Some(u64::MAX),
++            u64::MAX,
++            start + Duration::from_secs(10_000),
++        );
++        assert_eq!(state.available, u64::MAX / 4);
++    }
++
++    #[test]
++    fn contention_drops_instead_of_waiting_or_queueing() {
++        let budget = Arc::new(MemberRelayBudget::default());
++        let guard = budget.state.lock().unwrap();
++        let concurrent = budget.clone();
++        assert_eq!(
++            thread::spawn(move || concurrent.try_admit(Some(32_000), 1))
++                .join()
++                .unwrap(),
++            RelayBudgetDecision::Dropped
++        );
++        assert_eq!(budget.try_admit(None, 1), RelayBudgetDecision::Legacy);
++        budget.stop();
++        assert_eq!(
++            budget.try_admit(Some(32_000), 1),
++            RelayBudgetDecision::Dropped
++        );
++        drop(guard);
++    }
++
++    #[test]
++    fn configured_budget_requires_short_native_lease_and_expiry_does_not_need_main() {
++        let budget = MemberRelayBudget::default();
++        let start = Instant::now();
++        assert_eq!(
++            budget.try_admit_at(Some(32_000), 1, start),
++            RelayBudgetDecision::Dropped
++        );
++        budget.renew_lease_at(10_000, start).unwrap();
++        assert_eq!(
++            budget.try_admit_at(Some(32_000), 4_000, start + Duration::from_millis(125)),
++            RelayBudgetDecision::Admitted
++        );
++        assert_eq!(
++            budget.try_admit_at(Some(32_000), 1, start + Duration::from_millis(10_000)),
++            RelayBudgetDecision::Dropped
++        );
++        assert_eq!(
++            budget.try_admit_at(Some(32_000), 1, start + Duration::from_secs(30)),
++            RelayBudgetDecision::Dropped
++        );
++        assert_eq!(
++            budget.try_admit_at(None, 1, start + Duration::from_secs(30)),
++            RelayBudgetDecision::Legacy
++        );
++    }
++
++    #[test]
++    fn renewal_is_bounded_zero_revokes_and_missing_renewal_cannot_extend_deadline() {
++        let budget = MemberRelayBudget::default();
++        let start = Instant::now();
++        assert!(budget.renew_lease_at(15_001, start).is_err());
++        budget.renew_lease_at(10_000, start).unwrap();
++        assert_eq!(
++            budget.try_admit_at(Some(32_000), 8_000, start),
++            RelayBudgetDecision::Admitted
++        );
++        budget
++            .renew_lease_at(10_000, start + Duration::from_secs(5))
++            .unwrap();
++        assert_eq!(
++            budget.try_admit_at(Some(32_000), 8_000, start + Duration::from_secs(11)),
++            RelayBudgetDecision::Admitted
++        );
++        assert_eq!(
++            budget.try_admit_at(Some(32_000), 1, start + Duration::from_secs(15)),
++            RelayBudgetDecision::Dropped
++        );
++        budget
++            .renew_lease_at(10_000, start + Duration::from_secs(15))
++            .unwrap();
++        budget.renew_lease(0).unwrap();
++        assert_eq!(
++            budget.try_admit_at(Some(32_000), 1, start + Duration::from_secs(16)),
++            RelayBudgetDecision::Dropped
++        );
++    }
++}
+diff --git a/easytier-proto/proto/api_config.proto b/easytier-proto/proto/api_config.proto
+index ae299b7b6a45db4eda9b01aa7c35548a7c76810d..d36dfd72cbd4a2dc24b7e356c4b79ef9d2860053 100644
+--- a/easytier-proto/proto/api_config.proto
++++ b/easytier-proto/proto/api_config.proto
+@@ -31,6 +31,12 @@ message InstanceConfigPatch {
+   repeated VpnPortalClientPatch vpn_portal_clients = 15;
+   api.manage.ManagedCredentialSet managed_credentials = 16;
+   optional bool prefer_peer_relay = 17;
++  // Same-network forwarded data only, bytes/second. Omitted leaves it unchanged;
++  // zero denies forwarding without stopping the instance or local traffic.
++  optional uint64 member_relay_bytes_per_sec = 18;
++  // Local monotonic lease; 1..15000ms renews, zero revokes, omitted does not
++  // renew. Runtime authority must never be restored from TOML.
++  optional uint32 member_relay_lease_ms = 19;
+ }
+ 
+ message VpnPortalClientPatch {
+diff --git a/easytier-proto/proto/api_manage.proto b/easytier-proto/proto/api_manage.proto
+index af4f86d5062d9a2d1a0c4d5294e46115d86b6fa7..f5a3adf0870a7cbc52569611b1e5d93e5c4075e6 100644
+--- a/easytier-proto/proto/api_manage.proto
++++ b/easytier-proto/proto/api_manage.proto
+@@ -106,6 +106,9 @@ message NetworkConfig {
+   optional VpnPortalConfig vpn_portal_config = 69;
+   repeated ManagedCredentialConfig managed_credentials = 71;
+   optional bool prefer_peer_relay = 72;
++  optional uint64 member_relay_bytes_per_sec = 73;
++  // Read-only live observation; absent from static TOML projection.
++  optional uint32 member_relay_lease_remaining_ms = 74;
+ }
+ 
+ message ManagedCredentialConfig {
+diff --git a/easytier-proto/proto/core_config.proto b/easytier-proto/proto/core_config.proto
+index 14d70936b7c371f5cca39def56ddbe4bc9bce0a9..b13ce1996f94b5fdf68b59673927af195e71184a 100644
+--- a/easytier-proto/proto/core_config.proto
++++ b/easytier-proto/proto/core_config.proto
+@@ -53,4 +53,6 @@ message TrafficConfig {
+   optional uint32 mtu = 1;
+   optional uint64 instance_recv_bps_limit = 2;
+   optional uint64 foreign_relay_bps_limit = 3;
++  // Same-network forwarded data upload admission, bytes per second.
++  optional uint64 member_relay_bytes_per_sec = 4;
+ }
+diff --git a/easytier/src/easytier-cli.rs b/easytier/src/easytier-cli.rs
+index bcb2fa8c9386b8c08d22f2f0250d027045ecddf7..cc89929ea1144124040d6ef923667b67c2f57177 100644
+--- a/easytier/src/easytier-cli.rs
++++ b/easytier/src/easytier-cli.rs
+@@ -38,7 +38,7 @@ use easytier::{
+         api::{
+             config::{
+                 AclPatch, ConfigPatchAction, ConfigRpc, ConfigRpcClientFactory,
+-                InstanceConfigPatch, PatchConfigRequest, PortForwardPatch, StringPatch, UrlPatch,
++                GetConfigRequest, InstanceConfigPatch, PatchConfigRequest, PortForwardPatch, StringPatch, UrlPatch,
+                 VpnPortalClientPatch,
+             },
+             instance::{
+@@ -154,6 +154,8 @@ enum SubCommand {
+     Logger(LoggerArgs),
+     #[command(about = "manage temporary credentials")]
+     Credential(CredentialArgs),
++    #[command(about = "inspect or renew owned-instance member relay admission")]
++    MemberRelay(MemberRelayArgs),
+     #[command(about = t!("core_clap.generate_completions").to_string())]
+     GenAutocomplete { shell: ShellType },
+ }
+@@ -164,6 +166,23 @@ enum OutputFormat {
+     Json,
+ }
+ 
++#[derive(Args, Debug)]
++struct MemberRelayArgs {
++    #[command(subcommand)]
++    sub_command: MemberRelaySubCommand,
++}
++
++#[derive(Subcommand, Debug)]
++enum MemberRelaySubCommand {
++    Status,
++    Apply {
++        #[arg(long)]
++        bytes_per_sec: u64,
++        #[arg(long, value_parser = clap::value_parser!(u32).range(0..=15_000))]
++        lease_ms: u32,
++    },
++}
++
+ #[derive(Parser, Debug)]
+ struct InstanceSelectArgs {
+     #[arg(short = 'i', long = "instance-id", help = "the instance id")]
+@@ -1114,6 +1133,47 @@ impl<'a> CommandHandler<'a> {
+             .with_context(|| "failed to get config client")?)
+     }
+ 
++    async fn handle_member_relay(&self, command: &MemberRelaySubCommand) -> Result<(), Error> {
++        let instance_id = self.instance_select.id
++            .ok_or_else(|| anyhow::anyhow!("member-relay requires an explicit --instance-id"))?;
++        let client = self.get_config_client().await?;
++        let applied = matches!(command, MemberRelaySubCommand::Apply { .. });
++        if let MemberRelaySubCommand::Apply { bytes_per_sec, lease_ms } = command {
++            client.patch_config(BaseController::default(), PatchConfigRequest {
++                instance: Some(self.instance_selector.clone()),
++                patch: Some(InstanceConfigPatch {
++                    member_relay_bytes_per_sec: Some(*bytes_per_sec),
++                    member_relay_lease_ms: Some(*lease_ms),
++                    ..Default::default()
++                }),
++            }).await?;
++        }
++        let config = client.get_config(BaseController::default(), GetConfigRequest {
++            instance: Some(self.instance_selector.clone()),
++        }).await?.config.ok_or_else(|| anyhow::anyhow!("member relay readback is unavailable"))?;
++        let remaining = config.member_relay_lease_remaining_ms
++            .ok_or_else(|| anyhow::anyhow!("native member relay budget/lease capability is unavailable"))?;
++        if let MemberRelaySubCommand::Apply { bytes_per_sec, lease_ms } = command {
++            if config.member_relay_bytes_per_sec != Some(*bytes_per_sec)
++                || (*lease_ms == 0 && remaining != 0)
++                || (*lease_ms > 0 && (remaining == 0 || remaining > *lease_ms)) {
++                anyhow::bail!("member relay budget/lease readback mismatch");
++            }
++        }
++        // Deliberately print only admission metadata, never the full config,
++        // network secrets, credentials, private keys or private paths.
++        println!("{}", serde_json::to_string(&serde_json::json!({
++            "schemaVersion": 1,
++            "capability": "member-relay-budget-lease-v1",
++            "instanceId": instance_id.to_string(),
++            "bytesPerSec": config.member_relay_bytes_per_sec,
++            "leaseRemainingMs": remaining,
++            "maxLeaseMs": 15_000,
++            "applied": applied,
++        }))?);
++        Ok(())
++    }
++
+     async fn get_credential_client(
+         &self,
+     ) -> Result<Box<dyn CredentialManageRpc<Controller = BaseController>>, Error> {
+@@ -3687,6 +3747,7 @@ async fn main() -> Result<(), Error> {
+                 handler.handle_credential_list().await?;
+             }
+         },
++        SubCommand::MemberRelay(args) => handler.handle_member_relay(&args.sub_command).await?,
+         SubCommand::GenAutocomplete { shell } => {
+             let mut cmd = Cli::command();
+             if let Some(shell) = shell.to_shell() {

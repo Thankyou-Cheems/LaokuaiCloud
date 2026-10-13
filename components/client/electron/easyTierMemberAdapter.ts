@@ -1,5 +1,5 @@
 import type { EasyTierPhase } from "../src/lib/easyTierCommunity";
-import type { LanCommunitySnapshot, LanEnrollment, LanMemberEvidence } from "../src/lib/memberLanStatus";
+import type { LanCommunitySnapshot, LanDnsAddress, LanEnrollment, LanMemberEvidence } from "../src/lib/memberLanStatus";
 import { type EasyTierIdentityBinding, type EasyTierStatusSample, easyTierVirtualIp, projectEasyTierStatus } from "./easyTierStatus";
 
 function object(value: unknown): Record<string, unknown> {
@@ -23,11 +23,24 @@ export function projectEasyTierMembers(sample: EasyTierStatusSample | null, scop
   const directory = new Map<string, string[]>();
   const directoryAddresses = new Set<string>();
   for (const entry of validTime(sample.directoryObservedAtUnixMs ?? NaN) && Array.isArray(sample.directory) && sample.directory.length <= 256 ? sample.directory : []) {
-    if (!entry || typeof entry.serverUserId !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(entry.serverUserId)) { directory.clear(); break; }
+    if (!entry || typeof entry.serverUserId !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(entry.serverUserId)) { directory.clear(); directoryAddresses.clear(); break; }
     const address = easyTierVirtualIp(entry.virtualIp);
-    if (!address || address !== entry.virtualIp || directoryAddresses.has(address)) { directory.clear(); break; }
+    if (!address || address !== entry.virtualIp || directoryAddresses.has(address)) { directory.clear(); directoryAddresses.clear(); break; }
     directory.set(entry.serverUserId, [...directory.get(entry.serverUserId) ?? [], address]); directoryAddresses.add(address);
   }
+  const dnsByIp = new Map<string, LanDnsAddress>();
+  const dnsNames = new Set<string>(), dnsZones = new Set<string>();
+  for (const address of sample.dnsReady === true && validTime(sample.directoryObservedAtUnixMs ?? NaN) && Array.isArray(sample.dnsAddresses) && sample.dnsAddresses.length <= 256 ? sample.dnsAddresses : []) {
+    if (!address || typeof address.dnsName !== "string" || !/^d-[a-f0-9]{32}\.c-[a-f0-9]{32}\.lan\.voice\.ruikang\.wang\.$/.test(address.dnsName) ||
+      !directoryAddresses.has(address.virtualIp) || dnsByIp.has(address.virtualIp) || dnsNames.has(address.dnsName) ||
+      !Number.isSafeInteger(address.expiresAtUnixMs) || address.expiresAtUnixMs <= unixNowMs || address.expiresAtUnixMs > unixNowMs + Math.min(maxAgeMs, 10_000)) {
+      dnsByIp.clear(); break;
+    }
+    dnsByIp.set(address.virtualIp, {dnsName: address.dnsName, virtualIp: address.virtualIp, expiresAtUnixMs: address.expiresAtUnixMs});
+    dnsNames.add(address.dnsName); dnsZones.add(address.dnsName.slice(35));
+  }
+  if (dnsZones.size > 1) dnsByIp.clear();
+  const memberDns = (virtualIps: readonly string[]) => virtualIps.flatMap(address => dnsByIp.has(address) ? [dnsByIp.get(address)!] : []);
   const validBinding = (binding: EasyTierIdentityBinding) => binding.authenticated && !!binding.deviceId && !!binding.userId && Number.isSafeInteger(binding.peerId) && binding.peerId > 0 && binding.peerId <= 0xffffffff && binding.expiresAtMs > nowMs && validTime(binding.observedAtUnixMs);
   const locals = bindings.filter(b => b.peerId === localPeer);
   if (locals.length !== 1 || !validBinding(locals[0])) return null;
@@ -52,6 +65,13 @@ export function projectEasyTierMembers(sample: EasyTierStatusSample | null, scop
     if (verified && binding !== local && directory.has(binding.userId)) {
       member.virtualIps = directory.get(binding.userId); member.virtualIpObservedAtMs = sample.directoryObservedAtUnixMs;
     }
+    if (verified) {
+      // The local row names this device's actual address. Other devices on the
+      // same account stay on their own authenticated directory addresses.
+      const addresses = binding === local ? virtualIp && directory.get(binding.userId)?.includes(virtualIp) ? [virtualIp] : [] : member.virtualIps ?? [];
+      const names = memberDns(addresses);
+      if (names.length) member.dnsAddresses = names;
+    }
     if (binding === local || !verified || !peer || (member.virtualIps?.length ?? 0) > 1 || status.running !== true || phase !== "connected" || local.enrollment !== "joined" || !validTime(local.enrollmentObservedAtUnixMs) || !validTime(binding.enrollmentObservedAtUnixMs)) return member;
     const path: NonNullable<LanMemberEvidence["path"]> = {
       kind: peer.route === "physical-direct" ? "direct" : "unknown", source: "easytier-local", communityId: scope.serverId,
@@ -73,13 +93,16 @@ export function projectEasyTierMembers(sample: EasyTierStatusSample | null, scop
   // An active credential proves an address assignment, never a connected peer.
   for (const [serverUserId, virtualIps] of directory) {
     if (members.some(member => member.binding.authenticatedUserId === serverUserId)) continue;
+    const names = memberDns(virtualIps);
     members.push({
       binding: {authenticatedUserId: serverUserId, peerId: null, confidence: "verified", source: "authenticated-community", observedAtMs: sample.directoryObservedAtUnixMs!},
       enrollment: {state: "assigned", source: "authenticated-community", observedAtMs: sample.directoryObservedAtUnixMs!},
       virtualIps, virtualIpObservedAtMs: sample.directoryObservedAtUnixMs,
+      ...(names.length ? {dnsAddresses: names} : {}),
     });
   }
   const observer = members.find(m => m.binding.authenticatedUserId === local.userId)?.binding;
   if (!observer || observer.confidence !== "verified") return null;
-  return { schemaVersion: 1, serverScope: scope.serverId, communityId: scope.serverId, source: "easytier-local", observedAtMs: sample.acquiredAtUnixMs, observer, members };
+  return { schemaVersion: 1, serverScope: scope.serverId, communityId: scope.serverId, source: "easytier-local", observedAtMs: sample.acquiredAtUnixMs, observer, members,
+    dnsReady: sample.dnsReady === true && dnsByIp.size > 0 };
 }

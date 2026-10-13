@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "status": "verified",
+  "sourceCommit": "10b76471abb043709c9dc1fd321e845258976213",
+  "sourceTree": "381c14c582c3f05cd0db13a75f9b905c9d17b1bf",
+  "patchSetSha256": "d70f6dfb1902aee26529b413b74ebffc47dde8f2bfe3b8b0ae36aa118b3a3e4e",
+  "toolchain": {
+    "requiredRust": "1.95",
+    "actualRust": "1.95.0",
+    "target": "x86_64-pc-windows-msvc",
+    "built": true
+  },
+  "buildReceiptSha256": "4ed5659997e2aea0ceb7cb7668fd19759bdc47e06962c40cc1fda79b912ba891",
+  "buildReceiptPath": "build/community-lan/product/2.7.0-laokuai/build-receipt.json",
+  "packageSha256": "f55ecda6c48e52e82926ebffd8fc8990500ae6904a001049500466840365f274",
+  "packagePath": "build/community-lan/product/laokuai-member-network-runtime-input.zip",
+  "windowsRuntimeFiles": {
+    "easytier-core.exe": {
+      "bytes": 20247040,
+      "sha256": "d1634bf0fdfa4b151a836b5ba121c68b1e7da65f62363048628f2f16c13b548a",
+      "origin": "Exact monorepo native source10b76471, unchanged 17-feature static CRT build"
+    },
+    "easytier-cli.exe": {
+      "bytes": 6178304,
+      "sha256": "1638d7f1aa654255a541b98a6dd5a3466c382aa42f851eeb7f863bad2905ab43",
+      "origin": "Exact monorepo native source10b76471, unchanged 17-feature static CRT build"
+    },
+    "WinDivert64.sys": {
+      "bytes": 94144,
+      "sha256": "8da085332782708d8767bcace5327a6ec7283c17cfb85e40b03cd2323a90ddc2",
+      "origin": "Unchanged pinned signed companion reference"
+    },
+    "wintun.dll": {
+      "bytes": 427552,
+      "sha256": "e5da8447dc2c320edc0fc52fa01885c103de8c118481f683643cacc3220dafce",
+      "origin": "Unchanged pinned signed companion reference"
+    }
+  },
+  "runtimeManifestSha256": "a11d1f919f21a4defd4c0708b0dfc8d366b8e9f50371555634f2a94810fb5fe8",
+  "runtimeManifestPath": "build/community-lan/product/2.7.0-laokuai/laokuai-build.json",
+  "runtimeManifestSchemaVersion": 2,
+  "normalAndDelayImportsVerified": true,
+  "featureProfileSha256": "5dbf82a73189da2e3f251d3ff16b80d79ec38e0d84fa7a3785e03f578b873f68",
+  "originalBuildInputProfileSha256": null,
+  "coreCompilationPassed": true,
+  "cliCompilationPassed": true,
+  "coreExecuted": false,
+  "cliExecuted": false,
+  "licensesAndNoticesVerified": true,
+  "trackedReceiptPath": "receipts/member-network-20261013/build.json",
+  "trackedRuntimeInputPath": "receipts/member-network-20261013/runtime-input.json",
+  "historicalProfileJsonAtBuildFreezeSha256": "e67bde65ff0afe846854e31b60562b15ba774df33eda6b0540c5d0a395faae02",
+  "finalProfileAttestationCreatedAfterBuild": true,
+  "actualBuildInputsEvidence": "Exact native subtree10b76471, unchanged lock/17 features/+crt-static in original producer; public receipt is sanitized integration attestation",
+  "sourceTreeScope": "components/easytier/source subtree in monorepo commit",
+  "originalProducerReceiptSha256": "788dc7f28363981aa6dd63ad13af90ec3ef2c6f605bfe91e87d0bbf14909cad8",
+  "sourceFileSetSha256": "618c32de0ac8d84eb27f6cebca1aab4bd15de5bc2433f4c2fbcb4099894ef70c",
+  "nativeRuntimeAccepted": false
+}

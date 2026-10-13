@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 2,
+  "status": "source-static-build-integrated-runtime-unaccepted",
+  "sourceCommit": "10b76471abb043709c9dc1fd321e845258976213",
+  "sourceTree": "381c14c582c3f05cd0db13a75f9b905c9d17b1bf",
+  "sourceTreeScope": "components/easytier/source subtree in monorepo commit",
+  "sourceFileSetSha256": "618c32de0ac8d84eb27f6cebca1aab4bd15de5bc2433f4c2fbcb4099894ef70c",
+  "sourceFiles": 1272,
+  "normalizedLineEndingFiles": 1118,
+  "cargoLockRawSha256": "f53a086fe8e394ef75fc936e2fc3a0bceb9c469010c924e2cc4bd1f6ebe18fef",
+  "cargoLockGitBlobSha256": "e3ee41507e7a8ef94470b70f4639140e67aadae646ada82dfd23b0beeb0e7fb2",
+  "patchSetSha256": "d70f6dfb1902aee26529b413b74ebffc47dde8f2bfe3b8b0ae36aa118b3a3e4e",
+  "sourcePatchKind": "ordered-code-patch-set-index",
+  "featureProfileSha256": "5dbf82a73189da2e3f251d3ff16b80d79ec38e0d84fa7a3785e03f578b873f68",
+  "originalProducerReceiptSha256": "788dc7f28363981aa6dd63ad13af90ec3ef2c6f605bfe91e87d0bbf14909cad8",
+  "toolchain": "1.95.0",
+  "rustcVersion": [
+    "rustc 1.95.0 (59807616e 2026-04-14)",
+    "binary: rustc",
+    "commit-hash: 59807616e1fa2540724bfbac14d7976d7e4a3860",
+    "commit-date: 2026-04-14",
+    "host: x86_64-pc-windows-msvc",
+    "release: 1.95.0",
+    "LLVM version: 22.1.2"
+  ],
+  "cargoVersion": "cargo 1.95.0 (f2d3ce0bd 2026-03-21)",
+  "protocVersion": "libprotoc 36.0",
+  "target": "x86_64-pc-windows-msvc",
+  "features": [
+    "cli",
+    "wireguard",
+    "websocket",
+    "smoltcp",
+    "tun",
+    "socks5",
+    "kcp",
+    "quic",
+    "magic-dns",
+    "zstd",
+    "upnp",
+    "icmp-proxy",
+    "management",
+    "endpoint-discovery",
+    "extended-services",
+    "linux-netlink",
+    "tcp-hole-punch"
+  ],
+  "noDefaultFeatures": true,
+  "rustflags": "-C target-feature=+crt-static",
+  "locked": true,
+  "offline": true,
+  "releaseProfileUnchanged": true,
+  "exitCode": 0,
+  "durationSeconds": 954.4860442,
+  "artifacts": [
+    {
+      "path": "easytier-core.exe",
+      "bytes": 20247040,
+      "sha256": "d1634bf0fdfa4b151a836b5ba121c68b1e7da65f62363048628f2f16c13b548a"
+    },
+    {
+      "path": "easytier-cli.exe",
+      "bytes": 6178304,
+      "sha256": "1638d7f1aa654255a541b98a6dd5a3466c382aa42f851eeb7f863bad2905ab43"
+    }
+  ],
+  "pdbFiles": [
+    {
+      "path": "easytier_cli.pdb",
+      "bytes": 5148672,
+      "sha256": "297be10c2847c0ac4169441f93b3691d8f72484167aa1b0c7bb0e00c272c4f03"
+    },
+    {
+      "path": "easytier_core.pdb",
+      "bytes": 7213056,
+      "sha256": "904e5fd8f51ad03415268176b670cc3e04c46399cc048e1f3c4ac24600539168"
+    }
+  ],
+  "staticImportAuditSha256": "ec9a798a4d53975955018640bd3493f319d36657b395b3635fac0a93ef9048ce",
+  "coreExecuted": false,
+  "cliExecuted": false,
+  "nativeRuntimeAccepted": false
+}

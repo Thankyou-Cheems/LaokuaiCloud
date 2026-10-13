@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "kind": "ordered-code-patch-set-index",
+  "upstreamCommit": "8b7f1f0196edb5b580829ed5f135050fb5853478",
+  "baselineNativeSourceCommit": "089b6182c603c8ab60044b673effe0cf614cc28a",
+  "baselineMonorepoCommit": "65432f4f03dd756158115086374ae339f6c286bd",
+  "sourceCommit": "10b76471abb043709c9dc1fd321e845258976213",
+  "sourceTree": "381c14c582c3f05cd0db13a75f9b905c9d17b1bf",
+  "sourceTreeScope": "components/easytier/source subtree in monorepo commit",
+  "patches": [
+    {
+      "order": 1,
+      "path": "laokuai-modern-static-cumulative-code.patch",
+      "bytes": 222290,
+      "sha256": "490ffd127cc7c6a9d0d622ff161fe2086536e59be8b8281cf87e2f00e314aed5"
+    },
+    {
+      "order": 2,
+      "path": "laokuai-member-network-20261013.patch",
+      "bytes": 60943,
+      "sha256": "d07436ab01e93f20631f5ed670bc7bd2c5fdb297a3f591b871997fba7a80d30d"
+    }
+  ],
+  "application": "Apply patch 1 then patch 2 as separate operations; this index hash is not a single git-apply patch hash",
+  "preferredSourceUpdateManifest": "release/source-materials/member-network-20261013/source-update-manifest.json",
+  "prebuiltBinaryAssetsIncluded": false,
+  "compilerExecuted": false,
+  "nativeRuntimeAccepted": false
+}

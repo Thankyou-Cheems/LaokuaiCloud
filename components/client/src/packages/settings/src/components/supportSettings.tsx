@@ -4,6 +4,7 @@ import { i18n, useTranslation } from "@/i18n";
 
 import { FaGithub, SiKofi } from "../../../../lib/brandIcons";
 import { PiArrowSquareOutFill, PiHeartFill } from "../../../../lib/icons";
+import { IS_LAOKUAI } from "../../../../lib/productVariant";
 import { SettingsContainer } from "./settingsComponents";
 
 const GITHUB_URL = "https://github.com/Gryt-chat/gryt";
@@ -13,6 +14,7 @@ const KOFI_URL = "https://ko-fi.com/sivert";
 
 export function SupportSettings() {
   useTranslation();
+  if (IS_LAOKUAI) return null;
   return (
     <SettingsContainer>
       <h2 className="text-lg">{i18n.t("ui.supportGryt")}</h2>

@@ -11,6 +11,7 @@ import ts from "typescript";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const inputs = ["src/lib/easyTierCommunity.ts", "src/lib/easyTierCommunitySubscriptions.ts", "electron/easyTierStatus.ts", "electron/easyTierMemberAdapter.ts", "electron/easyTierCommunityManager.ts", "electron/windowsEasyTierRuntime.ts", "electron/windowsEasyTierCliRuntime.ts", "electron/easyTierCommunityIpc.ts", "electron/easyTierTarget.ts", "electron/easyTierWindowsAssets.ts", "electron/easyTierExistingConfiguration.ts", "electron/easyTierWindowsProcesses.ts", "electron/easyTierWindowsProduction.ts"];
 inputs.push("electron/communityEnrollment.ts", "electron/easyTierElevationBroker.ts", "electron/windowsFirewallRules.ts");
+inputs.push("electron/communityDnsResolver.ts", "electron/communityDnsPolicy.ts", "electron/communityNetworkSettings.ts");
 const program = ts.createProgram(inputs.map(p => path.join(root, p)), { noEmit: true, strict: true, noUnusedLocals: true, noUnusedParameters: true,
   target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext, moduleResolution: ts.ModuleResolutionKind.Bundler, lib: ["lib.es2022.d.ts", "lib.dom.d.ts"],
   types: ["node"], typeRoots: [path.join(root, "node_modules/@types")], skipLibCheck: true,

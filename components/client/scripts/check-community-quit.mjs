@@ -19,8 +19,8 @@ const deferred = () => {
   return { promise, resolve, reject };
 };
 const flush = () => new Promise(resolve => setImmediate(resolve));
-async function scenario(failure, cleanup = false) {
-  const calls = [], native = deferred(), grant = deferred();
+async function scenario(failure, cleanup = false, dnsFailure = false) {
+  const calls = [], native = deferred(), grant = deferred(), dns = deferred();
   let handler;
   const context = {
     LAOKUAI_PREVIEW: false, UI_ACCEPTANCE_MODE: false, IS_I18N_TEST: true, IS_LAOKUAI: true,
@@ -40,6 +40,7 @@ async function scenario(failure, cleanup = false) {
     easyTierCommunities: { shutdownOwned: () => calls.push("stop-owned") },
     easyTierProduction: { drainOwned: () => { calls.push("drain-native"); return native.promise; } },
     easyTierGrants: { drainOwned: () => { calls.push("drain-grant"); return grant.promise; } },
+    communityDns: { stop: () => { calls.push("drain-dns"); return dns.promise; } },
     localDiagnostics: { record: () => {} }, console: { warn: () => calls.push("cleanup-warning") },
   };
   vm.runInNewContext(code, context);
@@ -60,11 +61,14 @@ async function scenario(failure, cleanup = false) {
   assert.equal(calls.includes("quit"), false, "even a failed drain cannot abandon the other drain");
   assert.equal(calls.includes("cleanup-firewall"), false, "rule cleanup waits for both drains");
   grant.resolve(); await flush();
+  assert.equal(calls.includes("quit"), false, "DNS ownership cleanup also finishes before process exit");
+  if (dnsFailure) dns.reject(new Error("fixture DNS cleanup failure")); else dns.resolve();
+  await flush();
   assert.equal(calls.filter(c => c === "quit").length, 1);
   assert.equal(context.easyTierQuitDrained, true);
-  assert.equal(calls.includes("cleanup-warning"), failure);
-  assert.equal(calls.includes("cleanup-firewall"), cleanup && !failure);
-  if (cleanup && !failure) assert.ok(calls.indexOf("cleanup-firewall") < calls.indexOf("quit"));
+  assert.equal(calls.includes("cleanup-warning"), failure || dnsFailure);
+  assert.equal(calls.includes("cleanup-firewall"), cleanup && !failure && !dnsFailure);
+  if (cleanup && !failure && !dnsFailure) assert.ok(calls.indexOf("cleanup-firewall") < calls.indexOf("quit"));
   const before = calls.length;
   handler(event);
   assert.equal(calls.length, before, "completed quit is no longer intercepted");
@@ -73,4 +77,5 @@ await scenario(false);
 await scenario(true);
 await scenario(false, true);
 await scenario(true, true);
-console.log("PASS production quit handler: immediate window/sandbox/tray retirement, single cleanup, both drains settle before exit");
+await scenario(false, true, true);
+console.log("PASS production quit handler: immediate window/sandbox/tray retirement, single cleanup, native/grant/DNS drains settle before exit");

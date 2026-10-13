@@ -21,6 +21,7 @@ import {
   PiX,
 } from "../../../../lib/icons";
 import { useServerManagement } from "../../../socket/src/hooks/useServerManagement";
+import { showCommunityPassword } from "../../../socket/src/lib/inviteDialog";
 import { useEmbeddedServer } from "../hooks/useEmbeddedServer";
 import { useLanDiscovery } from "../hooks/useLanDiscovery";
 import {
@@ -152,7 +153,7 @@ export function AddNewServer({
   const [manualCode, setManualCode] = useState("");
   const [communityPassword, setCommunityPassword] = useState("");
   const [passwordRequired, setPasswordRequired] = useState(false);
-  useEffect(() => {setCommunityPassword("");setPasswordRequired(false);}, [showAddServer, serverHost]);
+  useEffect(() => {setCommunityPassword("");setPasswordRequired(false);}, [showAddServer, serverHost, parsed.code]);
   const [inviteRequired, setInviteRequired] = useState(false);
   const [joinNote, setJoinNote] = useState("");
   const [awaitingApproval, setAwaitingApproval] = useState(false);
@@ -161,7 +162,7 @@ export function AddNewServer({
   const [joinErrorKey, setJoinErrorKey] = useState<string>();
 
   const isJoining = joiningHost !== null;
-  const inviteCode = manualCode || parsed.code;
+  const inviteCode = inviteRequired ? manualCode : manualCode || parsed.code;
 
   const existingServer = servers[serverHost];
   const existingById = useMemo(() => {
@@ -174,6 +175,7 @@ export function AddNewServer({
     );
   }, [serverHost, serverInfo?.serverId, servers]);
   const alreadyMember = !!existingServer || !!existingById;
+  const showPasswordField = !alreadyMember && showCommunityPassword(serverInfo?.joinPolicy, inviteCode, passwordRequired, inviteRequired);
 
   function resetJoinState() {
     setInviteInput("");
@@ -235,7 +237,7 @@ export function AddNewServer({
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [serverHost, webAddressError]);
+  }, [serverHost, webAddressError, parsed.code]);
 
   // From the top rather than where the last visit stopped: somebody who closed
   // this halfway is not usually coming back to finish.
@@ -247,6 +249,8 @@ export function AddNewServer({
 
   useEffect(() => {
     setJoinError(""); setJoinErrorSource(null); setJoinErrorKey(undefined);
+    setPasswordRequired(false);
+    setCommunityPassword("");
   }, [manualCode]);
 
   async function handleJoin() {
@@ -259,7 +263,7 @@ export function AddNewServer({
       host: serverHost,
       info: serverInfo,
       inviteCode,
-      communityPassword: communityPassword || undefined,
+      communityPassword: showPasswordField ? communityPassword || undefined : undefined,
       note: joinNote,
     });
 
@@ -483,9 +487,9 @@ export function AddNewServer({
 
             {step === "join" && (
               <div className="flex flex-col gap-4">
-                {(passwordRequired || serverInfo?.joinPolicy === "password") && <div className="flex flex-col gap-2">
-                  <label className="text-sm font-bold">社区共享密码 · {serverHost}</label>
-                  <TextField type="password" autoComplete="off" aria-label="社区共享密码" value={communityPassword} maxLength={128} disabled={isJoining} onChange={e=>setCommunityPassword(e.target.value)}/>
+                {showPasswordField && <div className="flex flex-col gap-2">
+                  <label className="text-sm font-bold">{tr("invite.communityPassword")} · {serverHost}</label>
+                  <TextField type="password" autoComplete="off" aria-label={tr("invite.communityPassword")} value={communityPassword} maxLength={128} disabled={isJoining} onChange={e=>setCommunityPassword(e.target.value)}/>
                 </div>}
                 {/* No label and no asterisk: it is the only field on the
                     screen, so it is both obvious and required. The examples

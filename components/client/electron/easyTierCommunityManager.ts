@@ -2,6 +2,7 @@ import type {
   EasyTierCommunityLease, EasyTierCommunityState, EasyTierReason,
 } from "../src/lib/easyTierCommunity";
 import type { OwnedCredentialObservation } from "./communityEtCredentialObservation";
+import type { ApplyRelayBudget } from './communityRelayRuntime';
 import { projectEasyTierMembers } from "./easyTierMemberAdapter";
 import { type EasyTierStatusSample, projectEasyTierLocalDetails,projectEasyTierStatus } from "./easyTierStatus";
 
@@ -12,6 +13,7 @@ export interface EasyTierSession {
   close(): Promise<void>;
   readCredentialObservation?(signal: AbortSignal): Promise<OwnedCredentialObservation>;
   readCredentialSample?(signal: AbortSignal): Promise<{sample: EasyTierStatusSample; observation: OwnedCredentialObservation}>;
+  applyRelayBudget?: ApplyRelayBudget;
 }
 export interface EasyTierRuntime {
   activationReason(): "activation-required" | "unsupported-target" | null;

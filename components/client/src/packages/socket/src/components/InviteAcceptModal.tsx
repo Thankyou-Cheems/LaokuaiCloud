@@ -102,6 +102,7 @@ export function InviteAcceptModal({
     inviteRequired,
     accountRequired,
     awaitingApproval,
+    passwordRequired,
   });
 
   const displayName = info?.name || host;
@@ -112,7 +113,8 @@ export function InviteAcceptModal({
     setJoining(true);
     setJoinError(""); setJoinErrorSource(null); setJoinErrorKey(undefined);
     try {
-      const outcome = await onJoin({ code: view.code, info, note: note.trim() || undefined, communityPassword: communityPassword || undefined });
+      const outcome = await onJoin({ code: view.code, info, note: note.trim() || undefined,
+        communityPassword: view.showPasswordField ? communityPassword || undefined : undefined });
       if (outcome.ok) return;
       if (outcome.kind === "approval_pending") {
         setAwaitingApproval(true);
@@ -142,10 +144,6 @@ export function InviteAcceptModal({
       <Dialog.Portal>
         <Dialog.Backdrop />
         <Dialog.Popup className="w-[26.25rem]">
-          {(passwordRequired || info?.joinPolicy === "password") && <div className="flex flex-col gap-2">
-            <label>社区共享密码 · {host}</label>
-            <TextField type="password" autoComplete="off" aria-label="社区共享密码" value={communityPassword} maxLength={128} disabled={joining} onChange={e=>setCommunityPassword(e.target.value)}/>
-          </div>}
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -223,9 +221,21 @@ export function InviteAcceptModal({
               placeholder={tr("ui.pasteInviteCode")}
               disabled={joining}
               value={typedCode}
-              onChange={(e) => setTypedCode(normalizeCode(e.target.value))}
+              onChange={(e) => {
+                setTypedCode(normalizeCode(e.target.value));
+                setPasswordRequired(false);
+                setCommunityPassword("");
+                setJoinError(""); setJoinErrorSource(null); setJoinErrorKey(undefined);
+              }}
             />
           )}
+
+          {view.showPasswordField && <div className="flex flex-col gap-2">
+            <label>{tr("invite.communityPassword")} · {host}</label>
+            <TextField type="password" autoComplete="off" aria-label={tr("invite.communityPassword")}
+              value={communityPassword} maxLength={128} disabled={joining}
+              onChange={(e) => setCommunityPassword(e.target.value)} />
+          </div>}
 
           {view.showNote && (
             <TextField

@@ -62,8 +62,11 @@ import {
   stopNativeAudioCapture,
   supportsPerApplicationAudio,
 } from "./audioCaptureManager";
+import { CommunityDnsPolicy } from "./communityDnsPolicy";
 import { CommunityEnrollment } from "./communityEnrollment";
 import { createCommunityEtGrantRuntime } from "./communityEtGrantRuntime";
+import { CommunityNetworkSettings } from "./communityNetworkSettings";
+import { CommunityRelayPreferences } from "./communityRelayPreferences";
 import curatedGames from "./curated-games.json";
 import { createRpcHost, findHolder, type Holder, ipcDir, ipcPath, type RpcHostState } from "./discordIpc";
 import { registerEasyTierCommunityIpc } from "./easyTierCommunityIpc";
@@ -330,7 +333,23 @@ let pendingDeepLinkUrl: string | null = null;
 let mainWindow: BrowserWindow | null = null;
 // Existing approved configuration + driver permission gates remain in the production adapter.
 // Community/server integration owns leases; voice room events never touch this manager.
-const easyTierGrants = createCommunityEtGrantRuntime(() => easyTierProductRoot(app.getPath("userData")));
+const communityDnsEnabled = LAOKUAI_FIREWALL_ENABLED && process.platform === "win32" && !LAOKUAI_PREVIEW && !UI_ACCEPTANCE_MODE;
+const communityNetworkSettings = new CommunityNetworkSettings(
+  () => loadGlobalStore()["laokuai.networkPreferences"],
+  preferences => setGlobalValue("laokuai.networkPreferences", preferences),
+);
+const communityRelayPreferences = new CommunityRelayPreferences(
+  () => loadGlobalStore()["laokuai.memberRelayConsent"],
+  preferences => setGlobalValue("laokuai.memberRelayConsent", preferences),
+);
+const communityDns = new CommunityDnsPolicy({
+  enabled: () => communityDnsEnabled,
+  ledgerPath: () => join(laokuaiFirewallDataRoot(process.argv), "community-dns-rules.json"),
+  helperPath: () => laokuaiFirewallOptions().helperExecutable,
+  monoMs: () => performance.now(), wallMs: () => Date.now(),
+});
+const easyTierGrants = createCommunityEtGrantRuntime(() => easyTierProductRoot(app.getPath("userData")), communityDnsEnabled ? communityDns : undefined,
+  () => communityNetworkSettings.forSession(), communityRelayPreferences);
 const easyTierProduction = createWindowsEasyTierProduction(
   () => easyTierProductRoot(app.getPath("userData")),
   () => join(app.isPackaged ? process.resourcesPath : join(__dirname, "../build"), "community-lan", "product", "2.7.0-laokuai"),
@@ -377,7 +396,7 @@ app.on("before-quit", event => {
   for (const window of BrowserWindow.getAllWindows()) window.close();
   easyTierEnrollment.shutdown();
   easyTierCommunities.shutdownOwned();
-  void Promise.allSettled([easyTierProduction.drainOwned(), easyTierGrants.drainOwned()]).then(async results => {
+  void Promise.allSettled([easyTierProduction.drainOwned(), easyTierGrants.drainOwned(), communityDns.stop()]).then(async results => {
     if (results.some(result => result.status === "rejected")) throw new Error("owned-cleanup-unconfirmed");
     await firewallWork;
     if (cleanupFirewallOnQuit) {
@@ -387,7 +406,7 @@ app.on("before-quit", event => {
       }
     }
   }).catch(() => {
-    if (cleanupFirewallOnQuit) dialog.showErrorBox("网络规则未清理", "社区联机核心退出尚未确认，已保留网络规则。请确认本应用已完全退出后，再按绿色包说明中的清理步骤重试。");
+    if (cleanupFirewallOnQuit) dialog.showErrorBox("网络规则未完全清理", "社区联机退出或本应用名称解析规则清理尚未确认，未确认归属的规则会保留。请确认本应用已完全退出后，再按绿色包说明中的清理步骤重试。");
     localDiagnostics?.record({phase: "cleanup", operation: "core-stop", action: "finish", code: "cleanup-failed", cleanup: "pending"});
     // No native output, endpoints, credentials or resource identifiers in logs.
     console.warn("[Main] Community LAN stop remains unconfirmed; residual review required");
@@ -2003,7 +2022,7 @@ async function installDownloadedUpdate(): Promise<void> {
   if (UI_ACCEPTANCE_MODE || IS_I18N_TEST) return;
   easyTierEnrollment.shutdown();
   easyTierCommunities.shutdownOwned();
-  await Promise.all([easyTierProduction.drainOwned(), easyTierGrants.drainOwned()]).catch(() => {
+  await Promise.all([easyTierProduction.drainOwned(), easyTierGrants.drainOwned(), communityDns.stop()]).catch(() => {
     console.warn("[Main] Community LAN stop remains unconfirmed; residual review required");
   });
   easyTierQuitDrained = true;
@@ -3280,13 +3299,17 @@ if (!gotSingleInstanceLock) {
     .then(async () => {
       if (LAOKUAI_FIREWALL_CLEANUP_REQUESTED) {
         firewallStopping = true;
+        let dnsCleaned = true;
+        await communityDns.stop().catch(() => { dnsCleaned = false; });
         const report = await cleanupLaokuaiFirewallRules(laokuaiFirewallOptions());
-        if (report.status !== "prepared" && report.status !== "bypassed") dialog.showErrorBox("部分网络规则未清理", "无法清理全部本应用规则。属性已修改或同名冲突的规则会保留；修复系统策略或冲突后可重试。本地账本已保留。");
-        process.exit(report.status === "prepared" || report.status === "bypassed" ? 0 : 1);
+        const cleaned = dnsCleaned && (report.status === "prepared" || report.status === "bypassed");
+        if (!cleaned) dialog.showErrorBox("部分网络规则未清理", "无法清理全部本应用规则。属性已修改或同名冲突的规则会保留；修复系统策略或冲突后可重试。本地账本已保留。");
+        process.exit(cleaned ? 0 : 1);
       }
       // Prepare before creating a window or starting any networking, so a
       // failed app rule cannot silently fall through to Windows prompts.
       if (!(await prepareLaokuaiFirewall())) { process.exit(1); }
+      await communityDns.recover().catch(() => console.warn("[Main] Community name rules need cleanup; numeric LAN addresses remain available"));
       if (LAOKUAI_FIREWALL_ENABLED && !(await prepareEasyTierRuntime()).ready && !firewallErrorShown) {
         firewallErrorShown = true;
         dialog.showErrorBox("社区联机核心未准备完成", "无法准备绿色包中的社区联机核心，社区虚拟局域网暂不可用。社区认证和语音仍可使用。请重新解压完整绿色包后重启重试。");
@@ -4829,7 +4852,9 @@ if (!gotSingleInstanceLock) {
           LAOKUAI_PREVIEW || UI_ACCEPTANCE_MODE ? undefined : value => easyTierGrants.setAuthenticatedSession(value), LAOKUAI_PREVIEW,
            IS_LAOKUAI && !UI_ACCEPTANCE_MODE ? {mode:()=>publicCommunityMode(easyTierProductRoot(app.getPath("userData"))),
              approve:serverId=>approvePublicCommunity(easyTierProductRoot(app.getPath("userData")),serverId,mainWindow??undefined,prepareEasyTierPermission)} : undefined,
-          IS_LAOKUAI && !LAOKUAI_PREVIEW && !UI_ACCEPTANCE_MODE ? value => easyTierEnrollment.reconcile(value) : undefined);
+          IS_LAOKUAI && !LAOKUAI_PREVIEW && !UI_ACCEPTANCE_MODE ? value => easyTierEnrollment.reconcile(value) : undefined,
+          IS_LAOKUAI && !LAOKUAI_PREVIEW && !UI_ACCEPTANCE_MODE ? communityNetworkSettings : undefined,
+          IS_LAOKUAI && !LAOKUAI_PREVIEW && !UI_ACCEPTANCE_MODE ? easyTierGrants : undefined);
       applicationIpc.on("laokuai-local-diagnostic", (event, value: unknown) => {
         if (mainWindow && !mainWindow.isDestroyed() && event.senderFrame === mainWindow.webContents.mainFrame) localDiagnostics?.record(value);
       });

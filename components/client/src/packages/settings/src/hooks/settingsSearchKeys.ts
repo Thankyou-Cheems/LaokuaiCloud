@@ -6,6 +6,7 @@ export const SETTINGS_SEARCH_KEYS: Readonly<Record<string, Readonly<{
   description: string;
   section: string;
 }>>> = {
+  "community-network": {title:"communityNetwork.title",description:"communityNetwork.description",section:"communityNetwork.title"},
   "voice-transport": {title:"transport.title",description:"transport.description",section:"ui.voice"},
   "voice-transport-bitrate": {title:"transport.bitrateTitle",description:"transport.bitrateDescription",section:"ui.voice"},
   "voice-transport-packet-time": {title:"transport.packetTime",description:"transport.packetTimeDescription",section:"ui.voice"},

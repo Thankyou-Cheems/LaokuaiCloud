@@ -1,4 +1,6 @@
+import type { CommunityRelayState } from "../src/lib/communityRelay";
 import type { EasyTierCommunityLease } from "../src/lib/easyTierCommunity";
+import type { CommunityNetworkSettings } from "./communityNetworkSettings";
 import { EasyTierCommunityManager, EasyTierSessionRetiredError, validEasyTierId, validEasyTierLease } from "./easyTierCommunityManager";
 
 interface IpcEvent { senderFrame: unknown }
@@ -11,8 +13,25 @@ export function registerEasyTierCommunityIpc(ipc: IpcPort, manager: EasyTierComm
   prepareRuntime: () => Promise<{ ready: boolean }> = async () => ({ ready: false }),
   authenticate?: (value: unknown) => Promise<{serverId: string; changed: boolean; authenticated: boolean}>, previewDisabled = false,
   provisioning?: {mode():Promise<"normal"|"needs-consent">;approve(serverId:string):Promise<{accepted:boolean;reason?:"needs-permission"}>},
-  enrollment?: (value: unknown) => Promise<unknown>): () => void {
+  enrollment?: (value: unknown) => Promise<unknown>, networkSettings?: Pick<CommunityNetworkSettings, 'get' | 'set'>,
+  relay?: {getRelayState(serverId: string): CommunityRelayState; setRelayPreference(value: unknown): Promise<CommunityRelayState>}): () => void {
   const handlers: Record<string, (value: unknown) => unknown> = {
+    "et-community-relay-get": value => {
+      if (!relay || !validEasyTierId(value)) throw Error("community-relay-unavailable");
+      return relay.getRelayState(value);
+    },
+    "et-community-relay-set": value => {
+      if (!relay) throw Error("community-relay-unavailable");
+      return relay.setRelayPreference(value);
+    },
+    "et-community-network-preferences-get": () => {
+      if (!networkSettings) throw Error("community-settings-unavailable");
+      return networkSettings.get();
+    },
+    "et-community-network-preferences-set": value => {
+      if (!networkSettings) throw Error("community-settings-unavailable");
+      return networkSettings.set(value);
+    },
     "et-community-enrollment": value => {
       if (previewDisabled || !enrollment) throw Error("community-enrollment-unavailable");
       return enrollment(value);

@@ -1,6 +1,7 @@
 import { i18n } from "@/i18n";
 
 import { isElectron, isMacDesktop } from "../../../../lib/electron";
+import { IS_LAOKUAI } from "../../../../lib/productVariant";
 import { SETTINGS_SEARCH_KEYS } from "./settingsSearchKeys";
 
 /**
@@ -33,6 +34,7 @@ export function settingAnchorId(title: string): string {
 }
 
 export const SETTINGS_INDEX: SettingsIndexEntry[] = [
+  { id: "community-network", title: "EasyTier network", description: "Community DNS, route latency preference, IPv6, UPnP and NAT traversal. Import or export portable preferences; changes apply after restarting the app.", destination: "network", section: "EasyTier", panel: true },
   { id: "voice-transport", title: "Voice bandwidth", description: "The standard profile saves server bandwidth for group speech: 16 kbps / 60 ms via the server and 64 kbps / 20 ms on admitted peer paths. Server audio prioritizes speech intelligibility; actual traffic depends on negotiation, packetization and channel limits.", destination: "sound-video", page: "voice", section: "Voice" },
   { id: "voice-transport-bitrate", title: "Maximum bitrate (kbps)", description: "The channel may impose a lower cap. This is RTP audio payload, excluding packet and network overhead.", destination: "sound-video", page: "voice", section: "Voice" },
   { id: "voice-transport-packet-time", title: "Packet duration preference", description: "The server must negotiate this preference. Longer packets add buffering delay.", destination: "sound-video", page: "voice", section: "Voice" },
@@ -134,7 +136,7 @@ export const SETTINGS_INDEX: SettingsIndexEntry[] = [
       ] satisfies SettingsIndexEntry[])
     : []),
   { id: "addons", title: "Addons", description: "Extensions that add features to 唠蒯云.", destination: "extensions", section: "Addons", panel: true },
-  { id: "support-gryt", title: "Support 唠蒯云", description: "Ways to support the project.", destination: "support", section: "Support", panel: true }
+  ...(!IS_LAOKUAI ? [{ id: "support-gryt", title: "Support Gryt", description: "Ways to support Gryt.", destination: "support", section: "Support", panel: true }] : [])
 ];
 
 // Search both languages while keeping catalog routing and screen order unchanged.

@@ -7,7 +7,8 @@ import { useTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 
 import { isElectron } from "../../../../lib/electron";
-import { PiChatsFill, PiFadersHorizontalFill, PiFlaskFill, PiHardDrivesFill, PiHeartFill, PiInfoFill, PiMagnifyingGlassFill, PiMicrophoneFill, PiPaletteFill, PiPuzzlePieceFill, PiShieldCheckFill, PiUserFill, PiX } from "../../../../lib/icons";
+import { PiBroadcastFill, PiChatsFill, PiFadersHorizontalFill, PiFlaskFill, PiHardDrivesFill, PiHeartFill, PiInfoFill, PiMagnifyingGlassFill, PiMicrophoneFill, PiPaletteFill, PiPuzzlePieceFill, PiShieldCheckFill, PiUserFill, PiX } from "../../../../lib/icons";
+import { IS_LAOKUAI } from "../../../../lib/productVariant";
 import { SettingsPicker } from "../../../socket/src/components/SettingsPicker";
 import { useRoomForSettingsRail } from "../../../socket/src/hooks/useNarrowWindow";
 import { USER_SETTINGS_CHROME } from "../../../socket/src/lib/narrowLayout";
@@ -20,6 +21,7 @@ import { AdvancedSettings } from "./advancedSettings";
 import { AudioSettings } from "./audioSettings";
 import { CardSettings } from "./cardSettings";
 import { ChatSettings } from "./chatSettings";
+import { CommunityNetworkSettings } from "./communityNetworkSettings";
 import { DesktopSettings } from "./desktopSettings";
 import { DeveloperSettings } from "./developerSettings";
 import { HotkeySettings } from "./hotkeySettings";
@@ -66,6 +68,12 @@ const DEFAULT_DESTINATION = "profile";
 export function Settings() {
   const { t: tr } = useTranslation();
 const DESTINATIONS = useMemo((): SettingsDestination[] => [
+  {
+    value: "network",
+    label: tr("communityNetwork.title"),
+    icon: PiBroadcastFill,
+    content: <CommunityNetworkSettings />,
+  },
   {
     value: "profile",
     label: tr("ui.profile"),
@@ -184,13 +192,13 @@ const DESTINATIONS = useMemo((): SettingsDestination[] => [
       { value: "updates", label: tr("pureVoice.versionInfo"), content: <UpdatesSettings /> },
     ],
   },
-  {
+  ...(!IS_LAOKUAI ? [{
     value: "support",
     label: tr("ui.supportGryt"),
     icon: PiHeartFill,
     pinBottom: true,
     content: <SupportSettings />,
-  },
+  }] : []),
 ], [tr]);
 
 const MAIN_DESTINATIONS = DESTINATIONS.filter((d) => !d.pinBottom);

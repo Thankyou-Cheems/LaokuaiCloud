@@ -27,6 +27,7 @@ vm.runInNewContext(compiled.outputText, { exports, Buffer, Uint8Array, require: 
 const a = exports, profile = JSON.parse(fs.readFileSync(new URL("scripts/easytier-windows-feature-profile.json", client)));
 const manifest = { schemaVersion: 2, version: "2.7.0-laokuai", upstreamCommit: "8b7f1f0196edb5b580829ed5f135050fb5853478",
   hostPolicy: "externally-managed", ownedStopProtocol: 1, sourcePatchSha256: profile.sourcePatchSha256,
+  sourcePatchKind: "ordered-code-patch-set-index",
   sourceCommit: profile.sourceCommit, sourceTree: profile.sourceTree, cargoLockSha256: profile.cargoLockSha256,
   buildProfile: profile.name, buildProfileSha256: a.EASYTIER_LAOKUAI_PROFILE_SHA256,
   noDefaultFeatures: true, target: profile.target, toolchain: profile.toolchain, normalAndDelayImportsVerified: true,
@@ -37,7 +38,7 @@ assert.match(verified.cacheIdentity, /^[0-9a-f]{64}$/);
 assert.notEqual(verified.cacheIdentity, manifest.coreSha256);
 let rejected = 0;
 for (const change of [{ schemaVersion: 1 }, { sourceCommit: "a".repeat(40) }, { sourceTree: "a".repeat(40) },
-  { sourcePatchSha256: "a".repeat(64) }, { cargoLockSha256: "a".repeat(64) }, { buildProfileSha256: "a".repeat(64) },
+  { sourcePatchSha256: "a".repeat(64) }, { sourcePatchKind: "single-cumulative-patch" }, { cargoLockSha256: "a".repeat(64) }, { buildProfileSha256: "a".repeat(64) },
   { coreSha256: a.EASYTIER_WINDOWS_FILES["easytier-core.exe"] }, { cliSha256: a.EASYTIER_WINDOWS_FILES["easytier-cli.exe"] },
   { cliSha256: "a".repeat(64) }, { noDefaultFeatures: false }, { normalAndDelayImportsVerified: false },
   { hostPolicy: "legacy" }, { ownedStopProtocol: 0 }]) {

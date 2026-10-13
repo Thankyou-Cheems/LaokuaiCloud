@@ -5,6 +5,10 @@ import {safeDiagnostic} from "../src/lib/localDiagnostics";
 import type { SquadConfig, SquadSnapshot } from "../src/lib/squadMode";
 
 const easyTierCommunity: EasyTierCommunityAPI = {
+  getRelayState: serverId => ipcRenderer.invoke("et-community-relay-get", serverId),
+  setRelayPreference: preference => ipcRenderer.invoke("et-community-relay-set", preference),
+  getNetworkPreferences: () => ipcRenderer.invoke("et-community-network-preferences-get"),
+  setNetworkPreferences: preferences => ipcRenderer.invoke("et-community-network-preferences-set", preferences),
   reconcileEnrollment: snapshot => ipcRenderer.invoke("et-community-enrollment", snapshot),
   getRuntimeMode: () => ipcRenderer.invoke("et-community-mode"),
   approveCommunity: serverId => ipcRenderer.invoke("et-community-consent",serverId),

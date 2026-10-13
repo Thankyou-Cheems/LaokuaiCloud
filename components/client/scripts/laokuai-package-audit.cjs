@@ -136,6 +136,8 @@ function inventory(root,config,{ sourceOnly = false } = {}) {
   const sources = {};
   const brokerSource = "native/community-lan-broker/Program.cs";
   sources[brokerSource] = describe(read(brokerSource));
+  const dnsBrokerSource = "native/community-lan-broker/CommunityDnsPolicy.cs";
+  sources[dnsBrokerSource] = describe(read(dnsBrokerSource));
   sources["scripts/build-community-broker.ps1"] = describe(read("scripts/build-community-broker.ps1"));
   for (const item of ["package.json","yarn.lock","electron-builder.yml","electron-builder.config.cjs","electron-builder.i18n-test.cjs","electron-builder.laokuai.cjs","vite.config.ts",
     "electron","src","native/squad-scope","private-brand","public/laokuai-icon.png","scripts/laokuai-package-audit.cjs","scripts/community-easytier-resources.cjs","scripts/check-easytier-patched-payload.cjs","scripts/check-laokuai-package.mjs"]) {
@@ -218,6 +220,7 @@ function inventory(root,config,{ sourceOnly = false } = {}) {
   const brokerReceipt = JSON.parse(read("build/community-lan-helper/broker-build.json"));
   assert.equal(brokerReceipt.schemaVersion, 1);
   assert.equal(brokerReceipt.sourceSha256, sources[brokerSource].sha256, "Rebuild the community broker after source changes");
+  assert.equal(brokerReceipt.dnsSourceSha256, sources[dnsBrokerSource].sha256, "Rebuild the community broker after DNS policy source changes");
   assert.deepEqual({bytes:brokerReceipt.bytes,sha256:brokerReceipt.sha256}, describe(read("build/community-lan-helper/laokuai-community-broker.exe")));
   manifest.brokerReceipt = brokerReceipt;
   return manifest;

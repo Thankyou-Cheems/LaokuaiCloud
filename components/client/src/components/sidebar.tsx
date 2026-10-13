@@ -41,7 +41,7 @@ import { useVoicePresence,type VoicePresence } from "@/webRTC";
 
 import { useIdentityClaim } from "../hooks/useIdentityClaim";
 import { PiChatsFill } from "../lib/icons";
-import { PiBroadcastFill, PiBugFill, PiChatCircleDotsFill, PiGearFill, PiMicrophoneFill, PiMicrophoneSlashFill, PiPencilSimpleFill, PiPlus, PiSignInFill } from "../lib/icons";
+import { PiBroadcastFill, PiBugFill, PiChatCircleDotsFill, PiFadersHorizontalFill, PiGearFill, PiMicrophoneFill, PiMicrophoneSlashFill, PiPencilSimpleFill, PiPlus, PiSignInFill } from "../lib/icons";
 import { useReportForm } from "../lib/reports/useReportForm";
 import { CommunityLanControls } from "./communityLanSession";
 import { inVoiceLine, voiceNicknames } from "./serverVoiceLine";
@@ -271,6 +271,30 @@ export function Sidebar({ setShowAddServer }: SidebarProps) {
       </div>
 
       <div className="flex shrink-0 justify-center items-center flex-col gap-3 pb-3">
+        {window.easyTierCommunity && <Tooltip title={tr("communityNetwork.title")} side="right">
+          <IconButton size="xsmall" tone="ghost" data-gryt="community-network-settings" aria-label={tr("communityNetwork.title")}
+            onClick={() => openSettings("network")}>
+            <PiBroadcastFill size={18} />
+          </IconButton>
+        </Tooltip>}
+        <Tooltip title={tr("ui.voice")} side="right">
+          <IconButton size="xsmall" tone="ghost" aria-label={tr("ui.voice")}
+            onClick={() => openSettings("sound-video/voice")}>
+            <PiMicrophoneFill size={18} />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title={tr("ui.audio")} side="right">
+          <IconButton size="xsmall" tone="ghost" aria-label={tr("ui.audio")}
+            onClick={() => openSettings("sound-video/audio")}>
+            <PiFadersHorizontalFill size={18} />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title={tr("ui.settings")} side="right">
+          <IconButton size="xsmall" tone="ghost" aria-label={tr("ui.settings")}
+            onClick={() => setShowSettings(true)}>
+            <PiGearFill size={18} />
+          </IconButton>
+        </Tooltip>
         <button type="button" data-gryt="edit-nickname" className="flex flex-col items-center gap-1 rounded px-1 py-1 text-xs text-gryt-muted hover:text-gryt-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-gryt-accent"
           aria-label={tr("nicknameScope.editNickname")} onClick={() => openSettings("profile/profile/nickname")}>
           <PiPencilSimpleFill size={16} aria-hidden="true" />

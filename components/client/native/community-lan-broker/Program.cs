@@ -456,6 +456,8 @@ class Program {
             if (args.Length == 1 && args[0] == "--check") { Console.Write(Elevated() ? "approved" : "ordinary"); return 0; }
             if (args.Length == 1 && args[0] == "--firewall") return FirewallCommand(Console.In, Console.Out);
             if (args.Length == 1 && args[0] == "--firewall-self-test") { FirewallSelfTest(); return 0; }
+            if (args.Length == 1 && args[0] == "--dns-policy") { Require(Elevated()); return CommunityDnsPolicy.Command(Console.In, Console.Out); }
+            if (args.Length == 1 && args[0] == "--dns-policy-self-test") { CommunityDnsPolicy.SelfTest(); return 0; }
             if (args.Length == 1 && args[0] == "--self-test") { SelfTest(); return 0; }
             if (args.Length == 2 && args[0] == "--parent") return Launch(Int32.Parse(args[1]));
             if (args.Length == 4 && args[0] == "--elevated") {

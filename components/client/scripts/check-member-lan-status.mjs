@@ -187,6 +187,31 @@ check("server assignments show and copy each device without green joined or publ
   remote(snapshot).virtualIpObservedAtMs=now;remote(snapshot).virtualIps=["10.77.1.8","198.51.100.1"];assert.equal(evaluate(snapshot).virtualIps,undefined);
   remote(snapshot).virtualIps=["10.77.1.8","10.77.1.8"];assert.equal(evaluate(snapshot).virtualIps,undefined);
 });
+check("DNS names copy per device only after readiness and expire independently from IP assignments",()=>{
+  copied.length=0;
+  const snapshot=fixture(), zone=`c-${'a'.repeat(32)}.lan.voice.ruikang.wang.`;
+  snapshot.dnsReady=true;remote(snapshot).enrollment.state="assigned";remote(snapshot).binding.peerId=null;
+  remote(snapshot).virtualIps=["10.77.1.8","10.77.1.9"];remote(snapshot).virtualIpObservedAtMs=now;
+  remote(snapshot).dnsAddresses=remote(snapshot).virtualIps.map((virtualIp,index)=>({dnsName:`d-${String(index+1).repeat(32)}.${zone}`,virtualIp,expiresAtUnixMs:now+5000}));
+  assert.equal(evaluate(snapshot).dnsAddresses.length,2);
+  const span=MemberLanStatus(input(snapshot)).props.children, buttons=span.props.children[3];
+  assert.equal(buttons.length,2);assert.doesNotMatch(span.props.style.color,/success/);
+  for(const button of buttons){button.props.onClick({stopPropagation(){}});assert.match(button.props['aria-label'],/复制社区设备域名/);}
+  assert.deepEqual(copied,remote(snapshot).dnsAddresses.map(address=>address.dnsName));
+  const expired=model.readMemberLanStatus({...input(snapshot),nowMs:now+5000});
+  assert.equal(expired.dnsAddresses,undefined);assert.deepEqual([...expired.virtualIps],["10.77.1.8","10.77.1.9"]);
+  snapshot.dnsReady=false;assert.equal(evaluate(snapshot).dnsAddresses,undefined);
+  delete snapshot.dnsReady;assert.equal(evaluate(snapshot).dnsAddresses,undefined);
+});
+check("DNS display rejects malformed unassigned excessive expiry and ambiguous device names",()=>{
+  for(const mutate of [member=>member.dnsAddresses[0].dnsName="foreign.example",member=>member.dnsAddresses[0].virtualIp="10.77.1.9",
+    member=>member.dnsAddresses[0].expiresAtUnixMs=now,member=>member.dnsAddresses[0].expiresAtUnixMs=now+10001,
+    member=>member.dnsAddresses.push({...member.dnsAddresses[0]})]){
+    const snapshot=fixture();snapshot.dnsReady=true;remote(snapshot).virtualIp="10.77.1.8";
+    remote(snapshot).dnsAddresses=[{dnsName:`d-${'b'.repeat(32)}.c-${'a'.repeat(32)}.lan.voice.ruikang.wang.`,virtualIp:"10.77.1.8",expiresAtUnixMs:now+5000}];
+    mutate(remote(snapshot));assert.equal(evaluate(snapshot).dnsAddresses,undefined);
+  }
+});
 check("EN/ZH mappings cover every state/reason and route; no arbitrary errors, IPs or keys are rendered",()=>{
   function compare(a,b){assert.deepEqual(Object.keys(a).sort(),Object.keys(b).sort());for(const key of Object.keys(a))typeof a[key]==='object'?compare(a[key],b[key]):assert.ok(a[key]&&b[key]);}
   compare(locales.en.memberLan,locales['zh-CN'].memberLan);

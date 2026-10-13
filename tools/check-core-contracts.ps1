@@ -18,6 +18,11 @@ try {
         'electron/communityEtGrant.test.mjs',
         'electron/communityEtConfig.test.mjs',
         'electron/communityEtRuntime.test.mjs',
+        'electron/communityDns.test.mjs',
+        'electron/communityRelay.test.mjs',
+        'scripts/check-community-network-preferences.mjs',
+        'scripts/check-member-relay-settings.mjs',
+        'scripts/check-invite-link.mjs',
         'electron/communityEnrollment.test.mjs',
         'electron/windowsAdminStartupGate.test.mjs',
         'scripts/check-windows-firewall-rules.mjs',
@@ -51,7 +56,9 @@ try {
         Write-Host "Checking $pipeCheck"
         & (Join-Path $root 'components/client/scripts/check-community-broker-pipe.ps1')
         if ($LASTEXITCODE -ne 0) { throw "Local fixture failed: $pipeCheck" }
-        $fixtureCount = 1
+        & (Join-Path $root 'components/client/scripts/check-community-dns-policy.ps1')
+        if ($LASTEXITCODE -ne 0) { throw 'Community DNS helper fixture failed' }
+        $fixtureCount = 2
     }
     $totalChecks = $checks.Count + $fixtureCount
     Write-Host "PASS: $totalChecks checks ($($checks.Count) Node24 source contract suites, $fixtureCount bounded Windows broker-pipe fixtures). Product autojoin/native/media acceptance is separate."
