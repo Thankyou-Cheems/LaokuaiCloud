@@ -1,5 +1,14 @@
 # Community network V2 deployment preparation
 
+2026-10-13 follow-up: the user subsequently approved relay enablement. The separate
+scoped operation is recorded in `release/acceptance/member-relay-enabled-20261013.json`.
+Gryt now has gate1 and the upgraded management proxy gate2. This first-deployment
+operator remains closed-only; its directory contains the permanent enablement marker.
+Do not use its old-image rollback for the current deployment. Preserve the new
+`/opt/stacks/gryt/member-relay-v2-20261013-r1/activation.overlay.json` as well as
+all earlier Compose overlays. The original preparation and approval boundaries below
+remain historical; current clients still need explicit device-local relay consent.
+
 Prepared source only. No SSH, production update, proxy restart, native ET command,
 true relay credential or relay gate enablement was performed while preparing this
 operator. The first deployment is **Gryt only**, with both relay gates closed.

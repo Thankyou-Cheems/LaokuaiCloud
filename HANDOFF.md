@@ -1,5 +1,18 @@
 # 当前开发交接
 
+2026-10-13 用户明确批准“把成员中继的服务端开关也开启”：已完成。
+Gryt保留fe151bbd镜像，仅新增LAOKUAI_MEMBER_RELAY_POLICY_V2=1；现有管理代理
+升级为0b1af8c5源码、MEMBER_RELAY_POLICY_VERSION=2。真实UID1001 NodeInfo/List
+读取通过，公网health200，未认证目录/relay-status401；未替用户创建true凭据。
+SFU/ET及其他容器启动代次、端口挂载、12人上限、数据保持；仅代理与Gryt重启。
+私有数据库/账本/配置备份位于 `/opt/stacks/gryt/member-relay-v2-20261013-r1`。
+后续部署必须保留该目录activation.overlay.json和此前全部Compose overlays。
+此前Gryt-only部署目录已加RELAY-V2-EVER-ENABLED.json，禁止直接退旧镜像。
+关闭时保留新版代码，后端gate0后代理gate1；在线关闭/续租回读false，离线按既有
+TTL到期，不能将关gate称为立即撤销。真实成员转发未验收，用户用原 .7 联机设置
+主动开启实验中继测试；不需换包，默认256kbps预算，客户端同意仍默认关闭。
+见 `release/acceptance/member-relay-enabled-20261013.json`；下方关gate是历史记录。
+
 2026-10-13 新版固定目录绿色包 .7 已完成，精确应用源码
 `c76a75dd20389b059294435922abb806b68b33e4`，159058859 B，SHA256
 `6093ba84620947e63be2a4aaac1b0e9065f8ebd8808a895be435c220786a8d61`。

@@ -3808,5 +3808,14 @@
     "twelveFullAppWanAccepted": false,
     "note": "Exact ZIP and hidden offline fresh-profile bootstrap passed; 23 known offline/disabled IPC errors retained. No native ET/TUN, microphone, real firewall mutation or actual member-copy UI trial executed in this acceptance.",
     "receipt": "release/acceptance/green-package-portable-20261013.json"
+  },
+  "memberRelayProduction": {
+    "enabled": true,
+    "backendGate": 1,
+    "proxyGate": 2,
+    "clientConsentDefaultEnabled": false,
+    "receipt": "release/acceptance/member-relay-enabled-20261013.json",
+    "activeOverlay": "/opt/stacks/gryt/member-relay-v2-20261013-r1/activation.overlay.json",
+    "actualForwardingAccepted": false
   }
 }
