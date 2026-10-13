@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "id": "laokuai-cloud-receive-path-et-observation-frozen-20261011",
-  "stage": "fixed-directory-admin-green-test-package",
+  "stage": "community-network-green-test-package",
   "ready": false,
   "repository": {
     "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud",
@@ -9,8 +9,8 @@
     "visibility": "public",
     "branch": "main",
     "soleGitWriter": "user-directed local developer",
-    "codeCommit": "49f774b64f2535336f8a8e0f8ee3a50decd704a5",
-    "codeTree": "515dad2f9b6a59700c67f6dc4203a1d7258d6326",
+    "codeCommit": "c76a75dd20389b059294435922abb806b68b33e4",
+    "codeTree": "0f2bed36a128ec806d7ef93c88f34753bafb1c6e",
     "newRepositoryReason": "Authenticated private-repo metadata and explicitly scoped old local core/game remotes revealed no matching existing private integration repository",
     "historyPolicy": "User explicitly authorized deletion and same-name recreation after six Npcap files were removed from history. Only clean main and source tag pushed from an isolated bare repository. Original and clean local bundles retained; no mirror push.",
     "githubId": "R_kgDOVG00Lg"
@@ -18,14 +18,14 @@
   "components": {
     "client": {
       "path": "components/client",
-      "tree": "81c53ba6fd4b5e0b1a4732a61b4da4a22ad6e214",
+      "tree": "0ca8b040b908f38df2a9347382868f2a255975b7",
       "upstream": "Gryt-chat/client",
       "publicFork": "Thankyou-Cheems/gryt-client-i18n",
       "historyImportedFrom": "06ac43f51dbda3b9444c73270a126e10489110e9",
       "originalHead": "552dc88f3413b83ee29bdb4ab350286e7c9ad2d0",
       "completeDirtySourceSnapshot": "2b9f02076051e3a445bfa99e79d1fc7ac421e19f",
       "originalPreservation": "24 tracked modifications and 6 untracked files retained; all frozen snapshot blobs verified",
-      "version": "1.13.22-laokuai.beta.20261013.6",
+      "version": "1.13.22-laokuai.beta.20261013.7",
       "dependencyLockSha256": "b5e5cf6fb0818e9a18b97f43e75b8d9020ffcf21f9906a2e5fb0f6463557f1c8",
       "lifecycle3SourceCommit": "cb31e2e4ec044a2574f88321bc90cc01c3b51e0c",
       "uiBrandSourceCommit": "c75e6802ac9971b7d4139df8f97b99c7398efd7d",
@@ -33,7 +33,7 @@
         "tree": "8123a71d99a101a3dce02027d476c7e8879ff48d",
         "sourceCommit": "a88f7d75066cf03d65d618bb49cabbff6e8d7884"
       },
-      "sourceCommit": "49f774b64f2535336f8a8e0f8ee3a50decd704a5",
+      "sourceCommit": "c76a75dd20389b059294435922abb806b68b33e4",
       "communityContractWired": true,
       "preservedPreCommunityWiring": {
         "tree": "fbcc9d4e2db64348fc17704d486a421233f7513f",
@@ -180,10 +180,10 @@
     },
     "server": {
       "path": "components/server",
-      "tree": "ed8d34fdf3d2096c9ff0fff31c37f21869adddbb",
+      "tree": "3fa62c7fae98b2d0f6557ee2965c8b0c4e7088e7",
       "upstream": "Gryt-chat/server",
       "userFork": null,
-      "sourceCommit": "49f774b64f2535336f8a8e0f8ee3a50decd704a5",
+      "sourceCommit": "10b76471abb043709c9dc1fd321e845258976213",
       "archivedSourceFilesVerified": 462,
       "importedSourceFiles": 460,
       "excluded": [
@@ -216,7 +216,8 @@
         "tree": "33c7d06425607a5f93e4ed3d41453cb3f9ff8c10",
         "sourceCommit": "9db53f79ec1cbf9408b51e0733e6071b00f192a1"
       },
-      "memberAddressDirectoryDeployment": "release/acceptance/member-address-directory-deployment-20261013.json"
+      "memberAddressDirectoryDeployment": "release/acceptance/member-address-directory-deployment-20261013.json",
+      "communityNetworkDeployment": "release/acceptance/community-network-v2-deployment-20261013.json"
     },
     "sfu": {
       "path": "components/sfu",
@@ -254,19 +255,19 @@
     },
     "easytier": {
       "path": "components/easytier",
-      "tree": "1af35e8bef73da0a0c3eaddef464a714d8a4b2a2",
-      "mode": "Exact licensed frozen native source import; immutable downstream patches; create-only source review accepted",
+      "tree": "cd3b985ccd17369430ff7c3fb19d5f00454de331",
+      "mode": "Fixed upstream with ordered code-only patches, bounded member relay and native lease",
       "upstream": "EasyTier/EasyTier",
       "publicFork": "Thankyou-Cheems/EasyTier",
       "upstreamCommit": "8b7f1f0196edb5b580829ed5f135050fb5853478",
       "tag": "v2.7.0",
       "prerelease": true,
-      "privateSourceCommit": "089b6182c603c8ab60044b673effe0cf614cc28a",
-      "patchSetSha256": "490ffd127cc7c6a9d0d622ff161fe2086536e59be8b8281cf87e2f00e314aed5",
-      "privateBuildPackageSha256": "17bdccbab2d78b42642bbf934efb4c4bf9329a97ce4ed16685c3b5659f54ca74",
-      "status": "modern-standard-static-compiled-independent-audited-license-and-activation-pending",
-      "privateSourceTree": "25be11e0c9460bce1330cbd7964e4d6561f0bc14",
-      "codePatchSha256": "490ffd127cc7c6a9d0d622ff161fe2086536e59be8b8281cf87e2f00e314aed5",
+      "privateSourceCommit": "10b76471abb043709c9dc1fd321e845258976213",
+      "patchSetSha256": "d70f6dfb1902aee26529b413b74ebffc47dde8f2bfe3b8b0ae36aa118b3a3e4e",
+      "privateBuildPackageSha256": "f55ecda6c48e52e82926ebffd8fc8990500ae6904a001049500466840365f274",
+      "status": "member-relay-native-built-static-audited-runtime-pending",
+      "privateSourceTree": "381c14c582c3f05cd0db13a75f9b905c9d17b1bf",
+      "codePatchSha256": "d70f6dfb1902aee26529b413b74ebffc47dde8f2bfe3b8b0ae36aa118b3a3e4e",
       "sourceImport": {
         "path": "source",
         "archivedFiles": 1278,
@@ -306,7 +307,10 @@
         "sha256": "4bd7cccf1477b8a82c8f374a23502853dc22c166ff630cee890dd27d4413a7a6",
         "nativeRebuilt": true,
         "currentRuntimeStillBaseline": false
-      }
+      },
+      "sourceTreeScope": "components/easytier/source subtree in monorepo commit",
+      "memberRelayBuildReceipt": "components/easytier/receipts/member-network-20261013/build.json",
+      "patchHashSemantics": "SHA256 of ordered code patch index; apply its two patches in order"
     },
     "landing": {
       "path": "components/landing",
@@ -3619,6 +3623,112 @@
     "receipt": "release/acceptance/admin-startup-portable-20261013.json"
   },
   "greenDirectoryTestPackage": {
+    "schemaVersion": 1,
+    "date": "2026-10-13",
+    "version": "1.13.22-laokuai.beta.20261013.7",
+    "sourceCommit": "c76a75dd20389b059294435922abb806b68b33e4",
+    "file": "唠蒯云-1.13.22-laokuai.beta.20261013.7-zh-CN-win-x64-green.zip",
+    "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261013.7-zh-CN-win-x64-green.zip",
+    "bytes": 159058859,
+    "sha256": "6093ba84620947e63be2a4aaac1b0e9065f8ebd8808a895be435c220786a8d61",
+    "appAsarSha256": "5ebe9c0e5491d68ba7d6875b68c5de772eca685ca017d960a7c36eb2cc096722",
+    "staticPayloadFiles": 152,
+    "staticPayloadPassed": true,
+    "coreContractSuites": 31,
+    "communityRuntimeTests": 71,
+    "relayControllerTests": 35,
+    "dnsResolverPolicyTests": 25,
+    "nativeFocusedTests": 19,
+    "clientTypesAndChangedSourceLintPassed": true,
+    "bootstrap": {
+      "status": "passed",
+      "exitCode": 0,
+      "rootChildren": 1,
+      "preload": {
+        "electronAPI": "object",
+        "easyTierCommunity": "object"
+      },
+      "visible": false,
+      "focused": false,
+      "unexpectedEvents": 0,
+      "residualOwnedProcesses": 0,
+      "socketSamples": [
+        {
+          "seconds": 4.592,
+          "ownedProcesses": 4,
+          "tcpCount": 0,
+          "udpCount": 0
+        },
+        {
+          "seconds": 9.245,
+          "ownedProcesses": 6,
+          "tcpCount": 0,
+          "udpCount": 0
+        },
+        {
+          "seconds": 13.849,
+          "ownedProcesses": 6,
+          "tcpCount": 0,
+          "udpCount": 0
+        }
+      ],
+      "consoleErrors": 23,
+      "realElectronExecuted": true,
+      "isolatedFreshProfile": true,
+      "nativeEtExecuted": false,
+      "realCommunityOrDeviceMediaTest": false
+    },
+    "nativeSourceCommit": "10b76471abb043709c9dc1fd321e845258976213",
+    "nativeSourceTree": "381c14c582c3f05cd0db13a75f9b905c9d17b1bf",
+    "nativeBuildReceipt": "components/easytier/receipts/member-network-20261013/build.json",
+    "nativeRuntimeFiles": {
+      "easytier-core.exe": {
+        "bytes": 20247040,
+        "sha256": "d1634bf0fdfa4b151a836b5ba121c68b1e7da65f62363048628f2f16c13b548a",
+        "origin": "Exact monorepo native source10b76471, unchanged 17-feature static CRT build"
+      },
+      "easytier-cli.exe": {
+        "bytes": 6178304,
+        "sha256": "1638d7f1aa654255a541b98a6dd5a3466c382aa42f851eeb7f863bad2905ab43",
+        "origin": "Exact monorepo native source10b76471, unchanged 17-feature static CRT build"
+      },
+      "WinDivert64.sys": {
+        "bytes": 94144,
+        "sha256": "8da085332782708d8767bcace5327a6ec7283c17cfb85e40b03cd2323a90ddc2",
+        "origin": "Unchanged pinned signed companion reference"
+      },
+      "wintun.dll": {
+        "bytes": 427552,
+        "sha256": "e5da8447dc2c320edc0fc52fa01885c103de8c118481f683643cacc3220dafce",
+        "origin": "Unchanged pinned signed companion reference"
+      }
+    },
+    "fixedDirectory": true,
+    "administratorRequired": true,
+    "automaticElevation": false,
+    "persistentService": false,
+    "safeNetworkPreferencesImportExport": true,
+    "exportedIdentityOrRelayConsent": false,
+    "invitationAndDnsDirectoryDeployment": "release/acceptance/community-network-v2-deployment-20261013.json",
+    "magicDnsClientWired": true,
+    "windowsDnsMutationTested": false,
+    "memberRelayClientWired": true,
+    "memberRelayDefaultEnabled": false,
+    "memberRelayBackendEnabled": false,
+    "productionProxyChanged": false,
+    "actualNativeEtExecuted": false,
+    "oldUserProfilePreserved": true,
+    "npcapAbsent": true,
+    "sourceArchivesBundled": false,
+    "publicBinaryRelease": false,
+    "realDeviceMediaAccepted": false,
+    "dualDeviceGameAccepted": false,
+    "twelveFullAppWanAccepted": false,
+    "note": "Exact ZIP audit and real hidden offline fresh-profile bootstrap passed. Native compilation and fake-I/O checks do not accept real NRPT, forwarding, TUN, device audio or multi-device WAN. Member-relay production gates remain closed.",
+    "productionRuntimeContractTests": 23,
+    "receipt": "release/acceptance/community-network-v2-portable-20261013.json"
+  },
+  "previousGreenDirectoryTestPackage": {
     "schemaVersion": 1,
     "date": "2026-10-13",
     "version": "1.13.22-laokuai.beta.20261013.6",

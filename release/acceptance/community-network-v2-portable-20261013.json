@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-13",
+  "version": "1.13.22-laokuai.beta.20261013.7",
+  "sourceCommit": "c76a75dd20389b059294435922abb806b68b33e4",
+  "file": "唠蒯云-1.13.22-laokuai.beta.20261013.7-zh-CN-win-x64-green.zip",
+  "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261013.7-zh-CN-win-x64-green.zip",
+  "bytes": 159058859,
+  "sha256": "6093ba84620947e63be2a4aaac1b0e9065f8ebd8808a895be435c220786a8d61",
+  "appAsarSha256": "5ebe9c0e5491d68ba7d6875b68c5de772eca685ca017d960a7c36eb2cc096722",
+  "staticPayloadFiles": 152,
+  "staticPayloadPassed": true,
+  "coreContractSuites": 31,
+  "communityRuntimeTests": 71,
+  "relayControllerTests": 35,
+  "dnsResolverPolicyTests": 25,
+  "nativeFocusedTests": 19,
+  "clientTypesAndChangedSourceLintPassed": true,
+  "bootstrap": {
+    "status": "passed",
+    "exitCode": 0,
+    "rootChildren": 1,
+    "preload": {
+      "electronAPI": "object",
+      "easyTierCommunity": "object"
+    },
+    "visible": false,
+    "focused": false,
+    "unexpectedEvents": 0,
+    "residualOwnedProcesses": 0,
+    "socketSamples": [
+      {
+        "seconds": 4.592,
+        "ownedProcesses": 4,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 9.245,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 13.849,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      }
+    ],
+    "consoleErrors": 23,
+    "realElectronExecuted": true,
+    "isolatedFreshProfile": true,
+    "nativeEtExecuted": false,
+    "realCommunityOrDeviceMediaTest": false
+  },
+  "nativeSourceCommit": "10b76471abb043709c9dc1fd321e845258976213",
+  "nativeSourceTree": "381c14c582c3f05cd0db13a75f9b905c9d17b1bf",
+  "nativeBuildReceipt": "components/easytier/receipts/member-network-20261013/build.json",
+  "nativeRuntimeFiles": {
+    "easytier-core.exe": {
+      "bytes": 20247040,
+      "sha256": "d1634bf0fdfa4b151a836b5ba121c68b1e7da65f62363048628f2f16c13b548a",
+      "origin": "Exact monorepo native source10b76471, unchanged 17-feature static CRT build"
+    },
+    "easytier-cli.exe": {
+      "bytes": 6178304,
+      "sha256": "1638d7f1aa654255a541b98a6dd5a3466c382aa42f851eeb7f863bad2905ab43",
+      "origin": "Exact monorepo native source10b76471, unchanged 17-feature static CRT build"
+    },
+    "WinDivert64.sys": {
+      "bytes": 94144,
+      "sha256": "8da085332782708d8767bcace5327a6ec7283c17cfb85e40b03cd2323a90ddc2",
+      "origin": "Unchanged pinned signed companion reference"
+    },
+    "wintun.dll": {
+      "bytes": 427552,
+      "sha256": "e5da8447dc2c320edc0fc52fa01885c103de8c118481f683643cacc3220dafce",
+      "origin": "Unchanged pinned signed companion reference"
+    }
+  },
+  "fixedDirectory": true,
+  "administratorRequired": true,
+  "automaticElevation": false,
+  "persistentService": false,
+  "safeNetworkPreferencesImportExport": true,
+  "exportedIdentityOrRelayConsent": false,
+  "invitationAndDnsDirectoryDeployment": "release/acceptance/community-network-v2-deployment-20261013.json",
+  "magicDnsClientWired": true,
+  "windowsDnsMutationTested": false,
+  "memberRelayClientWired": true,
+  "memberRelayDefaultEnabled": false,
+  "memberRelayBackendEnabled": false,
+  "productionProxyChanged": false,
+  "actualNativeEtExecuted": false,
+  "oldUserProfilePreserved": true,
+  "npcapAbsent": true,
+  "sourceArchivesBundled": false,
+  "publicBinaryRelease": false,
+  "realDeviceMediaAccepted": false,
+  "dualDeviceGameAccepted": false,
+  "twelveFullAppWanAccepted": false,
+  "note": "Exact ZIP audit and real hidden offline fresh-profile bootstrap passed. Native compilation and fake-I/O checks do not accept real NRPT, forwarding, TUN, device audio or multi-device WAN. Member-relay production gates remain closed.",
+  "productionRuntimeContractTests": 23
+}
