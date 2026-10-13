@@ -8,6 +8,8 @@
 *.html text eol=lf
 *.css text eol=lf
 *.tgz binary
+native/squad-scope/main.cpp text eol=lf
+native/squad-scope/build.bat text eol=lf
 # Preserve upstream license bytes for the recorded SHA-256 inventory.
 release/licenses/*.txt -text whitespace=-blank-at-eof,cr-at-eol
 
