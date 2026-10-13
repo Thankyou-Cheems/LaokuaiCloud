@@ -32,6 +32,8 @@ try {
         'scripts/check-public-community-consent.cjs',
         'scripts/check-community-lan-isolation.mjs',
         'scripts/check-hybrid-product-bootstrap.mjs',
+        'scripts/check-hybrid-readiness.mjs',
+        'scripts/check-local-diagnostics.mjs',
         'scripts/check-easytier-voice-underlay.mjs',
         'scripts/check-voice-transport-preset.mjs',
         'scripts/check-voice-announcements.mjs',

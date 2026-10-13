@@ -6,7 +6,7 @@ import { type OwnedCredentialObservation,verifyOwnedCredentialObservation } from
 import { uuid } from './communityEtGrant';
 import { type ApplyRelayBudget,parseRelayBudgetReceipt, validRelayBudget } from './communityRelayRuntime';
 import { EASYTIER_V270_ROUTE_LIST_SOURCE, type EasyTierCliNetwork,sanitizedEasyTierV270CliNetwork } from "./easyTierCliNetwork";
-import { EasyTierOperationError } from "./easyTierCommunityManager";
+import { easyTierObservationReason, EasyTierOperationError } from "./easyTierCommunityManager";
 import type { BrokerCoreProcess, EasyTierElevationBroker } from "./easyTierElevationBroker";
 import type { EasyTierExistingConfiguration } from "./easyTierExistingConfiguration";
 import { easyTierVirtualIp } from "./easyTierStatus";
@@ -202,8 +202,8 @@ export class EasyTierWindowsProcesses {
         const reader = execFile(join(directory, "easytier-cli.exe"), args,
           { windowsHide: true, shell: false, cwd: directory, env, timeout: 2000, maxBuffer: 1024 * 1024, signal: readSignal },
           (error, stdout) => {
-            if (error) { reject(new EasyTierOperationError("status-unavailable")); return; }
-            try { resolve(JSON.parse(stdout)); } catch { reject(new EasyTierOperationError("status-unavailable")); }
+            if (error) { reject(new EasyTierOperationError("status-unavailable", readSignal.aborted ? 'cancelled' : error.killed ? 'cli-timeout' : 'cli-error')); return; }
+            try { resolve(JSON.parse(stdout)); } catch { reject(new EasyTierOperationError("status-unavailable", 'parse-failed')); }
           });
         this.children.add(reader);
         const release = () => this.children.delete(reader);
@@ -222,7 +222,7 @@ export class EasyTierWindowsProcesses {
             const observation = config.credentialIdentity ? verifyOwnedCredentialObservation(value, config.instanceId, config.credentialIdentity, EASYTIER_V270_ROUTE_LIST_SOURCE) : null;
             return {observation, network: {info, latencyFirst: null, acquisitionStartedAtMs, acquisitionStartedAtUnixMs,
               acquiredAtMs: performance.now(), acquiredAtUnixMs: Date.now()} as EasyTierCliNetwork};
-          } catch { throw new EasyTierOperationError("status-unavailable"); }
+          } catch (error) { throw new EasyTierOperationError("status-unavailable", easyTierObservationReason(error)); }
         });
         networkFlight = current;
         void current.finally(() => { if (networkFlight === current) networkFlight = null; }).catch(() => {});

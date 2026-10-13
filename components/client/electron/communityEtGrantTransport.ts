@@ -10,10 +10,36 @@ export interface TrustedCommunityTarget {
 }
 export type VerifiedCommunitySession = Omit<CommunitySessionResponseV1, 'v'>;
 export interface CommunityEtHttpPort {
-  post(origin: string, operation: string, bearer: string, body: unknown, signal: AbortSignal): Promise<unknown>;
+  post(origin: string, operation: string, bearer: string, body: unknown, signal: AbortSignal,
+    onStatus?: (status: number) => void): Promise<unknown>;
+}
+const operations = ['session', 'acquire', 'renew', 'revoke', 'binding', 'directory', 'relay', 'relay-renew', 'relay-status'] as const;
+const transportErrors = ['auth-unavailable', 'provider-unavailable', 'invalid-response', 'request-cancelled', 'directory-extension-unsupported'] as const;
+const serviceReasons = ['binding-pending', 'binding-unproven', 'provider-sample-conflict', 'provider-observation-mismatch',
+  'route-binding-mismatch', 'duplicate-key-owner', 'connection-evidence-conflict', 'grant-operation-busy',
+  'grant-operation-retired', 'operation-retired', 'unknown-grant', 'inactive-binding-grant', 'expired-grant',
+  'reconciliation-required', 'revocation-unconfirmed', 'renewal-not-extended', 'community-et-unavailable',
+  'community-et-disabled', 'provider-incompatible', 'issuer-store-unavailable'] as const;
+export type CommunityEtServiceReason = typeof serviceReasons[number];
+function safeServiceReason(value: unknown): CommunityEtServiceReason | null {
+  return typeof value === 'string' && serviceReasons.includes(value as CommunityEtServiceReason) ? value as CommunityEtServiceReason : null;
+}
+function responseServiceReason(chunks: Buffer[], size: number): CommunityEtServiceReason | null {
+  if (size > 4096) return null;
+  try {
+    const value = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    if (!value || typeof value !== 'object' || (value.v !== 1 && value.v !== 2) || Object.keys(value).length !== 2) return null;
+    return safeServiceReason(value.error);
+  } catch { return null; }
+}
+export interface CommunityEtHttpDiagnostic {
+  event: 'http'; action: 'start' | 'finish'; operation: typeof operations[number];
+  httpStatus: number | null; code: typeof transportErrors[number] | 'success';
+  reason: CommunityEtServiceReason | null;
 }
 export class CommunityEtTransportError extends Error {
-  constructor(readonly code: 'auth-unavailable' | 'provider-unavailable' | 'invalid-response' | 'request-cancelled' | 'directory-extension-unsupported') {
+  constructor(readonly code: 'auth-unavailable' | 'provider-unavailable' | 'invalid-response' | 'request-cancelled' | 'directory-extension-unsupported',
+    readonly reason: CommunityEtServiceReason | null = null) {
     super(code);
   }
 }
@@ -30,8 +56,8 @@ export function trustedHttpsOrigin(raw: unknown): string {
 }
 /** Production HTTP; no redirect, alternate destination, disabled TLS or secret logging. */
 export const communityEtHttpsPort: CommunityEtHttpPort = {
-  post(origin, operation, bearer, body, signal) {
-    if (!['session', 'acquire', 'renew', 'revoke', 'binding', 'directory', 'relay', 'relay-renew', 'relay-status'].includes(operation) || !validCommunityBearer(bearer))
+  post(origin, operation, bearer, body, signal, onStatus) {
+    if (!operations.includes(operation as typeof operations[number]) || !validCommunityBearer(bearer))
       return Promise.reject(new CommunityEtTransportError('auth-unavailable'));
     const target = new URL('/api/community-et/' + operation, trustedHttpsOrigin(origin));
     const bytes = Buffer.from(JSON.stringify(body));
@@ -39,6 +65,9 @@ export const communityEtHttpsPort: CommunityEtHttpPort = {
     return new Promise((resolve, reject) => {
       const req = request(target, { method: 'POST', signal, timeout: 8000, rejectUnauthorized: true,
         headers: { Authorization: 'Bearer ' + bearer, 'Content-Type': 'application/json', 'Content-Length': bytes.length } }, res => {
+        if (Number.isInteger(res.statusCode) && res.statusCode! >= 100 && res.statusCode! <= 599) {
+          try { onStatus?.(res.statusCode!); } catch { /* Diagnostics never affect HTTP. */ }
+        }
         const chunks: Buffer[] = []; let size = 0;
         res.on('data', (chunk: Buffer) => {
           size += chunk.length;
@@ -48,12 +77,13 @@ export const communityEtHttpsPort: CommunityEtHttpPort = {
         res.once('error', () => reject(new CommunityEtTransportError('provider-unavailable')));
         res.once('end', () => {
           if (signal.aborted) { reject(new CommunityEtTransportError('request-cancelled')); return; }
-          if (res.statusCode === 401 || res.statusCode === 403) { reject(new CommunityEtTransportError('auth-unavailable')); return; }
+          const reason = res.statusCode === 200 ? null : responseServiceReason(chunks, size);
+          if (res.statusCode === 401 || res.statusCode === 403) { reject(new CommunityEtTransportError('auth-unavailable', reason)); return; }
           if (res.statusCode === 400 && operation === 'directory' && body && typeof body === 'object' &&
               (body as {includeDnsNames?: unknown}).includeDnsNames === true) {
-            reject(new CommunityEtTransportError('directory-extension-unsupported')); return;
+            reject(new CommunityEtTransportError('directory-extension-unsupported', reason)); return;
           }
-          if (res.statusCode !== 200) { reject(new CommunityEtTransportError('provider-unavailable')); return; }
+          if (res.statusCode !== 200) { reject(new CommunityEtTransportError('provider-unavailable', reason)); return; }
           try { resolve(JSON.parse(Buffer.concat(chunks).toString('utf8'))); }
           catch { reject(new CommunityEtTransportError('invalid-response')); }
         });
@@ -67,7 +97,11 @@ export const communityEtHttpsPort: CommunityEtHttpPort = {
 
 /** A renderer bearer is opaque input until this exact trusted backend verifies it. */
 export class CommunityEtGrantTransport {
-  constructor(private port: CommunityEtHttpPort = communityEtHttpsPort) {}
+  constructor(private port: CommunityEtHttpPort = communityEtHttpsPort,
+    private diagnostic?: (event: CommunityEtHttpDiagnostic) => void) {}
+  private report(event: CommunityEtHttpDiagnostic): void {
+    try { this.diagnostic?.(event); } catch { /* Diagnostics never affect credentials. */ }
+  }
   async verifySession(target: TrustedCommunityTarget, bearer: string, deviceId: string, nativeInstanceId: string,
     signal: AbortSignal): Promise<VerifiedCommunitySession> {
     const response = await this.post(target, 'session', bearer, {v: 1, communityId: target.communityId, deviceId, nativeInstanceId}, signal);
@@ -98,7 +132,22 @@ export class CommunityEtGrantTransport {
     }
     return result;
   }
-  post(target: TrustedCommunityTarget, operation: string, bearer: string, body: unknown, signal: AbortSignal): Promise<unknown> {
-    return this.port.post(trustedHttpsOrigin(target.origin), operation, bearer, body, signal);
+  async post(target: TrustedCommunityTarget, operation: string, bearer: string, body: unknown, signal: AbortSignal): Promise<unknown> {
+    if (!operations.includes(operation as typeof operations[number])) throw new CommunityEtTransportError('auth-unavailable');
+    const safeOperation = operation as typeof operations[number];
+    let httpStatus: number | null = null;
+    this.report({event: 'http', action: 'start', operation: safeOperation, httpStatus, code: 'success', reason: null});
+    try {
+      const result = await this.port.post(trustedHttpsOrigin(target.origin), operation, bearer, body, signal, status => {
+        if (Number.isInteger(status) && status >= 100 && status <= 599) httpStatus = status;
+      });
+      this.report({event: 'http', action: 'finish', operation: safeOperation, httpStatus, code: 'success', reason: null});
+      return result;
+    } catch (error) {
+      const code = error instanceof CommunityEtTransportError && transportErrors.includes(error.code) ? error.code : 'provider-unavailable';
+      const reason = error instanceof CommunityEtTransportError ? safeServiceReason(error.reason) : null;
+      this.report({event: 'http', action: 'finish', operation: safeOperation, httpStatus, code, reason});
+      throw error;
+    }
   }
 }

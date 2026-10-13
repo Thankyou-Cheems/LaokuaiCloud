@@ -23,11 +23,25 @@ export interface EasyTierRuntime {
   /** Exact owned process handle only. Must be synchronous for Windows session end. */
   shutdownOwned(): void;
 }
+const observationReasons = ['cli-error', 'cli-timeout', 'parse-failed', 'invalid-owned-network-status',
+  'credential-node-ip-mismatch', 'credential-node-key-conflict', 'issuer-connection-unverified', 'timeout', 'cancelled', 'other'] as const;
+export type EasyTierObservationReason = typeof observationReasons[number];
 export class EasyTierOperationError extends Error {
-  constructor(public reason: Exclude<EasyTierReason, null>) { super(reason); }
+  constructor(public reason: Exclude<EasyTierReason, null>, readonly diagnosticReason: EasyTierObservationReason | null = null) { super(reason); }
+}
+export function easyTierObservationReason(error: unknown): EasyTierObservationReason {
+  if (error instanceof EasyTierOperationError && error.diagnosticReason && observationReasons.includes(error.diagnosticReason)) return error.diagnosticReason;
+  if (error instanceof EasyTierOperationError && error.reason === 'operation-timeout') return 'timeout';
+  if (error instanceof Error && observationReasons.includes(error.message as EasyTierObservationReason)) return error.message as EasyTierObservationReason;
+  return 'other';
 }
 /** An owned session retirement is separate from an ordinary telemetry failure. */
 export class EasyTierSessionRetiredError extends EasyTierOperationError {}
+export interface EasyTierManagerDiagnostic {
+  event: 'state' | 'telemetry'; action: 'start' | 'finish'; generation: number;
+  phase: EasyTierCommunityState['phase']; code: EasyTierReason | 'success';
+  reason: EasyTierObservationReason | null;
+}
 interface Community {
   leases: Set<string>;
   state: EasyTierCommunityState;
@@ -36,7 +50,7 @@ interface Community {
   cancel: AbortController | null;
   tail: Promise<void>;
   operation: Promise<void>;
-  refreshing: boolean;
+  refreshFlight: AbortController | null;
 }
 export function validEasyTierId(value: unknown): value is string {
   return typeof value === "string" && value.length > 0 && value.length <= 256 &&
@@ -55,19 +69,28 @@ export class EasyTierCommunityManager {
   private disposed = false;
   private membershipRevision = 0;
   constructor(private runtime: EasyTierRuntime | null, private emit: (state: EasyTierCommunityState) => void = () => undefined,
-    private now = () => performance.now(), private timeoutMs = 8000, private maxAgeMs = 10_000, private unixNow = () => Date.now()) {}
+    private now = () => performance.now(), private timeoutMs = 8000, private maxAgeMs = 10_000, private unixNow = () => Date.now(),
+    private diagnostic?: (event: EasyTierManagerDiagnostic) => void) {}
+  private report(c: Community, event: EasyTierManagerDiagnostic['event'], action: 'start' | 'finish', reason: EasyTierObservationReason | null = null): void {
+    const safeReasons: readonly EasyTierReason[] = ['activation-required', 'needs-permission', 'configuration-required', 'runtime-required', 'unsupported-target',
+      'multi-community-unavailable', 'connect-failed', 'operation-timeout', 'cleanup-failed', 'status-unavailable', 'runtime-exited'];
+    const code = c.state.reason === null ? 'success' : safeReasons.includes(c.state.reason) ? c.state.reason : 'status-unavailable';
+    try { this.diagnostic?.({event, action, generation: c.state.generation, phase: c.state.phase, code, reason}); }
+    catch { /* Observers never block lifecycle. */ }
+  }
 
   private community(serverId: string): Community {
     if (!validEasyTierId(serverId)) throw new Error("invalid-community-id");
     let community = this.communities.get(serverId);
     if (!community) {
       community = { leases: new Set(), state: { serverId, generation: 0, phase: "disabled", reason: null, virtualIp: null, lanSnapshot: null },
-        session: null, sample: null, cancel: null, tail: Promise.resolve(), operation: Promise.resolve(), refreshing: false };
+        session: null, sample: null, cancel: null, tail: Promise.resolve(), operation: Promise.resolve(), refreshFlight: null };
       this.communities.set(serverId, community);
     }
     return community;
   }
   private publish(c: Community): void {
+    this.report(c, 'state', 'finish');
     try { this.emit(this.getState(c.state.serverId)); } catch { /* Observers never block lifecycle. */ }
   }
   getState(serverId: string): EasyTierCommunityState {
@@ -85,7 +108,7 @@ export class EasyTierCommunityManager {
     const c = this.community(lease.serverId);
     if (this.disposed) return this.getState(lease.serverId);
     c.leases.add(lease.leaseId);
-    if (c.state.phase !== "connecting" && (c.state.phase !== "connected" || c.state.reason === "status-unavailable")) this.reconcile(c);
+    if (c.state.phase !== "connecting" && c.state.phase !== "connected") this.reconcile(c);
     await c.operation;
     return this.getState(lease.serverId);
   }
@@ -136,6 +159,7 @@ export class EasyTierCommunityManager {
   }
   private reconcile(c: Community): void {
     c.cancel?.abort();
+    c.refreshFlight?.abort(); c.refreshFlight = null;
     const cancel = new AbortController();
     c.cancel = cancel;
     const generation = ++c.state.generation;
@@ -194,10 +218,11 @@ export class EasyTierCommunityManager {
     const c = this.community(serverId);
     const session = c.session;
     if (!session || c.state.phase !== "connected") return;
-    if (c.refreshing) { this.publish(c); return; }
-    c.refreshing = true;
+    if (c.refreshFlight) { this.publish(c); return; }
     const generation = c.state.generation;
     const cancel = new AbortController();
+    c.refreshFlight = cancel;
+    this.report(c, 'telemetry', 'start');
     const work = session.read(cancel.signal).then(sample => {
       if (c.session !== session || c.state.generation !== generation || cancel.signal.aborted) return;
       c.sample = sample;
@@ -205,7 +230,8 @@ export class EasyTierCommunityManager {
       c.state.reason = status.running === false ? "runtime-exited" : status.running === null ? "status-unavailable" : null;
       if (status.running === false) c.state.phase = "error";
       this.publish(c);
-    }).finally(() => { c.refreshing = false; });
+      this.report(c, 'telemetry', 'finish');
+    });
     try { await this.deadline(work, cancel.signal); }
     catch (error) {
       cancel.abort();
@@ -214,7 +240,12 @@ export class EasyTierCommunityManager {
         c.state.reason = error instanceof EasyTierSessionRetiredError ? error.reason : "status-unavailable";
         if (error instanceof EasyTierSessionRetiredError) c.state.phase = "error";
         this.publish(c);
+        this.report(c, 'telemetry', 'finish', easyTierObservationReason(error));
       }
+    } finally {
+      // A port may settle after its deadline or ignore abort. Only this flight
+      // may release the read lane; late results cannot clear a newer poll.
+      if (c.refreshFlight === cancel) c.refreshFlight = null;
     }
   }
   refreshAll(): void {
@@ -227,6 +258,7 @@ export class EasyTierCommunityManager {
     this.enabled = false;
     for (const c of this.communities.values()) {
       c.cancel?.abort();
+      c.refreshFlight?.abort(); c.refreshFlight = null;
       c.leases.clear();
       c.sample = null;
       c.state = { ...c.state, generation: c.state.generation + 1, phase: "disabled", reason: null, virtualIp: null, lanSnapshot: null };

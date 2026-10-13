@@ -48,6 +48,7 @@ export class HybridReceivePortAdapter implements HybridReceivePort {
         this.notifyObservers();
       },
     });
+    this.selected = this.input.getSelectedKind();
     this.readOnlyPort = { getSelection: () => {
       const route = options.getReadOnlyRoute?.();
       return { current: this.isCurrent(), kind: this.selected, track: this.selected === "sfu" ? this.sfuTrack :
@@ -61,7 +62,7 @@ export class HybridReceivePortAdapter implements HybridReceivePort {
     this.unsubscribe = control.subscribeRetirement(() => { this.dispose(); options.onRetired?.(); });
   }
   private selectedCandidate?: HybridMediaCandidate;
-  isCurrent(): boolean { return !this.disposed && this.options.isCurrent() && this.options.source.receiveCleanup?.isCurrent?.() === true; }
+  isCurrent(): boolean { return !this.disposed && this.input.isCurrent(); }
   getSelectionRevision(): number { return this.input.getSelectionRevision(); }
   getSelection() { return { kind: this.selected, trackId: this.selected === "sfu" ? this.sfuTrack.id :
     this.selected === "p2p" ? this.selectedCandidate?.track.id ?? null : null, revision: this.getSelectionRevision() }; }
@@ -94,7 +95,7 @@ export class HybridReceivePortAdapter implements HybridReceivePort {
   releaseRestored(): void {
     if (this.disposed) return;
     if (this.selected !== "sfu") throw new Error("hybrid_restore_incomplete");
-    this.input.dispose(true); this.disposed = true; this.evidence.dispose(); this.unsubscribe();
+    this.input.relinquishSfu(); this.disposed = true; this.evidence.dispose(); this.unsubscribe();
     if (this.options.source.receivePath === this.readOnlyPort) delete this.options.source.receivePath;
     this.notifyObservers(); this.observers.clear();
   }

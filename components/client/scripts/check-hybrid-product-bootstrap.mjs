@@ -10,7 +10,9 @@ import { peerVoicePreset, sharedVoicePreset, voicePresetCodec } from "../src/lib
 const read = p => fs.readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
 const policyCode = ts.transpileModule(read("src/lib/hybridVoicePolicy.ts"), { compilerOptions: { module: ts.ModuleKind.CommonJS } }).outputText;
 const policyModule = { exports: {} };
-vm.runInNewContext(policyCode, { exports: policyModule.exports, Object });
+vm.runInNewContext(policyCode, { exports: policyModule.exports, Object, require: name => {
+  assert.equal(name, "./hybridDiagnostics"); return { localHybridDiagnostic() {} };
+} });
 const productPolicy = policyModule.exports.LAOKUAI_HYBRID_VOICE_POLICY;
 const provider = read("src/packages/webRTC/src/adapters/VoiceProvider.tsx");
 const peerPolicyExpression = provider.match(/const effectiveHybrid = useMemo\(\(\) => ([\s\S]*?), \[hybrid, voiceTransportPreset\]\)/)[1];
@@ -61,6 +63,7 @@ function fixture(policy, options = {}) {
   deps["../../../../lib/communityLanState"] = { useEasyTierCommunityState: () => undefined };
   deps["../../../../lib/easyTierVoiceUnderlay"] = { createEasyTierVoiceUnderlayResolver: () => ({ resolve: () => null }) };
   deps["../../../../lib/memberVoiceLocalNetwork"] = { readVoiceLocalNetwork: () => undefined };
+  deps["../../../../lib/hybridDiagnostics"] = { createHybridDiagnosticObserver: () => ({ scope() {}, state() {}, sdk() {} }) };
   deps["./MemberVoiceObservationAuthority"] = { useMemberVoiceObservationAuthority: () => ({ update() {},
     registerSession: (session, binding) => { const registration = { session, binding, released: false }; registrations.push(registration); return () => { registration.released = true; }; } }) };
   const exports = {};

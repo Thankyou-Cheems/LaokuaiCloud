@@ -121,8 +121,9 @@ export class CommunityEnrollment {
 
   /** Lifecycle errors retry from the saved member, never from a voice-room event. */
   observe(state: EasyTierCommunityState): void {
-    if (state.reason === "status-unavailable") this.scheduleRecovery();
-    else if (state.phase === "connected") { this.retryCount = 0; this.cancelRetry?.(); this.cancelRetry = null; }
+    // Missing CLI/binding evidence invalidates telemetry, not the owned core.
+    // The manager's normal refresh lane retries observations independently.
+    if (state.phase === "connected") { this.retryCount = 0; this.cancelRetry?.(); this.cancelRetry = null; }
     else if (state.phase === "error" && ["runtime-exited", "connect-failed", "operation-timeout"].includes(state.reason ?? "")) this.scheduleRecovery();
   }
 

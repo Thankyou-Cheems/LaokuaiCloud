@@ -4,9 +4,10 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
+import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
 
-const root = path.resolve(process.argv[2] ?? new URL('../../../', import.meta.url).pathname);
+const root = path.resolve(process.argv[2] ?? fileURLToPath(new URL('../../../', import.meta.url)));
 const source = fs.readFileSync(path.join(root, 'components/voice/src/webrtc/hooks/sfuConnection.ts'), 'utf8');
 const deferred = () => {
   let resolve, reject;
@@ -48,7 +49,7 @@ function harness({ hold = 'remote', codec = false } = {}) {
   const refs = { peerConnectionRef: { current: a }, sfuWebSocketRef: { current: null },
     isDisconnectingRef: { current: false } };
   const deps = {
-    '../../shared/mediaPolicy': { applyPeerMediaPolicy() {}, isAudioOnly: () => true, restrictMediaSdp: text => text },
+    '../../shared/mediaPolicy': { applyPeerMediaPolicy() {}, refreshPeerReceivePolicy() {}, canonicalMediaPolicy: policy => policy, isAudioOnly: () => true, restrictMediaSdp: text => text },
     './videoDemand': { parseVideoWanted: () => null },
     './voiceLogger': { voiceLog: quiet },
     './microphoneCodec': {

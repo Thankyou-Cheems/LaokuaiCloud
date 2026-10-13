@@ -134,6 +134,7 @@ import {
 import { openLaokuaiLogin } from "./laokuaiAuthWindow";
 import {LocalDiagnosticWriter} from "./localDiagnostics";
 import { closeMediaSandbox } from "./mediaSandbox";
+import {networkDiagnostic} from "./networkDiagnostics";
 import { readNowPlaying } from "./nowPlaying";
 import {
   createPendingUpdate,
@@ -334,7 +335,7 @@ const communityDns = new CommunityDnsPolicy({
   monoMs: () => performance.now(), wallMs: () => Date.now(),
 });
 const easyTierGrants = createCommunityEtGrantRuntime(() => easyTierProductRoot(app.getPath("userData")), communityDnsEnabled ? communityDns : undefined,
-  () => communityNetworkSettings.forSession(), communityRelayPreferences);
+  () => communityNetworkSettings.forSession(), communityRelayPreferences, event => localDiagnostics?.record(networkDiagnostic(event)));
 const easyTierProduction = createWindowsEasyTierProduction(
   () => easyTierProductRoot(app.getPath("userData")),
   () => join(app.isPackaged ? process.resourcesPath : join(__dirname, "../build"), "community-lan", "product", "2.7.0-laokuai"),
@@ -352,7 +353,7 @@ const prepareEasyTierRuntime = async (): Promise<{ ready: boolean }> => {
 const easyTierCommunities = new EasyTierCommunityManager(LAOKUAI_PREVIEW || UI_ACCEPTANCE_MODE || (IS_I18N_TEST && !IS_LAOKUAI) ? null : easyTierGrants.wrap(easyTierProduction.runtime), state => {
   easyTierEnrollment.observe(state);
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("et-community-state", state);
-});
+}, undefined, undefined, undefined, undefined, event => localDiagnostics?.record(networkDiagnostic(event)));
 const easyTierEnrollment = new CommunityEnrollment({ manager: easyTierCommunities,
   supports: member => member.serverId === "老蒯聊_5000_default" && member.host === "voice.ruikang.wang",
   approve: serverId => approvePublicCommunity(easyTierProductRoot(app.getPath("userData")), serverId, mainWindow ?? undefined, prepareEasyTierPermission),

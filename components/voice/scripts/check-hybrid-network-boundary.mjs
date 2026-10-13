@@ -92,23 +92,34 @@ for (const bitrate of [48000,64000]) {
 }
 {
   const priorAudio=globalThis.Audio;
+  const priorPerformance=globalThis.performance; let diagnosticNow=1000;
+  globalThis.performance={now:()=>diagnosticNow};
   globalThis.Audio=class { play(){return Promise.resolve()} pause(){} remove(){} };
   const remoteTrack={id:'remote-peer-track',kind:'audio',readyState:'live',addEventListener(){},removeEventListener(){}};
   const remoteStream={getTracks:()=>[remoteTrack],getAudioTracks:()=>[remoteTrack]};
   const factory={lease:{scope,remoteSessionId:'socket-b',connectionId:'poll-proof',initiator:false},publication:borrowHybridPublication(microphone,publicationPc),participant,onSignal(){},onFailure(){}};
-  const peer=new BrowserHybridPeer(factory,{rtcConfiguration:{iceServers:[]},microphoneCodec:profile});
+  const diagnosticEvents=[];
+  const peer=new BrowserHybridPeer(factory,{rtcConfiguration:{iceServers:[]},microphoneCodec:profile,onDiagnostic:event=>diagnosticEvents.push(event)});
   peer.pc.ontrack({track:remoteTrack,streams:[remoteStream]});
   peer.pc.stats=new Map([['unidentified',{type:'inbound-rtp',kind:'audio',packetsReceived:2,totalSamplesReceived:960}]]);
   await peer.start(); await new Promise(r=>setImmediate(r)); clearTimeout(peer.timer);
+  equal(diagnosticEvents.at(-1).decodeProof,'missing');
   let resolved=false; const waiting=peer.waitForMedia().then(value=>{resolved=true;return value});
   peer.pc.stats=new Map([
     ['duplicate-1',{type:'inbound-rtp',kind:'audio',trackIdentifier:remoteTrack.id,packetsReceived:3,totalSamplesReceived:1440}],
     ['duplicate-2',{type:'inbound-rtp',kind:'audio',trackIdentifier:remoteTrack.id,packetsReceived:4,totalSamplesReceived:1920}],
   ]);
-  peer.poll(); await new Promise(r=>setImmediate(r)); clearTimeout(peer.timer); equal(resolved,false);
+  diagnosticNow+=1001;peer.poll(); await new Promise(r=>setImmediate(r)); clearTimeout(peer.timer); equal(resolved,false);
   peer.pc.stats=new Map([['exact',{type:'inbound-rtp',kind:'audio',trackIdentifier:remoteTrack.id,packetsReceived:5,totalSamplesReceived:2400}]]);
-  peer.poll(); const candidate=await waiting; equal(candidate.track,remoteTrack); equal(resolved,true);
-  peer.dispose(); if(priorAudio===undefined) delete globalThis.Audio; else globalThis.Audio=priorAudio;
+  diagnosticNow+=1001;peer.poll(); const candidate=await waiting; equal(candidate.track,remoteTrack); equal(resolved,true);
+  await new Promise(r=>setImmediate(r)); clearTimeout(peer.timer);
+  const exact=peer.pc.stats.get('exact');exact.packetsReceived++;exact.totalSamplesReceived+=480;
+  diagnosticNow+=1001;peer.poll();await new Promise(r=>setImmediate(r));clearTimeout(peer.timer);
+  equal(diagnosticEvents.at(-1).decodeProof,'fresh');
+  peer.pc.getStats=async()=>{throw Error('private raw endpoint');};peer.poll();await new Promise(r=>setImmediate(r));
+  equal(diagnosticEvents.at(-1).failureReason,'peer_stats_unavailable');
+  equal(/remote-peer-track|private|socket-b|poll-proof/.test(JSON.stringify(diagnosticEvents)),false);
+  peer.dispose();globalThis.performance=priorPerformance;if(priorAudio===undefined) delete globalThis.Audio; else globalThis.Audio=priorAudio;
 }
 {
   let stats=new Map([['in',{type:'inbound-rtp',kind:'audio',trackIdentifier:track.id,packetsReceived:10,totalSamplesReceived:4800}]]),calls=0;

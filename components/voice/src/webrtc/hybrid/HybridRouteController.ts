@@ -5,6 +5,7 @@ import type {
   HybridScope, HybridSignal, HybridSignalBody, HybridState,
 } from "../types/Hybrid";
 import type { ReceiveTrackObservation } from "../types/ReceivePath";
+import type { BrowserHybridDiagnostic } from "./hybridDiagnostic";
 
 interface Route {
   participant: HybridParticipant;
@@ -220,8 +221,8 @@ export class HybridRouteController {
       if (!port?.isCurrent() || [...this.routes.values()].some(route => route.port === port)) continue;
       const generation = ++this.generations;
       const withinLimit = this.routes.size < this.options.maxPeerConnections;
-      const restoring = this.restorePorts.has(port);
       const selection = port.getSelection?.();
+      const restoring = this.restorePorts.has(port) || selection?.kind === "none";
       const route: Route = {
         participant, scope: { ...scope }, publication: { ...publication! }, port, generation,
         signalIn: 0, signalOut: 0, outbound: Promise.resolve(), inbound: Promise.resolve(),
@@ -419,7 +420,7 @@ export class HybridRouteController {
       route.candidate = candidate; route.state.status = "switching"; route.pauseAttempted = true; this.emit();
       const request = this.request(route, false);
       const started = this.clock.now();
-      const ack = await this.bounded(route, this.dependencies.authority!.setForwarding(request), this.options.switchTimeoutMs);
+      const ack = await this.forwardingRequest(route, request, this.options.switchTimeoutMs);
       if (!this.current(route, generation)) return;
       this.validateAck(request, ack, started);
       if (!this.validMedia(candidate) || !this.receiving(route, candidate)) throw new Error("media_stale_before_switch");
@@ -452,7 +453,22 @@ export class HybridRouteController {
       request.operationId !== ack.operationId || request.enabled !== ack.enabled || request.pauseLeaseMs !== ack.pauseLeaseMs ||
       ack.applied !== true || !finite(ack.leaseRemainingMs) || (!request.enabled &&
         (ack.leaseRemainingMs > request.pauseLeaseMs || started + ack.leaseRemainingMs <= this.clock.now()))) {
+      this.reportForwarding(request, "failed", "forwarding_ack_mismatch");
       throw new Error("forwarding_ack_mismatch");
+    }
+    this.reportForwarding(request, "acknowledged", "validated_ack");
+  }
+
+  private reportForwarding(request: HybridForwardingRequest, result: "acknowledged" | "failed", reason: "validated_ack" | "request_failed" | "forwarding_ack_mismatch"): void {
+    const event: BrowserHybridDiagnostic = { kind: "forwarding", action: request.enabled ? "restore" : "pause", result, reason };
+    try { this.dependencies.onDiagnostic?.(event); } catch { /* Observers do not own forwarding. */ }
+  }
+  private async forwardingRequest(route: Route, request: HybridForwardingRequest, timeout: number): Promise<HybridForwardingAck> {
+    try {
+      return await this.bounded(route, Promise.resolve().then(() => this.dependencies.authority!.setForwarding(request)), timeout);
+    } catch (error) {
+      this.reportForwarding(request, "failed", "request_failed");
+      throw error;
     }
   }
 
@@ -553,7 +569,7 @@ export class HybridRouteController {
         const after = route.port.getSfuMediaSequence();
         if (!Number.isSafeInteger(after) || after < 0) throw new Error("invalid_sfu_media_sequence");
         const request = this.request(route, true); const started = this.clock.now();
-        const ack = await this.bounded(route, this.dependencies.authority!.setForwarding(request), this.options.switchTimeoutMs);
+        const ack = await this.forwardingRequest(route, request, this.options.switchTimeoutMs);
         if (!this.current(route, generation)) return;
         this.validateAck(request, ack, started); this.setPause(route, 0);
         const media = await this.bounded(route, route.port.waitForSfuMedia(after), this.options.switchTimeoutMs);
@@ -584,7 +600,7 @@ export class HybridRouteController {
       if (!this.current(route, generation) || route.state.status !== "p2p") return;
       if (!this.receiving(route)) { void this.fallback(route.participant.participantId, "p2p_media_lost"); return; }
       const request = this.request(route, false); const started = this.clock.now();
-      void this.bounded(route, Promise.resolve().then(() => this.dependencies.authority!.setForwarding(request)),
+      void this.forwardingRequest(route, request,
         Math.min(this.options.switchTimeoutMs, Math.max(1, route.pauseUntil - started))).then(ack => {
         if (!this.current(route, generation)) return;
         this.validateAck(request, ack, started); this.setPause(route, started + ack.leaseRemainingMs);
@@ -684,6 +700,8 @@ export class HybridRouteController {
       try { this.select(route, "none"); } catch { /* A replaced physical port cannot be reconnected. */ }
     }
     if (route.pauseAttempted) {
+      try { this.dependencies.rememberRetiredSfu?.(this.request(route, true), route.port); }
+      catch { /* A host may reject a retired physical source. */ }
       try { void this.dependencies.authority!.setForwarding(this.request(route, true)).catch(() => undefined); }
       catch { /* Independent server pause lease must restore forwarding. */ }
       if (!this.disposed && route.port.isCurrent()) {

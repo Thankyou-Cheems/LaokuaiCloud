@@ -99,6 +99,7 @@ await test('Voice leave, SFU failure, and Hybrid disposal preserve ET lease owne
     '../../../../lib/communityLanState':{useEasyTierCommunityState:()=>({phase:'connected',reason:null,lease})},
     '../../../../lib/easyTierVoiceUnderlay':{createEasyTierVoiceUnderlayResolver:()=>({resolve:()=>null,release:()=>lease.release(),disconnectCommunity:()=>lease.disconnectCommunity()})},
     '../../../../lib/memberVoiceLocalNetwork':{readVoiceLocalNetwork:()=>undefined},
+    '../../../../lib/hybridDiagnostics':{createHybridDiagnosticObserver:()=>({scope(){},state(){},sdk(){}})},
     './MemberVoiceObservationAuthority':{useMemberVoiceObservationAuthority:()=>({update(){},registerSession:(session,binding)=>{const registration={session,binding};registrations.push(registration);return()=>{registration.released=true;};}})},
   };
   const bridgeExports={};

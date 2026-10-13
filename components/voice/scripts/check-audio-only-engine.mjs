@@ -36,6 +36,7 @@ const offer={type:'offer',sdp:'v=0\r\n'+['m=audio 9 UDP/TLS/RTP/SAVPF 96\r\na=mi
 await settle(()=>FakeSocket.all.at(-1).deliver('offer',offer));
 assert.deepEqual(answered(FakeSocket.all.at(-1)).map(s=>s.direction),['sendonly','recvonly','inactive','inactive']);
 const remoteMic=fakeTrack('audio');const remoteMicStream=fakeStream(remoteMic);
+remoteMicStream.id='trusted-mic';
 await settle(()=>pc.ontrack({track:remoteMic,streams:[remoteMicStream],transceiver:pc.getTransceivers().find(t=>t.mid==='4'),receiver:{}}));
 assert.ok(engine.current.sfu.streams[remoteMicStream.id]);
 const remoteScreen=fakeTrack('audio');const screenStream=fakeStream(remoteScreen);

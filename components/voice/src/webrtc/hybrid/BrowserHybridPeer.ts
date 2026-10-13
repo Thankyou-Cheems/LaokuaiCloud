@@ -4,6 +4,7 @@ import { idleMicrophoneCodecState, type MicrophoneCodecProfile, type MicrophoneC
 import type { HybridMediaCandidate, HybridPeerFactoryOptions, HybridPeerMetrics, HybridPeerSession, HybridPublication, HybridSignalBody } from "../types/Hybrid";
 import { readReceiveStats, ReceiveTrackStats } from "./receivePathStats";
 import type { ReceivePathUnderlayResolver, ReceiveTrackObservation } from "../types/ReceivePath";
+import { createHybridDiagnosticReporter, peerMediaDiagnostic, type BrowserHybridDiagnostic } from "./hybridDiagnostic";
 
 export interface BrowserHybridPeerOptions {
   /** Explicit host-supplied ICE configuration. No public discovery server is added. */
@@ -12,6 +13,7 @@ export interface BrowserHybridPeerOptions {
   channelMaxBitrateBps?: number | null;
   /** Optional host-owned ET/VPN evidence; receives only the in-memory selected path. */
   pathUnderlayResolver?: ReceivePathUnderlayResolver;
+  onDiagnostic?: (event: BrowserHybridDiagnostic) => void;
 }
 
 // Media identity is independent of mute/PTT/Squad control acknowledgements.
@@ -58,8 +60,10 @@ export class BrowserHybridPeer implements HybridPeerSession {
   private waiters = new Set<{ resolve(candidate: HybridMediaCandidate): void; reject(error: Error): void }>();
   private readonly receiveStats = new ReceiveTrackStats();
   private receiveObservation: ReceiveTrackObservation | null = null;
+  private readonly diagnostic: (event: BrowserHybridDiagnostic) => void;
 
   constructor(private readonly factory: HybridPeerFactoryOptions, private readonly options: BrowserHybridPeerOptions) {
+    this.diagnostic = createHybridDiagnosticReporter(options.onDiagnostic);
     const profile = snapshotMicrophoneCodec(options.microphoneCodec);
     if (!profile) throw new Error("peer_codec_profile_invalid"); this.profile = profile;
     const { publication } = factory;
@@ -167,6 +171,7 @@ export class BrowserHybridPeer implements HybridPeerSession {
         } catch { /* An optional host observer cannot affect media routing. */ }
       }
       this.receiveObservation = observation;
+      this.diagnostic(peerMediaDiagnostic(observation));
       const remoteTrackId = this.remoteTrack?.id; let matchedRows = 0;
       report.forEach(row => { if (row.type === "inbound-rtp" && (row.kind ?? row.mediaType) === "audio" &&
         row.trackIdentifier === remoteTrackId) {
@@ -225,6 +230,7 @@ export class BrowserHybridPeer implements HybridPeerSession {
   }
   private fail(reason: string): void {
     if (this.disposed || this.failed) return; this.failed = true; clearTimeout(this.timer);
+    this.diagnostic(peerMediaDiagnostic(this.receiveObservation, reason));
     for (const waiter of this.waiters) waiter.reject(new Error(reason)); this.waiters.clear();
     try { this.pc.close(); } catch {} this.decoder?.pause();
     try { this.factory.onFailure(reason); } catch { /* Media is already stopped. */ }

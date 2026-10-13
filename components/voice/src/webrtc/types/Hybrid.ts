@@ -176,6 +176,7 @@ export interface HybridMetrics {
   measuredPeers: readonly HybridPeerMetrics[];
 }
 export interface HybridDependencies {
+  onDiagnostic?: (event: import("../hybrid/hybridDiagnostic").BrowserHybridDiagnostic) => void;
   authority: HybridAuthority | null;
   getPublication(): HybridPublication | null;
   getReceivePort(participant: HybridParticipant): HybridReceivePort | null;
@@ -183,4 +184,6 @@ export interface HybridDependencies {
   clock?: HybridClock;
   /** Host-owned, fenced ACK + fresh-media recovery after the controller loses authority. */
   recoverRetiredSfu?(request: HybridForwardingRequest, port: HybridReceivePort, selectionRevision: number): void;
+  /** Keep a fenced restore obligation when an owner retires its still-live SFU source. */
+  rememberRetiredSfu?(request: HybridForwardingRequest, port: HybridReceivePort): void;
 }

@@ -12,8 +12,25 @@ function load(file, imports = {}) {
   return exports;
 }
 const schema = load('src/lib/localDiagnostics.ts');
+const {networkDiagnostic} = load('electron/networkDiagnostics.ts', {'../src/lib/localDiagnostics':schema});
+assert.deepEqual(JSON.parse(JSON.stringify(networkDiagnostic({event:'state',action:'finish',generation:2,phase:'connected',code:'status-unavailable'}))),
+  {phase:'lan',operation:'lan-state',action:'finish',code:'status-unavailable',generation:2,status:'connected',reason:null});
+const pathEvent = {phase:'voice',operation:'hybrid-path',action:'finish',code:'ok',scopeGeneration:1,pathClass:'non-turn-candidate',pathReason:'selected-pair',localCandidateType:'host',remoteCandidateType:'srflx',underlayClass:'not-easytier',decodeProof:'fresh',decodeReason:'fresh_decode',failureReason:null};
+assert.ok(schema.safeDiagnostic(pathEvent));
+for (const extra of [{pathReason:'raw candidate'}, {localCandidateType:'10.0.0.1'}, {failureReason:'secret'}, {selectedPair:'private'}]) assert.equal(schema.safeDiagnostic({...pathEvent,...extra}),null);
+assert.ok(schema.safeDiagnostic({phase:'voice',operation:'hybrid-forwarding',action:'finish',code:'ok',forwardingAction:'restore',result:'acknowledged',reason:'validated_ack'}));
+assert.ok(schema.safeDiagnostic(networkDiagnostic({event:'http',action:'finish',operation:'binding',httpStatus:409,code:'provider-unavailable'})));
+assert.equal(schema.safeDiagnostic(networkDiagnostic({event:'http',action:'finish',operation:'binding',httpStatus:409,code:'provider-unavailable',reason:'binding-pending'})).reason,'binding-pending');
+assert.equal(schema.safeDiagnostic(networkDiagnostic({event:'http',action:'finish',operation:'binding',httpStatus:409,code:'provider-unavailable',reason:'raw-private-message'})),null);
+assert.ok(schema.safeDiagnostic(networkDiagnostic({event:'core-stop',action:'finish',generation:3,code:'success'})));
 const event = {phase: 'socket', operation: 'server:error', action: 'receive', code: 'rate_limited', retryAfterMs: 1000};
 assert.ok(schema.safeDiagnostic(event));
+const route = {phase:'voice', operation:'hybrid-route', action:'finish', code:'ok', status:'p2p',
+  selected:'p2p', reason:null, scopeGeneration:2, routeOrdinal:1, routeGeneration:3, selectionRevision:4, forwardingPaused:true};
+assert.ok(schema.safeDiagnostic(route), 'bounded voice routing observations must be accepted');
+for (const extra of [{reason:'token=private'}, {status:'raw SDP'}, {routeOrdinal:-1}, {forwardingPaused:'yes'}, {peerId:'private'}, {ip:'10.0.0.1'}])
+  assert.equal(schema.safeDiagnostic({...route,...extra}), null);
+assert.ok(schema.safeDiagnostic({phase:'lan',operation:'lan-telemetry',action:'finish',code:'provider-unavailable',httpStatus:409,generation:3}));
 for (const extra of [{token: 'secret'}, {payload: {}}, {host: 'identity'}, {retryAfterMs: Infinity}, {code: 'raw-secret'}, {phase: 'private'}]) assert.equal(schema.safeDiagnostic({...event, ...extra}), null);
 const ioErrors = [];
 const checkedFs = Object.fromEntries(['appendFileSync', 'existsSync', 'mkdirSync', 'renameSync', 'rmSync', 'statSync'].map(name => [name, (...args) => {try {return fs[name](...args);} catch (error) {ioErrors.push({operation: name, code: error.code}); throw error;}}]));
@@ -24,6 +41,9 @@ try {
   writer.record(event); writer.record({...event, retryAfterMs: 900}); writer.record({...event, token: 'must-never-persist'}); writer.flush();
   const record = JSON.parse(fs.readFileSync(path.join(dir, 'events.jsonl'), 'utf8'));
   assert.equal(record.count, 2); assert.equal(record.event.retryAfterMs, 900);
+  writer.record(route); writer.record({...route,selected:'sfu',status:'recovering',forwardingPaused:false}); writer.flush();
+  const transitions = fs.readFileSync(path.join(dir,'events.jsonl'),'utf8').trim().split('\n').map(JSON.parse);
+  assert.equal(transitions.filter(row=>row.event.operation==='hybrid-route').length,2,'route transitions must not aggregate away');
   for (let i = 0; i < 50; i++) {writer.record({...event, elapsedMs: i}); writer.flush();}
   assert.deepEqual(ioErrors, []);
   const files = fs.readdirSync(dir); assert.equal(files.length, 3);

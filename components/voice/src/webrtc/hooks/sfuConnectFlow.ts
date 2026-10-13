@@ -1,6 +1,6 @@
 import { Dispatch, MutableRefObject, SetStateAction } from "react";
 
-import { isAudioOnly, microphoneReceiveAllowed, type MediaPolicy } from "../../shared/mediaPolicy";
+import { isAudioOnly, microphoneReceiveAllowed, microphoneReceiveStreamIds, peerReceivePolicyCommitted, registerPeerReceivePolicy, type MediaPolicy } from "../../shared/mediaPolicy";
 import { getVoicePlatform } from "../../platform";
 import type { RoomCoordinator } from "../../types";
 import { SFUConnectionState, Streams } from "../types/SFU";
@@ -262,8 +262,9 @@ export function setupPeerConnection(
   // Transceiver mid to the first stream id seen. Mids are stable across renegotiations, so
   // alias entries survive Chrome assigning a new MediaStream id.
   const midToOriginalStream = new Map<string, string>();
+  const receivedEvents = new Map<RTCRtpTransceiver, RTCTrackEvent>();
 
-  pc.ontrack = (event) => {
+  const routeTrack = (event: RTCTrackEvent) => {
     const policy = deps.getMediaPolicy?.() ?? {};
     if (isAudioOnly(policy) && (event.track.kind !== "audio" || !microphoneReceiveAllowed(pc.remoteDescription?.sdp, event.transceiver?.mid ?? null, policy))) {
       event.track.enabled = false;
@@ -325,7 +326,7 @@ export function setupPeerConnection(
     }
 
     let aliasStreamId: string | undefined;
-    if (mid) {
+    if (mid && !isAudioOnly(policy)) {
       const original = midToOriginalStream.get(mid);
       if (!original) {
         midToOriginalStream.set(mid, remoteStream.id);
@@ -339,9 +340,15 @@ export function setupPeerConnection(
     }
 
     setStreams((prev) => {
+      // A reused receiver may now carry a different authenticated publication.
+      // Full-mode browser aliases are preserved; audio-only keys follow current SDP msid.
+      const sourceId = isAudioOnly(policy) ? microphoneReceiveStreamIds(pc.remoteDescription?.sdp, mid ?? null, policy)[0] : remoteStream.id;
+      if (!sourceId) return prev;
+      const retained = isAudioOnly(policy) ? Object.fromEntries(Object.entries(prev).filter(([, data]) =>
+        data.isLocal || !data.stream.getTracks().includes(event.track))) : prev;
       const next = {
-        ...prev,
-        [remoteStream.id]: { stream: remoteStream, isLocal: false },
+        ...retained,
+        [sourceId]: { stream: remoteStream, isLocal: false },
       };
       if (aliasStreamId) {
         next[aliasStreamId] = { stream: remoteStream, isLocal: false };
@@ -359,14 +366,40 @@ export function setupPeerConnection(
         // Keep a reused stream while any replacement track is still live.
         if (remoteStream.getTracks().some(track => track.readyState === "live")) return prev;
         let next = prev;
-        for (const id of [remoteStream.id, aliasStreamId]) {
-          if (!id || prev[id]?.isLocal || prev[id]?.stream !== remoteStream) continue;
+        for (const id of Object.keys(prev)) {
+          if (prev[id]?.isLocal || prev[id]?.stream !== remoteStream) continue;
           if (next === prev) next = { ...prev };
           delete next[id];
         }
         return next;
       });
     };
+  };
+
+  const revokeTrack = (event: RTCTrackEvent) => {
+    event.track.enabled = false;
+    setStreams(prev => {
+      const entries = Object.entries(prev).filter(([, data]) => data.isLocal || !data.stream.getTracks().includes(event.track));
+      return entries.length === Object.keys(prev).length ? prev : Object.fromEntries(entries);
+    });
+  };
+  registerPeerReceivePolicy(pc, (policy, committed) => {
+    for (const event of receivedEvents.values()) {
+      if (isAudioOnly(policy) && (event.track.kind !== "audio" || !microphoneReceiveAllowed(pc.remoteDescription?.sdp, event.transceiver.mid, policy))) {
+        revokeTrack(event);
+      } else if (committed && event.track.readyState !== "ended") {
+        event.track.enabled = true;
+        routeTrack(event);
+      }
+    }
+  });
+  pc.ontrack = event => {
+    const previous = receivedEvents.get(event.transceiver);
+    if (previous && previous.track !== event.track) revokeTrack(previous);
+    receivedEvents.set(event.transceiver, event);
+    const policy = deps.getMediaPolicy?.() ?? {};
+    if (!peerReceivePolicyCommitted(pc, policy)) { revokeTrack(event); return; }
+    routeTrack(event);
   };
 
   pc.onconnectionstatechange = () => {

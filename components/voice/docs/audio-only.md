@@ -30,11 +30,15 @@ cannot send from the SFU to the client; a section may still receive our local
 microphone. The SDK routes only approved audio track events. It never treats
 muting a received track as evidence of saved downstream bandwidth.
 
-Changing the mode or allowlist on a live call immediately closes the peer
-connection and uses the normal recovery path to negotiate a fresh connection.
-This revokes previously accepted receivers and cancels pending track replacement
-work. Expect a brief call interruption when these settings change. Keep the list
-stable and deduplicated. Capture leases release late device results even if mode
+Changing the allowlist on a live call immediately disables and removes revoked
+receivers from playback, then requests an SFU offer on the same connection.
+New grants enable and route audio only after a current-policy answer is sent.
+Track events that preceded the authenticated roster are retained for that answer;
+publication rotation replaces the old SDP msid playback key. A roster revision
+during negotiation retries the latest offer without sending the stale answer.
+This does not establish that downstream RTP stopped before the answer.
+Changing the mode still closes the connection and uses normal recovery.
+Capture leases release late device results even if mode
 changes from full to audio-only and back before the request completes.
 The SDK normalizes duplicate/order-only allowlist changes, empty versus omitted
 lists, and full-mode defaults; these do not revoke permissions or reconnect.
@@ -57,6 +61,8 @@ Verification uses muted synthetic fixtures only:
 and `node scripts/check-audio-only-engine.mjs` runs the actual hooks with fake
 capture, socket and peer connection implementations. They do not measure a real
 SFU's network traffic or claim a measured bandwidth saving.
+`node scripts/check-roster-media-policy.mjs` exercises mounted roster updates,
+offer/roster ordering, immediate revocation, publication rotation and answer races.
 
 `node scripts/check-audio-only-headless.mjs <playwright module path>` additionally
 checks actual Chromium offer/answer acceptance using silent synthetic audio and

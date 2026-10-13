@@ -7,7 +7,7 @@ import { parseCommunityDnsDirectory } from './communityDnsResolver';
 import { projectCommunityEtBinding } from './communityEtBindingProjection';
 import { buildCommunityEtConfig } from './communityEtConfig';
 import { communityIdentity, exact, MainGrantGate, sameScope, type TrustedCommunityIntent } from './communityEtGrant';
-import { CommunityEtGrantTransport, CommunityEtTransportError, type TrustedCommunityTarget, validCommunityBearer, type VerifiedCommunitySession } from './communityEtGrantTransport';
+import { CommunityEtGrantTransport, type CommunityEtHttpDiagnostic,CommunityEtTransportError, type TrustedCommunityTarget, validCommunityBearer, type VerifiedCommunitySession } from './communityEtGrantTransport';
 import type {CommunityAcquireRequestV1, CommunityBindingProofV1, CommunityBindingRequestV1, CommunityDirectoryMemberV1} from './communityEtHttpContract';
 import { CommunityEtOwnedFiles, readCommunityGrantTarget } from './communityEtTrustedConfiguration';
 import { type CommunityRelayPreferenceStore,CommunityRelayRuntime, parseRelayPreference } from './communityRelayRuntime';
@@ -15,6 +15,10 @@ import { EasyTierOperationError, type EasyTierRuntime, type EasyTierSession,Easy
 import type { EasyTierExistingConfiguration } from './easyTierExistingConfiguration';
 
 interface AuthInput { serverId: string; host: string; accessToken: string | null }
+export type CommunityEtRuntimeDiagnostic = CommunityEtHttpDiagnostic | {
+  event: 'core-start' | 'core-stop'; action: 'start' | 'finish'; generation: number;
+  code: 'success' | 'connect-failed' | 'cleanup-failed';
+};
 interface Context {
   target: TrustedCommunityTarget; bearer: string; verified: VerifiedCommunitySession; gate: MainGrantGate;
   cancel: AbortController; configuration: EasyTierExistingConfiguration | null; removeConfig: (() => Promise<void>) | null;
@@ -35,6 +39,7 @@ export interface CommunityEtGrantRuntimePorts {
   dns?: Pick<CommunityDnsPolicy, 'publish' | 'clear' | 'isReady'>;
   preferences?(): CommunityNetworkPreferences;
   relayPreferences?: CommunityRelayPreferenceStore;
+  diagnostic?(event: CommunityEtRuntimeDiagnostic): void;
   wallMs(): number; monoMs(): number;
 }
 const combined = (...signals: AbortSignal[]) => AbortSignal.any(signals);
@@ -45,6 +50,9 @@ export class CommunityEtGrantRuntime {
   private authPending = new Map<string, AbortController>();
   private stopped = false;
   constructor(private ports: CommunityEtGrantRuntimePorts) {}
+  private report(event: CommunityEtRuntimeDiagnostic): void {
+    try { this.ports.diagnostic?.(event); } catch { /* Diagnostics never affect owned resources. */ }
+  }
   async setAuthenticatedSession(input: unknown): Promise<{serverId: string; changed: boolean; authenticated: boolean}> {
     exact<AuthInput>(input, ['serverId', 'host', 'accessToken'], 'invalid-community-auth');
     if (!communityIdentity(input.serverId) || typeof input.host !== 'string' || input.host.length > 256 ||
@@ -314,6 +322,7 @@ export class CommunityEtGrantRuntime {
       if (c.pendingRevoke) await this.retire(c);
       c.cancel = new AbortController(); const signal = combined(scope.signal, c.cancel.signal);
       let physical: EasyTierSession | null = null;
+      let closeNative: (() => Promise<void>) | null = null;
       try {
         await runtime.assertReady?.(signal);
         await this.acquire(c, signal);
@@ -324,7 +333,19 @@ export class CommunityEtGrantRuntime {
           networkName: grant.networkName, virtualIp: grant.virtualIp, publicKeyFingerprint: grant.publicKeyFingerprint,
           issuerPublicKeyFingerprint: c.target.bootstrap.issuerPublicKeyFingerprint}};
         this.current(c); if (signal.aborted) throw new Error('cancelled');
-        physical = await runtime.connect({...scope, signal}); c.closeNative = physical.close;
+        this.report({event: 'core-start', action: 'start', generation: scope.generation, code: 'success'});
+        try { physical = await runtime.connect({...scope, signal}); }
+        catch (error) { this.report({event: 'core-start', action: 'finish', generation: scope.generation, code: 'connect-failed'}); throw error; }
+        this.report({event: 'core-start', action: 'finish', generation: scope.generation, code: 'success'});
+        const ownedPhysical = physical;
+        closeNative = async () => {
+          this.report({event: 'core-stop', action: 'start', generation: scope.generation, code: 'success'});
+          try {
+            await ownedPhysical.close();
+            this.report({event: 'core-stop', action: 'finish', generation: scope.generation, code: 'success'});
+          } catch (error) { this.report({event: 'core-stop', action: 'finish', generation: scope.generation, code: 'cleanup-failed'}); throw error; }
+        };
+        c.closeNative = closeNative;
         // Startup TOML already denies relay. Optional capability readback cannot
         // consume the required LAN connect deadline.
         void this.relay(c).attach(physical.applyRelayBudget).catch(() => undefined);
@@ -353,6 +374,9 @@ export class CommunityEtGrantRuntime {
           }
           if (!physical!.readCredentialSample) throw new EasyTierOperationError('status-unavailable');
           const {sample, observation} = await physical!.readCredentialSample(combined(readSignal, c.cancel.signal)).catch(error => {
+            // CLI/RPC adapters use runtime-exited for an aborted read as well.
+            // A telemetry deadline is not evidence that the owned core died.
+            if (readSignal.aborted || c.cancel.signal.aborted) throw new EasyTierOperationError('status-unavailable', readSignal.aborted ? 'timeout' : 'cancelled');
             if (error instanceof EasyTierOperationError && error.reason === 'runtime-exited') return this.retired(c, 'runtime-exited');
             throw error;
           });
@@ -404,7 +428,7 @@ export class CommunityEtGrantRuntime {
           } catch (error) { void c.relay?.suspend('telemetry-stale').catch(() => undefined); throw error; }
         }};
       } catch (error) {
-        if (physical) c.closeNative = physical.close;
+        if (physical) c.closeNative = closeNative ?? physical.close;
         try { await this.retire(c); } catch { throw new EasyTierOperationError('cleanup-failed'); }
         if (error instanceof EasyTierOperationError) throw error;
         throw new EasyTierOperationError('connect-failed');
@@ -413,9 +437,10 @@ export class CommunityEtGrantRuntime {
   }
 }
 
-export function createCommunityEtGrantRuntime(root: () => string, dns?: CommunityEtGrantRuntimePorts['dns'], preferences?: CommunityEtGrantRuntimePorts['preferences'], relayPreferences?: CommunityRelayPreferenceStore): CommunityEtGrantRuntime {
+export function createCommunityEtGrantRuntime(root: () => string, dns?: CommunityEtGrantRuntimePorts['dns'], preferences?: CommunityEtGrantRuntimePorts['preferences'], relayPreferences?: CommunityRelayPreferenceStore,
+  diagnostic?: CommunityEtGrantRuntimePorts['diagnostic']): CommunityEtGrantRuntime {
   const files = new CommunityEtOwnedFiles(root);
   return new CommunityEtGrantRuntime({target: serverId => readCommunityGrantTarget(root(), serverId),
     identities: serverId => files.identities(serverId), write: (...args) => files.write(...args),
-    transport: new CommunityEtGrantTransport(), dns, preferences, relayPreferences, wallMs: () => Date.now(), monoMs: () => performance.now()});
+    transport: new CommunityEtGrantTransport(undefined, diagnostic), diagnostic, dns, preferences, relayPreferences, wallMs: () => Date.now(), monoMs: () => performance.now()});
 }

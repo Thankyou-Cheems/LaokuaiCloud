@@ -3,6 +3,21 @@ import type { VoiceConfig } from "../types";
 export type MediaPolicy = Pick<VoiceConfig["connection"], "mediaMode" | "receiveMicrophoneStreamIds">;
 export const isAudioOnly = (policy: MediaPolicy): boolean => policy.mediaMode === "audio-only";
 
+type ReceiveRefresh = (policy: MediaPolicy, committed: boolean) => void;
+const receivePolicies = new WeakMap<RTCPeerConnection, { refresh: ReceiveRefresh; committedKey?: string }>();
+export function registerPeerReceivePolicy(pc: RTCPeerConnection, refresh: ReceiveRefresh): void {
+  receivePolicies.set(pc, { refresh });
+}
+export function peerReceivePolicyCommitted(pc: RTCPeerConnection, policy: MediaPolicy): boolean {
+  return !isAudioOnly(policy) || receivePolicies.get(pc)?.committedKey === JSON.stringify(canonicalMediaPolicy(policy));
+}
+export function refreshPeerReceivePolicy(pc: RTCPeerConnection, policy: MediaPolicy, committed = false): void {
+  const state = receivePolicies.get(pc);
+  if (!state) return;
+  if (committed) state.committedKey = JSON.stringify(canonicalMediaPolicy(policy));
+  state.refresh(policy, committed);
+}
+
 /** Compare effective permissions, not caller array order or omitted full-mode defaults. */
 export function canonicalMediaPolicy(policy: MediaPolicy): MediaPolicy {
   if (!isAudioOnly(policy)) return { mediaMode: "full" };
@@ -42,13 +57,21 @@ function sections(sdp: string): string[][] {
 }
 
 /** All advertised sources must be trusted microphones; missing/ambiguous msid is denied. */
-function microphoneSection(lines: string[], policy: MediaPolicy): boolean {
+function sectionStreamIds(lines: string[]): string[] {
   const streams = new Set<string>();
   for (const line of lines) {
     const match = line.match(/^a=msid:([^ ]+)/) ?? line.match(/^a=ssrc:\d+ msid:([^ ]+)/);
     if (match) streams.add(match[1]);
   }
-  return streams.size > 0 && [...streams].every(id => id !== "-" && policy.receiveMicrophoneStreamIds?.includes(id));
+  return [...streams];
+}
+function microphoneSection(lines: string[], policy: MediaPolicy): boolean {
+  const streams = sectionStreamIds(lines);
+  return streams.length > 0 && streams.every(id => id !== "-" && policy.receiveMicrophoneStreamIds?.includes(id));
+}
+export function microphoneReceiveStreamIds(sdp: string | undefined, mid: string | null, policy: MediaPolicy): string[] {
+  if (!sdp || mid === null || !microphoneReceiveAllowed(sdp, mid, policy)) return [];
+  return sectionStreamIds(sections(sdp).find(lines => lines.includes(`a=mid:${mid}`)) ?? []);
 }
 
 export function microphoneReceiveAllowed(sdp: string | undefined, mid: string | null, policy: MediaPolicy): boolean {
@@ -79,7 +102,7 @@ export function restrictMediaSdp(sdp: string, policy: MediaPolicy, side: "remote
 }
 
 /** The local answer's msid is our sender, so use the original remote offer for receive roles. */
-export function applyPeerMediaPolicy(pc: RTCPeerConnection, policy: MediaPolicy, microphoneSenders: readonly RTCRtpSender[], remoteSdp = pc.remoteDescription?.sdp): void {
+export function applyPeerMediaPolicy(pc: RTCPeerConnection, policy: MediaPolicy, microphoneSenders: readonly RTCRtpSender[], remoteSdp = pc.remoteDescription?.sdp, enableReceivers = true): void {
   if (!isAudioOnly(policy)) return;
   for (const transceiver of pc.getTransceivers()) {
     if ((transceiver as RTCRtpTransceiver & { stopped?: boolean }).stopped) continue;
@@ -92,6 +115,6 @@ export function applyPeerMediaPolicy(pc: RTCPeerConnection, policy: MediaPolicy,
       sender.track.stop();
       void sender.replaceTrack(null).catch(() => pc.close());
     }
-    transceiver.receiver.track.enabled = receiving;
+    if (!receiving || enableReceivers) transceiver.receiver.track.enabled = receiving;
   }
 }

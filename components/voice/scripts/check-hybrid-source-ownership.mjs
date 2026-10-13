@@ -1,0 +1,36 @@
+import assert from 'node:assert/strict';
+import { HybridReceivePortAdapter } from '../dist/webrtc/hybrid/HybridReceivePortAdapter.js';
+const edges = new Set(), context = { createMediaStreamSource: () => new Node() };
+class Node { context = context; connect(to) { edges.add(this); return to; } disconnect() { edges.delete(this); } }
+const track = { id: 'sfu-track', kind: 'audio', readyState: 'live' };
+const stream = { getTracks: () => [track], getAudioTracks: () => [track] };
+const node = new Node(); node.mediaStream = stream; const analyser = new Node(); node.connect(analyser);
+const source = { stream: node, analyser, receiveCleanup: { isCurrent: () => true, subscribeRetirement: () => () => {} } };
+let resolveFresh; const evidence = { getSequence: () => 7, waitForFresh: () => new Promise(r => { resolveFresh = r; }), dispose() {} };
+const monitor = { bind: () => evidence };
+const old = new HybridReceivePortAdapter({ source, monitor, isCurrent: () => true }); old.dispose();
+assert.equal(edges.size, 0);
+const restored = new HybridReceivePortAdapter({ source, monitor, isCurrent: () => true });
+assert.equal(restored.getSelection().kind, 'none', 'new owner falsely assumed disposed SFU edge was still connected');
+let resolveAck; const pending = restored.restoreSfu(() => new Promise(r => { resolveAck = r; }));
+await Promise.resolve(); assert.equal(edges.size, 0); assert.equal(resolveFresh, undefined);
+resolveAck(); for(let n=0;n<5;++n) await Promise.resolve(); assert.equal(edges.size, 0);
+resolveFresh({ track, stream, mediaSequence: 8, decodedFrames: 1, observedAtMs: 1 }); await pending;
+assert.equal(edges.size, 1, 'same-source replacement never restored SFU playback'); restored.releaseRestored();
+let oldCurrent = true;
+const stale = new HybridReceivePortAdapter({ source, monitor, isCurrent: () => oldCurrent });
+oldCurrent = false;
+const next = new HybridReceivePortAdapter({ source, monitor, isCurrent: () => true });
+assert.equal(edges.size, 1); stale.dispose();
+assert.equal(edges.size, 1, 'late retired owner disconnected successor SFU input');
+next.select('none', undefined, next.getSelectionRevision()+1); assert.equal(edges.size, 0); next.dispose();
+// Late old ACKs cannot create a fresh-media waiter or connect a successor's edge.
+let lateCurrent=true,lateAck;
+const late=new HybridReceivePortAdapter({source,monitor,isCurrent:()=>lateCurrent});
+const lateRestore=late.restoreSfu(()=>new Promise(r=>{lateAck=r;}));
+lateCurrent=false;
+const successor=new HybridReceivePortAdapter({source,monitor,isCurrent:()=>true});
+const priorFresh=resolveFresh;lateAck();await assert.rejects(lateRestore,/stale_receive_selection/);
+assert.equal(resolveFresh,priorFresh);assert.equal(edges.size,0);late.dispose();assert.equal(edges.size,0);
+successor.dispose();
+console.log('hybrid source ownership: actual borrowed AudioNode edge survives fenced owner replacement; detached edge restores only after ACK and fresh media');

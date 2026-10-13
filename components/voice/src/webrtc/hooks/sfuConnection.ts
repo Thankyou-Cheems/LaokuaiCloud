@@ -1,6 +1,6 @@
 import { MutableRefObject } from "react";
 
-import { applyPeerMediaPolicy, isAudioOnly, restrictMediaSdp, type MediaPolicy } from "../../shared/mediaPolicy";
+import { applyPeerMediaPolicy, canonicalMediaPolicy, isAudioOnly, refreshPeerReceivePolicy, restrictMediaSdp, type MediaPolicy } from "../../shared/mediaPolicy";
 import { parseVideoWanted, type VideoWanted } from "./videoDemand";
 import { voiceLog } from "./voiceLogger";
 import { applyLocalMicrophoneCodecSdp, applyMicrophoneCodec } from "./microphoneCodec";
@@ -311,15 +311,22 @@ export async function connectToSfuWebSocket(
 
       offerProcessingInProgress = true;
 
-      const policy = options.getMediaPolicy?.() ?? {};
+      const policy = canonicalMediaPolicy(options.getMediaPolicy?.() ?? {});
       const policyKey = JSON.stringify(policy);
+      const policyRevision = new Error("Receive permissions changed during negotiation; retrying current offer");
       const ensureCurrent = (allowTerminalClose = false) => {
         if (!isOwnedConnection() || (!allowTerminalClose && !isCurrentConnection())) {
           throw new Error("SFU connection retired during negotiation");
         }
-        if (JSON.stringify(options.getMediaPolicy?.() ?? {}) !== policyKey) {
-          pc.close();
-          throw new Error("Media policy changed during negotiation; reconnect required");
+        const currentPolicy = canonicalMediaPolicy(options.getMediaPolicy?.() ?? {});
+        if (JSON.stringify(currentPolicy) !== policyKey) {
+          if (isAudioOnly(currentPolicy) !== isAudioOnly(policy)) pc.close();
+          else {
+            applyPeerMediaPolicy(pc, currentPolicy, options.getMicrophoneSenders?.() ?? [], offer.sdp, false);
+            refreshPeerReceivePolicy(pc, currentPolicy);
+            pendingOffer ??= offer;
+          }
+          throw policyRevision;
         }
       };
       const remoteSdp = offer.sdp;
@@ -327,7 +334,7 @@ export async function connectToSfuWebSocket(
       pc.setRemoteDescription(new RTCSessionDescription(restrictedOffer))
         .then(() => {
           ensureCurrent();
-          applyPeerMediaPolicy(pc, policy, options.getMicrophoneSenders?.() ?? [], remoteSdp);
+          applyPeerMediaPolicy(pc, policy, options.getMicrophoneSenders?.() ?? [], remoteSdp, false);
           voiceLog.ok(
             "SFU-WS",
             "7d",
@@ -400,6 +407,8 @@ export async function connectToSfuWebSocket(
               data: JSON.stringify(answer),
             }),
           );
+          applyPeerMediaPolicy(pc, policy, options.getMicrophoneSenders?.() ?? [], remoteSdp);
+          refreshPeerReceivePolicy(pc, policy, true);
 
           const transceivers = pc.getTransceivers();
 
@@ -427,6 +436,7 @@ export async function connectToSfuWebSocket(
         })
         .catch((error) => {
           if (disposed || pc !== peerConnectionRef.current || isDisconnectingRef.current) return;
+          if (error === policyRevision) return;
           voiceLog.fail(
             "SFU-WS",
             "7d",

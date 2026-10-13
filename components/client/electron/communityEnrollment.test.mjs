@@ -120,17 +120,19 @@ test('owned core exit revalidates the same saved token and automatically reconne
   assert.equal(f.calls.filter(x => x.startsWith('connect:')).length, 2);
   assert.equal(f.calls.filter(x => x.startsWith('approve:')).length, 1);
 });
-test('status-unavailable schedules bounded recovery and reuses the saved member', async () => {
+test('status-unavailable keeps telemetry retries separate from membership recovery', async () => {
   const f = fixture(); await f.enrollment.reconcile(snapshot());
   f.failRead(Error('status unavailable')); await f.manager.refresh(member.serverId);
   assert.equal(f.manager.getState(member.serverId).reason, 'status-unavailable');
-  assert.equal(f.timers.filter(t => !t.cancelled).length, 1);
-  assert.equal(f.timers.find(t => !t.cancelled).delayMs, 5000);
-  f.recoverRead();
-  await f.retry();
+  assert.equal(f.timers.filter(t => !t.cancelled).length, 0);
+  for (let i = 0; i < 5; i++) {
+    await f.manager.refresh(member.serverId);
+    await f.enrollment.reconcile(snapshot());
+  }
   assert.equal(f.manager.getState(member.serverId).phase, 'connected');
   assert.equal(f.calls.filter(x => x.startsWith('approve:')).length, 1);
-  assert.equal(f.calls.filter(x => x.startsWith('connect:')).length, 2);
+  assert.equal(f.calls.filter(x => x.startsWith('connect:')).length, 1);
+  assert.equal(f.calls.includes('close'), false);
 });
 test('lost permission broker is prepared again, but a refusal stops automatic prompts', async () => {
   const f = fixture(); await f.enrollment.reconcile(snapshot()); f.loseBroker();

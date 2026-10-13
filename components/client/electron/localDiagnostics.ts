@@ -1,7 +1,7 @@
 import {appendFileSync, existsSync, mkdirSync, renameSync, rmSync, statSync} from "node:fs";
 import {join} from "node:path";
 
-import {safeDiagnostic, type LocalDiagnostic} from "../src/lib/localDiagnostics";
+import {type LocalDiagnostic,safeDiagnostic} from "../src/lib/localDiagnostics";
 
 /** Local only, maximum 2 MiB x 3. Repeated records aggregate before disk I/O. */
 export class LocalDiagnosticWriter {
@@ -13,7 +13,12 @@ export class LocalDiagnosticWriter {
   record(value: unknown): void {
     const event = safeDiagnostic(value); if (!event) return;
     // Countdown numbers are observations, not distinct messages.
-    const key = JSON.stringify([event.phase, event.operation, event.action, event.code, event.hostSlot, event.cleanup]);
+    const key = JSON.stringify([event.phase, event.operation, event.action, event.code, event.hostSlot, event.cleanup,
+      event.generation, event.httpStatus, event.scopeGeneration, event.routeOrdinal, event.routeGeneration,
+      event.selectionRevision, event.status, event.selected, event.reason, event.forwardingPaused,
+      event.connected, event.rosterReady, event.epochReady, event.pathClass, event.pathReason,
+      event.localCandidateType, event.remoteCandidateType, event.underlayClass, event.decodeProof,
+      event.decodeReason, event.failureReason, event.forwardingAction, event.result]);
     const old = this.pending.get(key), now = Date.now();
     if (old) {old.event = event; old.count = Math.min(old.count + 1, 1_000_000); old.lastMs = now;}
     else if (this.pending.size < 256) this.pending.set(key, {event, count: 1, firstMs: now, lastMs: now});

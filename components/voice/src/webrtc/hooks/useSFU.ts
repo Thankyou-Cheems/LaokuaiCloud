@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMicrophone } from "../../audio/hooks/useMicrophone";
 import { useSpeakers } from "../../audio/hooks/useSpeakers";
 import { useVoiceConfig, useVoiceTarget, type VoiceTarget } from "../../config";
-import { applyPeerMediaPolicy, canonicalMediaPolicy, isAudioOnly, type MediaPolicy } from "../../shared/mediaPolicy";
+import { applyPeerMediaPolicy, canonicalMediaPolicy, isAudioOnly, refreshPeerReceivePolicy, type MediaPolicy } from "../../shared/mediaPolicy";
 import { singletonHook } from "../../shared/singletonHook";
 
 import { SFUConnectionState, SFUInterface, Streams, StreamSources, VideoStreams } from "../types/SFU";
@@ -739,9 +739,19 @@ function useSfuHook(): SFUInterface {
   const previousMediaPolicyKey = useRef(mediaPolicyKey);
   useEffect(() => {
     if (previousMediaPolicyKey.current === mediaPolicyKey) return;
+    const previousPolicy: MediaPolicy = JSON.parse(previousMediaPolicyKey.current);
     previousMediaPolicyKey.current = mediaPolicyKey;
     const pc = peerConnectionRef.current;
     if (!pc) return;
+    const policy = getMediaPolicy();
+    if (isAudioOnly(previousPolicy) === isAudioOnly(policy)) {
+      if (pc.connectionState === "closed") return;
+      // Revoke immediately; grants only enable/reroute after a current answer is sent.
+      applyPeerMediaPolicy(pc, policy, registeredTracksRef.current, undefined, false);
+      refreshPeerReceivePolicy(pc, policy);
+      sendRenegotiate();
+      return;
+    }
     if (pc.connectionState !== "closed") applyPeerMediaPolicy(pc, getMediaPolicy(), registeredTracksRef.current);
     // Reconnect is deliberate: a previously accepted receiver continues consuming RTP
     // until an answer is applied. Closing also cancels replaceTrack promises in flight.
@@ -749,7 +759,7 @@ function useSfuHook(): SFUInterface {
     setStreams(prev => Object.fromEntries(Object.entries(prev).filter(([, data]) => data.isLocal)));
     setVideoStreams({});
     setConnectionState(prev => ({ ...prev, state: SFUConnectionState.FAILED, error: "Media policy changed; reconnecting" }));
-  }, [mediaPolicyKey, getMediaPolicy]);
+  }, [mediaPolicyKey, getMediaPolicy, sendRenegotiate]);
 
   const connectionStateRef = useRef(connectionState);
   useEffect(() => { connectionStateRef.current = connectionState; }, [connectionState]);

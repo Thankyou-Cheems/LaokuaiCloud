@@ -6,6 +6,7 @@ import { useSockets } from "@/socket";
 
 import { useEasyTierCommunityState } from "../../../../lib/communityLanState";
 import { createEasyTierVoiceUnderlayResolver } from "../../../../lib/easyTierVoiceUnderlay";
+import { createHybridDiagnosticObserver, type HybridDiagnostic } from "../../../../lib/hybridDiagnostics";
 import { readVoiceLocalNetwork } from "../../../../lib/memberVoiceLocalNetwork";
 import type { ReceiveCorrectionRegistry } from "../../../../lib/receiveCorrectionRegistry";
 import { useMemberVoiceObservationAuthority } from "./MemberVoiceObservationAuthority";
@@ -19,6 +20,8 @@ export interface HybridVoicePolicy {
   /** Independent peer encoder profile; channel permission/cap is still passed separately. */
   microphoneCodec?: MicrophoneCodecProfile;
   onState?(state: BrowserHybridVoiceState): void;
+  /** Safe, deduplicated summaries only; no account, room, candidate or track identifiers. */
+  onDiagnostic?(diagnostic: HybridDiagnostic): void;
 }
 
 export function HybridVoiceBridge({ policy, config, registry }: { policy?: HybridVoicePolicy; config: VoiceConfig; registry: ReceiveCorrectionRegistry }) {
@@ -30,33 +33,47 @@ export function HybridVoiceBridge({ policy, config, registry }: { policy?: Hybri
   const serverId = sockets.serverDetailsList[host]?.server_info?.server_id;
   const community = useEasyTierCommunityState(serverId);
   const localNetwork = readVoiceLocalNetwork(serverId, community, Date.now());
-  const scopeKey = JSON.stringify([account, serverId, host, channel, socket?.id]);
+  const local = sockets.clients[host]?.[socket?.id ?? ""];
+  const connectionEpoch = sfu.getConnectionEpoch?.();
+  const rosterReady = !!local?.serverUserId && local.hasJoinedChannel === true && local.voiceChannelId === channel;
+  const epochReady = connectionEpoch != null && Number.isSafeInteger(connectionEpoch) && connectionEpoch > 0;
+  // Only local binding/readiness changes own this lifecycle. Remote roster refreshes update the existing session.
+  const scopeKey = JSON.stringify([account, serverId, host, channel, socket?.id, local?.serverUserId, rosterReady, connectionEpoch]);
   const context = useRef({ scopeKey, sfu, microphone, sockets, policy, config, localNetwork });
   context.current = { scopeKey, sfu, microphone, sockets, policy, config, localNetwork };
   const pathUnderlayResolver = useRef(createEasyTierVoiceUnderlayResolver(() => context.current.localNetwork)).current;
-  const live = useRef<{ scopeKey: string; session: BrowserHybridVoiceSession; releaseObservation?: () => void } | undefined>(undefined);
+  const live = useRef<{ scopeKey: string; socket: typeof socket; pc: RTCPeerConnection; session: BrowserHybridVoiceSession; releaseObservation?: () => void } | undefined>(undefined);
   const configured = policy?.allowNetwork === true;
   const profileKey = JSON.stringify([policy?.rtcConfiguration, policy?.microphoneCodec, config.connection.microphoneCodec, config.connection.maxBitrate]);
 
   useEffect(() => {
     let cancelled = false;
     let retry: ReturnType<typeof setTimeout> | undefined;
+    const diagnostics = createHybridDiagnosticObserver(value => context.current.policy?.onDiagnostic?.(value));
+    const readiness = { connected: isConnected && pc?.connectionState === "connected", rosterReady, epochReady };
     const boot = async () => {
+      if (cancelled) return;
       const old = live.current;
       if (old) {
         // Same-call reconfiguration waits for real SFU restoration before replacing its owner.
-        if (old.scopeKey === scopeKey && isConnected && pc?.connectionState === "connected") {
+        if (old.scopeKey === scopeKey && old.socket === socket && old.pc === pc && isConnected && pc?.connectionState === "connected") {
           await old.session.setEnabled(false);
+          if (cancelled || live.current !== old) return;
           if (old.session.getState().status !== "disabled") {
+            diagnostics.scope("recovering", "reconfigure_restore_pending", readiness);
             if (!cancelled) retry = setTimeout(() => { void boot(); }, 1000);
             return;
           }
         }
+        diagnostics.scope("retired", "scope_retired", readiness);
         old.releaseObservation?.(); old.session.dispose(); if (live.current === old) live.current = undefined;
       }
       const codec = context.current.policy?.microphoneCodec ?? context.current.config.connection.microphoneCodec;
-      if (cancelled || !configured || !account || !serverId || !channel || !socket?.connected || !socket.id || !isConnected ||
-        !pc || pc.connectionState !== "connected" || !codec) return;
+      const waiting = !configured ? "network_disabled" : !account || !serverId || !channel ? "identity_unavailable" :
+        !socket?.connected || !socket.id ? "socket_unavailable" : !isConnected || !pc || pc.connectionState !== "connected" ? "sfu_media_unavailable" :
+        !codec ? "codec_unavailable" : !rosterReady ? "roster_unavailable" : !epochReady ? "epoch_unavailable" : null;
+      if (waiting) { diagnostics.scope("waiting", waiting, readiness); return; }
+      if (cancelled || !account || !serverId || !channel || !socket || !socket.id || !pc || !codec) return;
       const local = context.current.sockets.clients[host]?.[socket.id];
       const connectionEpoch = context.current.sfu.getConnectionEpoch?.();
       if (!local?.serverUserId || local.hasJoinedChannel !== true || local.voiceChannelId !== channel ||
@@ -68,7 +85,7 @@ export function HybridVoiceBridge({ policy, config, registry }: { policy?: Hybri
         const currentLocal = context.current.sockets.clients[host]?.[binding.localSessionId];
         return context.current.scopeKey === scopeKey && context.current.sfu.isConnected &&
           context.current.sfu.getPeerConnection?.() === pc && context.current.sfu.getConnectionEpoch?.() === connectionEpoch &&
-          socket.connected && socket.id === binding.localSessionId && currentLocal?.serverUserId === binding.localUserId &&
+          context.current.sockets.sockets[host] === socket && socket.connected && socket.id === binding.localSessionId && currentLocal?.serverUserId === binding.localUserId &&
           currentLocal.hasJoinedChannel === true && currentLocal.voiceChannelId === channel;
       };
       const sourceFor = (participant: HybridParticipant) => {
@@ -90,14 +107,20 @@ export function HybridVoiceBridge({ policy, config, registry }: { policy?: Hybri
         getPeerConnection: () => context.current.sfu.getPeerConnection?.() ?? null, getMicrophone: () => context.current.microphone,
         isCurrent: current, getSource: sourceFor,
         onSelection: (source, track) => { if (source.receiveCleanup) registry.selectTrack(source.receiveCleanup, track); observations?.update(); },
-        onState: state => { observations?.update(); context.current.policy?.onState?.(state); },
+        onDiagnostic: event => diagnostics.sdk(event),
+        onState: state => { diagnostics.state(state); observations?.update(); context.current.policy?.onState?.(state); },
       });
       if (cancelled) { session.dispose(); return; }
-      live.current = { scopeKey, session, releaseObservation: observations?.registerSession(session, binding) }; await session.update();
+      live.current = { scopeKey, socket, pc, session, releaseObservation: observations?.registerSession(session, binding) };
+      diagnostics.scope("created", null, readiness); await session.update();
     };
-    void boot().catch(() => context.current.policy?.onState?.({status:"unsupported",reason:"hybrid_unavailable",routing:null,physicalDirectVerified:false}));
+    void boot().catch(() => {
+      if (cancelled) return;
+      diagnostics.scope("unsupported", "hybrid_unavailable", readiness);
+      context.current.policy?.onState?.({status:"unsupported",reason:"hybrid_unavailable",routing:null,physicalDirectVerified:false});
+    });
     return () => { cancelled = true; clearTimeout(retry); };
-  }, [account, serverId, host, channel, socket, scopeKey, pc, isConnected, configured, profileKey, registry, observations, pathUnderlayResolver]);
+  }, [account, serverId, host, channel, socket, socket?.connected, scopeKey, pc, pc?.connectionState, isConnected, configured, profileKey, registry, observations, pathUnderlayResolver, rosterReady, epochReady]);
   useEffect(() => { void live.current?.session.setEnabled(policy?.enabled === true); }, [policy?.enabled]);
   useEffect(() => { void live.current?.session.update(); }, [streamSources, sockets.clients]);
   useEffect(() => () => { live.current?.releaseObservation?.(); live.current?.session.dispose(); live.current = undefined; }, []);

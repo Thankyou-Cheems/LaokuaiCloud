@@ -25,3 +25,25 @@ Integration.2 incorporates the reviewed closed-PC cleanup fix once: only `remove
 `setEnabled(false)` waits for restoration, then releases the original SFU edge and closes peer PCs; a failed restore remains recovering. Call `dispose()` only for retired room/account/PC bindings: it closes peers/owned inputs immediately and does not guess that SFU has recovered. On same-call codec/cap reconfiguration the client waits for disabled/restored state before replacing the session; incomplete recovery prevents replacement and stays visible. New sessions use the existing SFU codec request and authenticated channel cap, without raising defaults/admin caps.
 
 Acceptance still requires separately authorized contained real SDK/server/SFU tests of this new exact source: repeated auth fault/recovery with consistent selected edge/controller state, protected synthetic PCM, fresh fallback/permissions/moves, multi-remote order and closed-SFU-PC retirement. No network test was run for integration.3. The previous two-SDK loopback core result does not establish capacity, physical direct underlay, FEC or listening quality. The unique Git integration owner must freeze one component manifest before packaging and perform an exact local-tar install/fresh frozen dependency check; this increment does not modify client/server/SFU source or client dependency locks.
+## Safe diagnostics and borrowed input recovery
+
+`BrowserHybridVoiceOptions.onDiagnostic` receives `BrowserHybridDiagnostic`:
+fixed selected-path classifications/reasons, candidate types, underlay class,
+fresh/missing exact-track decoded proof, sanitized peer failures, and validated
+pause/restore ACK results. It contains no IDs, endpoints, SDP, tokens or raw
+errors. The session deduplicates events, limits each event category to one per
+second and renews a budget of 128 events each minute. Observers cannot change
+media routing. A non-TURN candidate never establishes physical direct routing.
+
+The borrowed source-to-analyser edge has a shared owner fence and recorded
+connection state. A replacement owner cannot assume a disconnected SFU edge is
+connected; old selection/restore/dispose callbacks cannot modify its successor.
+An already-selected SFU edge is relinquished intact. A retired paused input keeps
+a restore obligation bound to the same PC, authenticated room/local session and
+remote publication. A replacement restores it only after a current authenticated
+ACK and fresh SFU decoded media, including when P2P is disabled or publish
+permission is unavailable. A different room/account/session cannot inherit it.
+
+Synthetic regressions: `check-roster-media-policy`, `check-hybrid-source-ownership`,
+`check-hybrid-diagnostics`, `check-hybrid-network-boundary`, `check-hybrid-session`
+and `check-hybrid-auth-recovery`. These do not verify real network/audio success.

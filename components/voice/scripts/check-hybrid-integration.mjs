@@ -47,7 +47,7 @@ events.push('ack');ackResolve();await settle();eq(events.at(-1),'fresh:7');eq(ed
 freshResolve({track:sf,stream:stream(sf),mediaSequence:8,decodedFrames:1,observedAtMs:0});await restore;eq(edges.size,1);eq(events.at(-1),['sfu',sf]);
 adapter.releaseRestored();eq(edges.size,1);eq(retirement,undefined);
 const adapter2=new HybridReceivePortAdapter({source:{stream:sourceNode,analyser,receiveCleanup:control},monitor:{bind:()=>evidence},isCurrent:()=>current});
-adapter2.select('p2p',{track:peerTrack,stream:stream(peerTrack)},1);retirement();current=false;eq(edges.size,0);eq(adapter2.isCurrent(),false);
+adapter2.select('p2p',{track:peerTrack,stream:stream(peerTrack)},adapter2.getSelectionRevision()+1);retirement();current=false;eq(edges.size,0);eq(adapter2.isCurrent(),false);
 
 const original={serverInstanceId:'instance',roomId:'room',roomGeneration:'epoch',localParticipantId:'p',localSessionId:'socket',canPublish:true,canReceive:true};
 const listeners=new Map(),requests=[];

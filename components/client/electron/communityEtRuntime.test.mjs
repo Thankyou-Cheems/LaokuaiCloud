@@ -10,6 +10,7 @@ import vm from 'node:vm';
 const require = createRequire(import.meta.url), ts = require('typescript'), cache = new Map();
 const denied = () => { throw new Error('native-or-network-forbidden'); };
 let httpResponseStatus = null;
+let httpResponseBody = '{}';
 function load(url) {
   if (cache.has(url.href)) return cache.get(url.href);
   const mod = {exports: {}}; cache.set(url.href, mod.exports);
@@ -23,7 +24,7 @@ function load(url) {
       const req = new EventEmitter(), statusCode = httpResponseStatus;
       req.end = () => queueMicrotask(() => {
         const res = new EventEmitter(); res.statusCode = statusCode; callback(res);
-        res.emit('data', Buffer.from('{}')); res.emit('end');
+        res.emit('data', Buffer.from(httpResponseBody)); res.emit('end');
       });
       req.destroy = () => undefined; return req;
     }};
@@ -151,7 +152,8 @@ function runtimeFixture(options = {}) {
     throw Error('unexpected operation');
   }};
   const coordinator = new CommunityEtGrantRuntime({target: async () => { if (!policy) throw Error('expired-policy'); return clone(target); },
-    identities: async () => ({deviceId: 'device', nativeInstanceId: UUID}), transport: new CommunityEtGrantTransport(port),
+    identities: async () => ({deviceId: 'device', nativeInstanceId: UUID}), transport: new CommunityEtGrantTransport(port, options.diagnostic),
+    diagnostic: options.diagnostic,
     wallMs: () => f.now.wall, monoMs: () => f.now.mono, dns: options.dns, relayPreferences: options.relayPreferences,
     write: async (_id, _uuid, _network, draft, signal) => {
       assert.equal(signal.aborted, false); draft.withPrivateToml(text => assert.ok(text.includes('peer_public_key')));
@@ -162,8 +164,9 @@ function runtimeFixture(options = {}) {
     cores++; assert.ok(await coordinator.configuration(scope.serverId, scope.signal)); events.push('start');
     let closed = false; return {instanceId: UUID, close: async () => { if (!closed) {events.push('stop'); closed = true;} },
       applyRelayBudget: options.applyRelayBudget,
-      read: denied, readCredentialSample: async () => {
-        if (sampleFailure) throw new EasyTierOperationError(sampleFailure);
+      read: denied, readCredentialSample: async signal => {
+        if (sampleFailure) throw sampleFailure instanceof Error ? sampleFailure : new EasyTierOperationError(sampleFailure);
+        await options.beforeSample?.(signal);
         assert.equal(closed, false); events.push('sample'); return {observation: clone(f.observation),
           sample: {...clone(f.sample), generation: scope.generation, acquiredAtMs: f.now.mono, acquiredAtUnixMs: f.now.wall}};
       }};
@@ -602,6 +605,153 @@ test('HTTP 503 during acquire is retried through the real enrollment and grant r
 
   await enrollment.reconcile({members: [], enabled: false});
   enrollment.shutdown();
+});
+
+for (const failure of ['cli', 'binding']) test('persistent ' + failure + ' observation failure preserves a live enrolled core and recovers fresh proof', async () => {
+  const f = runtimeFixture(), timers = [], member = {serverId: 'community', host: 'test.invalid', accessToken: 'opaque'};
+  let enrollment;
+  const manager = new EasyTierCommunityManager(f.runtime, state => enrollment?.observe(state),
+    () => f.now.mono, 8000, 10000, () => f.now.wall);
+  enrollment = new CommunityEnrollment({manager, supports: () => true, approve: async () => ({accepted: true}),
+    authenticate: value => f.authenticate(value.accessToken), releasePreparation: () => undefined, preparationReady: () => true,
+    schedule: (work, delayMs) => {const timer = {work, delayMs, cancelled: false}; timers.push(timer); return () => {timer.cancelled = true;};}});
+  try {
+    await enrollment.reconcile({members: [member], enabled: true}); await manager.refresh('community');
+    assert.ok(manager.getState('community').lanSnapshot);
+    const generation = manager.getState('community').generation;
+    if (failure === 'cli') f.setSampleFailure('status-unavailable');
+    else f.setFailure({op: 'binding', code: 'provider-unavailable'});
+    for (let i = 0; i < 10; i++) {
+      f.now.mono += 2000; f.now.wall += 2000; await manager.refresh('community');
+      const state = manager.getState('community');
+      assert.equal(state.phase, 'connected'); assert.equal(state.reason, 'status-unavailable');
+      assert.equal(state.lanSnapshot, null); assert.equal(state.virtualIp, null);
+      assert.equal(timers.filter(timer => !timer.cancelled).length, 0, 'telemetry must not schedule lifecycle recovery');
+      // Membership refreshes and independent voice consumers can revisit the same
+      // lease while observation is unavailable; they must not restart its core.
+      await enrollment.reconcile({members: [member], enabled: true});
+      await manager.connect({serverId: 'community', leaseId: 'voice-consumer'});
+      await manager.disconnect({serverId: 'community', leaseId: 'voice-consumer'});
+      assert.equal(manager.getState('community').generation, generation);
+      assert.equal(f.cores(), 1); assert.equal(f.events.includes('stop'), false);
+      assert.equal(f.calls.some(call => call.op === 'revoke'), false);
+      assert.equal(f.calls.filter(call => call.op === 'acquire').length, 1);
+    }
+    f.setSampleFailure(null); f.setFailure(null); f.now.mono += 2000; f.now.wall += 2000;
+    await manager.refresh('community');
+    assert.equal(manager.getState('community').reason, null); assert.ok(manager.getState('community').lanSnapshot);
+    assert.equal(f.cores(), 1);
+  } finally {enrollment.shutdown(); await manager.setEnabled(false);}
+});
+
+test('bounded diagnostics expose HTTP status and safe enums without targets, bodies or errors', async () => {
+  const events = [], target = {origin: 'https://secret-host.invalid'};
+  const transport = new CommunityEtGrantTransport({post: async (_origin, _operation, _bearer, _body, _signal, onStatus) => {
+    onStatus(503); throw Error('secret error / token / raw machine log');
+  }}, event => events.push(event));
+  await assert.rejects(transport.post(target, 'binding', 'secret-bearer', {secret: SECRET}, new AbortController().signal));
+  assert.deepEqual(events, [
+    {event: 'http', action: 'start', operation: 'binding', httpStatus: null, code: 'success', reason: null},
+    {event: 'http', action: 'finish', operation: 'binding', httpStatus: 503, code: 'provider-unavailable', reason: null},
+  ]);
+  assert.equal(JSON.stringify(events).includes('secret'), false);
+  await assert.rejects(transport.post(target, 'arbitrary-secret-operation', 'secret-bearer', {}, new AbortController().signal));
+  assert.equal(events.length, 2, 'unknown operations never enter diagnostic records');
+  httpResponseStatus = 401;
+  try {
+    const realTransport = new CommunityEtGrantTransport(communityEtHttpsPort, event => events.push(event));
+    await assert.rejects(realTransport.post(target, 'binding', 'opaque', {}, new AbortController().signal),
+      error => error.code === 'auth-unavailable');
+    assert.deepEqual(events.at(-1), {event: 'http', action: 'finish', operation: 'binding', httpStatus: 401, code: 'auth-unavailable', reason: null});
+  } finally {httpResponseStatus = null;}
+});
+
+test('binding HTTP 409 reports only contract service reasons while preserving retryable telemetry semantics', async () => {
+  const events = [], transport = new CommunityEtGrantTransport(communityEtHttpsPort, event => events.push(event));
+  httpResponseStatus = 409;
+  try {
+    for (const body of [{v: 1, error: 'binding-pending'}, {v: 1, error: 'provider-sample-conflict'},
+      {v: 1, error: 'secret-token-machine-log'}, {v: 1, error: 'binding-unproven', secret: SECRET},
+      {v: 99, error: 'binding-unproven'}]) {
+      httpResponseBody = JSON.stringify(body);
+      await assert.rejects(transport.post({origin: 'https://test.invalid'}, 'binding', 'opaque', {}, new AbortController().signal),
+        error => error.code === 'provider-unavailable');
+      assert.equal(events.at(-1).httpStatus, 409);
+      assert.equal(events.at(-1).reason, ['binding-pending', 'provider-sample-conflict'].includes(body.error) ? body.error : null);
+    }
+    assert.equal(JSON.stringify(events).includes('secret'), false);
+  } finally {httpResponseStatus = null; httpResponseBody = '{}';}
+});
+
+test('observer exceptions cannot prevent grant start, auth retirement or shutdown', async () => {
+  const events = [], diagnostic = event => {events.push(event); throw Error('observer-failed');};
+  const f = runtimeFixture({diagnostic}); await f.authenticate('opaque');
+  const manager = new EasyTierCommunityManager(f.runtime, () => {throw Error('observer-failed');},
+    () => f.now.mono, 8000, 10000, () => f.now.wall, diagnostic);
+  await manager.setEnabled(true); await manager.connect({serverId: 'community', leaseId: 'renderer-community'});
+  await manager.refresh('community'); f.setFailure({op: 'binding', code: 'auth-unavailable'});
+  await manager.refresh('community');
+  assert.equal(manager.getState('community').phase, 'error');
+  assert.equal(manager.getState('community').reason, 'configuration-required');
+  assert.equal(f.events.filter(event => event === 'stop').length, 1);
+  assert.equal(events.filter(event => event.event === 'core-start' && event.action === 'finish').length, 1);
+  assert.equal(events.filter(event => event.event === 'core-stop' && event.action === 'finish').length, 1);
+  assert.ok(events.some(event => event.event === 'telemetry' && event.code === 'configuration-required'));
+  assert.ok(events.every(event => !('serverId' in event) && !('body' in event)));
+  await manager.setEnabled(false);
+});
+
+test('a timed-out observation cannot permanently block polling or release a newer read lane', async () => {
+  const f = fixture(), reads = []; let starts = 0, stops = 0, generation;
+  const manager = new EasyTierCommunityManager({activationReason: () => null, shutdownOwned: () => undefined,
+    connect: async scope => {starts++; generation = scope.generation; return {instanceId: UUID,
+      close: async () => {stops++;}, read: () => new Promise(resolve => reads.push(resolve))};}},
+    () => undefined, () => f.now.mono, 30, 10000, () => f.now.wall);
+  await manager.setEnabled(true); await manager.connect({serverId: 'community', leaseId: 'renderer-community'});
+  await manager.refresh('community');
+  assert.equal(manager.getState('community').reason, 'status-unavailable');
+  const nextRead = manager.refresh('community'); assert.equal(reads.length, 2, 'poll retries even if the old port ignored abort');
+  reads[0]({...clone(f.sample), generation}); await flush();
+  await manager.refresh('community'); assert.equal(reads.length, 2, 'a late old result cannot unlock the active lane');
+  reads[1]({...clone(f.sample), generation}); await nextRead;
+  assert.equal(manager.getState('community').reason, null); assert.equal(starts, 1); assert.equal(stops, 0);
+  await manager.setEnabled(false);
+});
+
+test('an aborted CLI read cannot retire a live core; a subsequent confirmed exit still retires it', async () => {
+  let stall = false;
+  const diagnostics = [], f = runtimeFixture({beforeSample: signal => stall ? new Promise((_resolve, reject) => {
+    signal.addEventListener('abort', () => reject(new EasyTierOperationError('runtime-exited')), {once: true});
+  }) : undefined});
+  await f.authenticate('opaque');
+  const manager = new EasyTierCommunityManager(f.runtime, () => undefined, () => f.now.mono, 30, 10000, () => f.now.wall,
+    event => diagnostics.push(event));
+  await manager.setEnabled(true); await manager.connect({serverId: 'community', leaseId: 'renderer-community'});
+  await manager.refresh('community'); stall = true;
+  await manager.refresh('community'); await flush();
+  assert.equal(manager.getState('community').phase, 'connected'); assert.equal(manager.getState('community').reason, 'status-unavailable');
+  assert.ok(diagnostics.some(event => event.event === 'telemetry' && event.reason === 'timeout'));
+  assert.equal(f.events.includes('stop'), false); assert.equal(f.calls.some(call => call.op === 'revoke'), false);
+  stall = false; await manager.refresh('community'); assert.equal(manager.getState('community').reason, null);
+  f.setSampleFailure('runtime-exited'); await manager.refresh('community');
+  assert.equal(manager.getState('community').phase, 'error'); assert.equal(manager.getState('community').reason, 'runtime-exited');
+  assert.deepEqual(f.events.slice(-3), ['stop', 'remove', 'revoke']); await manager.setEnabled(false);
+});
+
+test('telemetry diagnostics preserve only enumerated issuer/CLI causes', async () => {
+  const diagnostics = [], f = runtimeFixture(); await f.authenticate('opaque');
+  const manager = new EasyTierCommunityManager(f.runtime, () => undefined, () => f.now.mono, 1000, 10000, () => f.now.wall,
+    event => diagnostics.push(event));
+  await manager.setEnabled(true); await manager.connect({serverId: 'community', leaseId: 'renderer-community'});
+  for (const [error, reason] of [[Error('issuer-connection-unverified'), 'issuer-connection-unverified'],
+    [new EasyTierOperationError('status-unavailable', 'parse-failed'), 'parse-failed'],
+    [new EasyTierOperationError('status-unavailable', 'cli-timeout'), 'cli-timeout'],
+    [Error('secret token or machine log'), 'other']]) {
+    f.setSampleFailure(error); await manager.refresh('community');
+    assert.equal(manager.getState('community').reason, 'status-unavailable');
+    assert.equal(diagnostics.at(-1).reason, reason); assert.equal(f.events.includes('stop'), false);
+  }
+  assert.equal(JSON.stringify(diagnostics).includes('secret'), false); await manager.setEnabled(false);
 });
 test('authenticated IPC rejects untrusted frame before any transport operation', async () => {
   const handlers = {}, f = runtimeFixture(), manager = new EasyTierCommunityManager(f.runtime);
