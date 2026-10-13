@@ -1,19 +1,19 @@
 # 当前开发交接
 
 更新：2026-10-13。唯一开发目录 `D:\Dev\LaokuaiCloud`，分支 `main`。
-最新可交付及桌面绿色测试包为 `1.13.22-laokuai.beta.20261013.10`；易记 MagicDNS
+最新可交付及桌面绿色测试包为 `1.13.22-laokuai.beta.20261013.11`；易记 MagicDNS
 已部署，用户确认短域名显示，本机直接解析和 Windows 系统解析均匹配虚拟 IP。
 生产成员中继两端开关已开启；真实多设备转发、游戏和 12 人 WAN 语音仍未验收。
 
 ## 当前包与源码
 
-- 文件：`唠蒯云-1.13.22-laokuai.beta.20261013.10-zh-CN-win-x64-green.zip`。
-- 应用源码：`812cc29b83ef7d4975794b94fcccc1d2fe6f0563`。
-- 大小：160184097 B；SHA256：
-  `b8ad95ee3ccee56fe1aa0631a5b7ee178d29bdfd821ba5693e2814686b736b06`。
+- 文件：`唠蒯云-1.13.22-laokuai.beta.20261013.11-zh-CN-win-x64-green.zip`。
+- 应用源码：`99b7ce4b38f494698cf70f30e56217e1026917dc`。
+- 大小：160192678 B；SHA256：
+  `54b93db8ae3af9cc509e13bb7c3d1b44c2ba6e2792028e285f4949531c60bcc4`。
 - 交付目录：`.local/artifacts/autojoin-test-20261013/`。
 - 精确版本、来源、许可证及对应源码以 [release/manifest.json](release/manifest.json)
-  和 [包回执](release/acceptance/admin-ready-portable-20261013.json) 为准。
+  和 [包回执](release/acceptance/voice-stability-portable-20261013.json) 为准。
   包不内嵌源码归档，SOURCE-OFFER 指向精确应用提交及 1263 项源码更新清单；
   旧六份对应源码附件保留。
 
@@ -64,6 +64,21 @@ gate 改1。在线 scope 提交 disabled consent 或续租并回读同 key 的 f
 false，详见 [V2 契约与回退前置](components/server/COMMUNITY-RELAY-V2.md)。
 
 ## 验证边界与下一步
+
+.10 双人实测失败：成员进出伴随 `media-policy-changed` 重连，ET 状态反复变化，
+P2P 无声。保留该失败，不以旧模拟测试覆盖。修复和边界见
+[语音稳定性修复](docs/VOICE-STABILITY-FIX-20261013.md)。.11 的 routing.3 SDK
+保留 SFU PC 处理动态权限，补齐晚到 roster 初始化和同音频源重新绑定恢复；
+ET 普通观测失败独立重试，不再重建存活核心。诊断新增安全枚举，含路径、
+解码、转发 ACK、ET 生命周期与 HTTP 原因，最多三份各 2 MiB 本地文件。
+
+.11 的36组核心检查、100项ET回归、SDK定向回归、类型/lint、19组包审计、
+146项最终文件核验及九条录音哈希通过。实际编译入口 ready 时序通过；真实隐藏
+离线新配置启动/退出通过，退出0、无自有残留，7次采样无自有TCP/UDP，仍有
+19条既有离线/禁用IPC错误。没有运行真实社区、媒体或ET/TUN，双人验收待进行。
+服务器、ET原生二进制及原有音频不变。桌面旧应用未运行，完整备份后替换程序，
+111项账号/配置文件逐项哈希不变，未自动启动。私有备份、原始日志、更新回执
+保留在 `.local/voice-stability-20261013/`，不公开。
 
 .8 的 31 组核心检查、另 23 项生产运行时契约、类型/lint、152 文件 ZIP 核验和
 真实隐藏离线新配置启动/退出通过。退出0、无自有残留，三次采样无自有 TCP/UDP；

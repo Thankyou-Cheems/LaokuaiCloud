@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-13",
+  "version": "1.13.22-laokuai.beta.20261013.11",
+  "sourceCommit": "99b7ce4b38f494698cf70f30e56217e1026917dc",
+  "file": "唠蒯云-1.13.22-laokuai.beta.20261013.11-zh-CN-win-x64-green.zip",
+  "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261013.11-zh-CN-win-x64-green.zip",
+  "bytes": 160192678,
+  "sha256": "54b93db8ae3af9cc509e13bb7c3d1b44c2ba6e2792028e285f4949531c60bcc4",
+  "appAsarSha256": "8c1ebf81fc5ae7e724db5047588870ea7c87422c8853a320622f7eb74876b29f",
+  "staticPayloadFiles": 146,
+  "checks": {
+    "status": "passed",
+    "coreContractSuites": 36,
+    "coreNodeSuites": 33,
+    "boundedWindowsFixtures": 3,
+    "easyTierRegressions": 100,
+    "clientTargetedLintFiles": 12,
+    "clientBuildAndTypes": "passed",
+    "sdkBuildAndTypes": "passed",
+    "sdkOwnerReportedChecks": [
+      "roster-media-policy",
+      "media-policy",
+      "audio-only-engine",
+      "hybrid-source-ownership",
+      "hybrid-diagnostics",
+      "hybrid-network-boundary",
+      "hybrid-session",
+      "hybrid-auth-recovery",
+      "hybrid-integration",
+      "hybrid",
+      "receive-path",
+      "peer-path-stats",
+      "transmission-publication",
+      "native-ptt",
+      "track-replace",
+      "staged-move",
+      "surface",
+      "native-entry",
+      "type-names",
+      "connector-ownership"
+    ],
+    "independentReview": "same-source ownership, delayed recovery, stale callbacks and restore retry reviewed; no remaining identified blocker",
+    "packageAuditScenarios": 19,
+    "targetedRegressionRedBeforeGreenAfter": true,
+    "realTwoDeviceMedia": "pending"
+  },
+  "bootstrap": {
+    "status": "passed",
+    "exitCode": 0,
+    "rootChildren": 1,
+    "preload": {
+      "electronAPI": "object",
+      "easyTierCommunity": "object"
+    },
+    "visible": false,
+    "focused": false,
+    "unexpectedEvents": 0,
+    "residualOwnedProcesses": 0,
+    "socketSamples": [
+      {
+        "seconds": 1.588,
+        "ownedProcesses": 1,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 3.32,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 4.994,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 6.654,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 8.377,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 10.059,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 11.738,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      }
+    ],
+    "consoleErrors": 19,
+    "realElectronExecuted": true,
+    "isolatedFreshProfile": true,
+    "nativeEtExecuted": false,
+    "realCommunityOrDeviceMediaTest": false
+  },
+  "administratorEntry": {
+    "actualBuiltEntry": true,
+    "sourceSha256": "1fb23b8b6e3df985ab21c81076c30b01455af1aedc374e4b30528a2a0b608124",
+    "initialReady": false,
+    "entrySettled": true,
+    "promptReady": true,
+    "tokenReads": 1,
+    "nativeUacExecuted": false,
+    "nativeEtExecuted": false,
+    "exitCode": 0
+  },
+  "previousFailedTwoDeviceVersion": "1.13.22-laokuai.beta.20261013.10",
+  "fixes": [
+    "Independent bounded EasyTier telemetry retries; no core restart for ordinary observation failure",
+    "Dynamic microphone receive authorization renegotiates without closing the SFU PC",
+    "Late local roster/epoch readiness starts hybrid voice; stable remote updates retain the session",
+    "Same-source audio ownership retirement/rebind recovery with authenticated restoration",
+    "Enum-only local lifecycle, HTTP, peer path/decode and SFU forwarding diagnostics"
+  ],
+  "diagnostics": {
+    "localOnly": true,
+    "rotationFiles": 3,
+    "maxBytesPerFile": 2097152,
+    "identitiesEndpointsTokensSdpAudioLogged": false
+  },
+  "nativeRuntimeUnchangedFrom": "release/acceptance/admin-ready-portable-20261013.json",
+  "voiceRecordingsUnchanged": true,
+  "sourceAttachmentSetUnchanged": true,
+  "productionServicesChanged": false,
+  "desktopProgramUpdated": true,
+  "userProfileModified": false,
+  "realTwoDeviceMediaAccepted": false,
+  "realGameCoexistenceAccepted": false,
+  "realTwelveClientWanAccepted": false,
+  "note": "Pure/mounted-hook and synthetic AudioNode regressions do not establish real NAT or audibility. The .10 failure remains recorded. Hidden fresh-profile smoke is bootstrap-only. Human two-device acceptance remains pending.",
+  "desktopUpdate": {
+    "payloadFilesVerified": 146,
+    "profileFilesPreserved": 111,
+    "profileHashesUnchanged": true,
+    "fullLocalBackupVerified": true,
+    "applicationLaunched": false
+  }
+}
