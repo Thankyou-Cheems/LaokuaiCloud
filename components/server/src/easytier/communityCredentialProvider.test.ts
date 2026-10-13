@@ -3,7 +3,7 @@ import test from 'node:test';
 
 import { deriveCredentialFingerprint, FixedInstanceCredentialProvider, type FixedCredentialProviderConfig } from './communityCredentialProvider';
 import { COMMUNITY_ET_UPSTREAM_COMMIT, ContractError, publicKeyFingerprint, type CreateCredentialIntent } from './communityGrant';
-import { pbBytes, pbNumber, pbString, type CommunityRpcTransport, type RpcMethod } from './communityRpcWire';
+import { pbBytes, pbDecode, pbGetBool, pbGetNumber, pbGetString, pbNumber, pbString, type CommunityRpcTransport, type RpcMethod } from './communityRpcWire';
 
 const ADMIN='22222222-2222-4222-8222-222222222222';
 const DEVICE='11111111-1111-4111-8111-111111111111';
@@ -67,4 +67,53 @@ test('actual decoder brackets Noise connections around route and rejects contrad
   const sample=await provider.observeAuthenticatedPeer({instance:ADMIN,expectedProviderGeneration:1,
     scope:{serverInstanceId:'backend',accountId:'account',communityId:'community',deviceId:'device',nativeInstanceId:DEVICE}});
   assert.deepEqual(sample,{status:'pending',code:'unstable-sample'});
+});
+
+function relayWire() {
+  const secret=Buffer.alloc(32,7).toString('base64'),fp=deriveCredentialFingerprint(secret);
+  const entries=new Map([['ordinary',{allow:false,expiry:1500}],['relay',{allow:true,expiry:1500}]]);
+  const writes: Array<{id:string;allow:boolean;expiry:number}> = [];
+  const wire:CommunityRpcTransport={call:async(method,bytes)=>{
+    if(method.service==='PeerManageRpc') return pbBytes(1,Buffer.concat([pbNumber(1,42),pbString(6,ADMIN),pbString(9,'2.7.0-8b7f1f01')]));
+    if(method.index===3) return Buffer.concat([...entries].map(([id,e])=>pbBytes(1,Buffer.concat([
+      pbString(1,id),pbString(2,'member'),pbNumber(3,e.allow?1:0),pbNumber(4,e.expiry),pbNumber(6,0),pbString(7,fp)]))));
+    assert.equal(method.index,4);
+    const q=pbDecode(bytes,{1:2,2:2,3:2,4:0,5:2,6:0,7:0,8:2},[3,5]);
+    assert.equal(pbGetString(q,2),secret);assert.equal(pbGetBool(q,7),false);assert.equal(q.has(5),false);
+    const request={id:pbGetString(q,1),allow:pbGetBool(q,4),expiry:pbGetNumber(q,6)};
+    writes.push(request);entries.set(request.id,{allow:request.allow,expiry:request.expiry});return pbNumber(1,1);
+  }};
+  return {wire,entries,writes,secret,fp};
+}
+test('mixed and pending per-credential relay policies do not invalidate other ordinary members',async()=>{
+  const f=relayWire(),config=configuration();
+  let expected:ReturnType<FixedCredentialProviderConfig['expectedActiveCredentials']>=[
+    {credentialId:'ordinary',publicKeyFingerprint:f.fp,expiresAtMs:1500000},
+    {credentialId:'relay',publicKeyFingerprint:f.fp,expiresAtMs:1500000,allowRelay:true},
+  ];
+  config.expectedActiveCredentials=()=>expected;
+  const provider=new FixedInstanceCredentialProvider(config,f.wire);
+  assert.equal((await provider.inspectInstance(ADMIN)).credentialStore,'healthy');
+  expected=[{credentialId:'relay',publicKeyFingerprint:f.fp,expiresAtMs:1500000,pendingAllowRelay:true}];
+  assert.equal((await provider.inspectInstance(ADMIN)).credentialStore,'healthy');
+  expected=[{credentialId:'relay',publicKeyFingerprint:f.fp,expiresAtMs:1500000}];
+  await assert.rejects(provider.inspectInstance(ADMIN),code('issuer-store-unavailable'));
+});
+test('V2 provider writes allowRelay in native Upsert with the same secret; false downgrade works with gate off',async()=>{
+  const f=relayWire(),config=configuration();let enabled=true;
+  config.relayPolicyV2Enabled=()=>enabled;
+  config.expectedActiveCredentials=()=>[{credentialId:'ordinary',publicKeyFingerprint:f.fp,expiresAtMs:1500000,
+    allowRelay:f.entries.get('ordinary')!.allow}];
+  const provider=new FixedInstanceCredentialProvider(config,f.wire);
+  const request={v:2 as const,instance:ADMIN,id:'ordinary',secret:f.secret,groups:['member'],expiryUnix:1500,previousAllowRelay:false,allowRelay:true};
+  await provider.setRelayPolicySameKey(request);assert.equal((await provider.read('ordinary',ADMIN))?.allowRelay,true);
+  enabled=false;
+  await provider.setRelayPolicySameKey({...request,previousAllowRelay:true,allowRelay:false});
+  assert.deepEqual(f.writes,[{id:'ordinary',allow:true,expiry:1500},{id:'ordinary',allow:false,expiry:1500}]);
+});
+test('V2 default-off and V1 true-policy attempts cannot mutate native credentials',async()=>{
+  const f=relayWire(),provider=new FixedInstanceCredentialProvider(configuration(),f.wire);
+  await assert.rejects(provider.setRelayPolicySameKey({v:2,instance:ADMIN,id:'ordinary',secret:f.secret,groups:['member'],expiryUnix:1500,previousAllowRelay:false,allowRelay:true}),code('relay-v2-disabled'));
+  await assert.rejects(provider.create({instance:ADMIN,credentialId:'new',ttlSeconds:300,groups:['member'],reusable:false,allowRelay:true,allowedProxyCidrs:[]} as unknown as CreateCredentialIntent),code('unsafe-native-request'));
+  assert.equal(f.writes.length,0);
 });

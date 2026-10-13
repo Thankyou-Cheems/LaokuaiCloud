@@ -26,7 +26,7 @@ import {
   type GuestMerge,
   listConversationMemberIds,
   upsertUser,
-  consumeServerInvite,
+  admitUserWithInvite,
   listMemberRoles,
   addMemberRole,
   setServerRole,
@@ -41,7 +41,7 @@ import {
   insertServerAudit,
   verifyServerPassword,
 } from "../../db";
-import type { BotRecord } from "../../db";
+import type { BotRecord, UserRecord } from "../../db";
 import { isPrivateIp } from "../../utils/isPrivateIp";
 import { checkIdentityAllowed } from "../../moderation/sessionGate";
 import { checkRateLimit, RateLimitRule } from "../../utils/rateLimiter";
@@ -497,12 +497,14 @@ export function registerJoinHandlers(ctx: HandlerContext): EventHandlerMap {
         }
 
         const existingMember = await getUserByGrytId(grytUserId);
-        const isActiveMember = !!(existingMember && existingMember.is_active);
+        let isActiveMember = !!(existingMember && existingMember.is_active);
         let claimedOwnerGrytUserId: string | null | undefined;
         let usedInviteCode: string | undefined;
+        let invitedUser: UserRecord | undefined;
+        let passwordBypass = false;
         const passwordAdmission = !isActiveMember && cfg?.owner_gryt_user_id !== grytUserId &&
           (cfg?.join_policy === "password" || !!cfg?.password_hash);
-        if (passwordAdmission) {
+        if (passwordAdmission && !challenge.inviteCode) {
           const ip = getClientIp(), key = getInviteCooldownKey(ip, grytUserId), now = Date.now();
           const identityLimit = getInviteCooldownState(key, now), addressLimit = getInviteIpCooldownState(ip, now);
           const retryAfterMs = Math.max(0, (identityLimit.cooldownUntilMs ?? 0) - now, (addressLimit.cooldownUntilMs ?? 0) - now);
@@ -523,7 +525,7 @@ export function registerJoinHandlers(ctx: HandlerContext): EventHandlerMap {
 
         // A bot's admission is its registration, so requiring an invite as well
         // would lock an approved bot out of a server on the default policy.
-        if (!isActiveMember && !botRegistration && !passwordAdmission) {
+        if (!isActiveMember && !botRegistration && (!passwordAdmission || !!challenge.inviteCode)) {
           const ip = getClientIp();
           const inviteKey = getInviteCooldownKey(ip, grytUserId);
           const now = Date.now();
@@ -561,7 +563,7 @@ export function registerJoinHandlers(ctx: HandlerContext): EventHandlerMap {
               return;
             }
 
-            const consumed = await consumeServerInvite(inviteCode);
+            const consumed = await admitUserWithInvite(inviteCode, grytUserId, nickname.trim(), passwordAdmission);
             if (!consumed.ok) {
               const msg =
                 consumed.reason === "expired" ? "That invite code has expired."
@@ -572,15 +574,22 @@ export function registerJoinHandlers(ctx: HandlerContext): EventHandlerMap {
               const ipLock = applyInviteIpFailure(ip);
               const isLocked = lock.locked || ipLock.locked;
               const retryAfterMs = Math.max(lock.retryAfterMs, ipLock.retryAfterMs);
+              const error = consumed.reason === "expired" ? "invite_expired"
+                : consumed.reason === "revoked" ? "invite_revoked"
+                  : consumed.reason === "used_up" ? "invite_exhausted"
+                    : consumed.reason === "password_required" ? "invite_password_required" : "invalid_invite";
               socket.emit("server:error", {
-                error: isLocked ? "invite_rate_limited" : "invalid_invite",
-                message: isLocked ? "Too many incorrect invite attempts. Please wait." : msg,
+                error: isLocked ? "invite_rate_limited" : error,
+                message: isLocked ? "Too many incorrect invite attempts. Please wait." : consumed.reason === "password_required" ? "This invite does not replace the community password. Ask an administrator for a new invitation." : msg,
                 retryAfterMs: isLocked ? (retryAfterMs || undefined) : undefined,
                 canReapply: true,
               });
               return;
             }
-            usedInviteCode = inviteCode;
+            invitedUser = consumed.user;
+            passwordBypass = consumed.passwordBypass;
+            usedInviteCode = consumed.consumed ? inviteCode.trim().toLowerCase() : undefined;
+            if (!consumed.consumed) isActiveMember = true;
             clearInviteCooldown(inviteKey);
             clearInviteIpCooldown(ip);
           } else if (cfg?.lan_open && isPrivateIp(ip) && clientAddressIsOwn()) {
@@ -646,7 +655,7 @@ export function registerJoinHandlers(ctx: HandlerContext): EventHandlerMap {
            running server, and seeds nothing. */
         if (!cfg) cfg = (await createServerConfigIfNotExists()).config;
 
-        const user = await upsertUser(grytUserId, nickname.trim(), {
+        const user = invitedUser ?? await upsertUser(grytUserId, nickname.trim(), {
           inviteCode: usedInviteCode,
         });
 
@@ -671,12 +680,12 @@ export function registerJoinHandlers(ctx: HandlerContext): EventHandlerMap {
           const existingRoles = await listMemberRoles(user.server_user_id);
           // First-time joiners land on their tier's default; existing members
           // keep what they were given, so a default change re-sorts nobody.
-          const joinRole = passwordAdmission ? "member" : defaultRoleForTier(identityTierOf(grytUserId), cfg);
+          const joinRole = passwordAdmission || passwordBypass ? "member" : defaultRoleForTier(identityTierOf(grytUserId), cfg);
           if (existingRoles.length === 0) {
             await setServerRole(user.server_user_id, isOwner ? "owner" : joinRole);
             // First join only, never a reconnect on the stored code. Added
             // rather than assigned, so an invite can only raise somebody.
-            if (!isOwner && usedInviteCode) {
+            if (!isOwner && usedInviteCode && !passwordBypass) {
               await applyInviteRole(usedInviteCode, user.server_user_id);
             }
           } else if (isOwner && !existingRoles.includes("owner")) {
@@ -687,7 +696,7 @@ export function registerJoinHandlers(ctx: HandlerContext): EventHandlerMap {
 
           // Joining and sending are the two moments the answer can change, so
           // there is no timer here to fail quietly.
-          if (!passwordAdmission) await applyAutoRoles(user.server_user_id, grytUserId);
+          if (!passwordAdmission && !passwordBypass) await applyAutoRoles(user.server_user_id, grytUserId);
         } catch (e) {
           if (!(e instanceof BotHoldsNoRole)) consola.warn("Failed to ensure role row:", e);
         }

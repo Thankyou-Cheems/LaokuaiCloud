@@ -1,6 +1,7 @@
 import { createPrivateKey, createPublicKey } from 'node:crypto';
 
 import { type ProviderPeerObservation } from './communityDeviceBinding';
+import type { RelayNativeIntent } from './communityRelayPolicy';
 import {
   COMMUNITY_ET_UPSTREAM_COMMIT, exact, expiryUnixToMs, fail, fingerprint, id, keyBytes,
   positive, privateIpv4, publicKeyFingerprint, safeArray, uuid,
@@ -23,7 +24,9 @@ export interface FixedCredentialProviderConfig {
   /** Actual owned issuer process epoch; not per TCP connection or a constant success flag. */
   runtimeGeneration: () => number;
   /** Persisted current grants, used to detect store loss rather than treating it as new. */
-  expectedActiveCredentials: () => Array<{credentialId: string; publicKeyFingerprint: string; expiresAtMs: number}>;
+  expectedActiveCredentials: () => Array<{credentialId: string; publicKeyFingerprint: string; expiresAtMs: number; allowRelay?: boolean; pendingAllowRelay?: boolean}>;
+  /** A separately approved issuer/proxy/native policy deployment. Defaults off. */
+  relayPolicyV2Enabled?: () => boolean;
 }
 /** RFC8410 PKCS8/SPKI for X25519. Derives from an existing secret; generates no key. */
 export function deriveCredentialFingerprint(secretB64: string): string {
@@ -51,11 +54,12 @@ export class FixedInstanceCredentialProvider implements CredentialProvider {
   #config: FixedCredentialProviderConfig; #wire: CommunityRpcTransport;
   constructor(config: FixedCredentialProviderConfig, wire?: CommunityRpcTransport) {
     exact<FixedCredentialProviderConfig>(config,['upstreamCommit','adminInstanceId','expectedVersion',
-      'networkName','endpoint','runtimeGeneration','expectedActiveCredentials'],'invalid-provider-config');
+      'networkName','endpoint','runtimeGeneration','expectedActiveCredentials',
+      ...(config.relayPolicyV2Enabled !== undefined ? ['relayPolicyV2Enabled'] : [])],'invalid-provider-config');
     exact<RpcEndpoint>(config.endpoint,['host','port','timeoutMs'],'invalid-provider-config');
     if (config.upstreamCommit !== COMMUNITY_ET_UPSTREAM_COMMIT || !uuid(config.adminInstanceId) || !id(config.networkName) ||
         typeof config.runtimeGeneration !== 'function' ||
-        typeof config.expectedActiveCredentials !== 'function' || !/^2\.7\.0(?:-[A-Za-z0-9._-]+)?$/.test(config.expectedVersion) ||
+        typeof config.expectedActiveCredentials !== 'function' || (config.relayPolicyV2Enabled !== undefined && typeof config.relayPolicyV2Enabled !== 'function') || !/^2\.7\.0(?:-[A-Za-z0-9._-]+)?$/.test(config.expectedVersion) ||
         !['127.0.0.1','::1'].includes(config.endpoint.host) || !positive(config.endpoint.port) || config.endpoint.port > 65535 ||
         !positive(config.endpoint.timeoutMs) || config.endpoint.timeoutMs > 1000) fail('invalid-provider-config');
     this.#config = {...config,endpoint:{...config.endpoint}}; this.#wire = wire ?? new CommunityTcpRpcTransport(config.endpoint);
@@ -69,7 +73,7 @@ export class FixedInstanceCredentialProvider implements CredentialProvider {
       const actual=records.find(c=>c.id===expected.credentialId);
       if (!actual || actual.publicKeyFingerprint !== expected.publicKeyFingerprint ||
           expiryUnixToMs(actual.expiryUnix) < expected.expiresAtMs || actual.reusable !== false ||
-          actual.allowRelay !== false || actual.allowedProxyCidrs.length !== 0) fail('issuer-store-unavailable');
+          (actual.allowRelay !== (expected.allowRelay ?? false) && actual.allowRelay !== expected.pendingAllowRelay) || actual.allowedProxyCidrs.length !== 0) fail('issuer-store-unavailable');
     }
     return records;
   }
@@ -123,6 +127,26 @@ export class FixedInstanceCredentialProvider implements CredentialProvider {
       pbNumber(4, 0), pbNumber(6, request.expiryUnix), pbNumber(7, 0), pbBytes(8, this.#select(request.instance))]);
     const reply = pbDecode(await this.#wire.call({service:'CredentialManageRpc', index: 4}, payload), {1:0});
     return {changed: pbGetBool(reply, 1)};
+  }
+  /** V2 changes qualification, not membership/key/IP. Unknown outcomes are
+   * reconciled by the service's durable pending policy; never revoke here. */
+  async setRelayPolicySameKey(request: RelayNativeIntent): Promise<{changed: boolean}> {
+    exact<RelayNativeIntent>(request,['v','instance','id','secret','expiryUnix','groups','previousAllowRelay','allowRelay'],'unsafe-native-request');
+    this.#select(request.instance); keyBytes(request.secret); expiryUnixToMs(request.expiryUnix);
+    if (request.v !== 2 || !id(request.id) || typeof request.allowRelay !== 'boolean' || typeof request.previousAllowRelay !== 'boolean' ||
+        !safeArray(request.groups,32) || !request.groups.length || !request.groups.every(id) || new Set(request.groups).size !== request.groups.length)
+      fail('unsafe-native-request');
+    if (request.allowRelay && this.#config.relayPolicyV2Enabled?.() !== true) fail('relay-v2-disabled');
+    await this.#healthy();
+    const previous=await this.read(request.id,request.instance);
+    if (!previous || previous.publicKeyFingerprint !== deriveCredentialFingerprint(request.secret) || previous.reusable !== false ||
+        previous.allowedProxyCidrs.length !== 0 || previous.groups.length !== request.groups.length || !request.groups.every(g=>previous.groups.includes(g)) ||
+        (previous.allowRelay !== request.previousAllowRelay && previous.allowRelay !== request.allowRelay)) fail('relay-readback-mismatch');
+    if (request.expiryUnix < previous.expiryUnix) fail('renewal-not-extended');
+    const payload=Buffer.concat([pbString(1,request.id),pbString(2,request.secret),...request.groups.map(g=>pbString(3,g)),
+      pbNumber(4,request.allowRelay ? 1 : 0),pbNumber(6,request.expiryUnix),pbNumber(7,0),pbBytes(8,this.#select(request.instance))]);
+    const reply=pbDecode(await this.#wire.call({service:'CredentialManageRpc',index:4},payload),{1:0});
+    return {changed:pbGetBool(reply,1)};
   }
   async revoke(request: {credentialId: string; instance: string}) {
     if (!id(request.credentialId)) fail('invalid-credential-id');

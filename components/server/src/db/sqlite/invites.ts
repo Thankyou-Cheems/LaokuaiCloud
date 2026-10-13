@@ -1,7 +1,8 @@
 import { randomBytes, randomUUID } from "crypto";
 
-import type { ServerAuditRecord, ServerInviteRecord } from "../interfaces";
+import type { ServerAuditRecord, ServerInviteRecord, UserRecord } from "../interfaces";
 import { fromIso, fromIsoNullable, getSqliteDb, toIso } from "./connection";
+import { getUserByGrytIdSync, upsertUserSync } from "./users";
 
 function rowToInvite(r: Record<string, unknown>): ServerInviteRecord {
   const maxUses = (r.max_uses as number) ?? 1;
@@ -9,6 +10,7 @@ function rowToInvite(r: Record<string, unknown>): ServerInviteRecord {
   const isInfinite = maxUses < 0 || usesRemaining < 0;
   return {
     code: r.code as string,
+    password_bypass: r.password_bypass === 1,
     created_at: fromIso(r.created_at as string),
     created_by_server_user_id: (r.created_by_server_user_id as string) ?? null,
     expires_at: fromIsoNullable(r.expires_at as string | null),
@@ -32,6 +34,8 @@ const CUSTOM_CODE_RE = /^[a-z0-9][a-z0-9_-]{1,30}[a-z0-9]$/;
 
 export async function createServerInvite(createdByServerUserId: string | null, opts?: {
   expiresAt?: Date | null; infinite?: boolean; maxUses?: number; note?: string | null; customCode?: string | null;
+  /** The socket handler enforces administrator authority before setting this. */
+  passwordBypass?: boolean;
   /** Validated by the caller against `mayBindRoleToInvite`: this layer writes
       rows, and the rule in two places ends up a check short in one. */
   grantedRole?: { roleId: string; rank: number } | null;
@@ -45,24 +49,27 @@ export async function createServerInvite(createdByServerUserId: string | null, o
   const usesRemaining = infinite ? -1 : maxUses;
   const grantedRoleId = opts?.grantedRole?.roleId ?? null;
   const grantedRoleRank = opts?.grantedRole ? opts.grantedRole.rank : null;
+  const passwordBypass = opts?.passwordBypass === true;
+  if (passwordBypass && grantedRoleId) throw new Error("Password-free invites grant ordinary membership only.");
 
   const rawCustom = opts?.customCode ? String(opts.customCode).trim().toLowerCase() : null;
+  if (passwordBypass && rawCustom) throw new Error("Password-free invites require a random code.");
   if (rawCustom) {
     if (!CUSTOM_CODE_RE.test(rawCustom))
       throw new Error("Custom code must be 3–32 chars, lowercase alphanumeric / hyphens / underscores.");
     const existing = db.prepare(`SELECT 1 FROM invites WHERE code = ?`).get(rawCustom);
     if (existing) throw new Error("That invite code already exists.");
-    db.prepare(`INSERT INTO invites (code, created_by_server_user_id, expires_at, max_uses, uses_remaining, uses_consumed, revoked, note, created_at, granted_role_id, granted_role_rank) VALUES (?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?)`).run(
-      rawCustom, createdByServerUserId, expiresAt ? toIso(expiresAt) : null, maxUses, usesRemaining, note, toIso(now), grantedRoleId, grantedRoleRank);
-    return { code: rawCustom, created_at: now, created_by_server_user_id: createdByServerUserId, expires_at: expiresAt, max_uses: maxUses, uses_remaining: usesRemaining, uses_consumed: 0, revoked: false, note, granted_role_id: grantedRoleId, granted_role_rank: grantedRoleRank };
+    db.prepare(`INSERT INTO invites (code, created_by_server_user_id, expires_at, max_uses, uses_remaining, uses_consumed, revoked, note, created_at, granted_role_id, granted_role_rank, password_bypass) VALUES (?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?)`).run(
+      rawCustom, createdByServerUserId, expiresAt ? toIso(expiresAt) : null, maxUses, usesRemaining, note, toIso(now), grantedRoleId, grantedRoleRank, passwordBypass ? 1 : 0);
+    return { code: rawCustom, password_bypass: passwordBypass, created_at: now, created_by_server_user_id: createdByServerUserId, expires_at: expiresAt, max_uses: maxUses, uses_remaining: usesRemaining, uses_consumed: 0, revoked: false, note, granted_role_id: grantedRoleId, granted_role_rank: grantedRoleRank };
   }
 
   for (let i = 0; i < 5; i++) {
-    const code = generateInviteCode();
+    const code = passwordBypass ? randomBytes(16).toString("hex") : generateInviteCode();
     try {
-      db.prepare(`INSERT INTO invites (code, created_by_server_user_id, expires_at, max_uses, uses_remaining, uses_consumed, revoked, note, created_at, granted_role_id, granted_role_rank) VALUES (?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?)`).run(
-        code, createdByServerUserId, expiresAt ? toIso(expiresAt) : null, maxUses, usesRemaining, note, toIso(now), grantedRoleId, grantedRoleRank);
-      return { code, created_at: now, created_by_server_user_id: createdByServerUserId, expires_at: expiresAt, max_uses: maxUses, uses_remaining: usesRemaining, uses_consumed: 0, revoked: false, note, granted_role_id: grantedRoleId, granted_role_rank: grantedRoleRank };
+      db.prepare(`INSERT INTO invites (code, created_by_server_user_id, expires_at, max_uses, uses_remaining, uses_consumed, revoked, note, created_at, granted_role_id, granted_role_rank, password_bypass) VALUES (?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?)`).run(
+        code, createdByServerUserId, expiresAt ? toIso(expiresAt) : null, maxUses, usesRemaining, note, toIso(now), grantedRoleId, grantedRoleRank, passwordBypass ? 1 : 0);
+      return { code, password_bypass: passwordBypass, created_at: now, created_by_server_user_id: createdByServerUserId, expires_at: expiresAt, max_uses: maxUses, uses_remaining: usesRemaining, uses_consumed: 0, revoked: false, note, granted_role_id: grantedRoleId, granted_role_rank: grantedRoleRank };
     } catch { /* collision, retry */ }
   }
   throw new Error("Failed to create invite code (collision)");
@@ -87,7 +94,14 @@ export async function revokeServerInvite(code: string, revoked = true): Promise<
   db.prepare(`UPDATE invites SET revoked = ? WHERE code = ?`).run(revoked ? 1 : 0, code);
 }
 
-export async function consumeServerInvite(code: string): Promise<{ ok: boolean; reason?: "not_found" | "revoked" | "expired" | "used_up" }> {
+export type InviteFailure = "not_found" | "revoked" | "expired" | "used_up" | "password_required";
+export type InviteConsumption = { ok: true; passwordBypass: boolean } | { ok: false; reason: InviteFailure };
+
+export async function consumeServerInvite(code: string): Promise<InviteConsumption> {
+  return consumeServerInviteSync(code);
+}
+
+function consumeServerInviteSync(code: string, requirePasswordBypass = false): InviteConsumption {
   const db = getSqliteDb();
   const norm = String(code || "").trim().toLowerCase();
   if (!norm) return { ok: false, reason: "not_found" };
@@ -99,16 +113,54 @@ export async function consumeServerInvite(code: string): Promise<{ ok: boolean; 
   if (invite.expires_at && invite.expires_at.getTime() <= Date.now()) return { ok: false, reason: "expired" };
   const isInfinite = invite.max_uses < 0 || invite.uses_remaining < 0;
   if (!isInfinite && invite.uses_remaining <= 0) return { ok: false, reason: "used_up" };
+  if (requirePasswordBypass && !invite.password_bypass) return { ok: false, reason: "password_required" };
 
-  if (!isInfinite) {
-    const nextRemaining = invite.uses_remaining - 1;
-    const nextRevoked = nextRemaining <= 0 ? 1 : 0;
-    const result = db.prepare(`UPDATE invites SET uses_remaining = ?, uses_consumed = uses_consumed + 1, revoked = ? WHERE code = ? AND uses_remaining = ? AND revoked = 0`).run(
-      nextRemaining, nextRevoked, norm, invite.uses_remaining);
-    return result.changes > 0 ? { ok: true } : { ok: false, reason: "used_up" };
-  } else {
-    db.prepare(`UPDATE invites SET uses_consumed = uses_consumed + 1 WHERE code = ? AND revoked = 0`).run(norm);
-    return { ok: true };
+  // Expiry/revocation/use count are all checked by the same write, including
+  // unlimited invitations. Exhaustion is distinct from explicit revocation.
+  const result = db.prepare(`UPDATE invites SET
+    uses_remaining = CASE WHEN max_uses < 0 OR uses_remaining < 0 THEN -1 ELSE uses_remaining - 1 END,
+    uses_consumed = uses_consumed + 1
+    WHERE code = ? AND revoked = 0 AND (expires_at IS NULL OR expires_at > ?)
+      AND (max_uses < 0 OR uses_remaining > 0 OR uses_remaining < 0)
+      AND (? = 0 OR password_bypass = 1)`).run(norm, toIso(new Date()), requirePasswordBypass ? 1 : 0);
+  return result.changes > 0 ? { ok: true, passwordBypass: invite.password_bypass } : { ok: false, reason: "used_up" };
+}
+
+/** A committed use always has a durable membership. No awaits inside the
+    transaction: a concurrent join/revoke cannot share this connection's lock. */
+export async function admitUserWithInvite(
+  code: string, grytUserId: string, nickname: string, requirePasswordBypass = false,
+): Promise<{ ok: true; user: UserRecord; consumed: boolean; passwordBypass: boolean } | { ok: false; reason: InviteFailure }> {
+  const db = getSqliteDb();
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    const existing = getUserByGrytIdSync(grytUserId);
+    if (existing?.is_active) {
+      const user = upsertUserSync(grytUserId, nickname);
+      db.exec("COMMIT");
+      return { ok: true, user, consumed: false, passwordBypass: false };
+    }
+    const consumption = consumeServerInviteSync(code, requirePasswordBypass);
+    if (!consumption.ok) {
+      db.exec("ROLLBACK");
+      return consumption;
+    }
+    const norm = code.trim().toLowerCase();
+    const user = upsertUserSync(grytUserId, nickname, { inviteCode: norm });
+    // Re-admission records the new credential as well, rather than the stale
+    // link retained on an inactive user row.
+    db.prepare("UPDATE users SET joined_with_invite_code = ? WHERE server_user_id = ?").run(norm, user.server_user_id);
+    user.joined_with_invite_code = norm;
+    if (consumption.passwordBypass) {
+      const now = toIso(new Date());
+      db.prepare("DELETE FROM roles WHERE server_user_id = ?").run(user.server_user_id);
+      db.prepare("INSERT INTO roles (server_user_id, role, created_at, updated_at) VALUES (?, 'member', ?, ?)").run(user.server_user_id, now, now);
+    }
+    db.exec("COMMIT");
+    return { ok: true, user, consumed: true, passwordBypass: consumption.passwordBypass };
+  } catch (err) {
+    db.exec("ROLLBACK");
+    throw err;
   }
 }
 

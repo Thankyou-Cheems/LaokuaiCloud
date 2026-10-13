@@ -34,6 +34,16 @@ test('directory has only the community scope and rejects client identity or addr
   for (const extra of [{serverUserId:'attacker'},{virtualIp:'10.77.1.2'},{deviceId:'device'}])
     assert.throws(()=>parseCommunityGrantRequest('directory',{...body,...extra}), ContractError);
 });
+test('DNS names are explicit opt-in; a member can neither supply a hostname nor relax the flag', () => {
+  const body={v:1 as const,communityId:'community',includeDnsNames:true as const};
+  assert.deepEqual(parseCommunityGrantRequest('directory',body),body);
+  for (const flag of [false,undefined,null,'true',1]) assert.throws(()=>parseCommunityGrantRequest('directory',{...body,includeDnsNames:flag}),ContractError);
+  for (const extra of [{dnsName:'victim.example'},{zone:'foreign.example'},{hostname:'attacker'},{dnsExpiresAtMs:9999999}])
+    assert.throws(()=>parseCommunityGrantRequest('directory',{...body,...extra}),ContractError);
+  let called=false;const accessor={...body};
+  Object.defineProperty(accessor,'includeDnsNames',{get:()=>{called=true;return true;}});
+  assert.throws(()=>parseCommunityGrantRequest('directory',accessor),ContractError);assert.equal(called,false);
+});
 for (const field of ['accountId','serverUserId','sessionId','networkName','adminInstanceId','credentialSecretB64','rpcUrl','bootstrap']) {
   test(`reject client-provided ${field}`, () => {
     assert.throws(() => parseCommunityGrantRequest('session',{...base,[field]:'untrusted'}), ContractError);

@@ -2,6 +2,7 @@ import express, { type RequestHandler } from 'express';
 
 import { ContractError } from './communityGrant';
 import { parseCommunityGrantRequest, type CommunityGrantApi } from './communityGrantApi';
+import { parseRelayRequest, type CommunityRelayRequestV2, type CommunityRelayRenewRequestV2 } from './communityRelayPolicy';
 
 const ERROR_STATUS: Readonly<Record<string, number>> = {
   'auth-required':401,'auth-retired':401,'session-required':401,'session-retired':401,
@@ -15,6 +16,7 @@ const ERROR_STATUS: Readonly<Record<string, number>> = {
   'connection-evidence-conflict':409,'renewal-not-extended':409,
   'provider-incompatible':503,'issuer-store-unavailable':503,'native-readback-mismatch':503,
   'unsafe-native-policy':503,'native-key-mismatch':503,'grant-store-corrupt':503,
+  'relay-v2-disabled':503,'invalid-relay-request':400,'invalid-relay-consent':400,'relay-consent-conflict':409,'relay-readback-mismatch':503,
 };
 /** Owner mounts at /api/community-et after normal DB setup. This factory opens no
  * listener; no response projects a private grant into renderer/member state.
@@ -25,6 +27,22 @@ export function createCommunityGrantRouter(api: CommunityGrantApi, rateLimit?: R
   router.use((_req,res,next)=>{if (enabled() !== true) {res.status(503).json({v:1,error:'community-et-disabled'});return;}next();});
   if (rateLimit) router.use(rateLimit);
   router.use(express.json({limit:'4kb',strict:true}));
+  for (const [path,method] of [['relay','relay'],['relay-renew','relayRenew'],['relay-status','relayStatus']] as const) {
+    router.post('/'+path,(req,res)=>{
+      void (async()=>{
+        const header=req.headers.authorization,bearer=typeof header === 'string' ? /^Bearer ([^\s]{1,8192})$/i.exec(header)?.[1] : undefined;
+        if (!bearer) throw new ContractError('auth-required');
+        const handler=api[method];if (!handler) throw new ContractError('relay-v2-disabled');
+        const body=parseRelayRequest(req.body,method !== 'relay');
+        const value=method === 'relay' ? await api.relay!(bearer,body as CommunityRelayRequestV2)
+          : await handler.call(api,bearer,body as CommunityRelayRequestV2 & CommunityRelayRenewRequestV2);
+        res.status(200).json(value);
+      })().catch(error=>{
+        const code=error instanceof ContractError && Object.prototype.hasOwnProperty.call(ERROR_STATUS,error.code) ? error.code : 'community-et-unavailable';
+        res.status(ERROR_STATUS[code]??503).json({v:2,error:code});
+      });
+    });
+  }
   for (const kind of ['session','acquire','renew','revoke','binding','directory'] as const) {
     router.post('/'+kind,(req,res)=>{
       void (async()=>{

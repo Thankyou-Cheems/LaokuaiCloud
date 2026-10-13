@@ -12,7 +12,7 @@ import type { CommunityRpcTransport } from './communityRpcWire';
 export interface CommunityGrantFactoryOptions {
   db: DatabaseSync; serverSecret: string; existingAuth: ExistingCommunityAuthServices; trustedServerOrigin: string;
   service: CommunityGrantServiceConfiguration;
-  provider: Omit<FixedCredentialProviderConfig,'upstreamCommit'|'networkName'|'expectedActiveCredentials'|'runtimeGeneration'>;
+  provider: Omit<FixedCredentialProviderConfig,'upstreamCommit'|'networkName'|'expectedActiveCredentials'|'runtimeGeneration'|'relayPolicyV2Enabled'>;
   clock?: CommunityServiceClock; rateLimit?: RequestHandler;
   /** Trusted server-owned management-plane adapter, if loopback is inaccessible
    * in the backend namespace. No forwarder/proxy is created by this factory. */
@@ -38,7 +38,8 @@ export function createCommunityGrantFactory(options: CommunityGrantFactoryOption
     // Owner's trusted server configuration supplies the actual management plane
     // (public cheems-p2p host-loopback15890), never a request/renderer override.
     networkName:options.service.networkName,
-    runtimeGeneration:options.service.runtimeGeneration,expectedActiveCredentials:()=>store.expectedActiveCredentials(wall())},options.managementTransport);
+    runtimeGeneration:options.service.runtimeGeneration,expectedActiveCredentials:()=>store.expectedActiveCredentials(wall()),
+    ...(options.service.relayPolicyV2Enabled ? {relayPolicyV2Enabled:options.service.relayPolicyV2Enabled} : {})},options.managementTransport);
   const authorize=createCommunityMemberAuthorizer(options.existingAuth,{communityId:options.service.communityId,serverHost:origin.host},wall);
   const service=new CommunityGrantService(options.service,store,provider,authorize,options.clock);
   return {service,store,provider,router:createCommunityGrantRouter(service,options.rateLimit,options.service.enabled),initializeSchema:()=>store.initSchema()};

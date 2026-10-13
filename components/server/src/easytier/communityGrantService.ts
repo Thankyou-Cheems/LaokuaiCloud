@@ -5,14 +5,17 @@ import {
   COMMUNITY_ET_UPSTREAM_COMMIT, communityIdentity, copiedScope, exact, fail, id, intent, planCommunityCredentialOperation, positive, privateIpv4,
   retireCommunityGrant, safeArray, sameScope, uuid, type CommunityGrantOperation,
   type CommunityGrantScope, type CredentialProvider, type NativeAuthority, type PrivateCommunityGrantV1,
-  type PrivateNativeCredentialReceipt, type TrustedCommunityIntent,
+  type PrivateCommunityGrant, type RelayConsentV2, type PrivateNativeCredentialReceipt, type TrustedCommunityIntent,
 } from './communityGrant';
 import { verifyCurrentDeviceBinding } from './communityDeviceBinding';
 import { deriveCredentialFingerprint } from './communityCredentialProvider';
+import { parseRelayRequest, relayGrantFromReadback, type CommunityRelayRequestV2, type CommunityRelayRenewRequestV2,
+  type CommunityRelayResponseV2, type RelayCredentialProvider, type StoredRelayState } from './communityRelayPolicy';
 import type { CommunityMemberAuthorizer, CommunityMemberIdentity } from './communityGrantAuth';
 import {
   parseCommunityGrantRequest, type CommunityAcquireRequestV1, type CommunityBindingRequestV1,
-  type CommunityDirectoryRequestV1, type CommunityGrantApi, type CommunityRenewRequestV1, type CommunitySessionRequestV1,
+  type CommunityDirectoryRequestV1, type CommunityDirectoryResponseV1, type CommunityDnsDirectoryResponseV1,
+  type CommunityGrantApi, type CommunityRenewRequestV1, type CommunitySessionRequestV1,
 } from './communityGrantApi';
 import {
   SqliteCommunityGrantStore, type CommunityStoredSession, type ScopeLease, type StoredGrantState,
@@ -24,8 +27,9 @@ export interface CommunityGrantServiceConfiguration {
   ttlSeconds: number;
   /** Trusted owner controls; construction and session never activate native writes. */
   enabled: () => boolean; credentialWritesEnabled: () => boolean; runtimeGeneration: () => number;
+  relayPolicyV2Enabled?: () => boolean;
 }
-export type CommunityGrantServiceProvider = CredentialProvider;
+export type CommunityGrantServiceProvider = CredentialProvider & Partial<RelayCredentialProvider>;
 export interface CommunityServiceClock { wallMs: () => number; monoMs: () => number }
 const DEFAULT_CLOCK: CommunityServiceClock = {wallMs:Date.now,monoMs:()=>Math.floor(performance.now())};
 
@@ -39,12 +43,14 @@ export class CommunityGrantService implements CommunityGrantApi {
   constructor(configuration: CommunityGrantServiceConfiguration, store: SqliteCommunityGrantStore,
     provider: CommunityGrantServiceProvider, authorize: CommunityMemberAuthorizer, clock: CommunityServiceClock = DEFAULT_CLOCK) {
     exact<CommunityGrantServiceConfiguration>(configuration,['serverInstanceId','communityId','networkName','networkRevision',
-      'bootstrapProfileId','virtualIpPool','authority','ttlSeconds','enabled','credentialWritesEnabled','runtimeGeneration'],'invalid-service-config');
+      'bootstrapProfileId','virtualIpPool','authority','ttlSeconds','enabled','credentialWritesEnabled','runtimeGeneration',
+      ...(configuration.relayPolicyV2Enabled !== undefined ? ['relayPolicyV2Enabled'] : [])],'invalid-service-config');
     const c = configuration;
     if (!communityIdentity(c.serverInstanceId) || !communityIdentity(c.communityId) || ![c.networkName,c.bootstrapProfileId].every(id) || !positive(c.networkRevision) ||
         !positive(c.ttlSeconds) || c.ttlSeconds < 30 || c.ttlSeconds > 3600 || !safeArray(c.virtualIpPool,254) || c.virtualIpPool.length < 1 ||
         c.virtualIpPool.length > 254 || !c.virtualIpPool.every(privateIpv4) || new Set(c.virtualIpPool).size !== c.virtualIpPool.length ||
-        typeof c.enabled !== 'function' || typeof c.credentialWritesEnabled !== 'function' || typeof c.runtimeGeneration !== 'function') fail('invalid-service-config');
+        typeof c.enabled !== 'function' || typeof c.credentialWritesEnabled !== 'function' || typeof c.runtimeGeneration !== 'function' ||
+        (c.relayPolicyV2Enabled !== undefined && typeof c.relayPolicyV2Enabled !== 'function')) fail('invalid-service-config');
     exact<NativeAuthority>(c.authority,['adminInstanceId','upstreamCommit','groups'],'invalid-authority');
     if (!uuid(c.authority.adminInstanceId) || c.authority.upstreamCommit !== COMMUNITY_ET_UPSTREAM_COMMIT ||
         !safeArray(c.authority.groups,32) || !c.authority.groups.length || !c.authority.groups.every(id) ||
@@ -73,7 +79,9 @@ export class CommunityGrantService implements CommunityGrantApi {
     const current=await this.#identity(bearer,body.communityId);
     if (current.tokenDigest !== identity.tokenDigest || current.serverUserId !== identity.serverUserId) fail('auth-retired');
     this.#store.createSession({tokenDigest:identity.tokenDigest,serverUserId:identity.serverUserId,
-      issuedAtMs:identity.issuedAtMs,expiresAtMs:identity.expiresAtMs,intent:trusted});
+      issuedAtMs:identity.issuedAtMs,expiresAtMs:identity.expiresAtMs,intent:trusted,
+      ...(identity.serverTokenVersion !== undefined && identity.userTokenVersion !== undefined ?
+        {serverTokenVersion: identity.serverTokenVersion, userTokenVersion: identity.userTokenVersion} : {})});
     return {v:1 as const,serverUserId:identity.serverUserId,intent:trusted};
   }
   async #session(bearer: string, body: CommunitySessionRequestV1): Promise<CommunityStoredSession> {
@@ -116,11 +124,117 @@ export class CommunityGrantService implements CommunityGrantApi {
     const now=this.#clock.wallMs();if (now >= grant.expiresAtMs || now < grant.serverTimeMs) fail('expired-grant');
     return {...structuredClone(grant),requestId,serverTimeMs:now};
   }
+  #relayReply(grant: PrivateCommunityGrant, relay: StoredRelayState, requestId: string): CommunityRelayResponseV2 {
+    const now=this.#clock.wallMs();if (now >= grant.expiresAtMs || now < grant.serverTimeMs) fail('expired-grant');
+    const confirmed=grant.v === 2 ? grant : {...grant,v:2 as const,policy:{...grant.policy,relay:{v:2 as const,enabled:false,revision:relay.consent.revision,bytesPerSecond:0}}};
+    return {v:2,consent:structuredClone(relay.consent),grant:{...structuredClone(confirmed),requestId,serverTimeMs:now}};
+  }
+  /** Resolve an unknown Upsert by readback. This never retires ordinary ET. */
+  async #settleRelay(bearer: string, session: CommunityStoredSession, lease: ScopeLease, state: StoredGrantState): Promise<StoredGrantState> {
+    const relay=this.#store.relayState(session.intent),p=relay.pending,g=state.record.grant;
+    if (!p) return state;
+    if (!g || p.grantId !== g.grantId || p.credentialId !== g.credentialId || p.publicKeyFingerprint !== g.publicKeyFingerprint) {
+      this.#store.saveRelayState(lease,{...relay,pending:null},this.#clock.wallMs());return state;
+    }
+    const actual=await this.#provider.read(g.credentialId,this.#config.authority.adminInstanceId);
+    await this.#recheck(bearer,session,lease);
+    if (g.expiresAtMs <= this.#clock.wallMs() && (!actual || actual.expiryUnix*1000 <= this.#clock.wallMs())) {
+      this.#store.saveRelayState(lease,{...relay,pending:null},this.#clock.wallMs());return state;
+    }
+    if (!actual) fail('relay-readback-mismatch');
+    if (actual.allowRelay === p.target.enabled && actual.expiryUnix === p.expiryUnix) {
+      const grant=relayGrantFromReadback(g,p,actual,this.#config.authority.groups,this.#clock.wallMs());
+      const storedGrant:PrivateCommunityGrant=grant.policy.allowRelay ? grant : {...grant,v:1,policy:{reusable:false,allowRelay:false,allowedProxyCidrs:[]}};
+      const next={record:{...state.record,revision:grant.revision,grant:storedGrant},operation:null};
+      this.#store.commitRelayState(lease,state.record.revision,next,{...relay,lastRequestId:p.requestId,pending:null},this.#clock.wallMs());return next;
+    }
+    if (actual.id !== g.credentialId || actual.publicKeyFingerprint !== g.publicKeyFingerprint || actual.reusable !== false ||
+        actual.allowedProxyCidrs.length !== 0 || actual.allowRelay !== g.policy.allowRelay || actual.expiryUnix*1000 !== g.expiresAtMs ||
+        actual.groups.length !== this.#config.authority.groups.length || !this.#config.authority.groups.every(group=>actual.groups.includes(group))) fail('relay-readback-mismatch');
+    this.#store.saveRelayState(lease,{...relay,pending:null},this.#clock.wallMs());return state;
+  }
+  async #changeRelay(bearer: string, session: CommunityStoredSession, lease: ScopeLease, state: StoredGrantState,
+    requestId: string, target: RelayConsentV2, renew: boolean, desired: RelayConsentV2 = target): Promise<StoredGrantState> {
+    this.#writes();
+    if (target.enabled && this.#config.relayPolicyV2Enabled?.() !== true) fail('relay-v2-disabled');
+    if (!this.#provider.setRelayPolicySameKey) fail('relay-v2-disabled');
+    const g=state.record.grant;
+    if (state.operation || !g || g.expiresAtMs <= this.#clock.wallMs()) fail('inactive-binding-grant');
+    const expiryUnix=renew ? Math.floor(this.#clock.wallMs()/1000)+this.#config.ttlSeconds : g.expiresAtMs/1000;
+    if (renew && expiryUnix*1000 <= g.expiresAtMs) fail('renewal-not-extended');
+    const pending={requestId,grantId:g.grantId,credentialId:g.credentialId,publicKeyFingerprint:g.publicKeyFingerprint,
+      authorizationEpoch:session.authorizationEpoch,priorRevision:g.revision,previousAllowRelay:g.policy.allowRelay,
+      target:structuredClone(target),expiryUnix,renew};
+    const relay={consent:structuredClone(desired),lastRequestId:null,lastAttemptId:requestId,pending};
+    this.#store.saveRelayState(lease,relay,this.#clock.wallMs());
+    // An exception leaves this immutable pending intent plus the prior active
+    // credential. A later call reads and reconciles it; no revoke compensation.
+    await this.#provider.setRelayPolicySameKey({v:2,instance:this.#config.authority.adminInstanceId,id:g.credentialId,
+      secret:g.credentialSecretB64,expiryUnix,groups:[...this.#config.authority.groups],previousAllowRelay:g.policy.allowRelay,allowRelay:target.enabled});
+    const actual=await this.#provider.read(g.credentialId,this.#config.authority.adminInstanceId);
+    await this.#recheck(bearer,session,lease);if (!actual) fail('relay-readback-mismatch');
+    const grant=relayGrantFromReadback(g,pending,actual,this.#config.authority.groups,this.#clock.wallMs());
+    const storedGrant:PrivateCommunityGrant=grant.policy.allowRelay ? grant : {...grant,v:1,policy:{reusable:false,allowRelay:false,allowedProxyCidrs:[]}};
+    const next={record:{...state.record,revision:grant.revision,grant:storedGrant},operation:null};
+    this.#store.commitRelayState(lease,state.record.revision,next,{consent:structuredClone(desired),lastRequestId:requestId,lastAttemptId:requestId,pending:null},this.#clock.wallMs());
+    return next;
+  }
+  async relay(bearer: string, raw: CommunityRelayRequestV2): Promise<CommunityRelayResponseV2> {
+    const body=parseRelayRequest(raw) as CommunityRelayRequestV2;
+    const session=await this.#session(bearer,{...body,v:1});
+    const lease=this.#store.claim(copiedScope(session.intent),this.#clock.wallMs());
+    try {
+      let state=await this.#settleRelay(bearer,session,lease,this.#store.load(session.intent));
+      const current=this.#store.relayState(session.intent),g=state.record.grant;
+      if (!g || g.grantId !== body.grantId) fail('unknown-grant');
+      if (current.lastRequestId === body.requestId) {
+        if (current.consent.enabled !== body.enabled || current.consent.bytesPerSecond !== body.bytesPerSecond) fail('relay-consent-conflict');
+        return this.#relayReply(g,current,body.requestId);
+      }
+      // A failed attempt persisted consent before dispatch; exact retry may
+      // finish it without allocating a second consent revision.
+      const retry=current.lastAttemptId === body.requestId && current.consent.revision === body.expectedConsentRevision+1 && current.consent.enabled === body.enabled && current.consent.bytesPerSecond === body.bytesPerSecond;
+      if (!retry && current.consent.revision !== body.expectedConsentRevision) fail('relay-consent-conflict');
+      const consent={v:2 as const,enabled:body.enabled,revision:retry ? current.consent.revision : current.consent.revision+1,bytesPerSecond:body.bytesPerSecond};
+      state=await this.#changeRelay(bearer,session,lease,state,body.requestId,consent,false);
+      return this.#relayReply(state.record.grant!,this.#store.relayState(session.intent),body.requestId);
+    } finally {this.#store.release(lease);}
+  }
+  async relayRenew(bearer: string, raw: CommunityRelayRenewRequestV2): Promise<CommunityRelayResponseV2> {
+    const body=parseRelayRequest(raw,true) as CommunityRelayRenewRequestV2;
+    const session=await this.#session(bearer,{...body,v:1}),lease=this.#store.claim(copiedScope(session.intent),this.#clock.wallMs());
+    try {
+      let state=await this.#settleRelay(bearer,session,lease,this.#store.load(session.intent));
+      const relay=this.#store.relayState(session.intent),g=state.record.grant;
+      if (!g || g.grantId !== body.grantId) fail('unknown-grant');
+      if (relay.lastRequestId === body.requestId) return this.#relayReply(g,relay,body.requestId);
+      const consent=this.#config.relayPolicyV2Enabled?.() === true ? relay.consent : {...relay.consent,enabled:false,bytesPerSecond:0};
+      state=await this.#changeRelay(bearer,session,lease,state,body.requestId,consent,true,relay.consent);
+      return this.#relayReply(state.record.grant!,this.#store.relayState(session.intent),body.requestId);
+    } finally {this.#store.release(lease);}
+  }
+  async relayStatus(bearer: string, raw: CommunityRelayRenewRequestV2): Promise<CommunityRelayResponseV2> {
+    const body=parseRelayRequest(raw,true) as CommunityRelayRenewRequestV2,session=await this.#session(bearer,{...body,v:1});
+    const lease=this.#store.claim(copiedScope(session.intent),this.#clock.wallMs());
+    try {
+      const state=await this.#settleRelay(bearer,session,lease,this.#store.load(session.intent));
+      if (!state.record.grant || state.record.grant.grantId !== body.grantId) fail('unknown-grant');
+      return this.#relayReply(state.record.grant,this.#store.relayState(session.intent),body.requestId);
+    } finally {this.#store.release(lease);}
+  }
   async acquire(bearer: string, raw: CommunityAcquireRequestV1): Promise<PrivateCommunityGrantV1> {
     this.#enabled();const body=parseCommunityGrantRequest('acquire',raw),session=await this.#session(bearer,body);
     const lease=this.#store.claim(copiedScope(session.intent),this.#clock.wallMs());
     try {
-      let state=this.#store.load(session.intent);
+      let state=await this.#settleRelay(bearer,session,lease,this.#store.load(session.intent));
+      if (state.record.grant?.v === 2 && state.record.grant.expiresAtMs > this.#clock.wallMs()) {
+        const relay=this.#store.relayState(session.intent);
+        state=await this.#changeRelay(bearer,session,lease,state,body.requestId,{...relay.consent,enabled:false,bytesPerSecond:0},false,relay.consent);
+        const confirmed=state.record.grant!;
+        const grant:PrivateCommunityGrantV1={...confirmed,v:1,policy:{reusable:false,allowRelay:false,allowedProxyCidrs:[]}};
+        const next={...state,record:{...state.record,grant}};
+        this.#store.save(lease,state.record.revision,next);state=next;
+      }
       if (state.operation) state=this.#retire(lease,state);
       if (state.record.grant && state.record.grant.expiresAtMs > this.#clock.wallMs() &&
           state.record.grant.networkName === session.intent.networkName && state.record.grant.networkRevision === session.intent.networkRevision &&
@@ -131,7 +245,7 @@ export class CommunityGrantService implements CommunityGrantApi {
             actual.allowRelay !== false || actual.allowedProxyCidrs.length !== 0 || actual.expiryUnix*1000 !== state.record.grant.expiresAtMs ||
             actual.groups.length !== this.#config.authority.groups.length || !this.#config.authority.groups.every(group=>actual.groups.includes(group)))
           fail('native-readback-mismatch');
-        return this.#reply(state.record.grant,body.requestId);
+        return this.#reply(state.record.grant as PrivateCommunityGrantV1,body.requestId);
       }
       this.#writes();
       if (state.record.grant) state=this.#retire(lease,state);
@@ -147,10 +261,17 @@ export class CommunityGrantService implements CommunityGrantApi {
     this.#enabled();const body=parseCommunityGrantRequest('renew',raw),session=await this.#session(bearer,body);
     const lease=this.#store.claim(copiedScope(session.intent),this.#clock.wallMs());
     try {
-      const state=this.#store.load(session.intent),g=state.record.grant;
+      const state=await this.#settleRelay(bearer,session,lease,this.#store.load(session.intent)),g=state.record.grant;
       if (state.operation) {this.#retire(lease,state);fail('reconciliation-required');}
       if (!g || g.grantId !== body.grantId || g.expiresAtMs <= this.#clock.wallMs()) fail('unknown-grant');
-      if (g.requestId === body.requestId) return this.#reply(g,body.requestId);
+      if (g.v === 2) {
+        const relay=this.#store.relayState(session.intent);
+        const changed=await this.#changeRelay(bearer,session,lease,state,body.requestId,{...relay.consent,enabled:false,bytesPerSecond:0},true,relay.consent);
+        const grant:PrivateCommunityGrantV1={...changed.record.grant!,v:1,policy:{reusable:false,allowRelay:false,allowedProxyCidrs:[]}};
+        this.#store.save(lease,changed.record.revision,{...changed,record:{...changed.record,grant}});
+        return this.#reply(grant,body.requestId);
+      }
+      if (g.v === 1 && g.requestId === body.requestId) return this.#reply(g,body.requestId);
       this.#writes();return await this.#operate('renew',bearer,body,session,lease,state);
     } finally {this.#store.release(lease);}
   }
@@ -186,7 +307,7 @@ export class CommunityGrantService implements CommunityGrantApi {
       const current=this.#store.load(session.intent);
       if (current.operation?.plan.requestId !== op.requestId) fail('operation-retired');
       const record=commitCommunityCredentialReadback(op,current.record,auth,receipt,readback,this.#clock.wallMs());
-      this.#store.save(lease,state.record.revision,{record,operation:null});return structuredClone(record.grant!);
+      this.#store.save(lease,state.record.revision,{record,operation:null});return structuredClone(record.grant!) as PrivateCommunityGrantV1;
     } catch (error) {
       // A dispatched operation may have succeeded even when TCP timed out.
       // Preserve cleanup intent before returning; never return its private key.
@@ -232,14 +353,42 @@ export class CommunityGrantService implements CommunityGrantApi {
         publicKeyFingerprint:proof.publicKeyFingerprint,physicalDirectVerified:false as const};
     } finally {this.#store.release(lease);}
   }
-  async directory(bearer: string, raw: CommunityDirectoryRequestV1) {
+  async directory(bearer: string, raw: CommunityDirectoryRequestV1): Promise<CommunityDirectoryResponseV1 | CommunityDnsDirectoryResponseV1> {
     this.#enabled();
     const body = parseCommunityGrantRequest('directory', raw);
     if (body.communityId !== this.#config.communityId) fail('community-forbidden');
     const identity = await this.#identity(bearer, body.communityId);
-    const members = this.#store.directory(body.communityId, this.#clock.wallMs());
+    const directory = body.includeDnsNames === true ? this.#store.dnsDirectory(body.communityId, this.#clock.wallMs()) : null;
+    const members = directory?.members ?? this.#store.directory(body.communityId, this.#clock.wallMs());
+    const allowedSessions = new Map<string, string>();
+    if (directory) {
+      if (!this.#auth.directorySessionAllowed) fail('auth-unavailable');
+      for (const session of directory.authorizations) {
+        // Old sealed sessions remain valid for v1 IPs, but must be verified again
+        // before their names can be published against current token versions.
+        if (session.serverTokenVersion === undefined || session.userTokenVersion === undefined) continue;
+        if (await this.#auth.directorySessionAllowed({...session,
+          serverTokenVersion: session.serverTokenVersion, userTokenVersion: session.userTokenVersion}, body.communityId))
+          allowedSessions.set(session.dnsName, `${session.sessionId}:${session.authorizationEpoch}`);
+      }
+    }
     const current = await this.#identity(bearer, body.communityId);
     if (current.tokenDigest !== identity.tokenDigest || current.serverUserId !== identity.serverUserId) fail('auth-retired');
+    if (directory) {
+      // Recheck grants and scope after asynchronous membership reads; do not
+      // carry an old authorization decision into a replaced session or address.
+      const fresh = this.#store.dnsDirectory(body.communityId, this.#clock.wallMs());
+      const liveNames = new Set(fresh.authorizations.filter(session => allowedSessions.get(session.dnsName) === `${session.sessionId}:${session.authorizationEpoch}`).map(session => session.dnsName));
+      const liveMembers = new Map(fresh.members.map(member => [member.dnsName, member]));
+      const names = directory.members.flatMap(member => {
+        const live = liveMembers.get(member.dnsName);
+        if (!liveNames.has(member.dnsName) || !live || live.virtualIp !== member.virtualIp) return [];
+        const dnsExpiresAtMs = Math.min(member.dnsExpiresAtMs, live.dnsExpiresAtMs);
+        return dnsExpiresAtMs > this.#clock.wallMs() ? [{...member, dnsExpiresAtMs}] : [];
+      });
+      return {v: 1 as const, communityId: body.communityId, members: names,
+        dns: {zone: directory.zone, serverTimeMs: directory.serverTimeMs, maxAgeMs: directory.maxAgeMs}};
+    }
     return {v: 1 as const, communityId: body.communityId, members};
   }
 }

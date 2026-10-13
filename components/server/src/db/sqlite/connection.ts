@@ -831,6 +831,10 @@ function runMigrations(d: DatabaseSync): void {
   if (!hasColumn(d, "invites", "granted_role_rank")) {
     d.exec("ALTER TABLE invites ADD COLUMN granted_role_rank INTEGER");
   }
+  // Legacy links retain their original admission scope on upgrade.
+  if (!hasColumn(d, "invites", "password_bypass")) {
+    d.exec("ALTER TABLE invites ADD COLUMN password_bypass INTEGER NOT NULL DEFAULT 0");
+  }
 
   if (!hasColumn(d, "server_config", "lan_open")) {
     d.exec("ALTER TABLE server_config ADD COLUMN lan_open INTEGER NOT NULL DEFAULT 0");

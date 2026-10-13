@@ -1,12 +1,12 @@
 import consola from "consola";
-import { getAcceptedIdentityTiers } from "../../auth/identity";
+import { getAcceptedIdentityTiers, isBotIdentity } from "../../auth/identity";
 import { mayViewChannel } from "../../services/channelPermissions";
 import {
   INVITE_ROLE_REFUSAL_TEXT,
   mayBindRoleToInvite,
 } from "../../services/inviteRoles";
 import type { HandlerContext, EventHandlerMap } from "./types";
-import { requireAuth, requireOutranks } from "../middleware/auth";
+import { requireAuth, requireOutranks, type AuthResult } from "../middleware/auth";
 import { listRolesByMember } from "../../services/permissions";
 import { broadcastServerUiUpdate, sendEmojiQueueStateToSocket } from "../utils/server";
 import { applyServerSettings, settingsView } from "../../settings/serverSettings";
@@ -75,6 +75,11 @@ function rlCheck(event: string, ctx: HandlerContext, rule: RateLimitRule) {
   const ip = ctx.getClientIp();
   const userId = ctx.clientsInfo[ctx.clientId]?.serverUserId;
   return checkRateLimit(event, userId, ip, rule);
+}
+
+async function mayIssuePasswordFreeInvite(auth: AuthResult): Promise<boolean> {
+  if (isBotIdentity(auth.tokenPayload.grytUserId)) return false;
+  return auth.isOwner || (await listMemberRoles(auth.tokenPayload.serverUserId)).includes("admin");
 }
 
 /** A year, in minutes. Longer than this is what a permanent ban is for. */
@@ -349,10 +354,12 @@ export function registerAdminHandlers(ctx: HandlerContext): EventHandlerMap {
         const auth = await requireAuth(socket, payload, { permission: "manage_invites" });
         if (!auth) return;
         const invites = await listServerInvites();
+        const mayManagePasswordFree = await mayIssuePasswordFreeInvite(auth);
         socket.emit("server:invites", {
           serverId,
           invites: invites
-            .map((i) => ({ code: i.code, createdAt: i.created_at, expiresAt: i.expires_at, maxUses: i.max_uses, usesRemaining: i.uses_remaining, usesConsumed: i.uses_consumed, revoked: i.revoked, note: i.note }))
+            .filter((i) => !i.password_bypass || mayManagePasswordFree)
+            .map((i) => ({ code: i.code, passwordBypass: i.password_bypass, createdAt: i.created_at, expiresAt: i.expires_at, maxUses: i.max_uses, usesRemaining: i.uses_remaining, usesConsumed: i.uses_consumed, revoked: i.revoked, note: i.note }))
             .sort((a, b) => (b.createdAt?.getTime?.() || 0) - (a.createdAt?.getTime?.() || 0)),
         });
       } catch (e) {
@@ -374,11 +381,13 @@ export function registerAdminHandlers(ctx: HandlerContext): EventHandlerMap {
         ]);
 
         const byCode = new Map(invites.map((i) => [i.code, i]));
+        const mayManagePasswordFree = await mayIssuePasswordFreeInvite(auth);
 
         socket.emit("server:members:invites", {
           serverId,
           members: users
             .filter((u) => u.is_active && u.joined_with_invite_code)
+            .filter((u) => !byCode.get(u.joined_with_invite_code!)?.password_bypass || mayManagePasswordFree)
             .map((u) => {
               const code = u.joined_with_invite_code as string;
               const invite = byCode.get(code);
@@ -403,12 +412,27 @@ export function registerAdminHandlers(ctx: HandlerContext): EventHandlerMap {
       }
     },
 
-    'server:invites:create': async (payload: { accessToken: string; infinite?: boolean; maxUses?: number; expiresInHours?: number; note?: string | null; customCode?: string | null; grantsRole?: string | null }) => {
+    'server:invites:create': async (payload: { accessToken: string; passwordBypass?: boolean; infinite?: boolean; maxUses?: number; expiresInHours?: number; note?: string | null; customCode?: string | null; grantsRole?: string | null }) => {
       try {
         const rl = rlCheck("server:invites:create", ctx, RL_INVITE);
         if (!rl.allowed) { emitRateLimited(ctx, rl); return; }
         const auth = await requireAuth(socket, payload, { permission: "create_invite" });
         if (!auth) return;
+        const mayIssuePasswordFree = await mayIssuePasswordFreeInvite(auth);
+        if (payload.passwordBypass !== undefined && typeof payload.passwordBypass !== "boolean") {
+          socket.emit("server:error", { error: "invalid_payload", message: "passwordBypass must be a boolean." });
+          return;
+        }
+        const passwordBypass = payload.passwordBypass ?? mayIssuePasswordFree;
+        if (passwordBypass && !mayIssuePasswordFree) {
+          socket.emit("server:error", { error: "forbidden", message: "Password-free invitations require a community administrator." });
+          return;
+        }
+        if (payload.maxUses !== undefined && (!Number.isFinite(payload.maxUses) || payload.maxUses < 1 || !Number.isInteger(payload.maxUses)) ||
+            payload.expiresInHours !== undefined && (!Number.isFinite(payload.expiresInHours) || payload.expiresInHours < 0)) {
+          socket.emit("server:error", { error: "invalid_payload", message: "Invite expiry and use count must be valid numbers." });
+          return;
+        }
 
         const infinite = payload.infinite === true;
         const maxUses = infinite ? undefined : (typeof payload.maxUses === "number" ? payload.maxUses : 1);
@@ -417,11 +441,19 @@ export function registerAdminHandlers(ctx: HandlerContext): EventHandlerMap {
           ? new Date(Date.now() + Math.min(expiresInHours, 24 * 365) * 3_600_000)
           : null;
         const customCode = typeof payload.customCode === "string" ? payload.customCode.trim() : null;
+        if (passwordBypass && customCode) {
+          socket.emit("server:error", { error: "invalid_payload", message: "Password-free invitations require a secure random code." });
+          return;
+        }
 
         // `create_invite` says you may open a door, not what may walk through
         // it, so the role goes through the same rules as a direct grant.
         let grantedRole: { roleId: string; rank: number } | null = null;
         const wantsRole = typeof payload.grantsRole === "string" ? payload.grantsRole.trim().toLowerCase() : "";
+        if (passwordBypass && wantsRole) {
+          socket.emit("server:error", { error: "role_not_bindable", message: "Password-free invitations grant ordinary membership only." });
+          return;
+        }
         if (wantsRole) {
           if (!auth.permissions.has("manage_roles")) {
             socket.emit("server:error", { error: "forbidden", message: "Binding a role to an invite needs manage_roles." });
@@ -447,12 +479,12 @@ export function registerAdminHandlers(ctx: HandlerContext): EventHandlerMap {
           grantedRole = { roleId: def!.role_id, rank: def!.rank };
         }
 
-        const created = await createServerInvite(auth.tokenPayload.serverUserId, { infinite, maxUses, expiresAt, note: payload.note ?? null, customCode: customCode || null, grantedRole });
-        insertServerAudit({ actorServerUserId: auth.tokenPayload.serverUserId, action: "invite_create", target: created.code, meta: { infinite, maxUses: created.max_uses, expiresAt: created.expires_at, grantsRole: created.granted_role_id, grantsRoleRank: created.granted_role_rank } }).catch((e) => consola.warn("audit log write failed", e));
+        const created = await createServerInvite(auth.tokenPayload.serverUserId, { passwordBypass, infinite, maxUses, expiresAt, note: payload.note ?? null, customCode: customCode || null, grantedRole });
+        insertServerAudit({ actorServerUserId: auth.tokenPayload.serverUserId, action: "invite_create", target: created.code, meta: { passwordBypass, infinite, maxUses: created.max_uses, expiresAt: created.expires_at, grantsRole: created.granted_role_id, grantsRoleRank: created.granted_role_rank } }).catch((e) => consola.warn("audit log write failed", e));
 
         socket.emit("server:invite:created", {
           serverId,
-          invite: { code: created.code, createdAt: created.created_at, expiresAt: created.expires_at, maxUses: created.max_uses, usesRemaining: created.uses_remaining, usesConsumed: created.uses_consumed, revoked: created.revoked, note: created.note, grantsRole: created.granted_role_id },
+          invite: { code: created.code, passwordBypass: created.password_bypass, createdAt: created.created_at, expiresAt: created.expires_at, maxUses: created.max_uses, usesRemaining: created.uses_remaining, usesConsumed: created.uses_consumed, revoked: created.revoked, note: created.note, grantsRole: created.granted_role_id },
         });
       } catch (e) {
         consola.error("server:invites:create failed", e);
@@ -471,7 +503,12 @@ export function registerAdminHandlers(ctx: HandlerContext): EventHandlerMap {
         const auth = await requireAuth(socket, payload, { permission: "manage_invites" });
         if (!auth) return;
 
-        const code = payload.code.trim();
+        const code = payload.code.trim().toLowerCase();
+        const invite = await getServerInvite(code);
+        if (invite?.password_bypass && !(await mayIssuePasswordFreeInvite(auth))) {
+          socket.emit("server:error", { error: "forbidden", message: "Managing password-free invitations requires a community administrator." });
+          return;
+        }
         await revokeServerInvite(code, true);
         insertServerAudit({ actorServerUserId: auth.tokenPayload.serverUserId, action: "invite_revoke", target: code, meta: { revoked: true } }).catch((e) => consola.warn("audit log write failed", e));
         socket.emit("server:invite:revoked", { serverId, code, revoked: true });

@@ -20,6 +20,19 @@ export interface PrivateCommunityGrantV1 {
   issuedAtMs: number; serverTimeMs: number; renewAfterMs: number; expiresAtMs: number;
   publicKeyFingerprint: string; credentialSecretB64: string; policy: CommunityCredentialPolicy;
 }
+export interface RelayConsentV2 { v: 2; enabled: boolean; revision: number; bytesPerSecond: number }
+export interface PrivateCommunityGrantV2 extends Omit<PrivateCommunityGrantV1, 'v' | 'policy'> {
+  v: 2;
+  policy: { reusable: false; allowRelay: boolean; allowedProxyCidrs: []; relay: RelayConsentV2 };
+}
+export type PrivateCommunityGrant = PrivateCommunityGrantV1 | PrivateCommunityGrantV2;
+export const MEMBER_RELAY_MAX_BYTES_PER_SECOND = 1_048_576;
+export function relayConsentShape(value: unknown): asserts value is RelayConsentV2 {
+  exact<RelayConsentV2>(value, ['v','enabled','revision','bytesPerSecond'], 'invalid-relay-consent');
+  if (value.v !== 2 || typeof value.enabled !== 'boolean' || !natural(value.revision) || !natural(value.bytesPerSecond) ||
+      (value.enabled ? value.revision < 1 || value.bytesPerSecond < 1024 || value.bytesPerSecond > MEMBER_RELAY_MAX_BYTES_PER_SECOND : value.bytesPerSecond !== 0))
+    fail('invalid-relay-consent');
+}
 export interface GrantClock { wallMs: number; monoMs: number }
 export interface CommunityPublicState {
   v: 1; communityId: string;
@@ -102,6 +115,16 @@ export function grantShape(g: unknown): asserts g is PrivateCommunityGrantV1 {
       g.policy.allowedProxyCidrs.length !== 0) fail('unsafe-policy');
   keyBytes(g.credentialSecretB64);
 }
+/** V1 validation stays strict. Only explicitly negotiated V2 carries relay consent. */
+export function versionedGrantShape(g: unknown): asserts g is PrivateCommunityGrant {
+  if (!g || typeof g !== 'object' || !('v' in g) || g.v !== 2) { grantShape(g); return; }
+  exact<PrivateCommunityGrantV2>(g, GRANT_KEYS, 'invalid-grant-shape');
+  exact(g.policy, ['reusable','allowRelay','allowedProxyCidrs','relay'], 'invalid-policy');
+  relayConsentShape(g.policy.relay);
+  if (g.policy.reusable !== false || typeof g.policy.allowRelay !== 'boolean' || g.policy.allowRelay !== g.policy.relay.enabled ||
+      !safeArray(g.policy.allowedProxyCidrs, 0)) fail('unsafe-policy');
+  grantShape({...g, v: 1, policy: {reusable:false,allowRelay:false,allowedProxyCidrs:[]}});
+}
 
 /** Fixed native API facts: Generate recovers an existing ID without extending it.
  * Renewal requires RPC Upsert with the SAME private key, followed by List readback.
@@ -156,7 +179,7 @@ export interface GrantAuthorization {
 export interface CommunityGrantRecord {
   scope: CommunityGrantScope; revision: number;
   state: 'prepared' | 'active' | 'revoke-pending' | 'revoked';
-  grant: PrivateCommunityGrantV1 | null;
+  grant: PrivateCommunityGrant | null;
   /** Secret-free durable cleanup intent; retained after active secret is discarded. */
   revocation?: {grantId: string; credentialId: string; adminInstanceId: string};
 }
@@ -198,7 +221,7 @@ export function recordShape(value: unknown): asserts value is CommunityGrantReco
   exact<CommunityGrantRecord>(value, keys, 'invalid-grant-record'); scope(value.scope);
   if (!natural(value.revision) || !['prepared', 'active', 'revoke-pending', 'revoked'].includes(value.state)) fail('invalid-grant-record');
   if (value.grant !== null) {
-    grantShape(value.grant);
+    versionedGrantShape(value.grant);
     if (!sameScope(value.scope, value.grant.scope) || value.revision !== value.grant.revision) fail('invalid-grant-record');
   }
   if ((value.state === 'active') !== (value.grant !== null)) fail('invalid-grant-record');

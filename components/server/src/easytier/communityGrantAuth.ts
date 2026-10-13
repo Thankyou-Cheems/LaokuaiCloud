@@ -4,8 +4,12 @@ import { communityIdentity, fail, id, natural, positive } from './communityGrant
 
 export interface CommunityMemberIdentity {
   accountId: string; serverUserId: string; tokenDigest: string; issuedAtMs: number; expiresAtMs: number;
+  serverTokenVersion?: number; userTokenVersion?: number;
 }
-export type CommunityMemberAuthorizer = (bearer: string, communityId: string) => Promise<CommunityMemberIdentity>;
+export type CommunityMemberAuthorizer = ((bearer: string, communityId: string) => Promise<CommunityMemberIdentity>) & {
+  /** Server-owned sealed session identity, never a request body or bearer substitute. */
+  directorySessionAllowed?: (session: {accountId: string; serverUserId: string; serverTokenVersion: number; userTokenVersion: number}, communityId: string) => Promise<boolean>;
+};
 /** Pass the existing verifyAccessToken/getServerConfig/checkSessionAllowed functions.
  * No independent token issuer, membership table, role system or JWT secret is added.
  */
@@ -21,7 +25,7 @@ export function createCommunityMemberAuthorizer(services: ExistingCommunityAuthS
   if (!communityIdentity(trusted.communityId) || !trusted.serverHost || new URL('https://' + trusted.serverHost).host !== trusted.serverHost)
     fail('invalid-auth-config');
   const expected = {...trusted};
-  return async (bearer, communityId) => {
+  const authorize = async (bearer: string, communityId: string) => {
     if (communityId !== expected.communityId) fail('community-forbidden');
     if (typeof bearer !== 'string' || bearer.length < 1 || bearer.length > 8192 || /\s/.test(bearer)) fail('auth-required');
     let claims: Record<string, unknown>;
@@ -49,6 +53,19 @@ export function createCommunityMemberAuthorizer(services: ExistingCommunityAuthS
     if ((claims.userTokenVersion ?? 0) !== membership.user.token_version) fail('auth-retired');
     if (claims.exp * 1000 <= now()) fail('auth-retired');
     return {accountId:claims.grytUserId,serverUserId:claims.serverUserId,
-      tokenDigest:createHash('sha256').update(bearer).digest('hex'),issuedAtMs:claims.iat * 1000,expiresAtMs:claims.exp * 1000};
+      tokenDigest:createHash('sha256').update(bearer).digest('hex'),issuedAtMs:claims.iat * 1000,expiresAtMs:claims.exp * 1000,
+      serverTokenVersion: claims.tokenVersion, userTokenVersion: (claims.userTokenVersion ?? 0) as number};
   };
+  return Object.assign(authorize, {directorySessionAllowed: async (session: {accountId: string; serverUserId: string; serverTokenVersion: number; userTokenVersion: number}, communityId: string) => {
+    if (communityId !== expected.communityId || !id(session.accountId) || !id(session.serverUserId) ||
+        !natural(session.serverTokenVersion) || !natural(session.userTokenVersion)) fail('community-forbidden');
+    try {
+      const configuration = await services.getServerConfig();
+      if (!configuration || !natural(configuration.token_version)) fail('auth-unavailable');
+      const membership = await services.checkSessionAllowed({grytUserId: session.accountId, serverUserId: session.serverUserId});
+      return configuration.token_version === session.serverTokenVersion && membership.ok && membership.user.is_active &&
+        membership.user.gryt_user_id === session.accountId && membership.user.server_user_id === session.serverUserId &&
+        membership.user.token_version === session.userTokenVersion;
+    } catch { return fail('auth-unavailable'); }
+  }});
 }

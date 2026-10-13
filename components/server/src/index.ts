@@ -108,6 +108,7 @@ async function initializeCommunityEt(): Promise<void> {
       existingAuth: {verifyAccessToken, getServerConfig, checkSessionAllowed},
       service: {...deployment.service, enabled,
         credentialWritesEnabled: () => enabled() && deployment.credentialWritesApproved === true,
+        relayPolicyV2Enabled: () => enabled() && deployment.credentialWritesApproved === true && process.env.LAOKUAI_MEMBER_RELAY_POLICY_V2 === '1',
         runtimeGeneration: () => deployment.nativeRuntimeGeneration},
       provider: deployment.provider, managementTransport: communityEtManagementTransport(deployment),
       rateLimit: httpRateLimit("http:community-et", RL_HTTP_API)});

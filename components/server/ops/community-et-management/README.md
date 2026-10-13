@@ -1,7 +1,7 @@
 # Community ET management proxy
 
 This is the current Linux proxy source for the existing member-device channel.
-The RPC parser and credential policy are unchanged from the frozen
+The original V1 RPC parser and credential policy retain the restrictions from the frozen
 `release/deployment/community-password-beta-20261012/proxy.py` (SHA256
 `94e2725fb50e007b80464d720f163d9974a339515e5ab5b2fbd931b40194fb29`).
 The backend, SFU and EasyTier core remain separate services.
@@ -31,3 +31,18 @@ Do not recreate the runtime directory. Verify actual backend-to-issuer RPC as we
 as service state: the presence of a socket file alone did not detect this failure.
 Deployment and validation are recorded in
 `release/acceptance/community-management-recovery-20261013.json` at repository root.
+
+The source now also contains a default-off V2 relay policy gate. Without
+`MEMBER_RELAY_POLICY_VERSION=2`, true Generate/Upsert relay flags are rejected.
+Version 2 permits only the existing native relay boolean; fixed instance, group,
+300-second creation TTL, same-key renewal, non-reusable credentials and empty
+proxy CIDRs remain required. False downgrades remain possible in version 1.
+The ledger preserves a pending requested relay state and records confirmed
+successful Upsert policy. It is not proof of WAN advertisement propagation.
+See `../../COMMUNITY-RELAY-V2.md` for the separate backend gate and client contract.
+This V2 source has not been deployed and does not authorize a production change.
+
+Run `python -I test_proxy_policy.py -v` for portable synthetic RPC/temporary
+ledger checks. On Windows these tests stub the unused `fcntl` import only;
+they never invoke a lock, Unix listener or upstream issuer. The original Linux
+socket lifecycle checks still require `python3 -I test_proxy.py -v` on Linux.

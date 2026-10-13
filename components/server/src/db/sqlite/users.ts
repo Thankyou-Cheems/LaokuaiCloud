@@ -90,9 +90,18 @@ export async function upsertUser(
   nickname: string,
   opts?: { avatarFileId?: string; inviteCode?: string },
 ): Promise<UserRecord> {
+  return upsertUserSync(grytUserId, nickname, opts);
+}
+
+/** Synchronous so admission and its invite use can share one SQLite transaction. */
+export function upsertUserSync(
+  grytUserId: string,
+  nickname: string,
+  opts?: { avatarFileId?: string; inviteCode?: string },
+): UserRecord {
   const db = getSqliteDb();
   const now = new Date();
-  const existing = await getUserByGrytId(grytUserId);
+  const existing = getUserByGrytIdSync(grytUserId);
 
   if (existing) {
     const newAvatar = opts?.avatarFileId ?? existing.avatar_file_id ?? null;
@@ -173,6 +182,10 @@ export async function setUserPersonKeyBinding(
 }
 
 export async function getUserByGrytId(grytUserId: string): Promise<UserRecord | null> {
+  return getUserByGrytIdSync(grytUserId);
+}
+
+export function getUserByGrytIdSync(grytUserId: string): UserRecord | null {
   const db = getSqliteDb();
   const row = db.prepare(`SELECT * FROM users WHERE gryt_user_id = ?`).get(grytUserId) as Record<string, unknown> | undefined;
   return row ? rowToUser(row) : null;

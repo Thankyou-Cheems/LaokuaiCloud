@@ -12,6 +12,14 @@ UID = 1001
 MAX_BODY = 262144
 LOCK = threading.Lock()
 SLOTS = threading.BoundedSemaphore(8)
+# A deployment gate, independent from backend consent. Existing installations
+# keep the frozen false-only policy until explicitly upgraded and approved.
+MEMBER_RELAY_POLICY_VERSION = os.environ.get('MEMBER_RELAY_POLICY_VERSION', '1')
+if MEMBER_RELAY_POLICY_VERSION not in ('1', '2'): raise ValueError('relay-policy-version')
+
+def relay_flag(value):
+    if value not in (0, 1) or (value == 1 and MEMBER_RELAY_POLICY_VERSION != '2'): raise ValueError('relay-v2-disabled')
+    return bool(value)
 
 def varint(n):
     out = bytearray()
@@ -87,10 +95,12 @@ def request(frame):
         q = decode(raw,{1:2}); selector = value(q,1)
     elif method == 1:
         q = decode(raw,{1:2,2:0,3:2,4:0,5:2,6:2,7:0},(1,3)); selector=value(q,6)
-        if num(q,2) or num(q,7) or q.get(3) or num(q,4) != 300: raise ValueError('unsafe-create')
+        relay_flag(num(q,2))
+        if num(q,7) or q.get(3) or num(q,4) != 300: raise ValueError('unsafe-create')
     elif method == 4:
         q = decode(raw,{1:2,2:2,3:2,4:0,5:2,6:0,7:0,8:2},(3,5)); selector=value(q,8)
-        if num(q,4) or num(q,7) or q.get(5): raise ValueError('unsafe-renew')
+        relay_flag(num(q,4))
+        if num(q,7) or q.get(5): raise ValueError('unsafe-renew')
         if len(base64.b64decode(value(q,2),validate=True)) != 32: raise ValueError('key')
     else:
         q = decode(raw,{1:2,2:2}); selector=value(q,2)
@@ -136,18 +146,22 @@ class Budget:
         state={k:v for k,v in self.load().items() if v.get('expiresUnix',0)>now}
         if method==1:
             if credential in state: raise ValueError('duplicate-create')
-            state[credential]={'expiresUnix':now+305,'pending':True};self.save(state)
+            allow=relay_flag(num(q,2))
+            state[credential]={'expiresUnix':now+305,'pending':True,'policyVersion':2 if allow else 1,'allowRelay':allow};self.save(state)
         elif method==4:
             old=state.get(credential)
             expiry=num(q,6)
             if not old or old.get('pending') or not now<expiry<=now+305 or expiry<old['expiresUnix'] or hashlib.sha256(value(q,2)).hexdigest()!=old.get('secretDigest'): raise ValueError('unsafe-renew')
+            old['pendingAllowRelay']=relay_flag(num(q,4));self.save(state)
     def after(self, service, method, response):
         if service!='CredentialManageRpc' or method not in (1,): return
         r=decode(response,{1:2,2:2,3:0})
         if 2 in r: return
         result=decode(value(r,1),{1:2,2:2,3:0});state=self.load();now=int(self.clock());credential=text(result,1)
         if credential not in state or not now<num(result,3)<=now+305 or len(base64.b64decode(value(result,2),validate=True))!=32: raise ValueError('create-readback')
-        state[credential]={'secretDigest':hashlib.sha256(value(result,2)).hexdigest(),'expiresUnix':num(result,3)};self.save(state)
+        prior=state[credential]
+        state[credential]={'secretDigest':hashlib.sha256(value(result,2)).hexdigest(),'expiresUnix':num(result,3),
+            'policyVersion':prior.get('policyVersion',1),'allowRelay':prior.get('allowRelay',False)};self.save(state)
     def complete(self,service,method,q,response):
         if service!='CredentialManageRpc' or method not in (2,4):return
         r=decode(response,{1:2,2:2,3:0})
@@ -156,7 +170,11 @@ class Budget:
         if not num(outcome,1):return
         state=self.load();credential=text(q,1)
         if method==2:state.pop(credential,None)
-        elif credential in state:state[credential]['expiresUnix']=num(q,6)
+        elif credential in state:
+            state[credential]['expiresUnix']=num(q,6)
+            state[credential]['allowRelay']=bool(num(q,4))
+            state[credential]['policyVersion']=2 if num(q,4) else 1
+            state[credential].pop('pendingAllowRelay',None)
         self.save(state)
 
 def exact_read(s, size):

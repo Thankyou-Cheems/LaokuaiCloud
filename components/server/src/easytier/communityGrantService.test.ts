@@ -1,16 +1,20 @@
 import assert from 'node:assert/strict';
-import { createPrivateKey, createPublicKey } from 'node:crypto';
+import { createDecipheriv, createPrivateKey, createPublicKey } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
 
 import { createCommunityMemberAuthorizer, type ExistingCommunityAuthServices } from './communityGrantAuth';
 import { CommunityGrantService, type CommunityGrantServiceProvider } from './communityGrantService';
 import { communityScopeKey, communityVaultKey, SqliteCommunityGrantStore } from './communityGrantStore';
 import {
-  COMMUNITY_ET_UPSTREAM_COMMIT, ContractError, publicKeyFingerprint, type CommunityGrantScope,
+  COMMUNITY_ET_UPSTREAM_COMMIT, ContractError, grantShape, publicKeyFingerprint, type CommunityGrantScope,
   type NativeAuthority, type CreateCredentialIntent, type ExtendCredentialIntent, type NativeCredentialReadback, type PrivateNativeCredentialReceipt,
 } from './communityGrant';
 import type { ProviderPeerObservation } from './communityDeviceBinding';
+import { COMMUNITY_DNS_MAX_AGE_MS, communityDnsZone } from './communityDnsNames';
 
 const INSTANCE='11111111-1111-4111-8111-111111111111';
 const ADMIN='22222222-2222-4222-8222-222222222222';
@@ -19,10 +23,11 @@ const START=1_000_000;
 const AUTHORITY: NativeAuthority={adminInstanceId:ADMIN,upstreamCommit:COMMUNITY_ET_UPSTREAM_COMMIT,groups:['community-member']};
 
 /** Fake provider only in pure tests; never exported or selected by product code. */
-function fixture(communityId: string = BODY.communityId) {
-  const db=new DatabaseSync(':memory:'),store=new SqliteCommunityGrantStore(db,communityVaultKey('PURE-TEST-VAULT-SECRET-01234567890123456789'));
+function fixture(communityId: string = BODY.communityId, databasePath = ':memory:') {
+  const db=new DatabaseSync(databasePath),store=new SqliteCommunityGrantStore(db,communityVaultKey('PURE-TEST-VAULT-SECRET-01234567890123456789'));
   store.initSchema();
   const control={wall:START,mono:0,enabled:true,writes:true,member:true,serverVersion:0,userVersion:0,generation:1,
+    relayEnabled:false,relayAfterApplyFail:false,relayBeforeApplyFail:false,relayCount:0,
     retainRevoked:false,upsertExtends:true,lateSample:false,wrongRoute:false,createCount:0,revokeIds:[] as string[]};
   const services: ExistingCommunityAuthServices={
     verifyAccessToken:bearer=>{
@@ -58,7 +63,17 @@ function fixture(communityId: string = BODY.communityId) {
       const entry=entries.get(request.id)!;
       assert.equal(request.secret,entry.receipt.credentialSecretB64);
       if (control.upsertExtends) {entry.readback.expiryUnix=request.expiryUnix;entry.receipt.expiryUnix=request.expiryUnix;}
+      entry.readback.allowRelay=request.allowRelay;
       return {changed:control.upsertExtends};
+    },
+    setRelayPolicySameKey:async request=>{
+      control.relayCount++;
+      if (control.relayBeforeApplyFail) throw new Error('fixture-before-apply');
+      const entry=entries.get(request.id)!;
+      assert.equal(request.secret,entry.receipt.credentialSecretB64);
+      entry.readback.allowRelay=request.allowRelay;entry.readback.expiryUnix=request.expiryUnix;entry.receipt.expiryUnix=request.expiryUnix;
+      if (control.relayAfterApplyFail) throw new Error('fixture-unknown-result');
+      return {changed:true};
     },
     read:async credentialId=>structuredClone(entries.get(credentialId)?.readback??null),
     revoke:async request=>{control.revokeIds.push(request.credentialId);if (!control.retainRevoked) entries.delete(request.credentialId);return {success:true};},
@@ -73,11 +88,142 @@ function fixture(communityId: string = BODY.communityId) {
   };
   const service=new CommunityGrantService({serverInstanceId:communityId===BODY.communityId?'backend':communityId,communityId,networkName:'network',networkRevision:1,
     bootstrapProfileId:'public-2.7',virtualIpPool:['10.77.0.2','10.77.0.3'],authority:AUTHORITY,ttlSeconds:120,
-    enabled:()=>control.enabled,credentialWritesEnabled:()=>control.writes,runtimeGeneration:()=>control.generation},store,provider,auth,
+    enabled:()=>control.enabled,credentialWritesEnabled:()=>control.writes,runtimeGeneration:()=>control.generation,relayPolicyV2Enabled:()=>control.relayEnabled},store,provider,auth,
     {wallMs:()=>control.wall,monoMs:()=>control.mono});
   return {db,store,service,control,entries,services,auth,setAfterCreate:(value:typeof afterCreate)=>{afterCreate=value;},setDuringExtend:(value:typeof duringExtend)=>{duringExtend=value;}};
 }
 const code=(expected:string)=>(error:unknown)=>error instanceof ContractError && error.code===expected;
+test('relay defaults off, needs explicit consent, and leaves ordinary admission/renewal working',async()=>{
+  const f=fixture();try{
+    await f.service.session('alice',BODY);const g=await f.service.acquire('alice',{...BODY,requestId:'relay-baseline'});
+    await assert.rejects(f.service.relay('alice',{...BODY,v:2,requestId:'relay-on',grantId:g.grantId,expectedConsentRevision:0,enabled:true,bytesPerSecond:65536}),code('relay-v2-disabled'));
+    assert.equal(f.control.relayCount,0);assert.equal(f.store.relayState(g.scope).consent.revision,0);
+    f.control.wall+=80000;const renewed=await f.service.renew('alice',{...BODY,requestId:'normal-renew',grantId:g.grantId});
+    assert.equal(renewed.v,1);assert.equal(renewed.policy.allowRelay,false);assert.equal(f.control.revokeIds.length,0);
+  }finally{f.db.close();}
+});
+test('V2 consent toggles relay on/off with exact same key, credential, device IP and ordinary membership',async()=>{
+  const f=fixture();try{
+    f.control.relayEnabled=true;await f.service.session('alice',BODY);
+    const g=await f.service.acquire('alice',{...BODY,requestId:'initial'});
+    const request={...BODY,v:2 as const,requestId:'relay-on',grantId:g.grantId,expectedConsentRevision:0,enabled:true,bytesPerSecond:65536};
+    const enabled=await f.service.relay('alice',request);
+    assert.equal(enabled.grant.v,2);assert.equal(enabled.grant.policy.allowRelay,true);assert.equal(enabled.consent.revision,1);
+    assert.throws(()=>grantShape(enabled.grant),code('invalid-policy'));
+    assert.equal(enabled.grant.credentialSecretB64,g.credentialSecretB64);assert.equal(enabled.grant.virtualIp,g.virtualIp);assert.equal(enabled.grant.credentialId,g.credentialId);
+    await assert.rejects(f.service.relayRenew('alice',{...BODY,v:2,requestId:'too-early',grantId:g.grantId}),code('renewal-not-extended'));
+    assert.equal(f.store.relayState(g.scope).pending,null);assert.equal(f.control.relayCount,1);
+    assert.deepEqual(await f.service.relay('alice',request),enabled);assert.equal(f.control.relayCount,1);
+    await assert.rejects(f.service.relay('alice',{...request,requestId:'stale'}),code('relay-consent-conflict'));
+    const disabled=await f.service.relay('alice',{...request,requestId:'relay-off',expectedConsentRevision:1,enabled:false,bytesPerSecond:0});
+    assert.equal(disabled.grant.policy.allowRelay,false);assert.equal(disabled.consent.revision,2);assert.equal(disabled.grant.publicKeyFingerprint,g.publicKeyFingerprint);
+    assert.equal(f.store.load(g.scope).record.grant!.v,1);
+    assert.equal(f.control.revokeIds.length,0);assert.equal(f.control.createCount,1);
+    assert.equal(f.store.directory('community',f.control.wall).length,1);
+  }finally{f.db.close();}
+});
+test('unknown relay Upsert keeps active ET and pending policy, then reconciles readback without revoke',async()=>{
+  const f=fixture();try{
+    f.control.relayEnabled=true;await f.service.session('alice',BODY);const g=await f.service.acquire('alice',{...BODY,requestId:'baseline'});
+    f.control.relayAfterApplyFail=true;
+    await assert.rejects(f.service.relay('alice',{...BODY,v:2,requestId:'uncertain',grantId:g.grantId,expectedConsentRevision:0,enabled:true,bytesPerSecond:65536}),/fixture-unknown-result/);
+    assert.equal(f.store.load(g.scope).record.state,'active');assert.equal(f.store.load(g.scope).record.grant!.v,1);
+    assert.equal(f.store.relayState(g.scope).pending?.target.enabled,true);
+    assert.equal(f.store.expectedActiveCredentials(f.control.wall)[0].pendingAllowRelay,true);assert.equal(f.control.revokeIds.length,0);
+    const reconciled=await f.service.relayStatus('alice',{...BODY,v:2,requestId:'status',grantId:g.grantId});
+    assert.equal(reconciled.grant.policy.allowRelay,true);assert.equal(f.store.relayState(g.scope).pending,null);assert.equal(f.control.relayCount,1);
+    assert.equal(f.store.load(g.scope).record.state,'active');
+  }finally{f.db.close();}
+});
+test('failed relay mutation before application retries exactly without retiring or issuing new keys',async()=>{
+  const f=fixture();try{
+    f.control.relayEnabled=true;await f.service.session('alice',BODY);const g=await f.service.acquire('alice',{...BODY,requestId:'baseline'});
+    const request={...BODY,v:2 as const,requestId:'retry',grantId:g.grantId,expectedConsentRevision:0,enabled:true,bytesPerSecond:65536};
+    f.control.relayBeforeApplyFail=true;await assert.rejects(f.service.relay('alice',request),/fixture-before-apply/);
+    f.control.relayBeforeApplyFail=false;const result=await f.service.relay('alice',request);
+    assert.equal(result.consent.revision,1);assert.equal(result.grant.credentialSecretB64,g.credentialSecretB64);assert.equal(result.grant.policy.allowRelay,true);
+    assert.equal(f.control.createCount,1);assert.equal(f.control.revokeIds.length,0);
+  }finally{f.db.close();}
+});
+test('relay renewal keeps true policy; legacy renew/acquire downgrade safely and other members keep V1',async()=>{
+  const f=fixture();try{
+    f.control.relayEnabled=true;await f.service.session('alice',BODY);const g=await f.service.acquire('alice',{...BODY,requestId:'baseline'});
+    await f.service.relay('alice',{...BODY,v:2,requestId:'on',grantId:g.grantId,expectedConsentRevision:0,enabled:true,bytesPerSecond:65536});
+    f.control.wall+=80000;const relayRenewed=await f.service.relayRenew('alice',{...BODY,v:2,requestId:'relay-renew',grantId:g.grantId});
+    assert.equal(relayRenewed.grant.policy.allowRelay,true);assert.ok(relayRenewed.grant.expiresAtMs>g.expiresAtMs);
+    const bob={...BODY,deviceId:'bob',nativeInstanceId:'33333333-3333-4333-8333-333333333333'};
+    await f.service.session('bob',bob);const other=await f.service.acquire('bob',{...bob,requestId:'bob-acquire'});assert.equal(other.policy.allowRelay,false);
+    f.control.wall+=10000;const ordinary=await f.service.renew('alice',{...BODY,requestId:'old-client-renew',grantId:g.grantId});
+    assert.equal(ordinary.v,1);assert.equal(ordinary.policy.allowRelay,false);assert.equal(f.control.revokeIds.length,0);
+    await f.service.relay('alice',{...BODY,v:2,requestId:'on-again',grantId:g.grantId,expectedConsentRevision:1,enabled:true,bytesPerSecond:65536});
+    const old=await f.service.acquire('alice',{...BODY,requestId:'old-client-acquire'});assert.equal(old.v,1);assert.equal(old.policy.allowRelay,false);
+    assert.equal(old.credentialSecretB64,g.credentialSecretB64);assert.equal(f.control.revokeIds.length,0);
+  }finally{f.db.close();}
+});
+test('disabling the V2 deployment gate downgrades existing relay renewal while retaining ordinary ET',async()=>{
+  const f=fixture();try{
+    f.control.relayEnabled=true;await f.service.session('alice',BODY);const g=await f.service.acquire('alice',{...BODY,requestId:'baseline'});
+    await f.service.relay('alice',{...BODY,v:2,requestId:'on',grantId:g.grantId,expectedConsentRevision:0,enabled:true,bytesPerSecond:65536});
+    f.control.relayEnabled=false;f.control.wall+=80000;
+    const renewed=await f.service.relayRenew('alice',{...BODY,v:2,requestId:'off-renew',grantId:g.grantId});
+    assert.equal(renewed.grant.policy.allowRelay,false);assert.equal(renewed.consent.enabled,true);assert.equal(f.control.revokeIds.length,0);
+    assert.equal(renewed.grant.credentialId,g.credentialId);
+  }finally{f.db.close();}
+});
+test('relay request uses existing authenticated membership/session and refuses a different device',async()=>{
+  const f=fixture();try{
+    f.control.relayEnabled=true;await f.service.session('alice',BODY);const g=await f.service.acquire('alice',{...BODY,requestId:'baseline'});
+    const request={...BODY,v:2 as const,requestId:'on',grantId:g.grantId,expectedConsentRevision:0,enabled:true,bytesPerSecond:65536};
+    await assert.rejects(f.service.relay('alice',{...request,deviceId:'wrong-device'}),code('session-required'));
+    f.control.member=false;await assert.rejects(f.service.relay('alice',request),code('membership-required'));
+    assert.equal(f.control.relayCount,0);assert.equal(f.control.revokeIds.length,0);
+  }finally{f.db.close();}
+});
+test('V2 consent and unknown qualification survive reopening actual SQLite, without secret in preference rows',async()=>{
+  const directory=mkdtempSync(join(tmpdir(),'laokuai-relay-store-test-')),path=join(directory,'fixture.db');
+  const f=fixture('community',path);let closed=false,reopened:ReturnType<typeof fixture>|null=null;
+  try{
+    f.control.relayEnabled=true;await f.service.session('alice',BODY);const g=await f.service.acquire('alice',{...BODY,requestId:'baseline'});
+    f.control.relayAfterApplyFail=true;
+    await assert.rejects(f.service.relay('alice',{...BODY,v:2,requestId:'unknown-persisted',grantId:g.grantId,expectedConsentRevision:0,enabled:true,bytesPerSecond:65536}),/fixture-unknown-result/);
+    const sealed=f.db.prepare('SELECT sealed_state FROM community_et_relay_preferences').get()!.sealed_state as string;
+    assert.equal(sealed.includes(g.credentialSecretB64),false);assert.equal(sealed.includes('bytesPerSecond'),false);
+    f.db.close();closed=true;
+    reopened=fixture('community',path);for(const [key,entry] of f.entries) reopened.entries.set(key,structuredClone(entry));
+    const result=await reopened.service.relayStatus('alice',{...BODY,v:2,requestId:'restored',grantId:g.grantId});
+    assert.equal(result.consent.revision,1);assert.equal(result.grant.policy.allowRelay,true);
+    assert.equal(result.grant.credentialSecretB64,g.credentialSecretB64);assert.equal(result.grant.virtualIp,g.virtualIp);
+    assert.equal(reopened.control.createCount,0);assert.equal(reopened.control.relayCount,0);assert.equal(reopened.control.revokeIds.length,0);
+  }finally{if(!closed)f.db.close();reopened?.db.close();rmSync(directory,{recursive:true,force:true});}
+});
+test('withdrawal after an unknown true mutation reconciles then updates false without retiring ordinary ET',async()=>{
+  const f=fixture();try{
+    f.control.relayEnabled=true;await f.service.session('alice',BODY);const g=await f.service.acquire('alice',{...BODY,requestId:'baseline'});
+    f.control.relayAfterApplyFail=true;
+    await assert.rejects(f.service.relay('alice',{...BODY,v:2,requestId:'unknown',grantId:g.grantId,expectedConsentRevision:0,enabled:true,bytesPerSecond:65536}),/fixture-unknown-result/);
+    f.control.relayAfterApplyFail=false;f.control.relayEnabled=false;
+    const off=await f.service.relay('alice',{...BODY,v:2,requestId:'withdraw',grantId:g.grantId,expectedConsentRevision:1,enabled:false,bytesPerSecond:0});
+    assert.equal(off.grant.policy.allowRelay,false);assert.equal(off.consent.enabled,false);assert.equal(off.consent.revision,2);
+    assert.equal(f.store.load(g.scope).record.state,'active');assert.equal(f.control.revokeIds.length,0);
+    assert.equal(off.grant.credentialId,g.credentialId);
+  }finally{f.db.close();}
+});
+test('legacy renewal unknown downgrade retains V2 active record and recovers a V1 grant without revocation',async()=>{
+  const f=fixture();try{
+    f.control.relayEnabled=true;await f.service.session('alice',BODY);const g=await f.service.acquire('alice',{...BODY,requestId:'baseline'});
+    await f.service.relay('alice',{...BODY,v:2,requestId:'enable',grantId:g.grantId,expectedConsentRevision:0,enabled:true,bytesPerSecond:65536});
+    f.control.wall+=80000;f.control.relayAfterApplyFail=true;
+    await assert.rejects(f.service.renew('alice',{...BODY,requestId:'legacy-unknown',grantId:g.grantId}),/fixture-unknown-result/);
+    assert.equal(f.store.load(g.scope).record.state,'active');assert.equal(f.store.load(g.scope).record.grant!.policy.allowRelay,true);
+    assert.equal(f.store.relayState(g.scope).pending?.target.enabled,false);assert.equal(f.control.revokeIds.length,0);
+    f.control.relayAfterApplyFail=false;
+    // Reconciliation sees the already extended expiry. Ordinary acquisition
+    // restores the V1 DTO without extending again or generating a second key.
+    const restored=await f.service.acquire('alice',{...BODY,requestId:'legacy-recover'});
+    assert.equal(restored.v,1);assert.equal(restored.policy.allowRelay,false);assert.ok(restored.expiresAtMs>g.expiresAtMs);
+    assert.equal(restored.credentialSecretB64,g.credentialSecretB64);assert.equal(restored.virtualIp,g.virtualIp);assert.equal(f.control.revokeIds.length,0);
+  }finally{f.db.close();}
+});
 test('real CJK namespace crosses existing member auth, service and durable device allocation unchanged',async()=>{
   const real='老蒯聊_5000_default',f=fixture(real);try {
     const result=await f.service.session('alice',{...BODY,communityId:real});
@@ -150,8 +296,186 @@ test('directory retains confirmed addresses during same-key renewal without borr
     f.setDuringExtend(()=>{
       assert.deepEqual(f.store.directory('community',f.control.wall),[{serverUserId:'server-alice',virtualIp:'10.77.0.2'}]);
       assert.deepEqual(f.store.directory('community',grant.expiresAtMs),[]);
+      assert.equal(f.store.dnsDirectory('community',grant.expiresAtMs-1).members[0].dnsExpiresAtMs,grant.expiresAtMs);
     });
     await f.service.renew('alice',{...BODY,requestId:'renew-directory',grantId:grant.grantId});
+  }finally{f.db.close();}
+});
+test('opt-in DNS uses persistent per-device aliases; legacy response and device rows stay exact',async()=>{
+  const f=fixture();try{
+    await f.service.session('alice',BODY);await f.service.acquire('alice',{...BODY,requestId:'dns-acquire'});
+    const before=f.db.prepare('SELECT * FROM community_et_devices').all();
+    const legacy=await f.service.directory('alice',{v:1,communityId:'community'});
+    assert.deepEqual(legacy,{v:1,communityId:'community',members:[{serverUserId:'server-alice',virtualIp:'10.77.0.2'}]});
+    const first=await f.service.directory('alice',{v:1,communityId:'community',includeDnsNames:true});
+    assert.ok('dns' in first);assert.ok(communityDnsZone(first.dns.zone));assert.equal(first.dns.serverTimeMs,START);
+    assert.equal(first.dns.maxAgeMs,COMMUNITY_DNS_MAX_AGE_MS);assert.equal(first.members.length,1);
+    assert.match(first.members[0].dnsName,/^d-[a-f0-9]{32}\.c-[a-f0-9]{32}\.lan\.voice\.ruikang\.wang\.$/);
+    assert.equal(first.members[0].dnsName.endsWith(first.dns.zone),true);
+    assert.equal(first.members[0].dnsExpiresAtMs,START+COMMUNITY_DNS_MAX_AGE_MS);
+    assert.deepEqual(f.db.prepare('SELECT * FROM community_et_devices').all(),before);
+    const reopened=new SqliteCommunityGrantStore(f.db,communityVaultKey('PURE-TEST-VAULT-SECRET-01234567890123456789'));reopened.initSchema();
+    const after=reopened.dnsDirectory('community',START);assert.equal(after.zone,first.dns.zone);assert.deepEqual(after.members,first.members);
+    assert.deepEqual(await f.service.directory('alice',{v:1,communityId:'community'}),legacy);
+    for(const field of ['authorizations','accountId','deviceId','sessionId','nativeInstanceId','credentialId','tokenDigest','serverTokenVersion','userTokenVersion'])
+      assert.equal(JSON.stringify(first).includes('"'+field+'"'),false,field);
+    assert.equal(first.members[0].dnsName.includes('alice'),false);assert.equal(first.members[0].dnsName.includes('device'),false);
+  }finally{f.db.close();}
+});
+test('DNS zone and aliases survive closing and reopening the actual SQLite file',async()=>{
+  const directory=mkdtempSync(join(tmpdir(),'laokuai-dns-store-test-')),f=fixture('community',join(directory,'fixture.db'));
+  let originalClosed=false,reopened: DatabaseSync|null=null;
+  try{
+    await f.service.session('alice',BODY);await f.service.acquire('alice',{...BODY,requestId:'dns-durable'});
+    const first=f.store.dnsDirectory('community',START),devices=f.db.prepare('SELECT * FROM community_et_devices').all();
+    f.db.close();originalClosed=true;
+    reopened=new DatabaseSync(join(directory,'fixture.db'));
+    const store=new SqliteCommunityGrantStore(reopened,communityVaultKey('PURE-TEST-VAULT-SECRET-01234567890123456789'));store.initSchema();
+    assert.deepEqual(store.dnsDirectory('community',START),first);
+    assert.deepEqual(reopened.prepare('SELECT * FROM community_et_devices').all(),devices);
+  }finally{
+    reopened?.close();if(!originalClosed)f.db.close();
+    rmSync(directory,{recursive:true,force:true});
+  }
+});
+test('each device of one account has its own name; no account shortcut or shared IP is invented',async()=>{
+  const f=fixture();try{
+    const second={...BODY,deviceId:'second-device',nativeInstanceId:'33333333-3333-4333-8333-333333333333'};
+    await f.service.session('alice',BODY);await f.service.session('alice',second);
+    await f.service.acquire('alice',{...BODY,requestId:'dns-first'});await f.service.acquire('alice',{...second,requestId:'dns-second'});
+    const result=await f.service.directory('alice',{v:1,communityId:'community',includeDnsNames:true});assert.ok('dns' in result);
+    assert.equal(result.members.length,2);assert.equal(new Set(result.members.map(m=>m.dnsName)).size,2);
+    assert.equal(new Set(result.members.map(m=>m.virtualIp)).size,2);assert.equal(new Set(result.members.map(m=>m.serverUserId)).size,1);
+    const initial=result.members[0].dnsName;
+    f.control.wall+=1001;
+    await f.service.session('alice-next',BODY);
+    const refreshed=await f.service.directory('alice-next',{v:1,communityId:'community',includeDnsNames:true});assert.ok('dns' in refreshed);
+    assert.equal(refreshed.members.find(m=>m.virtualIp==='10.77.0.2')!.dnsName,initial);
+  }finally{f.db.close();}
+});
+test('DNS expiry uses confirmed grant and session bounds; revoke removes records but retains the alias reservation',async()=>{
+  const f=fixture();try{
+    await f.service.session('alice',BODY);const grant=await f.service.acquire('alice',{...BODY,requestId:'dns-ttl'});
+    f.control.wall=grant.expiresAtMs-2000;
+    const response=await f.service.directory('alice',{v:1,communityId:'community',includeDnsNames:true});assert.ok('dns' in response);
+    assert.equal(response.members[0].dnsExpiresAtMs,grant.expiresAtMs);
+    const name=response.members[0].dnsName;
+    await f.service.revoke('alice',{...BODY,requestId:'dns-revoke',grantId:grant.grantId});
+    const revoked=await f.service.directory('alice',{v:1,communityId:'community',includeDnsNames:true});assert.ok('dns' in revoked);assert.deepEqual(revoked.members,[]);
+    assert.equal(f.db.prepare('SELECT COUNT(*) AS n FROM community_et_dns_devices').get()!.n,1);
+    await f.service.acquire('alice',{...BODY,requestId:'dns-reacquire'});
+    const again=await f.service.directory('alice',{v:1,communityId:'community',includeDnsNames:true});assert.ok('dns' in again);
+    assert.equal(again.members[0].dnsName,name);
+    const stored=f.store.sessionForScope(grant.scope)!;
+    f.store.createSession({...stored,tokenDigest:'b'.repeat(64),issuedAtMs:f.control.wall-1,expiresAtMs:f.control.wall+1000,serverTokenVersion:0,userTokenVersion:0});
+    const capped=await f.service.directory('alice',{v:1,communityId:'community',includeDnsNames:true});assert.ok('dns' in capped);
+    assert.equal(capped.members[0].dnsExpiresAtMs,f.control.wall+1000);
+  }finally{f.db.close();}
+});
+test('server clock rollback cannot publish a grant whose confirmed time is now in the future',async()=>{
+  const f=fixture();try{
+    await f.service.session('alice',BODY);await f.service.acquire('alice',{...BODY,requestId:'dns-clock'});
+    f.control.wall=START-1;
+    const future=await f.service.directory('alice',{v:1,communityId:'community',includeDnsNames:true});assert.ok('dns' in future);
+    assert.deepEqual(future.members,[]);
+    f.control.wall=START;
+    const current=await f.service.directory('alice',{v:1,communityId:'community',includeDnsNames:true});assert.ok('dns' in current);
+    assert.equal(current.members.length,1);
+  }finally{f.db.close();}
+});
+test('DNS alias follows the stable device rather than the current address',async()=>{
+  const f=fixture();try{
+    await f.service.session('alice',BODY);await f.service.acquire('alice',{...BODY,requestId:'dns-before-address'});
+    const first=f.store.dnsDirectory('community',START),name=first.members[0].dnsName;
+    f.db.prepare('UPDATE community_et_devices SET virtual_ip=? WHERE account_id=? AND community_id=? AND device_id=?').run('10.77.0.3','alice','community','device');
+    f.control.wall+=1001;
+    await f.service.session('alice-next',BODY);await f.service.acquire('alice-next',{...BODY,requestId:'dns-after-address'});
+    const after=await f.service.directory('alice-next',{v:1,communityId:'community',includeDnsNames:true});assert.ok('dns' in after);
+    assert.equal(after.members[0].virtualIp,'10.77.0.3');assert.equal(after.members[0].dnsName,name);assert.equal(after.dns.zone,first.zone);
+    assert.equal(f.db.prepare('SELECT alias FROM community_et_dns_devices').get()!.alias+'.'+first.zone,name);
+  }finally{f.db.close();}
+});
+test('current remote membership and token revocation are checked before DNS publication',async()=>{
+  const f=fixture();try{
+    const bob={...BODY,deviceId:'bob-device',nativeInstanceId:'33333333-3333-4333-8333-333333333333'};
+    await f.service.session('alice',BODY);await f.service.session('bob',bob);
+    await f.service.acquire('alice',{...BODY,requestId:'dns-alice'});await f.service.acquire('bob',{...bob,requestId:'dns-bob'});
+    const check=f.services.checkSessionAllowed;
+    f.services.checkSessionAllowed=identity=>identity.grytUserId==='bob'?Promise.resolve({ok:false,code:'membership_required'}):check(identity);
+    const removed=await f.service.directory('alice',{v:1,communityId:'community',includeDnsNames:true});assert.ok('dns' in removed);
+    assert.deepEqual(removed.members.map(m=>m.serverUserId),['server-alice']);
+    f.services.checkSessionAllowed=async identity=>{
+      const result=await check(identity);if(result.ok&&identity.grytUserId==='bob')result.user.token_version=1;return result;
+    };
+    const retired=await f.service.directory('alice',{v:1,communityId:'community',includeDnsNames:true});assert.ok('dns' in retired);
+    assert.deepEqual(retired.members.map(m=>m.serverUserId),['server-alice']);
+    f.services.checkSessionAllowed=identity=>identity.grytUserId==='bob'?Promise.reject(Error('private-db-failure')):check(identity);
+    await assert.rejects(f.service.directory('alice',{v:1,communityId:'community',includeDnsNames:true}),code('auth-unavailable'));
+  }finally{f.db.close();}
+});
+test('grant revoke during asynchronous directory authorization cannot publish the old DNS record',async()=>{
+  const f=fixture();try{
+    const bob={...BODY,deviceId:'bob-device',nativeInstanceId:'33333333-3333-4333-8333-333333333333'};
+    await f.service.session('alice',BODY);await f.service.session('bob',bob);
+    await f.service.acquire('alice',{...BODY,requestId:'dns-race-alice'});const grant=await f.service.acquire('bob',{...bob,requestId:'dns-race-bob'});
+    const check=f.services.checkSessionAllowed;let once=false;
+    f.services.checkSessionAllowed=async identity=>{
+      const result=await check(identity);
+      if(identity.grytUserId==='bob'&&!once){once=true;await f.service.revoke('bob',{...bob,requestId:'dns-race-revoke',grantId:grant.grantId});}
+      return result;
+    };
+    const result=await f.service.directory('alice',{v:1,communityId:'community',includeDnsNames:true});assert.ok('dns' in result);
+    assert.deepEqual(result.members.map(m=>m.serverUserId),['server-alice']);
+  }finally{f.db.close();}
+});
+test('viewer permission change during a DNS read retires the whole response',async()=>{
+  const f=fixture();try{
+    await f.service.session('alice',BODY);await f.service.acquire('alice',{...BODY,requestId:'dns-viewer-race'});
+    const check=f.services.checkSessionAllowed;let reads=0;
+    f.services.checkSessionAllowed=async identity=>{
+      const result=await check(identity);
+      if(++reads===2)f.control.member=false;
+      return result;
+    };
+    await assert.rejects(f.service.directory('alice',{v:1,communityId:'community',includeDnsNames:true}),code('membership-required'));
+  }finally{f.db.close();}
+});
+test('old sealed sessions remain v1-compatible but DNS requires renewed version metadata',async()=>{
+  const f=fixture();try{
+    const registered=await f.service.session('alice',BODY);await f.service.acquire('alice',{...BODY,requestId:'dns-legacy'});
+    const old=f.store.sessionForScope(registered.intent)!;
+    const legacy={tokenDigest:old.tokenDigest,serverUserId:old.serverUserId,issuedAtMs:old.issuedAtMs,expiresAtMs:old.expiresAtMs,intent:old.intent};
+    f.store.createSession(legacy);
+    assert.equal((await f.service.directory('alice',{v:1,communityId:'community'})).members.length,1);
+    const hidden=await f.service.directory('alice',{v:1,communityId:'community',includeDnsNames:true});assert.ok('dns' in hidden);assert.deepEqual(hidden.members,[]);
+    await f.service.session('alice',BODY);
+    const verified=await f.service.directory('alice',{v:1,communityId:'community',includeDnsNames:true});assert.ok('dns' in verified);assert.equal(verified.members.length,1);
+    assert.equal(f.db.prepare('SELECT COUNT(*) AS n FROM community_et_devices').get()!.n,1);
+  }finally{f.db.close();}
+});
+test('original sealed session shape remains readable by older servers; DNS metadata faults do not corrupt LAN state',async()=>{
+  const f=fixture();try{
+    const registered=await f.service.session('alice',BODY),grant=await f.service.acquire('alice',{...BODY,requestId:'dns-rollback'});
+    const current=f.store.sessionForScope(registered.intent)!;
+    const encoded=f.db.prepare('SELECT sealed_session FROM community_et_sessions WHERE session_id=?').get(current.sessionId)!.sealed_session as string;
+    const bytes=Buffer.from(encoded,'base64'),decipher=createDecipheriv('aes-256-gcm',communityVaultKey('PURE-TEST-VAULT-SECRET-01234567890123456789'),bytes.subarray(0,12));
+    decipher.setAAD(Buffer.from('session:'+current.sessionId));decipher.setAuthTag(bytes.subarray(12,28));
+    const raw=JSON.parse(Buffer.concat([decipher.update(bytes.subarray(28)),decipher.final()]).toString('utf8'));
+    assert.deepEqual(Object.keys(raw).sort(),['sessionId','tokenDigest','serverUserId','authorizationEpoch','issuedAtMs','expiresAtMs','intent'].sort());
+    f.db.prepare('UPDATE community_et_dns_session_auth SET sealed_authorization=?').run('tampered');
+    await assert.rejects(f.service.directory('alice',{v:1,communityId:'community',includeDnsNames:true}),code('grant-store-corrupt'));
+    assert.equal((await f.service.directory('alice',{v:1,communityId:'community'})).members.length,1);
+    assert.equal((await f.service.binding('alice',{...BODY,grantId:grant.grantId})).peerId,77);
+  }finally{f.db.close();}
+});
+test('corrupt reserved names fail closed and independent communities cannot reuse a zone',async()=>{
+  const f=fixture();try{
+    await f.service.session('alice',BODY);await f.service.acquire('alice',{...BODY,requestId:'dns-corrupt'});
+    const own=f.store.dnsDirectory('community',START),other=f.store.dnsDirectory('other-community',START);
+    assert.notEqual(own.zone,other.zone);
+    f.db.prepare('UPDATE community_et_dns_devices SET alias=?').run('attacker.custom-domain');
+    await assert.rejects(f.service.directory('alice',{v:1,communityId:'community',includeDnsNames:true}),code('grant-store-corrupt'));
+    assert.equal((await f.service.directory('alice',{v:1,communityId:'community'})).members.length,1);
   }finally{f.db.close();}
 });
 test('existing auth rejects stale server/user versions, member removal, wrong host and DB failure',async()=>{

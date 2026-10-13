@@ -452,6 +452,8 @@ export interface ServerSidebarItemRecord {
 
 export interface ServerInviteRecord {
   code: string;
+  /** Only newly issued administrator invitations may replace the community password. */
+  password_bypass: boolean;
   created_at: Date;
   created_by_server_user_id: string | null;
   expires_at: Date | null;
