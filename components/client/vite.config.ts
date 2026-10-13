@@ -101,6 +101,7 @@ export default defineConfig({
               entry: "electron/bootstrap.ts",
               vite: {
                 build: {
+                  target: "node22", // Electron main supports ESM top-level await.
                   outDir: "dist-electron",
                   rollupOptions: {
                     external: ["electron", "uiohook-napi"],
