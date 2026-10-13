@@ -43,6 +43,7 @@ export function createWindowsEasyTierProduction(root: () => string, bundledDirec
   };
   return { runtime, drainOwned, cleanupReports: () => processes.cleanupReports(),
     preparePermission: async () => { await assets.prepareProductBundled(); return broker?.prepare() ?? false; },
+    preparationReady: () => broker?.available() ?? false,
     releasePreparation: () => broker?.releasePreparation(), prepareRuntime: async () => {
     if (process.platform !== "win32" || process.arch !== "x64") return { ready: false };
     try { await assets.prepareProductBundled(); return { ready: true }; } catch { return { ready: false }; }

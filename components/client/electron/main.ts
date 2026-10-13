@@ -266,12 +266,14 @@ const easyTierProduction = createWindowsEasyTierProduction(
   () => join(app.isPackaged ? process.resourcesPath : join(__dirname, "../build"), "community-lan-helper"),
 );
 const easyTierCommunities = new EasyTierCommunityManager(LAOKUAI_PREVIEW || UI_ACCEPTANCE_MODE || (IS_I18N_TEST && !IS_LAOKUAI) ? null : easyTierGrants.wrap(easyTierProduction.runtime), state => {
+  easyTierEnrollment.observe(state);
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("et-community-state", state);
 });
 const easyTierEnrollment = new CommunityEnrollment({ manager: easyTierCommunities,
   supports: member => member.serverId === "老蒯聊_5000_default" && member.host === "voice.ruikang.wang",
   approve: serverId => approvePublicCommunity(easyTierProductRoot(app.getPath("userData")), serverId, mainWindow ?? undefined, easyTierProduction.preparePermission),
   authenticate: value => easyTierGrants.setAuthenticatedSession(value), releasePreparation: easyTierProduction.releasePreparation,
+  preparationReady: easyTierProduction.preparationReady,
 });
 let easyTierPoll: ReturnType<typeof setInterval> | null = null;
 let easyTierQuitDrained = false;
@@ -1899,6 +1901,7 @@ function installOnQuit(): void {
     cancels the quit and hides, and Squirrel cannot swap the bundle. */
 async function installDownloadedUpdate(): Promise<void> {
   if (UI_ACCEPTANCE_MODE || IS_I18N_TEST) return;
+  easyTierEnrollment.shutdown();
   easyTierCommunities.shutdownOwned();
   await Promise.all([easyTierProduction.drainOwned(), easyTierGrants.drainOwned()]).catch(() => {
     console.warn("[Main] Community LAN stop remains unconfirmed; residual review required");

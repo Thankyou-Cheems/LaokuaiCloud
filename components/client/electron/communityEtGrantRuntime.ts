@@ -210,7 +210,10 @@ export class CommunityEtGrantRuntime {
             }
           }
           if (!physical!.readCredentialSample) throw new EasyTierOperationError('status-unavailable');
-          const {sample, observation} = await physical!.readCredentialSample(combined(readSignal, c.cancel.signal));
+          const {sample, observation} = await physical!.readCredentialSample(combined(readSignal, c.cancel.signal)).catch(error => {
+            if (error instanceof EasyTierOperationError && error.reason === 'runtime-exited') return this.retired(c, 'runtime-exited');
+            throw error;
+          });
           c.gate.acceptOwnedNode({peerId: observation.peerId, virtualIp: observation.virtualIp, publicKeyB64: observation.publicKeyB64,
             nativeInstanceId: c.verified.intent.nativeInstanceId, runtimeGeneration: scope.generation,
             networkName: c.verified.intent.networkName, observedMonoMs: Math.floor(this.ports.monoMs())}, scope.generation);

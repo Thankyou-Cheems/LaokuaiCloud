@@ -28,7 +28,7 @@ const {verifyOwnedCredentialObservation} = load(new URL('./communityEtCredential
 const {projectCommunityEtBinding} = load(new URL('./communityEtBindingProjection.ts', import.meta.url));
 const {CommunityEtGrantRuntime} = load(new URL('./communityEtGrantRuntime.ts', import.meta.url));
 const {CommunityEtGrantTransport, CommunityEtTransportError, trustedHttpsOrigin} = load(new URL('./communityEtGrantTransport.ts', import.meta.url));
-const {EasyTierCommunityManager, EasyTierSessionRetiredError} = load(new URL('./easyTierCommunityManager.ts', import.meta.url));
+const {EasyTierCommunityManager, EasyTierOperationError, EasyTierSessionRetiredError} = load(new URL('./easyTierCommunityManager.ts', import.meta.url));
 const {registerEasyTierCommunityIpc} = load(new URL('./easyTierCommunityIpc.ts', import.meta.url));
 const KEY = Buffer.alloc(32, 0x31).toString('base64'), ISSUER = Buffer.alloc(32, 0x22).toString('base64');
 const SECRET = Buffer.alloc(32, 0x42).toString('base64'); // Unissued fixture, intentionally not a keypair.
@@ -109,7 +109,7 @@ function runtimeFixture() {
   const target = {communityId: 'community', serverHost: 'test.invalid', origin: 'https://test.invalid', serverInstanceId: 'backend',
     bootstrap: {bootstrapProfileId: 'profile', upstreamCommit: COMMUNITY_ET_UPSTREAM_COMMIT, peerEndpoints: ['tcp://test.invalid:11020'],
       ipv4PrefixLength: 24, issuerPublicKeyB64: ISSUER, issuerPublicKeyFingerprint: publicKeyFingerprint(ISSUER)}};
-  let policy = true, failure = null, revision = 0, cores = 0;
+  let policy = true, failure = null, sampleFailure = null, revision = 0, cores = 0;
   const port = {post: async (_origin, op, bearer, body, signal) => {
     calls.push({op, bearer, body: clone(body)}); if (signal.aborted) throw new CommunityEtTransportError('request-cancelled');
     if (failure?.op === op) throw new CommunityEtTransportError(failure.code);
@@ -132,12 +132,13 @@ function runtimeFixture() {
     cores++; assert.ok(await coordinator.configuration(scope.serverId, scope.signal)); events.push('start');
     let closed = false; return {instanceId: UUID, close: async () => { if (!closed) {events.push('stop'); closed = true;} },
       read: denied, readCredentialSample: async () => {
+        if (sampleFailure) throw new EasyTierOperationError(sampleFailure);
         assert.equal(closed, false); events.push('sample'); return {observation: clone(f.observation),
           sample: {...clone(f.sample), generation: scope.generation, acquiredAtMs: f.now.mono, acquiredAtUnixMs: f.now.wall}};
       }};
   }};
   return {...f, calls, events, coordinator, physical, runtime: coordinator.wrap(physical), setPolicy: v => policy = v,
-    setFailure: v => failure = v, cores: () => cores,
+    setFailure: v => failure = v, setSampleFailure: v => sampleFailure = v, cores: () => cores,
     authenticate: token => coordinator.setAuthenticatedSession({serverId: 'community', host: 'test.invalid', accessToken: token}),
     connect: () => coordinator.wrap(physical).connect({serverId: 'community', generation: 1, signal: new AbortController().signal})};
 }
@@ -211,6 +212,26 @@ test('manager does not present connected after real retirement', async () => {
   await manager.refresh('community'); assert.equal(manager.getState('community').phase, 'connected'); f.setPolicy(false);
   await manager.refresh('community'); assert.equal(manager.getState('community').phase, 'error');
   assert.equal(manager.getState('community').virtualIp, null); await manager.setEnabled(false);
+});
+
+test('native process exit retires the grant and same-token authentication can replace it', async () => {
+  const f = runtimeFixture(); await f.authenticate('one'); const manager = new EasyTierCommunityManager(f.runtime);
+  await manager.setEnabled(true); await manager.connect({serverId: 'community', leaseId: 'renderer-community'});
+  f.setSampleFailure('runtime-exited'); await manager.refresh('community');
+  assert.equal(manager.getState('community').phase, 'error');
+  assert.equal(manager.getState('community').reason, 'runtime-exited');
+  assert.deepEqual(f.events.slice(-3), ['stop', 'remove', 'revoke']);
+  f.setSampleFailure(null); assert.equal((await f.authenticate('one')).changed, true);
+  await manager.authenticatedSessionChanged('community'); await manager.refresh('community');
+  assert.equal(manager.getState('community').phase, 'connected'); assert.equal(f.cores(), 2);
+  await manager.setEnabled(false);
+});
+test('a transient CLI telemetry failure does not retire or restart the live core', async () => {
+  const f = runtimeFixture(); await f.authenticate('one'); const s = await f.connect();
+  f.setSampleFailure('status-unavailable');
+  await assert.rejects(s.read(new AbortController().signal), e => !(e instanceof EasyTierSessionRetiredError));
+  assert.equal(f.events.includes('stop'), false); assert.equal(f.calls.some(c => c.op === 'revoke'), false);
+  f.setSampleFailure(null); await s.read(new AbortController().signal); await s.close();
 });
 test('authenticated IPC rejects untrusted frame before any transport operation', async () => {
   const handlers = {}, f = runtimeFixture(), manager = new EasyTierCommunityManager(f.runtime);

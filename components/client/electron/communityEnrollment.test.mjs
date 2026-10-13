@@ -19,25 +19,27 @@ function load(url) {
   return module.exports;
 }
 const {CommunityEnrollment} = load(new URL('./communityEnrollment.ts', import.meta.url));
-const {EasyTierCommunityManager} = load(new URL('./easyTierCommunityManager.ts', import.meta.url));
+const {EasyTierCommunityManager, EasyTierSessionRetiredError} = load(new URL('./easyTierCommunityManager.ts', import.meta.url));
 const tick = () => new Promise(resolve => setImmediate(resolve));
 const deferred = () => { let resolve; const promise = new Promise(r => { resolve = r; }); return {promise, resolve}; };
 const member = {serverId: 'community', host: 'voice.test.invalid', accessToken: 'fixture-only'};
 const snapshot = (members = [member], enabled = true, retry) => ({members, enabled, ...(retry ? {retry} : {})});
 function fixture() {
-  const calls = []; let auth = null, approval = async () => ({accepted: true}), authHook = async () => {};
+  const calls = [], timers = []; let auth = null, ready = true, retired = false, approval = async () => ({accepted: true}), authHook = async () => {};
   const manager = new EasyTierCommunityManager({activationReason: () => null, shutdownOwned() {},
     connect: async ({serverId}) => {
       assert.ok(auth, 'no native start before verified membership'); calls.push('connect:' + serverId);
-      return {instanceId: 'fixture-instance', read() { throw Error('not-polled'); }, close: async () => {calls.push('close');}};
-    }}, () => {}, () => 0, 1000);
+      return {instanceId: 'fixture-instance', read: async () => { retired = true; throw new EasyTierSessionRetiredError('runtime-exited'); }, close: async () => {calls.push('close');}};
+    }}, state => enrollment.observe(state), () => 0, 1000);
   const enrollment = new CommunityEnrollment({manager, supports: m => m.host === member.host,
-    approve: async id => {calls.push('approve:' + id); return approval();},
+    approve: async id => {calls.push('approve:' + id); const result = await approval(); ready = result.accepted; return result;},
     authenticate: async m => {
       calls.push(m.accessToken === null ? 'clear-auth' : 'auth:' + m.accessToken);
-      const changed = auth !== m.accessToken; auth = m.accessToken; await authHook(m); return {changed};
-    }, releasePreparation: () => calls.push('release')});
-  return {enrollment, manager, calls, approval: f => {approval = f;}, authHook: f => {authHook = f;}};
+      const changed = retired || auth !== m.accessToken; auth = m.accessToken; await authHook(m); retired = false; return {changed};
+    }, releasePreparation: () => calls.push('release'), preparationReady: () => ready,
+    schedule: (work, delayMs) => {const timer = {work, delayMs, cancelled: false}; timers.push(timer); return () => {timer.cancelled = true;};}});
+  return {enrollment, manager, calls, timers, loseBroker: () => {ready = false;}, approval: f => {approval = f;}, authHook: f => {authHook = f;},
+    retry: async () => {const timer = timers.find(t => !t.cancelled); assert.ok(timer); timer.cancelled = true; timer.work(); await tick();}};
 }
 test('fresh and restored members enroll automatically without room or toggle input', async () => {
   for (let boot = 0; boot < 2; boot++) {
@@ -102,4 +104,36 @@ test('malformed IPC snapshot is rejected before side effects', () => {
   for (const value of [null, {}, {...snapshot(), extra: true}, snapshot([member, member]), snapshot([{...member, accessToken: 'bad token'}])])
     assert.throws(() => f.enrollment.reconcile(value));
   assert.deepEqual(f.calls, []);
+});
+
+test('owned core exit revalidates the same saved token and automatically reconnects', async () => {
+  const f = fixture(); await f.enrollment.reconcile(snapshot());
+  await f.manager.refresh(member.serverId);
+  assert.equal(f.manager.getState(member.serverId).phase, 'error');
+  assert.equal(f.timers[0].delayMs, 5000);
+  await f.retry();
+  assert.equal(f.manager.getState(member.serverId).phase, 'connected');
+  assert.equal(f.calls.filter(x => x.startsWith('auth:')).length, 2);
+  assert.equal(f.calls.filter(x => x.startsWith('connect:')).length, 2);
+  assert.equal(f.calls.filter(x => x.startsWith('approve:')).length, 1);
+});
+test('lost permission broker is prepared again, but a refusal stops automatic prompts', async () => {
+  const f = fixture(); await f.enrollment.reconcile(snapshot()); f.loseBroker();
+  f.approval(async () => ({accepted: false})); await f.manager.refresh(member.serverId); await f.retry();
+  await f.enrollment.reconcile(snapshot());
+  assert.equal(f.calls.filter(x => x.startsWith('approve:')).length, 2);
+  assert.equal(f.timers.filter(x => !x.cancelled).length, 0);
+  assert.equal(f.calls.filter(x => x.startsWith('connect:')).length, 1);
+});
+test('temporary authentication failure retries with backoff and stops when membership disappears', async () => {
+  const f = fixture(); f.authHook(async () => {throw Error('offline');});
+  await assert.rejects(f.enrollment.reconcile(snapshot())); await f.retry();
+  assert.deepEqual(f.timers.map(t => t.delayMs), [5000, 10000]);
+  f.authHook(async () => {}); await f.enrollment.reconcile(snapshot([]));
+  assert.equal(f.timers.filter(t => !t.cancelled).length, 0);
+  assert.equal(f.calls.filter(x => x.startsWith('connect:')).length, 0);
+});
+test('shutdown cancels pending automatic recovery', async () => {
+  const f = fixture(); await f.enrollment.reconcile(snapshot()); await f.manager.refresh(member.serverId);
+  f.enrollment.shutdown(); assert.equal(f.timers.filter(t => !t.cancelled).length, 0);
 });
