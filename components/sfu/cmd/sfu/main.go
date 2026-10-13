@@ -170,7 +170,12 @@ func main() {
 	// Initialize signaling coordinator with recovery
 	err = recovery.SafeExecute("MAIN", "INIT_COORDINATOR", func() error {
 		coordinator = signaling.NewCoordinator(trackManager, webrtcManager, roomManager, cfg.Debug)
-		coordinator.SetMicrophoneOpus20(cfg.AudioOnly && cfg.MicrophoneOpus20)
+		if err := coordinator.SetMicrophoneOpusPolicy(cfg.AudioOnly && cfg.MicrophoneOpus20, webrtcmanager.MicrophoneOpusReceivePolicy{
+			MaxAverageBitrateBps: cfg.MicrophoneOpusMaxAverageBitrateBps,
+			PacketTimeMs:         cfg.MicrophoneOpusPacketTimeMs,
+		}); err != nil {
+			return fmt.Errorf("invalid microphone Opus policy: %w", err)
+		}
 		log.Printf("✅ Signaling coordinator initialized (debug: %t)", cfg.Debug)
 		return nil
 	})

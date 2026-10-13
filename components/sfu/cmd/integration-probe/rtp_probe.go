@@ -11,12 +11,14 @@ import (
 )
 
 type rtpSummary struct {
-	Packets       uint64            `json:"packets"`
-	PayloadBytes  uint64            `json:"payloadBytes"`
-	MonoPackets   uint64            `json:"monoPackets"`
-	StereoPackets uint64            `json:"stereoPackets"`
-	InvalidToc    uint64            `json:"invalidToc"`
-	Durations     map[string]uint64 `json:"packetDurationMs"`
+	Packets        uint64            `json:"packets"`
+	PayloadBytes   uint64            `json:"payloadBytes"`
+	RTPBytes       uint64            `json:"rtpBytes"`
+	RTPHeaderBytes uint64            `json:"rtpHeaderBytes"`
+	MonoPackets    uint64            `json:"monoPackets"`
+	StereoPackets  uint64            `json:"stereoPackets"`
+	InvalidToc     uint64            `json:"invalidToc"`
+	Durations      map[string]uint64 `json:"packetDurationMs"`
 }
 
 var observations = struct {
@@ -59,12 +61,15 @@ func opusPacketDuration(payload []byte) (float64, bool) {
 	total := duration * float64(count)
 	return total, count > 0 && total <= 120
 }
-func observeRtp(key string, payload []byte) {
+func observeRtp(key string, packetBytes int, payload []byte) {
 	observations.Lock()
 	defer observations.Unlock()
 	summary := observations.Values[key]
 	if summary == nil {
-		if len(observations.Values) >= 128 {
+		// A 12-seat all-speakers room has 12 ingress plus 132 directed
+		// egress streams. Keep the probe bounded, but large enough to retain
+		// that fan-out instead of silently truncating at 128 entries.
+		if len(observations.Values) >= 1024 {
 			return
 		}
 		summary = &rtpSummary{Durations: map[string]uint64{}}
@@ -72,6 +77,12 @@ func observeRtp(key string, payload []byte) {
 	}
 	summary.Packets++
 	summary.PayloadBytes += uint64(len(payload))
+	if packetBytes < len(payload) {
+		// A malformed interceptor input must not wrap the unsigned counters.
+		packetBytes = len(payload)
+	}
+	summary.RTPBytes += uint64(packetBytes)
+	summary.RTPHeaderBytes += uint64(packetBytes - len(payload))
 	duration, valid := opusPacketDuration(payload)
 	if !valid {
 		summary.InvalidToc++
@@ -94,7 +105,7 @@ func (m *metadataInterceptor) BindRemoteStream(info *interceptor.StreamInfo, rea
 		if err == nil {
 			var packet rtp.Packet
 			if packet.Unmarshal(buf[:n]) == nil {
-				observeRtp(key, packet.Payload)
+				observeRtp(key, n, packet.Payload)
 			}
 		}
 		return n, attrs, err
@@ -108,8 +119,15 @@ func (m *metadataInterceptor) BindLocalStream(info *interceptor.StreamInfo, writ
 	return interceptor.RTPWriterFunc(func(header *rtp.Header, payload []byte, a interceptor.Attributes) (int, error) {
 		n, err := writer.Write(header, payload, a)
 		if err == nil {
-			observeRtp(key, payload)
+			observeRtp(key, rtpPacketSize(header, payload), payload)
 		}
 		return n, err
 	})
+}
+
+func rtpPacketSize(header *rtp.Header, payload []byte) int {
+	if header == nil {
+		return len(payload)
+	}
+	return (&rtp.Packet{Header: *header, Payload: payload}).MarshalSize()
 }

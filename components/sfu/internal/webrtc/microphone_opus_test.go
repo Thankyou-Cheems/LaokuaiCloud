@@ -100,3 +100,28 @@ func TestOpus20RejectsNonReceivingOrMissingMicrophone(t *testing.T) {
 		t.Fatal("must reject malformed SDP")
 	}
 }
+
+func TestOpusReceivePolicyAdvertisesSixteenKbpsSixtyMilliseconds(t *testing.T) {
+	pc, err := CreatePeerConnection(nil, webrtc.Configuration{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pc.Close()
+	offer, err := pc.CreateOffer(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	policy := MicrophoneOpusReceivePolicy{MaxAverageBitrateBps: 16_000, PacketTimeMs: 60}
+	configured, err := PreferMicrophoneOpus(offer, true, policy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, expected := range []string{"maxaveragebitrate=16000", "stereo=0", "cbr=0", "usedtx=1", "useinbandfec=1", "a=ptime:60", "a=maxptime:60"} {
+		if !strings.Contains(configured.SDP, expected) {
+			t.Fatalf("missing %q in configured offer", expected)
+		}
+	}
+	if strings.Contains(configured.SDP, "a=ptime:20") || strings.Contains(configured.SDP, "a=maxptime:20") {
+		t.Fatal("configured offer retained the legacy packet time")
+	}
+}

@@ -19,7 +19,7 @@ const load=relative=>{
 };
 const codec=load('components/voice/src/webrtc/hooks/microphoneCodec.ts'),presets=load('components/client/src/lib/voiceTransportPreset.ts');
 const standard=presets.sharedVoicePreset(),peer=presets.peerVoicePreset(standard);
-assert.equal(standard.maxBitrateBps,48000);assert.equal(peer.maxBitrateBps,64000);assert.equal(standard.packetTimeMs,20);
+assert.equal(standard.maxBitrateBps,16000);assert.equal(peer.maxBitrateBps,64000);assert.equal(standard.packetTimeMs,60);
 const profiles=[standard,peer,...[24000,32000,96000].map(maxBitrateBps=>({...standard,selection:'custom',maxBitrateBps,packetTimeMs:40,requestDtx:false}))];
 function senderFixture(){
  let parameters={codecs:[{mimeType:'audio/opus'}],encodings:[{}]},closed=false;
@@ -53,10 +53,10 @@ const sdp=fmtp=>['v=0','m=audio 9 UDP/TLS/RTP/SAVPF 111','a=mid:mic','a=recvonly
   assert.equal(state.effectiveMaxBitrateBps,Math.min(64000,channel===null?Infinity:channel));assert.equal(state.remoteOfferMatches,true);checks++;
  }
  const wrapper=fs.readFileSync(path.join(sfu,'internal/webrtc/microphone_opus.go'),'utf8');
- assert.ok(wrapper.includes('parameters, err := microphoneOpus20Parameters(existing)'));
- assert.ok(wrapper.includes('sdp.NewAttribute("ptime", "20"), sdp.NewAttribute("maxptime", "20")'));
+ assert.ok(wrapper.includes('parameters, err := microphoneOpusParameters(existing, policy)'));
+ assert.ok(wrapper.includes('strconv.Itoa(policy.PacketTimeMs)'));
  assert.ok(!wrapper.includes('24000'));
  console.log(JSON.stringify({passed:true,stdlibGoCapCases:11,invalidCapCases:10,otherParametersPreserved:true,
-  actualSdkFakeSenderChecks:checks,standardSfuRequest:48000,peerRequest:64000,packetTimeMs:20,
+  actualSdkFakeSenderChecks:checks,standardSfuRequest:16000,peerRequest:64000,packetTimeMs:60,
   customAndChannelCapsPreserved:true,actualPreferSdpWrapperExecuted:false,realPeerConnections:0,network:false,capture:false,rtpVerified:false}));
 })().catch(error=>{console.error(error);process.exitCode=1;});

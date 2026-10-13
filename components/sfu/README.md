@@ -52,8 +52,22 @@ Every variable the SFU reads, and nothing it doesn't:
 | `SFU_PONG_TIMEOUT` | `90` | Seconds a peer may say nothing before the SFU hangs up. Raised to two ping intervals if set lower |
 | `SFU_CALL_ALONE_TIMEOUT` | `120` | Seconds one person may be the only one in a call before it ends. `0` leaves it up. Calls only — a voice channel is never ended for being quiet. Sent to clients in `room_joined`, and restarted by a `still_here` message |
 | `SFU_MAX_INGEST_KBPS` | — | The most each peer should send this SFU, in kbps. Sent to clients in `room_joined`, and the engine keeps its video under it. Advisory: nothing is dropped for going over |
+| `SFU_AUDIO_ONLY` | `false` | Reject video/share slots. Required by the microphone receive policy |
+| `SFU_MICROPHONE_OPUS20` | `false` | Enable the receive-side Opus policy for the reserved microphone slot; requires `SFU_AUDIO_ONLY=true` |
+| `SFU_MICROPHONE_OPUS_MAX_AVERAGE_BITRATE_BPS` | `48000` | Microphone Opus `maxaveragebitrate` ceiling in bits per second. Existing lower SDP caps are retained; valid range is 6000–510000 |
+| `SFU_MICROPHONE_OPUS_PTIME_MS` | `20` | Microphone Opus `ptime`/`maxptime`. Valid values are 10, 20, 40 or 60 ms. Screen/share SDP is untouched |
 | `DEBUG` | `true` | Room, connection and signaling logging. Defaults on when unset |
 | `VERBOSE_LOG` | `false` | RTP forwarding detail |
+
+The source default stays at 48 kbps/20 ms for compatibility with existing
+clients. A constrained deployment may select 16 kbps/60 ms with
+`SFU_MICROPHONE_OPUS_MAX_AVERAGE_BITRATE_BPS=16000` and
+`SFU_MICROPHONE_OPUS_PTIME_MS=60`. This is a receive preference: verify the
+actual RTP packet count and bytes, rather than treating the SDP cap as a wire
+bandwidth measurement. The test-only loopback probe exposes `rtpBytes`,
+`rtpHeaderBytes`, `payloadBytes`, packet duration and packet counts at
+`/rtp-observations`; its synthetic publisher is not a substitute for a
+real-browser Opus run.
 
 ## Documentation
 

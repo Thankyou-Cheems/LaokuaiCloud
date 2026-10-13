@@ -71,3 +71,36 @@ func TestMicrophoneOpus20OtherParametersPreserved(t *testing.T) {
 		t.Fatalf("unexpected params: %v", parameters)
 	}
 }
+
+func TestMicrophoneOpusReceivePolicyUsesConfiguredCapAndPacketTime(t *testing.T) {
+	policy := MicrophoneOpusReceivePolicy{MaxAverageBitrateBps: 16_000, PacketTimeMs: 60}
+	parameters, err := microphoneOpusParameters([]string{"vendor=x", "maxaveragebitrate=48000"}, policy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"vendor=x", "minptime=10", "maxaveragebitrate=16000", "stereo=0", "cbr=0", "usedtx=1", "useinbandfec=1"}
+	if !reflect.DeepEqual(parameters, want) {
+		t.Fatalf("configured policy = %v, want %v", parameters, want)
+	}
+	custom, err := microphoneOpusParameters([]string{"maxaveragebitrate=128000"}, policy)
+	if err != nil || !strings.Contains(strings.Join(custom, ";"), "maxaveragebitrate=16000") {
+		t.Fatalf("custom 128 kbps offer was not capped at the fallback ceiling: %v / %v", custom, err)
+	}
+	// A lower explicit cap still wins over the deployment cap.
+	lower, err := microphoneOpusParameters([]string{"maxaveragebitrate=6000"}, policy)
+	if err != nil || !strings.Contains(strings.Join(lower, ";"), "maxaveragebitrate=6000") {
+		t.Fatalf("lower explicit cap was raised: %v / %v", lower, err)
+	}
+}
+
+func TestMicrophoneOpusReceivePolicyRejectsUnsupportedValues(t *testing.T) {
+	for _, policy := range []MicrophoneOpusReceivePolicy{
+		{MaxAverageBitrateBps: 5999, PacketTimeMs: 20},
+		{MaxAverageBitrateBps: 16_000, PacketTimeMs: 30},
+		{MaxAverageBitrateBps: 0, PacketTimeMs: 0},
+	} {
+		if _, err := microphoneOpusParameters(nil, policy); err == nil {
+			t.Fatalf("accepted invalid policy %+v", policy)
+		}
+	}
+}

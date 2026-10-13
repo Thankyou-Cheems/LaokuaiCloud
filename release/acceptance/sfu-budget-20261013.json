@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "kind": "sfu-microphone-budget-build-and-loopback-acceptance",
+  "recordedOn": "2026-10-13",
+  "artifact": {
+    "version": "1.0.0-laokuai.routing.1",
+    "target": "linux/amd64",
+    "cgoEnabled": false,
+    "path": ".local/voice-routing-20261013/sfu/sfu",
+    "bytes": 16216224,
+    "sha256": "b2ebfcd5485b86d4edfb86710881686ed2c4aafa102e5c73220d0245d4fd3ec8",
+    "buildScript": ".local/voice-routing-20261013/build-sfu.ps1",
+    "sourceManifest": ".local/voice-routing-20261013/sfu-source-files.sha256",
+    "sourceFileCount": 100,
+    "sourceManifestSha256": "7e4b8ae63bfc4e28aeaa7eb8db522d57843778a1b2fdb313b3d31d6183b3e223",
+    "binaryShaFile": ".local/voice-routing-20261013/sfu-binary.sha256",
+    "buildToolchain": "go1.27.0 windows/amd64 cross-build",
+    "buildFlags": [
+      "-trimpath",
+      "-ldflags=-s -w -X main.Version=1.0.0-laokuai.routing.1"
+    ],
+    "repeatBuildSha256Matched": true
+  },
+  "policy": {
+    "legacyDefault": {
+      "maxAverageBitrateBps": 48000,
+      "packetTimeMs": 20
+    },
+    "candidateFallback": {
+      "maxAverageBitrateBps": 16000,
+      "packetTimeMs": 60,
+      "environment": {
+        "SFU_MICROPHONE_OPUS_MAX_AVERAGE_BITRATE_BPS": "16000",
+        "SFU_MICROPHONE_OPUS_PTIME_MS": "60"
+      }
+    },
+    "screenProfileChanged": false
+  },
+  "tests": {
+    "targetedGoPackages": {
+      "command": "go test -p 1 -count=1 ./internal/config ./internal/webrtc ./internal/signaling ./cmd/integration-probe",
+      "status": "passed"
+    },
+    "staticMicrophoneCapChecks": {
+      "command": "node components/sfu/scripts/check-microphone-caps.cjs",
+      "status": "passed",
+      "standardRequestBps": 16000,
+      "standardPacketTimeMs": 60,
+      "peerRequestBps": 64000
+    },
+    "deploymentConfigChecks": {
+      "command": "pwsh -File release/deployment/sfu-12-fallback-16k60/check-config.ps1",
+      "status": "passed",
+      "maxPeers": 12,
+      "productionExecuted": false,
+      "dockerInvoked": false
+    },
+    "twelvePublisherFanoutFixture": {
+      "test": "TestTwelveSyntheticPublishersProduceDirectedRtp",
+      "status": "passed",
+      "participants": 12,
+      "directedEgressStreams": 132,
+      "testReportedDurationSeconds": 1.63,
+      "packageWallSeconds": 2.797,
+      "packets": 1326,
+      "rtpPayloadBytes": 5304,
+      "rtpBytes": 21216,
+      "syntheticPayloadBytesPerPacket": 4,
+      "packetTimeMs": 60,
+      "invalidToc": 0,
+      "interpretation": "Confirms all 12 x 11 directed forwarding edges and 60 ms synthetic RTP duration; the 4-byte test payload is not a 16 kbps Opus throughput measurement."
+    }
+  },
+  "evidenceBoundary": {
+    "clientCodecSmoke": ".local/voice-routing-20261013/codec-budget-result.json",
+    "clientCodecSmokeScope": "12 real Chromium encoders and 24 loopback peer connections; it does not prove SFU fanout, WAN, ET, or application acceptance.",
+    "historicalReceipts": [
+      {
+        "path": "release/acceptance/sfu48-sdk3-isolated-media.json",
+        "scope": "2/4 real SDKs with six peer connections and 12 directed routes plus synthetic room matrices; not 20 full SDKs or WAN capacity."
+      },
+      {
+        "path": "release/acceptance/sdk3-loopback.json",
+        "scope": "Four SDK loopback peers, six bidirectional connections, and 12 directed routes; not a 20-person full-SDK run."
+      }
+    ],
+    "notProven": [
+      "Actual Opus payload bitrate or IP/UDP/SRTP overhead in the SFU fixture",
+      "Six or twelve full application peers over WAN or EasyTier",
+      "Arbitrary custom microphone profiles at the 12-seat budget",
+      "Production deployment or service restart behavior"
+    ]
+  },
+  "deployment": {
+    "executed": false,
+    "dockerInvoked": false,
+    "productionExecuted": false,
+    "nextReviewAction": "Root may perform the separately bounded binary replacement in the existing SFU base image after reviewing this artifact; no image source or ET deployment was changed here."
+  },
+  "rawLogsImported": false
+}

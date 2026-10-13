@@ -26,6 +26,8 @@ import (
 	pm "sfu-v2/internal/webrtc"
 	ws "sfu-v2/internal/websocket"
 	"sfu-v2/pkg/types"
+	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -41,6 +43,31 @@ type syntheticPeer struct {
 	lastError atomic.Value
 }
 
+// probeMicrophonePolicy reads the same non-secret policy variables as the
+// production SFU. The probe stays source-only and loopback-bound, but this
+// makes the 16 kbps/60 ms candidate reproducible without editing the fixture.
+func probeMicrophonePolicy() (pm.MicrophoneOpusReceivePolicy, error) {
+	policy := pm.DefaultMicrophoneOpusReceivePolicy()
+	if raw := strings.TrimSpace(os.Getenv("SFU_MICROPHONE_OPUS_MAX_AVERAGE_BITRATE_BPS")); raw != "" {
+		parsed, err := strconv.Atoi(raw)
+		if err != nil {
+			return policy, fmt.Errorf("invalid SFU_MICROPHONE_OPUS_MAX_AVERAGE_BITRATE_BPS=%q: %w", raw, err)
+		}
+		policy.MaxAverageBitrateBps = parsed
+	}
+	if raw := strings.TrimSpace(os.Getenv("SFU_MICROPHONE_OPUS_PTIME_MS")); raw != "" {
+		parsed, err := strconv.Atoi(raw)
+		if err != nil {
+			return policy, fmt.Errorf("invalid SFU_MICROPHONE_OPUS_PTIME_MS=%q: %w", raw, err)
+		}
+		policy.PacketTimeMs = parsed
+	}
+	if err := policy.Validate(); err != nil {
+		return policy, err
+	}
+	return policy, nil
+}
+
 func (c *syntheticPeer) send(event string, data any) error {
 	body, err := json.Marshal(data)
 	if err != nil {
@@ -53,7 +80,11 @@ func (c *syntheticPeer) send(event string, data any) error {
 func (c *syntheticPeer) close() {
 	c.closeOnce.Do(func() { close(c.done); c.conn.Close(); c.pc.Close() })
 }
-func api() *p.API {
+func api() *p.API { return apiWithMetadata(true) }
+
+func clientAPI() *p.API { return apiWithMetadata(false) }
+
+func apiWithMetadata(enableMetadata bool) *p.API {
 	se := p.SettingEngine{}
 	guarded, err := testtransport.New()
 	if err != nil {
@@ -73,15 +104,17 @@ func api() *p.API {
 	if err := p.RegisterDefaultInterceptors(engine, registry); err != nil {
 		panic(err)
 	}
-	registry.Add(metadataFactory{})
+	if enableMetadata {
+		registry.Add(metadataFactory{})
+	}
 	return p.NewAPI(p.WithSettingEngine(se), p.WithMediaEngine(engine), p.WithInterceptorRegistry(registry))
 }
-func joinClient(url string, join types.ClientJoinData, publish bool) (*syntheticPeer, error) {
+func joinClient(url string, join types.ClientJoinData, publish bool, policy pm.MicrophoneOpusReceivePolicy) (*syntheticPeer, error) {
 	conn, _, err := gw.DefaultDialer.Dial(url, nil)
 	if err != nil {
 		return nil, err
 	}
-	pc, err := api().NewPeerConnection(p.Configuration{})
+	pc, err := clientAPI().NewPeerConnection(p.Configuration{})
 	if err != nil {
 		conn.Close()
 		return nil, err
@@ -148,15 +181,17 @@ func joinClient(url string, join types.ClientJoinData, publish bool) (*synthetic
 						}
 					}()
 					go func() {
-						ticker := time.NewTicker(20 * time.Millisecond)
+						ticker := time.NewTicker(time.Duration(policy.PacketTimeMs) * time.Millisecond)
 						defer ticker.Stop()
+						clockStep := uint32(policy.PacketTimeMs * 48)
+						payload := syntheticOpusPayload(policy.PacketTimeMs)
 						for seq := uint16(0); ; seq++ {
 							select {
 							case <-c.done:
 								return
 							case <-ticker.C:
 							}
-							_ = mic.WriteRTP(&rtp.Packet{Header: rtp.Header{Version: 2, SequenceNumber: seq, Timestamp: uint32(seq) * 960}, Payload: []byte{0x10, 0, 0, 0}})
+							_ = mic.WriteRTP(&rtp.Packet{Header: rtp.Header{Version: 2, SequenceNumber: seq, Timestamp: uint32(seq) * clockStep}, Payload: payload})
 						}
 					}()
 				}
@@ -192,6 +227,14 @@ func joinClient(url string, join types.ClientJoinData, publish bool) (*synthetic
 	return c, nil
 }
 
+func syntheticOpusPayload(packetTimeMs int) []byte {
+	// One mono Opus frame per RTP packet, with a valid TOC duration. The bytes
+	// are intentionally synthetic: this fixture measures SFU packetization and
+	// fan-out, not encoder quality or a browser's actual compressed speech.
+	config := map[int]byte{10: 0x00, 20: 0x08, 40: 0x10, 60: 0x18}[packetTimeMs]
+	return []byte{config, 0, 0, 0}
+}
+
 func main() {
 	if os.Getenv("GRYT_LOOPBACK_TEST_AUTHORIZED") != "1" {
 		fmt.Fprintln(os.Stderr, "Network fixture disabled; requires explicit authorization for verified safe environment")
@@ -203,9 +246,15 @@ func main() {
 	rooms.SetRequireClientToken(true)
 	tracks := track.NewManager(false)
 	peers := pm.NewManager(false)
-	cfg := &config.Config{MaxPeers: 32, PingInterval: time.Second * 20, PongTimeout: time.Second * 60, ICEAdvertiseIPs: []string{"127.0.0.1"}, RequireClientToken: true, AudioOnly: true, MicrophoneOpus20: true, HybridEnabled: os.Getenv("HYBRID_LOOPBACK_ENABLED") == "true"}
+	policy, err := probeMicrophonePolicy()
+	if err != nil {
+		log.Fatal(err)
+	}
+	cfg := &config.Config{MaxPeers: 32, PingInterval: time.Second * 20, PongTimeout: time.Second * 60, ICEAdvertiseIPs: []string{"127.0.0.1"}, RequireClientToken: true, AudioOnly: true, MicrophoneOpus20: true, MicrophoneOpusMaxAverageBitrateBps: policy.MaxAverageBitrateBps, MicrophoneOpusPacketTimeMs: policy.PacketTimeMs, HybridEnabled: os.Getenv("HYBRID_LOOPBACK_ENABLED") == "true"}
 	coordinator := signaling.NewCoordinator(tracks, peers, rooms, false)
-	coordinator.SetMicrophoneOpus20(true)
+	if err := coordinator.SetMicrophoneOpusPolicy(true, policy); err != nil {
+		log.Fatal(err)
+	}
 	handler := ws.NewHandler(cfg, api(), tracks, peers, rooms, coordinator)
 	mux := http.NewServeMux()
 	mux.HandleFunc("/rtp-observations", func(w http.ResponseWriter, r *http.Request) {
@@ -272,7 +321,7 @@ func main() {
 			w.WriteHeader(400)
 			return
 		}
-		client, e := joinClient(url, request.Join, request.Publish)
+		client, e := joinClient(url, request.Join, request.Publish, policy)
 		if e != nil {
 			w.WriteHeader(500)
 			json.NewEncoder(w).Encode(map[string]string{"error": "join transport failed"})

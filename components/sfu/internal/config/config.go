@@ -20,6 +20,12 @@ const (
 	// DefaultMaxPeers is a guardrail, not a property of the transport.
 	DefaultMaxPeers = 200
 
+	// Keep the original microphone profile as the source default. Constrained
+	// deployments opt into a lower profile through the explicit environment
+	// variables below instead of changing every existing client at once.
+	DefaultMicrophoneOpusMaxAverageBitrateBps = 48_000
+	DefaultMicrophoneOpusPacketTimeMs         = 20
+
 	// DefaultPingInterval is how often the SFU pokes a quiet connection. It doubles as the
 	// only server-to-client traffic in a call, which keeps a NAT mapping from being reaped.
 	DefaultPingInterval = 30 * time.Second
@@ -56,9 +62,15 @@ type Config struct {
 	RequireClientToken bool
 	// AudioOnly rejects every video/share slot regardless of token or role.
 	AudioOnly bool
-	// MicrophoneOpus20 advertises a 48k receive ceiling/mono/VBR/DTX/FEC and
-	// 20ms only in audio-only mode; it preserves any lower existing SDP cap.
+	// MicrophoneOpus20 enables the microphone receive policy only in audio-only
+	// mode; it preserves any lower existing SDP cap. The name is retained for
+	// compatibility with the existing deployment switch.
 	MicrophoneOpus20 bool
+	// MicrophoneOpusMaxAverageBitrateBps and MicrophoneOpusPacketTimeMs are
+	// applied to the reserved microphone track when MicrophoneOpus20 is on.
+	// Screen/share tracks are not modified.
+	MicrophoneOpusMaxAverageBitrateBps int
+	MicrophoneOpusPacketTimeMs         int
 	// Experimental authenticated per-receiver audio leases. Off by default.
 	HybridEnabled bool
 
@@ -255,6 +267,10 @@ func Load() (*Config, error) {
 
 	debug, _ := strconv.ParseBool(os.Getenv("DEBUG"))
 	verboseLog, _ := strconv.ParseBool(os.Getenv("VERBOSE_LOG"))
+	microphoneOpusMaxAverageBitrateBps, microphoneOpusPacketTimeMs, err := microphoneOpusPolicyFromEnv()
+	if err != nil {
+		return nil, err
+	}
 
 	// Default to debug mode if not specified
 	if os.Getenv("DEBUG") == "" {
@@ -265,29 +281,59 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("SFU_MICROPHONE_OPUS20 requires SFU_AUDIO_ONLY=true")
 	}
 	return &Config{
-		Port:               port,
-		STUNServers:        stunServers,
-		ICEServers:         iceServers,
-		Debug:              debug,
-		VerboseLog:         verboseLog,
-		ICEUDPMuxPort:      iceUDPMuxPort,
-		ICEAdvertiseIPs:    iceAdvertiseIPs,
-		DisableSTUN:        disableSTUN,
-		RequireClientToken: requireClientToken,
-		AudioOnly:          os.Getenv("SFU_AUDIO_ONLY") == "true",
-		MicrophoneOpus20:   os.Getenv("SFU_MICROPHONE_OPUS20") == "true",
-		HybridEnabled:      os.Getenv("SFU_HYBRID_ENABLED") == "true",
-		MetricsPort:        metricsPort,
-		MetricsHost:        metricsHost,
-		ControlPort:        controlPort,
-		ControlHost:        controlHost,
-		MaxPeers:           maxPeers,
-		PingInterval:       pingInterval,
-		PongTimeout:        pongTimeout,
+		Port:                               port,
+		STUNServers:                        stunServers,
+		ICEServers:                         iceServers,
+		Debug:                              debug,
+		VerboseLog:                         verboseLog,
+		ICEUDPMuxPort:                      iceUDPMuxPort,
+		ICEAdvertiseIPs:                    iceAdvertiseIPs,
+		DisableSTUN:                        disableSTUN,
+		RequireClientToken:                 requireClientToken,
+		AudioOnly:                          os.Getenv("SFU_AUDIO_ONLY") == "true",
+		MicrophoneOpus20:                   os.Getenv("SFU_MICROPHONE_OPUS20") == "true",
+		MicrophoneOpusMaxAverageBitrateBps: microphoneOpusMaxAverageBitrateBps,
+		MicrophoneOpusPacketTimeMs:         microphoneOpusPacketTimeMs,
+		HybridEnabled:                      os.Getenv("SFU_HYBRID_ENABLED") == "true",
+		MetricsPort:                        metricsPort,
+		MetricsHost:                        metricsHost,
+		ControlPort:                        controlPort,
+		ControlHost:                        controlHost,
+		MaxPeers:                           maxPeers,
+		PingInterval:                       pingInterval,
+		PongTimeout:                        pongTimeout,
 
 		CallAloneTimeout: callAloneTimeout,
 		MaxIngestKbps:    maxIngestKbps,
 	}, nil
+}
+
+func microphoneOpusPolicyFromEnv() (int, int, error) {
+	maxAverageBitrateBps := DefaultMicrophoneOpusMaxAverageBitrateBps
+	packetTimeMs := DefaultMicrophoneOpusPacketTimeMs
+
+	if raw := strings.TrimSpace(os.Getenv("SFU_MICROPHONE_OPUS_MAX_AVERAGE_BITRATE_BPS")); raw != "" {
+		parsed, err := strconv.Atoi(raw)
+		if err != nil || parsed < 6_000 || parsed > 510_000 {
+			return 0, 0, fmt.Errorf("SFU_MICROPHONE_OPUS_MAX_AVERAGE_BITRATE_BPS=%q is invalid; want an integer from 6000 through 510000", raw)
+		}
+		maxAverageBitrateBps = parsed
+	}
+
+	if raw := strings.TrimSpace(os.Getenv("SFU_MICROPHONE_OPUS_PTIME_MS")); raw != "" {
+		parsed, err := strconv.Atoi(raw)
+		if err != nil {
+			return 0, 0, fmt.Errorf("SFU_MICROPHONE_OPUS_PTIME_MS=%q is invalid; want 10, 20, 40, or 60", raw)
+		}
+		switch parsed {
+		case 10, 20, 40, 60:
+			packetTimeMs = parsed
+		default:
+			return 0, 0, fmt.Errorf("SFU_MICROPHONE_OPUS_PTIME_MS=%q is invalid; want 10, 20, 40, or 60", raw)
+		}
+	}
+
+	return maxAverageBitrateBps, packetTimeMs, nil
 }
 
 // durationSecondsFromEnv reads a whole number of seconds, keeping the default when unset or

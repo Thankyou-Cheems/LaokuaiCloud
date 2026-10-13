@@ -74,6 +74,54 @@ func TestMaxPeersIsTakenFromTheEnvironment(t *testing.T) {
 	}
 }
 
+func TestMicrophoneOpusPolicyDefaultsKeepLegacyProfile(t *testing.T) {
+	t.Setenv("SFU_MICROPHONE_OPUS_MAX_AVERAGE_BITRATE_BPS", "")
+	t.Setenv("SFU_MICROPHONE_OPUS_PTIME_MS", "")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.MicrophoneOpusMaxAverageBitrateBps != DefaultMicrophoneOpusMaxAverageBitrateBps {
+		t.Fatalf("microphone bitrate = %d, want %d", cfg.MicrophoneOpusMaxAverageBitrateBps, DefaultMicrophoneOpusMaxAverageBitrateBps)
+	}
+	if cfg.MicrophoneOpusPacketTimeMs != DefaultMicrophoneOpusPacketTimeMs {
+		t.Fatalf("microphone ptime = %d, want %d", cfg.MicrophoneOpusPacketTimeMs, DefaultMicrophoneOpusPacketTimeMs)
+	}
+}
+
+func TestMicrophoneOpusPolicyIsTakenFromTheEnvironment(t *testing.T) {
+	t.Setenv("SFU_MICROPHONE_OPUS_MAX_AVERAGE_BITRATE_BPS", "16000")
+	t.Setenv("SFU_MICROPHONE_OPUS_PTIME_MS", "60")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.MicrophoneOpusMaxAverageBitrateBps != 16000 || cfg.MicrophoneOpusPacketTimeMs != 60 {
+		t.Fatalf("microphone policy = %d/%d, want 16000/60", cfg.MicrophoneOpusMaxAverageBitrateBps, cfg.MicrophoneOpusPacketTimeMs)
+	}
+}
+
+func TestInvalidMicrophoneOpusPolicyRefusesToLoad(t *testing.T) {
+	for _, value := range []string{"", "0", "5999", "510001", "not-a-bitrate"} {
+		t.Setenv("SFU_MICROPHONE_OPUS_MAX_AVERAGE_BITRATE_BPS", value)
+		if value == "" {
+			continue
+		}
+		if _, err := Load(); err == nil || !strings.Contains(err.Error(), "SFU_MICROPHONE_OPUS_MAX_AVERAGE_BITRATE_BPS") {
+			t.Fatalf("bitrate %q loaded without a named error: %v", value, err)
+		}
+	}
+	for _, value := range []string{"0", "15", "80", "not-a-ptime"} {
+		t.Setenv("SFU_MICROPHONE_OPUS_MAX_AVERAGE_BITRATE_BPS", "")
+		t.Setenv("SFU_MICROPHONE_OPUS_PTIME_MS", value)
+		if _, err := Load(); err == nil || !strings.Contains(err.Error(), "SFU_MICROPHONE_OPUS_PTIME_MS") {
+			t.Fatalf("ptime %q loaded without a named error: %v", value, err)
+		}
+	}
+}
+
 // The liveness settings decide who gets hung up on, so both ways of getting them wrong have
 // to be safe: a value nobody set, and a value somebody set too tight.
 

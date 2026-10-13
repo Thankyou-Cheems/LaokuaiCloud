@@ -18,13 +18,14 @@ import (
 
 // Coordinator manages the signaling process between peers and tracks
 type Coordinator struct {
-	trackManager     *track.Manager
-	webrtcManager    *peerManager.Manager
-	roomManager      *room.Manager
-	debug            bool
-	microphoneOpus20 bool
-	peerLocksMu      sync.Mutex
-	peerLocks        map[*webrtc.PeerConnection]*peerReconciliation
+	trackManager         *track.Manager
+	webrtcManager        *peerManager.Manager
+	roomManager          *room.Manager
+	debug                bool
+	microphoneOpus20     bool
+	microphoneOpusPolicy peerManager.MicrophoneOpusReceivePolicy
+	peerLocksMu          sync.Mutex
+	peerLocks            map[*webrtc.PeerConnection]*peerReconciliation
 }
 
 // A reconciliation entry is retained only while callers are running or waiting.
@@ -62,15 +63,30 @@ func (c *Coordinator) serializePeer(pc *webrtc.PeerConnection, reconcile func() 
 // NewCoordinator creates a new signaling coordinator
 func NewCoordinator(trackManager *track.Manager, webrtcManager *peerManager.Manager, roomManager *room.Manager, debug bool) *Coordinator {
 	return &Coordinator{
-		trackManager:  trackManager,
-		webrtcManager: webrtcManager,
-		roomManager:   roomManager,
-		debug:         debug,
+		trackManager:         trackManager,
+		webrtcManager:        webrtcManager,
+		roomManager:          roomManager,
+		debug:                debug,
+		microphoneOpusPolicy: peerManager.DefaultMicrophoneOpusReceivePolicy(),
 	}
 }
 
 // SetMicrophoneOpus20 is startup-only; callers must require audio-only mode.
-func (c *Coordinator) SetMicrophoneOpus20(enabled bool) { c.microphoneOpus20 = enabled }
+func (c *Coordinator) SetMicrophoneOpus20(enabled bool) {
+	_ = c.SetMicrophoneOpusPolicy(enabled, peerManager.DefaultMicrophoneOpusReceivePolicy())
+}
+
+// SetMicrophoneOpusPolicy is startup-only; callers must require audio-only
+// mode. Validation happens here as well as in SDP generation so a bad startup
+// value fails before the first room is signaled.
+func (c *Coordinator) SetMicrophoneOpusPolicy(enabled bool, policy peerManager.MicrophoneOpusReceivePolicy) error {
+	if err := policy.Validate(); err != nil {
+		return err
+	}
+	c.microphoneOpus20 = enabled
+	c.microphoneOpusPolicy = policy
+	return nil
+}
 
 // debugLog logs debug messages if debug mode is enabled
 func (c *Coordinator) debugLog(format string, args ...interface{}) {
@@ -340,7 +356,7 @@ func (c *Coordinator) processPeerConnection(clientID string, peerConnection *web
 		c.debugLog("❌ Error setting local description for %s: %v", clientID, err)
 		return err
 	}
-	offer, err = peerManager.PreferMicrophoneOpus20(offer, c.microphoneOpus20)
+	offer, err = peerManager.PreferMicrophoneOpus(offer, c.microphoneOpus20, c.microphoneOpusPolicy)
 	if err != nil {
 		return err
 	}
