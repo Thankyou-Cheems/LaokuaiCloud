@@ -1,5 +1,18 @@
 # Sole integration ownership
 
+## Latest user handoff (2026-10-13)
+
+The user has taken over local development. Read root HANDOFF.md first for the
+current branch, fetch state, exact runtime and unresolved automatic-join issue.
+Stop autonomous feature work, packaging, pushes and visibility changes until the
+user resumes them. The user-directed local developer is now the integration
+writer; historical Task-6 ownership text below is provenance, not a blocker to
+the user's takeover. Preserve all branches/worktrees and pending work. Normal
+UAC must not be bypassed; a new persistent elevated service needs separate
+approval. LaokuaiCloud remains private; any later approved public source work
+targets LaokuaiCloud itself, never the i18n fork. Old controlled native tests do
+not establish everyday automatic enrollment or dual-device P2P acceptance.
+
 Task-6 is the only writer of this release integration branch. Component owners
 work on independent feature trees and deliver immutable commits/patches/packages.
 Testing uses frozen snapshots and must not mutate owners' branches.
