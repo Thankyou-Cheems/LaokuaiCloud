@@ -5,3 +5,11 @@ dist-electron/
 *.tsbuildinfo
 *.local.json
 *.local.log
+
+# Local development materials; never publish profiles, archives or binaries.
+/.local/
+
+/components/client/build/community-lan/
+/components/client/build/native/
+/components/client/build/squad/
+/components/client/build/legal/

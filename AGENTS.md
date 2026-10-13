@@ -2,7 +2,9 @@
 
 ## Latest user handoff (2026-10-13)
 
-The user has taken over local development. Read root HANDOFF.md first for the
+The user has taken over local development at D:\Dev\LaokuaiCloud. This is the
+sole active development repository; old C-drive trees are recovery copies.
+Read root HANDOFF.md first for the
 current branch, fetch state, exact runtime and unresolved automatic-join issue.
 Stop autonomous feature work, packaging, pushes and visibility changes until the
 user resumes them. The user-directed local developer is now the integration

@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "id": "laokuai-cloud-receive-path-et-observation-frozen-20261011",
-  "stage": "friend-test-single-exe-sealed-with-embedded-source",
+  "stage": "local-development-handoff-publication-paused",
   "ready": false,
   "repository": {
     "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud",
@@ -3060,8 +3060,29 @@
       "userReportedSingleDeviceEtLinkPass": true,
       "dualDeviceP2pAcceptance": false,
       "otherComputerOrFullDeviceGameMatrixTested": false,
-      "friendTestVersion": true
+      "friendTestVersion": true,
+      "recommendedForDistribution": false,
+      "disposition": "User-discarded candidate; original artifact and dedicated staging sent to Windows Recycle Bin on 2026-10-13; historical receipt retained only."
     },
-    "preferredDelivery": "single-exe-with-embedded-corresponding-source"
+    "preferredDelivery": "original-98MB-portable-with-separate-corresponding-source"
+  },
+  "localDevelopmentHandoff": {
+    "date": "2026-10-13",
+    "directory": "D:/Dev/LaokuaiCloud",
+    "branch": "integration/lifecycle3-20261012",
+    "writer": "user-directed local developer",
+    "originVisibility": "private",
+    "pushedThisHandoff": false,
+    "publishedThisHandoff": false,
+    "originalLocalCheckpoint": "47b3a974e442725fdb88c039e044aa06aa62c171",
+    "remoteDefaultHead": "3a6c794fe6e904ad195fafcd70a8a51d65632b60",
+    "remoteFixHead": "cb209bd24fd47f2d0ff6841e5032c118678c441f",
+    "remoteFixAlreadyAppliedEquivalent": "1574d1bcfcf9225ff4a2b9cb82429378c5c30ffd",
+    "remoteFixExactBlobMatches": 8,
+    "independentGitDirectory": true,
+    "clientDependencyExternalLinks": 0,
+    "automaticEverydayEnrollmentAccepted": false,
+    "dualDeviceP2pAccepted": false,
+    "handoff": "HANDOFF.md"
   }
 }
