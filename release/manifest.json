@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "id": "laokuai-cloud-receive-path-et-observation-frozen-20261011",
-  "stage": "local-autojoin-test-package-and-public-source-available",
+  "stage": "local-12-seat-budget-routing-test-package-and-public-source",
   "ready": false,
   "repository": {
     "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud",
@@ -9,8 +9,8 @@
     "visibility": "public",
     "branch": "main",
     "soleGitWriter": "user-directed local developer",
-    "codeCommit": "dd16e768a38064e6edfd5127e8d5b3ab678413b6",
-    "codeTree": "e88e92d169476f087d9e681ba661b5588c66db35",
+    "codeCommit": "56aed78e004d137ac606e5e7d3bbc220ee5d87bc",
+    "codeTree": "c3d36dce7be3840f2c9973c4993d597ddebdafa0",
     "newRepositoryReason": "Authenticated private-repo metadata and explicitly scoped old local core/game remotes revealed no matching existing private integration repository",
     "historyPolicy": "User explicitly authorized deletion and same-name recreation after six Npcap files were removed from history. Only clean main and source tag pushed from an isolated bare repository. Original and clean local bundles retained; no mirror push.",
     "githubId": "R_kgDOVG00Lg"
@@ -18,22 +18,22 @@
   "components": {
     "client": {
       "path": "components/client",
-      "tree": "61ea7de576fcde00dd87d82f17cc10b5ac8637d2",
+      "tree": "e26f8365f1220ccb440d2e8af1801129f5d4a268",
       "upstream": "Gryt-chat/client",
       "publicFork": "Thankyou-Cheems/gryt-client-i18n",
       "historyImportedFrom": "06ac43f51dbda3b9444c73270a126e10489110e9",
       "originalHead": "552dc88f3413b83ee29bdb4ab350286e7c9ad2d0",
       "completeDirtySourceSnapshot": "2b9f02076051e3a445bfa99e79d1fc7ac421e19f",
       "originalPreservation": "24 tracked modifications and 6 untracked files retained; all frozen snapshot blobs verified",
-      "version": "1.13.22-laokuai.beta.20261013.3",
-      "dependencyLockSha256": "6b85a483ac898e251ea9f889136a6251b5f25ea1a3b87aa925313aaf96997cea",
+      "version": "1.13.22-laokuai.beta.20261013.4",
+      "dependencyLockSha256": "a58b72462cd7ee86ae112793d8716e5fe71bfffa945e1b3532cc7e32580393b3",
       "lifecycle3SourceCommit": "cb31e2e4ec044a2574f88321bc90cc01c3b51e0c",
       "uiBrandSourceCommit": "c75e6802ac9971b7d4139df8f97b99c7398efd7d",
       "preservedPreEtContract": {
         "tree": "8123a71d99a101a3dce02027d476c7e8879ff48d",
         "sourceCommit": "a88f7d75066cf03d65d618bb49cabbff6e8d7884"
       },
-      "sourceCommit": "dd16e768a38064e6edfd5127e8d5b3ab678413b6",
+      "sourceCommit": "56aed78e004d137ac606e5e7d3bbc220ee5d87bc",
       "communityContractWired": true,
       "preservedPreCommunityWiring": {
         "tree": "fbcc9d4e2db64348fc17704d486a421233f7513f",
@@ -56,25 +56,20 @@
     },
     "voice": {
       "path": "components/voice",
-      "tree": "45a5122b5480e37224987e74b898cfd4553f0cb4",
+      "tree": "26321b295f464e1c6ea9c106fcd4877eeceee625",
       "upstream": "Gryt-chat/voice",
       "publicFork": "Thankyou-Cheems/voice",
-      "sourceCommit": "cb31e2e4ec044a2574f88321bc90cc01c3b51e0c",
-      "sourceFiles": 311,
-      "importCorrespondence": "Tracked preferred source retains the previous baseline plus exact lifecycle.3 delivered source/tests/docs; changed file SHA256/Git blobs independently verified. Audit source supplement hash is reported metadata, not a downloaded local archive.",
+      "sourceCommit": "56aed78e004d137ac606e5e7d3bbc220ee5d87bc",
+      "sourceFiles": 312,
+      "importCorrespondence": "Current routing source and pinned locally rebuilt package; prior lifecycle package and evidence preserved.",
       "license": "AGPL-3.0-only; Signalsmith MIT and all receive-rnn notices preserved",
       "package": {
-        "path": "components/client/vendor/gryt-voice-0.6.2-laokuai.lifecycle.3.tgz",
-        "version": "0.6.2-laokuai.lifecycle.3",
-        "bytes": 3779305,
-        "sha256": "897b597926cad23447f057e2b45e95f47806ddfba2f6808e6beb32f80eec49ae",
-        "sha1": "586b11c4382ff326a25ff555e9f94f50ddca9de8",
-        "packedFiles": 212,
-        "distFiles": 170,
-        "retainedNonDistStaticFilesExact": 41,
-        "clientDependencyAndLockExact": true,
-        "localInstalledByteVerification": "Pending fresh build-owner install; local archive/content pins verified",
-        "cloudInstalledAndSourceRebuildByteParity": "Reported170dist files and independently reproduced archive; exact delivered evidence referenced in local integration receipt"
+        "path": "components/client/vendor/gryt-voice-0.6.2-laokuai.routing.1.tgz",
+        "version": "0.6.2-laokuai.routing.1",
+        "bytes": 3783024,
+        "sha256": "0786cd221317e74690629167e9ddadfdfcb6e5af42d62de7c6a4a54df5aa12ca",
+        "installedFilesVerified": 185,
+        "clientDependencyAndLockExact": true
       },
       "closedPcFix": {
         "sourceCommit": "114a9ad0ba2d9e1e83b9a762a150dba6a54e0ee4",
@@ -156,6 +151,23 @@
         "deliveryManifestSha256": "347192a0945cb3fb4889eddb7cca30d163cbdd38f2d294242c106fdf2d9b1850",
         "auditSourceSupplementReportedSha256": "ba1a901a0618b0728f58b9c329e80f0547f35a9b1177d37886ed0b09ada85a8d",
         "receipt": "release/acceptance/lifecycle3-local-integration.json"
+      },
+      "preservedPreRouting": {
+        "sourceCommit": "cb31e2e4ec044a2574f88321bc90cc01c3b51e0c",
+        "tree": "45a5122b5480e37224987e74b898cfd4553f0cb4",
+        "package": {
+          "path": "components/client/vendor/gryt-voice-0.6.2-laokuai.lifecycle.3.tgz",
+          "version": "0.6.2-laokuai.lifecycle.3",
+          "bytes": 3779305,
+          "sha256": "897b597926cad23447f057e2b45e95f47806ddfba2f6808e6beb32f80eec49ae",
+          "sha1": "586b11c4382ff326a25ff555e9f94f50ddca9de8",
+          "packedFiles": 212,
+          "distFiles": 170,
+          "retainedNonDistStaticFilesExact": 41,
+          "clientDependencyAndLockExact": true,
+          "localInstalledByteVerification": "Pending fresh build-owner install; local archive/content pins verified",
+          "cloudInstalledAndSourceRebuildByteParity": "Reported170dist files and independently reproduced archive; exact delivered evidence referenced in local integration receipt"
+        }
       }
     },
     "server": {
@@ -199,10 +211,10 @@
     },
     "sfu": {
       "path": "components/sfu",
-      "tree": "3d64d5904681d59590be940870ce045e5c1577ff",
+      "tree": "26d82edddacbb02aec958f4f30af03c2b067dc4b",
       "upstream": "Gryt-chat/sfu",
       "userFork": null,
-      "sourceCommit": "011f12b92af2732cc6a86a088c5f753dfd5c1a14",
+      "sourceCommit": "35bcd5d3ed6752bfcf53c84c2dbe8d2b52a9cbe5",
       "sourceFiles": 99,
       "modified": true,
       "preservedBaseSnapshot": {
@@ -225,6 +237,10 @@
           "sourceFiles": 90
         },
         "modification": "Minimal reserved microphone receive ceiling48 with lower-cap preservation; existing base snapshot preserved"
+      },
+      "preservedPreBudget": {
+        "sourceCommit": "011f12b92af2732cc6a86a088c5f753dfd5c1a14",
+        "tree": "3d64d5904681d59590be940870ce045e5c1577ff"
       }
     },
     "easytier": {
@@ -3351,5 +3367,168 @@
     "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261013.3-zh-CN-win-x64-portable.exe",
     "note": "This build fixes the renderer telemetry clock. Earlier .2 actual local TUN/RPC observations are separately recorded in member-status-clock-20261013.json. Exact extracted .3 hidden bootstrap is not normal UI/TUN/media acceptance; sampled zero sockets are not continuous tracing.",
     "receipt": "release/acceptance/member-status-portable-20261013.json"
+  },
+  "voiceRoutingTestPackage": {
+    "schemaVersion": 1,
+    "date": "2026-10-13",
+    "version": "1.13.22-laokuai.beta.20261013.4",
+    "sourceCommit": "56aed78e004d137ac606e5e7d3bbc220ee5d87bc",
+    "file": "唠蒯云-1.13.22-laokuai.beta.20261013.4-zh-CN-win-x64-portable.exe",
+    "bytes": 129285343,
+    "sha256": "065935af6294b37f15509e8e6110c6c6964b158394a7602cfd49aca98846088b",
+    "appAsarSha256": "4fa07081287410b054750475468d0b2313037a8837e3b7b8143700376489b72e",
+    "staticPayloadFiles": 146,
+    "staticPayloadPassed": true,
+    "voice": {
+      "version": "0.6.2-laokuai.routing.1",
+      "sha256": "0786cd221317e74690629167e9ddadfdfcb6e5af42d62de7c6a4a54df5aa12ca",
+      "installedFilesMatched": 185
+    },
+    "broker": {
+      "schemaVersion": 1,
+      "sha256": "a0f27aefdf7cdddcef152efbc1dae5bea5a943c0d867308bc5fcedf3688ac791",
+      "sourceSha256": "84b02d46ca1d3bcd947ede99d063b0193ef785781857a47822665c22dfb500a0",
+      "bytes": 21504
+    },
+    "npcapAbsent": true,
+    "sourceArchivesBundled": false,
+    "tests": {
+      "sourceReceipt": "release/acceptance/voice-routing-source-20261013.json",
+      "coreChecks": 22,
+      "targetedLint": true,
+      "applicationTypes": true,
+      "applicationCompile": true
+    },
+    "deploymentReceipt": "release/acceptance/voice-budget-deployment-20261013.json",
+    "bootstrap": {
+      "status": "passed",
+      "exitCode": 0,
+      "rootChildren": 1,
+      "preload": {
+        "electronAPI": "object",
+        "easyTierCommunity": "object"
+      },
+      "visible": false,
+      "focused": false,
+      "unexpectedEvents": 0,
+      "residualOwnedProcesses": 0,
+      "socketSamples": [
+        {
+          "seconds": 4.392,
+          "ownedProcesses": 4,
+          "tcpCount": 0,
+          "udpCount": 0
+        },
+        {
+          "seconds": 8.463,
+          "ownedProcesses": 6,
+          "tcpCount": 0,
+          "udpCount": 0
+        },
+        {
+          "seconds": 12.548,
+          "ownedProcesses": 6,
+          "tcpCount": 0,
+          "udpCount": 0
+        }
+      ],
+      "consoleErrors": 23,
+      "realElectronExecuted": true,
+      "isolatedFreshProfile": true,
+      "nativeEtExecuted": false,
+      "realCommunityOrDeviceMediaTest": false
+    },
+    "actualTrayTimingAccepted": false,
+    "twelveFullAppWanAccepted": false,
+    "dualDevicePhysicalPathAccepted": false,
+    "gameCoexistenceAccepted": false,
+    "publicBinaryRelease": false,
+    "repositoryVisibility": "public",
+    "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261013.4-zh-CN-win-x64-portable.exe",
+    "note": "The extracted .4 package passed static identity and isolated offline bootstrap only. Real codec and synthetic SFU fanout have separate scoped receipts. Existing 20-seat, ET and old-package evidence is preserved without promotion.",
+    "receipt": "release/acceptance/voice-routing-portable-20261013.json"
+  },
+  "voiceBudgetDeployment": {
+    "schemaVersion": 1,
+    "date": "2026-10-13",
+    "kind": "existing-voice-services-budget-deployment",
+    "sourceCommit": "35bcd5d3ed6752bfcf53c84c2dbe8d2b52a9cbe5",
+    "build": {
+      "baseBuildReference": "local.laokuai/sfu-base-2b6afca8:current",
+      "baseImageId": "sha256:2b6afca88c4f7d6912c044d3b114d17af56104a4fce95ca7dc14cf0f04ec3a8f",
+      "binaryBytes": 16216224,
+      "binarySha256": "b2ebfcd5485b86d4edfb86710881686ed2c4aafa102e5c73220d0245d4fd3ec8",
+      "candidateReference": "local.laokuai/sfu-12-fallback-16k60:candidate",
+      "dockerBuild": {
+        "copiedFiles": [
+          "sfu"
+        ],
+        "network": "none",
+        "pull": false,
+        "runInstructions": 0
+      },
+      "imageId": "sha256:585f0a76df9420f228f7b47020c35247cb76524f63125ea7c5bf49bb8ee9cd7b",
+      "oldImageKept": true,
+      "schema": 1,
+      "sourceCommit": "35bcd5d3ed6752bfcf53c84c2dbe8d2b52a9cbe5"
+    },
+    "activation": {
+      "candidateImageId": "sha256:585f0a76df9420f228f7b47020c35247cb76524f63125ea7c5bf49bb8ee9cd7b",
+      "etServiceTouched": false,
+      "health": {
+        "server": "healthy",
+        "sfu": "healthy"
+      },
+      "oldImagesKept": true,
+      "privateComposeSnapshot": "compose.before.private.json",
+      "privateComposeSnapshotMode": "0600",
+      "project": "laokuailiao",
+      "rollbackAvailable": true,
+      "schema": 1,
+      "secretValuesPrinted": false,
+      "serverImageId": "sha256:9ddd8f97831436c5b4cae46b04e4c0a9b9afb34961aab5ce4c7d0a9fc80dfc81",
+      "serverVoiceMaxUsers": "12",
+      "services": [
+        "server",
+        "sfu"
+      ],
+      "sfuMaxPeers": "12",
+      "sfuMicrophoneBitrateBps": "16000",
+      "sfuMicrophonePacketTimeMs": "60",
+      "shapePreserved": {
+        "server": true,
+        "sfu": true
+      }
+    },
+    "publicHealthStatus": 200,
+    "operator": {
+      "path": "release/deployment/sfu-12-fallback-16k60/deploy.py",
+      "sha256": "c721c6f576f98276b2c92bfcd961e355782e78180757f95af8c4c98dbe707e97"
+    },
+    "scope": {
+      "backendImageUnchanged": true,
+      "backendEnvironmentDelta": {
+        "VOICE_MAX_USERS": "12"
+      },
+      "sfuBinaryReplaced": true,
+      "etServiceChanged": false,
+      "portsChanged": false,
+      "networksChanged": false,
+      "mountsChanged": false,
+      "credentialOrProfileExported": false
+    },
+    "limits": {
+      "twelveWanUsersAccepted": false,
+      "realGameCoexistenceAccepted": false,
+      "physicalPeerAccepted": false,
+      "arbitraryCustomProfilesBudgetAccepted": false
+    },
+    "rollback": {
+      "directory": "/opt/stacks/gryt/sfu-12-fallback-16k60",
+      "oldImagesKept": true,
+      "privateSnapshotOnServerOnly": true,
+      "activeOverlay": "activation.overlay.json"
+    },
+    "historicalAcceptanceUnchanged": true
   }
 }

@@ -4,7 +4,13 @@
 唯一开发入口 `D:\Dev\LaokuaiCloud`；分支 `main`。
 最新用户目标：本应用还替代 EasyTier Game；腾讯云标称 6 Mbps、实际更低，
 至少 12 人单频道语音，语音故障不能退出社区虚拟局域网。已授权并行实施、
-源码同步与新绿色测试包。当前 .4 源码整合中，未交付前不要把它写成 WAN 通过。
+源码同步与新绿色测试包。最新 .4 已构建交付到
+`.local/artifacts/autojoin-test-20261013/`，源 `56aed78e004d137ac606e5e7d3bbc220ee5d87bc`，
+129,285,343 B，SHA256 `065935af6294b37f15509e8e6110c6c6964b158394a7602cfd49aca98846088b`。
+见 `release/acceptance/voice-routing-portable-20261013.json`：22 项核心检查、编译、
+146 文件精确解包及真实隐藏离线新配置启动/退出通过，仍保留23条已有离线/
+禁用 IPC 控制台错误，三次自有端口采样零、退出残留零。旧包与用户 profile 保留。
+这不等于双设备 WAN、12 个完整客户端、真实托盘时延或游戏共存通过。
 决定和历史 20 席/公共 ET 证据边界见 `docs/VOICE-DISTRIBUTION-REVIEW-20261013.md`
 顶部最新决定；旧 4×5/2×10 是 2 SDK + 18 RTP 回放端，保留其成功结果。
 服务端增量已部署：SFU 源 35bcd5d3、image585f0a76；server 镜像保持9ddd8f97，
@@ -125,12 +131,12 @@ SHA256 `9e39a02a70ca68ed47b98bdc7aa7d264ad24082ff8298ab50e9f0d98322a28bd`。
 用户现已确认 .3 不再闪烁；新问题是本机条目错误展示远端未知字段，以及托盘
 退出时窗口等待几秒（桌面正常）。本地已修复本机详情和立即关闭自有 UI、后台
 等待两个有界 cleanup drain；真实新包托盘时延待测。记录在
-`release/acceptance/self-details-and-quit-20261013.json`，尚未生成 .4 包。
+`release/acceptance/self-details-and-quit-20261013.json`；该源级修复现已包含在顶部 .4 包中。
 
-用户随后要求重新审视完整语音分发。当前结论和下一轮顺序见
-`docs/VOICE-DISTRIBUTION-REVIEW-20261013.md`。实际 vendor SDK 与源码关键
+用户随后要求重新审视完整语音分发。修改前快照及最新决定见
+`docs/VOICE-DISTRIBUTION-REVIEW-20261013.md`。审视当时 vendor SDK 与源码关键
 选择逻辑一致：收到 peer 媒体就可切换，未门控 TURN/ET 中继，也未按质量重选；
 ET 入网与媒体选中 ICE 没有关联。SFU ACK/租约恢复正确成果和旧真实隔离媒体
-证据保留，完整双设备 WAN 未验收。线上只读白名单确认 Hybrid 开启且当前 6
-人限制，未改变生产配置。18 项统一检查全通过（含 Windows 无提权 pipe fixture）；
-优先完成路径分类与选择，再决定下一包范围，不把 UI 文案修复当作选路已修好。
+证据保留，完整双设备 WAN 未验收。最初只读白名单确认 Hybrid 开启和6人限制。
+后续已实施路径准入、持续退避、pair 信令序号修复、真实接收路径 UI、ET 2.7
+默认字段修复及12人低带宽配置，详见顶部当前结果；不把 UI 文案当作实测物理路径。

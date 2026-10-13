@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-13",
+  "version": "1.13.22-laokuai.beta.20261013.4",
+  "sourceCommit": "56aed78e004d137ac606e5e7d3bbc220ee5d87bc",
+  "file": "唠蒯云-1.13.22-laokuai.beta.20261013.4-zh-CN-win-x64-portable.exe",
+  "bytes": 129285343,
+  "sha256": "065935af6294b37f15509e8e6110c6c6964b158394a7602cfd49aca98846088b",
+  "appAsarSha256": "4fa07081287410b054750475468d0b2313037a8837e3b7b8143700376489b72e",
+  "staticPayloadFiles": 146,
+  "staticPayloadPassed": true,
+  "voice": {
+    "version": "0.6.2-laokuai.routing.1",
+    "sha256": "0786cd221317e74690629167e9ddadfdfcb6e5af42d62de7c6a4a54df5aa12ca",
+    "installedFilesMatched": 185
+  },
+  "broker": {
+    "schemaVersion": 1,
+    "sha256": "a0f27aefdf7cdddcef152efbc1dae5bea5a943c0d867308bc5fcedf3688ac791",
+    "sourceSha256": "84b02d46ca1d3bcd947ede99d063b0193ef785781857a47822665c22dfb500a0",
+    "bytes": 21504
+  },
+  "npcapAbsent": true,
+  "sourceArchivesBundled": false,
+  "tests": {
+    "sourceReceipt": "release/acceptance/voice-routing-source-20261013.json",
+    "coreChecks": 22,
+    "targetedLint": true,
+    "applicationTypes": true,
+    "applicationCompile": true
+  },
+  "deploymentReceipt": "release/acceptance/voice-budget-deployment-20261013.json",
+  "bootstrap": {
+    "status": "passed",
+    "exitCode": 0,
+    "rootChildren": 1,
+    "preload": {
+      "electronAPI": "object",
+      "easyTierCommunity": "object"
+    },
+    "visible": false,
+    "focused": false,
+    "unexpectedEvents": 0,
+    "residualOwnedProcesses": 0,
+    "socketSamples": [
+      {
+        "seconds": 4.392,
+        "ownedProcesses": 4,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 8.463,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 12.548,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      }
+    ],
+    "consoleErrors": 23,
+    "realElectronExecuted": true,
+    "isolatedFreshProfile": true,
+    "nativeEtExecuted": false,
+    "realCommunityOrDeviceMediaTest": false
+  },
+  "actualTrayTimingAccepted": false,
+  "twelveFullAppWanAccepted": false,
+  "dualDevicePhysicalPathAccepted": false,
+  "gameCoexistenceAccepted": false,
+  "publicBinaryRelease": false,
+  "repositoryVisibility": "public",
+  "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261013.4-zh-CN-win-x64-portable.exe",
+  "note": "The extracted .4 package passed static identity and isolated offline bootstrap only. Real codec and synthetic SFU fanout have separate scoped receipts. Existing 20-seat, ET and old-package evidence is preserved without promotion."
+}
