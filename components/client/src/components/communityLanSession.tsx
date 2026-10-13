@@ -29,7 +29,10 @@ export function CommunityLanSession({ children }: { children?: ReactNode }) {
       if (!retired) { setPreviewDisabled(mode === "preview-disabled"); setModeReady(true); }
     }).catch(() => { if (!retired) setOperationFailed(true); });
     let unlisten = () => undefined as void;
-    try { unlisten = api.onState(publish); } catch { setOperationFailed(true); }
+    try { unlisten = api.onState(state => {
+      publish(state);
+      if (!retired && state.phase === "connected") setOperationFailed(false);
+    }); } catch { setOperationFailed(true); }
     return () => { retired = true; try { unlisten(); } catch { /* ET cannot tear down voice. */ } };
   }, []);
   useEffect(() => {
