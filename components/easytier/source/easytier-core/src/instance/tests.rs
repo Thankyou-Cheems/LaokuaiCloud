@@ -835,6 +835,144 @@ network_secret = "network-secret"
 
     #[cfg(feature = "management")]
     #[tokio::test]
+    async fn member_relay_budget_hot_patch_preserves_lan_and_zero_wire_presence() {
+        use crate::peers::relay_budget::RelayBudgetDecision;
+        use easytier_proto::api::config::InstanceConfigPatch;
+        use prost::Message as _;
+
+        let (packet_sink, _packet_receiver) = tokio::sync::mpsc::channel(16);
+        let config = TomlConfig::new_from_str(
+            r#"
+instance_name = "fixture-relay-hot-patch"
+ipv4 = "10.83.0.1/24"
+member_relay_bytes_per_sec = 32000
+[flags]
+encryption_algorithm = "xor"
+[network_identity]
+network_name = "fixture-relay-hot-patch"
+network_secret = "fixture-network-secret"
+"#,
+        )
+        .unwrap();
+        let instance =
+            CoreInstance::from_toml(config, adapters(None, Arc::new(packet_sink))).unwrap();
+        // Construction-only OS-free fixture: do not start connectivity, core
+        // process, host adapters, TUN, listeners or any real network transport.
+        instance.set_state(CoreInstanceState::Running);
+        let original_peer_id = instance.peer_id();
+        let original_routes = instance
+            .runtime_config
+            .snapshot()
+            .peer
+            .runtime
+            .core
+            .routes
+            .clone();
+        assert_eq!(
+            instance.peer_manager.test_admit_member_relay_data(1),
+            RelayBudgetDecision::Dropped
+        );
+        crate::management::apply_config_patch(
+            &instance,
+            InstanceConfigPatch {
+                member_relay_lease_ms: Some(10_000),
+                ..Default::default()
+            },
+            None,
+        )
+        .await
+        .unwrap();
+        assert!(instance.member_relay_lease_remaining_ms() > 0);
+
+        let off = InstanceConfigPatch {
+            member_relay_bytes_per_sec: Some(0),
+            ..Default::default()
+        };
+        let wire = off.encode_to_vec();
+        let decoded = InstanceConfigPatch::decode(wire.as_slice()).unwrap();
+        assert_eq!(decoded.member_relay_bytes_per_sec, Some(0));
+        crate::management::apply_config_patch(&instance, decoded, None)
+            .await
+            .unwrap();
+        assert_eq!(
+            instance.peer_manager.test_admit_member_relay_data(1),
+            RelayBudgetDecision::Dropped
+        );
+        crate::management::apply_config_patch(&instance, InstanceConfigPatch::default(), None)
+            .await
+            .unwrap();
+        assert_eq!(
+            instance
+                .runtime_config
+                .snapshot()
+                .peer
+                .runtime
+                .core
+                .traffic
+                .member_relay_bytes_per_sec,
+            Some(0)
+        );
+
+        let on = InstanceConfigPatch {
+            member_relay_bytes_per_sec: Some(32_000),
+            member_relay_lease_ms: Some(10_000),
+            ..Default::default()
+        };
+        crate::management::apply_config_patch(&instance, on, None)
+            .await
+            .unwrap();
+        assert_eq!(
+            instance
+                .runtime_config
+                .snapshot()
+                .peer
+                .runtime
+                .core
+                .traffic
+                .member_relay_bytes_per_sec,
+            Some(32_000)
+        );
+        assert_eq!(
+            instance.peer_manager.test_admit_member_relay_data(8_000),
+            RelayBudgetDecision::Dropped
+        );
+        let readback =
+            crate::config::api::network_config_from_toml(&instance.toml_config().unwrap());
+        assert_eq!(readback.member_relay_bytes_per_sec, Some(32_000));
+        assert_eq!(instance.state(), CoreInstanceState::Running);
+        assert_eq!(instance.peer_id(), original_peer_id);
+        assert_eq!(
+            instance.runtime_config.snapshot().peer.runtime.core.routes,
+            original_routes
+        );
+        assert!(
+            !instance
+                .runtime_config
+                .snapshot()
+                .peer
+                .flags
+                .disable_relay_data
+        );
+        crate::management::apply_config_patch(
+            &instance,
+            InstanceConfigPatch {
+                member_relay_lease_ms: Some(0),
+                ..Default::default()
+            },
+            None,
+        )
+        .await
+        .unwrap();
+        assert_eq!(instance.member_relay_lease_remaining_ms(), 0);
+        assert_eq!(
+            instance.peer_manager.test_admit_member_relay_data(1),
+            RelayBudgetDecision::Dropped
+        );
+        instance.peer_manager.clear_resources().await;
+    }
+
+    #[cfg(feature = "management")]
+    #[tokio::test]
     async fn managed_credential_patch_is_durable_atomic_and_does_not_restart() {
         use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
         use easytier_proto::api::{

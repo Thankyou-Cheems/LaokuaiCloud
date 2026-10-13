@@ -155,6 +155,7 @@ pub fn network_config_from_toml(config: &TomlConfig) -> NetworkConfig {
     result.disable_upnp = Some(flags.disable_upnp);
     result.disable_relay_data = Some(flags.disable_relay_data);
     result.prefer_peer_relay = Some(flags.prefer_peer_relay);
+    result.member_relay_bytes_per_sec = config.get_member_relay_bytes_per_sec();
     result.enable_udp_broadcast_relay = Some(flags.enable_udp_broadcast_relay);
     result.disable_sym_hole_punching = Some(flags.disable_sym_hole_punching);
     result.enable_magic_dns = Some(flags.accept_dns);
@@ -186,6 +187,22 @@ pub fn network_config_from_toml(config: &TomlConfig) -> NetworkConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn member_relay_budget_readback_preserves_none_and_zero() {
+        let config = TomlConfig::default();
+        assert_eq!(
+            network_config_from_toml(&config).member_relay_bytes_per_sec,
+            None
+        );
+        for rate in [0, 32_000] {
+            config.set_member_relay_bytes_per_sec(Some(rate));
+            assert_eq!(
+                network_config_from_toml(&config).member_relay_bytes_per_sec,
+                Some(rate)
+            );
+        }
+    }
     use crate::config::toml::ManagedCredentialConfig;
 
     #[test]

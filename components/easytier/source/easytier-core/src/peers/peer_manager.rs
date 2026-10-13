@@ -69,6 +69,7 @@ use super::{
     peer_rpc::{PeerRpcManager, PeerRpcManagerTransport},
     public_ipv6::{CorePublicIpv6Runtime, PublicIpv6Runtime},
     recv_packet_envelope_from_chan,
+    relay_budget::{RelayBudgetDecision, charges_forwarded_data},
     relay_peer_map::RelayPeerMap,
     route::{
         ArcRoute, DisabledRoute, ForeignNetworkRouteInfoMap, NextHopPolicy, Route, RouteInterface,
@@ -1226,6 +1227,23 @@ impl PeerManagerCore {
 
     pub fn notify_credential_changed(&self) {
         self.context.issue_credential_changed();
+    }
+
+    pub(crate) fn renew_member_relay_lease(&self, lease_ms: u32) -> Result<(), &'static str> {
+        self.context.renew_member_relay_lease(lease_ms)
+    }
+
+    pub(crate) fn revoke_member_relay_lease(&self) {
+        self.context.revoke_member_relay_lease();
+    }
+
+    pub(crate) fn member_relay_lease_remaining_ms(&self) -> u32 {
+        self.context.member_relay_lease_remaining_ms()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn test_admit_member_relay_data(&self, bytes: u64) -> RelayBudgetDecision {
+        self.context.admit_member_relay_data(bytes)
     }
 
     pub async fn list_peer_snapshots(&self) -> Vec<PeerSnapshot> {
@@ -2881,6 +2899,10 @@ struct PeerPacketRouterCounters {
     forward_data_tx_bytes: CounterHandle,
     forward_control_tx_packets: CounterHandle,
     forward_control_tx_bytes: CounterHandle,
+    member_relay_budget_admitted_bytes: CounterHandle,
+    member_relay_budget_admitted_packets: CounterHandle,
+    member_relay_budget_dropped_bytes: CounterHandle,
+    member_relay_budget_dropped_packets: CounterHandle,
     compress_tx_bytes_before: CounterHandle,
     compress_tx_bytes_after: CounterHandle,
     compress_rx_bytes_before: CounterHandle,
@@ -2967,6 +2989,20 @@ impl PeerPacketRouter {
                     MetricName::TrafficControlPacketsForwarded,
                     label_set.clone(),
                 ),
+                member_relay_budget_admitted_bytes: stats_mgr.get_counter(
+                    MetricName::MemberRelayBudgetAdmittedBytes,
+                    label_set.clone(),
+                ),
+                member_relay_budget_admitted_packets: stats_mgr.get_counter(
+                    MetricName::MemberRelayBudgetAdmittedPackets,
+                    label_set.clone(),
+                ),
+                member_relay_budget_dropped_bytes: stats_mgr
+                    .get_counter(MetricName::MemberRelayBudgetDroppedBytes, label_set.clone()),
+                member_relay_budget_dropped_packets: stats_mgr.get_counter(
+                    MetricName::MemberRelayBudgetDroppedPackets,
+                    label_set.clone(),
+                ),
                 compress_tx_bytes_before,
                 compress_tx_bytes_after,
                 compress_rx_bytes_before: stats_mgr
@@ -3050,6 +3086,33 @@ impl PeerPacketRouter {
             if hdr.forward_counter > 7 {
                 tracing::warn!(?hdr, "forward counter exceed, drop packet");
                 return;
+            }
+
+            // This shared instance bucket is after foreign-network dispatch and
+            // before every same-network next-hop send. Never await quota here:
+            // doing so would stall local/control packets behind forwarded data.
+            if charges_forwarded_data(
+                matches!(ingress, PeerPacketIngress::Local),
+                from_peer_id == self.my_peer_id,
+                to_peer_id == self.my_peer_id,
+                traffic_kind(packet_type) == TrafficKind::Data,
+            ) {
+                match self.context.admit_member_relay_data(buf_len as u64) {
+                    RelayBudgetDecision::Legacy => {}
+                    RelayBudgetDecision::Admitted => {
+                        self.counters
+                            .member_relay_budget_admitted_bytes
+                            .add(buf_len as u64);
+                        self.counters.member_relay_budget_admitted_packets.inc();
+                    }
+                    RelayBudgetDecision::Dropped => {
+                        self.counters
+                            .member_relay_budget_dropped_bytes
+                            .add(buf_len as u64);
+                        self.counters.member_relay_budget_dropped_packets.inc();
+                        return;
+                    }
+                }
             }
 
             // Step 10b: credential nodes don't forward handshake packets

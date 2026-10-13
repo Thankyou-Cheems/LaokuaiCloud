@@ -220,6 +220,23 @@ where
         self.peer_manager.notify_credential_changed();
     }
 
+    #[cfg(feature = "web-client")]
+    pub(crate) fn renew_member_relay_lease(&self, lease_ms: u32) -> anyhow::Result<()> {
+        self.peer_manager
+            .renew_member_relay_lease(lease_ms)
+            .map_err(anyhow::Error::msg)
+    }
+
+    #[cfg(feature = "web-client")]
+    pub(crate) fn revoke_member_relay_lease(&self) {
+        self.peer_manager.revoke_member_relay_lease();
+    }
+
+    #[cfg(feature = "web-client")]
+    pub(crate) fn member_relay_lease_remaining_ms(&self) -> u32 {
+        self.peer_manager.member_relay_lease_remaining_ms()
+    }
+
     pub fn metric_snapshots(&self) -> Vec<MetricSnapshot> {
         self.peer_manager.stats_manager().get_all_metrics()
     }

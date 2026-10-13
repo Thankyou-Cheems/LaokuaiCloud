@@ -316,6 +316,10 @@ pub struct TrafficConfig {
     pub mtu: Option<u16>,
     pub instance_recv_bps_limit: Option<u64>,
     pub foreign_relay_bps_limit: Option<u64>,
+    /// Same-network forwarded data only, in bytes per second. None is legacy;
+    /// zero rejects forwarding. Older binaries do not understand this field.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub member_relay_bytes_per_sec: Option<u64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
@@ -558,6 +562,7 @@ impl TryFrom<pb::TrafficConfig> for TrafficConfig {
                 .transpose()?,
             instance_recv_bps_limit: value.instance_recv_bps_limit,
             foreign_relay_bps_limit: value.foreign_relay_bps_limit,
+            member_relay_bytes_per_sec: value.member_relay_bytes_per_sec,
         })
     }
 }
@@ -568,6 +573,7 @@ impl From<TrafficConfig> for pb::TrafficConfig {
             mtu: value.mtu.map(Into::into),
             instance_recv_bps_limit: value.instance_recv_bps_limit,
             foreign_relay_bps_limit: value.foreign_relay_bps_limit,
+            member_relay_bytes_per_sec: value.member_relay_bytes_per_sec,
         }
     }
 }
@@ -608,6 +614,18 @@ fn uuid_from_bytes(bytes: [u8; 16]) -> common_pb::Uuid {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn member_relay_budget_portable_proto_roundtrip_preserves_zero() {
+        for rate in [None, Some(0), Some(32_000)] {
+            let config = TrafficConfig {
+                member_relay_bytes_per_sec: rate,
+                ..Default::default()
+            };
+            let wire: pb::TrafficConfig = config.clone().into();
+            assert_eq!(TrafficConfig::try_from(wire).unwrap(), config);
+        }
+    }
     use base64::prelude::BASE64_STANDARD;
     use x25519_dalek::{PublicKey, StaticSecret};
 
@@ -808,6 +826,7 @@ mod tests {
                 mtu: Some(1380),
                 instance_recv_bps_limit: Some(100),
                 foreign_relay_bps_limit: None,
+                member_relay_bytes_per_sec: None,
             }),
         })
         .unwrap();

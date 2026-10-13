@@ -278,6 +278,11 @@ pub trait ConfigLoader: Send + Sync {
     }
     fn set_managed_credentials(&self, _credentials: Vec<ManagedCredentialConfig>) {}
 
+    fn get_member_relay_bytes_per_sec(&self) -> Option<u64> {
+        None
+    }
+    fn set_member_relay_bytes_per_sec(&self, _bytes_per_sec: Option<u64>) {}
+
     fn get_network_config_source(&self) -> ConfigSource {
         ConfigSource::User
     }
@@ -564,6 +569,8 @@ struct Config {
     credential_file: Option<PathBuf>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     managed_credentials: Vec<ManagedCredentialConfig>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    member_relay_bytes_per_sec: Option<u64>,
     source: Option<ConfigSourceConfig>,
 }
 
@@ -1155,6 +1162,14 @@ impl ConfigLoader for TomlConfig {
         self.config.lock().unwrap().managed_credentials = credentials;
     }
 
+    fn get_member_relay_bytes_per_sec(&self) -> Option<u64> {
+        self.config.lock().unwrap().member_relay_bytes_per_sec
+    }
+
+    fn set_member_relay_bytes_per_sec(&self, bytes_per_sec: Option<u64>) {
+        self.config.lock().unwrap().member_relay_bytes_per_sec = bytes_per_sec;
+    }
+
     fn get_network_config_source(&self) -> ConfigSource {
         self.config
             .lock()
@@ -1203,6 +1218,35 @@ pub type TomlConfigLoader = TomlConfig;
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn member_relay_budget_absent_positive_and_zero_are_distinct() {
+        assert_eq!(TomlConfig::default().get_member_relay_bytes_per_sec(), None);
+        for rate in [0, 32_000] {
+            let config =
+                TomlConfig::new_from_str(&format!("member_relay_bytes_per_sec = {rate}")).unwrap();
+            assert_eq!(config.get_member_relay_bytes_per_sec(), Some(rate));
+            config.set_member_relay_bytes_per_sec(None);
+            assert_eq!(config.get_member_relay_bytes_per_sec(), None);
+        }
+        assert!(TomlConfig::new_from_str("member_relay_bytes_per_sec = -1").is_err());
+    }
+
+    #[cfg(feature = "config-write")]
+    #[test]
+    fn member_relay_budget_toml_roundtrip_preserves_zero() {
+        for rate in [0, 32_000] {
+            let config =
+                TomlConfig::new_from_str(&format!("member_relay_bytes_per_sec = {rate}")).unwrap();
+            let restored = TomlConfig::new_from_str(&config.dump()).unwrap();
+            assert_eq!(restored.get_member_relay_bytes_per_sec(), Some(rate));
+        }
+        assert!(
+            !TomlConfig::default()
+                .dump()
+                .contains("member_relay_bytes_per_sec")
+        );
+    }
 
     #[test]
     fn parse_error_preserves_source_and_location() {

@@ -32,6 +32,7 @@ use crate::{
     foundation::token_bucket::{ArcByteLimiter, BucketConfig, TokenBucketManager},
     peers::{
         credential_manager::{CredentialManager, CredentialStorage},
+        relay_budget::{MemberRelayBudget, RelayBudgetDecision},
         util::shrink_dashmap,
         whitelist::check_network_in_relay_whitelist,
     },
@@ -80,6 +81,7 @@ pub struct PeerRuntimeSnapshotInput {
     pub ospf_update_my_foreign_network_interval_sec: u64,
     pub max_direct_conns_per_peer_in_foreign_network: usize,
     pub hmac_secret_digest: bool,
+    pub member_relay_bytes_per_sec: Option<u64>,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -129,6 +131,7 @@ impl PeerRuntimeSnapshot {
             ospf_update_my_foreign_network_interval_sec,
             max_direct_conns_per_peer_in_foreign_network,
             hmac_secret_digest,
+            member_relay_bytes_per_sec,
         } = input;
         let feature_flags = PeerFeatureFlag {
             kcp_input: !flags.disable_kcp_input,
@@ -156,6 +159,7 @@ impl PeerRuntimeSnapshot {
                 .then_some(flags.instance_recv_bps_limit),
             foreign_relay_bps_limit: (flags.foreign_relay_bps_limit != u64::MAX)
                 .then_some(flags.foreign_relay_bps_limit),
+            member_relay_bytes_per_sec,
         };
         let avoid_relay_data_preference = check_network_in_relay_whitelist(
             &flags.relay_network_whitelist,
@@ -265,6 +269,7 @@ pub(crate) struct CorePeerContext {
     stun_info_source: Option<Arc<dyn PeerStunInfoSource>>,
     public_ipv6_state: Arc<dyn PeerPublicIpv6State>,
     limiter_state: Mutex<CoreLimiterState>,
+    member_relay_budget: MemberRelayBudget,
     stats_manager: Arc<StatsManager>,
     credentials: Arc<CredentialManager>,
     trusted_keys: Arc<TrustedKeyMapManager>,
@@ -316,6 +321,7 @@ impl CorePeerContext {
             stun_info_source: adapters.stun_info_source,
             public_ipv6_state,
             limiter_state: Mutex::new(CoreLimiterState::default()),
+            member_relay_budget: MemberRelayBudget::default(),
             stats_manager,
             credentials,
             trusted_keys: Arc::new(TrustedKeyMapManager::new()),
@@ -365,6 +371,7 @@ impl CorePeerContext {
     }
 
     pub(crate) async fn stop(&self) {
+        self.member_relay_budget.stop();
         let manager = {
             let mut state = self.limiter_state.lock().unwrap();
             state.stopped = true;
@@ -718,6 +725,20 @@ pub(crate) trait PeerContext: Send + Sync {
         None
     }
 
+    fn admit_member_relay_data(&self, _bytes: u64) -> RelayBudgetDecision {
+        RelayBudgetDecision::Legacy
+    }
+
+    fn renew_member_relay_lease(&self, _lease_ms: u32) -> Result<(), &'static str> {
+        Err("member relay lease is unsupported")
+    }
+
+    fn revoke_member_relay_lease(&self) {}
+
+    fn member_relay_lease_remaining_ms(&self) -> u32 {
+        0
+    }
+
     fn issue_event(&self, _event: PeerEvent) {}
 
     fn subscribe_peer_events(&self) -> Option<PeerContextEventSubscriber> {
@@ -1007,6 +1028,29 @@ impl PeerContext for CorePeerContext {
         self.get_or_create_limiter(&format!("peer:foreign:{network_name}:forward"), bps)
     }
 
+    fn admit_member_relay_data(&self, bytes: u64) -> RelayBudgetDecision {
+        self.member_relay_budget.try_admit(
+            self.snapshot()
+                .runtime
+                .core
+                .traffic
+                .member_relay_bytes_per_sec,
+            bytes,
+        )
+    }
+
+    fn renew_member_relay_lease(&self, lease_ms: u32) -> Result<(), &'static str> {
+        self.member_relay_budget.renew_lease(lease_ms)
+    }
+
+    fn revoke_member_relay_lease(&self) {
+        self.member_relay_budget.revoke_lease();
+    }
+
+    fn member_relay_lease_remaining_ms(&self) -> u32 {
+        self.member_relay_budget.lease_remaining_ms()
+    }
+
     fn issue_event(&self, event: PeerEvent) {
         let context_event = match &event {
             PeerEvent::PeerAdded(peer_id) => PeerContextEvent::PeerAdded(*peer_id),
@@ -1131,6 +1175,7 @@ pub(crate) mod tests {
             ospf_update_my_foreign_network_interval_sec: 17,
             max_direct_conns_per_peer_in_foreign_network: 5,
             hmac_secret_digest: true,
+            member_relay_bytes_per_sec: None,
         }
     }
 
@@ -1322,6 +1367,46 @@ pub(crate) mod tests {
 
     fn submitted_config(snapshot: PeerRuntimeSnapshot) -> CoreRuntimeConfigStore {
         CoreRuntimeConfigStore::new(CoreRuntimeConfig::default(), Arc::new(snapshot))
+    }
+
+    #[tokio::test]
+    async fn member_relay_budget_is_shared_and_zero_or_stop_clears_forwarding() {
+        let mut snapshot = submitted_snapshot("relay-budget", false);
+        snapshot.runtime.core.traffic.member_relay_bytes_per_sec = Some(32_000);
+        let config = submitted_config(snapshot);
+        let context = CorePeerContext::new(
+            config.clone(),
+            Arc::new(()),
+            test_core_context_adapters(Arc::new(())),
+        );
+        context.renew_member_relay_lease(10_000).unwrap();
+        assert_eq!(
+            context.admit_member_relay_data(8_000),
+            RelayBudgetDecision::Admitted
+        );
+        assert_eq!(
+            context.admit_member_relay_data(8_001),
+            RelayBudgetDecision::Dropped
+        );
+        config.update_peer_with(|peer| {
+            peer.runtime.core.traffic.member_relay_bytes_per_sec = Some(0)
+        });
+        assert_eq!(
+            context.admit_member_relay_data(1),
+            RelayBudgetDecision::Dropped
+        );
+        config.update_peer_with(|peer| {
+            peer.runtime.core.traffic.member_relay_bytes_per_sec = Some(32_000)
+        });
+        assert_eq!(
+            context.admit_member_relay_data(8_000),
+            RelayBudgetDecision::Dropped
+        );
+        context.stop().await;
+        assert_eq!(
+            context.admit_member_relay_data(1),
+            RelayBudgetDecision::Dropped
+        );
     }
 
     #[test]

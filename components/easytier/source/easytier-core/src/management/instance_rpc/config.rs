@@ -36,12 +36,14 @@ where
         _: BaseController,
         request: GetConfigRequest,
     ) -> rpc_types::error::Result<GetConfigResponse> {
-        let config = self
-            .instance(request.instance.as_ref())?
+        let instance = self.instance(request.instance.as_ref())?;
+        let config = instance
             .toml_config()
             .ok_or_else(|| anyhow::anyhow!("shared TOML configuration is not available"))?;
+        let mut readback = network_config_from_toml(&config);
+        readback.member_relay_lease_remaining_ms = Some(instance.member_relay_lease_remaining_ms());
         Ok(GetConfigResponse {
-            config: Some(network_config_from_toml(&config)),
+            config: Some(readback),
             toml_config: config.dump(),
         })
     }

@@ -35,6 +35,19 @@ where
         anyhow::bail!("instance is not ready; config patch rejected");
     }
 
+    let member_relay_lease_ms = patch.member_relay_lease_ms;
+    if member_relay_lease_ms
+        .is_some_and(|ttl| ttl > crate::peers::relay_budget::MAX_MEMBER_RELAY_LEASE_MS)
+    {
+        anyhow::bail!("member relay lease exceeds 15000ms");
+    }
+    // Security-off closes the local gate before any durable-write await.
+    // A failed/cancelled persistence may keep the old rate, but cannot keep
+    // granting new forwarded packets until somebody explicitly renews.
+    if patch.member_relay_bytes_per_sec == Some(0) || member_relay_lease_ms == Some(0) {
+        instance.revoke_member_relay_lease();
+    }
+
     let config = instance
         .toml_config()
         .ok_or_else(|| anyhow::anyhow!("shared TOML configuration is not available"))?;
@@ -102,6 +115,9 @@ where
             let mut flags = candidate.get_flags();
             flags.prefer_peer_relay = prefer_peer_relay;
             candidate.set_flags(flags);
+        }
+        if let Some(bytes_per_sec) = patch.member_relay_bytes_per_sec {
+            candidate.set_member_relay_bytes_per_sec(Some(bytes_per_sec));
         }
         if let Some(enabled) = patch.ipv6_public_addr_provider {
             candidate.set_ipv6_public_addr_provider(enabled);
@@ -224,6 +240,16 @@ where
         .update_runtime_config_under_operation(runtime_config_from_toml(instance, &config)?)
         .await?;
     let (provider_config_changed, managed_credentials_changed) = patch_result?;
+    if let Some(lease_ms) = member_relay_lease_ms {
+        if lease_ms > 0
+            && config
+                .get_member_relay_bytes_per_sec()
+                .is_none_or(|rate| rate == 0)
+        {
+            anyhow::bail!("member relay lease requires a configured positive budget");
+        }
+        instance.renew_member_relay_lease(lease_ms)?;
+    }
     if patch_for_host != InstanceConfigPatch::default() {
         instance
             .instance_runtime

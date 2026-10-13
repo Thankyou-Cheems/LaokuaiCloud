@@ -125,6 +125,12 @@ pub enum MetricName {
     TrafficControlBytesRxByInstance,
     /// Traffic bytes forwarded
     TrafficBytesForwarded,
+    /// Same-network forwarded data admitted by the configured member budget.
+    MemberRelayBudgetAdmittedBytes,
+    /// Same-network forwarded data dropped before transmission by the budget.
+    MemberRelayBudgetDroppedBytes,
+    MemberRelayBudgetAdmittedPackets,
+    MemberRelayBudgetDroppedPackets,
     /// Control-plane traffic bytes forwarded
     TrafficControlBytesForwarded,
     /// Traffic bytes sent to self
@@ -222,6 +228,18 @@ impl fmt::Display for MetricName {
                 write!(f, "traffic_control_bytes_rx_by_instance")
             }
             MetricName::TrafficBytesForwarded => write!(f, "traffic_bytes_forwarded"),
+            MetricName::MemberRelayBudgetAdmittedBytes => {
+                write!(f, "member_relay_budget_admitted_bytes")
+            }
+            MetricName::MemberRelayBudgetDroppedBytes => {
+                write!(f, "member_relay_budget_dropped_bytes")
+            }
+            MetricName::MemberRelayBudgetAdmittedPackets => {
+                write!(f, "member_relay_budget_admitted_packets")
+            }
+            MetricName::MemberRelayBudgetDroppedPackets => {
+                write!(f, "member_relay_budget_dropped_packets")
+            }
             MetricName::TrafficControlBytesForwarded => {
                 write!(f, "traffic_control_bytes_forwarded")
             }

@@ -250,6 +250,7 @@ impl CoreInstanceConfig {
                 max_direct_conns_per_peer_in_foreign_network:
                     MAX_DIRECT_CONNS_PER_PEER_IN_FOREIGN_NETWORK,
                 hmac_secret_digest: false,
+                member_relay_bytes_per_sec: config.get_member_relay_bytes_per_sec(),
             });
         let peer = PortablePeerManagerConfig {
             snapshot: peer_snapshot,
@@ -406,6 +407,25 @@ mod tests {
     use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64_STANDARD};
 
     use super::*;
+
+    #[test]
+    fn member_relay_budget_reaches_atomic_peer_snapshot_from_toml() {
+        for rate in [0, 32_000] {
+            let toml =
+                TomlConfig::new_from_str(&format!("member_relay_bytes_per_sec = {rate}")).unwrap();
+            let config = CoreInstanceConfig::from_toml(&toml).unwrap();
+            assert_eq!(
+                config
+                    .peer
+                    .snapshot
+                    .runtime
+                    .core
+                    .traffic
+                    .member_relay_bytes_per_sec,
+                Some(rate)
+            );
+        }
+    }
 
     #[test]
     fn tcp_stun_servers_follow_toml_override_rules() {

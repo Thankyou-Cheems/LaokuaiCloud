@@ -110,6 +110,7 @@ const FORM_MANAGED_TOML_FIELDS: &[&str] = &[
     "acl",
     "credential_file",
     "managed_credentials",
+    "member_relay_bytes_per_sec",
 ];
 
 #[cfg(all(
@@ -447,6 +448,7 @@ impl NetworkConfigExt for NetworkConfig {
                 .map(managed_credential_from_proto)
                 .collect(),
         );
+        cfg.set_member_relay_bytes_per_sec(self.member_relay_bytes_per_sec);
 
         if let Some(credential_secret) = credential_secret {
             cfg.set_secure_mode(Some(normalize_secure_mode_config(
@@ -793,6 +795,7 @@ impl NetworkConfigExt for NetworkConfig {
         result.disable_upnp = Some(flags.disable_upnp);
         result.disable_relay_data = Some(flags.disable_relay_data);
         result.prefer_peer_relay = Some(flags.prefer_peer_relay);
+        result.member_relay_bytes_per_sec = config.get_member_relay_bytes_per_sec();
         result.enable_udp_broadcast_relay = Some(flags.enable_udp_broadcast_relay);
         result.disable_sym_hole_punching = Some(flags.disable_sym_hole_punching);
         result.enable_magic_dns = Some(flags.accept_dns);
@@ -939,6 +942,24 @@ mod tests {
         let output = NetworkConfig::new_from_config(&config).unwrap();
         assert_eq!(output.disable_relay_data, Some(false));
         assert_eq!(output.prefer_peer_relay, Some(true));
+    }
+
+    #[test]
+    fn member_relay_budget_network_config_roundtrip_preserves_zero() {
+        for rate in [None, Some(0), Some(32_000)] {
+            let input = NetworkConfig {
+                member_relay_bytes_per_sec: rate,
+                ..standalone_config()
+            };
+            let config = input.gen_config().unwrap();
+            assert_eq!(config.get_member_relay_bytes_per_sec(), rate);
+            assert_eq!(
+                NetworkConfig::new_from_config(&config)
+                    .unwrap()
+                    .member_relay_bytes_per_sec,
+                rate
+            );
+        }
     }
 
     #[test]

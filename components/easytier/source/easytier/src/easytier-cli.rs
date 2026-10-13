@@ -38,7 +38,7 @@ use easytier::{
         api::{
             config::{
                 AclPatch, ConfigPatchAction, ConfigRpc, ConfigRpcClientFactory,
-                InstanceConfigPatch, PatchConfigRequest, PortForwardPatch, StringPatch, UrlPatch,
+                GetConfigRequest, InstanceConfigPatch, PatchConfigRequest, PortForwardPatch, StringPatch, UrlPatch,
                 VpnPortalClientPatch,
             },
             instance::{
@@ -154,6 +154,8 @@ enum SubCommand {
     Logger(LoggerArgs),
     #[command(about = "manage temporary credentials")]
     Credential(CredentialArgs),
+    #[command(about = "inspect or renew owned-instance member relay admission")]
+    MemberRelay(MemberRelayArgs),
     #[command(about = t!("core_clap.generate_completions").to_string())]
     GenAutocomplete { shell: ShellType },
 }
@@ -162,6 +164,23 @@ enum SubCommand {
 enum OutputFormat {
     Table,
     Json,
+}
+
+#[derive(Args, Debug)]
+struct MemberRelayArgs {
+    #[command(subcommand)]
+    sub_command: MemberRelaySubCommand,
+}
+
+#[derive(Subcommand, Debug)]
+enum MemberRelaySubCommand {
+    Status,
+    Apply {
+        #[arg(long)]
+        bytes_per_sec: u64,
+        #[arg(long, value_parser = clap::value_parser!(u32).range(0..=15_000))]
+        lease_ms: u32,
+    },
 }
 
 #[derive(Parser, Debug)]
@@ -1112,6 +1131,47 @@ impl<'a> CommandHandler<'a> {
             .scoped_client::<ConfigRpcClientFactory<BaseController>>("".to_string())
             .await
             .with_context(|| "failed to get config client")?)
+    }
+
+    async fn handle_member_relay(&self, command: &MemberRelaySubCommand) -> Result<(), Error> {
+        let instance_id = self.instance_select.id
+            .ok_or_else(|| anyhow::anyhow!("member-relay requires an explicit --instance-id"))?;
+        let client = self.get_config_client().await?;
+        let applied = matches!(command, MemberRelaySubCommand::Apply { .. });
+        if let MemberRelaySubCommand::Apply { bytes_per_sec, lease_ms } = command {
+            client.patch_config(BaseController::default(), PatchConfigRequest {
+                instance: Some(self.instance_selector.clone()),
+                patch: Some(InstanceConfigPatch {
+                    member_relay_bytes_per_sec: Some(*bytes_per_sec),
+                    member_relay_lease_ms: Some(*lease_ms),
+                    ..Default::default()
+                }),
+            }).await?;
+        }
+        let config = client.get_config(BaseController::default(), GetConfigRequest {
+            instance: Some(self.instance_selector.clone()),
+        }).await?.config.ok_or_else(|| anyhow::anyhow!("member relay readback is unavailable"))?;
+        let remaining = config.member_relay_lease_remaining_ms
+            .ok_or_else(|| anyhow::anyhow!("native member relay budget/lease capability is unavailable"))?;
+        if let MemberRelaySubCommand::Apply { bytes_per_sec, lease_ms } = command {
+            if config.member_relay_bytes_per_sec != Some(*bytes_per_sec)
+                || (*lease_ms == 0 && remaining != 0)
+                || (*lease_ms > 0 && (remaining == 0 || remaining > *lease_ms)) {
+                anyhow::bail!("member relay budget/lease readback mismatch");
+            }
+        }
+        // Deliberately print only admission metadata, never the full config,
+        // network secrets, credentials, private keys or private paths.
+        println!("{}", serde_json::to_string(&serde_json::json!({
+            "schemaVersion": 1,
+            "capability": "member-relay-budget-lease-v1",
+            "instanceId": instance_id.to_string(),
+            "bytesPerSec": config.member_relay_bytes_per_sec,
+            "leaseRemainingMs": remaining,
+            "maxLeaseMs": 15_000,
+            "applied": applied,
+        }))?);
+        Ok(())
     }
 
     async fn get_credential_client(
@@ -3687,6 +3747,7 @@ async fn main() -> Result<(), Error> {
                 handler.handle_credential_list().await?;
             }
         },
+        SubCommand::MemberRelay(args) => handler.handle_member_relay(&args.sub_command).await?,
         SubCommand::GenAutocomplete { shell } => {
             let mut cmd = Cli::command();
             if let Some(shell) = shell.to_shell() {

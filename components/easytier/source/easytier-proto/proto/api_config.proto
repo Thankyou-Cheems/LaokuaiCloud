@@ -31,6 +31,12 @@ message InstanceConfigPatch {
   repeated VpnPortalClientPatch vpn_portal_clients = 15;
   api.manage.ManagedCredentialSet managed_credentials = 16;
   optional bool prefer_peer_relay = 17;
+  // Same-network forwarded data only, bytes/second. Omitted leaves it unchanged;
+  // zero denies forwarding without stopping the instance or local traffic.
+  optional uint64 member_relay_bytes_per_sec = 18;
+  // Local monotonic lease; 1..15000ms renews, zero revokes, omitted does not
+  // renew. Runtime authority must never be restored from TOML.
+  optional uint32 member_relay_lease_ms = 19;
 }
 
 message VpnPortalClientPatch {

@@ -10,6 +10,7 @@ pub mod peer_center;
 pub mod peer_manager;
 pub(crate) mod peer_rpc;
 pub mod public_ipv6;
+pub(crate) mod relay_budget;
 pub(crate) mod relay_peer_map;
 pub(crate) mod route;
 pub(crate) mod traffic_metrics;
