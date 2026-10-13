@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "id": "laokuai-cloud-receive-path-et-observation-frozen-20261011",
-  "stage": "friend-beta-built-and-source-offered-password-unconfigured",
+  "stage": "friend-test-single-exe-sealed-with-embedded-source",
   "ready": false,
   "repository": {
     "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud",
@@ -3027,6 +3027,41 @@
       "Physical voice-direct transport remains unproved"
     ],
     "publicReleaseOrPush": false,
-    "fullProjectReady": false
+    "fullProjectReady": false,
+    "singleExe": {
+      "sourceCommit": "2526db9081567da13f246be801a3b4662cb38102",
+      "file": "唠蒯云-1.13.22-laokuai.beta.20261012.1-win-x64-朋友测试-单文件.exe",
+      "bytes": 320318727,
+      "sha256": "99d0784bac155ec3a9fcc9a2dc477118a89c2eea567f8fd09813a1f8d2055388",
+      "appAsarSha256": "715cc61c90199e3c213bc997499ff9b15e63a7363ec5294c3d015d8ec813374e",
+      "compiledCodeAndExistingNativePayloadUnchanged": true,
+      "sourceArchiveCount": 8,
+      "embeddedSourceHashesVerified": true,
+      "noAdjacentZipOrRuntimeResourceDirectoryRequired": true,
+      "exactPayloadFiles": 166,
+      "embeddedSourceAccess": "7-Zip: $PLUGINSDIR/app-64.7z -> resources/legal/corresponding-source",
+      "unmodifiedRuntimeSourceEntry": "UNMODIFIED-RUNTIME-SOURCE-ACCESS.md",
+      "finalAbsolutePath": "C:\\Users\\cheb2\\Documents\\Codex\\2026-10-11\\task-6\\distribution-beta-a5c557be\\single-exe-20261013\\单文件交付\\唠蒯云-1.13.22-laokuai.beta.20261012.1-win-x64-朋友测试-单文件.exe",
+      "deliveryFolder": "C:\\Users\\cheb2\\Documents\\Codex\\2026-10-11\\task-6\\distribution-beta-a5c557be\\single-exe-20261013\\单文件交付",
+      "deliveryFolderContainsOnlyOneExe": true,
+      "portableWrapperActuallyExecuted": true,
+      "onlyExeDirectoryBootstrapPassed": true,
+      "successfulEndpointSamples": 16,
+      "ownedNetworkEndpointsZero": true,
+      "ownedForegroundFalse": true,
+      "exitCode": 0,
+      "residualCount": 0,
+      "internalSourcePublication": false,
+      "publicUpload": false,
+      "communityPasswordWritten": false,
+      "networkSecurityOrPrivateTierChanged": false,
+      "fullRebuildOrNativeCompilerRepeated": false,
+      "userReportedVoiceRoomSwitchPass": true,
+      "userReportedSingleDeviceEtLinkPass": true,
+      "dualDeviceP2pAcceptance": false,
+      "otherComputerOrFullDeviceGameMatrixTested": false,
+      "friendTestVersion": true
+    },
+    "preferredDelivery": "single-exe-with-embedded-corresponding-source"
   }
 }

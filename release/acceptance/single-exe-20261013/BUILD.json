@@ -1,0 +1,9 @@
+{
+  "packExit": 0,
+  "normalGateRetained": true,
+  "fullBuildRepeated": false,
+  "viteOrTypeOrNativeCompilerRun": false,
+  "runtimeCodeChanged": false,
+  "sourceEmbedded": true,
+  "publicSourceUpload": false
+}
