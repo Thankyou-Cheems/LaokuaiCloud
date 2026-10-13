@@ -20,6 +20,7 @@ try {
         'electron/communityEtRuntime.test.mjs',
         'electron/communityEnrollment.test.mjs',
         'electron/windowsAdminStartupGate.test.mjs',
+        'scripts/check-windows-firewall-rules.mjs',
         'scripts/check-community-easytier-direct.mjs',
         'electron/easyTierElevationBroker.test.mjs',
         'scripts/check-community-easytier.mjs',

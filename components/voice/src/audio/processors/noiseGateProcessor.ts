@@ -147,8 +147,17 @@ class NoiseGateProcessor extends AudioWorkletProcessor {
       }
     }
 
-    if(automatic && this._blocks===0)this.port.postMessage({type:'automatic-gate',open:this._adaptive.open && eligible,
-      floorDbfs:this._adaptive.floorDbfs,probability:this._probability});
+    if(automatic && this._blocks===0) {
+      const valid = enabled && evidence?.[2]?.[frames-1] >= 0.5 && eligible
+        && Number.isFinite(this._evidence.rmsDbfs) && this._evidence.nonzero
+        && Number.isFinite(this._probability) && this._probability >= 0 && this._probability <= 1;
+      const calibrated = this._adaptive.learnedFrames >= 10 && this._adaptive.floorDbfs !== null;
+      this.port.postMessage({type:'automatic-gate',open:valid && this._adaptive.open,
+        floorDbfs:this._adaptive.floorDbfs,probability:valid ? this._probability : null,
+        rmsDbfs:valid ? this._evidence.rmsDbfs : null,
+        openThresholdDbfs:calibrated ? this._adaptive.floorDbfs+10 : null,
+        holdThresholdDbfs:calibrated ? this._adaptive.floorDbfs+6 : null});
+    }
     return true;
   }
 }

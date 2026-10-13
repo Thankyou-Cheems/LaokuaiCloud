@@ -1,8 +1,8 @@
 import { request } from 'node:https';
 
-import { exact, id, intent, type TrustedCommunityIntent } from './communityEtGrant';
 import type { TrustedCommunityBootstrap } from './communityEtConfig';
-import type { CommunitySessionResponseV1 } from './communityEtHttpContract';
+import { exact, id, intent, privateIpv4, type TrustedCommunityIntent } from './communityEtGrant';
+import type { CommunityDirectoryMemberV1, CommunityDirectoryResponseV1, CommunitySessionResponseV1 } from './communityEtHttpContract';
 
 export interface TrustedCommunityTarget {
   communityId: string; serverHost: string; origin: string; serverInstanceId: string;
@@ -31,7 +31,7 @@ export function trustedHttpsOrigin(raw: unknown): string {
 /** Production HTTP; no redirect, alternate destination, disabled TLS or secret logging. */
 export const communityEtHttpsPort: CommunityEtHttpPort = {
   post(origin, operation, bearer, body, signal) {
-    if (!['session', 'acquire', 'renew', 'revoke', 'binding'].includes(operation) || !validCommunityBearer(bearer))
+    if (!['session', 'acquire', 'renew', 'revoke', 'binding', 'directory'].includes(operation) || !validCommunityBearer(bearer))
       return Promise.reject(new CommunityEtTransportError('auth-unavailable'));
     const target = new URL('/api/community-et/' + operation, trustedHttpsOrigin(origin));
     const bytes = Buffer.from(JSON.stringify(body));
@@ -74,6 +74,25 @@ export class CommunityEtGrantTransport {
         response.intent.nativeInstanceId !== nativeInstanceId || response.intent.bootstrapProfileId !== target.bootstrap.bootstrapProfileId)
       throw new CommunityEtTransportError('invalid-response');
     return structuredClone({serverUserId: response.serverUserId, intent: response.intent});
+  }
+  /** Parse the server-issued roster. It is the sole source for another member's
+   * virtual address; peer/voice broadcasts are intentionally not accepted here. */
+  parseDirectory(value: unknown, communityId: string): CommunityDirectoryMemberV1[] {
+    try { exact<CommunityDirectoryResponseV1>(value, ['v', 'communityId', 'members'], 'invalid-directory-response'); }
+    catch { throw new CommunityEtTransportError('invalid-response'); }
+    if (value.v !== 1 || value.communityId !== communityId || !Array.isArray(value.members) || value.members.length > 256)
+      throw new CommunityEtTransportError('invalid-response');
+    const addresses = new Set<string>();
+    const result: CommunityDirectoryMemberV1[] = [];
+    for (const member of value.members) {
+      try { exact<CommunityDirectoryMemberV1>(member, ['serverUserId', 'virtualIp'], 'invalid-directory-response'); }
+      catch { throw new CommunityEtTransportError('invalid-response'); }
+      if (!id(member.serverUserId) || !privateIpv4(member.virtualIp) || addresses.has(member.virtualIp))
+        throw new CommunityEtTransportError('invalid-response');
+      addresses.add(member.virtualIp);
+      result.push({serverUserId: member.serverUserId, virtualIp: member.virtualIp});
+    }
+    return result;
   }
   post(target: TrustedCommunityTarget, operation: string, bearer: string, body: unknown, signal: AbortSignal): Promise<unknown> {
     return this.port.post(trustedHttpsOrigin(target.origin), operation, bearer, body, signal);

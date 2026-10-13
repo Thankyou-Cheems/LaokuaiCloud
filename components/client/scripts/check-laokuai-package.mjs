@@ -1,5 +1,6 @@
 /* eslint-env node */
 import fs from "node:fs";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
@@ -16,6 +17,11 @@ if (option("--payload")) {
   const manifest = JSON.parse(fs.readFileSync(option("--manifest"),"utf8"));
   report = verifyPayload(path.resolve(option("--payload")),manifest);
   if(option("--portable")) report.portable=verifyPortable(path.resolve(option("--portable")),manifest);
+  if(option("--zip")) {
+    const bytes = fs.readFileSync(path.resolve(option("--zip")));
+    if (bytes.readUInt32LE(0) !== 0x04034b50) throw Error("Expected a ZIP archive");
+    report.zip = { bytes: bytes.length, sha256: createHash("sha256").update(bytes).digest("hex") };
+  }
 } else {
   report = inventory(root,require(path.join(root,"electron-builder.laokuai.cjs")),{ sourceOnly:args.includes("--source-only") });
 }

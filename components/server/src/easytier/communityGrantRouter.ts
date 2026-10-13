@@ -6,7 +6,7 @@ import { parseCommunityGrantRequest, type CommunityGrantApi } from './communityG
 const ERROR_STATUS: Readonly<Record<string, number>> = {
   'auth-required':401,'auth-retired':401,'session-required':401,'session-retired':401,
   'membership-required':403,'community-forbidden':403,'auth-unavailable':503,
-  'community-et-disabled':503,'native-activation-required':503,'invalid-community-et-request':400,
+  'community-et-disabled':503,'native-activation-required':503,'invalid-community-et-request':400,'invalid-directory-query':400,
   'device-instance-mismatch':409,'device-instance-conflict':409,'address-pool-exhausted':409,
   'grant-operation-busy':409,'grant-operation-retired':409,'operation-retired':409,'unknown-grant':409,
   'reconciliation-required':409,'revocation-unconfirmed':409,'expired-grant':409,'binding-pending':409,
@@ -25,7 +25,7 @@ export function createCommunityGrantRouter(api: CommunityGrantApi, rateLimit?: R
   router.use((_req,res,next)=>{if (enabled() !== true) {res.status(503).json({v:1,error:'community-et-disabled'});return;}next();});
   if (rateLimit) router.use(rateLimit);
   router.use(express.json({limit:'4kb',strict:true}));
-  for (const kind of ['session','acquire','renew','revoke','binding'] as const) {
+  for (const kind of ['session','acquire','renew','revoke','binding','directory'] as const) {
     router.post('/'+kind,(req,res)=>{
       void (async()=>{
         const header=req.headers.authorization;
@@ -38,6 +38,7 @@ export function createCommunityGrantRouter(api: CommunityGrantApi, rateLimit?: R
           case 'renew':value=await api.renew(bearer,parseCommunityGrantRequest('renew',req.body));break;
           case 'revoke':value=await api.revoke(bearer,parseCommunityGrantRequest('revoke',req.body));break;
           case 'binding':value=await api.binding(bearer,parseCommunityGrantRequest('binding',req.body));break;
+          case 'directory':value=await api.directory(bearer,parseCommunityGrantRequest('directory',req.body));break;
         }
         res.status(200).json(value);
       })().catch(error=>{

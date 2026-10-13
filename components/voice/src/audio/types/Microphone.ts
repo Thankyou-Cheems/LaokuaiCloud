@@ -40,8 +40,10 @@ export type MicrophoneBufferType = {
  */
 export type MicrophoneUnavailableReason = "denied" | "no-device" | "failed";
 
-export type AutomaticNoiseGateState = {status:"available";open:boolean;floorDbfs:number|null;probability:number|null}
-  | {status:"unavailable";reason:"manual_mode" | "platform_unsupported" | "unsupported_sample_rate" | "processor_loading" | "processor_failed"};
+export type AutomaticNoiseGateState = {status:"available";open:boolean;floorDbfs:number|null;probability:number|null;
+  /** Actual frame evidence at the model input; null for zero/invalid or stale input. */
+  rmsDbfs:number|null;openThresholdDbfs:number|null;holdThresholdDbfs:number|null}
+  | {status:"unavailable";reason:"manual_mode" | "platform_unsupported" | "unsupported_sample_rate" | "processor_loading" | "processor_failed" | "awaiting_input" | "context_suspended" | "stale_evidence"};
 
 export interface MicrophoneInterface {
   addHandle: (id: string) => void;

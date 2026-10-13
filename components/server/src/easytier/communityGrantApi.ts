@@ -13,6 +13,18 @@ export type CommunityRevokeRequestV1 = CommunityRenewRequestV1;
 export interface CommunityBindingRequestV1 extends CommunitySessionRequestV1 { grantId: string }
 export interface CommunitySessionResponseV1 { v: 1; serverUserId: string; intent: TrustedCommunityIntent }
 export interface CommunityRevokeResponseV1 { v: 1; revoked: true }
+/**
+ * A read-only roster of addresses assigned by this community's ET authority.
+ * It deliberately contains no peer IDs, physical endpoints, keys or voice data.
+ * The address is stable for the authenticated account+device registration.
+ * A serverUserId may appear for several devices, each with a distinct address.
+ * Active credential authorization never proves online/route connectivity.
+ */
+export interface CommunityDirectoryRequestV1 { v: 1; communityId: string }
+export interface CommunityDirectoryMemberV1 { serverUserId: string; virtualIp: string }
+export interface CommunityDirectoryResponseV1 {
+  v: 1; communityId: string; members: CommunityDirectoryMemberV1[];
+}
 export interface CommunityBindingProofV1 {
   v: 1; serverUserId: string; scope: CommunityGrantScope; grantId: string; credentialId: string; revision: number;
   peerId: number; virtualIp: string; publicKeyFingerprint: string; physicalDirectVerified: false;
@@ -24,12 +36,19 @@ export interface CommunityGrantApi {
   /** A pending issuer cleanup returns a stable non-200 error, never revoked:true. */
   revoke(bearer: string, body: CommunityRevokeRequestV1): Promise<CommunityRevokeResponseV1>;
   binding(bearer: string, body: CommunityBindingRequestV1): Promise<CommunityBindingProofV1>;
+  directory(bearer: string, body: CommunityDirectoryRequestV1): Promise<CommunityDirectoryResponseV1>;
 }
 export function parseCommunityGrantRequest(kind: 'session', raw: unknown): CommunitySessionRequestV1;
 export function parseCommunityGrantRequest(kind: 'acquire', raw: unknown): CommunityAcquireRequestV1;
 export function parseCommunityGrantRequest(kind: 'renew' | 'revoke', raw: unknown): CommunityRenewRequestV1;
 export function parseCommunityGrantRequest(kind: 'binding', raw: unknown): CommunityBindingRequestV1;
-export function parseCommunityGrantRequest(kind: 'session' | 'acquire' | 'renew' | 'revoke' | 'binding', raw: unknown) {
+export function parseCommunityGrantRequest(kind: 'directory', raw: unknown): CommunityDirectoryRequestV1;
+export function parseCommunityGrantRequest(kind: 'session' | 'acquire' | 'renew' | 'revoke' | 'binding' | 'directory', raw: unknown) {
+  if (kind === 'directory') {
+    exact<CommunityDirectoryRequestV1>(raw, ['v', 'communityId'], 'invalid-directory-query');
+    if (raw.v !== 1 || !communityIdentity(raw.communityId)) fail('invalid-directory-query');
+    return structuredClone(raw);
+  }
   const keys = ['v','communityId','deviceId','nativeInstanceId'];
   if (kind === 'acquire' || kind === 'renew' || kind === 'revoke') keys.push('requestId');
   if (kind === 'renew' || kind === 'revoke' || kind === 'binding') keys.push('grantId');

@@ -6,6 +6,8 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Pipes;
+using System.Collections;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.AccessControl;
 using System.Security.Cryptography;
@@ -17,10 +19,36 @@ using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 using Microsoft.Win32.SafeHandles;
 
+class FirewallWireRule {
+    public int schemaVersion { get; set; }
+    public string kind { get; set; }
+    public string name { get; set; }
+    public string program { get; set; }
+    public string ownershipId { get; set; }
+}
+class FirewallWireFailure {
+    public string operation { get; set; }
+    public string name { get; set; }
+    public string code { get; set; }
+}
+class FirewallWireRequest {
+    public int schemaVersion { get; set; }
+    public string operation { get; set; }
+    public FirewallWireRule[] ensure { get; set; }
+    public FirewallWireRule[] remove { get; set; }
+}
+class FirewallWireResponse {
+    public int schemaVersion { get; set; }
+    public List<string> installed { get; set; }
+    public List<string> removed { get; set; }
+    public List<FirewallWireFailure> failures { get; set; }
+}
+
 class Program {
     const string Ready = "LAOKUAI_BROKER_READY_V1";
     const string Stop = "LAOKUAI_OWNED_STOP_V1";
     static readonly JavaScriptSerializer Json = new JavaScriptSerializer { MaxJsonLength = 16384 };
+    static readonly JavaScriptSerializer FirewallJson = new JavaScriptSerializer { MaxJsonLength = 65536 };
     static readonly Dictionary<string, string> Files = new Dictionary<string, string> {
         {"easytier-core.exe", "f716a1139d66800bbc75daa200b1c0c6eecccb97e88e13167fafb8d7d38bb81d"},
         {"easytier-cli.exe", "1ad46380937aab6dd7385ebb37bb458c94f8d1a3e68baf2e6c24ea973adc6411"},
@@ -207,10 +235,227 @@ class Program {
             }
         }
     }
+    // Firewall changes are made through the Windows Firewall COM API.  The
+    // broker is already running with the administrator token inherited from
+    // the product; this path never starts a service or a second elevation.
+    const int FirewallWireSchema = 2;
+    const int FirewallProfileAll = unchecked((int)0x7fffffff);
+    const int FirewallDirectionIn = 1;
+    const int FirewallActionAllow = 1;
+    const int FirewallProtocolAny = 256;
+    const string FirewallPrefix = "LaokuaiCloud.Managed.v1.";
+    const string FirewallGroup = "LaokuaiCloud";
+    static string FirewallPath(string value) {
+        Require(!String.IsNullOrEmpty(value) && Regex.IsMatch(value, @"\A[A-Za-z]:[\\/]") && !Regex.IsMatch(value, "[\"\\x00-\\x1f]"));
+        var full = Path.GetFullPath(value).TrimEnd('\\', '/');
+        Require(full.Length > 0 && full.Length < 32768);
+        return full;
+    }
+    static string FirewallRuleName(string kind, string program) {
+        Require(kind == "app" || kind == "easytier");
+        var normalized = FirewallPath(program).ToLowerInvariant();
+        using (var sha = SHA256.Create()) {
+            var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(kind + "\0" + normalized));
+            var hex = BitConverter.ToString(bytes).Replace("-", "").ToLowerInvariant();
+            return FirewallPrefix + kind + "." + hex.Substring(0, 24);
+        }
+    }
+    static void ValidateFirewallRule(FirewallWireRule rule) {
+        Require(rule != null && rule.schemaVersion == FirewallWireSchema && (rule.kind == "app" || rule.kind == "easytier"));
+        var path = FirewallPath(rule.program);
+        Require(rule.name == FirewallRuleName(rule.kind, path));
+        Require(rule.name.StartsWith(FirewallPrefix, StringComparison.Ordinal) && rule.name.Length < 256);
+        Require(rule.ownershipId != null && Regex.IsMatch(rule.ownershipId, @"\A[0-9a-f]{32}\z"));
+    }
+    static object ComProperty(object target, string name) {
+        return target.GetType().InvokeMember(name, BindingFlags.GetProperty | BindingFlags.InvokeMethod, null, target, null);
+    }
+    static void SetComProperty(object target, string name, object value) {
+        target.GetType().InvokeMember(name, BindingFlags.SetProperty, null, target, new[]{value});
+    }
+    static object ComCreate(string progId) {
+        var type = Type.GetTypeFromProgID(progId, true);
+        Require(type != null);
+        return Activator.CreateInstance(type);
+    }
+    static List<object> FirewallRulesByName(object rules, string name) {
+        // Item(name) alone cannot disambiguate duplicate names. Enumeration
+        // errors must propagate; they must never be mistaken for absence.
+        var matches = new List<object>();
+        foreach (object rule in (IEnumerable)rules) {
+            if (String.Equals(ComString(rule, "Name"), name, StringComparison.OrdinalIgnoreCase)) matches.Add(rule);
+        }
+        return matches;
+    }
+    static int ComInt(object target, string name) { return Convert.ToInt32(ComProperty(target, name)); }
+    static bool ComBool(object target, string name) { return Convert.ToBoolean(ComProperty(target, name)); }
+    static string ComString(object target, string name) { return Convert.ToString(ComProperty(target, name)); }
+    static bool OwnedFirewallRule(object current, FirewallWireRule expected) {
+        try {
+            return String.Equals(ComString(current, "Name"), expected.name, StringComparison.Ordinal)
+                && String.Equals(ComString(current, "ApplicationName"), FirewallPath(expected.program), StringComparison.OrdinalIgnoreCase)
+                && ComInt(current, "Direction") == FirewallDirectionIn
+                && ComInt(current, "Action") == FirewallActionAllow
+                && ComInt(current, "Profiles") == FirewallProfileAll
+                && ComInt(current, "Protocol") == FirewallProtocolAny
+                && ComBool(current, "Enabled")
+                && String.Equals(ComString(current, "Grouping"), FirewallGroup, StringComparison.Ordinal)
+                && String.Equals(ComString(current, "Description"), FirewallDescription(expected), StringComparison.Ordinal)
+                && String.Equals(ComString(current, "InterfaceTypes"), "All", StringComparison.OrdinalIgnoreCase)
+                && !ComBool(current, "EdgeTraversal")
+                && String.IsNullOrEmpty(ComString(current, "ServiceName"))
+                && ComString(current, "LocalAddresses") == "*" && ComString(current, "RemoteAddresses") == "*";
+        } catch { return false; }
+    }
+    static string FirewallDescription(FirewallWireRule rule) {
+        return "LaokuaiCloud managed inbound v2; owner=" + rule.ownershipId;
+    }
+    static void AddOwnedFirewallRule(object rules, FirewallWireRule expected, Func<object> createRule) {
+        var rule = createRule();
+        SetComProperty(rule, "Name", expected.name);
+        SetComProperty(rule, "Description", FirewallDescription(expected));
+        SetComProperty(rule, "ApplicationName", FirewallPath(expected.program));
+        SetComProperty(rule, "Direction", FirewallDirectionIn);
+        SetComProperty(rule, "Action", FirewallActionAllow);
+        SetComProperty(rule, "Profiles", FirewallProfileAll);
+        SetComProperty(rule, "Protocol", FirewallProtocolAny);
+        SetComProperty(rule, "Enabled", true);
+        SetComProperty(rule, "InterfaceTypes", "All");
+        SetComProperty(rule, "Grouping", FirewallGroup);
+        SetComProperty(rule, "EdgeTraversal", false);
+        SetComProperty(rule, "LocalAddresses", "*");
+        SetComProperty(rule, "RemoteAddresses", "*");
+        rules.GetType().InvokeMember("Add", BindingFlags.InvokeMethod, null, rules, new object[]{rule});
+    }
+    static bool RemoveOwnedFirewallRule(object rules, FirewallWireRule expected) {
+        var matches = FirewallRulesByName(rules, expected.name);
+        if (matches.Count == 0) return true;
+        // This check is mandatory: a same-name explicit block or foreign rule
+        // is reported and preserved, never deleted by cleanup.
+        if (matches.Count != 1 || !OwnedFirewallRule(matches[0], expected)) return false;
+        rules.GetType().InvokeMember("Remove", BindingFlags.InvokeMethod, null, rules, new object[]{expected.name});
+        return FirewallRulesByName(rules, expected.name).Count == 0;
+    }
+    static FirewallWireFailure Failure(string operation, string name, string code) {
+        return new FirewallWireFailure { operation = operation, name = name, code = code };
+    }
+    static int FirewallCommand(TextReader input, TextWriter output) {
+        Require(Elevated());
+        var line = Line(input);
+        Require(line != null && line.Length <= 65536);
+        var request = FirewallJson.Deserialize<FirewallWireRequest>(line);
+        Require(request != null && request.schemaVersion == FirewallWireSchema
+            && (request.operation == "reconcile" || request.operation == "cleanup")
+            && request.ensure != null && request.remove != null
+            && request.ensure.Length <= 4 && request.remove.Length <= 64);
+        if (request.operation == "cleanup") Require(request.ensure.Length == 0);
+        foreach (var rule in request.ensure) { ValidateFirewallRule(rule); Require(File.Exists(rule.program)); }
+        foreach (var rule in request.remove) ValidateFirewallRule(rule);
+        var policy = ComCreate("HNetCfg.FwPolicy2");
+        var rules = ComProperty(policy, "Rules");
+        var response = ApplyFirewallRequest(rules, request);
+        output.WriteLine(FirewallJson.Serialize(response)); output.Flush(); return 0;
+    }
+    static FirewallWireResponse ApplyFirewallRequest(object rules, FirewallWireRequest request, Func<object> createRule = null) {
+        if (createRule == null) createRule = () => ComCreate("HNetCfg.FWRule");
+        var response = new FirewallWireResponse { schemaVersion = FirewallWireSchema,
+            installed = new List<string>(), removed = new List<string>(), failures = new List<FirewallWireFailure>() };
+        foreach (var rule in request.ensure) {
+            try {
+                var matches = FirewallRulesByName(rules, rule.name);
+                if (matches.Count == 0) {
+                    AddOwnedFirewallRule(rules, rule, createRule);
+                    matches = FirewallRulesByName(rules, rule.name);
+                }
+                if (matches.Count != 1 || !OwnedFirewallRule(matches[0], rule)) { response.failures.Add(Failure("ensure", rule.name, "ownership-mismatch")); continue; }
+                response.installed.Add(rule.name);
+            } catch { response.failures.Add(Failure("ensure", rule.name, "com-add-failed")); }
+        }
+        foreach (var rule in request.remove) {
+            // Retain a prior path if its replacement could not be verified.
+            if (request.operation == "reconcile") {
+                bool replacement = false;
+                foreach (var next in request.ensure) if (next.kind == rule.kind && response.installed.Contains(next.name)) replacement = true;
+                if (!replacement) { response.failures.Add(Failure("remove", rule.name, "replacement-unavailable")); continue; }
+            }
+            try {
+                if (RemoveOwnedFirewallRule(rules, rule)) response.removed.Add(rule.name);
+                else response.failures.Add(Failure("remove", rule.name, "ownership-mismatch"));
+            } catch { response.failures.Add(Failure("remove", rule.name, "com-remove-failed")); }
+        }
+        return response;
+    }
+    // Pure CLR fixture for the same production COM reflection/ownership paths.
+    // No COM activation, firewall reads/writes, token/UAC or native runtime.
+    class FakeFirewallRule {
+        public string Name { get; set; }
+        public string Description { get; set; }
+        public string ApplicationName { get; set; }
+        public string Grouping { get; set; }
+        public string InterfaceTypes { get; set; }
+        public string ServiceName { get; set; }
+        public string LocalAddresses { get; set; }
+        public string RemoteAddresses { get; set; }
+        public int Profiles { get; set; }
+        public int Protocol { get; set; }
+        public int Direction { get; set; }
+        public int Action { get; set; }
+        public bool Enabled { get; set; }
+        public bool EdgeTraversal { get; set; }
+    }
+    class FakeFirewallRules : IEnumerable {
+        public List<object> Values = new List<object>();
+        public int Adds, Removes;
+        public void Add(object rule) { Values.Add(rule); Adds++; }
+        public void Remove(string name) { Values.RemoveAll(rule => ComString(rule, "Name") == name); Removes++; }
+        public IEnumerator GetEnumerator() { return Values.GetEnumerator(); }
+    }
+    static void FirewallSelfTest() {
+        var expected = new FirewallWireRule { schemaVersion = 2, kind = "app", program = @"C:\唠蒯云\唠蒯云.exe", ownershipId = new String('a', 32) };
+        expected.name = FirewallRuleName(expected.kind, expected.program);
+        ValidateFirewallRule(expected);
+        var rules = new FakeFirewallRules();
+        var reconcile = new FirewallWireRequest { schemaVersion = 2, operation = "reconcile", ensure = new[]{expected}, remove = new FirewallWireRule[0] };
+        Require(ApplyFirewallRequest(rules, reconcile, () => new FakeFirewallRule()).installed.Count == 1 && rules.Adds == 1);
+        Require(ApplyFirewallRequest(rules, reconcile, () => new FakeFirewallRule()).installed.Count == 1 && rules.Adds == 1 && rules.Removes == 0);
+        var created = (FakeFirewallRule)rules.Values[0];
+        var edits = new Action<FakeFirewallRule>[] {
+            rule => rule.Action = 0, rule => rule.Direction = 2, rule => rule.Enabled = false,
+            rule => rule.Profiles = 3, rule => rule.Protocol = 6, rule => rule.ApplicationName = @"C:\foreign.exe",
+            rule => rule.Grouping = "third-party", rule => rule.Description = "foreign-owner", rule => rule.InterfaceTypes = "Lan",
+            rule => rule.EdgeTraversal = true, rule => rule.ServiceName = "foreign-service", rule => rule.RemoteAddresses = "10.0.0.1",
+            rule => rule.LocalAddresses = "10.0.0.1"
+        };
+        var cleanup = new FirewallWireRequest { schemaVersion = 2, operation = "cleanup", ensure = new FirewallWireRule[0], remove = new[]{expected} };
+        foreach (var edit in edits) {
+            var fresh = new FakeFirewallRules();
+            ApplyFirewallRequest(fresh, reconcile, () => new FakeFirewallRule());
+            edit((FakeFirewallRule)fresh.Values[0]);
+            Require(ApplyFirewallRequest(fresh, cleanup).failures.Count == 1 && fresh.Removes == 0 && fresh.Values.Count == 1);
+            Require(ApplyFirewallRequest(fresh, reconcile, () => new FakeFirewallRule()).failures.Count == 1 && fresh.Adds == 1);
+        }
+        rules.Values.Add(created);
+        Require(ApplyFirewallRequest(rules, cleanup).failures.Count == 1 && rules.Removes == 0);
+        rules.Values.RemoveAt(1);
+        Require(ApplyFirewallRequest(rules, cleanup).removed.Count == 1 && rules.Removes == 1 && rules.Values.Count == 0);
+        Require(ApplyFirewallRequest(rules, cleanup).removed.Count == 1 && rules.Removes == 1);
+        // Failed replacement must leave the old rule in place.
+        var old = new FirewallWireRule { schemaVersion = 2, kind = "app", program = @"D:\old\唠蒯云.exe", ownershipId = new String('b', 32) };
+        old.name = FirewallRuleName(old.kind, old.program);
+        var moved = new FakeFirewallRules();
+        AddOwnedFirewallRule(moved, old, () => new FakeFirewallRule());
+        AddOwnedFirewallRule(moved, expected, () => new FakeFirewallRule());
+        ((FakeFirewallRule)moved.Values[1]).Action = 0;
+        reconcile.remove = new[]{old};
+        Require(ApplyFirewallRequest(moved, reconcile, () => new FakeFirewallRule()).failures.Count == 2 && moved.Removes == 0);
+        Console.WriteLine("PASS firewall CLR fixture: create/verify/idempotence, 13 property collisions, duplicates, ownership cleanup, failed replacement; no host firewall access");
+    }
     static int Main(string[] args) {
         try {
             Console.InputEncoding = new UTF8Encoding(false); Console.OutputEncoding = new UTF8Encoding(false);
             if (args.Length == 1 && args[0] == "--check") { Console.Write(Elevated() ? "approved" : "ordinary"); return 0; }
+            if (args.Length == 1 && args[0] == "--firewall") return FirewallCommand(Console.In, Console.Out);
+            if (args.Length == 1 && args[0] == "--firewall-self-test") { FirewallSelfTest(); return 0; }
             if (args.Length == 1 && args[0] == "--self-test") { SelfTest(); return 0; }
             if (args.Length == 2 && args[0] == "--parent") return Launch(Int32.Parse(args[1]));
             if (args.Length == 4 && args[0] == "--elevated") {

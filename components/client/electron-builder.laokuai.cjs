@@ -8,6 +8,10 @@ config.extraMetadata = { name: "laokuai-chat", productName: config.productName,
 config.directories.output = "release-laokuai-beta-20261013";
 config.win.icon = "private-brand/icon.ico";
 config.win.executableName = "唠蒯云";
+// Fixed executable paths: extract once, then run directly without a temp launcher.
+config.win.target = [{ target: "zip", arch: ["x64"] }];
+config.artifactName = "唠蒯云-${version}-zh-CN-win-x64-green.zip";
+config.extraFiles = [{ from: "GREEN-PACKAGE-README.txt", to: "使用说明.txt" }];
 // The i18n test variant replaces win; restore the real private product's sidecar.
 config.win.extraResources = require("./scripts/community-easytier-resources.cjs");
 config.portable.artifactName = "唠蒯云-${version}-zh-CN-win-x64-portable.exe";

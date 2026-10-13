@@ -28,6 +28,12 @@ test('binding requires live grant reference and no client peer/IP evidence', () 
     assert.throws(() => parseCommunityGrantRequest('binding',{...body,...extra}), ContractError);
   }
 });
+test('directory has only the community scope and rejects client identity or address claims', () => {
+  const body={v:1 as const,communityId:'community'};
+  assert.deepEqual(parseCommunityGrantRequest('directory',body),body);
+  for (const extra of [{serverUserId:'attacker'},{virtualIp:'10.77.1.2'},{deviceId:'device'}])
+    assert.throws(()=>parseCommunityGrantRequest('directory',{...body,...extra}), ContractError);
+});
 for (const field of ['accountId','serverUserId','sessionId','networkName','adminInstanceId','credentialSecretB64','rpcUrl','bootstrap']) {
   test(`reject client-provided ${field}`, () => {
     assert.throws(() => parseCommunityGrantRequest('session',{...base,[field]:'untrusted'}), ContractError);

@@ -7,6 +7,7 @@ export const OWN_JSON_PARSERS: ReadonlyArray<{ method: string; path: string }> =
   { method: "POST", path: "/api/community-et/renew" },
   { method: "POST", path: "/api/community-et/revoke" },
   { method: "POST", path: "/api/community-et/binding" },
+  { method: "POST", path: "/api/community-et/directory" },
   { method: "POST", path: "/api/webhooks/:webhookId/:token" },
   { method: "POST", path: "/api/webhooks" },
   { method: "PATCH", path: "/api/webhooks/:webhookId" },

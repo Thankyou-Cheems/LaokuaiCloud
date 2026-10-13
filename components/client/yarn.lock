@@ -590,9 +590,9 @@
     gemoji "^8.1.0"
     tailwind-merge "^3.4.0"
 
-"@gryt/voice@file:vendor/gryt-voice-0.6.2-laokuai.routing.1.tgz":
-  version "0.6.2-laokuai.routing.1"
-  resolved "file:vendor/gryt-voice-0.6.2-laokuai.routing.1.tgz#fb0f273fea1f1dd1460eaf986c79545041ac2868"
+"@gryt/voice@file:vendor/gryt-voice-0.6.2-laokuai.routing.2.tgz":
+  version "0.6.2-laokuai.routing.2"
+  resolved "file:vendor/gryt-voice-0.6.2-laokuai.routing.2.tgz#cc7a6b37ef1e3144353d6ca9b6759665dc534d2f"
 
 "@hpke/common@^1.10.0":
   version "1.10.1"

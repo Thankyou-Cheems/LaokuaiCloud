@@ -32,7 +32,7 @@ function api(): CommunityGrantApi {
   return {session:async()=>({v:1,serverUserId:'server-user',intent:INTENT}),
     acquire:async()=>{throw new Error('PRIVATE-ERROR-TEXT-MUST-NOT-ESCAPE');},
     renew:async()=>{throw new Error('not-used');},revoke:async()=>{throw new ContractError('revocation-unconfirmed');},
-    binding:async()=>{throw new Error('not-used');}};
+    binding:async()=>{throw new Error('not-used');},directory:async()=>({v:1,communityId:'community',members:[]})};
 }
 test('router returns frozen DTO, requires bearer, rejects client identity and marks responses private',async()=>{
   const router=createCommunityGrantRouter(api());
@@ -40,6 +40,12 @@ test('router returns frozen DTO, requires bearer, rejects client identity and ma
   assert.equal(accepted.status,200);assert.deepEqual(accepted.body,{v:1,serverUserId:'server-user',intent:INTENT});assert.equal(accepted.cache,'no-store');
   assert.equal((await request(router,'/session',BODY)).status,401);
   assert.equal((await request(router,'/session',{...BODY,accountId:'attacker'},'member-bearer')).status,400);
+});
+test('directory returns only the small server-issued address roster',async()=>{
+  const router=createCommunityGrantRouter({...api(),directory:async()=>({v:1,communityId:'community',members:[{serverUserId:'server-user',virtualIp:'10.77.0.2'}]})});
+  const result=await request(router,'/directory',{v:1,communityId:'community'},'member-bearer');
+  assert.equal(result.status,200);assert.deepEqual(result.body,{v:1,communityId:'community',members:[{serverUserId:'server-user',virtualIp:'10.77.0.2'}]});
+  assert.equal((await request(router,'/directory',{v:1,communityId:'community',deviceId:'attacker'},'member-bearer')).status,400);
 });
 test('router never exposes raw exceptions or turns pending revoke into success; disabled wins',async()=>{
   const router=createCommunityGrantRouter(api());

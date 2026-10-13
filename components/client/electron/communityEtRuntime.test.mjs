@@ -119,10 +119,14 @@ function runtimeFixture() {
   let policy = true, failure = null, sampleFailure = null, revision = 0, cores = 0;
   const port = {post: async (_origin, op, bearer, body, signal) => {
     calls.push({op, bearer, body: clone(body)}); if (signal.aborted) throw new CommunityEtTransportError('request-cancelled');
+    if (failure?.op === op && failure.code === 'stall') return new Promise((_resolve,reject)=>{
+      signal.addEventListener('abort',()=>reject(new CommunityEtTransportError('request-cancelled')),{once:true});
+    });
     if (failure?.op === op) throw new CommunityEtTransportError(failure.code);
     if (op === 'session') return {v: 1, ...clone(f.verified)};
     if (op === 'revoke') { events.push('revoke'); return {v: 1, revoked: true}; }
     if (op === 'binding') return {...clone(f.proof), revision};
+    if (op === 'directory') return {v: 1, communityId: 'community', members: [{serverUserId: 'member', virtualIp: '10.77.1.2'}]};
     if (op === 'acquire' || op === 'renew') return {...clone(f.grant), requestId: body.requestId, revision: ++revision,
       issuedAtMs: f.now.wall, serverTimeMs: f.now.wall, renewAfterMs: f.now.wall + 30000, expiresAtMs: f.now.wall + 60000};
     throw Error('unexpected operation');
@@ -152,9 +156,50 @@ function runtimeFixture() {
 test('real wiring reaches private config, same-sample proof and public binding through injected ports', async () => {
   const f = runtimeFixture(); await f.authenticate('opaque'); const s = await f.connect(); const sample = await s.read(new AbortController().signal);
   assert.equal(sample.bindings.length, 1); assert.equal(sample.bindings[0].userId, 'member');
-  assert.deepEqual(f.calls.map(x => x.op), ['session', 'acquire', 'binding']); assert.equal(f.events.filter(x => x === 'sample').length, 1);
+  assert.deepEqual(f.calls.map(x => x.op), ['session', 'acquire', 'binding', 'directory']); assert.equal(f.events.filter(x => x === 'sample').length, 1);
+  assert.deepEqual(sample.directory, [{serverUserId: 'member', virtualIp: '10.77.1.2'}]);
+  assert.equal(sample.directoryObservedAtUnixMs,f.now.wall);
   assert.equal(JSON.stringify(sample).includes(SECRET), false); await s.close();
   assert.deepEqual(f.events.slice(-3), ['stop', 'remove', 'revoke']);
+});
+
+test('directory parser keeps all device addresses but rejects cross-community, duplicates and client claims',()=>{
+  const transport=new CommunityEtGrantTransport();
+  const response={v:1,communityId:'community',members:[{serverUserId:'member',virtualIp:'10.77.1.2'},{serverUserId:'member',virtualIp:'10.77.1.3'}]};
+  assert.deepEqual(transport.parseDirectory(response,'community'),response.members);
+  for(const mutate of [r=>r.communityId='other',r=>r.members[1].virtualIp='10.77.1.2',r=>r.members[0].virtualIp='198.51.100.1',r=>r.members[0].deviceId='untrusted']){
+    const r=clone(response);mutate(r);assert.throws(()=>transport.parseDirectory(r,'community'));
+  }
+});
+test('directory cache preserves its age; roster outage hides addresses without stopping LAN',async()=>{
+  const f=runtimeFixture();await f.authenticate('one');const s=await f.connect();
+  const first=await s.read(new AbortController().signal);
+  f.now.mono+=1000;f.now.wall+=1000;
+  const cached=await s.read(new AbortController().signal);
+  assert.equal(cached.directoryObservedAtUnixMs,first.directoryObservedAtUnixMs);
+  assert.equal(f.calls.filter(call=>call.op==='directory').length,1);
+  f.now.mono+=5000;f.now.wall+=5000;f.setFailure({op:'directory',code:'provider-unavailable'});
+  const failed=await s.read(new AbortController().signal);assert.deepEqual(failed.directory,[]);assert.equal(failed.directoryObservedAtUnixMs,0);
+  assert.equal(f.events.includes('stop'),false);assert.equal(failed.bindings[0].enrollment,'joined');
+  f.now.mono+=5000;f.now.wall+=5000;f.setFailure(null);
+  const recovered=await s.read(new AbortController().signal);assert.equal(recovered.directory.length,1);assert.equal(recovered.directoryObservedAtUnixMs,f.now.wall);
+  await s.close();
+});
+test('directory auth failure retires the exact owned core',async()=>{
+  const f=runtimeFixture();await f.authenticate('one');const s=await f.connect();f.setFailure({op:'directory',code:'auth-unavailable'});
+  await assert.rejects(s.read(new AbortController().signal),e=>e instanceof EasyTierSessionRetiredError);
+  assert.deepEqual(f.events.slice(-3),['stop','remove','revoke']);
+});
+test('optional directory timeout clears only addresses; a real caller cancellation still propagates',async()=>{
+  const f=runtimeFixture();await f.authenticate('one');const s=await f.connect();f.setFailure({op:'directory',code:'stall'});
+  const sample=await s.read(new AbortController().signal);
+  assert.deepEqual(sample.directory,[]);assert.equal(sample.directoryObservedAtUnixMs,0);assert.equal(sample.bindings[0].enrollment,'joined');
+  assert.equal(f.events.includes('stop'),false);
+  f.now.mono+=5000;f.now.wall+=5000;
+  const cancel=new AbortController(),timer=setTimeout(()=>cancel.abort(),20);
+  try{await assert.rejects(s.read(cancel.signal),e=>e instanceof CommunityEtTransportError&&e.code==='request-cancelled');}
+  finally{clearTimeout(timer);}
+  assert.equal(f.events.includes('stop'),false);f.setFailure(null);await s.close();
 });
 test('refreshing the authenticated bearer preserves the owned core and grant key', async () => {
   const f = runtimeFixture(); await f.authenticate('one'); const s = await f.connect();

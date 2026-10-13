@@ -9,7 +9,7 @@ import { after, before, describe, it } from "node:test";
 import express from "express";
 import sharp from "sharp";
 
-import { initSqlite } from "../db/sqlite/connection";
+import { getSqliteDb, initSqlite } from "../db/sqlite/connection";
 import { createServerConfigIfNotExists, setServerRole } from "../db/sqlite/servers";
 import { upsertUser } from "../db/sqlite/users";
 import { initStorage } from "../storage";
@@ -82,6 +82,8 @@ before(async () => {
 
 after(async () => {
   await new Promise<void>((resolve) => server.close(() => resolve()));
+  // Windows keeps an open SQLite file locked after HTTP teardown.
+  getSqliteDb().close();
   delete process.env.DATA_DIR;
   delete process.env.S3_BUCKET;
   delete process.env.STORAGE_BACKEND;
@@ -190,7 +192,7 @@ describe("the skip list", () => {
   it("names exactly the routes that bring their own JSON parser", () => {
     const unavailable = async (): Promise<never> => { throw new Error("pure-router-inventory-only"); };
     const community = createCommunityGrantRouter({session: unavailable, acquire: unavailable, renew: unavailable,
-      revoke: unavailable, binding: unavailable});
+      revoke: unavailable, binding: unavailable, directory: unavailable});
     const actual = [...parsing(emojisRouter, "/api/emojis"), ...parsing(webhooksRouter, "/api/webhooks"),
       ...parsing(community, "/api/community-et")].sort();
     assert.deepEqual(actual, OWN_JSON_PARSERS.map((r) => `${r.method} ${r.path}`).sort());

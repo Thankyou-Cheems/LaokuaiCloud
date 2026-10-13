@@ -187,7 +187,9 @@ function useCreateMicrophoneHook() {
     useState<MicrophoneUnavailableReason | null>(null);
   const gateOpenRef = useRef(false);
   const gateLevelRef = useRef(0);
-  const autoGateRef=useRef({open:false,floorDbfs:null as number|null,probability:null as number|null});
+  const autoGateRef=useRef({open:false,floorDbfs:null as number|null,probability:null as number|null,
+    rmsDbfs:null as number|null,openThresholdDbfs:null as number|null,holdThresholdDbfs:null as number|null});
+  const autoGateObservedAtRef = useRef(0);
 
   const releaseMicTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const micStreamRef = useRef<MediaStream | undefined>(undefined);
@@ -328,7 +330,11 @@ function useCreateMicrophoneHook() {
           const data = event.data;
           if (!data) return;
 
-          if(data.type==="automatic-gate") {autoGateRef.current={open:data.open===true,floorDbfs:data.floorDbfs,probability:data.probability};return;}
+          if(data.type==="automatic-gate") {
+            autoGateRef.current={open:data.open===true,floorDbfs:data.floorDbfs,probability:data.probability,
+              rmsDbfs:data.rmsDbfs,openThresholdDbfs:data.openThresholdDbfs,holdThresholdDbfs:data.holdThresholdDbfs};
+            autoGateObservedAtRef.current = performance.now();return;
+          }
           if (typeof data.level === "number") {
             gateLevelRef.current = data.level;
           }
@@ -361,6 +367,7 @@ function useCreateMicrophoneHook() {
       setIsGateOpen(false);
       gateOpenRef.current = false;
       gateLevelRef.current = 0;
+      autoGateObservedAtRef.current = 0;
     };
   }, [audioContext]);
 
@@ -573,11 +580,14 @@ function useCreateMicrophoneHook() {
     : !speechAllowed() ? false : speechActivity;
   const getAutomaticNoiseGateState = useCallback((): AutomaticNoiseGateState => !automaticGate?{status:"unavailable",reason:"manual_mode"}
     : platformPipeline?{status:"unavailable",reason:"platform_unsupported"}
+    : !micStream?.getAudioTracks().some(track=>track.readyState==="live" && track.enabled && !track.muted)?{status:"unavailable",reason:"awaiting_input"}
+    : audioContext?.state!=="running"?{status:"unavailable",reason:"context_suspended"}
     : audioContext && audioContext.sampleRate!==44100 && audioContext.sampleRate!==48000?{status:"unavailable",reason:"unsupported_sample_rate"}
     : transmissionState.status==="failed"?{status:"unavailable",reason:"processor_failed"}
     : !noiseGateNode || !(rnnoiseNode || speechEvidenceNode)?{status:"unavailable",reason:"processor_loading"}
+    : !autoGateObservedAtRef.current || performance.now()-autoGateObservedAtRef.current>500?{status:"unavailable",reason:"stale_evidence"}
     : {status:"available",...autoGateRef.current,open:speechAllowed() && autoGateRef.current.open},
-  [automaticGate,platformPipeline,audioContext,transmissionState.status,noiseGateNode,rnnoiseNode,speechEvidenceNode,config.audio.transmitEligible,transmitConnected,effectiveMuted,inputMode,handles.length]);
+  [automaticGate,platformPipeline,audioContext,micStream,transmissionState.status,noiseGateNode,rnnoiseNode,speechEvidenceNode,config.audio.transmitEligible,transmitConnected,effectiveMuted,inputMode,handles.length]);
   const transmitSpeechActivity=visibleSpeechActivity===true;
   const transmitSpeechActivityState: TransmitSpeechActivityState = typeof visibleSpeechActivity==="boolean"
     ? {status:"available",source:rnnoiseNode?"rnnoise":"webrtc_rnn",noiseSuppression:!rnnoiseEnabled?{status:"disabled"}

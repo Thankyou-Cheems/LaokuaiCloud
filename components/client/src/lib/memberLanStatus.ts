@@ -5,7 +5,7 @@
  * Community scope survives voice-room changes. Do not store public IPs or keys here.
  */
 export const MEMBER_LAN_MAX_AGE_MS = 10_000;
-export type LanEnrollment = "off" | "not-joined" | "joining" | "joined" | "error";
+export type LanEnrollment = "off" | "not-joined" | "joining" | "joined" | "assigned" | "error";
 export type LanPath = "direct" | "member-relay" | "server-relay" | "unknown";
 export type LanBindingConfidence = "verified" | "unverified" | "ambiguous";
 export type LanEvidenceSource = "authenticated-community" | "easytier-local";
@@ -39,6 +39,11 @@ export interface LanPeerPathEvidence {
 export interface LanMemberEvidence {
   binding: LanIdentityBinding;
   enrollment: { state: LanEnrollment; source: LanEvidenceSource; observedAtMs: number };
+  /** The authenticated member's EasyTier virtual IPv4, never a physical/public address. */
+  virtualIp?: string;
+  /** Distinct server-issued addresses when the account has several devices. */
+  virtualIps?: readonly string[];
+  virtualIpObservedAtMs?: number;
   path?: LanPeerPathEvidence;
 }
 export interface LanCommunitySnapshot {
@@ -62,11 +67,23 @@ export interface MemberLanReading {
   /** Safe enums only; identity/peer IDs and arbitrary diagnostic text stay private. */
   source?: LanEvidenceSource;
   observedAtMs?: number;
+  /** Safe RFC1918 address for LAN/game connection; absent when evidence is stale or invalid. */
+  virtualIp?: string;
+  virtualIps?: readonly string[];
 }
 const sources = new Set(["authenticated-community", "easytier-local"]);
-const enrollments = new Set(["off", "not-joined", "joining", "joined", "error"]);
+const enrollments = new Set(["off", "not-joined", "joining", "joined", "assigned", "error"]);
 const paths = new Set(["direct", "member-relay", "server-relay", "unknown"]);
 const nonempty = (value: unknown): value is string => typeof value === "string" && value.trim().length > 0;
+/** Keep the member list limited to the overlay address. Physical/public IPs stay in details. */
+function virtualIpv4(value: unknown): string | undefined {
+  if (typeof value !== "string" || !/^\d{1,3}(?:\.\d{1,3}){3}$/.test(value)) return;
+  const parts = value.split(".").map(Number);
+  if (parts.some(part => !Number.isInteger(part) || part < 0 || part > 255)) return;
+  const [a, b] = parts;
+  if (!(a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168))) return;
+  return parts.join(".");
+}
 function ageReason(timestamp: number, nowMs: number): "stale" | "invalid" | undefined {
   if (!Number.isSafeInteger(nowMs) || nowMs <= 0 || !Number.isSafeInteger(timestamp) || timestamp <= 0 || timestamp > nowMs) return "invalid";
   return nowMs - timestamp > MEMBER_LAN_MAX_AGE_MS ? "stale" : undefined;
@@ -105,9 +122,17 @@ export function readMemberLanStatus({ serverScope, authenticatedUserId, observer
   if (!member.enrollment || !enrollments.has(member.enrollment.state) || !sources.has(member.enrollment.source)) return unknown("invalid");
   const membershipAge = ageReason(member.enrollment.observedAtMs, clock);
   if (membershipAge) return unknown(membershipAge);
-  if (member.enrollment.state === "joined" && !peer) return unknown("unverified");
+  const addressTime = member.virtualIpObservedAtMs ?? member.binding.observedAtMs;
+  const addressValues = member.virtualIps ?? (member.virtualIp ? [member.virtualIp] : []);
+  const addresses = ["joined", "assigned"].includes(member.enrollment.state) && !ageReason(addressTime, clock) && Array.isArray(addressValues) && addressValues.length <= 254
+    ? addressValues.map(virtualIpv4).filter((value): value is string => value !== undefined) : [];
+  const validAddresses = addresses.length === addressValues.length && new Set(addresses).size === addresses.length ? addresses : [];
   const result: MemberLanReading = { enrollment: member.enrollment.state, path: "unknown", rttMs: null,
+    virtualIp: validAddresses.length === 1 ? validAddresses[0] : undefined,
+    virtualIps: validAddresses.length ? validAddresses : undefined,
     source: member.enrollment.source, observedAtMs: member.enrollment.observedAtMs };
+  // A server allocation never proves joined/online membership by itself.
+  if (member.enrollment.state === "joined" && !peer) return { ...result, enrollment: "unknown", enrollmentReason: "unverified", pathReason: "unverified", rttReason: "unverified" };
   const noPath = (reason: LanReadingReason): MemberLanReading => ({ ...result, pathReason: reason, rttReason: reason });
   if (member.enrollment.state !== "joined") return noPath("not-joined");
   const observer = snapshot.observer;

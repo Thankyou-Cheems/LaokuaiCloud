@@ -1,7 +1,9 @@
+/* eslint-env node */
 // Execute the production before-quit handler with controlled drains, no Electron/native.
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
+
 import ts from "typescript";
 
 const main = fs.readFileSync(new URL("../electron/main.ts", import.meta.url), "utf8");
@@ -17,12 +19,15 @@ const deferred = () => {
   return { promise, resolve, reject };
 };
 const flush = () => new Promise(resolve => setImmediate(resolve));
-async function scenario(failure) {
+async function scenario(failure, cleanup = false) {
   const calls = [], native = deferred(), grant = deferred();
   let handler;
   const context = {
     LAOKUAI_PREVIEW: false, UI_ACCEPTANCE_MODE: false, IS_I18N_TEST: true, IS_LAOKUAI: true,
     easyTierQuitDrained: false, easyTierQuitDraining: false, isQuitting: false, easyTierPoll: 1,
+    firewallStopping: false, firewallWork: Promise.resolve(true), cleanupFirewallOnQuit: cleanup,
+    cleanupLaokuaiFirewallRules: async () => { calls.push("cleanup-firewall"); return { status: "prepared" }; },
+    laokuaiFirewallOptions: () => ({}), dialog: { showErrorBox: () => calls.push("cleanup-dialog") },
     app: { on: (_event, fn) => { handler = fn; }, quit: () => calls.push("quit") },
     BrowserWindow: { getAllWindows: () => [
       { close: () => { assert.equal(context.isQuitting, true); calls.push("close-main"); } },
@@ -46,20 +51,26 @@ async function scenario(failure) {
   assert.ok(calls.includes("close-media-sandbox"), "upload media sandbox must close before background cleanup");
   assert.ok(calls.includes("stop-poll"), "no fresh polling during retirement");
   assert.equal(context.tray, null);
+  assert.equal(context.firewallStopping, true);
   assert.equal(calls.includes("quit"), false);
   handler(event);
   assert.equal(calls.filter(c => c === "drain-native").length, 1, "repeat quit shares cleanup");
   if (failure) native.reject(new Error("fixture cleanup failure")); else native.resolve();
   await flush();
   assert.equal(calls.includes("quit"), false, "even a failed drain cannot abandon the other drain");
+  assert.equal(calls.includes("cleanup-firewall"), false, "rule cleanup waits for both drains");
   grant.resolve(); await flush();
   assert.equal(calls.filter(c => c === "quit").length, 1);
   assert.equal(context.easyTierQuitDrained, true);
   assert.equal(calls.includes("cleanup-warning"), failure);
+  assert.equal(calls.includes("cleanup-firewall"), cleanup && !failure);
+  if (cleanup && !failure) assert.ok(calls.indexOf("cleanup-firewall") < calls.indexOf("quit"));
   const before = calls.length;
   handler(event);
   assert.equal(calls.length, before, "completed quit is no longer intercepted");
 }
 await scenario(false);
 await scenario(true);
+await scenario(false, true);
+await scenario(true, true);
 console.log("PASS production quit handler: immediate window/sandbox/tray retirement, single cleanup, both drains settle before exit");

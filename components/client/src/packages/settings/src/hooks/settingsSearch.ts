@@ -33,7 +33,7 @@ export function settingAnchorId(title: string): string {
 }
 
 export const SETTINGS_INDEX: SettingsIndexEntry[] = [
-  { id: "voice-transport", title: "Voice bandwidth", description: "Mono Opus with variable bitrate. The standard profile requests 48 kbps via the server and 64 kbps for peer audio; actual traffic depends on negotiation and channel limits.", destination: "sound-video", page: "voice", section: "Voice" },
+  { id: "voice-transport", title: "Voice bandwidth", description: "The standard profile saves server bandwidth for group speech: 16 kbps / 60 ms via the server and 64 kbps / 20 ms on admitted peer paths. Server audio prioritizes speech intelligibility; actual traffic depends on negotiation, packetization and channel limits.", destination: "sound-video", page: "voice", section: "Voice" },
   { id: "voice-transport-bitrate", title: "Maximum bitrate (kbps)", description: "The channel may impose a lower cap. This is RTP audio payload, excluding packet and network overhead.", destination: "sound-video", page: "voice", section: "Voice" },
   { id: "voice-transport-packet-time", title: "Packet duration preference", description: "The server must negotiate this preference. Longer packets add buffering delay.", destination: "sound-video", page: "voice", section: "Voice" },
   { id: "voice-transport-dtx", title: "Request DTX", description: "Request fewer packets during silence. This setting alone does not prove the encoder reduces packet rate.", destination: "sound-video", page: "voice", section: "Voice" },
@@ -76,10 +76,10 @@ export const SETTINGS_INDEX: SettingsIndexEntry[] = [
     : []),
   { id: "microphone-volume", title: "Microphone volume", description: "Your microphone input level (100% = unchanged, 200% = 2x boost)", page: "audio", destination: "sound-video", section: "Microphone" },
   { id: "test-microphone", title: "Test microphone", description: "Hear yourself through your speakers or headphones, to check what the processing is doing.", page: "audio", destination: "sound-video", section: "Microphone" },
-  { id: "noise-reduction", title: "Noise reduction", description: "Removes background noise before your voice is sent. Runs in an AudioWorklet off the main thread, and adds about 20 ms.", page: "audio", destination: "sound-video", section: "Microphone" },
-  { id: "auto-gain", title: "Auto gain", description: "Brings your microphone to a target volume. Quiet speech is boosted, loud speech is reduced.", page: "audio", destination: "sound-video", section: "Microphone" },
-  { id: "target-level", title: "Target level", description: "The volume your voice is brought to. Lower is quieter, higher is louder.", page: "audio", destination: "sound-video", section: "Microphone" },
-  { id: "compressor", title: "Compressor", description: "Narrows the gap between your quietest and loudest, so your level stays steadier. Runs after auto gain.", page: "audio", destination: "sound-video", section: "Microphone" },
+  { id: "noise-reduction", title: "Noise reduction", description: "Filters background noise before sending and can add processing delay. Actual runtime status is shown below.", page: "audio", destination: "sound-video", section: "Microphone" },
+  { id: "auto-gain", title: "Advanced auto gain", description: "Adjusts send RMS toward a target and can lift noise. Off by default; the speech gate cannot replace it.", page: "audio", destination: "sound-video", section: "Microphone" },
+  { id: "target-level", title: "Target level", description: "Auto gain RMS target in dBFS, not loudness or sound pressure. Default −20 dBFS; compression, noise reduction and limiting can still change the final level.", page: "audio", destination: "sound-video", section: "Microphone" },
+  { id: "compressor", title: "Advanced compressor", description: "Reduces send peaks and dynamic range, changing the sound. Off by default; runs after auto gain.", page: "audio", destination: "sound-video", section: "Microphone" },
   { id: "compression-amount", title: "Compression amount", description: "How aggressively to compress. Low = subtle leveling, high = heavy squash.", page: "audio", destination: "sound-video", section: "Microphone" },
   { id: "output-volume", title: "Output volume", description: "Volume of all incoming audio (100% = unchanged, 200% = 2x boost)", page: "audio", destination: "sound-video", section: "Playback" },
   { id: "input-mode", title: "Input mode", description: "Voice activity transmits whenever you speak above the noise gate. Push to talk only transmits while you hold a key, and hides the gate below.", page: "audio", destination: "sound-video", section: "Audio" },

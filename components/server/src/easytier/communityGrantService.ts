@@ -12,7 +12,7 @@ import { deriveCredentialFingerprint } from './communityCredentialProvider';
 import type { CommunityMemberAuthorizer, CommunityMemberIdentity } from './communityGrantAuth';
 import {
   parseCommunityGrantRequest, type CommunityAcquireRequestV1, type CommunityBindingRequestV1,
-  type CommunityGrantApi, type CommunityRenewRequestV1, type CommunitySessionRequestV1,
+  type CommunityDirectoryRequestV1, type CommunityGrantApi, type CommunityRenewRequestV1, type CommunitySessionRequestV1,
 } from './communityGrantApi';
 import {
   SqliteCommunityGrantStore, type CommunityStoredSession, type ScopeLease, type StoredGrantState,
@@ -231,5 +231,15 @@ export class CommunityGrantService implements CommunityGrantApi {
         credentialId:proof.credentialId,revision:proof.revision,peerId:proof.peerId,virtualIp:proof.virtualIp,
         publicKeyFingerprint:proof.publicKeyFingerprint,physicalDirectVerified:false as const};
     } finally {this.#store.release(lease);}
+  }
+  async directory(bearer: string, raw: CommunityDirectoryRequestV1) {
+    this.#enabled();
+    const body = parseCommunityGrantRequest('directory', raw);
+    if (body.communityId !== this.#config.communityId) fail('community-forbidden');
+    const identity = await this.#identity(bearer, body.communityId);
+    const members = this.#store.directory(body.communityId, this.#clock.wallMs());
+    const current = await this.#identity(bearer, body.communityId);
+    if (current.tokenDigest !== identity.tokenDigest || current.serverUserId !== identity.serverUserId) fail('auth-retired');
+    return {v: 1 as const, communityId: body.communityId, members};
   }
 }

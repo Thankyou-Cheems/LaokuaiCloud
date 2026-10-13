@@ -66,6 +66,8 @@ assert.ok(main.includes('"laokuai://auth?error=login_window_failed"'));
 native.setNativeLanguagePreference("zh-CN", []);
 const control = new Function("app", "process", "Tray", "nativeImage", "Menu", "window", "nativeT", "refreshNativeLanguage", `
   let mainWindow=window, tray=null, closeToTray=true, isQuitting=false, IS_LAOKUAI=true, isUserSignedIn=false;
+  const LAOKUAI_FIREWALL_ENABLED=false;
+  let cleanupFirewallOnQuit=false;
   let voiceState={inVoice:true,muted:false,deafened:false,serverName:'Fixture only'};
   const updates={ready:()=>false}, updatesComeFromTheAppStore=true;
   const startupLog=()=>{}, createMainWindow=()=>{}, installNewestUpdate=()=>{}, checkForUpdatesInBackground=()=>{};

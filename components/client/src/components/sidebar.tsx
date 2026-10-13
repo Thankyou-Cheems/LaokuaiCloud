@@ -89,7 +89,7 @@ export function Sidebar({ setShowAddServer }: SidebarProps) {
     setShowDiscovery,
     newLanServers,
   } = useServerManagement();
-  const { isElectron } = useLanDiscovery();
+  const { discoveryEnabled } = useLanDiscovery();
 
   /**
    * Which rail entries are servers this machine is running. Connection status
@@ -212,7 +212,7 @@ export function Sidebar({ setShowAddServer }: SidebarProps) {
 
         {/* Discovery is Electron-only because mDNS browsing is. A browser
             would get a destination that can never have anything in it. */}
-        {isElectron && (
+        {discoveryEnabled && (
           <Tooltip
             title={tr("ui.serversOnYourNetwork")}
             side="right"

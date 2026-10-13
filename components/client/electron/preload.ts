@@ -77,6 +77,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   isElectron: true,
   // Main sets this only for the authorized private product, never the i18n variant.
   hybridVoiceEnabled: process.argv.includes("--laokuai-hybrid-voice"),
+  lanDiscoveryEnabled: !process.argv.includes("--laokuai-product"),
 
   // False where the compositor manages windows itself, so the app draws no
   // titlebar either. Set by main from --gryt-no-window-chrome. GRYT-1062.

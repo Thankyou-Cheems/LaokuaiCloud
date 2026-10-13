@@ -218,6 +218,40 @@ await test("protobuf virtual-IP conversion allows only private virtual addresses
   assert.equal(status.easyTierVirtualIp("256.0.0.1"), null);
   assert.equal(status.easyTierVirtualIp("1.1.1.1"), null);
 });
+await test("server roster supplies stable member addresses without inventing a route", async () => {
+  const s = enrolledSample();
+  s.directory = [
+    {serverUserId: "user-a", virtualIp: "10.44.0.7"},
+    {serverUserId: "local-user", virtualIp: "10.44.0.2"},
+    {serverUserId: "remote-user", virtualIp: "10.44.0.8"},
+  ];
+  s.directoryObservedAtUnixMs = time;
+  const snapshot = memberAdapter.projectEasyTierMembers(s, scope, "connected", time, time);
+  assert.ok(snapshot);
+  assert.deepEqual([...snapshot.members.find(member => member.binding.authenticatedUserId === "user-a").virtualIps], ["10.44.0.7"]);
+  const remote = snapshot.members.find(member => member.binding.authenticatedUserId === "remote-user");
+  assert.deepEqual(JSON.parse(JSON.stringify(remote)), {
+    binding: {authenticatedUserId: "remote-user", peerId: null, confidence: "verified", source: "authenticated-community", observedAtMs: time},
+    enrollment: {state: "assigned", source: "authenticated-community", observedAtMs: time}, virtualIps: ["10.44.0.8"], virtualIpObservedAtMs: time,
+  });
+  s.directory[2].virtualIp = "198.51.100.8";
+  const invalid = memberAdapter.projectEasyTierMembers(s, scope, "connected", time, time);
+  assert.equal(invalid.members.some(member => member.binding.authenticatedUserId === "remote-user" && member.virtualIp), false);
+});
+await test("directory timestamps expire independently; each remote account keeps all devices", async () => {
+  const s = enrolledSample();
+  s.directory = [{serverUserId: "remote", virtualIp: "10.44.0.8"}, {serverUserId: "remote", virtualIp: "10.44.0.9"}];
+  s.directoryObservedAtUnixMs = time;
+  const remote = memberAdapter.projectEasyTierMembers(s, scope, "connected", time, time).members.find(m => m.binding.authenticatedUserId === "remote");
+  assert.deepEqual([...remote.virtualIps], ["10.44.0.8", "10.44.0.9"]); assert.equal(remote.enrollment.state, "assigned"); assert.equal(remote.path, undefined);
+  for (const at of [undefined, time + 1, time - 10001]) {
+    s.directoryObservedAtUnixMs = at;
+    assert.equal(memberAdapter.projectEasyTierMembers(s, scope, "connected", time, time).members.some(m => m.binding.authenticatedUserId === "remote"), false);
+  }
+  s.directoryObservedAtUnixMs = time;
+  s.directory[1].virtualIp = s.directory[0].virtualIp;
+  assert.equal(memberAdapter.projectEasyTierMembers(s, scope, "connected", time, time).members.some(m => m.binding.authenticatedUserId === "remote"), false);
+});
 
 function ports(overrides = {}) {
   const ids = new Set(); let starts = 0, stops = 0, runs = 0; const deleted = [], released = [], policies = [];

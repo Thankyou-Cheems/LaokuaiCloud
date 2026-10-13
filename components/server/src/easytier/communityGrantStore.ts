@@ -17,6 +17,7 @@ export interface CommunityStoredSession {
   sessionId: string; tokenDigest: string; serverUserId: string; authorizationEpoch: number;
   issuedAtMs: number; expiresAtMs: number; intent: TrustedCommunityIntent;
 }
+export interface CommunityDirectoryMember { serverUserId: string; virtualIp: string }
 export interface ScopeLease { key: string; owner: string }
 export interface StoredGrantState { record: CommunityGrantRecord; operation: StoredGrantOperation | null }
 export interface CleanupIntent { scope: CommunityGrantScope; grantId: string; credentialId: string; adminInstanceId: string; confirmed: boolean }
@@ -127,6 +128,32 @@ export class SqliteCommunityGrantStore {
     const epoch=this.#db.prepare('SELECT epoch FROM community_et_epoch WHERE scope_key=?').get(communityScopeKey(value));
     if (!current || !sameScope(current.intent,value) || epoch?.epoch !== current.authorizationEpoch) fail('grant-store-corrupt');
     return current;
+  }
+  /**
+   * Return assigned addresses for unexpired grants in authenticated ET sessions.
+   * The session and device row are both checked, so a client supplied roster or
+   * nickname can never introduce an address. Preserve every device address;
+   * choosing the newest would silently select another device for the account.
+   * A grant proves authorization and allocation, not online/route connectivity.
+   */
+  directory(communityId: string, nowMs: number): CommunityDirectoryMember[] {
+    if (!communityIdentity(communityId) || !natural(nowMs)) fail('invalid-directory-query');
+    const members: CommunityDirectoryMember[] = [];
+    for (const row of this.#db.prepare('SELECT session_id FROM community_et_sessions').all()) {
+      const session = this.session(row.session_id as string);
+      if (!session || session.intent.communityId !== communityId || session.expiresAtMs <= nowMs) continue;
+      const state = this.load(session.intent), grant = state.record.grant;
+      // A same-key renewal retains the prior confirmed allocation until its
+      // original expiry; an in-flight extension never supplies a new lifetime.
+      if ((state.operation && state.operation.plan.operation !== 'renew') || state.record.state !== 'active' || !grant || grant.expiresAtMs <= nowMs ||
+          grant.networkName !== session.intent.networkName || grant.networkRevision !== session.intent.networkRevision ||
+          grant.virtualIp !== session.intent.virtualIp) continue;
+      const device = this.#db.prepare('SELECT native_instance_id, virtual_ip FROM community_et_devices WHERE account_id=? AND community_id=? AND device_id=?')
+        .get(session.intent.accountId, communityId, session.intent.deviceId);
+      if (!device || device.native_instance_id !== session.intent.nativeInstanceId || device.virtual_ip !== session.intent.virtualIp || !privateIpv4(device.virtual_ip)) continue;
+      members.push({serverUserId: session.serverUserId, virtualIp: session.intent.virtualIp});
+    }
+    return members.sort((a, b) => a.serverUserId.localeCompare(b.serverUserId) || a.virtualIp.localeCompare(b.virtualIp));
   }
   claim(value: CommunityGrantScope, nowMs: number): ScopeLease {
     scope(value); if (!natural(nowMs)) fail('invalid-store-clock');

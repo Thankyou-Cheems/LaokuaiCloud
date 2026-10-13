@@ -96,7 +96,7 @@ function useServerManagementHook(): ServerManagement {
     markLanServersSeen,
   } = useServerSettings();
 
-  const { lanServers } = useLanDiscovery();
+  const { lanServers, discoveryEnabled } = useLanDiscovery();
   const { serverDetailsList } = useSockets();
 
   // Write down a server's id once we are talking to it: a duplicate entry only
@@ -130,9 +130,10 @@ function useServerManagementHook(): ServerManagement {
   /* Opening Discovery leaves the direct messages space. The space is drawn in its
      place whenever it's open, so otherwise the rail's button did nothing there. */
   const setShowDiscovery = useCallback((show: boolean) => {
+    if (!discoveryEnabled) return;
     if (show) setDmSpaceOpen(false);
     setShowDiscoveryState(show);
-  }, []);
+  }, [discoveryEnabled]);
   const [pendingFocusServer, setPendingFocusServer] = useState<string | null>(
     null
   );

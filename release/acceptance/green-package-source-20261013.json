@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-13",
+  "version": "1.13.22-laokuai.beta.20261013.6",
+  "changes": ["fixed-directory ZIP", "owned application/core firewall rules and cleanup", "authenticated virtual address copy", "disable Gryt LAN discovery in Laokuai", "actual gate/audio observations"],
+  "coreContractSuites": 25,
+  "firewallHostModifiedByTests": false,
+  "firewallVerification": "mock backend plus real CLR production reflection/ownership fixture; lifecycle ordering and offline bypass",
+  "memberAddressVerification": "runtime58/ET38/member16/backend50; authenticated allocation is distinct from joined/path evidence",
+  "audioReceipt": "release/acceptance/audio-observation-sdk-20261013.json",
+  "productionDirectoryDeployment": "separate approved operator phase and receipt",
+  "magicDnsEnabled": false,
+  "memberRelayEnabled": false,
+  "normalUacRequired": true,
+  "persistentServiceInstalled": false,
+  "realFirewallPromptAcceptance": false,
+  "realDeviceMediaAcceptance": false,
+  "knownLimits": ["No test here modifies live firewall or runs EasyTier/TUN", "MagicDNS OS resolution and authenticated naming remain future work", "Windows rules created by old system prompts are not app-owned and are preserved"]
+}

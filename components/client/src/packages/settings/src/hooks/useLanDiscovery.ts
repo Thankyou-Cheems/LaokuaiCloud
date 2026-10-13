@@ -9,11 +9,12 @@ function serverKey(host: string, port: number): string {
 export function useLanDiscovery() {
   const [servers, setServers] = useState<Map<string, LanServer>>(new Map());
   const api = getElectronAPI();
+  const discoveryEnabled = !!api && api.lanDiscoveryEnabled !== false;
 
   // Seed from what the main process already knows: discovery announces a server
   // once, so a hook mounting later would show nothing.
   useEffect(() => {
-    if (!api) return;
+    if (!api || !discoveryEnabled) return;
     let cancelled = false;
 
     api
@@ -36,10 +37,10 @@ export function useLanDiscovery() {
     return () => {
       cancelled = true;
     };
-  }, [api]);
+  }, [api, discoveryEnabled]);
 
   useEffect(() => {
-    if (!api) return;
+    if (!api || !discoveryEnabled) return;
 
     const unsubUp = api.onLanServerDiscovered((server) => {
       setServers((prev) => {
@@ -68,15 +69,15 @@ export function useLanDiscovery() {
       unsubUp();
       unsubDown();
     };
-  }, [api]);
+  }, [api, discoveryEnabled]);
 
   const lanServers = useCallback(() => Array.from(servers.values()), [servers]);
 
   /** Ask the network again. Results arrive through the existing subscription. */
   const rescan = useCallback(() => {
     setServers(new Map());
-    api?.rescanLanServers();
-  }, [api]);
+    if (discoveryEnabled) api?.rescanLanServers();
+  }, [api, discoveryEnabled]);
 
-  return { lanServers: lanServers(), isElectron: !!api, rescan };
+  return { lanServers: discoveryEnabled ? lanServers() : [], isElectron: !!api, discoveryEnabled, rescan };
 }

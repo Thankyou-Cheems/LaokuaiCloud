@@ -38,6 +38,7 @@ function fixture(communityId: string = BODY.communityId) {
   const auth=createCommunityMemberAuthorizer(services,{communityId,serverHost:'test.invalid'},()=>control.wall);
   const entries=new Map<string,{receipt:PrivateNativeCredentialReceipt;readback:NativeCredentialReadback;publicB64:string}>();
   let afterCreate: (()=>Promise<void>)|null=null;
+  let duringExtend: (()=>void)|null=null;
   const provider: CommunityGrantServiceProvider={
     inspectInstance:async instance=>({instance,upstreamCommit:COMMUNITY_ET_UPSTREAM_COMMIT,sameKeyUpsert:true,credentialStore:'healthy'}),
     create:async (request:CreateCredentialIntent)=>{
@@ -53,6 +54,7 @@ function fixture(communityId: string = BODY.communityId) {
       return structuredClone(receipt);
     },
     extendSameKey:async (request:ExtendCredentialIntent)=>{
+      duringExtend?.();
       const entry=entries.get(request.id)!;
       assert.equal(request.secret,entry.receipt.credentialSecretB64);
       if (control.upsertExtends) {entry.readback.expiryUnix=request.expiryUnix;entry.receipt.expiryUnix=request.expiryUnix;}
@@ -73,7 +75,7 @@ function fixture(communityId: string = BODY.communityId) {
     bootstrapProfileId:'public-2.7',virtualIpPool:['10.77.0.2','10.77.0.3'],authority:AUTHORITY,ttlSeconds:120,
     enabled:()=>control.enabled,credentialWritesEnabled:()=>control.writes,runtimeGeneration:()=>control.generation},store,provider,auth,
     {wallMs:()=>control.wall,monoMs:()=>control.mono});
-  return {db,store,service,control,entries,services,auth,setAfterCreate:(value:typeof afterCreate)=>{afterCreate=value;}};
+  return {db,store,service,control,entries,services,auth,setAfterCreate:(value:typeof afterCreate)=>{afterCreate=value;},setDuringExtend:(value:typeof duringExtend)=>{duringExtend=value;}};
 }
 const code=(expected:string)=>(error:unknown)=>error instanceof ContractError && error.code===expected;
 test('real CJK namespace crosses existing member auth, service and durable device allocation unchanged',async()=>{
@@ -97,6 +99,60 @@ test('session is idempotent, account comes from existing bearer, and no native w
     assert.equal(f.store.sessionForScope(a.intent)!.authorizationEpoch,1);assert.equal(f.control.createCount,0);
     assert.equal('sessionId' in a,false);
   }finally {f.db.close();}
+});
+test('directory exposes only active authenticated ET registrations and keeps device addresses stable',async()=>{
+  const f=fixture();try {
+    await f.service.session('alice',BODY);
+    await f.service.session('bob',{...BODY,deviceId:'device-bob',nativeInstanceId:'33333333-3333-4333-8333-333333333333'});
+    assert.deepEqual(f.store.directory('community',START),[]);
+    await f.service.acquire('alice',{...BODY,requestId:'directory-alice'});
+    await f.service.acquire('bob',{...BODY,deviceId:'device-bob',nativeInstanceId:'33333333-3333-4333-8333-333333333333',requestId:'directory-bob'});
+    assert.deepEqual(f.store.directory('community',START),[
+      {serverUserId:'server-alice',virtualIp:'10.77.0.2'},
+      {serverUserId:'server-bob',virtualIp:'10.77.0.3'},
+    ]);
+    await f.service.session('alice',BODY);
+    assert.deepEqual(f.store.directory('community',START),[
+      {serverUserId:'server-alice',virtualIp:'10.77.0.2'},
+      {serverUserId:'server-bob',virtualIp:'10.77.0.3'},
+    ]);
+    assert.deepEqual(f.store.directory('other-community',START),[]);
+    assert.deepEqual((await f.service.directory('alice',{v:1,communityId:'community'})).members,f.store.directory('community',START));
+    await assert.rejects(f.service.directory('alice',{v:1,communityId:'other-community'}),code('community-forbidden'));
+    f.control.member=false;
+    await assert.rejects(f.service.directory('alice',{v:1,communityId:'community'}),code('membership-required'));
+    f.control.member=true;f.control.wall+=120001;
+    assert.deepEqual(f.store.directory('community',f.control.wall),[]);
+  }finally {f.db.close();}
+});
+test('directory preserves multiple devices and removes revoked allocations without freeing stable reservations',async()=>{
+  const f=fixture();try {
+    const second={...BODY,deviceId:'second-device',nativeInstanceId:'33333333-3333-4333-8333-333333333333'};
+    const first=await f.service.session('alice',BODY),other=await f.service.session('alice',second);
+    assert.notEqual(first.intent.virtualIp,other.intent.virtualIp);
+    const a=await f.service.acquire('alice',{...BODY,requestId:'first'});
+    await f.service.acquire('alice',{...second,requestId:'second'});
+    assert.deepEqual(f.store.directory('community',START),[
+      {serverUserId:'server-alice',virtualIp:'10.77.0.2'}, {serverUserId:'server-alice',virtualIp:'10.77.0.3'},
+    ]);
+    await f.service.revoke('alice',{...BODY,requestId:'revoke-first',grantId:a.grantId});
+    assert.deepEqual(f.store.directory('community',START),[{serverUserId:'server-alice',virtualIp:'10.77.0.3'}]);
+    const reopened=new SqliteCommunityGrantStore(f.db,communityVaultKey('PURE-TEST-VAULT-SECRET-01234567890123456789'));
+    reopened.initSchema();
+    assert.equal(reopened.registerDevice('alice','community','device',INSTANCE,['10.77.0.2','10.77.0.3']),first.intent.virtualIp);
+    assert.throws(()=>reopened.registerDevice('alice','community','device',second.nativeInstanceId,['10.77.0.2','10.77.0.3']),code('device-instance-mismatch'));
+  }finally {f.db.close();}
+});
+test('directory retains confirmed addresses during same-key renewal without borrowing its future expiry',async()=>{
+  const f=fixture();try{
+    await f.service.session('alice',BODY);const grant=await f.service.acquire('alice',{...BODY,requestId:'acquire'});
+    f.control.wall+=80000;
+    f.setDuringExtend(()=>{
+      assert.deepEqual(f.store.directory('community',f.control.wall),[{serverUserId:'server-alice',virtualIp:'10.77.0.2'}]);
+      assert.deepEqual(f.store.directory('community',grant.expiresAtMs),[]);
+    });
+    await f.service.renew('alice',{...BODY,requestId:'renew-directory',grantId:grant.grantId});
+  }finally{f.db.close();}
 });
 test('existing auth rejects stale server/user versions, member removal, wrong host and DB failure',async()=>{
   const f=fixture();try {

@@ -1,5 +1,6 @@
 [CmdletBinding()]
-param([ValidateSet('Compile','Package','All')][string]$Stage = 'All', [string]$NodePath)
+param([ValidateSet('Compile','Package','All')][string]$Stage = 'All', [string]$NodePath,
+    [ValidateSet('zip','portable')][string]$Format = 'zip')
 $ErrorActionPreference = 'Stop'
 $OutputEncoding = [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
 if ($PSVersionTable.PSVersion.Major -lt 7) { throw 'PowerShell 7 is required' }
@@ -43,13 +44,14 @@ try {
         & $NodePath scripts/write-source-offer.cjs
         if ($LASTEXITCODE -ne 0) { throw 'Exact source offer verification failed' }
         # Codex may keep mapped ASAR/EXE handles in the workspace. Build outside
-        # it and copy back only the completed immutable portable executable.
+        # it and copy back only the completed immutable archive/executable.
         $packageDirectory = Join-Path ([IO.Path]::GetTempPath()) ('laokuai-package-' + [Guid]::NewGuid().ToString('N'))
         $packageDirectory | Set-Content -LiteralPath (Join-Path $client 'build/legal/package-output-path.txt') -Encoding utf8NoBOM
-        & $NodePath node_modules/electron-builder/cli.js --config=electron-builder.laokuai.cjs "--config.directories.output=$packageDirectory" --win portable --x64 --publish never
+        & $NodePath node_modules/electron-builder/cli.js --config=electron-builder.laokuai.cjs "--config.directories.output=$packageDirectory" --win $Format --x64 --publish never
         if ($LASTEXITCODE -ne 0) { throw 'Portable package failed' }
-        $portable = @(Get-ChildItem -LiteralPath $packageDirectory -File -Filter '*-portable.exe')
-        if ($portable.Count -ne 1) { throw 'Expected one portable executable' }
+        $artifactFilter = if ($Format -eq 'zip') { '*-green.zip' } else { '*-portable.exe' }
+        $portable = @(Get-ChildItem -LiteralPath $packageDirectory -File -Filter $artifactFilter)
+        if ($portable.Count -ne 1) { throw 'Expected one portable artifact' }
         $delivery = Join-Path $client 'release-laokuai-beta-20261013'
         New-Item -ItemType Directory -Force -Path $delivery | Out-Null
         Copy-Item -LiteralPath $portable[0].FullName -Destination (Join-Path $delivery $portable[0].Name)

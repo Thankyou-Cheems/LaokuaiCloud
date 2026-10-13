@@ -29,6 +29,7 @@ class Context{
 }
 const {ReceiveController}=await import('../dist/audio/lib/receiveGraph.js');
 const ctx=new Context(),owner=new ReceiveController(ctx,false),source=new Node(),manual=new Gain();
+manual.gain.value=.37;owner.bus.gain.value=.42;
 const route=owner.attach(source,manual),identity={participantId:'host/authenticated-user',receiverId:'physical-1',trackId:'track-1',generation:1};
 route.setIdentity(identity);route.setRole('microphone');
 const batches=[],states=[];const unsubscribe=owner.subscribeAutoLevels(x=>batches.push(x));owner.subscribe(x=>states.push(x));
@@ -37,6 +38,11 @@ assert.equal(route.fallbackGain.gain.value,1);owner.setEnabled(true);await owner
 await new Promise(resolve=>setTimeout(resolve,0));await owner.recover();
 assert.equal(owner.state.status,'active');assert.equal(owner.state.latencyMs,6);assert.equal(route.healthy,true);
 tests.push('cold disabled unity; enabled healthy 6ms graph');
+assert.ok(source.targets.has(route.leveler));assert.ok(route.leveler.targets.has(manual));
+assert.ok(manual.targets.has(route.limiter));assert.ok(!manual.targets.has(route.leveler), 'manual gain must not feed the automatic measurement');
+const assertManualPreserved=()=>{assert.equal(manual.gain.value,.37);assert.equal(owner.bus.gain.value,.42);};
+assertManualPreserved();
+tests.push('automatic measurement precedes personal gain; personal/master coefficients preserved on activation');
 const prior={schemaVersion:1,processorSchema:'gryt-receive-level-v2',learnedGainDb:18,
   speechLevelDbfs:-38,effectiveSpeechSeconds:30,lastVerifiedUnixMs:1000};
 assert.equal(route.setPrior(prior,{...identity,generation:0}),false);
@@ -58,17 +64,21 @@ route.setMuted(false);send(workerSnapshot(3,3));assert.equal(batches.at(-1).snap
 tests.push('lifecycle null clears with increasing public sequence; old control data rejected');
 const oldBus=owner.busLimiter,lastSequence=batches.at(-1).snapshots[0].sequence;
 owner.fail('injected-processor-error');assert.equal(owner.state.status,'degraded');assert.equal(owner.state.latencyMs,0);
+assertManualPreserved();
 assert.ok(source.targets.has(route.fallbackGain));assert.equal(route.fallbackGain.gain.value,.5);
 await owner.recover();assert.equal(owner.state.status,'active');send(workerSnapshot(4,1));
+assertManualPreserved();
 assert.ok(batches.at(-1).snapshots[0].sequence>lastSequence);assert.equal(batches.at(-1).snapshots[0].appliedAutoGainDb,4);
 send(workerSnapshot(17,999),oldBus);assert.equal(batches.at(-1).snapshots[0].appliedAutoGainDb,4);
 tests.push('processor-error fallback remains routed; recovery monotonic public sequence rejects old bus');
 owner.setEnabled(false);assert.equal(owner.state.status,'disabled');assert.equal(owner.state.latencyMs,6);
 assert.equal(route.leveler.parameters.get('enabled').value,0);assert.equal(route.limiter.parameters.get('enabled').value,0);
 assert.equal(route.fallbackGain.gain.value,1);tests.push('warm OFF actual delay retained, no forced -6dB');
+assertManualPreserved();
 owner.setEnabled(true);ctx.change('suspended');assert.equal(owner.state.status,'suspended');
 assert.equal(batches.at(-1).snapshots[0].appliedAutoGainDb,null);ctx.change('running');send(workerSnapshot(2,2));
 assert.equal(batches.at(-1).snapshots[0].appliedAutoGainDb,2);tests.push('suspend invalidates; resumed graph publishes measured state');
+assertManualPreserved();tests.push('personal/master settings survive processor failure, recovery, OFF and suspend/resume');
 route.setIdentity({...identity,generation:2,trackId:'track-2'});send(workerSnapshot(10,500));
 assert.equal(route.prior,undefined);assert.equal(route.setPrior(prior,identity),false);
 assert.equal(batches.at(-1).snapshots[0].appliedAutoGainDb,null);assert.equal(batches.at(-1).snapshots[0].generation,2);

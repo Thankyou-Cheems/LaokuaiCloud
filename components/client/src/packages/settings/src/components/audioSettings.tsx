@@ -9,6 +9,7 @@ import { MAX_VOLUME_PERCENT } from "@/lib/audioVolume";
 import { useSettings } from "@/settings";
 
 import { PiArrowsClockwiseFill, PiWarningFill } from "../../../../lib/icons";
+import { hasLiveAudioInput, readAnalyserDbfs } from "./audioObservation";
 import { ReceiveLevelingSettings } from "./receiveLevelingSettings";
 import { ReceivePriorSettings } from "./ReceivePriorSettings";
 import { ReceiveVolumeSetting } from "./ReceiveVolumeSetting";
@@ -29,6 +30,20 @@ const LEVEL_RELEASE = 0.1;
  * indicator stays in step, and linear because an eased restart reads as stutter.
  */
 const LEVEL_TRANSITION = "60ms linear";
+
+/** The worklet exposes this same dBFS window for its legacy level meter. */
+const GATE_MIN_DBFS = -100;
+const GATE_MAX_DBFS = -30;
+
+function dbfsToGateLevel(dbfs: number | null): number | null {
+  if (dbfs === null || !Number.isFinite(dbfs)) return null;
+  const bounded = Math.max(GATE_MIN_DBFS, Math.min(GATE_MAX_DBFS, dbfs));
+  return ((bounded - GATE_MIN_DBFS) / (GATE_MAX_DBFS - GATE_MIN_DBFS)) * 100;
+}
+
+function formatDbfs(value: number | null): string {
+  return value === null || !Number.isFinite(value) ? "—" : `${Math.round(value)} dBFS`;
+}
 
 /**
  * Drops options that repeat an id already in the list. The platform hands us a
@@ -79,7 +94,15 @@ export function AudioSettings() {
   } = useSettings();
 
   const { isConnected } = useSFU();
-  const { devices, microphoneBuffer, getDevices, audioContext, getGateLevel } =
+  const {
+    devices,
+    microphoneBuffer,
+    getDevices,
+    audioContext,
+    getGateLevel,
+    getAutomaticNoiseGateState,
+    transmitSpeechActivityState,
+  } =
     useMicrophone(true);
   const { devices: outputDevices, getOutputDevices } = useSpeakers();
 
@@ -132,25 +155,8 @@ export function AudioSettings() {
       const gateVal = getGateLevel();
       const volVal = buf.volumeGain?.gain.value ?? null;
 
-      let finalRms: number | null = null;
-      if (buf.finalAnalyser) {
-        const len = buf.finalAnalyser.frequencyBinCount;
-        const arr = new Uint8Array(len);
-        buf.finalAnalyser.getByteFrequencyData(arr);
-        let sum = 0;
-        for (let i = 0; i < len; i++) sum += arr[i] * arr[i];
-        finalRms = Math.sqrt(sum / len);
-      }
-
-      let rawRms: number | null = null;
-      if (buf.analyser) {
-        const len = buf.analyser.frequencyBinCount;
-        const arr = new Uint8Array(len);
-        buf.analyser.getByteFrequencyData(arr);
-        let sum = 0;
-        for (let i = 0; i < len; i++) sum += arr[i] * arr[i];
-        rawRms = Math.sqrt(sum / len);
-      }
+      const finalDbfs = readAnalyserDbfs(buf.finalAnalyser);
+      const rawDbfs = hasLiveAudioInput(audioContext, buf.mediaStream) ? readAnalyserDbfs(buf.analyser) : null;
 
       voiceLog.info("LOOPBACK", "Periodic diagnostic", {
         contextState: audioContext?.state,
@@ -158,8 +164,8 @@ export function AudioSettings() {
         noiseGate: gateVal,
         volumeGain: volVal,
         agcGain: buf.agcGain?.gain.value ?? null,
-        rawRms: rawRms !== null ? Math.round(rawRms * 10) / 10 : null,
-        finalRms: finalRms !== null ? Math.round(finalRms * 10) / 10 : null,
+        rawDbfs,
+        finalDbfs,
       });
     }, 2000);
     return () => clearInterval(id);
@@ -176,14 +182,18 @@ export function AudioSettings() {
     return dataArray;
   }, [microphoneBuffer.analyser]);
 
-  const [micLiveVolume, setMicLiveVolume] = useState(0);
   const [micRawVolume, setMicRawVolume] = useState(0);
+  const [micRawDbfs, setMicRawDbfs] = useState<number | null>(null);
+  const [micProcessedDbfs, setMicProcessedDbfs] = useState<number | null>(null);
   const [isMicLive, setIsMicLive] = useState(false);
+  const [automaticGateState, setAutomaticGateState] = useState(() => getAutomaticNoiseGateState());
+  const automaticGateStateRef = useRef(automaticGateState);
+  automaticGateStateRef.current = automaticGateState;
   const [visualizerData, setVisualizerData] = useState<Uint8Array | null>(null);
   const devicesLoadedRef = useRef(false);
 
-  // Smoothed copy of micRawVolume, for drawing only. The raw value drives the
-  // gate status text, which has to stay truthful.
+  // Smoothed copy of the detector level, for drawing only. Gate status comes from
+  // the worklet in automatic mode and from the manual threshold otherwise.
   const [micDisplayVolume, setMicDisplayVolume] = useState(0);
   const micDisplayRef = useRef(0);
 
@@ -202,31 +212,38 @@ export function AudioSettings() {
     }
   }, [devices, micID, setMicID]);
 
+  // The automatic gate is owned by the AudioWorklet. Poll its read-only snapshot at a
+  // low rate so the settings panel can show the current learned floor and decision without
+  // moving the decision back to React or re-rendering at audio-block frequency.
+  useEffect(() => {
+    const read = () => setAutomaticGateState(getAutomaticNoiseGateState());
+    read();
+    const id = window.setInterval(read, 200);
+    return () => window.clearInterval(id);
+  }, [getAutomaticNoiseGateState, noiseGateMode, inputMode, audioContext]);
+
   useEffect(() => {
     const interval = setInterval(() => {
       // Prefer the level the gate itself decided on. Measuring separately here
       // made the meter and the gate disagree, so the threshold looked wrong.
-      const gateLevel = getGateLevel();
+      const liveInput = hasLiveAudioInput(audioContext, microphoneBuffer.mediaStream);
       let rawLevel: number | null = null;
+      const rawDbfs = liveInput ? readAnalyserDbfs(microphoneBuffer.analyser) : null;
+      const gateLevel = rawDbfs !== null ? getGateLevel() : null;
+      setMicRawDbfs(rawDbfs);
 
       if (gateLevel !== null) {
         rawLevel = gateLevel;
-      } else if (microphoneBuffer.analyser) {
-        const bufferLength = microphoneBuffer.analyser.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
-        microphoneBuffer.analyser.getByteFrequencyData(dataArray);
-
-        let sum = 0;
-        for (let i = 0; i < bufferLength; i++) {
-          sum += dataArray[i] * dataArray[i];
-        }
-        const rms = Math.sqrt(sum / bufferLength);
-        rawLevel = (rms / 255) * 100;
+      } else if (liveInput && microphoneBuffer.analyser) {
+        rawLevel = dbfsToGateLevel(rawDbfs);
       }
 
       if (rawLevel !== null) {
         setMicRawVolume(Math.round(rawLevel));
-        setIsMicLive(rawLevel > noiseGate);
+        const gateOpen = noiseGateMode === "automatic"
+          ? automaticGateStateRef.current.status === "available" && automaticGateStateRef.current.open
+          : rawLevel >= noiseGate;
+        setIsMicLive(gateOpen);
 
         // Rises quickly toward a peak, falls away slowly. Tracked in a ref so the
         // next sample continues from what was drawn, not what React committed.
@@ -236,29 +253,17 @@ export function AudioSettings() {
 
         micDisplayRef.current = smoothed;
         setMicDisplayVolume(smoothed);
+      } else {
+        setMicRawVolume(0);
+        setIsMicLive(false);
+        micDisplayRef.current = 0;
+        setMicDisplayVolume(0);
       }
 
       // The monitor tap, not finalAnalyser: the meter shows what your processing
       // does to your voice, which has nothing to do with being muted.
-      const levelSource =
-        microphoneBuffer.monitorAnalyser ?? microphoneBuffer.finalAnalyser;
-      if (levelSource) {
-        const bufferLength = levelSource.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
-        levelSource.getByteFrequencyData(dataArray);
-
-        let sum = 0;
-        for (let i = 0; i < bufferLength; i++) {
-          sum += dataArray[i] * dataArray[i];
-        }
-        const rms = Math.sqrt(sum / bufferLength);
-        const finalVolume = (rms / 255) * 100;
-
-        setMicLiveVolume(Math.round(finalVolume));
-
-        const vizData = getRawVisualizerData();
-        setVisualizerData(vizData);
-      }
+      setMicProcessedDbfs(liveInput ? readAnalyserDbfs(microphoneBuffer.monitorAnalyser) : null);
+      setVisualizerData(liveInput && rawDbfs !== null ? getRawVisualizerData() : null);
       // 30 fps. At 60 the panel re-rendered every 16 ms, which stutters badly on
       // weaker GPUs, and a level meter gains nothing from the extra frames.
     }, VISUALIZER_INTERVAL_MS);
@@ -275,7 +280,10 @@ export function AudioSettings() {
     microphoneBuffer.analyser,
     microphoneBuffer.finalAnalyser,
     microphoneBuffer.monitorAnalyser,
+    microphoneBuffer.mediaStream,
+    audioContext,
     noiseGate,
+    noiseGateMode,
     getRawVisualizerData,
     getGateLevel,
   ]);
@@ -286,7 +294,9 @@ export function AudioSettings() {
 
       const bars = Array.from(visualizerData.slice(0, 32)).map((value, index) => {
         const height = Math.max(2, (value / 255) * 40);
-        const isAboveThreshold = micRawVolume > noiseGate;
+        const isAboveThreshold = noiseGateMode === "automatic"
+          ? automaticGateState.status === "available" && automaticGateState.open
+          : micRawVolume >= noiseGate;
         return (
           <div
             key={index}
@@ -307,9 +317,18 @@ export function AudioSettings() {
         </div>
       );
     };
-  }, [visualizerData, micRawVolume, noiseGate]);
+  }, [visualizerData, micRawVolume, noiseGate, noiseGateMode, automaticGateState]);
 
   const isPTT = inputMode === "push_to_talk";
+  const automaticGateStatus = automaticGateState.status !== "available"
+    ? tr("pureVoice.autoGateWaiting")
+    : automaticGateState.rmsDbfs === null
+      ? tr("pureVoice.autoGateNoEvidence")
+    : automaticGateState.open
+      ? tr("pureVoice.autoGateOpen")
+      : automaticGateState.openThresholdDbfs === null
+        ? tr("pureVoice.autoGateLearning")
+        : tr("pureVoice.autoGateClosed");
 
   return (
     <SettingsContainer>
@@ -416,7 +435,7 @@ export function AudioSettings() {
         max={MAX_VOLUME_PERCENT}
       />
 
-      {audioContext && (
+      {(
         <div className="flex flex-col gap-2">
           <span className="font-medium">{tr("ui.audioLevels")}</span>
           <div className="flex flex-col gap-1">
@@ -436,9 +455,18 @@ export function AudioSettings() {
           </div>
           <div className="flex flex-col gap-1">
             <span className="text-gryt-muted">
-              {tr("ui.status")} {audioContext ? tr("ui.active") : tr("ui.inactive")}
+              {tr("ui.status")} {hasLiveAudioInput(audioContext, microphoneBuffer.mediaStream) ? tr("ui.active") : tr("audio.levelWaiting")}
               {loopbackEnabled && ` | ${tr("audio.playbackOn")}`}
             </span>
+          </div>
+          <div className="flex flex-col gap-1 text-sm" role="status" data-testid="audio-level-readout">
+            <span className="text-gryt-muted">
+              {tr("audio.levelReadout", {
+                raw: formatDbfs(micRawDbfs),
+                processed: formatDbfs(micProcessedDbfs),
+              })}
+            </span>
+            <span className="text-gryt-muted">{tr("audio.levelBoundary")}</span>
           </div>
         </div>
       )}
@@ -446,9 +474,34 @@ export function AudioSettings() {
       {!isPTT && <ToggleSetting anchorId="automatic-noise-gate" title={tr("pureVoice.autoGate")}
         description={tr("pureVoice.autoGateDescription")} checked={noiseGateMode === "automatic"}
         onCheckedChange={enabled => setNoiseGateMode(enabled ? "automatic" : "manual")} />}
+      {!isPTT && noiseGateMode === "automatic" && <div
+        className="flex flex-col gap-1 rounded-md border border-gryt-neutral-6 p-3 text-sm"
+        role="status"
+        data-testid="automatic-gate-observation"
+      >
+        <span className="font-medium">{tr("pureVoice.autoGateObservation")}</span>
+        <span>{automaticGateStatus}</span>
+        <span className="text-gryt-muted">
+          {tr("pureVoice.autoGateFloor", { value: formatDbfs(automaticGateState.status === "available" ? automaticGateState.floorDbfs : null) })}
+          {" · "}
+          {tr("pureVoice.autoGateThreshold", {
+            open: formatDbfs(automaticGateState.status === "available" ? automaticGateState.openThresholdDbfs : null),
+            hold: formatDbfs(automaticGateState.status === "available" ? automaticGateState.holdThresholdDbfs : null),
+          })}
+        </span>
+        <span>{tr("pureVoice.autoGateInput", { value: formatDbfs(automaticGateState.status === "available" ? automaticGateState.rmsDbfs : null) })}</span>
+        <span className="text-gryt-muted">
+          {tr("pureVoice.autoGateProbability", {
+            value: automaticGateState.status === "available" && automaticGateState.probability !== null
+              ? `${Math.round(automaticGateState.probability * 100)}%`
+              : "—",
+          })}
+        </span>
+        <span className="text-gryt-muted">{tr("pureVoice.autoGateThresholdNote")}</span>
+      </div>}
       {!isPTT && noiseGateMode === "manual" && <div className="flex flex-col gap-2">
         <span className="font-medium">
-          {tr("ui.noiseGate")} {noiseGate}%
+          {tr("ui.noiseGate")} {noiseGate} / 100
         </span>
         <span className="text-gryt-muted">
           {tr("ui.audioBelowThisLevelWillBeMutedThe")}
@@ -464,7 +517,7 @@ export function AudioSettings() {
             style={{ position: 'relative', zIndex: 2 }}
           />
 
-          {audioContext && (
+          {audioContext && micRawDbfs !== null && (
             <div
               style={{
                 position: 'absolute',
@@ -482,7 +535,7 @@ export function AudioSettings() {
             />
           )}
 
-          {audioContext && (
+          {audioContext && micRawDbfs !== null && (
             <div
               style={{
                 position: 'absolute',
@@ -503,12 +556,16 @@ export function AudioSettings() {
 
         <div className="flex items-center justify-between">
           <span className="text-gryt-muted">
-            {tr("ui.rawInput")} {Math.round(micRawVolume)}{tr("ui.processed")} {Math.round(micLiveVolume)}%
+            {tr("audio.manualGateScale", {
+              level: micRawDbfs === null ? "—" : micRawVolume,
+              threshold: noiseGate,
+            })}
           </span>
           <span className="font-medium" color={micRawVolume < noiseGate ? "red" : isMicLive ? "green" : "gray"}>
-            {micRawVolume < noiseGate ? tr("ui.gated") : isMicLive ? tr("ui.open") : tr("ui.quiet")}
+            {micRawDbfs === null ? tr("audio.levelWaiting") : micRawVolume < noiseGate ? tr("ui.gated") : isMicLive ? tr("ui.open") : tr("ui.quiet")}
           </span>
         </div>
+        <span className="text-gryt-muted text-sm">{tr("audio.manualGateBoundary")}</span>
 
         <div className="flex flex-col gap-1 mt-2">
           <span className="font-medium">
@@ -538,6 +595,7 @@ export function AudioSettings() {
 
       {/* ── Voice Processing ── */}
       <span className="font-bold text-gryt-muted">{tr("ui.voiceProcessing")}</span>
+      <p className="text-gryt-muted text-sm">{tr("ui.voiceProcessingDescription")}</p>
 
       <ToggleSetting anchorId="noise-reduction"
         title={tr("ui.noiseReduction")}
@@ -545,7 +603,8 @@ export function AudioSettings() {
         checked={rnnoiseEnabled}
         onCheckedChange={setRnnoiseEnabled}
         statusText={rnnoiseEnabled
-          ? tr("audio.rnnoiseActive")
+          ? tr(transmitSpeechActivityState.status === "available" && transmitSpeechActivityState.noiseSuppression?.status === "applied"
+            ? "audio.rnnoiseActive" : "audio.rnnoisePending")
           : undefined
         }
       />

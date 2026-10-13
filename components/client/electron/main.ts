@@ -34,7 +34,7 @@ import {
   writeFileSync,
 } from "fs";
 import { createServer, Server } from "http";
-import { dirname, extname, join, resolve } from "path";
+import { dirname, extname, isAbsolute, join, resolve } from "path";
 import semver from "semver";
 import { fileURLToPath } from "url";
 
@@ -180,6 +180,7 @@ import {
   saveUser,
 } from "./userStore";
 import { enforceLaokuaiWindowsAdminStartup, isExplicitLaokuaiOfflineLaunch } from "./windowsAdminStartupGate";
+import { cleanupLaokuaiFirewallRules, prepareLaokuaiFirewallRules } from "./windowsFirewallRules";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -188,6 +189,56 @@ const require = createRequire(import.meta.url);
 const IS_LAOKUAI = isLaokuaiPackage();
 const IS_I18N_TEST = isI18nTestPackage();
 const EXPLICIT_OFFLINE_TEST = IS_LAOKUAI && IS_I18N_TEST && isExplicitLaokuaiOfflineLaunch(process.argv);
+
+const LAOKUAI_FIREWALL_CLEANUP_ARG = "--cleanup-network-rules";
+const LAOKUAI_FIREWALL_CLEANUP_REQUESTED = IS_LAOKUAI && process.argv.includes(LAOKUAI_FIREWALL_CLEANUP_ARG);
+function laokuaiFirewallDataRoot(argv: readonly string[]): string {
+  for (let index = 0; index < argv.length; index++) {
+    const argument = argv[index];
+    const candidate = argument.startsWith("--user-data-dir=")
+      ? argument.slice("--user-data-dir=".length)
+      : argument === "--user-data-dir" ? argv[index + 1] ?? "" : "";
+    if (candidate && isAbsolute(candidate)) return candidate;
+  }
+  // A fixed-directory green package keeps its profile beside the executable.
+  // The portable single-file wrapper supplies PORTABLE_EXECUTABLE_DIR; using
+  // it here also lets cleanup retire rules left by an earlier extraction.
+  const packageRoot = process.env.PORTABLE_EXECUTABLE_DIR || dirname(process.execPath);
+  return join(packageRoot, "laokuai-chat-data");
+}
+const LAOKUAI_FIREWALL_LEDGER = join(laokuaiFirewallDataRoot(process.argv), "firewall-rules.json");
+const LAOKUAI_FIREWALL_ENABLED = IS_LAOKUAI && app.isPackaged && !EXPLICIT_OFFLINE_TEST;
+const laokuaiFirewallOptions = (easyTierExecutable?: string | null) => ({
+  platform: process.platform,
+  product: LAOKUAI_FIREWALL_ENABLED,
+  appExecutable: process.execPath,
+  easyTierExecutable,
+  helperExecutable: join(app.isPackaged ? process.resourcesPath : join(__dirname, "../build"), "community-lan-helper", "laokuai-community-broker.exe"),
+  ledgerFile: LAOKUAI_FIREWALL_LEDGER,
+});
+
+let firewallWork: Promise<boolean> = Promise.resolve(true);
+let firewallStopping = false;
+let firewallErrorShown = false;
+function prepareLaokuaiFirewall(easyTierExecutable?: string | null): Promise<boolean> {
+  if (!LAOKUAI_FIREWALL_ENABLED) return Promise.resolve(true);
+  if (firewallStopping || LAOKUAI_FIREWALL_CLEANUP_REQUESTED) return Promise.resolve(false);
+  firewallWork = firewallWork.then(async () => {
+    if (firewallStopping) return false;
+    const report = await prepareLaokuaiFirewallRules(laokuaiFirewallOptions(easyTierExecutable));
+  startupLog(`Firewall rules: status=${report.status} installed=${report.installed.length} removed=${report.removed.length} failures=${report.failures.length}`);
+    const prepared = report.status === "prepared";
+    if (!prepared && !firewallErrorShown) {
+      firewallErrorShown = true;
+      dialog.showErrorBox("唠蒯云网络规则未准备完成", easyTierExecutable
+        ? "无法准备社区联机核心的入站规则，社区虚拟局域网暂不可用。社区认证和语音仍可使用。请检查防火墙策略和绿色目录写入权限，再重启应用重试；已有阻止规则不会被修改。"
+        : "无法准备应用入站规则。请检查防火墙策略和绿色目录写入权限，再重启应用重试；已有阻止规则不会被修改。");
+    }
+    return prepared;
+  }).catch(() => false);
+  return firewallWork;
+}
+
 if (IS_LAOKUAI && !EXPLICIT_OFFLINE_TEST) {
   const brokerDirectory = join(
     app.isPackaged ? process.resourcesPath : join(__dirname, "../build"),
@@ -244,6 +295,10 @@ startupLog(
 
 startupLog(`Launch args: ${process.argv.slice(1).join(" ") || "(none)"}`);
 
+// The app rule is available before the first LAN discovery or community
+// connection.  The EasyTier rule is added below once its verified cache path
+// is known; that avoids pointing Windows at the bundled reference copy.
+
 /** Test a URL against an Electron URL-filter pattern (e.g. "https://*.foo.com/*"). */
 function matchUrlPattern(pattern: string, url: string): boolean {
   const escaped = pattern
@@ -281,20 +336,29 @@ const easyTierProduction = createWindowsEasyTierProduction(
   () => join(app.isPackaged ? process.resourcesPath : join(__dirname, "../build"), "community-lan", "product", "2.7.0-laokuai"),
   (serverId, signal) => easyTierGrants.configuration(serverId, signal),
   () => join(app.isPackaged ? process.resourcesPath : join(__dirname, "../build"), "community-lan-helper"),
+  executable => prepareLaokuaiFirewall(executable),
 );
+const prepareEasyTierPermission = async (): Promise<boolean> => {
+  return easyTierProduction.preparePermission();
+};
+const prepareEasyTierRuntime = async (): Promise<{ ready: boolean }> => {
+  const result = await easyTierProduction.prepareRuntime();
+  return result;
+};
 const easyTierCommunities = new EasyTierCommunityManager(LAOKUAI_PREVIEW || UI_ACCEPTANCE_MODE || (IS_I18N_TEST && !IS_LAOKUAI) ? null : easyTierGrants.wrap(easyTierProduction.runtime), state => {
   easyTierEnrollment.observe(state);
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("et-community-state", state);
 });
 const easyTierEnrollment = new CommunityEnrollment({ manager: easyTierCommunities,
   supports: member => member.serverId === "老蒯聊_5000_default" && member.host === "voice.ruikang.wang",
-  approve: serverId => approvePublicCommunity(easyTierProductRoot(app.getPath("userData")), serverId, mainWindow ?? undefined, easyTierProduction.preparePermission),
+  approve: serverId => approvePublicCommunity(easyTierProductRoot(app.getPath("userData")), serverId, mainWindow ?? undefined, prepareEasyTierPermission),
   authenticate: value => easyTierGrants.setAuthenticatedSession(value), releasePreparation: easyTierProduction.releasePreparation,
   preparationReady: easyTierProduction.preparationReady,
 });
 let easyTierPoll: ReturnType<typeof setInterval> | null = null;
 let easyTierQuitDrained = false;
 let easyTierQuitDraining = false;
+let cleanupFirewallOnQuit = false;
 // Registered before updater hooks: ordinary quits wait for owned instance stop.
 app.on("before-quit", event => {
   if (LAOKUAI_PREVIEW) {localDiagnostics?.record({phase: "cleanup", operation: "core-stop", action: "finish", code: "ok", cleanup: "not-started"}); return;}
@@ -302,6 +366,7 @@ app.on("before-quit", event => {
   event.preventDefault();
   if (easyTierQuitDraining) return;
   easyTierQuitDraining = true;
+  firewallStopping = true;
   // Retire the UI/media immediately. Only the main process stays briefly alive
   // to finish owned native cleanup and credential revocation in the background.
   isQuitting = true;
@@ -312,9 +377,17 @@ app.on("before-quit", event => {
   for (const window of BrowserWindow.getAllWindows()) window.close();
   easyTierEnrollment.shutdown();
   easyTierCommunities.shutdownOwned();
-  void Promise.allSettled([easyTierProduction.drainOwned(), easyTierGrants.drainOwned()]).then(results => {
+  void Promise.allSettled([easyTierProduction.drainOwned(), easyTierGrants.drainOwned()]).then(async results => {
     if (results.some(result => result.status === "rejected")) throw new Error("owned-cleanup-unconfirmed");
+    await firewallWork;
+    if (cleanupFirewallOnQuit) {
+      const report = await cleanupLaokuaiFirewallRules(laokuaiFirewallOptions());
+      if (report.status !== "prepared" && report.status !== "bypassed") {
+        dialog.showErrorBox("部分网络规则未清理", "只移除了确认由本应用创建的规则。属性被修改、同名冲突或系统策略限制的规则会保留；本地账本已保留，修复后可按绿色包说明中的清理步骤重试。");
+      }
+    }
   }).catch(() => {
+    if (cleanupFirewallOnQuit) dialog.showErrorBox("网络规则未清理", "社区联机核心退出尚未确认，已保留网络规则。请确认本应用已完全退出后，再按绿色包说明中的清理步骤重试。");
     localDiagnostics?.record({phase: "cleanup", operation: "core-stop", action: "finish", code: "cleanup-failed", cleanup: "pending"});
     // No native output, endpoints, credentials or resource identifiers in logs.
     console.warn("[Main] Community LAN stop remains unconfirmed; residual review required");
@@ -2285,7 +2358,7 @@ function createMainWindow(): BrowserWindow {
       // to know before its first paint, or it renders and then vanishes.
       additionalArguments: [
         ...(drawsWindowButtons() ? [] : [NO_WINDOW_CHROME_FLAG]),
-        ...(IS_LAOKUAI ? ["--laokuai-hybrid-voice"] : []),
+        ...(IS_LAOKUAI ? ["--laokuai-product", "--laokuai-hybrid-voice"] : []),
       ],
       contextIsolation: true,
       nodeIntegration: false,
@@ -2905,6 +2978,14 @@ function buildTrayContextMenu(): Menu {
           } as const,
         ]),
 
+    ...(LAOKUAI_FIREWALL_ENABLED ? [{
+      label: "清理本应用网络规则并退出",
+      click: () => {
+        cleanupFirewallOnQuit = true;
+        isQuitting = true;
+        app.quit();
+      },
+    }] : []),
     {
       label: nativeT(IS_LAOKUAI ? "privateQuit" : "1a2285d8881f"),
       click: () => {
@@ -3146,6 +3227,10 @@ const gotSingleInstanceLock =
   !launchedMidUpdate && app.requestSingleInstanceLock();
 
 if (!gotSingleInstanceLock) {
+  if (LAOKUAI_FIREWALL_CLEANUP_REQUESTED) {
+    dialog.showErrorBox("请先退出唠蒯云", "已有唠蒯云实例运行，请先使用托盘的“清理本应用网络规则并退出”，或完全退出应用后再运行清理命令。");
+    process.exit(1);
+  }
   // A launch mid-update exits once its notice is up.
   if (!launchedMidUpdate) app.quit();
 } else {
@@ -3193,6 +3278,19 @@ if (!gotSingleInstanceLock) {
   app
     .whenReady()
     .then(async () => {
+      if (LAOKUAI_FIREWALL_CLEANUP_REQUESTED) {
+        firewallStopping = true;
+        const report = await cleanupLaokuaiFirewallRules(laokuaiFirewallOptions());
+        if (report.status !== "prepared" && report.status !== "bypassed") dialog.showErrorBox("部分网络规则未清理", "无法清理全部本应用规则。属性已修改或同名冲突的规则会保留；修复系统策略或冲突后可重试。本地账本已保留。");
+        process.exit(report.status === "prepared" || report.status === "bypassed" ? 0 : 1);
+      }
+      // Prepare before creating a window or starting any networking, so a
+      // failed app rule cannot silently fall through to Windows prompts.
+      if (!(await prepareLaokuaiFirewall())) { process.exit(1); }
+      if (LAOKUAI_FIREWALL_ENABLED && !(await prepareEasyTierRuntime()).ready && !firewallErrorShown) {
+        firewallErrorShown = true;
+        dialog.showErrorBox("社区联机核心未准备完成", "无法准备绿色包中的社区联机核心，社区虚拟局域网暂不可用。社区认证和语音仍可使用。请重新解压完整绿色包后重启重试。");
+      }
       if (UI_ACCEPTANCE_MODE) installUIAcceptanceSession(UI_ACCEPTANCE_MODE, join(__dirname, "../dist"));
   powerMonitor.on("suspend", () => squadBroker?.unavailable("system-suspended"));
   powerMonitor.on("resume", () => { if (squadBroker) configureSquadBroker(); });
@@ -4625,7 +4723,11 @@ if (!gotSingleInstanceLock) {
 
       // ── LAN server discovery ──────────────────────────────────────
 
-      if (mainWindow && !UI_ACCEPTANCE_MODE) {
+      if (IS_LAOKUAI && !UI_ACCEPTANCE_MODE) {
+        applicationIpc.handle("lan:get-servers", () => []);
+        applicationIpc.on("lan:rescan", () => {});
+      }
+      if (mainWindow && !UI_ACCEPTANCE_MODE && !IS_LAOKUAI) {
         const stopLanDiscovery =
           startLanDiscovery(
             mainWindow,
@@ -4723,10 +4825,10 @@ if (!gotSingleInstanceLock) {
 
       registerEasyTierCommunityIpc(applicationIpc, easyTierCommunities, event =>
           !!mainWindow && !mainWindow.isDestroyed() && event.senderFrame === mainWindow.webContents.mainFrame,
-          LAOKUAI_PREVIEW || UI_ACCEPTANCE_MODE ? async () => ({ ready: false }) : easyTierProduction.prepareRuntime,
+          LAOKUAI_PREVIEW || UI_ACCEPTANCE_MODE ? async () => ({ ready: false }) : prepareEasyTierRuntime,
           LAOKUAI_PREVIEW || UI_ACCEPTANCE_MODE ? undefined : value => easyTierGrants.setAuthenticatedSession(value), LAOKUAI_PREVIEW,
-          IS_LAOKUAI && !UI_ACCEPTANCE_MODE ? {mode:()=>publicCommunityMode(easyTierProductRoot(app.getPath("userData"))),
-            approve:serverId=>approvePublicCommunity(easyTierProductRoot(app.getPath("userData")),serverId,mainWindow??undefined,easyTierProduction.preparePermission)} : undefined,
+           IS_LAOKUAI && !UI_ACCEPTANCE_MODE ? {mode:()=>publicCommunityMode(easyTierProductRoot(app.getPath("userData"))),
+             approve:serverId=>approvePublicCommunity(easyTierProductRoot(app.getPath("userData")),serverId,mainWindow??undefined,prepareEasyTierPermission)} : undefined,
           IS_LAOKUAI && !LAOKUAI_PREVIEW && !UI_ACCEPTANCE_MODE ? value => easyTierEnrollment.reconcile(value) : undefined);
       applicationIpc.on("laokuai-local-diagnostic", (event, value: unknown) => {
         if (mainWindow && !mainWindow.isDestroyed() && event.senderFrame === mainWindow.webContents.mainFrame) localDiagnostics?.record(value);

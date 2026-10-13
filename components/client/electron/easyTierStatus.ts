@@ -1,5 +1,6 @@
-import type { EasyTierRoute, EasyTierLocalNetworkDetails } from "../src/lib/easyTierCommunity";
+import type { EasyTierLocalNetworkDetails,EasyTierRoute } from "../src/lib/easyTierCommunity";
 import type { LanEnrollment } from "../src/lib/memberLanStatus";
+import type { CommunityDirectoryMemberV1 } from "./communityEtHttpContract";
 
 interface EasyTierPeerState { userId: string; virtualIp: string | null; route: EasyTierRoute; rttMs: number | null }
 
@@ -39,6 +40,10 @@ export interface EasyTierStatusSample {
   latencyFirst: boolean | null;
   info: unknown;
   bindings: EasyTierIdentityBinding[];
+  /** Server-issued address assignments for active grants; no online/peer/voice claims. */
+  directory?: CommunityDirectoryMemberV1[];
+  /** Independent local request-start timestamp; ET polls cannot refresh a cached roster. */
+  directoryObservedAtUnixMs?: number;
   /** Bare PeerConnStats.latency_us has no measurement timestamp: leave absent. */
   rtt?: EasyTierRttObservation[];
   /** Verified data-forwarding decision, including packet policy and foreign-network routing. */

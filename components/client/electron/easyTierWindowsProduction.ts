@@ -9,7 +9,8 @@ import { WindowsEasyTierCliRuntime } from "./windowsEasyTierCliRuntime";
 
 /** Lazy paths: constructing the adapter performs no profile I/O or activation. */
 export function createWindowsEasyTierProduction(root: () => string, bundledDirectory: () => string,
-  configuration?: (serverId: string, signal: AbortSignal) => Promise<EasyTierExistingConfiguration>, brokerDirectory?: () => string) {
+  configuration?: (serverId: string, signal: AbortSignal) => Promise<EasyTierExistingConfiguration>, brokerDirectory?: () => string,
+  prepareNetworking?: (coreExecutable: string) => Promise<boolean>) {
   const assets = new EasyTierWindowsAssets(root, bundledDirectory);
   // The application is now required to start elevated.  Keep the helper only as
   // a read-only token check; it must never become a second launch path for ET.
@@ -18,6 +19,9 @@ export function createWindowsEasyTierProduction(root: () => string, bundledDirec
   const permissionExecutable = brokerDirectory ?
     () => join(brokerDirectory(), "laokuai-community-broker.exe") : undefined;
   const processes = new EasyTierWindowsProcesses(0);
+  // The firewall rule must point at the verified cache copy that the direct
+  // process launcher actually starts, not at a resource-side reference copy.
+  let preparedDirectory: string | null = null;
   let prepared = false;
   let preparationEpoch = 0;
   let preparation: Promise<boolean> | null = null;
@@ -34,8 +38,11 @@ export function createWindowsEasyTierProduction(root: () => string, bundledDirec
       // Check the current process token before touching the product cache.  The
       // helper's --check path is read-only and does not request elevation.
       if (!(await checkPermission())) return false;
-      await assets.prepareProductBundled();
+      const directory = await assets.prepareProductBundled();
       if (epoch !== preparationEpoch) throw new Error("preparation-canceled");
+      if (prepareNetworking && !(await prepareNetworking(join(directory, "easytier-core.exe")))) return false;
+      if (epoch !== preparationEpoch) throw new Error("preparation-canceled");
+      preparedDirectory = directory;
       prepared = true;
       return true;
     })();
@@ -48,7 +55,12 @@ export function createWindowsEasyTierProduction(root: () => string, bundledDirec
     configuration: configuration ?? (serverId => readEasyTierExistingConfiguration(root(), serverId)),
     permission: checkPermission,
     verifiedAssets: () => assets.prepareProductBundled(),
-    start: (directory, config, signal) => processes.start(directory, config, signal),
+    start: async (directory, config, signal) => {
+      if (signal.aborted) throw new Error("canceled");
+      if (prepareNetworking && !(await prepareNetworking(join(directory, "easytier-core.exe")))) throw new Error("firewall-preparation-failed");
+      if (signal.aborted) throw new Error("canceled");
+      return processes.start(directory, config, signal);
+    },
     shutdownOwned: () => processes.shutdownOwned(),
     pause: signal => new Promise((resolve, reject) => {
       const abort = () => { clearTimeout(timer); signal.removeEventListener("abort", abort); reject(new Error("canceled")); };
@@ -80,8 +92,12 @@ export function createWindowsEasyTierProduction(root: () => string, bundledDirec
     preparationReady: () => prepared,
     releasePreparation: () => { preparationEpoch++; prepared = false; }, prepareRuntime: async () => {
     if (process.platform !== "win32" || process.arch !== "x64") return { ready: false };
-    try { await assets.prepareProductBundled(); return { ready: true }; } catch { return { ready: false }; }
-  } };
+    try {
+      preparedDirectory = await assets.prepareProductBundled();
+      if (prepareNetworking && !(await prepareNetworking(join(preparedDirectory, "easytier-core.exe")))) return { ready: false };
+      return { ready: true };
+    } catch { return { ready: false }; }
+  }, preparedDirectory: () => preparedDirectory };
 }
 
 export const easyTierProductRoot = (userData: string) => join(userData, "community-lan");

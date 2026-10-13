@@ -199,6 +199,11 @@ function inventory(root,config,{ sourceOnly = false } = {}) {
   manifest.audioAssets = { rnnoiseWorker:workers[0],receiveAnalyzerWasm:describe(Buffer.from(analyzer,"base64")),
     worklets:"SDK worklet code and receive WASM embedded in renderer; RNNoise model WASM embedded in worker" };
   manifest.resources = {};
+  manifest.rootFiles = {};
+  for (const entry of config.extraFiles || []) {
+    assert.ok(typeof entry.from === "string" && typeof entry.to === "string" && !/[\\/]/.test(entry.to), "Root extras must be explicit files");
+    manifest.rootFiles[entry.to] = {source:entry.from,...describe(read(entry.from))};
+  }
   for (const e of extraResources) {
     const input = path.join(root,e.from);
     assert.ok(fs.existsSync(input),`Missing resource ${e.from}`);
@@ -251,6 +256,8 @@ function verifyPayload(payload,manifest) {
   assert.deepEqual(built.sort(),Object.keys(manifest.packedFiles).sort(),"Packed renderer/main file set differs from final build");
   for (const [file,expected] of Object.entries(manifest.packedFiles)) assert.deepEqual(describe(archive.read(file)),expected,file);
   for (const [file,expected] of Object.entries(manifest.resources)) assert.deepEqual(describe(fs.readFileSync(path.join(resources,file))),
+    {bytes:expected.bytes,sha256:expected.sha256},file);
+  for (const [file,expected] of Object.entries(manifest.rootFiles || {})) assert.deepEqual(describe(fs.readFileSync(path.join(payload,file))),
     {bytes:expected.bytes,sha256:expected.sha256},file);
   for (const locale of ["en-US","en-GB","zh-CN"]) assert.ok(fs.existsSync(path.join(payload,"locales",locale+".pak")),locale);
   assert.ok(!fs.existsSync(path.join(resources,"app-update.yml")));

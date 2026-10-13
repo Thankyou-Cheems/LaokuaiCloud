@@ -1,4 +1,4 @@
-// Offline presentation tests. Synthetic records only; no ET, SDK, DOM, listeners or sockets.
+// Offline presentation tests. Synthetic records and clipboard mock only; no native/network.
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import vm from "node:vm";
@@ -6,13 +6,14 @@ import vm from "node:vm";
 import ts from "typescript";
 
 const read = path => fs.readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
+const copied = [];
 const compile = (path, dependencies = {}, extra = "") => {
   const result = ts.transpileModule(read(path) + extra, { reportDiagnostics: true, compilerOptions: {
     module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX,
   } });
   assert.deepEqual(result.diagnostics.filter(item => item.category === ts.DiagnosticCategory.Error), [], path);
   const exports = {};
-  vm.runInNewContext(result.outputText, { exports, require(name) {
+  vm.runInNewContext(result.outputText, { exports, navigator: {clipboard: {writeText: address => { copied.push(address); return Promise.resolve(); }}}, require(name) {
     assert.ok(Object.hasOwn(dependencies, name), `unexpected dependency ${name}`); return dependencies[name];
   } });
   return exports;
@@ -41,8 +42,9 @@ check("unwired adapter is explicitly unavailable; online and nickname never impl
 check("each enrollment maps independently; unjoined states discard path and RTT", () => {
   for (const state of ["off", "not-joined", "joining", "joined", "error"]) {
     const snapshot = fixture(); remote(snapshot).enrollment.state = state;
+    remote(snapshot).virtualIp = "10.77.1.8";
     const result = evaluate(snapshot); assert.equal(result.enrollment, state);
-    if (state !== "joined") { assert.equal(result.path, "unknown"); assert.equal(result.rttMs, null); }
+    if (state !== "joined") { assert.equal(result.path, "unknown"); assert.equal(result.rttMs, null); assert.equal(result.virtualIp,undefined); }
   }
   const snapshot = fixture(); remote(snapshot).binding.peerId = null;
   assert.equal(evaluate(snapshot).enrollment, "unknown");
@@ -58,6 +60,18 @@ check("authenticated binding, exact server scope and non-ambiguous peer mapping 
     snapshot => snapshot.members.push({ binding: binding("another-user", "peer-remote"), enrollment: enrollment("joined") })]) {
     const snapshot = fixture(); change(snapshot); assert.equal(evaluate(snapshot).enrollment, "unknown");
   }
+});
+check("only an authenticated RFC1918 overlay address is shown, even before a peer route exists", () => {
+  const snapshot = fixture(); remote(snapshot).virtualIp = "10.77.1.8";
+  assert.equal(evaluate(snapshot).virtualIp, "10.77.1.8");
+  remote(snapshot).binding.peerId = null;
+  const directoryOnly = evaluate(snapshot); assert.equal(directoryOnly.enrollment, "unknown"); assert.equal(directoryOnly.path, "unknown");
+  assert.equal(directoryOnly.virtualIp, "10.77.1.8");
+  for (const address of ["198.51.100.1", "10.0.0.999", "not-an-ip"]) {
+    const invalid = fixture(); remote(invalid).virtualIp = address; assert.equal(evaluate(invalid).virtualIp, undefined);
+  }
+  const stale = fixture(); remote(stale).virtualIp = "10.77.1.9"; stale.observedAtMs = now - model.MEMBER_LAN_MAX_AGE_MS - 1;
+  assert.equal(evaluate(stale).virtualIp, undefined);
 });
 check("snapshot, binding and membership expiry remove the joined claim", () => {
   for (const field of [snapshot => snapshot, snapshot => remote(snapshot).binding, snapshot => remote(snapshot).enrollment]) {
@@ -108,12 +122,12 @@ const lookup=(value,key)=>key.split('.').reduce((next,part)=>next?.[part],value)
 const t=key=>{const value=lookup(locales[language],key)??lookup(locales.en,key);assert.equal(typeof value,"string",key);return value;};
 const jsx=(type,props)=>({type,props});
 const {MemberLanStatus}=compile("src/packages/socket/src/components/MemberLanStatus.tsx",{
-  "react/jsx-runtime":{jsx,jsxs:jsx},"@gryt/ui":{Tooltip:"Tooltip"},"@/i18n":{useTranslation:()=>({t})},"../../../../lib/memberLanStatus":model,
+  "react/jsx-runtime":{jsx,jsxs:jsx},"react-hot-toast":{default:{success(){},error(){}}},"@gryt/ui":{Tooltip:"Tooltip"},"@/i18n":{useTranslation:()=>({t})},"../../../../lib/memberLanStatus":model,
   "../../../../components/ConnectionTopologyIcon":{ConnectionTopologyIcon:"TopologyIcon"},
 });
 check("compact presentation preserves full keyboard/screenreader detail while truncating only visual text",()=>{
   const tree=MemberLanStatus(input(fixture()));const span=tree.props.children;
-  assert.equal(span.props.tabIndex,0);assert.equal(span.props.role,"img");assert.equal(span.props['aria-label'],tree.props.title);
+  assert.equal(span.props.tabIndex,0);assert.equal(span.props.role,"group");assert.equal(span.props['aria-label'],tree.props.title);
   assert.equal(span.props.title,tree.props.title);assert.match(span.props.className,/min-w-0 max-w-full/);
   assert.match(span.props.children[1].props.className,/truncate/);assert.equal(span.props.children[1].props['aria-hidden'],"true");
   assert.match(span.props['aria-label'],/成员 RTT/);assert.match(span.props['aria-label'],/社区联机与语音媒体路径独立/);
@@ -159,6 +173,19 @@ check("LAN icon geometry follows proven route or enrollment; unknown/stale never
   }
   const stale=fixture();stale.observedAtMs=now-10_001;
   assert.equal(MemberLanStatus(input(stale)).props.children.props.children[0].props.kind,'unknown');
+});
+check("server assignments show and copy each device without green joined or public addresses",()=>{
+  const snapshot=fixture(); remote(snapshot).enrollment.state="assigned"; remote(snapshot).binding.peerId=null;
+  remote(snapshot).virtualIps=["10.77.1.8","10.77.1.9"]; remote(snapshot).virtualIpObservedAtMs=now;
+  const reading=evaluate(snapshot); assert.equal(reading.enrollment,"assigned");assert.equal(reading.virtualIp,undefined);
+  assert.deepEqual([...reading.virtualIps],["10.77.1.8","10.77.1.9"]);assert.equal(reading.path,"unknown");
+  const span=MemberLanStatus(input(snapshot)).props.children,buttons=span.props.children[2];
+  assert.equal(buttons.length,2);assert.doesNotMatch(span.props.style.color,/success/);
+  let stopped=0;for(const button of buttons){button.props.onClick({stopPropagation(){stopped++;}});assert.match(button.props['aria-label'],/复制/);}
+  assert.equal(stopped,2);assert.deepEqual(copied,["10.77.1.8","10.77.1.9"]);
+  remote(snapshot).virtualIpObservedAtMs=now-10_001;assert.equal(evaluate(snapshot).virtualIps,undefined);
+  remote(snapshot).virtualIpObservedAtMs=now;remote(snapshot).virtualIps=["10.77.1.8","198.51.100.1"];assert.equal(evaluate(snapshot).virtualIps,undefined);
+  remote(snapshot).virtualIps=["10.77.1.8","10.77.1.8"];assert.equal(evaluate(snapshot).virtualIps,undefined);
 });
 check("EN/ZH mappings cover every state/reason and route; no arbitrary errors, IPs or keys are rendered",()=>{
   function compare(a,b){assert.deepEqual(Object.keys(a).sort(),Object.keys(b).sort());for(const key of Object.keys(a))typeof a[key]==='object'?compare(a[key],b[key]):assert.ok(a[key]&&b[key]);}

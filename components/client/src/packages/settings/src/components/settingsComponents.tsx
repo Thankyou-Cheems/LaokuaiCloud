@@ -63,11 +63,12 @@ interface SliderSettingProps {
   min?: number;
   max?: number;
   step?: number;
+  advanced?: boolean;
 }
 
-export function SliderSetting({ title, description, value, onChange, anchorId, min = 0, max = 100, step = 1 }: SliderSettingProps) {
+export function SliderSetting({ title, description, value, onChange, anchorId, min = 0, max = 100, step = 1, advanced }: SliderSettingProps) {
   return (
-    <SettingGroup title={title} description={description} anchorId={anchorId}>
+    <SettingGroup title={title} description={description} anchorId={anchorId} advanced={advanced}>
       <Slider
         value={value}
         onValueChange={(next) => onChange(Number(next))}
@@ -86,12 +87,13 @@ interface ToggleSettingProps {
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
   statusText?: string;
+  advanced?: boolean;
 }
 
-export function ToggleSetting({ title, description, checked, onCheckedChange, statusText, anchorId }: ToggleSettingProps) {
+export function ToggleSetting({ title, description, checked, onCheckedChange, statusText, anchorId, advanced }: ToggleSettingProps) {
   const { t } = useTranslation();
   return (
-    <SettingGroup title={title} description={description} anchorId={anchorId}>
+    <SettingGroup title={title} description={description} anchorId={anchorId} advanced={advanced}>
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-1">
           <span className="text-sm text-gryt-muted">{t("settings.enable", { title })}</span>

@@ -4,7 +4,7 @@ import { projectCommunityEtBinding } from './communityEtBindingProjection';
 import { buildCommunityEtConfig } from './communityEtConfig';
 import { communityIdentity, exact, MainGrantGate, sameScope, type TrustedCommunityIntent } from './communityEtGrant';
 import { CommunityEtGrantTransport, CommunityEtTransportError, type TrustedCommunityTarget, validCommunityBearer, type VerifiedCommunitySession } from './communityEtGrantTransport';
-import type {CommunityAcquireRequestV1, CommunityBindingRequestV1} from './communityEtHttpContract';
+import type {CommunityAcquireRequestV1, CommunityBindingRequestV1, CommunityDirectoryMemberV1} from './communityEtHttpContract';
 import { CommunityEtOwnedFiles, readCommunityGrantTarget } from './communityEtTrustedConfiguration';
 import { EasyTierOperationError, type EasyTierRuntime, type EasyTierSession,EasyTierSessionRetiredError } from './easyTierCommunityManager';
 import type { EasyTierExistingConfiguration } from './easyTierExistingConfiguration';
@@ -16,6 +16,7 @@ interface Context {
   closeNative: (() => Promise<void>) | null; pendingRenew: Promise<void> | null; revisionFloor: number;
   retireFlight: Promise<void> | null;
   renewDueMono: number; grantExpiresMono: number; lastGrantId: string | null; retired: boolean; pendingRevoke: {grantId: string} | null;
+  directory: { fetchedAtMono: number; observedAtUnixMs: number; members: CommunityDirectoryMemberV1[]; pending: Promise<CommunityDirectoryMemberV1[]> | null };
 }
 export interface CommunityEtGrantRuntimePorts {
   target(serverId: string): Promise<TrustedCommunityTarget>;
@@ -76,7 +77,8 @@ export class CommunityEtGrantRuntime {
       const gate = new MainGrantGate(verified.intent, () => ({wallMs: this.ports.wallMs(), monoMs: Math.floor(this.ports.monoMs())}), {maxTtlMs: 300_000});
       this.contexts.set(input.serverId, {target, bearer: input.accessToken, verified, gate, cancel: new AbortController(),
         configuration: null, removeConfig: null, closeNative: null, pendingRenew: null, retireFlight: null, revisionFloor: 0,
-        renewDueMono: Infinity, grantExpiresMono: 0, lastGrantId: null, retired: false, pendingRevoke: null});
+        renewDueMono: Infinity, grantExpiresMono: 0, lastGrantId: null, retired: false, pendingRevoke: null,
+        directory: {fetchedAtMono: -Infinity, observedAtUnixMs: 0, members: [], pending: null}});
       return {serverId: input.serverId, changed: true, authenticated: true};
     } catch (error) {
       // Genuine failed auth cannot leave a formerly authenticated scope active.
@@ -124,6 +126,40 @@ export class CommunityEtGrantRuntime {
       .then(value => { this.current(c); c.gate.accept(ticket, value); this.accepted(c, ticket.startedMonoMs); });
     c.pendingRenew = work;
     try { await work; } finally { if (c.pendingRenew === work) c.pendingRenew = null; }
+  }
+  /**
+   * Fetch the authenticated server roster at a low rate. A roster outage must
+   * not take down ET itself; only an authentication failure retires the session.
+   */
+  private async directory(c: Context, signal: AbortSignal): Promise<CommunityDirectoryMemberV1[]> {
+    const now = Math.floor(this.ports.monoMs());
+    const requestedAtUnixMs = this.ports.wallMs();
+    if (now - c.directory.fetchedAtMono < 5000) return c.directory.members;
+    if (c.directory.pending) return c.directory.pending;
+    const work = (async () => {
+      // The optional roster must not consume the required LAN telemetry budget.
+      const timeout = new AbortController(), timer = setTimeout(() => timeout.abort(), 1000);
+      try {
+        const value = await this.ports.transport.post(c.target, 'directory', c.bearer,
+          {v: 1, communityId: c.verified.intent.communityId}, combined(signal, c.cancel.signal, timeout.signal));
+        if (signal.aborted || c.cancel.signal.aborted) throw new CommunityEtTransportError('request-cancelled');
+        if (timeout.signal.aborted) throw new CommunityEtTransportError('provider-unavailable');
+        const members = this.ports.transport.parseDirectory(value, c.verified.intent.communityId);
+        this.current(c); c.directory.fetchedAtMono = now; c.directory.observedAtUnixMs = requestedAtUnixMs; c.directory.members = members;
+        return members;
+      } catch (error) {
+        if (signal.aborted || c.cancel.signal.aborted) throw new CommunityEtTransportError('request-cancelled');
+        if (error instanceof CommunityEtTransportError && error.code === 'auth-unavailable') return this.retired(c, 'configuration-required');
+        if (error instanceof CommunityEtTransportError && (error.code === 'provider-unavailable' || error.code === 'invalid-response' ||
+            (error.code === 'request-cancelled' && timeout.signal.aborted && !signal.aborted && !c.cancel.signal.aborted))) {
+          // Do not relabel the old response as fresh on an outage or malformed roster.
+          this.current(c); c.directory.fetchedAtMono = now; c.directory.members = []; c.directory.observedAtUnixMs = 0; return [];
+        }
+        throw error;
+      } finally { clearTimeout(timer); }
+    })();
+    c.directory.pending = work;
+    try { return await work; } finally { if (c.directory.pending === work) c.directory.pending = null; }
   }
   async configuration(serverId: string, signal: AbortSignal): Promise<EasyTierExistingConfiguration> {
     const c = this.contexts.get(serverId);
@@ -237,7 +273,8 @@ export class CommunityEtGrantRuntime {
             throw new EasyTierOperationError('status-unavailable');
           const binding = projectCommunityEtBinding(proof, live, c.verified, observation, sample, started,
             Math.floor(this.ports.monoMs()), this.ports.wallMs(), c.grantExpiresMono);
-          return {...sample, bindings: [binding]};
+          const directory = await this.directory(c, readSignal);
+          return {...sample, bindings: [binding], directory, directoryObservedAtUnixMs: c.directory.observedAtUnixMs};
         }};
       } catch (error) {
         if (physical) c.closeNative = physical.close;
