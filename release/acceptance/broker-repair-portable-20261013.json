@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-13",
+  "version": "1.13.22-laokuai.beta.20261013.2",
+  "sourceCommit": "6eca177229346c464f135f31532547d1db4011f4",
+  "file": "唠蒯云-1.13.22-laokuai.beta.20261013.2-zh-CN-win-x64-portable.exe",
+  "bytes": 129281381,
+  "sha256": "7c9893bfa441a65c682a332c0978b791abf9c0977956bcff2143143a2040912a",
+  "appAsarSha256": "5bfa98bb98b55e20d05c5d73e3579d36bcb4a231f051dcf69bc05a1b9ae4a428",
+  "staticPayloadFiles": 146,
+  "staticPayloadPassed": true,
+  "broker": {
+    "sha256": "b1d78c7756011b8787c06c267f6192e9bedf67a480cc7f62192aba1652848e2d",
+    "schemaVersion": 1,
+    "bytes": 21504,
+    "sourceSha256": "84b02d46ca1d3bcd947ede99d063b0193ef785781857a47822665c22dfb500a0"
+  },
+  "npcapAbsent": true,
+  "sourceArchivesBundled": false,
+  "tests": {
+    "actualWindowsPipeFactory": "passed; old synchronous control fails",
+    "coreContractSuites": 10,
+    "brokerConfig": "one valid/six rejected",
+    "applicationTypes": true,
+    "applicationCompile": true
+  },
+  "bootstrap": {
+    "status": "passed",
+    "exitCode": 0,
+    "rootChildren": 1,
+    "preload": {
+      "electronAPI": "object",
+      "easyTierCommunity": "object"
+    },
+    "visible": false,
+    "focused": false,
+    "unexpectedEvents": 0,
+    "residualOwnedProcesses": 0,
+    "socketSamples": [
+      {
+        "seconds": 5.211,
+        "ownedProcesses": 3,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 10.081,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 14.975,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      }
+    ],
+    "consoleErrors": 23,
+    "realElectronExecuted": true,
+    "isolatedFreshProfile": true,
+    "nativeEtExecuted": false,
+    "realCommunityOrDeviceMediaTest": false
+  },
+  "realUacTunAccepted": false,
+  "dualDeviceVoiceAccepted": false,
+  "publicBinaryRelease": false,
+  "repositoryVisibility": "public",
+  "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261013.2-zh-CN-win-x64-portable.exe",
+  "note": "Exact extracted payload only: hidden offline fresh-profile startup, not NSIS/UAC/TUN/media acceptance. Three zero-owned-port samples are not continuous tracing. The 23 console errors remain observations, not an error-free claim."
+}

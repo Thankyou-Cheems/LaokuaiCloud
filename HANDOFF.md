@@ -87,6 +87,10 @@ ReadLine 期间堵住 STARTED/STOPPED/FINISHED 回传。真实 Windows 无提权
 复现旧同步模式失败；实际生产 pipe 工厂改为 Asynchronous 后，启动状态、
 停止 ACK、三次复用均通过。没有改变 UAC、ACL、PID 检查或固定 ET 载荷。
 回归入口 `components/client/scripts/check-community-broker-pipe.ps1`，不运行
-ET/驱动、不请求 UAC。新版 20261013.2 正在打包；真实 UAC/TUN 仍待新版验证，
+ET/驱动、不请求 UAC。新版 20261013.2 已交付到同一测试目录，源 6eca1772，
+129,281,381 B，SHA256 `7c9893bfa441a65c682a332c0978b791abf9c0977956bcff2143143a2040912a`。
+十组契约、应用编译、146 文件解包校验及真实隐藏离线启动/退出通过；23 条已知
+离线/禁用 IPC 控制台错误保留，三次自有端口采样为零且退出无残留。
+见 `release/acceptance/broker-repair-portable-20261013.json`；真实 UAC/TUN 仍待新版验证，
 双设备语音未验收。用户询问免提示入网：当前绿色方案每次应用启动首次入网
 需正常 UAC，同次运行复用；持久服务方案尚未获批，不能安装。
