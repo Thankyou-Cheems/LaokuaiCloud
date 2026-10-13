@@ -1,12 +1,13 @@
-import { execFile, spawn, type ChildProcess } from "node:child_process";
+import { type ChildProcess,execFile, spawn } from "node:child_process";
 import { createServer } from "node:net";
 import { join } from "node:path";
 
+import { type OwnedCredentialObservation,verifyOwnedCredentialObservation } from "./communityEtCredentialObservation";
+import { type EasyTierCliNetwork,sanitizedEasyTierCliNetwork } from "./easyTierCliNetwork";
 import { EasyTierOperationError } from "./easyTierCommunityManager";
+import type { BrokerCoreProcess, EasyTierElevationBroker } from "./easyTierElevationBroker";
 import type { EasyTierExistingConfiguration } from "./easyTierExistingConfiguration";
 import { easyTierVirtualIp } from "./easyTierStatus";
-import { sanitizedEasyTierCliNetwork, type EasyTierCliNetwork } from "./easyTierCliNetwork";
-import { verifyOwnedCredentialObservation, type OwnedCredentialObservation } from "./communityEtCredentialObservation";
 
 export interface EasyTierCliCore {
   isAlive(): boolean;
@@ -27,11 +28,10 @@ export interface EasyTierOwnedCleanupReport {
   residualCheckRequired: boolean;
 }
 /** This is read-only token inspection. No elevation verb, service install or UAC bypass. */
-export async function hasEasyTierWindowsPermission(): Promise<boolean> {
-  if (process.platform !== "win32") return false;
-  const shell = join(process.env.SystemRoot ?? "C:\\Windows", "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
+export async function hasEasyTierWindowsPermission(brokerExecutable?: string): Promise<boolean> {
+  if (process.platform !== "win32" || !brokerExecutable) return false;
   return new Promise(resolve => {
-    execFile(shell, ["-NoProfile", "-NonInteractive", "-Command", "$p=[Security.Principal.WindowsPrincipal]::new([Security.Principal.WindowsIdentity]::GetCurrent()); if($p.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)){[Console]::Write('approved')}"],
+    execFile(brokerExecutable, ["--check"],
       { windowsHide: true, timeout: 3000, maxBuffer: 128 }, (error, stdout) => resolve(!error && stdout === "approved"));
   });
 }
@@ -70,9 +70,9 @@ async function unusedLoopbackPortal(port = 0): Promise<string> {
 /** Owns exactly the children it creates. Never finds, attaches, kills by name, or discovers PIDs. */
 export class EasyTierWindowsProcesses {
   /** Default stays ephemeral; an isolated, approved trial can pin its loopback port. */
-  constructor(private readonly requestedPortalPort = 0) {}
-  private children = new Set<ChildProcess>();
-  private cores = new Map<ChildProcess, () => Promise<void>>();
+  constructor(private readonly requestedPortalPort = 0, private readonly broker?: EasyTierElevationBroker) {}
+  private children = new Set<ChildProcess | BrokerCoreProcess>();
+  private cores = new Map<ChildProcess | BrokerCoreProcess, () => Promise<void>>();
   private stopped = false;
   private draining: Promise<void> | null = null;
   private reports: EasyTierOwnedCleanupReport[] = [];
@@ -81,8 +81,10 @@ export class EasyTierWindowsProcesses {
   }
   shutdownOwned(): void {
     this.stopped = true;
+    this.broker?.releasePreparation();
     // Begin stop immediately, even during session end. EOF also asks patched core to stop.
-    void this.drainOwned().catch(() => { /* Report is retained; never inspect other processes. */ });
+    void this.drainOwned().catch(() => { /* Report is retained; never inspect other processes. */ })
+      .finally(() => this.broker?.releasePreparation());
     for (const child of this.children) if (child.exitCode === null && child.signalCode === null) {
       if (this.cores.has(child)) continue;
       try { child.kill(); } catch { /* Only bounded, read-only CLI children reach here. */ }
@@ -100,7 +102,7 @@ export class EasyTierWindowsProcesses {
     const portal = await unusedLoopbackPortal(this.requestedPortalPort);
     if (this.stopped || signal.aborted) throw new EasyTierOperationError("connect-failed");
     const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^(ET_|RUST_LOG$|RUST_BACKTRACE$)/i.test(key)));
-    const child = spawn(join(directory, "easytier-core.exe"), easyTierCoreArguments(config, portal), {
+    const child = this.broker ? this.broker.take() : spawn(join(directory, "easytier-core.exe"), easyTierCoreArguments(config, portal), {
       windowsHide: true, shell: false, detached: false, cwd: directory, env, stdio: ["pipe", "pipe", "ignore"],
     });
     this.children.add(child);
@@ -110,6 +112,8 @@ export class EasyTierWindowsProcesses {
     let pendingLine = "";
     let discardLine = false;
     let forced = false;
+    let ownedPid = child.pid ?? null;
+    let coreStarted: (() => void) | undefined;
     const interfaces: EasyTierOwnedCleanupReport["interfaces"] = [];
     child.stdout?.on("data", (bytes: Buffer) => {
       // Discard all unrelated native output; never log secrets, endpoints or errors.
@@ -121,6 +125,8 @@ export class EasyTierWindowsProcesses {
         if (!discardLine) {
           const line = pendingLine.trim();
           if (line === "LAOKUAI_OWNED_STOPPED_V1") acknowledged = true;
+          const started = /^LAOKUAI_BROKER_STARTED_V1 ([1-9][0-9]*)$/.exec(line);
+          if (this.broker && started) { ownedPid = Number(started[1]); coreStarted?.(); }
           const nic = /^LAOKUAI_OWNED_NIC_V1 ([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}) ([0-9]{1,20}) ([0-9]{1,10})$/.exec(line);
           if (nic && Number(nic[3]) > 0 && Number(nic[3]) <= 0xffffffff && interfaces.length < 16
             && !interfaces.some(value => value.guid === nic[1])) {
@@ -144,19 +150,19 @@ export class EasyTierWindowsProcesses {
           await new Promise<void>((resolve, reject) => {
             const forceTimer = setTimeout(() => {
               if (alive) { forced = true; try { child.kill(); } catch { /* Keep exact owned handle. */ } }
-            }, 4000);
-            const finalTimer = setTimeout(() => reject(new EasyTierOperationError("cleanup-failed")), 6000);
+            }, this.broker ? 6500 : 4000);
+            const finalTimer = setTimeout(() => reject(new EasyTierOperationError("cleanup-failed")), this.broker ? 8000 : 6000);
             void exited.then(() => { clearTimeout(forceTimer); clearTimeout(finalTimer); resolve(); });
           });
         }
         const graceful = acknowledged && child.exitCode === 0 && !forced;
         this.reports.push({ outcome: forced ? "forced" : graceful ? "graceful" : "unconfirmed",
-          ownedPid: child.pid ?? null, interfaces: interfaces.map(value => ({ ...value })),
+          ownedPid, interfaces: interfaces.map(value => ({ ...value })),
           // A stop acknowledgement proves instance stop, not Windows adapter disappearance.
           residualCheckRequired: !graceful || interfaces.length > 0 });
         if (this.reports.length > 64) this.reports.shift();
       })().catch(() => {
-        this.reports.push({ outcome: "unconfirmed", ownedPid: child.pid ?? null,
+        this.reports.push({ outcome: "unconfirmed", ownedPid,
           interfaces: interfaces.map(value => ({ ...value })), residualCheckRequired: true });
         if (this.reports.length > 64) this.reports.shift();
         closing = null; throw new EasyTierOperationError("cleanup-failed");
@@ -170,7 +176,11 @@ export class EasyTierWindowsProcesses {
     signal.addEventListener("abort", abort, { once: true });
     try {
       await new Promise<void>((resolve, reject) => {
-        child.once("spawn", resolve);
+        if (this.broker) {
+          coreStarted = resolve;
+          child.once("exit", () => reject(new EasyTierOperationError("connect-failed")));
+          child.stdin!.write(JSON.stringify({directory, configFile: config.configFile, configSha256: config.configSha256, portal}) + "\n");
+        } else child.once("spawn", resolve);
         child.once("error", error => reject(new EasyTierOperationError(["EACCES", "EPERM"].includes((error as NodeJS.ErrnoException).code ?? "") ? "needs-permission" : "connect-failed")));
       });
     } catch (error) { await close(); throw error; }
@@ -224,7 +234,7 @@ export class EasyTierWindowsProcesses {
     };
     return {
       isAlive, terminateOwned, close,
-      ownedResources: () => ({ pid: child.pid ?? null, interfaces: interfaces.map(value => ({ ...value })) }),
+      ownedResources: () => ({ pid: ownedPid, interfaces: interfaces.map(value => ({ ...value })) }),
       readNode: async readSignal => {
         const node = await readJson(readSignal, easyTierCliArguments(config.instanceId, portal));
         if (!isAlive() || readSignal.aborted) throw new EasyTierOperationError("runtime-exited");

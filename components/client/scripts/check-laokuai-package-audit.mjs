@@ -64,7 +64,7 @@ try {
     "dist/index.html":"synthetic renderer","dist-electron/main.js":"synthetic main","node_modules/uiohook-napi/prebuilds/win32-x64/node.napi.node":pe};
   const packed = file => write("payload/resources/app.asar",asar(file));
   packed(entries);write("payload/唠蒯云.exe",iconPe);
-  for (const file of ["native/audio-capture.exe","native/screen-capture.exe","squad/squad-scope.exe"]) {
+  for (const file of ["native/audio-capture.exe","native/screen-capture.exe","squad/squad-scope.exe","community-lan-helper/laokuai-community-broker.exe"]) {
     write(`payload/resources/${file}`,pe);manifest.resources[file]={...describe(pe),source:"synthetic"};
   }
   for (const name of ["easytier-core.exe","easytier-cli.exe"]) {

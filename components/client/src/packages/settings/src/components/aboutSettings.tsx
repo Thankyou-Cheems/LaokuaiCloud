@@ -8,7 +8,7 @@ import { PiBugFill, PiChatCircleDotsFill } from "../../../../lib/icons";
 import { useReportForm } from "../../../../lib/reports/useReportForm";
 import { SettingsContainer } from "./settingsComponents";
 
-const GITHUB_URL = "https://github.com/Gryt-chat/gryt";
+const GITHUB_URL = "https://github.com/Thankyou-Cheems/LaokuaiCloud";
 
 /* Both stores want these reachable from inside the app rather than only from the
    listing, and the desktop build has no listing at all (GRYT-829). */
@@ -35,7 +35,7 @@ export function AboutSettings() {
         <span className="text-gryt-muted">{i18n.t("settingsFull.m4e9a67b3cb")}{" "}
           <a
             className="gryt-link"
-            href={`${GITHUB_URL}/blob/main/LICENSE`}
+            href={`${GITHUB_URL}/blob/HEAD/components/client/LICENSE`}
             target="_blank"
             rel="noopener noreferrer"
           >

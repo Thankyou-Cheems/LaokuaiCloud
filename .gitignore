@@ -10,6 +10,7 @@ dist-electron/
 /.local/
 
 /components/client/build/community-lan/
+/components/client/build/community-lan-helper/
 /components/client/build/native/
 /components/client/build/squad/
 /components/client/build/legal/

@@ -41,7 +41,18 @@ function assertPatchedEasyTierPayload(root, config) {
     assert.equal(offer.version, JSON.parse(fs.readFileSync(path.join(root,"package.json"),"utf8")).version);
     assert.match(offer.sourceCommit, /^[a-f0-9]{40}$/);
     assert.equal(offer.publicReleaseApproved, false);
-    assert.deepEqual(offer.files.map(f=>f.file).sort(), ["Client-Voice-Server-SFU-Corresponding-Source.zip", "EasyTier-Corresponding-Source.zip", "EasyTier-Build-Tools.zip", "EasyTier-Build-Tools-Fix.zip", "UI-Preferred-Source.zip", "RNNoise-Preferred-Source.zip"].sort());
+    if (offer.schemaVersion === 2) {
+      const repository = "https://github.com/Thankyou-Cheems/LaokuaiCloud";
+      assert.equal(offer.publicSourceApproved,true);
+      assert.equal(offer.sourceRepository,repository);
+      assert.equal(offer.sourceArchive,repository+"/archive/"+offer.sourceCommit+".zip");
+      assert.equal(offer.sourcesMustAccompanyBinary,false);
+      const sourceAssets=JSON.parse(fs.readFileSync(path.resolve(root,"../../release/source-materials/public-assets.json"),"utf8"));
+      assert.deepEqual(offer.files,sourceAssets.files.map(f=>({...f,url:repository+"/releases/download/"+sourceAssets.tag+"/"+f.file})));
+      assert.deepEqual(offer.upstreamSources,sourceAssets.upstreamSources);
+    } else {
+      assert.deepEqual(offer.files.map(f=>f.file).sort(), ["Client-Voice-Server-SFU-Corresponding-Source.zip", "EasyTier-Corresponding-Source.zip", "EasyTier-Build-Tools.zip", "EasyTier-Build-Tools-Fix.zip", "UI-Preferred-Source.zip", "RNNoise-Preferred-Source.zip"].sort());
+    }
     for (const file of offer.files) {
       const bytes=fs.readFileSync(path.join(root,"build/recipient-source",file.file));
       assert.equal(bytes.length,file.bytes);assert.equal(digest(bytes),file.sha256);

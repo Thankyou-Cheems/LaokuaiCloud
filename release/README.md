@@ -1,5 +1,9 @@
 # Frozen read-only path integration candidate
 
+> 历史发布检查点索引，不是当前开发指令。2026-10-13 起先读根
+> [HANDOFF.md](../HANDOFF.md) 和 [当前项目审视](../docs/PROJECT-REVIEW.md)。
+> 下文保留原固定版本记录；诸如 Task-6/owner 分工与“待构建”仅描述当时阶段。
+
 The root manifest coordinates private branch release/integration-20261011. Follow-up source944c42880b00cf8da839bf061e8f5439f86b4304 retains SDK receive-path.1/b8f16d0eac49c2fb09a92f6298d8cbb9eaed7bc1 and exact TGZ8abea479d053b6310e8c97746ae8b07f153a17d691dc20bdd5a241b6fe90caed. The sole Provider translates actual SDK selection/decoded windows in performance.now, independent PC epoch and authenticated roster/scope, with track/lease/callback retirement and one opt-in shared details sampler. Send receipts and physical underlay stay unknown. The frozen internal candidate retains immutable83dd572f; follow-up packaging/legal inputs are separate.
 
 ET local peer/route producer,17-feature no-Npcap build profile and five exact original license texts are integrated. Local facts have separate scope/UTC acquisition TTL; memberBindings stay empty,RTT null,and no full physical-path association exists. Native source remains dbaf0453. Final core d4f100ace0ae50b5270af10f579a2ccf7b2991731f05b82920eefba60055d49a and CLI b84fa350b9c8036649df3cdc8ee728c364ea81075d82fd3783cdeede3b9ddccd match owner build receipts and independent actual-byte normal/delay PE inspection. Four runtime resources,schema2 manifest,both executable/profile cache identity,resource/package import checks and original notices are integrated. Old core28248cf2,official CLI,Packet and their original package are preserved in history and excluded from final runtime resources. Task6 executes no native runtime.

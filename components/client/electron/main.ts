@@ -1,6 +1,4 @@
 import { createRequire } from "node:module";
-import {LocalDiagnosticWriter} from "./localDiagnostics";
-import {approvePublicCommunity,publicCommunityMode} from "./publicCommunityProvisioning";
 
 import { execFile, spawn } from "child_process";
 import {
@@ -64,11 +62,12 @@ import {
   stopNativeAudioCapture,
   supportsPerApplicationAudio,
 } from "./audioCaptureManager";
+import { CommunityEnrollment } from "./communityEnrollment";
+import { createCommunityEtGrantRuntime } from "./communityEtGrantRuntime";
 import curatedGames from "./curated-games.json";
 import { createRpcHost, findHolder, type Holder, ipcDir, ipcPath, type RpcHostState } from "./discordIpc";
 import { registerEasyTierCommunityIpc } from "./easyTierCommunityIpc";
 import { EasyTierCommunityManager } from "./easyTierCommunityManager";
-import { createCommunityEtGrantRuntime } from "./communityEtGrantRuntime";
 import { createWindowsEasyTierProduction, easyTierProductRoot } from "./easyTierWindowsProduction";
 import {
   autoStartIfNeeded,
@@ -130,6 +129,7 @@ import {
   startLanDiscovery,
 } from "./lanDiscovery";
 import { openLaokuaiLogin } from "./laokuaiAuthWindow";
+import {LocalDiagnosticWriter} from "./localDiagnostics";
 import { closeMediaSandbox } from "./mediaSandbox";
 import { readNowPlaying } from "./nowPlaying";
 import {
@@ -146,6 +146,7 @@ import {
   type ProcessWatcher,
   readWatchList,
 } from "./processWatcher";
+import {approvePublicCommunity,publicCommunityMode} from "./publicCommunityProvisioning";
 import { createPresenceBoard, type DetectedApp, type PresenceBoard } from "./richPresence";
 import {
   isNativeScreenCaptureAvailable,
@@ -262,9 +263,15 @@ const easyTierProduction = createWindowsEasyTierProduction(
   () => easyTierProductRoot(app.getPath("userData")),
   () => join(app.isPackaged ? process.resourcesPath : join(__dirname, "../build"), "community-lan", "product", "2.7.0-laokuai"),
   (serverId, signal) => easyTierGrants.configuration(serverId, signal),
+  () => join(app.isPackaged ? process.resourcesPath : join(__dirname, "../build"), "community-lan-helper"),
 );
 const easyTierCommunities = new EasyTierCommunityManager(LAOKUAI_PREVIEW || UI_ACCEPTANCE_MODE || (IS_I18N_TEST && !IS_LAOKUAI) ? null : easyTierGrants.wrap(easyTierProduction.runtime), state => {
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("et-community-state", state);
+});
+const easyTierEnrollment = new CommunityEnrollment({ manager: easyTierCommunities,
+  supports: member => member.serverId === "老蒯聊_5000_default" && member.host === "voice.ruikang.wang",
+  approve: serverId => approvePublicCommunity(easyTierProductRoot(app.getPath("userData")), serverId, mainWindow ?? undefined, easyTierProduction.preparePermission),
+  authenticate: value => easyTierGrants.setAuthenticatedSession(value), releasePreparation: easyTierProduction.releasePreparation,
 });
 let easyTierPoll: ReturnType<typeof setInterval> | null = null;
 let easyTierQuitDrained = false;
@@ -276,6 +283,7 @@ app.on("before-quit", event => {
   event.preventDefault();
   if (easyTierQuitDraining) return;
   easyTierQuitDraining = true;
+  easyTierEnrollment.shutdown();
   easyTierCommunities.shutdownOwned();
   void Promise.all([easyTierProduction.drainOwned(), easyTierGrants.drainOwned()]).catch(() => {
     localDiagnostics?.record({phase: "cleanup", operation: "core-stop", action: "finish", code: "cleanup-failed", cleanup: "pending"});
@@ -4688,7 +4696,8 @@ if (!gotSingleInstanceLock) {
           LAOKUAI_PREVIEW || UI_ACCEPTANCE_MODE ? async () => ({ ready: false }) : easyTierProduction.prepareRuntime,
           LAOKUAI_PREVIEW || UI_ACCEPTANCE_MODE ? undefined : value => easyTierGrants.setAuthenticatedSession(value), LAOKUAI_PREVIEW,
           IS_LAOKUAI && !UI_ACCEPTANCE_MODE ? {mode:()=>publicCommunityMode(easyTierProductRoot(app.getPath("userData"))),
-            approve:serverId=>approvePublicCommunity(easyTierProductRoot(app.getPath("userData")),serverId,mainWindow??undefined)} : undefined);
+            approve:serverId=>approvePublicCommunity(easyTierProductRoot(app.getPath("userData")),serverId,mainWindow??undefined,easyTierProduction.preparePermission)} : undefined,
+          IS_LAOKUAI && !LAOKUAI_PREVIEW && !UI_ACCEPTANCE_MODE ? value => easyTierEnrollment.reconcile(value) : undefined);
       applicationIpc.on("laokuai-local-diagnostic", (event, value: unknown) => {
         if (mainWindow && !mainWindow.isDestroyed() && event.senderFrame === mainWindow.webContents.mainFrame) localDiagnostics?.record(value);
       });

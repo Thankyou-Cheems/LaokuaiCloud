@@ -1,63 +1,28 @@
-# 唠蒯云 integration
+# 唠蒯云
 
-This private repository is the one release integration source for the desktop
-client, Voice SDK, application server, SFU and EasyTier provenance. Public forks
-remain upstream contribution repositories. No production or public software
-release is performed by creating this integration source.
+把 Gryt Chat 多人语音和 EasyTier 2.7 社区联机整合成简单的 Windows 体验。
 
-Components retain their own source origins, licenses and frozen source commits.
-The client is imported with its Git history; the SDK, server and SFU are frozen
-source imports with exact upstream/delivery commit and file hashes recorded in
-the release manifest. EasyTier is pinned to official v2.7.0 prerelease; the
-Windows server/community adapter is integrated with configuration and permission
-gates. Automatic authorized community provisioning and real network acceptance
-remain pending. The fixed-base Windows compatibility source is imported as a
-review checkpoint; its create-only correction passes static source review recorded
-in `components/easytier/REVIEW.md`, while native build/acceptance remain pending. Official
-Windows files are reference only; private final packaging requires reviewed
-patch/build hashes from `components/easytier/provenance.json`.
+目标：首次添加 `voice.ruikang.wang` 输入一次社区密码，保存成员身份；以后
+恢复社区即自动联机。语音优先 P2P，异常恢复 SFU。腾讯云 ET 与 Gryt/SFU
+分开部署，ET 故障不阻断社区认证和 SFU 语音。
 
-The old local EasyTier network-upgrade project has core/game Git trees whose
-remotes point to official public upstreams. No corresponding user private
-integration repository was found in the authenticated account's metadata.
-Those original trees and their uncommitted work are preserved. Existing product
-integration moves forward here; private profiles, runtime configuration, raw
-local investigation logs and credential material are not imported.
+开发中的新版本由主进程统一恢复成员身份和自动联机；首次本机授权随社区恢复
+自动出现，不依赖语音房或额外开关。Windows 权限通过按需 UAC 小组件取得，
+聊天窗口保持普通权限。同一次运行中的重连复用权限，退出后停止自己的实例。
+不安装后台服务，因此每次启动联机仍可能出现一次 Windows 系统确认。
 
-See `release/manifest.json` and `release/README.md` for the exact candidate and
-the verification commands. `ready: false` is binding until outstanding acceptance
-work is completed. Simulated protocol checks do not prove real media or networks.
+自动入网的纯行为测试、应用类型检查和编译已通过；新的真实 UAC/TUN、
+双设备完整客户端与语音回退验收尚未完成，不把旧受控试验算作新版本通过。
 
-Recipient engineering follow-up: original helper failed; the reviewed one-expression
-environment-key removal supports the corrected fresh-target offline modified-library
-core/CLI compile/link PASS (1288.6058461666s). See release/source-materials/RECIPIENT-RELINK-RESULT.md
-and release/acceptance/recipient-modified-library-relink-pass.json.81 sealed owner
-files and1262 source files reverified;33 pure environment assertions and1129 lock
-checks pass. No marker edit/test EXE/product payload change or runtime execution.
-The old tools/source-offer ZIPs stay immutable; repair is a separate supplement.
-Actual recipient/source access/export/license/platform/native/media acceptance
-remains pending; ready=false/finalPackage=null.
+- 开发入口：[HANDOFF.md](HANDOFF.md)
+- 当前审视、证据和优先级：[项目审视](docs/PROJECT-REVIEW.md)
+- 精确来源和冻结产物：[release/manifest.json](release/manifest.json)
+- 组件：`components/client`、`voice`、`server`、`sfu`、`easytier`、`landing`
+- PowerShell 7 本地环境：`. ./tools/enter-local-dev.ps1`
+- 根目录轻量检查：`./tools/check-core-contracts.ps1`
+- 轻量绿色包构建：`./tools/build-portable.ps1`（需要已核验的原生/许可材料）
+- 源码分开托管说明：[SOURCE-ACCESS.md](docs/SOURCE-ACCESS.md)
 
-Lifecycle.3 is integrated locally on integration/lifecycle3-20261012 from3a6c794f.
-Prior cb209bd eight-file equivalent is applied once;24 lifecycle source/vendor
-paths match exact delivery. See release/acceptance/lifecycle3-local-integration.json
-and release/LIFECYCLE3-BUILD-HANDOFF.md.8 guarded pure suites/14 script syntax
-checks pass; full cloud build/soak are delivered summaries, not local Windows
-acceptance. Parent assigns the sole next builder. No remote sync/build/product
-launch/user config change by Task6; old packages/freeze preserved.
-
-The b38566f lifecycle.3 internal portable3a8065e5 is now built;411 sealed files
-readonly rehashed and141 payload files matched. Root verifier scope/inventory
-expectations corrected with42 range+10 CLI positive/negative checks; ready flag
-still blocks exit2. No component/product input change, no repack needed. Old
-receipts/artifacts/failures stay frozen; real runtime/media and license/recipient
-acceptance pending. See release/LIFECYCLE3-VERIFIER-REVIEW.md.
-
-Exact original b385 lifecycle.3 payload now passed one independent-owner hidden
-offline empty-profile bootstrap/DOM, exit0/residual0;4 successful queries observed
-no owned TCP/UDP or foreground. See release/acceptance/lifecycle3-hidden-bootstrap.json.
-Three old disabled-IPC Promise errors remain; console is not error-free. Tray
-close8 branches are pure logic; no real tray, settings navigation, voice toolbar
-or authentic room/device/media/native interaction acceptance.27 UI evidence files
-and all411 original build files were readonly rehashed unchanged. Task6 launched
-nothing. No repack or ready promotion; raw profile/logs/screenshots stay owner-only.
+用户已批准将本仓库本身公开；可见性变更正在准备，GitHub 实际状态为准。
+测试包只携带许可证、必要声明和源码取得说明，完整源码不随包携带。
+历史交接在 `docs/history/`。

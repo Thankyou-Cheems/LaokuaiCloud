@@ -1,13 +1,13 @@
 import { randomUUID } from 'node:crypto';
 
-import { buildCommunityEtConfig } from './communityEtConfig';
-import { MainGrantGate, exact, communityIdentity, sameScope, type TrustedCommunityIntent } from './communityEtGrant';
-import { CommunityEtGrantTransport, CommunityEtTransportError, validCommunityBearer, type TrustedCommunityTarget, type VerifiedCommunitySession } from './communityEtGrantTransport';
-import { CommunityEtOwnedFiles, readCommunityGrantTarget } from './communityEtTrustedConfiguration';
-import { EasyTierOperationError, EasyTierSessionRetiredError, type EasyTierRuntime, type EasyTierSession } from './easyTierCommunityManager';
-import type { EasyTierExistingConfiguration } from './easyTierExistingConfiguration';
 import { projectCommunityEtBinding } from './communityEtBindingProjection';
+import { buildCommunityEtConfig } from './communityEtConfig';
+import { communityIdentity, exact, MainGrantGate, sameScope, type TrustedCommunityIntent } from './communityEtGrant';
+import { CommunityEtGrantTransport, CommunityEtTransportError, type TrustedCommunityTarget, validCommunityBearer, type VerifiedCommunitySession } from './communityEtGrantTransport';
 import type {CommunityAcquireRequestV1, CommunityBindingRequestV1} from './communityEtHttpContract';
+import { CommunityEtOwnedFiles, readCommunityGrantTarget } from './communityEtTrustedConfiguration';
+import { EasyTierOperationError, type EasyTierRuntime, type EasyTierSession,EasyTierSessionRetiredError } from './easyTierCommunityManager';
+import type { EasyTierExistingConfiguration } from './easyTierExistingConfiguration';
 
 interface AuthInput { serverId: string; host: string; accessToken: string | null }
 interface Context {
@@ -180,6 +180,7 @@ export class CommunityEtGrantRuntime {
       c.cancel = new AbortController(); const signal = combined(scope.signal, c.cancel.signal);
       let physical: EasyTierSession | null = null;
       try {
+        await runtime.assertReady?.(signal);
         await this.acquire(c, signal);
         const grant = c.gate.privateGrantForConfig()!;
         const draft = buildCommunityEtConfig(c.gate, c.verified.intent, c.target.bootstrap);

@@ -5,7 +5,7 @@ config.appId = "local.laokuai.chat";
 config.productName = "唠蒯云";
 config.extraMetadata = { name: "laokuai-chat", productName: config.productName,
   grytI18nTest: true, grytLaokuai: true };
-config.directories.output = "release-laokuai-beta-20261012";
+config.directories.output = "release-laokuai-beta-20261013";
 config.win.icon = "private-brand/icon.ico";
 config.win.executableName = "唠蒯云";
 // The i18n test variant replaces win; restore the real private product's sidecar.
@@ -19,6 +19,8 @@ config.extraResources = config.extraResources.map(entry => /^tray.*\.png$/.test(
   ? { from: `private-brand/icon-${entry.to.includes("@3x") ? 48 : entry.to.includes("@2x") ? 32 : 16}.png`, to: entry.to }
   : entry);
 config.extraResources.push(
+  { from: "build/community-lan-helper/laokuai-community-broker.exe", to: "community-lan-helper/laokuai-community-broker.exe" },
+  { from: "build/community-lan-helper/broker-build.json", to: "community-lan-helper/broker-build.json" },
   { from: "build/squad/squad-scope.exe", to: "squad/squad-scope.exe" },
   { from: "PRIVATE-PROFILE-REUSE.md", to: "legal/PRIVATE-PROFILE-REUSE.md" },
   { from: "SQUAD-KEY-LIST.md", to: "legal/SQUAD-KEY-LIST.md" },

@@ -136,7 +136,7 @@ function runtimeFixture() {
           sample: {...clone(f.sample), generation: scope.generation, acquiredAtMs: f.now.mono, acquiredAtUnixMs: f.now.wall}};
       }};
   }};
-  return {...f, calls, events, coordinator, runtime: coordinator.wrap(physical), setPolicy: v => policy = v,
+  return {...f, calls, events, coordinator, physical, runtime: coordinator.wrap(physical), setPolicy: v => policy = v,
     setFailure: v => failure = v, cores: () => cores,
     authenticate: token => coordinator.setAuthenticatedSession({serverId: 'community', host: 'test.invalid', accessToken: token}),
     connect: () => coordinator.wrap(physical).connect({serverId: 'community', generation: 1, signal: new AbortController().signal})};
@@ -153,6 +153,13 @@ test('refreshing the authenticated bearer preserves the owned core and grant key
   const refreshed = await f.authenticate('two'); assert.equal(refreshed.changed, false); assert.equal(f.cores(), 1);
   f.now.wall += 31000; f.now.mono += 31000; await s.read(new AbortController().signal);
   assert.equal(f.calls.find(x => x.op === 'renew').bearer, 'two'); assert.equal(f.cores(), 1); await s.close();
+});
+test('native readiness rejection cannot acquire a device credential or write a secret config', async () => {
+  const f = runtimeFixture(); await f.authenticate('one');
+  f.physical.assertReady = async () => { throw Error('permission-not-ready'); };
+  await assert.rejects(f.connect());
+  assert.equal(f.calls.some(x => x.op === 'acquire'), false);
+  assert.equal(f.events.includes('write'), false); assert.equal(f.cores(), 0);
 });
 test('transient session HTTP failure keeps the current owned core', async () => {
   const f = runtimeFixture(); await f.authenticate('one'); const s = await f.connect();

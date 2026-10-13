@@ -9,7 +9,7 @@ async function run({permission=true,answer=1,existing=false,other=false,scope='è
     'node:fs/promises':{mkdir:async()=>{},lstat:async p=>{if(p.endsWith('activation.json')&&!other)missing();return {isSymbolicLink:()=>false,isFile:()=>true,size:20};},readFile:async()=>JSON.stringify({grantCommunities:[{communityId:'other-private',origin:'https://other.invalid'}]}),open:async()=>({writeFile:async b=>{approved=JSON.parse(b);writes++;},sync:async()=>{},close:async()=>{}}),rename:async()=>{},unlink:async()=>{}},
     './communityEtTrustedConfiguration':{protectOwnedFile:async()=>{},readCommunityGrantTarget:async()=>{if(!existing)missing();return {}; }},'./easyTierWindowsProcesses':{hasEasyTierWindowsPermission:async()=>permission}};
   vm.runInNewContext(code,{exports,require:id=>modules[id]}, {filename:file});
-  let result;try{result=await exports.approvePublicCommunity('synthetic-root',scope);}catch{result={accepted:false};}
+  let result;try{result=await exports.approvePublicCommunity('synthetic-root',scope,undefined,async()=>permission);}catch{result={accepted:false};}
   return {result,dialogs,writes,approved};
 }
 (async()=>{

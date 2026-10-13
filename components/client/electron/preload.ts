@@ -1,10 +1,11 @@
 import { contextBridge, ipcRenderer, webFrame } from "electron";
-import {safeDiagnostic} from "../src/lib/localDiagnostics";
 
 import type { EasyTierCommunityAPI, EasyTierCommunityState } from "../src/lib/easyTierCommunity";
+import {safeDiagnostic} from "../src/lib/localDiagnostics";
 import type { SquadConfig, SquadSnapshot } from "../src/lib/squadMode";
 
 const easyTierCommunity: EasyTierCommunityAPI = {
+  reconcileEnrollment: snapshot => ipcRenderer.invoke("et-community-enrollment", snapshot),
   getRuntimeMode: () => ipcRenderer.invoke("et-community-mode"),
   approveCommunity: serverId => ipcRenderer.invoke("et-community-consent",serverId),
   connect: lease => ipcRenderer.invoke("et-community-connect", lease),

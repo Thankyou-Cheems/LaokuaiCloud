@@ -21,6 +21,11 @@ export class WindowsEasyTierCliRuntime implements EasyTierRuntime {
   activationReason(): "activation-required" | "unsupported-target" | null {
     return this.stopped ? "activation-required" : this.ports.platform !== "win32" ? "unsupported-target" : null;
   }
+  async assertReady(signal: AbortSignal): Promise<void> {
+    if (this.activationReason() || signal.aborted) throw new EasyTierOperationError("unsupported-target");
+    if (!(await this.ports.permission())) throw new EasyTierOperationError("needs-permission");
+    if (signal.aborted) throw new EasyTierOperationError("connect-failed");
+  }
   async connect(scope: { serverId: string; generation: number; signal: AbortSignal }): Promise<EasyTierSession> {
     if (this.activationReason()) throw new EasyTierOperationError("unsupported-target");
     // Reserve before any await. Never spawn a second core or restart another LAN session.

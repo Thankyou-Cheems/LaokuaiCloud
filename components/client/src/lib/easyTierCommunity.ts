@@ -44,6 +44,7 @@ export interface EasyTierCommunityLease {
 }
 
 export interface EasyTierCommunityAPI {
+  reconcileEnrollment?(snapshot: CommunityEnrollmentSnapshot): Promise<EasyTierCommunityState[]>;
   getRuntimeMode?(): Promise<"normal" | "preview-disabled" | "needs-consent">;
   approveCommunity?(serverId: string): Promise<{accepted: boolean; reason?: "needs-permission"}>;
   connect(lease: EasyTierCommunityLease): Promise<EasyTierCommunityState>;
@@ -58,6 +59,13 @@ export interface EasyTierCommunityAPI {
   syncMemberships(serverIds: readonly string[]): Promise<EasyTierCommunityState[]>;
   /** Opaque existing bearer handoff. Main verifies identity at a fixed trusted backend. */
   setAuthenticatedSession?(value: {serverId: string; host: string; accessToken: string | null}): Promise<EasyTierCommunityState>;
+}
+
+export interface CommunityEnrollmentSnapshot {
+  members: Array<{ serverId: string; host: string; accessToken: string | null }>;
+  enabled: boolean;
+  /** Only an explicit retry can re-open a declined prompt during this app session. */
+  retry?: string;
 }
 
 declare global {

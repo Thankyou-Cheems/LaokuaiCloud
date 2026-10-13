@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "tag": "source-materials-20261013",
+  "files": [
+    {
+      "file": "EasyTier-Corresponding-Source.zip",
+      "bytes": 151940089,
+      "sha256": "bad7e5e4b3a666d63876eaa5910cf6e3aaafc927330521682adb5a80267c6205"
+    },
+    {
+      "file": "EasyTier-Build-Tools.zip",
+      "bytes": 161269,
+      "sha256": "24879c3a920fc4a12d2b30baa2c779ff8b9ebed3e13411861b563d8372560688"
+    },
+    {
+      "file": "EasyTier-Build-Tools-Fix.zip",
+      "bytes": 3461,
+      "sha256": "87d32e98f56009e36932593159aa181940e38839a22cba97a459e401a92e1782"
+    },
+    {
+      "file": "UI-Preferred-Source.zip",
+      "bytes": 1099658,
+      "sha256": "d0933073f4915594021bad3940ac61079241546cdfeb74a347085fdc46bc69e3"
+    },
+    {
+      "file": "RNNoise-Preferred-Source.zip",
+      "bytes": 61940085,
+      "sha256": "a79be9beb3936f652a404e3961e1915733d6e9e88498de20cbf2b15f8dc2d76d"
+    },
+    {
+      "file": "Native-Hook-Corresponding-Source.zip",
+      "bytes": 139529,
+      "sha256": "3de9cfa4821f82a2d4b9c4ab480f2645b76e9cb4672e68fdbd85a112bb766868"
+    }
+  ],
+  "upstreamSources": [
+    {
+      "name": "WinDivert",
+      "version": "2.2.2",
+      "url": "https://github.com/basil00/WinDivert/archive/refs/tags/v2.2.2.zip",
+      "sha256": "65ec79c9e6afa99f648a3f4d1f6db794640b40d0b65bd438770ea503ee14ecb7"
+    },
+    {
+      "name": "Electron",
+      "version": "40.6.1",
+      "url": "https://github.com/electron/electron/tree/v40.6.1"
+    },
+    {
+      "name": "Chromium",
+      "version": "144.0.7559.220",
+      "url": "https://chromium.googlesource.com/chromium/src/+/144.0.7559.220/"
+    },
+    {
+      "name": "FFmpeg",
+      "commit": "e18f48eba6b367ac68b9c477ae6cbe224e36b031",
+      "url": "https://chromium.googlesource.com/chromium/third_party/ffmpeg/+/e18f48eba6b367ac68b9c477ae6cbe224e36b031/"
+    },
+    {
+      "name": "Node",
+      "version": "24.13.1",
+      "url": "https://github.com/nodejs/node/tree/v24.13.1"
+    }
+  ]
+}

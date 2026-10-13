@@ -1,0 +1,26 @@
+name: Core source contracts
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  contracts:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    env:
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install pinned JavaScript dependencies without lifecycle scripts
+        working-directory: components/client
+        run: npx --yes yarn@1.22.22 install --frozen-lockfile --ignore-scripts --non-interactive
+      - name: Existing ET and voice contracts plus targeted types
+        run: ./tools/check-core-contracts.ps1

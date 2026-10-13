@@ -21,18 +21,15 @@ export async function publicCommunityMode(root: string): Promise<"normal" | "nee
   try {await readCommunityGrantTarget(root, PUBLIC_COMMUNITY_TARGET.communityId);return "normal";} catch {return "needs-consent";}
 }
 /** Only a native user-confirmed dialog may create this machine's approval. */
-export async function approvePublicCommunity(root: string, serverId: string, parent?: BrowserWindow): Promise<{accepted: boolean; reason?: "needs-permission"}> {
+export async function approvePublicCommunity(root: string, serverId: string, parent?: BrowserWindow,
+  preparePermission: () => Promise<boolean> = hasEasyTierWindowsPermission): Promise<{accepted: boolean; reason?: "needs-permission"}> {
   if(serverId!==PUBLIC_COMMUNITY_TARGET.communityId)throw Error("community-not-provisioned");
-  if(!(await hasEasyTierWindowsPermission())) {
-    const options={type: "info" as const, message: "联机需要管理员权限", detail: "请关闭应用，再以同一 Windows 用户的管理员权限启动唠蒯云。语音聊天可在普通权限下使用。"};
-    if(parent)await dialog.showMessageBox(parent,options);else await dialog.showMessageBox(options);
-    return {accepted:false,reason:"needs-permission"};
-  }
-  if(await publicCommunityMode(root)==="normal")return {accepted:true};
+  if(await publicCommunityMode(root)==="normal")return (await preparePermission()) ? {accepted:true} : {accepted:false,reason:"needs-permission"};
   const options={type:"question" as const,buttons:["同意并启用联机","取消"],defaultId:1,cancelId:1,
-    message:"启用 voice.ruikang.wang 社区联机？",detail:"本程序将创建自己的虚拟网卡，并连接该社区的公共节点。社区密码只用于取得普通成员资格；每台设备生成独立身份。运行期间会开启仅监听 127.0.0.1 的管理连接，其他本机程序也可访问该端口。关闭联机或退出应用时关闭自身实例并清理凭据。本程序不会修改防火墙。"};
+    message:"允许这台设备自动加入社区联机？",detail:"你已加入 voice.ruikang.wang。确认后会记住本机同意，以后恢复社区自动联机，无需再找开关。Windows 将为联机组件请求系统权限；聊天窗口保持普通权限，不安装后台服务。设备使用独立短期凭据，运行时创建自己的虚拟网卡和仅监听本机的管理端口。退出社区或应用时关闭自身实例。本程序不会修改防火墙。"};
   const answer=parent?await dialog.showMessageBox(parent,options):await dialog.showMessageBox(options);
   if(answer.response!==0)return {accepted:false};
+  if(!(await preparePermission()))return {accepted:false,reason:"needs-permission"};
   await mkdir(root,{recursive:true,mode:0o700});if((await lstat(root)).isSymbolicLink())throw Error("configuration-required");
   const destination=join(root,"activation.json");
   try {

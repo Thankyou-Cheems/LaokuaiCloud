@@ -1,21 +1,23 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
+import { EasyTierElevationBroker } from "./easyTierElevationBroker";
+import type { EasyTierExistingConfiguration } from "./easyTierExistingConfiguration";
 import { readEasyTierExistingConfiguration } from "./easyTierExistingConfiguration";
 import { EasyTierWindowsAssets } from "./easyTierWindowsAssets";
-import { EasyTierWindowsProcesses, hasEasyTierWindowsPermission } from "./easyTierWindowsProcesses";
+import { EasyTierWindowsProcesses } from "./easyTierWindowsProcesses";
 import { WindowsEasyTierCliRuntime } from "./windowsEasyTierCliRuntime";
-import type { EasyTierExistingConfiguration } from "./easyTierExistingConfiguration";
 
 /** Lazy paths: constructing the adapter performs no profile I/O or activation. */
 export function createWindowsEasyTierProduction(root: () => string, bundledDirectory: () => string,
-  configuration?: (serverId: string, signal: AbortSignal) => Promise<EasyTierExistingConfiguration>) {
+  configuration?: (serverId: string, signal: AbortSignal) => Promise<EasyTierExistingConfiguration>, brokerDirectory?: () => string) {
   const assets = new EasyTierWindowsAssets(root, bundledDirectory);
-  const processes = new EasyTierWindowsProcesses();
+  const broker = brokerDirectory ? new EasyTierElevationBroker(brokerDirectory) : undefined;
+  const processes = new EasyTierWindowsProcesses(0, broker);
   const runtime = new WindowsEasyTierCliRuntime({
     platform: process.platform === "win32" && process.arch !== "x64" ? "unsupported-windows-arch" : process.platform,
     configuration: configuration ?? (serverId => readEasyTierExistingConfiguration(root(), serverId)),
-    permission: hasEasyTierWindowsPermission,
+    permission: async () => broker?.available() ?? false,
     verifiedAssets: () => assets.prepareProductBundled(),
     start: (directory, config, signal) => processes.start(directory, config, signal),
     shutdownOwned: () => processes.shutdownOwned(),
@@ -29,6 +31,7 @@ export function createWindowsEasyTierProduction(root: () => string, bundledDirec
   const drainOwned = async () => {
     try { await processes.drainOwned(); }
     finally {
+      broker?.releasePreparation();
       const reports = processes.cleanupReports();
       if (reports.length) {
         // Diagnostic receipt only. Never authorize deletion/kill from a saved PID or alias.
@@ -38,7 +41,9 @@ export function createWindowsEasyTierProduction(root: () => string, bundledDirec
       }
     }
   };
-  return { runtime, drainOwned, cleanupReports: () => processes.cleanupReports(), prepareRuntime: async () => {
+  return { runtime, drainOwned, cleanupReports: () => processes.cleanupReports(),
+    preparePermission: async () => { await assets.prepareProductBundled(); return broker?.prepare() ?? false; },
+    releasePreparation: () => broker?.releasePreparation(), prepareRuntime: async () => {
     if (process.platform !== "win32" || process.arch !== "x64") return { ready: false };
     try { await assets.prepareProductBundled(); return { ready: true }; } catch { return { ready: false }; }
   } };

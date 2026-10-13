@@ -1,9 +1,9 @@
 import type {
   EasyTierCommunityLease, EasyTierCommunityState, EasyTierReason,
 } from "../src/lib/easyTierCommunity";
-import { projectEasyTierMembers } from "./easyTierMemberAdapter";
-import { type EasyTierStatusSample, projectEasyTierStatus, projectEasyTierLocalDetails } from "./easyTierStatus";
 import type { OwnedCredentialObservation } from "./communityEtCredentialObservation";
+import { projectEasyTierMembers } from "./easyTierMemberAdapter";
+import { type EasyTierStatusSample, projectEasyTierLocalDetails,projectEasyTierStatus } from "./easyTierStatus";
 
 export interface EasyTierSession {
   instanceId: string;
@@ -15,6 +15,8 @@ export interface EasyTierSession {
 }
 export interface EasyTierRuntime {
   activationReason(): "activation-required" | "unsupported-target" | null;
+  /** Readiness only, before credential mutation. Never opens a prompt inside a timed connect. */
+  assertReady?(signal: AbortSignal): Promise<void>;
   connect(scope: { serverId: string; generation: number; signal: AbortSignal }): Promise<EasyTierSession>;
   /** Exact owned process handle only. Must be synchronous for Windows session end. */
   shutdownOwned(): void;
@@ -35,7 +37,8 @@ interface Community {
   refreshing: boolean;
 }
 export function validEasyTierId(value: unknown): value is string {
-  return typeof value === "string" && value.length > 0 && value.length <= 256 && !/[\x00-\x1f\x7f]/.test(value);
+  return typeof value === "string" && value.length > 0 && value.length <= 256 &&
+    !Array.from(value).some(c => c.charCodeAt(0) < 32 || c.charCodeAt(0) === 127);
 }
 export function validEasyTierLease(value: unknown): value is EasyTierCommunityLease {
   if (!value || typeof value !== "object") return false;
