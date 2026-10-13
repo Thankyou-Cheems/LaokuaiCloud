@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-13",
+  "version": "1.13.22-laokuai.beta.20261013.12",
+  "sourceCommit": "942f1a8a2173b43d2b05902aaa7503fe54c4b9aa",
+  "file": "唠蒯云-1.13.22-laokuai.beta.20261013.12-zh-CN-win-x64-green.zip",
+  "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261013.12-zh-CN-win-x64-green.zip",
+  "bytes": 161048733,
+  "sha256": "4a0ce3c89abd41da1bfc257df0e1c70b90a872b3a9f399e92ae840da41280640",
+  "appAsarSha256": "fec172da3267529c524d84da6c8ebc4ef119a36278aaddbfd77e893d202866a2",
+  "staticPayloadFiles": 146,
+  "checks": {
+    "status": "passed",
+    "coreContractSuites": 36,
+    "easyTierRegressions": 112,
+    "rebuiltSdkChecks": [
+      "roster-policy-roundtrip",
+      "roster-media-policy",
+      "media-policy",
+      "hybrid-session",
+      "hybrid-source-ownership",
+      "hybrid-auth-recovery",
+      "hybrid-integration",
+      "hybrid-diagnostics"
+    ],
+    "clientBuildAndTypes": "passed",
+    "sdkBuildAndTypes": "passed",
+    "packageAuditScenarios": 19
+  },
+  "bootstrap": {
+    "status": "passed",
+    "exitCode": 0,
+    "rootChildren": 1,
+    "preload": {
+      "electronAPI": "object",
+      "easyTierCommunity": "object"
+    },
+    "visible": false,
+    "focused": false,
+    "unexpectedEvents": 0,
+    "residualOwnedProcesses": 0,
+    "socketSamples": [
+      {
+        "seconds": 1.599,
+        "ownedProcesses": 1,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 3.201,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 4.758,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 6.299,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 7.879,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 9.486,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 11.081,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 12.775,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      }
+    ],
+    "consoleErrors": 19,
+    "realElectronExecuted": true,
+    "isolatedFreshProfile": true,
+    "nativeEtExecuted": false,
+    "realCommunityOrDeviceMediaTest": false
+  },
+  "administratorEntry": {
+    "actualBuiltEntry": true,
+    "sourceSha256": "d0671e0f5cfd21291b0afdffd3c0c3f2aac31fcf5d2476bb72d575f63c515c09",
+    "initialReady": false,
+    "entrySettled": true,
+    "promptReady": true,
+    "tokenReads": 1,
+    "nativeUacExecuted": false,
+    "nativeEtExecuted": false,
+    "exitCode": 0
+  },
+  "fixSourceCommit": "8d808b74f5ba4093cc1116c8326084323941af58",
+  "fixes": [
+    "Preserve credential retry through old core health observations",
+    "Carry pending scope replacement across overlapping authentication, consuming completed replacement once",
+    "Invalidate old committed receive permissions on revoke/regrant round trips",
+    "Finish failed SFU restoration before re-enabling the peer controller",
+    "Preserve three fixed controller failure reasons in local diagnostics"
+  ],
+  "nativeRuntimeUnchangedFrom": "release/acceptance/voice-stability-portable-20261013.json",
+  "voiceRecordingsUnchanged": true,
+  "sourceAttachmentSetUnchanged": true,
+  "productionServicesChanged": false,
+  "desktopProgramUpdated": true,
+  "userProfileModified": false,
+  "desktopUpdate": {
+    "payloadFilesVerified": 146,
+    "profileFilesPreserved": 111,
+    "profileHashesUnchanged": true,
+    "fullLocalBackupVerified": true,
+    "applicationLaunched": false
+  },
+  "realTwoDeviceMediaAccepted": false,
+  "realGameCoexistenceAccepted": false,
+  "realTwelveClientWanAccepted": false,
+  "note": "The .11 package remains immutable. These fixes are rebuilt into routing.4 and .12. Offline hidden bootstrap and simulated media regressions do not establish real WAN audibility or NAT traversal; human two-device acceptance is pending."
+}

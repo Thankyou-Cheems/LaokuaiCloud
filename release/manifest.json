@@ -9,8 +9,8 @@
     "visibility": "public",
     "branch": "main",
     "soleGitWriter": "user-directed local developer",
-    "codeCommit": "99b7ce4b38f494698cf70f30e56217e1026917dc",
-    "codeTree": "39540ef8ca61d1b13dcdc878c2e43c1a94b91d3e",
+    "codeCommit": "942f1a8a2173b43d2b05902aaa7503fe54c4b9aa",
+    "codeTree": "bf87ee12b04497449f2c7f46512571d06b21d125",
     "newRepositoryReason": "Authenticated private-repo metadata and explicitly scoped old local core/game remotes revealed no matching existing private integration repository",
     "historyPolicy": "User explicitly authorized deletion and same-name recreation after six Npcap files were removed from history. Only clean main and source tag pushed from an isolated bare repository. Original and clean local bundles retained; no mirror push.",
     "githubId": "R_kgDOVG00Lg"
@@ -18,22 +18,22 @@
   "components": {
     "client": {
       "path": "components/client",
-      "tree": "c3431f7a1a9ce6e1677d8668dd7c96317388956d",
+      "tree": "a5506d29739de5f7fde8bef2331357382c400bf0",
       "upstream": "Gryt-chat/client",
       "publicFork": "Thankyou-Cheems/gryt-client-i18n",
       "historyImportedFrom": "06ac43f51dbda3b9444c73270a126e10489110e9",
       "originalHead": "552dc88f3413b83ee29bdb4ab350286e7c9ad2d0",
       "completeDirtySourceSnapshot": "2b9f02076051e3a445bfa99e79d1fc7ac421e19f",
       "originalPreservation": "24 tracked modifications and 6 untracked files retained; all frozen snapshot blobs verified",
-      "version": "1.13.22-laokuai.beta.20261013.11",
-      "dependencyLockSha256": "e6567de70e64f1086d99df4d4c41347b680a3cbfbbac22189629ce1f4bf36f52",
+      "version": "1.13.22-laokuai.beta.20261013.12",
+      "dependencyLockSha256": "6fc4f5e2261d2d7d1baa051d002db1abf68e9d55b3f68c976ef4ebae5bc17dd0",
       "lifecycle3SourceCommit": "cb31e2e4ec044a2574f88321bc90cc01c3b51e0c",
       "uiBrandSourceCommit": "c75e6802ac9971b7d4139df8f97b99c7398efd7d",
       "preservedPreEtContract": {
         "tree": "8123a71d99a101a3dce02027d476c7e8879ff48d",
         "sourceCommit": "a88f7d75066cf03d65d618bb49cabbff6e8d7884"
       },
-      "sourceCommit": "99b7ce4b38f494698cf70f30e56217e1026917dc",
+      "sourceCommit": "942f1a8a2173b43d2b05902aaa7503fe54c4b9aa",
       "communityContractWired": true,
       "preservedPreCommunityWiring": {
         "tree": "fbcc9d4e2db64348fc17704d486a421233f7513f",
@@ -56,18 +56,18 @@
     },
     "voice": {
       "path": "components/voice",
-      "tree": "7092fdd5727b1d355c60df9874f95793b44be8b8",
+      "tree": "5929069d9bcf23505e049ced9ba5bc7a420ea0ab",
       "upstream": "Gryt-chat/voice",
       "publicFork": "Thankyou-Cheems/voice",
-      "sourceCommit": "99b7ce4b38f494698cf70f30e56217e1026917dc",
+      "sourceCommit": "942f1a8a2173b43d2b05902aaa7503fe54c4b9aa",
       "sourceFiles": 312,
       "importCorrespondence": "Current routing source and pinned locally rebuilt package; prior lifecycle package and evidence preserved.",
       "license": "AGPL-3.0-only; Signalsmith MIT and all receive-rnn notices preserved",
       "package": {
-        "path": "components/client/vendor/gryt-voice-0.6.2-laokuai.routing.3.tgz",
-        "version": "0.6.2-laokuai.routing.3",
-        "bytes": 3773437,
-        "sha256": "3e5757ec410a14f00c3035f8b02a4eeae28f863603794ee77e3c04d6f99a35db",
+        "path": "components/client/vendor/gryt-voice-0.6.2-laokuai.routing.4.tgz",
+        "version": "0.6.2-laokuai.routing.4",
+        "bytes": 3773634,
+        "sha256": "6018f7f184771fdb6b4ac86da43558b7efb9ffad27b0eb6d48e1c51b624bed4a",
         "installedFilesVerified": 187,
         "clientDependencyAndLockExact": true
       },
@@ -183,6 +183,14 @@
         "bytes": 3768804,
         "sha256": "cdba7c5bb0bdf3fe5ebec6921d3e9c3df36fe5f08178314c37d6bcae608f6504",
         "installedFilesVerified": 212,
+        "clientDependencyAndLockExact": true
+      },
+      "previousRouting3Package": {
+        "path": "components/client/vendor/gryt-voice-0.6.2-laokuai.routing.3.tgz",
+        "version": "0.6.2-laokuai.routing.3",
+        "bytes": 3773437,
+        "sha256": "3e5757ec410a14f00c3035f8b02a4eeae28f863603794ee77e3c04d6f99a35db",
+        "installedFilesVerified": 187,
         "clientDependencyAndLockExact": true
       }
     },
@@ -3634,49 +3642,31 @@
   "greenDirectoryTestPackage": {
     "schemaVersion": 1,
     "date": "2026-10-13",
-    "version": "1.13.22-laokuai.beta.20261013.11",
-    "sourceCommit": "99b7ce4b38f494698cf70f30e56217e1026917dc",
-    "file": "唠蒯云-1.13.22-laokuai.beta.20261013.11-zh-CN-win-x64-green.zip",
-    "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261013.11-zh-CN-win-x64-green.zip",
-    "bytes": 160192678,
-    "sha256": "54b93db8ae3af9cc509e13bb7c3d1b44c2ba6e2792028e285f4949531c60bcc4",
-    "appAsarSha256": "8c1ebf81fc5ae7e724db5047588870ea7c87422c8853a320622f7eb74876b29f",
+    "version": "1.13.22-laokuai.beta.20261013.12",
+    "sourceCommit": "942f1a8a2173b43d2b05902aaa7503fe54c4b9aa",
+    "file": "唠蒯云-1.13.22-laokuai.beta.20261013.12-zh-CN-win-x64-green.zip",
+    "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261013.12-zh-CN-win-x64-green.zip",
+    "bytes": 161048733,
+    "sha256": "4a0ce3c89abd41da1bfc257df0e1c70b90a872b3a9f399e92ae840da41280640",
+    "appAsarSha256": "fec172da3267529c524d84da6c8ebc4ef119a36278aaddbfd77e893d202866a2",
     "staticPayloadFiles": 146,
     "checks": {
       "status": "passed",
       "coreContractSuites": 36,
-      "coreNodeSuites": 33,
-      "boundedWindowsFixtures": 3,
-      "easyTierRegressions": 100,
-      "clientTargetedLintFiles": 12,
-      "clientBuildAndTypes": "passed",
-      "sdkBuildAndTypes": "passed",
-      "sdkOwnerReportedChecks": [
+      "easyTierRegressions": 112,
+      "rebuiltSdkChecks": [
+        "roster-policy-roundtrip",
         "roster-media-policy",
         "media-policy",
-        "audio-only-engine",
-        "hybrid-source-ownership",
-        "hybrid-diagnostics",
-        "hybrid-network-boundary",
         "hybrid-session",
+        "hybrid-source-ownership",
         "hybrid-auth-recovery",
         "hybrid-integration",
-        "hybrid",
-        "receive-path",
-        "peer-path-stats",
-        "transmission-publication",
-        "native-ptt",
-        "track-replace",
-        "staged-move",
-        "surface",
-        "native-entry",
-        "type-names",
-        "connector-ownership"
+        "hybrid-diagnostics"
       ],
-      "independentReview": "same-source ownership, delayed recovery, stale callbacks and restore retry reviewed; no remaining identified blocker",
-      "packageAuditScenarios": 19,
-      "targetedRegressionRedBeforeGreenAfter": true,
-      "realTwoDeviceMedia": "pending"
+      "clientBuildAndTypes": "passed",
+      "sdkBuildAndTypes": "passed",
+      "packageAuditScenarios": 19
     },
     "bootstrap": {
       "status": "passed",
@@ -3692,43 +3682,49 @@
       "residualOwnedProcesses": 0,
       "socketSamples": [
         {
-          "seconds": 1.588,
+          "seconds": 1.599,
           "ownedProcesses": 1,
           "tcpCount": 0,
           "udpCount": 0
         },
         {
-          "seconds": 3.32,
+          "seconds": 3.201,
           "ownedProcesses": 6,
           "tcpCount": 0,
           "udpCount": 0
         },
         {
-          "seconds": 4.994,
+          "seconds": 4.758,
           "ownedProcesses": 6,
           "tcpCount": 0,
           "udpCount": 0
         },
         {
-          "seconds": 6.654,
+          "seconds": 6.299,
           "ownedProcesses": 6,
           "tcpCount": 0,
           "udpCount": 0
         },
         {
-          "seconds": 8.377,
+          "seconds": 7.879,
           "ownedProcesses": 6,
           "tcpCount": 0,
           "udpCount": 0
         },
         {
-          "seconds": 10.059,
+          "seconds": 9.486,
           "ownedProcesses": 6,
           "tcpCount": 0,
           "udpCount": 0
         },
         {
-          "seconds": 11.738,
+          "seconds": 11.081,
+          "ownedProcesses": 6,
+          "tcpCount": 0,
+          "udpCount": 0
+        },
+        {
+          "seconds": 12.775,
           "ownedProcesses": 6,
           "tcpCount": 0,
           "udpCount": 0
@@ -3742,7 +3738,7 @@
     },
     "administratorEntry": {
       "actualBuiltEntry": true,
-      "sourceSha256": "1fb23b8b6e3df985ab21c81076c30b01455af1aedc374e4b30528a2a0b608124",
+      "sourceSha256": "d0671e0f5cfd21291b0afdffd3c0c3f2aac31fcf5d2476bb72d575f63c515c09",
       "initialReady": false,
       "entrySettled": true,
       "promptReady": true,
@@ -3751,30 +3747,20 @@
       "nativeEtExecuted": false,
       "exitCode": 0
     },
-    "previousFailedTwoDeviceVersion": "1.13.22-laokuai.beta.20261013.10",
+    "fixSourceCommit": "8d808b74f5ba4093cc1116c8326084323941af58",
     "fixes": [
-      "Independent bounded EasyTier telemetry retries; no core restart for ordinary observation failure",
-      "Dynamic microphone receive authorization renegotiates without closing the SFU PC",
-      "Late local roster/epoch readiness starts hybrid voice; stable remote updates retain the session",
-      "Same-source audio ownership retirement/rebind recovery with authenticated restoration",
-      "Enum-only local lifecycle, HTTP, peer path/decode and SFU forwarding diagnostics"
+      "Preserve credential retry through old core health observations",
+      "Carry pending scope replacement across overlapping authentication, consuming completed replacement once",
+      "Invalidate old committed receive permissions on revoke/regrant round trips",
+      "Finish failed SFU restoration before re-enabling the peer controller",
+      "Preserve three fixed controller failure reasons in local diagnostics"
     ],
-    "diagnostics": {
-      "localOnly": true,
-      "rotationFiles": 3,
-      "maxBytesPerFile": 2097152,
-      "identitiesEndpointsTokensSdpAudioLogged": false
-    },
-    "nativeRuntimeUnchangedFrom": "release/acceptance/admin-ready-portable-20261013.json",
+    "nativeRuntimeUnchangedFrom": "release/acceptance/voice-stability-portable-20261013.json",
     "voiceRecordingsUnchanged": true,
     "sourceAttachmentSetUnchanged": true,
     "productionServicesChanged": false,
     "desktopProgramUpdated": true,
     "userProfileModified": false,
-    "realTwoDeviceMediaAccepted": false,
-    "realGameCoexistenceAccepted": false,
-    "realTwelveClientWanAccepted": false,
-    "note": "Pure/mounted-hook and synthetic AudioNode regressions do not establish real NAT or audibility. The .10 failure remains recorded. Hidden fresh-profile smoke is bootstrap-only. Human two-device acceptance remains pending.",
     "desktopUpdate": {
       "payloadFilesVerified": 146,
       "profileFilesPreserved": 111,
@@ -3782,7 +3768,11 @@
       "fullLocalBackupVerified": true,
       "applicationLaunched": false
     },
-    "receipt": "release/acceptance/voice-stability-portable-20261013.json"
+    "realTwoDeviceMediaAccepted": false,
+    "realGameCoexistenceAccepted": false,
+    "realTwelveClientWanAccepted": false,
+    "note": "The .11 package remains immutable. These fixes are rebuilt into routing.4 and .12. Offline hidden bootstrap and simulated media regressions do not establish real WAN audibility or NAT traversal; human two-device acceptance is pending.",
+    "receipt": "release/acceptance/voice-stability12-portable-20261013.json"
   },
   "previousGreenDirectoryTestPackage": {
     "schemaVersion": 1,
@@ -4506,5 +4496,158 @@
     "privateBackupRetained": true,
     "failedStartupResidualProcessesRemoved": 9,
     "applicationLaunchedAfterUpdate": false
+  },
+  "previousVoiceStability11Package": {
+    "schemaVersion": 1,
+    "date": "2026-10-13",
+    "version": "1.13.22-laokuai.beta.20261013.11",
+    "sourceCommit": "99b7ce4b38f494698cf70f30e56217e1026917dc",
+    "file": "唠蒯云-1.13.22-laokuai.beta.20261013.11-zh-CN-win-x64-green.zip",
+    "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261013.11-zh-CN-win-x64-green.zip",
+    "bytes": 160192678,
+    "sha256": "54b93db8ae3af9cc509e13bb7c3d1b44c2ba6e2792028e285f4949531c60bcc4",
+    "appAsarSha256": "8c1ebf81fc5ae7e724db5047588870ea7c87422c8853a320622f7eb74876b29f",
+    "staticPayloadFiles": 146,
+    "checks": {
+      "status": "passed",
+      "coreContractSuites": 36,
+      "coreNodeSuites": 33,
+      "boundedWindowsFixtures": 3,
+      "easyTierRegressions": 100,
+      "clientTargetedLintFiles": 12,
+      "clientBuildAndTypes": "passed",
+      "sdkBuildAndTypes": "passed",
+      "sdkOwnerReportedChecks": [
+        "roster-media-policy",
+        "media-policy",
+        "audio-only-engine",
+        "hybrid-source-ownership",
+        "hybrid-diagnostics",
+        "hybrid-network-boundary",
+        "hybrid-session",
+        "hybrid-auth-recovery",
+        "hybrid-integration",
+        "hybrid",
+        "receive-path",
+        "peer-path-stats",
+        "transmission-publication",
+        "native-ptt",
+        "track-replace",
+        "staged-move",
+        "surface",
+        "native-entry",
+        "type-names",
+        "connector-ownership"
+      ],
+      "independentReview": "same-source ownership, delayed recovery, stale callbacks and restore retry reviewed; no remaining identified blocker",
+      "packageAuditScenarios": 19,
+      "targetedRegressionRedBeforeGreenAfter": true,
+      "realTwoDeviceMedia": "pending"
+    },
+    "bootstrap": {
+      "status": "passed",
+      "exitCode": 0,
+      "rootChildren": 1,
+      "preload": {
+        "electronAPI": "object",
+        "easyTierCommunity": "object"
+      },
+      "visible": false,
+      "focused": false,
+      "unexpectedEvents": 0,
+      "residualOwnedProcesses": 0,
+      "socketSamples": [
+        {
+          "seconds": 1.588,
+          "ownedProcesses": 1,
+          "tcpCount": 0,
+          "udpCount": 0
+        },
+        {
+          "seconds": 3.32,
+          "ownedProcesses": 6,
+          "tcpCount": 0,
+          "udpCount": 0
+        },
+        {
+          "seconds": 4.994,
+          "ownedProcesses": 6,
+          "tcpCount": 0,
+          "udpCount": 0
+        },
+        {
+          "seconds": 6.654,
+          "ownedProcesses": 6,
+          "tcpCount": 0,
+          "udpCount": 0
+        },
+        {
+          "seconds": 8.377,
+          "ownedProcesses": 6,
+          "tcpCount": 0,
+          "udpCount": 0
+        },
+        {
+          "seconds": 10.059,
+          "ownedProcesses": 6,
+          "tcpCount": 0,
+          "udpCount": 0
+        },
+        {
+          "seconds": 11.738,
+          "ownedProcesses": 6,
+          "tcpCount": 0,
+          "udpCount": 0
+        }
+      ],
+      "consoleErrors": 19,
+      "realElectronExecuted": true,
+      "isolatedFreshProfile": true,
+      "nativeEtExecuted": false,
+      "realCommunityOrDeviceMediaTest": false
+    },
+    "administratorEntry": {
+      "actualBuiltEntry": true,
+      "sourceSha256": "1fb23b8b6e3df985ab21c81076c30b01455af1aedc374e4b30528a2a0b608124",
+      "initialReady": false,
+      "entrySettled": true,
+      "promptReady": true,
+      "tokenReads": 1,
+      "nativeUacExecuted": false,
+      "nativeEtExecuted": false,
+      "exitCode": 0
+    },
+    "previousFailedTwoDeviceVersion": "1.13.22-laokuai.beta.20261013.10",
+    "fixes": [
+      "Independent bounded EasyTier telemetry retries; no core restart for ordinary observation failure",
+      "Dynamic microphone receive authorization renegotiates without closing the SFU PC",
+      "Late local roster/epoch readiness starts hybrid voice; stable remote updates retain the session",
+      "Same-source audio ownership retirement/rebind recovery with authenticated restoration",
+      "Enum-only local lifecycle, HTTP, peer path/decode and SFU forwarding diagnostics"
+    ],
+    "diagnostics": {
+      "localOnly": true,
+      "rotationFiles": 3,
+      "maxBytesPerFile": 2097152,
+      "identitiesEndpointsTokensSdpAudioLogged": false
+    },
+    "nativeRuntimeUnchangedFrom": "release/acceptance/admin-ready-portable-20261013.json",
+    "voiceRecordingsUnchanged": true,
+    "sourceAttachmentSetUnchanged": true,
+    "productionServicesChanged": false,
+    "desktopProgramUpdated": true,
+    "userProfileModified": false,
+    "realTwoDeviceMediaAccepted": false,
+    "realGameCoexistenceAccepted": false,
+    "realTwelveClientWanAccepted": false,
+    "note": "Pure/mounted-hook and synthetic AudioNode regressions do not establish real NAT or audibility. The .10 failure remains recorded. Hidden fresh-profile smoke is bootstrap-only. Human two-device acceptance remains pending.",
+    "desktopUpdate": {
+      "payloadFilesVerified": 146,
+      "profileFilesPreserved": 111,
+      "profileHashesUnchanged": true,
+      "fullLocalBackupVerified": true,
+      "applicationLaunched": false
+    },
+    "receipt": "release/acceptance/voice-stability-portable-20261013.json"
   }
 }

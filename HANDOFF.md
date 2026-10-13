@@ -1,19 +1,19 @@
 # 当前开发交接
 
 更新：2026-10-13。唯一开发目录 `D:\Dev\LaokuaiCloud`，分支 `main`。
-最新可交付及桌面绿色测试包为 `1.13.22-laokuai.beta.20261013.11`；易记 MagicDNS
+最新可交付及桌面绿色测试包为 `1.13.22-laokuai.beta.20261013.12`；易记 MagicDNS
 已部署，用户确认短域名显示，本机直接解析和 Windows 系统解析均匹配虚拟 IP。
 生产成员中继两端开关已开启；真实多设备转发、游戏和 12 人 WAN 语音仍未验收。
 
 ## 当前包与源码
 
-- 文件：`唠蒯云-1.13.22-laokuai.beta.20261013.11-zh-CN-win-x64-green.zip`。
-- 应用源码：`99b7ce4b38f494698cf70f30e56217e1026917dc`。
-- 大小：160192678 B；SHA256：
-  `54b93db8ae3af9cc509e13bb7c3d1b44c2ba6e2792028e285f4949531c60bcc4`。
+- 文件：`唠蒯云-1.13.22-laokuai.beta.20261013.12-zh-CN-win-x64-green.zip`。
+- 应用源码：`942f1a8a2173b43d2b05902aaa7503fe54c4b9aa`。
+- 大小：161048733 B；SHA256：
+  `4a0ce3c89abd41da1bfc257df0e1c70b90a872b3a9f399e92ae840da41280640`。
 - 交付目录：`.local/artifacts/autojoin-test-20261013/`。
 - 精确版本、来源、许可证及对应源码以 [release/manifest.json](release/manifest.json)
-  和 [包回执](release/acceptance/voice-stability-portable-20261013.json) 为准。
+  和 [包回执](release/acceptance/voice-stability12-portable-20261013.json) 为准。
   包不内嵌源码归档，SOURCE-OFFER 指向精确应用提交及 1263 项源码更新清单；
   旧六份对应源码附件保留。
 
@@ -68,9 +68,13 @@ false，详见 [V2 契约与回退前置](components/server/COMMUNITY-RELAY-V2.m
 用户随后要求继续排查。`.11` 后续源码修复见
 [后续稳定性排查](docs/POST11-STABILITY-AUDIT-20261013.md)：认证失败与重叠更新的
 恢复责任、SFU 权限往返的协商记录、SDK 重新启用时的退役恢复、诊断错误枚举。
-这些改动尚未重新构建 SDK vendor 或测试包；桌面 `.11` 和上面的精确源码/ZIP
-记录保持不变。后续打包必须重新生成 SDK 并升级包版本，不能把源码回归当作
-现有 `.11` 已包含的功能或实际双人网络验收。
+用户授权后已重建 routing.4 SDK 并集成 `.12`，此前 `.11` 归档保持不变。
+重建后8组SDK回归、36组核心检查（含112项ET回归）、类型/编译、19组包审计、
+146项最终文件及九条录音哈希核验通过。实际管理员入口时序通过；隐藏离线新
+配置启动退出0、残留0，8次采样无自有TCP/UDP，保留19条已知离线/禁用IPC错误。
+这些检查未运行真实社区、设备媒体或ET/TUN，不代表真实双人验收。
+桌面在应用未运行时完整备份并更新，111项用户文件哈希不变，未自动启动。
+服务器及ET原生输入不变；私有回执/备份在 `.local/voice-stability12-20261013/`。
 
 .10 双人实测失败：成员进出伴随 `media-policy-changed` 重连，ET 状态反复变化，
 P2P 无声。保留该失败，不以旧模拟测试覆盖。修复和边界见
