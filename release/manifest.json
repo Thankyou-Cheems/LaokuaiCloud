@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "id": "laokuai-cloud-receive-path-et-observation-frozen-20261011",
-  "stage": "local-12-seat-budget-routing-test-package-and-public-source",
+  "stage": "local-administrator-startup-test-package-and-public-source",
   "ready": false,
   "repository": {
     "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud",
@@ -9,8 +9,8 @@
     "visibility": "public",
     "branch": "main",
     "soleGitWriter": "user-directed local developer",
-    "codeCommit": "56aed78e004d137ac606e5e7d3bbc220ee5d87bc",
-    "codeTree": "c3d36dce7be3840f2c9973c4993d597ddebdafa0",
+    "codeCommit": "0f46b26f307303b3ab0520f4a78f7044d9550eba",
+    "codeTree": "d6b5a182fa46c09a8ef772405710f8a6862cbc04",
     "newRepositoryReason": "Authenticated private-repo metadata and explicitly scoped old local core/game remotes revealed no matching existing private integration repository",
     "historyPolicy": "User explicitly authorized deletion and same-name recreation after six Npcap files were removed from history. Only clean main and source tag pushed from an isolated bare repository. Original and clean local bundles retained; no mirror push.",
     "githubId": "R_kgDOVG00Lg"
@@ -18,14 +18,14 @@
   "components": {
     "client": {
       "path": "components/client",
-      "tree": "e26f8365f1220ccb440d2e8af1801129f5d4a268",
+      "tree": "b86bc63bacfebecadaea657972809336b822e6a6",
       "upstream": "Gryt-chat/client",
       "publicFork": "Thankyou-Cheems/gryt-client-i18n",
       "historyImportedFrom": "06ac43f51dbda3b9444c73270a126e10489110e9",
       "originalHead": "552dc88f3413b83ee29bdb4ab350286e7c9ad2d0",
       "completeDirtySourceSnapshot": "2b9f02076051e3a445bfa99e79d1fc7ac421e19f",
       "originalPreservation": "24 tracked modifications and 6 untracked files retained; all frozen snapshot blobs verified",
-      "version": "1.13.22-laokuai.beta.20261013.4",
+      "version": "1.13.22-laokuai.beta.20261013.5",
       "dependencyLockSha256": "a58b72462cd7ee86ae112793d8716e5fe71bfffa945e1b3532cc7e32580393b3",
       "lifecycle3SourceCommit": "cb31e2e4ec044a2574f88321bc90cc01c3b51e0c",
       "uiBrandSourceCommit": "c75e6802ac9971b7d4139df8f97b99c7398efd7d",
@@ -33,7 +33,7 @@
         "tree": "8123a71d99a101a3dce02027d476c7e8879ff48d",
         "sourceCommit": "a88f7d75066cf03d65d618bb49cabbff6e8d7884"
       },
-      "sourceCommit": "56aed78e004d137ac606e5e7d3bbc220ee5d87bc",
+      "sourceCommit": "0f46b26f307303b3ab0520f4a78f7044d9550eba",
       "communityContractWired": true,
       "preservedPreCommunityWiring": {
         "tree": "fbcc9d4e2db64348fc17704d486a421233f7513f",
@@ -3530,5 +3530,83 @@
       "activeOverlay": "activation.overlay.json"
     },
     "historicalAcceptanceUnchanged": true
+  },
+  "administratorStartupTestPackage": {
+    "schemaVersion": 1,
+    "date": "2026-10-13",
+    "version": "1.13.22-laokuai.beta.20261013.5",
+    "sourceCommit": "0f46b26f307303b3ab0520f4a78f7044d9550eba",
+    "file": "唠蒯云-1.13.22-laokuai.beta.20261013.5-zh-CN-win-x64-portable.exe",
+    "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261013.5-zh-CN-win-x64-portable.exe",
+    "bytes": 129291070,
+    "sha256": "f654ed2c3c3012c45df99138d9887d75ecfe4665d442bcc86d139f80623d1ddb",
+    "appAsarSha256": "adb4291dbd500ff2b7b24125d3d99ebf157d33fe8a91cbe7f72ec17d49421dc8",
+    "staticPayloadFiles": 146,
+    "staticPayloadPassed": true,
+    "sourceReceipt": "release/acceptance/admin-startup-source-20261013.json",
+    "coreContractSuites": 24,
+    "bootstrap": {
+      "status": "passed",
+      "exitCode": 0,
+      "rootChildren": 1,
+      "preload": {
+        "electronAPI": "object",
+        "easyTierCommunity": "object"
+      },
+      "visible": false,
+      "focused": false,
+      "unexpectedEvents": 0,
+      "residualOwnedProcesses": 0,
+      "socketSamples": [
+        {
+          "seconds": 3.724,
+          "ownedProcesses": 3,
+          "tcpCount": 0,
+          "udpCount": 0
+        },
+        {
+          "seconds": 7.633,
+          "ownedProcesses": 6,
+          "tcpCount": 0,
+          "udpCount": 0
+        },
+        {
+          "seconds": 11.56,
+          "ownedProcesses": 6,
+          "tcpCount": 0,
+          "udpCount": 0
+        }
+      ],
+      "consoleErrors": 23,
+      "realElectronExecuted": true,
+      "isolatedFreshProfile": true,
+      "nativeEtExecuted": false,
+      "realCommunityOrDeviceMediaTest": false
+    },
+    "tokenGate": {
+      "passed": true,
+      "realPackagedTokenHelperExecuted": true,
+      "result": "ordinary-rejected",
+      "actualDialogOpened": false,
+      "gateSourceExecuted": true,
+      "nativeEtExecuted": false,
+      "userProfileWritten": false
+    },
+    "administratorLaunchRequired": true,
+    "automaticElevation": false,
+    "productionElevationBroker": false,
+    "memberRelayEnabled": false,
+    "serverChanged": false,
+    "voiceDefaultsChanged": false,
+    "npcapAbsent": true,
+    "sourceArchivesBundled": false,
+    "publicBinaryRelease": false,
+    "actualElevatedAutojoinAccepted": false,
+    "actualTrayTimingAccepted": false,
+    "dualDevicePhysicalPathAccepted": false,
+    "twelveFullAppWanAccepted": false,
+    "gameCoexistenceAccepted": false,
+    "note": "Exact .5 payload passed archive and isolated offline bootstrap; a real packaged helper reported ordinary and the source gate rejected it. No real administrator product launch, ET/TUN, microphone or community activation occurred in this check. The 23 known offline/disabled IPC console errors remain.",
+    "receipt": "release/acceptance/admin-startup-portable-20261013.json"
   }
 }

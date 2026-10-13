@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-13",
+  "version": "1.13.22-laokuai.beta.20261013.5",
+  "sourceCommit": "0f46b26f307303b3ab0520f4a78f7044d9550eba",
+  "file": "唠蒯云-1.13.22-laokuai.beta.20261013.5-zh-CN-win-x64-portable.exe",
+  "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261013.5-zh-CN-win-x64-portable.exe",
+  "bytes": 129291070,
+  "sha256": "f654ed2c3c3012c45df99138d9887d75ecfe4665d442bcc86d139f80623d1ddb",
+  "appAsarSha256": "adb4291dbd500ff2b7b24125d3d99ebf157d33fe8a91cbe7f72ec17d49421dc8",
+  "staticPayloadFiles": 146,
+  "staticPayloadPassed": true,
+  "sourceReceipt": "release/acceptance/admin-startup-source-20261013.json",
+  "coreContractSuites": 24,
+  "bootstrap": {
+    "status": "passed",
+    "exitCode": 0,
+    "rootChildren": 1,
+    "preload": {
+      "electronAPI": "object",
+      "easyTierCommunity": "object"
+    },
+    "visible": false,
+    "focused": false,
+    "unexpectedEvents": 0,
+    "residualOwnedProcesses": 0,
+    "socketSamples": [
+      {
+        "seconds": 3.724,
+        "ownedProcesses": 3,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 7.633,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 11.56,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      }
+    ],
+    "consoleErrors": 23,
+    "realElectronExecuted": true,
+    "isolatedFreshProfile": true,
+    "nativeEtExecuted": false,
+    "realCommunityOrDeviceMediaTest": false
+  },
+  "tokenGate": {
+    "passed": true,
+    "realPackagedTokenHelperExecuted": true,
+    "result": "ordinary-rejected",
+    "actualDialogOpened": false,
+    "gateSourceExecuted": true,
+    "nativeEtExecuted": false,
+    "userProfileWritten": false
+  },
+  "administratorLaunchRequired": true,
+  "automaticElevation": false,
+  "productionElevationBroker": false,
+  "memberRelayEnabled": false,
+  "serverChanged": false,
+  "voiceDefaultsChanged": false,
+  "npcapAbsent": true,
+  "sourceArchivesBundled": false,
+  "publicBinaryRelease": false,
+  "actualElevatedAutojoinAccepted": false,
+  "actualTrayTimingAccepted": false,
+  "dualDevicePhysicalPathAccepted": false,
+  "twelveFullAppWanAccepted": false,
+  "gameCoexistenceAccepted": false,
+  "note": "Exact .5 payload passed archive and isolated offline bootstrap; a real packaged helper reported ordinary and the source gate rejected it. No real administrator product launch, ET/TUN, microphone or community activation occurred in this check. The 23 known offline/disabled IPC console errors remain."
+}
