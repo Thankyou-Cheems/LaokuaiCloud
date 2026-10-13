@@ -8,7 +8,6 @@ import { useSettings } from "@/settings";
 import { useServerPermissions } from "@/socket/src/hooks/usePermissions";
 
 import { PiPhoneDisconnectFill } from "../../../../lib/icons";
-import { useVoiceSounds } from "../adapters/useVoiceSounds";
 import { LEAVE_CLASS } from "./CallControlButton";
 import { SquadControl } from "./SquadControl";
 import { VoiceAudioControls } from "./VoiceAudioControls";
@@ -19,7 +18,6 @@ export function Controls({ onDisconnect }: { onDisconnect?: () => void }) {
   const { disconnect, isConnected, currentServerConnected, currentChannelConnected } = useSFU();
   const { isMuted, setIsMuted } = useSettings();
   const { canIn } = useServerPermissions(currentServerConnected || "");
-  const { playDisconnect } = useVoiceSounds();
   const maySpeak = canIn(currentChannelConnected, "speak");
   const previous = useRef<{ channel: string; allowed: boolean } | null>(null);
   useEffect(() => {
@@ -35,7 +33,7 @@ export function Controls({ onDisconnect }: { onDisconnect?: () => void }) {
     <VoiceAudioControls />
     <SquadControl />
     <IconButton tone="danger" size="xsmall" className={`${LEAVE_CLASS} !w-auto !px-3 gap-1`}
-      aria-label={t("ui.leaveVoiceChannel")} onClick={() => { playDisconnect(); disconnect(onDisconnect); }}>
+      aria-label={t("ui.leaveVoiceChannel")} onClick={() => { disconnect(onDisconnect); }}>
       <PiPhoneDisconnectFill size={16} /><span>{t("pureVoice.leave")}</span>
     </IconButton>
   </div>;

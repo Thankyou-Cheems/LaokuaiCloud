@@ -34,6 +34,7 @@ export function settingAnchorId(title: string): string {
 }
 
 export const SETTINGS_INDEX: SettingsIndexEntry[] = [
+  { id: "voice-announcements", title: "中文事件播报", description: "曼波中文人声、经典提示音和自定义事件音频；连接、断开、成员加入、离开、移动、静音。", destination: "sound-video", page: "voice", section: "Voice" },
   { id: "community-network", title: "EasyTier network", description: "Community DNS, route latency preference, IPv6, UPnP and NAT traversal. Import or export portable preferences; changes apply after restarting the app.", destination: "network", section: "EasyTier", panel: true },
   { id: "voice-transport", title: "Voice bandwidth", description: "The standard profile saves server bandwidth for group speech: 16 kbps / 60 ms via the server and 64 kbps / 20 ms on admitted peer paths. Server audio prioritizes speech intelligibility; actual traffic depends on negotiation, packetization and channel limits.", destination: "sound-video", page: "voice", section: "Voice" },
   { id: "voice-transport-bitrate", title: "Maximum bitrate (kbps)", description: "The channel may impose a lower cap. This is RTP audio payload, excluding packet and network overhead.", destination: "sound-video", page: "voice", section: "Voice" },

@@ -121,3 +121,5 @@ release-laokuai-opus20-1/
 # Never commit owned trial outputs or read-only diagnostics.
 .laokuai-tun-trial/
 .laokuai-tun-diagnostics/
+# Optional privately reviewed voice recordings, copied in only for local packaging.
+/src/private-voice/

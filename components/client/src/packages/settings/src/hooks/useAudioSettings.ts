@@ -4,10 +4,13 @@ import { requestNotificationPermission } from "@/lib/desktopNotification";
 
 import { PEER_CUE_DEFAULTS, type PeerCueSettings,resolvePeerCueSettings } from "../../../../lib/peerVoiceCues";
 import { resolveSquadConfig, SQUAD_DEFAULTS,type SquadConfig } from "../../../../lib/squadMode";
+import { resolveVoiceAnnouncements, type VoiceAnnouncementSettings } from "../../../../lib/voiceAnnouncements";
 import { migrateVoiceTransportPreset, readVoiceTransportPreset, sharedVoicePreset, VOICE_TRANSPORT_SETTINGS_KEY, type VoiceTransportPreset } from "../../../../lib/voiceTransportPreset";
+import { MANBO_PACK_AVAILABLE } from "../../../webRTC/src/adapters/voiceSoundPacks";
 import { getUserValue, setUserValue } from "./userStorage";
 
 export interface AudioSettingsData {
+  voiceAnnouncements: VoiceAnnouncementSettings;
   voiceTransportPreset: VoiceTransportPreset;
   squadConfig: SquadConfig;
   peerVoiceCues: PeerCueSettings;
@@ -44,6 +47,7 @@ export interface AudioSettingsData {
 }
 
 export const AUDIO_DEFAULTS: AudioSettingsData = {
+  voiceAnnouncements: { pack: MANBO_PACK_AVAILABLE ? "manbo" : "classic", custom: {} },
   voiceTransportPreset: sharedVoicePreset(),
   squadConfig: SQUAD_DEFAULTS,
   peerVoiceCues: PEER_CUE_DEFAULTS,
@@ -85,6 +89,7 @@ export const AUDIO_DEFAULTS: AudioSettingsData = {
 export function loadAudioFromCache(): AudioSettingsData {
   const micId = getUserValue<string | undefined>("micID", undefined);
   return {
+    voiceAnnouncements: resolveVoiceAnnouncements(getUserValue("voiceAnnouncements", AUDIO_DEFAULTS.voiceAnnouncements)),
     voiceTransportPreset: migrateVoiceTransportPreset(getUserValue<unknown>(VOICE_TRANSPORT_SETTINGS_KEY, undefined),getUserValue<unknown>("eSportsModeEnabled", false)).preset,
     peerVoiceCues: resolvePeerCueSettings(getUserValue<unknown>("peerVoiceCues", {})),
     noiseGateMode: getUserValue<unknown>("noiseGateMode", "automatic") === "manual" ? "manual" : "automatic",
@@ -122,6 +127,10 @@ export function loadAudioFromCache(): AudioSettingsData {
 }
 
 export function useAudioSettings() {
+  const [voiceAnnouncements, setVoiceAnnouncementsState] = useState(AUDIO_DEFAULTS.voiceAnnouncements);
+  function setVoiceAnnouncements(value: VoiceAnnouncementSettings) {
+    const safe = resolveVoiceAnnouncements(value); setVoiceAnnouncementsState(safe); setUserValue("voiceAnnouncements", safe);
+  }
   const [voiceTransportPreset,setVoiceTransportPresetState] = useState(sharedVoicePreset);
   function setVoiceTransportPreset(value: VoiceTransportPreset) {
     const safe=readVoiceTransportPreset(value); if(!safe)return;
@@ -183,6 +192,7 @@ export function useAudioSettings() {
   const [desktopNotificationsEnabled, setDesktopNotificationsEnabled] = useState(AUDIO_DEFAULTS.desktopNotificationsEnabled);
 
   function applyAudioData(d: AudioSettingsData) {
+    setVoiceAnnouncementsState(d.voiceAnnouncements);
     setVoiceTransportPresetState(d.voiceTransportPreset);
     if(!readVoiceTransportPreset(getUserValue<unknown>(VOICE_TRANSPORT_SETTINGS_KEY,undefined))) {
       setUserValue(VOICE_TRANSPORT_SETTINGS_KEY,d.voiceTransportPreset);
@@ -439,6 +449,7 @@ export function useAudioSettings() {
   }
 
   return {
+    voiceAnnouncements, setVoiceAnnouncements,
     voiceTransportPreset, setVoiceTransportPreset,
     squadConfig, setSquadConfig, peerVoiceCues, setPeerVoiceCues, noiseGateMode, setNoiseGateMode,
     applyAudioData,

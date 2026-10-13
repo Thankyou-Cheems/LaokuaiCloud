@@ -153,6 +153,7 @@ export function SoundSettings({
 
   const testSound = () => {
     playback.current?.stop();
+    if (!customSoundFile && !defaultSoundSrc) return;
     const current = playNotificationSound(customSoundFile || defaultSoundSrc, volume);
     playback.current = current; setIsPlaying(true);
     void current.finished.then(() => {

@@ -1,36 +1,37 @@
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 
-import connectMp3 from "@/audio/src/assets/connect.mp3";
-import disconnectMp3 from "@/audio/src/assets/disconnect.mp3";
 import { playNotificationSound } from "@/lib/notificationSound";
 import { useSettings } from "@/settings";
 
-/**
- * The connect and disconnect sounds, which are the client's again. `@gryt/voice`
- * reports and this decides, so the assets and volumes live where the settings do.
- */
+import { type VoiceAnnouncementEvent,VoiceAnnouncementQueue } from "../../../../lib/voiceAnnouncements";
+import { voiceSoundUrl } from "./voiceSoundPacks";
+
+const queue = new VoiceAnnouncementQueue();
+export function cancelVoiceAnnouncements(): void { queue.cancel(); }
+/** Shared serial playback, with current settings checked again after decoding. */
 export function useVoiceSounds() {
-  const {
-    connectSoundEnabled,
-    disconnectSoundEnabled,
-    connectSoundVolume,
-    disconnectSoundVolume,
-    customConnectSoundFile,
-    customDisconnectSoundFile,
-  } = useSettings();
-
-  const playConnect = useCallback(() => {
-    if (!connectSoundEnabled) return;
-    playNotificationSound(customConnectSoundFile || connectMp3, connectSoundVolume);
-  }, [connectSoundEnabled, customConnectSoundFile, connectSoundVolume]);
-
-  const playDisconnect = useCallback(() => {
-    if (!disconnectSoundEnabled) return;
-    playNotificationSound(
-      customDisconnectSoundFile || disconnectMp3,
-      disconnectSoundVolume,
-    );
-  }, [disconnectSoundEnabled, customDisconnectSoundFile, disconnectSoundVolume]);
-
-  return { playConnect, playDisconnect };
+  const settings = useSettings();
+  const latest = useRef(settings); latest.current = settings;
+  const announce = useCallback((event: VoiceAnnouncementEvent, key: string, eligible: () => boolean = () => true) => {
+    const disconnect = event === "disconnected" || event === "peerLeft";
+    const peer = event === "peerJoined" || event === "peerLeft";
+    const allowed = () => {
+      const s = latest.current;
+      // One local confirmation may acknowledge enabling deafen. Other events
+      // and previews remain silent; server deafen and DND always take precedence.
+      const localOutputOff = event === "outputMuted" && s.isDeafened;
+      const matches = event === "microphoneMuted" ? s.isMuted : event === "microphoneUnmuted" ? !s.isMuted :
+        event === "outputMuted" ? s.isDeafened : event === "outputUnmuted" ? !s.isDeafened : true;
+      return eligible() && matches && !s.peerVoiceCues.dnd && (!s.isDeafened || localOutputOff) && !s.isServerDeafened && s.outputVolume > 0 &&
+        (!peer || s.peerVoiceCues.enabled) && (disconnect ? s.disconnectSoundEnabled : s.connectSoundEnabled) &&
+        !!voiceSoundUrl(event, s.voiceAnnouncements, s);
+    };
+    return queue.enqueue({ key: `${event}:${key}`, allowed, play: () => {
+      const s = latest.current;
+      const volume = peer ? (disconnect ? s.peerVoiceCues.leaveVolume : s.peerVoiceCues.joinVolume) :
+        (disconnect ? s.disconnectSoundVolume : s.connectSoundVolume);
+      return playNotificationSound(voiceSoundUrl(event, s.voiceAnnouncements, s)!, volume, { shouldPlay: allowed });
+    } });
+  }, []);
+  return { announce };
 }

@@ -21,6 +21,8 @@ export type ScreenShareCodec = VideoCodec;
 export type ScalabilityMode = "L1T1" | "L1T2" | "L1T3";
 
 export interface Settings {
+  voiceAnnouncements: import("../../../../lib/voiceAnnouncements").VoiceAnnouncementSettings;
+  setVoiceAnnouncements: (value: import("../../../../lib/voiceAnnouncements").VoiceAnnouncementSettings) => void;
   voiceTransportPreset: import("../../../../lib/voiceTransportPreset").VoiceTransportPreset;
   setVoiceTransportPreset: (value: import("../../../../lib/voiceTransportPreset").VoiceTransportPreset) => void;
   squadConfig: SquadConfig;
@@ -340,6 +342,8 @@ export const settingsInit: Settings = {
   pinMembersSidebar: true,
   setPinMembersSidebar: noop,
 
+  voiceAnnouncements: AUDIO_DEFAULTS.voiceAnnouncements,
+  setVoiceAnnouncements: noop,
   peerVoiceCues: AUDIO_DEFAULTS.peerVoiceCues,
   setPeerVoiceCues: noop,
   noiseGateMode: AUDIO_DEFAULTS.noiseGateMode,

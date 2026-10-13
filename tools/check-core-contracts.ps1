@@ -34,6 +34,8 @@ try {
         'scripts/check-hybrid-product-bootstrap.mjs',
         'scripts/check-easytier-voice-underlay.mjs',
         'scripts/check-voice-transport-preset.mjs',
+        'scripts/check-voice-announcements.mjs',
+        'scripts/check-kirilie-theme.mjs',
         'scripts/check-member-voice-media-path.mjs',
         'scripts/check-member-voice-receive-translator.mjs',
         'scripts/check-community-easytier-types.mjs',
@@ -58,7 +60,9 @@ try {
         if ($LASTEXITCODE -ne 0) { throw "Local fixture failed: $pipeCheck" }
         & (Join-Path $root 'components/client/scripts/check-community-dns-policy.ps1')
         if ($LASTEXITCODE -ne 0) { throw 'Community DNS helper fixture failed' }
-        $fixtureCount = 2
+        & (Join-Path $root 'components/client/scripts/check-community-broker-restart.ps1')
+        if ($LASTEXITCODE -ne 0) { throw 'Community administrator restart fixture failed' }
+        $fixtureCount = 3
     }
     $totalChecks = $checks.Count + $fixtureCount
     Write-Host "PASS: $totalChecks checks ($($checks.Count) Node24 source contract suites, $fixtureCount bounded Windows broker-pipe fixtures). Product autojoin/native/media acceptance is separate."

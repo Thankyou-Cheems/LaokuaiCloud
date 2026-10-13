@@ -44,6 +44,7 @@ import { setNativeZoom } from "./lib/electron";
 import { initGlobalStorage } from "./lib/globalStorage";
 import { syncGoogleFonts } from "./lib/googleFonts";
 import { LAOKUAI_HYBRID_VOICE_POLICY } from "./lib/hybridVoicePolicy";
+import { kirilieThemeVariables, resolveDisplayedTheme } from "./lib/kirilieTheme";
 import { captureLogs } from "./lib/reports/logs";
 import { pushTitlebarOverlay } from "./lib/titlebarOverlay";
 
@@ -56,22 +57,27 @@ function ThemedApp() {
     accentColor,
     uiScale,
     chatFontSize,
+    themeStyle,
   } = useTheme();
   const { activeTheme } = useCustomThemes();
   /* The draft goes through the same `activeTheme` path, so the variables, the
      titlebar strip and the plugin API follow it without knowing. */
   const { draft: draftTheme } = useThemeEditor();
   const { googleFontsEnabled } = useSettings();
-  const shownTheme = draftTheme ?? activeTheme;
+  const displayed = resolveDisplayedTheme(themeStyle, resolvedAppearance, activeTheme, draftTheme);
+  const shownTheme = displayed.theme;
+  const shownAppearance = displayed.appearance;
+  const handDrawn = displayed.handDrawn;
 
   /* style.css hangs its light and dark blocks off these classes, and the root is
      where they have to go: overlays portal to document.body. */
   useEffect(() => {
     const root = document.documentElement;
-    root.classList.toggle("dark", resolvedAppearance === "dark");
-    root.classList.toggle("light", resolvedAppearance !== "dark");
-    root.style.colorScheme = resolvedAppearance;
-  }, [resolvedAppearance]);
+    root.classList.toggle("dark", shownAppearance === "dark");
+    root.classList.toggle("light", shownAppearance !== "dark");
+    root.style.colorScheme = shownAppearance;
+    root.dataset.themeStyle = handDrawn ? "kirilie" : "original";
+  }, [shownAppearance, handDrawn]);
 
   /* Chromium's zoom where there is one: it scales rects and the viewport
      together, and CSS zoom does not, which put menus off screen (GRYT-1127). */
@@ -95,8 +101,8 @@ function ThemedApp() {
     const root = document.documentElement;
     if (shownTheme === null) return;
 
-    const variables = createGrytTheme(
-      grytThemeToOptions(shownTheme, resolvedAppearance),
+    const variables = handDrawn ? kirilieThemeVariables() : createGrytTheme(
+      grytThemeToOptions(shownTheme, shownAppearance),
     ) as Record<string, string>;
 
     for (const [name, value] of Object.entries(variables)) {
@@ -108,7 +114,7 @@ function ThemedApp() {
         root.style.removeProperty(name);
       }
     };
-  }, [shownTheme, resolvedAppearance]);
+  }, [shownTheme, shownAppearance, handDrawn]);
 
   /* Keyed on the fonts rather than the whole theme, so dragging a colour slider
      does not re-ask Google for the same family every frame. */
@@ -124,11 +130,11 @@ function ThemedApp() {
      the two effects above, since this reads what the variables evaluate to. */
   useEffect(() => {
     pushTitlebarOverlay();
-  }, [shownTheme, resolvedAppearance]);
+  }, [shownTheme, shownAppearance]);
 
   useZoomShortcuts();
   useAddonLoader();
-  setPluginHostTheme({ appearance: resolvedAppearance, accentColor });
+  setPluginHostTheme({ appearance: shownAppearance, accentColor: handDrawn ? "lime" : accentColor });
 
   /* A plugin's manifest reaches its worker at startup, so all that is left here
      is forgetting what an addon that has gone was allowed to do. */

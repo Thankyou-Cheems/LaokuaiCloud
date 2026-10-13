@@ -2,6 +2,7 @@ import {useMicrophone,useSFU} from "@gryt/voice";
 import {createElement,useEffect,useRef,useState} from "react";
 import toast from "react-hot-toast";
 
+import {useUserId} from "@/common";
 import {i18n} from "@/i18n";
 import {useSockets} from "@/socket";
 
@@ -13,6 +14,7 @@ import {VoiceMoveRecoveryNotice} from "../components/VoiceMoveRecoveryNotice";
 
 export type ClientMoveAuthority=ReturnType<typeof createMoveAuthority>;
 export function useVoiceMoves(authorities:Record<string,ClientMoveAuthority>,applyPolicy:(binding:MovePolicyBinding|undefined)=>void) {
+  const userId=useUserId();
   const sfu=useSFU();const {transmissionState}=useMicrophone(false);const {sockets}=useSockets();
   const {currentServerConnected:host}=sfu;const socket=sockets[host];const authority=authorities[host];
   const supported=authority?.stagingSupported===true;
@@ -88,6 +90,11 @@ export function useVoiceMoves(authorities:Record<string,ClientMoveAuthority>,app
     let disposed=false;
     type Request=NonNullable<ReturnType<typeof readMovePrepare>>;
     const records=new Map<string,{request:Request;ready:Promise<unknown>;commit?:Promise<void>;revision:number}>();
+    const moveStatus=(request:Request,phase:"promoting"|"promoted"|"failed")=>window.dispatchEvent(new CustomEvent("voice_move_playback_status", { detail: {
+      host, source:request.sourceChannelId, channel:request.destinationChannelId,
+      requestId:request.requestId, account:userId, generation:authority.generation, phase,
+    } }));
+    const retirePlayback=()=>{for(const record of records.values())moveStatus(record.request,"failed");};
     const current=()=>!disposed && socket.connected && socket.id===authority.generation && authority.stagingSupported;
     const send=(event:string,payload:Record<string,unknown>)=>emitAuthenticated(socket,event,payload,host,current);
     const report=()=>{if(current())toast.error(i18n.t("pureVoice.moveFailed"),{id:"voice-move"});};
@@ -138,9 +145,14 @@ export function useVoiceMoves(authorities:Record<string,ClientMoveAuthority>,app
         // Bound to the destination only: source config is unchanged before promotion.
         // Install it first because commit may promote a failed destination then reject.
         await bindConfirmedPolicy();
+        moveStatus(record.request,"promoting");
         let destinationRecovery=false;
-        try {await latest.current.sfu.commitMove!(record.request.requestId);}
+        try {
+          await latest.current.sfu.commitMove!(record.request.requestId);
+          if(current())moveStatus(record.request,"promoted");else moveStatus(record.request,"failed");
+        }
         catch(error) {
+          moveStatus(record.request,"failed");
           if(!error || typeof error!=="object" || !("code" in error) || error.code!=="destination_recovery_required")throw error;
           destinationRecovery=true;
           recovery.current={host,channel:record.request.destinationChannelId,generation:authority.generation,requestId:record.request.requestId,mode:"reconnect"};
@@ -178,11 +190,12 @@ export function useVoiceMoves(authorities:Record<string,ClientMoveAuthority>,app
     socket.on("voice:move:prepare",prepare);socket.on("voice:move:result",result);
     // Advertise only with the real installed methods, bound authority and live server/SFU probe.
     void send("voice:move:client",{v:1,staging:true}).catch(()=>{});
-    const unsubscribe=authority.onInvalidated(()=>{disposed=true;applyPolicy(undefined);});
+    const unsubscribe=authority.onInvalidated(()=>{retirePlayback();disposed=true;applyPolicy(undefined);});
     return()=>{
+      retirePlayback();
       disposed=true;unsubscribe();socket.off("voice:move:prepare",prepare);socket.off("voice:move:result",result);
       // The SDK owns pending transport disposal on authority invalidation/call changes.
       records.clear();
     };
-  },[host,socket,authority,supported,sfu.prepareMove,sfu.commitMove,sfu.abortMove,sfu.resumeMoveTransmission,applyPolicy]);
+  },[host,socket,authority,supported,sfu.prepareMove,sfu.commitMove,sfu.abortMove,sfu.resumeMoveTransmission,applyPolicy,userId]);
 }

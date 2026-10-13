@@ -9,6 +9,7 @@ import { useSettings } from "@/settings";
 
 import { SettingGroup, SettingsContainer } from "../settingsComponents";
 import { ThemeLibrary } from "./themeLibrary";
+import { ThemeStylePicker } from "./themeStylePicker";
 
 /**
  * The mode and the palette. A control that names a colour without showing it
@@ -16,7 +17,7 @@ import { ThemeLibrary } from "./themeLibrary";
  */
 export function ThemeSettings() {
   const { t } = useTranslation();
-  const { appearancePreference, setAppearancePreference } = useTheme();
+  const { appearancePreference, setAppearancePreference, themeStyle, setThemeStyle } = useTheme();
 
   const appearanceOptions = useMemo(() => [
     { value: "system", label: t("settingsFull.mbc0792d8dc") },
@@ -33,7 +34,10 @@ export function ThemeSettings() {
     <SettingsContainer>
       <h2 className="text-lg">{i18n.t("ui.theme")}</h2>
 
-      <div className="flex flex-col gap-2">
+      <ThemeStylePicker value={themeStyle} onChange={setThemeStyle} />
+      {themeStyle === "kirilie" && <p className="m-0 text-sm text-gryt-muted">奇丽叶使用浅色纸页。原主题的设置已保留，切回原主题即可继续使用。</p>}
+
+      {themeStyle === "original" && <div className="flex flex-col gap-2">
         <span className="font-medium text-sm">{i18n.t("settingsFull.ma7b93d2128")}</span>
         <RadioGroup
           value={appearancePreference}
@@ -47,13 +51,13 @@ export function ThemeSettings() {
             </label>
           ))}
         </RadioGroup>
-      </div>
+      </div>}
 
       {/* Where the accent, gray and radius dropdowns used to be. Those set
           Radix Themes' props, and one of them could change one thing. A theme
           is the whole palette — every anchor, both appearances, the corner
           radius. */}
-      <SettingGroup
+      {themeStyle === "original" && <SettingGroup
         anchorId="theme"
         title={i18n.t("ui.theme")}
         description={i18n.t("settingsFull.m3358a44f27")}
@@ -72,7 +76,7 @@ export function ThemeSettings() {
             <PencilSimple aria-hidden="true" size={15} />{i18n.t("settingsFull.ma3b05f435a")}</Button>
           <p className="m-0 pt-2 text-xs text-gryt-muted">{i18n.t("settingsFull.m0bb478671b")}</p>
         </div>
-      </SettingGroup>
+      </SettingGroup>}
 
       {/* Under Theme, because it is a thing about themes rather than about
           privacy in general — somebody arrives here having picked a font in

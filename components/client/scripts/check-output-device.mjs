@@ -95,6 +95,8 @@ const load = (path, overrides = {}) => {
     "@/lib/notificationSound": () => load("src/packages/lib/notificationSound.ts"),
     "@/lib/outputDevice": () => load("src/packages/lib/outputDevice.ts"),
     "../../../../lib/squadMode": () => load("src/lib/squadMode.ts"),
+    // This routing test uses the source-build default, without optional Vite private assets.
+    "../../../webRTC/src/adapters/voiceSoundPacks": { MANBO_PACK_AVAILABLE: false },
     "@/lib/desktopNotification": { requestNotificationPermission: async () => "granted" },
     "../../../../lib/electron": { isElectron: () => false, getElectronAPI: () => null },
     "./deviceId": { isDeviceId: () => true, getDeviceId: () => "guest" },

@@ -7,10 +7,12 @@ import { useTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 
 import { NoticeDialog } from "../../../socket/src/components/NoticeDialog";
+import { voiceSoundUrl } from "../../../webRTC/src/adapters/voiceSoundPacks";
 import { PeerVoiceCueSettings } from "./PeerVoiceCueSettings";
 import { SettingsContainer, SliderSetting, ToggleSetting } from "./settingsComponents";
 import { SoundSettings } from "./SoundSettings";
 import { SquadSettings } from "./squadSettings";
+import { VoiceAnnouncementSettings } from "./VoiceAnnouncementSettings";
 import { VoiceTransportSettings } from "./VoiceTransportSettings";
 
 export function VoiceSettings() {
@@ -32,6 +34,7 @@ export function VoiceSettings() {
     setCustomDisconnectSoundFile,
     afkTimeoutMinutes,
     setAfkTimeoutMinutes,
+    voiceAnnouncements,
   } = useSettings();
 
   const [alertDialog, setAlertDialog] = useState<{
@@ -61,6 +64,7 @@ export function VoiceSettings() {
       </h2>
 
       <SquadSettings />
+      <VoiceAnnouncementSettings showAlert={showAlert} />
       <PeerVoiceCueSettings />
       <VoiceTransportSettings />
 
@@ -101,7 +105,7 @@ export function VoiceSettings() {
           defaultVolume={10}
           customSoundFile={customConnectSoundFile}
           onCustomSoundFileChange={setCustomConnectSoundFile}
-          defaultSoundSrc={connectMp3}
+          defaultSoundSrc={voiceSoundUrl("connected", voiceAnnouncements) ?? connectMp3}
           showAlert={showAlert}
         />
         <SoundSettings
@@ -114,7 +118,7 @@ export function VoiceSettings() {
           defaultVolume={10}
           customSoundFile={customDisconnectSoundFile}
           onCustomSoundFileChange={setCustomDisconnectSoundFile}
-          defaultSoundSrc={disconnectMp3}
+          defaultSoundSrc={voiceSoundUrl("disconnected", voiceAnnouncements) ?? disconnectMp3}
           showAlert={showAlert}
         />
       </div>

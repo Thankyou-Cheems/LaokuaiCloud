@@ -5,7 +5,7 @@ import { useTranslation } from "@/i18n";
 import { type NotificationPlayback, playNotificationSound } from "@/lib/notificationSound";
 import { useSettings } from "@/settings";
 
-import { peerCueUrl } from "../../../../lib/peerVoiceCues";
+import { voiceSoundUrl } from "../../../webRTC/src/adapters/voiceSoundPacks";
 import { SettingGroup, SliderSetting, ToggleSetting } from "./settingsComponents";
 
 export function PeerVoiceCueSettings() {
@@ -18,7 +18,9 @@ export function PeerVoiceCueSettings() {
   useEffect(()=>{playback.current?.stop();},[silent,s.connectSoundEnabled,s.disconnectSoundEnabled,config.joinVolume,config.leaveVolume]);
   const preview=(kind:"join"|"leave")=>{
     playback.current?.stop();
-    playback.current=playNotificationSound(peerCueUrl(kind),kind==="join" ? config.joinVolume : config.leaveVolume,
+    const url=voiceSoundUrl(kind==="join" ? "peerJoined" : "peerLeft",s.voiceAnnouncements,s);
+    if(!url)return;
+    playback.current=playNotificationSound(url,kind==="join" ? config.joinVolume : config.leaveVolume,
       {shouldPlay:()=>!current.current.silent && current.current[kind]});
   };
   return <SettingGroup anchorId="peer-voice-cues" title={t("pureVoice.peerCues")} description={t("pureVoice.peerCuesDescription")}>

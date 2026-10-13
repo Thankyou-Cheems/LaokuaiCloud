@@ -1,0 +1,193 @@
+/* Style selectors live on html, so body portals share every treatment. No
+   widths, transforms or pointer layers are added to the resizable panels. */
+html[data-theme-style="kirilie"] {
+  --kirilie-pencil: #b7b99a;
+  --kirilie-shadow: 1px 3px 0 rgb(108 121 65 / 9%), 0 8px 24px rgb(90 104 55 / 6%);
+  --kirilie-paper: repeating-linear-gradient(119deg, transparent 0 3px, rgb(152 143 105 / 2.8%) 3px 4px);
+  --color-background: var(--gryt-bg);
+  --color-overlay: rgb(63 72 44 / 24%);
+  --gray-a5: rgb(111 123 72 / 18%);
+  --gray-a7: rgb(111 123 72 / 35%);
+}
+
+html[data-theme-style="kirilie"] .gryt-app {
+  background-color: var(--gryt-bg);
+  background-image: var(--kirilie-paper), url("../assets/kirilie-garden.svg"),
+    radial-gradient(ellipse at 13% 8%, rgb(213 233 155 / 34%), transparent 48%),
+    radial-gradient(ellipse at 95% 100%, rgb(245 218 131 / 22%), transparent 42%);
+  background-size: auto, 300px 283px, auto, auto;
+  background-position: 0 0, right -36px bottom -28px, 0 0, 0 0;
+  background-repeat: repeat, no-repeat, no-repeat, no-repeat;
+}
+
+html[data-theme-style="kirilie"] [data-gryt="titlebar"] {
+  background: var(--gryt-neutral-1);
+  border-bottom: 1px solid var(--kirilie-pencil);
+}
+
+html[data-theme-style="kirilie"] [data-gryt="sidebar"] {
+  border-radius: 20px 15px 21px 14px;
+  background: linear-gradient(170deg, rgb(228 237 190 / 75%), rgb(245 242 221 / 70%));
+  box-shadow: inset 0 0 0 1px var(--kirilie-pencil), var(--kirilie-shadow);
+}
+
+html[data-theme-style="kirilie"] :is([data-gryt="channels-sidebar"] > div:first-child,
+  [data-gryt="member-sidebar"] > div:last-child, [data-gryt="dm-list"]) {
+  border-radius: 19px 16px 22px 15px;
+  background: var(--kirilie-paper), linear-gradient(150deg, #f5f8e4, #fffdf4);
+  box-shadow: inset 0 0 0 1px var(--kirilie-pencil);
+}
+
+html[data-theme-style="kirilie"] :is([data-gryt="conversation-pane"], [data-gryt="chat-view"],
+  [data-gryt="voice-view"]) {
+  border-radius: 21px 17px 19px 15px;
+  background: var(--kirilie-paper), rgb(255 253 244 / 88%);
+  box-shadow: inset 0 0 0 1px var(--kirilie-pencil);
+}
+
+html[data-theme-style="kirilie"] [data-gryt="voice-view"] {
+  background-image: var(--kirilie-paper), url("../assets/kirilie-garden.svg");
+  background-position: 0 0, right bottom;
+  background-size: auto, 190px 180px;
+  background-repeat: repeat, no-repeat;
+}
+
+html[data-theme-style="kirilie"] :is(.member-row, [data-gryt="voice-member"]) {
+  border-radius: 11px 14px 10px 13px;
+  box-shadow: inset 0 -1px 0 rgb(151 163 106 / 16%);
+}
+html[data-theme-style="kirilie"] :is(.member-row, [data-gryt="voice-member"]):hover {
+  background-color: var(--gryt-surface-hover);
+}
+
+html[data-theme-style="kirilie"] :is(.gryt-dialog, .gryt-alert-dialog, .gryt-drawer,
+  .gryt-menu, .gryt-select-popup, .gryt-combobox-popup, .gryt-autocomplete-popup,
+  .gryt-select-positioner > div, .gryt-combobox-positioner > div, .gryt-autocomplete-positioner > div,
+  .gryt-popover, .gryt-preview-card, .gryt-tooltip, [data-gryt="audio-control-popup"]) {
+  border: 1px solid var(--kirilie-pencil);
+  border-radius: 20px 17px 22px 16px;
+  background-image: var(--kirilie-paper);
+  box-shadow: var(--kirilie-shadow);
+}
+html[data-theme-style="kirilie"] .gryt-tooltip {
+  color: var(--gryt-text);
+  background-color: #fff8d9;
+  border-radius: 10px 13px 9px 12px;
+}
+
+html[data-theme-style="kirilie"] [data-gryt="settings"] {
+  background-image: var(--kirilie-paper);
+}
+html[data-theme-style="kirilie"] [data-setting] {
+  border-bottom: 1px dashed var(--kirilie-pencil);
+  padding-bottom: 18px;
+}
+html[data-theme-style="kirilie"] :is(.gryt-composer, .gryt-message-bubble,
+  .gryt-conversation-item, .embed-consent) {
+  border: 1px solid var(--kirilie-pencil);
+  border-radius: 18px 14px 20px 13px;
+  background-image: var(--kirilie-paper);
+}
+
+/* A member's own cover and colours still win; the surrounding paper frame
+   changes without replacing personal artwork or status semantics. */
+html[data-theme-style="kirilie"] .gmc-frame {
+  border-radius: 20px 17px 22px 16px;
+  box-shadow: var(--kirilie-shadow);
+}
+html[data-theme-style="kirilie"] .gmc:not([data-fc]) {
+  border-color: var(--kirilie-pencil);
+  background-image: var(--kirilie-paper);
+}
+
+html[data-theme-style="kirilie"] :is(.gryt-button, .gryt-icon-button) {
+  border: 1px solid color-mix(in srgb, currentColor 24%, transparent);
+  box-shadow: 1px 2px 0 rgb(108 121 65 / 9%);
+}
+html[data-theme-style="kirilie"] :is(.gryt-menu-item, .gryt-context-menu-item,
+  .gryt-select-item, .gryt-conversation-item, [data-gryt="channels-sidebar"] button)[data-highlighted],
+html[data-theme-style="kirilie"] :is(.gryt-menu-item, .gryt-context-menu-item,
+  .gryt-select-item)[data-active] {
+  background-color: var(--gryt-accent-3);
+}
+html[data-theme-style="kirilie"] :is(button, input, textarea, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--gryt-accent-11);
+  outline-offset: 2px;
+}
+html[data-theme-style="kirilie"] ::selection {
+  background: #d3e994;
+  color: #304224;
+}
+
+/* Some older call sites use a fill token as text. On paper, use its ink
+   anchor instead; video/avatar tiles keep their existing dark-media colours. */
+html[data-theme-style="kirilie"] .text-gryt-accent,
+html[data-theme-style="kirilie"] [class~="hover:text-gryt-accent"]:hover {
+  color: var(--gryt-accent-11);
+}
+html[data-theme-style="kirilie"] :is([data-gryt="sidebar"], [data-gryt="channels-sidebar"],
+  [data-gryt="member-sidebar"], [data-gryt="settings"], [data-gryt="voice-member"],
+  .gryt-dialog, .gryt-menu, .gryt-popover) .text-gryt-warning,
+html[data-theme-style="kirilie"] [data-gryt="sidebar"] span[style*="--gryt-warning-9"] {
+  color: var(--gryt-warning-11) !important;
+}
+
+/* Theme choices remain recognisable when viewed from the original style. */
+.laokuai-theme-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 12px;
+}
+.laokuai-theme-choice {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 7px;
+  padding: 14px;
+  text-align: left;
+  border: 1px solid var(--gryt-border);
+  border-radius: 18px;
+  background: var(--gryt-surface);
+  color: var(--gryt-text);
+  cursor: pointer;
+}
+.laokuai-theme-choice[aria-pressed="true"] {
+  border-color: var(--gryt-accent-11);
+  box-shadow: inset 0 0 0 1px var(--gryt-accent-11);
+}
+.laokuai-theme-choice:focus-visible {
+  outline: 2px solid var(--gryt-accent-11);
+  outline-offset: 3px;
+}
+.laokuai-theme-swatch {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+  width: 100%;
+  height: 72px;
+  padding: 8px;
+  overflow: hidden;
+  border: 1px solid #b7b99a;
+  border-radius: 12px 15px 11px 14px;
+  background: #faf8ee url("../assets/kirilie-garden.svg") no-repeat right center / 85px;
+}
+.laokuai-theme-swatch span {
+  width: 20%;
+  border-radius: 8px;
+  background: #d3e994;
+  box-shadow: inset 0 0 0 1px rgb(86 105 47 / 20%);
+}
+.laokuai-theme-swatch span:nth-child(2) { width: 12%; background: #f5d87d; }
+.laokuai-theme-swatch span:nth-child(3) { width: 12%; background: #fffdf4; }
+.laokuai-theme-choice[data-look="original"] .laokuai-theme-swatch {
+  background: #111318;
+  border-color: #484e5d;
+}
+.laokuai-theme-choice[data-look="original"] .laokuai-theme-swatch span { background: #968ff8; }
+.laokuai-theme-choice[data-look="original"] .laokuai-theme-swatch span:nth-child(2) { background: #7dd3fc; }
+.laokuai-theme-choice[data-look="original"] .laokuai-theme-swatch span:nth-child(3) { background: #1e2028; }
+
+@media (forced-colors: active) {
+  html[data-theme-style="kirilie"] .gryt-app { background-image: none; }
+  .laokuai-theme-choice[aria-pressed="true"] { outline: 2px solid Highlight; }
+}

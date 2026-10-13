@@ -3,6 +3,7 @@ import { decodeGrytTheme, grytPresetsById } from "@gryt/ui";
 import { useCallback, useState } from "react";
 
 import { singletonHook } from "./singletonHook";
+import { useTheme } from "./useTheme";
 
 /**
  * Themes somebody brought with them, as a link. Stored as the anchors, not CSS,
@@ -84,6 +85,7 @@ const initial: CustomThemesState = {
 };
 
 function useCustomThemesImpl(): CustomThemesState {
+  const { setThemeStyle } = useTheme();
   const [themes, setThemes] = useState<SavedTheme[]>(readThemes);
   const [activeId, setActiveId] = useState<string | null>(() =>
     localStorage.getItem(ACTIVE_KEY)
@@ -95,10 +97,11 @@ function useCustomThemesImpl(): CustomThemesState {
   }, []);
 
   const setActiveTheme = useCallback((id: string | null) => {
+    setThemeStyle("original");
     setActiveId(id);
     if (id === null) localStorage.removeItem(ACTIVE_KEY);
     else localStorage.setItem(ACTIVE_KEY, id);
-  }, []);
+  }, [setThemeStyle]);
 
   const saveTheme = useCallback(
     (name: string, theme: GrytTheme) => {

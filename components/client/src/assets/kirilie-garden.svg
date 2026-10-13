@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="340" viewBox="0 0 360 340" fill="none">
+  <!-- Original pencil garden; no reference-image pixels or watermark. -->
+  <defs>
+    <pattern id="crayon" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(29)"><path d="M2 0v9M6 0v9" stroke="#fffdf4" stroke-opacity=".48" stroke-width="1.4"/></pattern>
+  </defs>
+  <g stroke-linecap="round" stroke-linejoin="round">
+    <path d="M68 104c-3-21-5-35-4-50m0 18-16-11m16 3 15-13M295 275c-2-21-7-37-5-52m1 21-15-10m14 2 15-11" stroke="#9fb65d" stroke-width="6" opacity=".5"/>
+    <g fill="#f5da83" stroke="#b5a66d" stroke-width="1.8">
+      <path d="M64 45c-17-15-31-3-21 10-19 4-16 25 2 23-4 18 17 26 24 9 10 13 28 3 22-11 20-9 9-29-8-24 4-18-14-23-19-7Z"/>
+      <path d="M290 217c-17-15-31-3-21 10-19 4-16 25 2 23-4 18 17 26 24 9 10 13 28 3 22-11 20-9 9-29-8-24 4-18-14-23-19-7Z"/>
+    </g>
+    <g stroke="#dec46c" stroke-width="2.5" opacity=".7">
+      <path d="m285 45 7 19 19 6-18 9-6 21-9-21-20-5 19-10Z"/>
+      <path d="m47 249 6 14 15 5-15 7-5 16-7-16-15-5 14-7Z"/>
+      <path d="m253 152 3 8 9 3-9 4-3 10-4-9-10-4 10-3Z"/>
+    </g>
+    <path d="M128 226c-10-18-1-62 13-86l65 2c19 33 28 70 13 90l-13 2c5 13-19 18-30 7-17 11-42 10-39-4-13 5-21-7-9-11Z" fill="#d5e99b" stroke="#929c72" stroke-width="2"/>
+    <path d="M128 226c-10-18-1-62 13-86l65 2c19 33 28 70 13 90l-13 2c5 13-19 18-30 7-17 11-42 10-39-4-13 5-21-7-9-11Z" fill="url(#crayon)"/>
+    <path d="M173 121c-27-31-48-20-42-1-25 9-23 40 3 41 1 24 33 27 43 8 21 18 42 1 38-18 27-10 18-37-9-37 2-26-25-27-33 7Z" fill="#f5da83" stroke="#b5a66d" stroke-width="2"/>
+    <path d="M173 121c-27-31-48-20-42-1-25 9-23 40 3 41 1 24 33 27 43 8 21 18 42 1 38-18 27-10 18-37-9-37 2-26-25-27-33 7Z" fill="url(#crayon)"/>
+    <path d="M171 104c-2-23 6-39 20-47-1 21-4 34-20 47Z" fill="#b8d57a" stroke="#929c72" stroke-width="1.7"/>
+    <path d="M155 192v3m39-3v3" stroke="#697847" stroke-width="5"/>
+    <path d="M170 205q8 8 16-1" stroke="#697847" stroke-width="2.5"/>
+    <path d="M145 204h7m47 0h7" stroke="#e7b16b" stroke-width="6" opacity=".6"/>
+    <path d="M108 184q-8 11-2 18m125-17q9 11 2 18" stroke="#b7cf7e" stroke-width="7"/>
+    <g fill="#fffdf4" opacity=".8"><circle cx="85" cy="171" r="4"/><circle cx="253" cy="293" r="5"/><circle cx="230" cy="33" r="3"/></g>
+  </g>
+</svg>

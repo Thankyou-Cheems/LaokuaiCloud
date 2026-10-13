@@ -1,10 +1,12 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync, statSync } from "node:fs";
+import { win32 } from "node:path";
 
 const MAX_BROKER_BYTES = 32 * 1024 * 1024;
 const MAX_RECEIPT_BYTES = 4096;
 const BROKER_CHECK_APPROVED = "approved";
+export const LAOKUAI_ADMIN_RESTARTED_ARG = "--laokuai-admin-restarted";
 
 export type LaokuaiAdminStartupResult = "approved" | "bypassed" | "denied" | "unavailable";
 
@@ -14,11 +16,36 @@ export interface LaokuaiAdminStartupOptions {
   offlineTest: boolean;
   brokerExecutable: string;
   brokerReceipt: string;
+  packaged: boolean;
+  executable: string;
+  argv: readonly string[];
+  parentPid: number;
+  portableDirectory?: string;
+  promptRestart: () => boolean;
   showError: (title: string, message: string) => void;
   exit: (code: number) => never;
   readFile?: typeof readFileSync;
   statFile?: typeof statSync;
   execute?: typeof execFileSync;
+}
+
+/** Only profile reuse and the explicit maintenance action survive elevation. */
+export function laokuaiAdminRestartRequest(argv: readonly string[]): string {
+  const profiles = argv.flatMap((argument, index) => argument.startsWith("--user-data-dir=")
+    ? [argument.slice("--user-data-dir=".length)]
+    : argument === "--user-data-dir" ? [argv[index + 1] ?? ""] : []);
+  if (profiles.length > 1 || (profiles.length === 1 && !validLocalWindowsPath(profiles[0]))) {
+    throw new Error("invalid-admin-restart-profile");
+  }
+  return JSON.stringify({
+    userDataDirectory: profiles[0] ?? null,
+    cleanupNetworkRules: argv.includes("--cleanup-network-rules"),
+  });
+}
+
+function validLocalWindowsPath(value: string): boolean {
+  return value.length < 32768 && /^[A-Za-z]:[\\/]/.test(value) && !value.includes('"')
+    && [...value].every(character => character.charCodeAt(0) >= 32);
 }
 
 /** Only these two explicit, local, offline test launches may skip the product gate. */
@@ -82,6 +109,44 @@ export function enforceLaokuaiWindowsAdminStartup(options: LaokuaiAdminStartupOp
     // A missing, tampered or unusable helper never becomes an implicit allow.
   }
 
-  options.showError("唠蒯云无法启动", "请右键以管理员身份运行");
+  if (options.argv.includes(LAOKUAI_ADMIN_RESTARTED_ARG)) {
+    options.showError("唠蒯云无法启动", "重新启动后仍未获得管理员权限。请退出后右键以管理员身份运行。不会再次请求提权。");
+    options.exit(1);
+  }
+  // The single-file portable wrapper can remove its temporary extraction when
+  // this process exits. Only the fixed-directory package can restart in place.
+  if (!options.packaged || !validLocalWindowsPath(options.executable)
+    || (options.portableDirectory && win32.resolve(options.portableDirectory).toLowerCase()
+      !== win32.dirname(win32.resolve(options.executable)).toLowerCase())) {
+    options.showError("唠蒯云无法启动", "请在完整解压的绿色目录中右键以管理员身份运行唠蒯云。");
+    options.exit(1);
+  }
+  if (!options.promptRestart()) options.exit(0);
+  let request: string;
+  try { request = laokuaiAdminRestartRequest(options.argv); }
+  catch {
+    options.showError("唠蒯云无法重新启动", "配置目录参数无效，请退出后从完整绿色目录重新启动。");
+    options.exit(1);
+  }
+  let restartOutput = "";
+  try {
+    restartOutput = String(execute(options.brokerExecutable, ["--restart-app", String(options.parentPid)], {
+      windowsHide: true, shell: false, maxBuffer: 128, encoding: "utf8", input: request + "\n",
+      // Normal Windows UAC may wait for the user's response; do not kill it on
+      // a short token-inspection timeout and leave a pending launch behind.
+    }));
+  } catch {
+    // Keep helper diagnostics private and never retry a rejected UAC request.
+  }
+  if (restartOutput === "started") options.exit(0);
+  if (restartOutput === "cancelled") {
+    options.showError("已取消管理员启动", "你已取消 Windows 管理员授权，唠蒯云将退出。需要使用时可重新启动并选择管理员启动。");
+    options.exit(0);
+  }
+  if (restartOutput === "busy") {
+    options.showError("管理员启动正在进行", "另一个唠蒯云启动请求正在等待 Windows 管理员授权。请完成已有授权，此次启动将退出。");
+    options.exit(0);
+  }
+  options.showError("唠蒯云无法重新启动", "管理员启动未完成。请退出后从完整绿色目录右键以管理员身份运行。");
   options.exit(1);
 }

@@ -26,7 +26,6 @@ import {
   useServerManagement,
 } from "@/socket";
 import type { InviteJoinRequest } from "@/socket/src/components/InviteAcceptModal";
-import { useVoiceSounds } from "@/webRTC";
 
 import { ApproveDeviceDialog } from "./components/approveDevice";
 import { AuthLoadingOverlay } from "./components/AuthLoadingOverlay";
@@ -60,14 +59,10 @@ export function App() {
 
   useSettingsShortcut();
   const { disconnect } = useSFU();
-  const { playDisconnect } = useVoiceSounds();
 
   const handleHotkeyDisconnect = useCallback(() => {
-    // disconnect() no longer takes a playSound argument: the engine does not
-    // play anything, so the caller that wanted a sound plays one.
-    playDisconnect();
     disconnect();
-  }, [disconnect, playDisconnect]);
+  }, [disconnect]);
 
   useGlobalHotkeys(handleHotkeyDisconnect);
 

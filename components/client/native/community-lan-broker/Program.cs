@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// Portable, single-session ET executor. No service, shell, arbitrary command or remote IPC.
+// Portable ET executor and user-requested fixed app restart. No service or arbitrary command.
 using System;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
@@ -454,6 +454,15 @@ class Program {
         try {
             Console.InputEncoding = new UTF8Encoding(false); Console.OutputEncoding = new UTF8Encoding(false);
             if (args.Length == 1 && args[0] == "--check") { Console.Write(Elevated() ? "approved" : "ordinary"); return 0; }
+            if (args.Length == 1 && args[0] == "--restart-app-self-test") { AppRestartSelfTest(); return 0; }
+            if (args.Length == 3 && args[0] == "--restart-app-path-check") {
+                using (var seal = new RestartBundleSeal(args[1], args[2])) {
+                    AppRestartInfo(seal.Executable, seal.Helper, "{\"userDataDirectory\":null,\"cleanupNetworkRules\":false}");
+                    Console.WriteLine("PASS restart bundle read-only path seal: executable/helper and ancestor final paths match; no UAC or app launch");
+                    return 0;
+                }
+            }
+            if (args.Length == 2 && args[0] == "--restart-app") return RestartApp(Int32.Parse(args[1]));
             if (args.Length == 1 && args[0] == "--firewall") return FirewallCommand(Console.In, Console.Out);
             if (args.Length == 1 && args[0] == "--firewall-self-test") { FirewallSelfTest(); return 0; }
             if (args.Length == 1 && args[0] == "--dns-policy") { Require(Elevated()); return CommunityDnsPolicy.Command(Console.In, Console.Out); }
@@ -472,6 +481,169 @@ class Program {
             return 2;
         } catch (System.ComponentModel.Win32Exception e) { return e.NativeErrorCode == 1223 ? 1223 : 1; }
         catch { return 1; } // No untrusted path, config, key or native output in diagnostics.
+    }
+    // Only the actual invoking application in this fixed bundle can be restarted.
+    // The executable is obtained from its process handle, never from request text.
+    static int RestartApp(int parentPid) {
+        Require(parentPid > 0);
+        using (var own = Process.GetCurrentProcess())
+        using (var query = new System.Management.ManagementObject("Win32_Process.Handle='" + own.Id + "'")) {
+            query.Get(); Require(Convert.ToInt32(query["ParentProcessId"]) == parentPid);
+            using (var parent = Process.GetProcessById(parentPid)) {
+                Require(!parent.HasExited);
+                using (var bundle = new RestartBundleSeal(parent.MainModule.FileName, own.MainModule.FileName)) {
+                    var executable = bundle.Executable;
+                    var helper = bundle.Helper;
+                    var start = AppRestartInfo(executable, helper, Line(Console.In));
+                    string launchKey;
+                    using (var identity = new MemoryStream(Encoding.UTF8.GetBytes(executable.ToLowerInvariant()))) launchKey = Hash(identity);
+                    using (var mutex = new Mutex(false, @"Local\LaokuaiCloud.AppRestart." + launchKey)) {
+                        var held = false;
+                        try {
+                            try { held = mutex.WaitOne(0); } catch (AbandonedMutexException) { held = true; }
+                            if (!held) { Console.Write("busy"); return 0; }
+                            // Holding both files prevents replacement while UAC is pending.
+                            using (var appSeal = new FileStream(executable, FileMode.Open, FileAccess.Read, FileShare.Read))
+                            using (var helperSeal = new FileStream(helper, FileMode.Open, FileAccess.Read, FileShare.Read)) {
+                                Require(!parent.HasExited);
+                                try {
+                                    using (var started = Process.Start(start)) { Require(started != null); }
+                                    Console.Write("started"); return 0;
+                                } catch (System.ComponentModel.Win32Exception error) {
+                                    if (error.NativeErrorCode != 1223) throw;
+                                    Console.Write("cancelled"); return 0;
+                                }
+                            }
+                        } finally { if (held) mutex.ReleaseMutex(); }
+                    }
+                }
+            }
+        }
+    }
+    [StructLayout(LayoutKind.Sequential)] struct RestartAttributeTag { public uint Attributes, Tag; }
+    [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)] struct RestartFindData {
+        public uint Attributes, CreationLow, CreationHigh, AccessLow, AccessHigh, WriteLow, WriteHigh, SizeHigh, SizeLow, Tag, Reserved;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst=260)] public string Name;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst=14)] public string Alternate;
+    }
+    [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)] static extern SafeFileHandle CreateFileW(string path, uint access, uint share, IntPtr security, uint creation, uint flags, IntPtr template);
+    [DllImport("kernel32.dll", SetLastError=true)] static extern bool GetFileInformationByHandleEx(SafeFileHandle file, int kind, out RestartAttributeTag info, uint size);
+    [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)] static extern uint GetFinalPathNameByHandleW(SafeFileHandle file, StringBuilder path, uint size, uint flags);
+    [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)] static extern IntPtr FindFirstFileW(string path, out RestartFindData data);
+    [DllImport("kernel32.dll")] static extern bool FindClose(IntPtr handle);
+    // Official WinNT.h constants, verified against Microsoft's SDK metadata:
+    // https://github.com/microsoft/win32metadata/blob/main/generation/WinSDK/RecompiledIdlHeaders/um/winnt.h
+    const uint RestartCloudTag = 0x9000001A, RestartCloudVariantMask = 0x0000F000, RestartNameSurrogate = 0x20000000;
+    const uint RestartReparseAttribute = 0x400, RestartDirectoryAttribute = 0x10;
+    const uint RestartOfflineAttribute = 0x1000, RestartRecallDataAttribute = 0x400000;
+    static bool AllowedRestartEntry(uint attributes, uint tag) {
+        if ((attributes & RestartReparseAttribute) != 0 && ((tag & RestartNameSurrogate) != 0
+            || (tag & ~RestartCloudVariantMask) != RestartCloudTag)) return false;
+        // A directory can virtualize unrelated children while our executable is
+        // fully local. Only executable/helper leaves must need no data recall.
+        return (attributes & RestartDirectoryAttribute) != 0
+            || (attributes & (RestartOfflineAttribute | RestartRecallDataAttribute)) == 0;
+    }
+    sealed class RestartBundleSeal : IDisposable {
+        readonly List<SafeFileHandle> held = new List<SafeFileHandle>();
+        public readonly string Executable, Helper;
+        public RestartBundleSeal(string executable, string helper) {
+            try { Executable = SealPath(executable); Helper = SealPath(helper); }
+            catch { Dispose(); throw; }
+        }
+        string SealPath(string value) {
+            Require(!String.IsNullOrEmpty(value) && Regex.IsMatch(value, @"\A[A-Za-z]:[\\/]")
+                && !Regex.IsMatch(value, "[\"\x00-\x1f]") && value.IndexOf(':', 2) < 0);
+            var full = Path.GetFullPath(value); var ancestors = new Stack<string>();
+            for (var path = full; !String.IsNullOrEmpty(path); path = Path.GetDirectoryName(path)) ancestors.Push(path);
+            while (ancestors.Count > 0) {
+                var path = ancestors.Pop();
+                // READ_ATTRIBUTES, share read only, no write/delete. OPEN_REPARSE_POINT
+                // queries the tag itself; BACKUP_SEMANTICS also opens directories.
+                // Keep every ancestor handle open so paths cannot be renamed
+                // after validation and before ShellExecute resolves the target.
+                var handle = CreateFileW(path, 0x80, 1, IntPtr.Zero, 3, 0x02200000, IntPtr.Zero);
+                held.Add(handle); Require(!handle.IsInvalid);
+                RestartAttributeTag info;
+                Require(GetFileInformationByHandleEx(handle, 9, out info, 8)); // FileAttributeTagInfo
+                Require(AllowedRestartEntry(info.Attributes, info.Tag));
+                var final = new StringBuilder(32768); var length = GetFinalPathNameByHandleW(handle, final, 32768, 0);
+                Require(length > 0 && length < 32768 && String.Equals(final.ToString(), @"\\?\" + path, StringComparison.OrdinalIgnoreCase));
+                // Cloud providers can hide their tag in the handle view while
+                // retaining it in directory metadata. Validate that view too:
+                // WIN32_FIND_DATA.dwReserved0 is the tag when REPARSE_POINT is set.
+                // https://learn.microsoft.com/en-us/windows/win32/api/minwinbase/ns-minwinbase-win32_find_dataw
+                if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0) {
+                    RestartFindData found; var search = FindFirstFileW(path, out found);
+                    Require(search != new IntPtr(-1));
+                    try {
+                        Require(AllowedRestartEntry(found.Attributes, found.Tag));
+                    } finally { FindClose(search); }
+                }
+                if (path == full) Require((info.Attributes & RestartDirectoryAttribute) == 0);
+            }
+            return full;
+        }
+        public void Dispose() { foreach (var handle in held) handle.Dispose(); held.Clear(); }
+    }
+    static ProcessStartInfo AppRestartInfo(string executable, string helper, string request) {
+        Require(request != null && request.Length < 16384);
+        executable = Path.GetFullPath(executable); helper = Path.GetFullPath(helper);
+        Require(Regex.IsMatch(executable, @"\A[A-Za-z]:[\\/]") && !Regex.IsMatch(executable, "[\"\x00-\x1f]")
+            && String.Equals(Path.GetExtension(executable), ".exe", StringComparison.OrdinalIgnoreCase));
+        var directory = Path.GetDirectoryName(executable);
+        Require(String.Equals(helper, Path.Combine(directory, "resources", "community-lan-helper", "laokuai-community-broker.exe"), StringComparison.OrdinalIgnoreCase));
+        var values = Json.Deserialize<Dictionary<string, object>>(request);
+        Require(values.Count == 2 && values.ContainsKey("userDataDirectory") && values.ContainsKey("cleanupNetworkRules")
+            && values["cleanupNetworkRules"] is bool && (values["userDataDirectory"] == null || values["userDataDirectory"] is string));
+        var arguments = "--laokuai-admin-restarted";
+        if (values["userDataDirectory"] != null) {
+            var profile = (string)values["userDataDirectory"];
+            Require(profile.Length < 32768 && Regex.IsMatch(profile, @"\A[A-Za-z]:[\\/]") && !Regex.IsMatch(profile, "[\"\x00-\x1f]"));
+            // Always quote a Windows argv token, doubling trailing backslashes.
+            arguments += " \"--user-data-dir=" + Regex.Replace(profile, @"(\\+)\z", "$1$1") + "\"";
+        }
+        if ((bool)values["cleanupNetworkRules"]) arguments += " --cleanup-network-rules";
+        return new ProcessStartInfo(executable, arguments) {
+            UseShellExecute = true, Verb = "runas", WorkingDirectory = directory,
+            WindowStyle = ProcessWindowStyle.Normal
+        };
+    }
+    [DllImport("shell32.dll", CharSet=CharSet.Unicode, SetLastError=true)] static extern IntPtr CommandLineToArgvW(string commandLine, out int count);
+    [DllImport("kernel32.dll")] static extern IntPtr LocalFree(IntPtr memory);
+    static string[] RestartTestArgv(string arguments) {
+        int count; var memory = CommandLineToArgvW("fixture.exe " + arguments, out count); Require(memory != IntPtr.Zero);
+        try {
+            var values = new string[count - 1];
+            for (var index = 1; index < count; index++) values[index - 1] = Marshal.PtrToStringUni(Marshal.ReadIntPtr(memory, index * IntPtr.Size));
+            return values;
+        } finally { LocalFree(memory); }
+    }
+    static void AppRestartSelfTest() {
+        for (uint variant = 0; variant < 16; variant++) Require(AllowedRestartEntry(0x420, RestartCloudTag | (variant << 12)));
+        Require(AllowedRestartEntry(0x80, 0) && AllowedRestartEntry(0x400410, RestartCloudTag));
+        foreach (var tag in new uint[]{0xA000000C, 0xA0000003, 0xA0000019, 0x8000001B, 0x9000001C, 0x9001001A}) Require(!AllowedRestartEntry(0x420, tag));
+        Require(!AllowedRestartEntry(0x1420, RestartCloudTag) && !AllowedRestartEntry(0x400420, RestartCloudTag));
+        var executable = @"C:\绿色 目录\唠蒯云.exe";
+        var helper = @"C:\绿色 目录\resources\community-lan-helper\laokuai-community-broker.exe";
+        var request = Json.Serialize(new Dictionary<string, object> {{"userDataDirectory", @"D:\中文 & $ 数据\"}, {"cleanupNetworkRules", true}});
+        var info = AppRestartInfo(executable, helper, request);
+        Require(info.FileName == executable && info.WorkingDirectory == @"C:\绿色 目录" && info.UseShellExecute && info.Verb == "runas");
+        Require(info.Arguments == "--laokuai-admin-restarted \"--user-data-dir=D:\\中文 & $ 数据\\\\\" --cleanup-network-rules");
+        var parsed = RestartTestArgv(info.Arguments);
+        Require(parsed.Length == 3 && parsed[0] == "--laokuai-admin-restarted"
+            && parsed[1] == @"--user-data-dir=D:\中文 & $ 数据\" && parsed[2] == "--cleanup-network-rules");
+        var rootProfile = AppRestartInfo(executable, helper, Json.Serialize(new Dictionary<string, object> {{"userDataDirectory", @"C:\"}, {"cleanupNetworkRules", false}}));
+        Require(RestartTestArgv(rootProfile.Arguments)[1] == @"--user-data-dir=C:\");
+        Require(AppRestartInfo(executable, helper, "{\"userDataDirectory\":null,\"cleanupNetworkRules\":false}").Arguments == "--laokuai-admin-restarted");
+        foreach (var bad in new[]{"{\"userDataDirectory\":\"relative\",\"cleanupNetworkRules\":false}",
+            "{\"userDataDirectory\":\"C:\\\\x\\\" --inspect\",\"cleanupNetworkRules\":false}",
+            "{\"userDataDirectory\":null,\"cleanupNetworkRules\":\"true\"}",
+            "{\"userDataDirectory\":null,\"cleanupNetworkRules\":false,\"executable\":\"cmd.exe\"}"}) {
+            var rejected = false; try { AppRestartInfo(executable, helper, bad); } catch { rejected = true; } Require(rejected);
+        }
+        var wrongBundle = false; try { AppRestartInfo(executable, @"C:\other\resources\community-lan-helper\laokuai-community-broker.exe", request); } catch { wrongBundle = true; } Require(wrongBundle);
+        Console.WriteLine("PASS fixed app restart: Chinese/space paths, whitelist, profile, maintenance, runas settings, foreign bundle rejected; no UAC or process launch");
     }
     static void SelfTest() {
         var id = "11111111-1111-4111-8111-111111111111";

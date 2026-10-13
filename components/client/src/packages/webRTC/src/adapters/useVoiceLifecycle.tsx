@@ -1,12 +1,14 @@
 import { SFUConnectionState, useSFU } from "@gryt/voice";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
-import { ServerErrorToast, serverIconSrc } from "@/common";
+import { ServerErrorToast, serverIconSrc, useUserId } from "@/common";
+import { useSettings } from "@/settings";
 import { useServerManagement, useSockets } from "@/socket";
 
-import { useVoiceSounds } from "./useVoiceSounds";
 import {diagnosticCode, localDiagnostic} from "../../../../lib/localDiagnostics";
+import { VoiceConnectionCuePolicy } from "../../../../lib/voiceAnnouncements";
+import { cancelVoiceAnnouncements, useVoiceSounds } from "./useVoiceSounds";
 
 /**
  * The parts of a voice call that are the app's business rather than the engine's:
@@ -21,8 +23,64 @@ export function useVoiceLifecycle() {
     disconnect,
   } = useSFU();
   const { servers, currentlyViewingServer } = useServerManagement();
-  const { serverDetailsList } = useSockets();
-  const { playConnect } = useVoiceSounds();
+  const { serverDetailsList, sockets } = useSockets();
+  const { announce } = useVoiceSounds();
+  const userId = useUserId();
+  const settings = useSettings();
+  const cuePolicy = useRef(new VoiceConnectionCuePolicy());
+  const cueSerial = useRef(0);
+  type MoveCue = { host: string; source: string; channel: string; requestId: string; account: string; generation: string; epoch: number; promoted: boolean };
+  const moveCue = useRef<MoveCue | undefined>(undefined);
+  const [moveRevision, setMoveRevision] = useState(0);
+  const liveRoom = JSON.stringify([userId, currentServerConnected, currentChannelConnected]);
+  const cueScope = connectionState === SFUConnectionState.DISCONNECTED ? JSON.stringify([userId, "disconnected"]) : liveRoom;
+  const socketGeneration = sockets?.[currentServerConnected]?.id;
+  const epoch = useRef({ identity: "", terminal: true, value: 0 });
+  const identity = JSON.stringify([userId, currentServerConnected, socketGeneration]);
+  const terminal = connectionState === SFUConnectionState.DISCONNECTED;
+  if (epoch.current.identity !== identity || (terminal && !epoch.current.terminal)) epoch.current.value++;
+  epoch.current.identity = identity; epoch.current.terminal = terminal;
+  const live = useRef({ room: liveRoom, state: connectionState, host: currentServerConnected, channel: currentChannelConnected, account: userId, generation: socketGeneration, epoch: epoch.current.value });
+  live.current = { room: liveRoom, state: connectionState, host: currentServerConnected, channel: currentChannelConnected, account: userId, generation: socketGeneration, epoch: epoch.current.value };
+  const pending = moveCue.current;
+  if (pending && (terminal || pending.epoch !== epoch.current.value ||
+    (currentChannelConnected !== pending.source && currentChannelConnected !== pending.channel))) moveCue.current = undefined;
+  // Cancel decoding as well as playback before new-room phrases enter the queue.
+  useEffect(() => {
+    cancelVoiceAnnouncements();
+    return cancelVoiceAnnouncements;
+  }, [cueScope, connectionState, socketGeneration]);
+  useEffect(() => {
+    cuePolicy.current.reset(); cancelVoiceAnnouncements();
+  }, [userId]);
+  useEffect(() => {
+    cancelVoiceAnnouncements();
+  }, [settings.isMuted, settings.isDeafened, settings.isServerDeafened, settings.outputDeviceID, settings.outputVolume,
+    settings.peerVoiceCues.dnd, settings.peerVoiceCues.enabled, settings.peerVoiceCues.joinVolume, settings.peerVoiceCues.leaveVolume,
+    settings.connectSoundEnabled, settings.disconnectSoundEnabled, settings.connectSoundVolume, settings.disconnectSoundVolume,
+    settings.customConnectSoundFile, settings.customDisconnectSoundFile, settings.voiceAnnouncements]);
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<{ host: string; source: string; channel: string; requestId: string; account: string; generation: string; phase: "promoting" | "promoted" | "failed" }>).detail;
+      const current = live.current;
+      if (!detail?.requestId || !detail.generation || detail.host !== current.host || detail.account !== current.account ||
+        detail.generation !== current.generation || current.state === SFUConnectionState.DISCONNECTED) return;
+      if (detail.phase === "promoting") {
+        if (current.state !== SFUConnectionState.CONNECTED || current.channel !== detail.source) return;
+        moveCue.current = { ...detail, epoch: current.epoch, promoted: false };
+      } else {
+        const cue = moveCue.current;
+        if (!cue || cue.requestId !== detail.requestId || cue.epoch !== current.epoch ||
+          cue.source !== detail.source || cue.channel !== detail.channel) return;
+        if (detail.phase === "failed") moveCue.current = undefined;
+        else if (detail.phase === "promoted") cue.promoted = true;
+        else return;
+      }
+      setMoveRevision(revision => revision + 1);
+    };
+    window.addEventListener("voice_move_playback_status", handler);
+    return () => window.removeEventListener("voice_move_playback_status", handler);
+  }, []);
   useEffect(() => {
     localDiagnostic({phase: "socket", operation: "voice-state", action: "finish", code: diagnosticCode(connectionState)});
     if (connectionError) {
@@ -34,16 +92,40 @@ export function useVoiceLifecycle() {
 
   // The connect sound. The engine used to play it partway through the flow; it
   // now plays when the call is actually up.
-  const wasConnected = useRef(false);
   // Whether this call ever came up, which `wasConnected` cannot answer — it
   // tracks the current state. "It dropped" and "it never connected" differ.
   const everConnected = useRef(false);
   useEffect(() => {
     const nowConnected = connectionState === SFUConnectionState.CONNECTED;
-    if (nowConnected && !wasConnected.current) playConnect();
+    const state = nowConnected ? "connected" : connectionState === SFUConnectionState.DISCONNECTED ? "disconnected" : "recovering";
+    const cue = moveCue.current;
+    const destination = cue && cue.channel === currentChannelConnected;
+    // A destination state may render before commitMove's promise settles. Hold
+    // its generic connection cue until that exact local promotion succeeds/fails.
+    if (nowConnected && destination && !cue.promoted) return;
+    const event = cuePolicy.current.update(liveRoom, state);
+    if (nowConnected && destination && cue.promoted) {
+      announce("moved", `${cue.generation}:${cue.requestId}`, () => live.current.room === liveRoom && live.current.epoch === cue.epoch && live.current.state === SFUConnectionState.CONNECTED);
+      moveCue.current = undefined;
+    } else if (event) {
+      const serial = ++cueSerial.current;
+      announce(event, `${liveRoom}:${serial}`, () => live.current.state === connectionState &&
+        (event === "disconnected" || live.current.room === liveRoom));
+    }
     if (nowConnected) everConnected.current = true;
-    wasConnected.current = nowConnected;
-  }, [connectionState, playConnect]);
+  }, [connectionState, liveRoom, announce, moveRevision, currentServerConnected, currentChannelConnected]);
+  const previousAudio = useRef({ muted: settings.isMuted, deafened: settings.isDeafened });
+  useEffect(() => {
+    const previous = previousAudio.current;
+    previousAudio.current = { muted: settings.isMuted, deafened: settings.isDeafened };
+    if (connectionState !== SFUConnectionState.CONNECTED) return;
+    const eligible = () => live.current.room === liveRoom && live.current.state === SFUConnectionState.CONNECTED;
+    if (previous.deafened !== settings.isDeafened) {
+      announce(settings.isDeafened ? "outputMuted" : "outputUnmuted", `${liveRoom}:${++cueSerial.current}`, eligible);
+    } else if (previous.muted !== settings.isMuted) {
+      announce(settings.isMuted ? "microphoneMuted" : "microphoneUnmuted", `${liveRoom}:${++cueSerial.current}`, eligible);
+    }
+  }, [settings.isMuted, settings.isDeafened, connectionState, liveRoom, announce]);
 
   // A fresh call is a fresh verdict. Without this, one dropped call makes every
   // later failure in the session read as "it dropped".

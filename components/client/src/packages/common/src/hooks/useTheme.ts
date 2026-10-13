@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { readThemeStyle, type ThemeStyle } from "../../../../lib/kirilieTheme";
 import { singletonHook } from "./singletonHook";
 
 type AppearancePreference = "system" | "light" | "dark";
@@ -31,6 +32,9 @@ type AccentColor =
 type GrayColor = "gray" | "mauve" | "slate" | "sage" | "olive" | "sand";
 
 export interface ThemeSettings {
+  themeStyle: ThemeStyle;
+  setThemeStyle: (value: ThemeStyle) => void;
+
   appearancePreference: AppearancePreference;
   setAppearancePreference: (value: AppearancePreference) => void;
 
@@ -60,6 +64,7 @@ export interface ThemeSettings {
 }
 
 function useThemeHook(): ThemeSettings {
+  const [themeStyle, setThemeStyleState] = useState<ThemeStyle>(() => readThemeStyle(localStorage));
   const [appearancePreference, setAppearancePreferenceState] = useState<AppearancePreference>(
     (localStorage.getItem("theme.appearancePreference") as AppearancePreference) || "system"
   );
@@ -105,6 +110,11 @@ function useThemeHook(): ThemeSettings {
     setAccentColorState(value);
     localStorage.setItem("theme.accentColor", value);
   }
+
+  const setThemeStyle = useCallback((value: ThemeStyle) => {
+    setThemeStyleState(value);
+    localStorage.setItem("theme.style", value);
+  }, []);
 
   function setGrayColor(value: GrayColor) {
     setGrayColorState(value);
@@ -160,6 +170,8 @@ function useThemeHook(): ThemeSettings {
   }
 
   return {
+    themeStyle,
+    setThemeStyle,
     appearancePreference,
     setAppearancePreference,
     accentColor,
@@ -182,6 +194,8 @@ function useThemeHook(): ThemeSettings {
 }
 
 const init: ThemeSettings = {
+  themeStyle: readThemeStyle(localStorage),
+  setThemeStyle: () => {},
   appearancePreference: (localStorage.getItem("theme.appearancePreference") as AppearancePreference) || "system",
   setAppearancePreference: () => {},
   accentColor: ((localStorage.getItem("theme.accentColor") as AccentColor) || "violet"),
