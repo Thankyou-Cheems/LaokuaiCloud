@@ -153,5 +153,6 @@ git fetch .local/review-20261013/before-cleanup.bundle refs/heads/feature/easyti
 保留 C 盘旧主仓库和包含构建材料的恢复工作树；更广迁移中有修改/历史不完整的
 原件未删。随后用户另行批准为移除 Npcap 重写历史：已清除六个 Packet 二进制
 路径，远端仅保留 main 和清理后源码材料 tag；原始恢复 bundle 保存在本机。
-GitHub 仍保留旧 SHA 对象，因此尚未公开。原始许可证、源包、测试失败和冻结
+GitHub 曾保留旧 SHA 对象；用户随后授权删除 GitHub 旧库并同名重建，现已公开。
+原始许可证、源包、测试失败和冻结
 产物保留；归档的五份说明与修改前文件逐字节一致，旧分工不再是活动入口。

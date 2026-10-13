@@ -1,18 +1,19 @@
 {
   "schema": 2,
   "id": "laokuai-cloud-receive-path-et-observation-frozen-20261011",
-  "stage": "local-autojoin-test-package-ready-public-source-blocked",
+  "stage": "local-autojoin-test-package-and-public-source-available",
   "ready": false,
   "repository": {
     "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud",
     "owner": "Thankyou-Cheems",
-    "visibility": "private",
+    "visibility": "public",
     "branch": "main",
     "soleGitWriter": "user-directed local developer",
     "codeCommit": "800ec22e484d2fef2b23493492b75862d9ed62f0",
     "codeTree": "a5ac062fe7c03b45d4b32416723e8f57b8ee31da",
     "newRepositoryReason": "Authenticated private-repo metadata and explicitly scoped old local core/game remotes revealed no matching existing private integration repository",
-    "historyPolicy": "User-authorized removal of six Npcap files; backup retained locally; map in docs/history/2026-10-13-public-cleanup; only main and clean source-materials tag published to the same private repository."
+    "historyPolicy": "User explicitly authorized deletion and same-name recreation after six Npcap files were removed from history. Only clean main and source tag pushed from an isolated bare repository. Original and clean local bundles retained; no mirror push.",
+    "githubId": "R_kgDOVG00Lg"
   },
   "components": {
     "client": {
@@ -3076,9 +3077,9 @@
     "directory": "D:/Dev/LaokuaiCloud",
     "branch": "main",
     "writer": "user-directed local developer",
-    "originVisibility": "private",
+    "originVisibility": "public",
     "pushedThisHandoff": true,
-    "publishedThisHandoff": false,
+    "publishedThisHandoff": true,
     "originalLocalCheckpoint": "47b3a974e442725fdb88c039e044aa06aa62c171",
     "remoteDefaultHead": "3a6c794fe6e904ad195fafcd70a8a51d65632b60",
     "remoteFixHead": "cb209bd24fd47f2d0ff6841e5032c118678c441f",
@@ -3105,9 +3106,9 @@
     "sourceArchivesBundled": false,
     "sourceAssetCount": 6,
     "sourceAssetSha256Verified": true,
-    "repositoryVisibility": "private",
-    "publicSourceAccess": false,
-    "publicBlocker": "GitHub retains orphaned pre-cleanup Packet.dll objects reachable by old SHA",
+    "repositoryVisibility": "public",
+    "publicSourceAccess": true,
+    "publicBlocker": null,
     "tests": {
       "coreContractSuites": 10,
       "enrollmentBehaviors": 13,
@@ -3191,5 +3192,14 @@
     "note": "Extracted exact portable payload launched in hidden offline fresh-profile mode. NSIS wrapper not executed. 23 console errors consist of 20 intentional offline CSP/fetch blocks and 3 pre-existing disabled IPC promises; not an error-free console. Socket samples are not continuous packet capture.",
     "receipt": "release/acceptance/autojoin-portable-20261013.json",
     "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261013.1-zh-CN-win-x64-portable.exe"
+  },
+  "sourcePublication": {
+    "receipt": "release/acceptance/public-source-recreation-20261013.json",
+    "repositoryUrl": "https://github.com/Thankyou-Cheems/LaokuaiCloud",
+    "releaseUrl": "https://github.com/Thankyou-Cheems/LaokuaiCloud/releases/tag/source-materials-20261013",
+    "anonymousAssetsVerified": 6,
+    "anonymousExactApplicationArchiveVerified": true,
+    "originalNpcapUrlsReturn404": true,
+    "applicationBinaryUploaded": false
   }
 }

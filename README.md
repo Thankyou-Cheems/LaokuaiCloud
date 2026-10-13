@@ -25,8 +25,9 @@
 - 轻量绿色包构建：`./tools/build-portable.ps1`（需要已核验的原生/许可材料）
 - 源码分开托管说明：[SOURCE-ACCESS.md](docs/SOURCE-ACCESS.md)
 
-用户已批准将本仓库本身公开；分支历史已移除 Npcap，GitHub 仍保留旧 SHA
-可达的 DLL 对象，故当前保持私有。六份对应源码附件已放在同仓库 Release；
-公开访问尚未完成，详见 [历史清理记录](docs/history/2026-10-13-public-cleanup/README.md)。
+本仓库已按用户授权删除旧 GitHub 仓库并同名重建为 PUBLIC，推送清理后的
+历史。六份对应源码附件在
+[源码 Release](https://github.com/Thankyou-Cheems/LaokuaiCloud/releases/tag/source-materials-20261013)，
+清理与重建记录见 [历史清理记录](docs/history/2026-10-13-public-cleanup/README.md)。
 测试包只携带许可证、必要声明和源码取得说明，完整源码不随包携带。
 历史交接在 `docs/history/`。

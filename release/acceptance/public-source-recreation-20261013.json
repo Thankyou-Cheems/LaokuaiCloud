@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-13",
+  "oldRepositoryId": "R_kgDOVEfFVQ",
+  "newRepositoryId": "R_kgDOVG00Lg",
+  "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud",
+  "visibility": "public",
+  "defaultBranch": "main",
+  "oldNpcapPaths": [
+    {
+      "anonymousStatus": 404,
+      "path": "components/easytier/source/easytier/third_party/arm64/Packet.dll"
+    },
+    {
+      "anonymousStatus": 404,
+      "path": "components/easytier/source/easytier/third_party/arm64/Packet.lib"
+    },
+    {
+      "anonymousStatus": 404,
+      "path": "components/easytier/source/easytier/third_party/i686/Packet.dll"
+    },
+    {
+      "anonymousStatus": 404,
+      "path": "components/easytier/source/easytier/third_party/i686/Packet.lib"
+    },
+    {
+      "anonymousStatus": 404,
+      "path": "components/easytier/source/easytier/third_party/x86_64/Packet.dll"
+    },
+    {
+      "anonymousStatus": 404,
+      "path": "components/easytier/source/easytier/third_party/x86_64/Packet.lib"
+    }
+  ],
+  "sourceReleaseUrl": "https://github.com/Thankyou-Cheems/LaokuaiCloud/releases/tag/source-materials-20261013",
+  "sourceAssets": [
+    {
+      "sha256": "bad7e5e4b3a666d63876eaa5910cf6e3aaafc927330521682adb5a80267c6205",
+      "file": "EasyTier-Corresponding-Source.zip",
+      "anonymousDownloadPassed": true,
+      "bytes": 151940089
+    },
+    {
+      "sha256": "24879c3a920fc4a12d2b30baa2c779ff8b9ebed3e13411861b563d8372560688",
+      "file": "EasyTier-Build-Tools.zip",
+      "anonymousDownloadPassed": true,
+      "bytes": 161269
+    },
+    {
+      "sha256": "87d32e98f56009e36932593159aa181940e38839a22cba97a459e401a92e1782",
+      "file": "EasyTier-Build-Tools-Fix.zip",
+      "anonymousDownloadPassed": true,
+      "bytes": 3461
+    },
+    {
+      "sha256": "d0933073f4915594021bad3940ac61079241546cdfeb74a347085fdc46bc69e3",
+      "file": "UI-Preferred-Source.zip",
+      "anonymousDownloadPassed": true,
+      "bytes": 1099658
+    },
+    {
+      "sha256": "a79be9beb3936f652a404e3961e1915733d6e9e88498de20cbf2b15f8dc2d76d",
+      "file": "RNNoise-Preferred-Source.zip",
+      "anonymousDownloadPassed": true,
+      "bytes": 61940085
+    },
+    {
+      "sha256": "3de9cfa4821f82a2d4b9c4ab480f2645b76e9cb4672e68fdbd85a112bb766868",
+      "file": "Native-Hook-Corresponding-Source.zip",
+      "anonymousDownloadPassed": true,
+      "bytes": 139529
+    }
+  ],
+  "applicationSourceCommit": "800ec22e484d2fef2b23493492b75862d9ed62f0",
+  "applicationArchiveSha256": "b30a78bec1c08db2ac5f8ee011f820bf06124b48df46e0e3196967c315ca89e4",
+  "applicationArchiveEntries": 4358,
+  "anonymousApplicationSourceDownloadPassed": true,
+  "localBackupsRetained": true,
+  "applicationBinaryUploaded": false,
+  "userExplicitlyAuthorizedDeleteAndRecreate": true,
+  "cleanHistoryAtRecreation": "1ff14b9f413e3cd86e3bcbed7d6b2ecc2e00e268",
+  "originalBackupSha256": "90df7a732b0ec47c589ad7a29f26059e84f614068fad01a16f0533513780d32a",
+  "cleanHistoryBackupSha256": "99ca5e34f5f93fe183a6dd58b86e9f2bb9166d51bac44e54fc63b07159701ff7",
+  "cleanRefs": [
+    "refs/heads/main",
+    "refs/tags/source-materials-20261013"
+  ],
+  "applicationBinaryRebuilt": false,
+  "applicationAcceptanceUnchanged": true
+}

@@ -8,7 +8,7 @@ Npcap Packet.dll/lib 或私人 profile 复制进构建目录。
 ## 对应源码材料
 
 校验 `release/source-materials/public-assets.json` 的六个附件。源码下载地址
-写在包的 SOURCE-OFFER.json 中；当前仓库尚未公开，链接需要仓库权限。
+写在包的 SOURCE-OFFER.json 中；仓库和六份附件现已公开，可匿名下载。
 
 - EasyTier-Corresponding-Source.zip：现代 Windows core/CLI 的 1262 文件
   源码及锁定的 crate/git 依赖；不是包含旧预编译资产的 1277 文件恢复归档。

@@ -23,9 +23,17 @@ Git blob 比对一致。`commit-map.txt` 可用于解释历史测试记录中的
 对应源码包使用已排除非构建二进制的 1262 文件源材料。原 1277 文件导入
 记录及 source tree hash 是历史来源，不代表清理后组件目录仍含 1277 文件。
 
-远端只保留清理后的 main，且已经设为默认分支。但 GitHub contents API 在
+首次重写后远端只保留清理后的 main，且设为默认分支。但 GitHub contents API 在
 旧提交 `7a9ba9dd221fbf7bf5259600d39c76ccf8a43a59` 上仍返回原 Packet.dll，
 blob `7e1bf1206a781cf6db41cc41bf59854e63dd8f6a`，220032 B。这是服务器保留的
-不可达对象，继续 force push 不能保证清除。尚未切换 PUBLIC，也未删除重建仓库。
+不可达对象，继续 force push 不能保证清除，当时因此保持 PRIVATE。
 参见 GitHub 官方的
 [历史重写后残留说明](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository#fully-removing-the-data-from-github)。
+
+用户随后明确要求删除 GitHub 上的 LaokuaiCloud，再同名重建、公开并重新上传
+源码附件。已校验原恢复 bundle，并另存只含清理后 main/源码标签的完整 bundle，
+从这个仅含两个引用的 bare 仓库推送，避免本地 Codex 恢复树进入远端。
+
+旧仓库 ID `R_kgDOVEfFVQ` 已删除，新同名仓库 ID `R_kgDOVG00Lg` 为 PUBLIC。
+六份源码附件重新上传，大小/SHA256 均与原文件一致。新仓库不再识别旧提交。
+没有改动 i18n fork，没有上传应用二进制，本地备份仍在 `.local/`。

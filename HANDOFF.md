@@ -53,13 +53,13 @@ SHA256 `d6669238f04439f316e586cdfb7492698f1edd1e0fdf05546b67505da5c20737`。
 
 ## Git 与清理
 
-origin 为 `https://github.com/Thankyou-Cheems/LaokuaiCloud.git`；最近交接记录
-为 PRIVATE，本轮已重新确认；main 已推送并设为默认。尚未切换可见性：GitHub
-仍能通过旧提交 SHA 返回已从历史清除的 Packet.dll，详见公开清理记录。
-原仓库 ID `R_kgDOVEfFVQ` 保持不变。六份源码附件已上传同仓库的
-`source-materials-20261013` Release，GitHub 返回的大小/SHA256 全部匹配。
-现有 tag 指向清理后的提交；没有上传应用二进制。支持请求草稿在
-`.local/review-20261013/github-cleanup-request.md`，尚未对外发送。
+origin 为 `https://github.com/Thankyou-Cheems/LaokuaiCloud.git`，现为 PUBLIC。
+用户在 2026-10-13 明确批准删除旧 GitHub 仓库并同名重建，解决旧 SHA 可取回
+已删除 Packet.dll 的残留。旧 ID `R_kgDOVEfFVQ`，新 ID `R_kgDOVG00Lg`。
+清理后的 main 已推送并设为默认；源码标签和六份附件已重新上传同名仓库。
+附件大小/SHA256 与原材料匹配；没有上传应用二进制。旧支持请求草稿不再需要
+提交，未发送。重建前 Git/metadata 备份在
+`.local/review-20261013/github-recreation/`；旧的两个恢复 bundle 仍保留。
 `cb209bd` 的 8 文件已等价合入，不重复 cherry-pick。
 
 本轮完整 bundle 校验后移除 D 盘 4 条历史分支，仅保留当前开发分支；移除
@@ -70,3 +70,8 @@ C 盘 3 个无修改且无忽略文件的 feature worktree。恢复 bundle、原
 用户已恢复开发、打包、push 与现有 LaokuaiCloud 本身公开。公开前核查完整
 历史及源码获取材料；生产部署与持久服务安装不在本轮操作中。原交接/AGENTS 原文
 完整保存在 `docs/history/2026-10-13-takeover/`，旧一次性许可不复用。
+
+用户随后提供真实入会截图：服务端返回“社区管理员尚未设置共享密码”。
+公开 `/info` 当前显示 `joinPolicy=password`、`lanOpen=false`；需原管理员在
+服务器设置→概览→社区共享密码保存一次。不要索取或代填聊天中的密码；新成员
+入会输入框不能初始化服务端密码。是否仍可进入原管理员设置已询问用户。

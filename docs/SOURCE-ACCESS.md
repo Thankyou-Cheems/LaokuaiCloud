@@ -1,14 +1,15 @@
 # 源码位置与测试包
 
-现有仓库是 `https://github.com/Thankyou-Cheems/LaokuaiCloud`。公开此仓库指
-改变其可见性，不另建仓库、不替换工作区，也不修改 i18n fork。
-实际公开状态以 GitHub 为准；当前正在准备与检查。
+源码仓库是 `https://github.com/Thankyou-Cheems/LaokuaiCloud`，现已公开。
+用户于 2026-10-13 明确批准删除 GitHub 旧仓库并同名重建，用清理后的代码和
+历史重新推送。仓库地址保持一致，GitHub 仓库 ID 已改变；i18n fork 未修改。
 
 公开前发现旧历史含有未使用的 Npcap Packet.dll/Packet.lib，用户已另行批准
 只为移除这些文件而清理提交历史。恢复备份留在本机；清理会改变受影响提交的
 ID，不改变其余源文件。测试包和源码说明使用清理后的提交。
-当前远端分支只剩 `main`。GitHub 仍通过旧 SHA 保留已删除 Packet.dll 的对象；
-该服务器端残留尚未清除，因此目前仓库仍为私有，不能声称公众已可取得源码。
+当前远端分支只保留 `main`，另有清理后的源码材料标签。原私有仓库的旧 SHA
+残留通过删除重建解决；本地原历史及清理后历史的 bundle 均保留，不上传旧恢复
+引用。历史包中“当前私有”的文字反映构建时状态，实时状态以本页和 GitHub 为准。
 
 源码不必全部保存在同一个仓库。发行材料需要明确对应测试包的确切源码：
 
@@ -30,5 +31,5 @@ ID，不改变其余源文件。测试包和源码说明使用清理后的提交
 不能给新应用编译结果套用旧源码 commit。
 
 源码附件清单及哈希在 `release/source-materials/public-assets.json`；构建入口见
-[BUILD.md](BUILD.md)。仓库公开后，同仓库的 `source-materials-20261013` Release
+[BUILD.md](BUILD.md)。同仓库的 `source-materials-20261013` Release
 提供六份对应源码/构建工具附件。附件不包含用户 profile 或 Npcap 分发二进制。
