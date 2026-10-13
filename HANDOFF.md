@@ -1,9 +1,10 @@
 # 当前开发交接
 
 更新：2026-10-13，用户要求恢复本地审视、纠偏、架构改进与历史清理。
-唯一开发入口 `D:\Dev\LaokuaiCloud`；分支 `integration/lifecycle3-20261012`。
-审视基点 `7ba93a038bd37f0c99f13fdfd6c608ca9bec750c`；实时改动用
-`git status` 和 `git log -1` 查看。本轮修改尚未自动提交或推送。
+唯一开发入口 `D:\Dev\LaokuaiCloud`；分支 `main`。
+审视原基点 `7ba93a038bd37f0c99f13fdfd6c608ca9bec750c`；因移除 Npcap 历史已
+重写，映射见 `docs/history/2026-10-13-public-cleanup/commit-map.txt`。实时状态
+用 `git status` 和 `git log -1` 查看。清理后的 main 已推送为远端唯一分支。
 
 ## 目标与缺口
 
@@ -13,13 +14,15 @@
 
 本轮已新增主进程 CommunityEnrollment，合并 membership/auth/授权/lease 顺序；
 renderer 只提交成员快照。按需 UAC helper 固定载荷、发行者和受限配置；
-普通 UI 不提权，同次应用运行重连复用 helper，无持久服务。新增 13 个纯行为
-测试与 grant 准备失败不申请凭据的检查通过；新真实 UAC/TUN/双设备待验。
+普通 UI 不提权，同次应用运行重连复用 helper，无持久服务。Enrollment 13 个
+和 grant/runtime 52 个行为检查通过，含退出后重新认证、退避重连及拒绝授权后
+不重复弹窗；十组核心契约、类型、定向 lint 和应用编译通过。新真实 UAC/TUN/
+双设备待验。
 此前只读记录（非本轮实时查询）显示旧 profile 授权过期、后端
 共享密码未设置。密码须由主人在真实安全 UI 配置，不能写入仓库。
 
-当前审视和验收顺序见 `docs/PROJECT-REVIEW.md`。下一项产品工作优先处理
-社区联机生命周期及 Windows 权限方案。新增持久提权服务仍须就安装、IPC、
+当前审视和验收顺序见 `docs/PROJECT-REVIEW.md`。下一项验收是测试包的真实
+社区自动联机及两设备语音。新增持久提权服务仍须就安装、IPC、
 退出和卸载范围单独批准；不扩展新的 ET 控制面。
 
 ## 环境和证据
@@ -43,7 +46,8 @@ renderer 只提交成员快照。按需 UAC helper 固定载荷、发行者和�
 ## Git 与清理
 
 origin 为 `https://github.com/Thankyou-Cheems/LaokuaiCloud.git`；最近交接记录
-为 PRIVATE，本轮已重新确认；尚未 push 或切换可见性。远端默认分支是旧集成，不能覆盖本地。
+为 PRIVATE，本轮已重新确认；main 已推送并设为默认。尚未切换可见性：GitHub
+仍能通过旧提交 SHA 返回已从历史清除的 Packet.dll，详见公开清理记录。
 `cb209bd` 的 8 文件已等价合入，不重复 cherry-pick。
 
 本轮完整 bundle 校验后移除 D 盘 4 条历史分支，仅保留当前开发分支；移除
