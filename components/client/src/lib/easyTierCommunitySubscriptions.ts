@@ -34,6 +34,42 @@ export interface CommunityLanAction {
   retryLabel: string;
 }
 
+const SETUP_REASONS = new Set([
+  "activation-required", "needs-permission", "configuration-required", "runtime-required",
+  "unsupported-target", "multi-community-unavailable",
+]);
+const TRANSIENT_REASONS = new Set(["connect-failed", "operation-timeout", "status-unavailable", "runtime-exited"]);
+
+/**
+ * Convert renderer-side coordination failures into a truthful compact action.
+ * A known setup answer remains authoritative; an IPC rejection without one
+ * still needs to be visible instead of leaving the control at "读取中".
+ */
+export function presentCommunityLanAction(action: CommunityLanAction, state: EasyTierCommunityState | undefined, options: {
+  operationFailed?: boolean;
+  preparing?: boolean;
+  previewDisabled?: boolean;
+} = {}): CommunityLanAction {
+  const { operationFailed = false, preparing = false, previewDisabled = false } = options;
+  if (previewDisabled) return { ...action, label: "测试模式：联机未启用", kind: "disabled", message: "本轮测试预览未启用联机。", prepare: false, retry: false };
+  if (preparing) return { ...action, label: "准备联机", kind: "pending", message: "正在自动准备社区联机；请稍候。社区语音可继续使用。", prepare: false, retry: false };
+  const setupFailure = state?.phase === "activation-required" || SETUP_REASONS.has(state?.reason ?? "");
+  const explicitAction = setupFailure || state?.phase === "connected" || state?.phase === "disconnecting" || state?.reason === "cleanup-failed";
+  if (!operationFailed || explicitAction) return action;
+  const transient = state?.phase === "error" && TRANSIENT_REASONS.has(state.reason ?? "");
+  return {
+    ...action,
+    label: "联机暂不可用",
+    kind: "error",
+    message: transient
+      ? "自动联机暂时未完成，应用会自动重试；你也可以立即重试。社区和语音连接不受影响。"
+      : "未能取得联机接入结果，请稍候；也可立即重试。社区和语音连接不受影响。",
+    prepare: false,
+    retry: true,
+    retryLabel: "立即重试",
+  };
+}
+
 export function easyTierCommunityAction(state: EasyTierCommunityState | undefined, enabled = true): CommunityLanAction {
   const voice = "联机与社区语音独立；实际语音状态请查看频道。";
   const view = (label: string, kind: CommunityLanAction["kind"], message: string,
@@ -49,7 +85,7 @@ export function easyTierCommunityAction(state: EasyTierCommunityState | undefine
   const messages: Record<string, string> = {
     "configuration-required": "这个社区尚未提供已授权的联机配置，请联系社区管理员开通。语音聊天可继续使用。",
     "activation-required": "社区联机等待管理员开通。语音聊天可继续使用。",
-    "needs-permission": "本次联机尚未取得本机同意或 Windows 系统权限。点击重试可重新确认；应用不会自行提权或绕过系统确认，聊天窗口保持普通权限，语音聊天可继续使用。",
+    "needs-permission": "社区联机需要 Windows 管理员权限。请退出应用，右键应用选择“以管理员身份运行”后再打开。语音聊天可继续使用。",
     "runtime-required": "本版本缺少可用的联机组件。请安装包含联机组件的应用版本；准备文件不会安装驱动或连接网络，语音聊天可继续使用。",
     "multi-community-unavailable": "当前版本同时支持一个社区联机。退出原社区联机后可重试，正在运行的游戏网络会保持连接。",
     "unsupported-target": "当前联机组件无法使用，请准备受支持的组件。语音聊天可继续使用。",
@@ -62,14 +98,17 @@ export function easyTierCommunityAction(state: EasyTierCommunityState | undefine
   if (reason === "runtime-required" || reason === "unsupported-target")
     return view("缺少组件", "attention", message(messages[reason]), true);
   if (reason === "needs-permission" || reason === "multi-community-unavailable")
-    return view(reason === "needs-permission" ? "待授权" : "暂不可用", "attention", message(messages[reason]), false, true);
+    return view(reason === "needs-permission" ? "需要管理员权限" : "暂不可用", "attention", message(messages[reason]), false,
+      reason !== "needs-permission");
   const failures: Record<string, string> = {
-    "connect-failed": "社区联机连接失败，请重试。",
-    "operation-timeout": "社区联机操作超时，请重试。",
-    "status-unavailable": "暂时无法读取联机状态，请重试。",
-    "runtime-exited": "联机组件已退出，请重试。",
+    "connect-failed": "社区联机连接暂时未完成，应用会自动重试；也可立即重试。",
+    "operation-timeout": "社区联机操作暂时超时，应用会自动重试；也可立即重试。",
+    "status-unavailable": "暂时无法读取联机状态，应用会自动重试；也可立即重试。",
+    "runtime-exited": "联机组件暂时退出，应用会自动重试；也可立即重试。",
   };
+  const transient = TRANSIENT_REASONS.has(reason ?? "");
+  const fallback = transient ? failures[reason!] : "社区联机暂时不可用，请稍候；也可立即重试。";
   return view(reason === "cleanup-failed" ? "退出异常" : "联机异常", "error",
-    messages[reason ?? ""] ? message(messages[reason!]) : `${failures[reason ?? ""] ?? "社区联机暂时不可用，可以重试。"}${voice}`, false, true,
-    reason === "cleanup-failed" ? "重试退出" : "重试");
+    messages[reason ?? ""] ? message(messages[reason!]) : `${fallback}${voice}`, false, true,
+    reason === "cleanup-failed" ? "重试退出" : "立即重试");
 }

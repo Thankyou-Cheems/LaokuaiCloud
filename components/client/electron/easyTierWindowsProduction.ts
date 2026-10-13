@@ -1,23 +1,52 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { EasyTierElevationBroker } from "./easyTierElevationBroker";
 import type { EasyTierExistingConfiguration } from "./easyTierExistingConfiguration";
 import { readEasyTierExistingConfiguration } from "./easyTierExistingConfiguration";
 import { EasyTierWindowsAssets } from "./easyTierWindowsAssets";
-import { EasyTierWindowsProcesses } from "./easyTierWindowsProcesses";
+import { EasyTierWindowsProcesses, hasEasyTierWindowsPermission } from "./easyTierWindowsProcesses";
 import { WindowsEasyTierCliRuntime } from "./windowsEasyTierCliRuntime";
 
 /** Lazy paths: constructing the adapter performs no profile I/O or activation. */
 export function createWindowsEasyTierProduction(root: () => string, bundledDirectory: () => string,
   configuration?: (serverId: string, signal: AbortSignal) => Promise<EasyTierExistingConfiguration>, brokerDirectory?: () => string) {
   const assets = new EasyTierWindowsAssets(root, bundledDirectory);
-  const broker = brokerDirectory ? new EasyTierElevationBroker(brokerDirectory) : undefined;
-  const processes = new EasyTierWindowsProcesses(0, broker);
+  // The application is now required to start elevated.  Keep the helper only as
+  // a read-only token check; it must never become a second launch path for ET.
+  // The fourth argument is retained for the existing main wiring and points at
+  // the packaged helper directory.
+  const permissionExecutable = brokerDirectory ?
+    () => join(brokerDirectory(), "laokuai-community-broker.exe") : undefined;
+  const processes = new EasyTierWindowsProcesses(0);
+  let prepared = false;
+  let preparationEpoch = 0;
+  let preparation: Promise<boolean> | null = null;
+  const checkPermission = async (): Promise<boolean> => {
+    const approved = await hasEasyTierWindowsPermission(permissionExecutable?.());
+    if (!approved) prepared = false;
+    return approved;
+  };
+  const preparePermission = async (): Promise<boolean> => {
+    if (preparation) return preparation;
+    const epoch = preparationEpoch;
+    const work = (async () => {
+      prepared = false;
+      // Check the current process token before touching the product cache.  The
+      // helper's --check path is read-only and does not request elevation.
+      if (!(await checkPermission())) return false;
+      await assets.prepareProductBundled();
+      if (epoch !== preparationEpoch) throw new Error("preparation-canceled");
+      prepared = true;
+      return true;
+    })();
+    preparation = work;
+    void work.finally(() => { if (preparation === work) preparation = null; }).catch(() => undefined);
+    return work;
+  };
   const runtime = new WindowsEasyTierCliRuntime({
     platform: process.platform === "win32" && process.arch !== "x64" ? "unsupported-windows-arch" : process.platform,
     configuration: configuration ?? (serverId => readEasyTierExistingConfiguration(root(), serverId)),
-    permission: async () => broker?.available() ?? false,
+    permission: checkPermission,
     verifiedAssets: () => assets.prepareProductBundled(),
     start: (directory, config, signal) => processes.start(directory, config, signal),
     shutdownOwned: () => processes.shutdownOwned(),
@@ -31,7 +60,8 @@ export function createWindowsEasyTierProduction(root: () => string, bundledDirec
   const drainOwned = async () => {
     try { await processes.drainOwned(); }
     finally {
-      broker?.releasePreparation();
+      preparationEpoch++;
+      prepared = false;
       const reports = processes.cleanupReports();
       if (reports.length) {
         // Diagnostic receipt only. Never authorize deletion/kill from a saved PID or alias.
@@ -42,9 +72,13 @@ export function createWindowsEasyTierProduction(root: () => string, bundledDirec
     }
   };
   return { runtime, drainOwned, cleanupReports: () => processes.cleanupReports(),
-    preparePermission: async () => { await assets.prepareProductBundled(); return broker?.prepare() ?? false; },
-    preparationReady: () => broker?.available() ?? false,
-    releasePreparation: () => broker?.releasePreparation(), prepareRuntime: async () => {
+    preparePermission,
+    // This is an enrollment preparation latch, not another permission probe.
+    // Reconciliation therefore does not discard a successful preparation on
+    // every renderer snapshot. Runtime.connect still performs --check before
+    // each native start and clears the latch if the token is no longer valid.
+    preparationReady: () => prepared,
+    releasePreparation: () => { preparationEpoch++; prepared = false; }, prepareRuntime: async () => {
     if (process.platform !== "win32" || process.arch !== "x64") return { ready: false };
     try { await assets.prepareProductBundled(); return { ready: true }; } catch { return { ready: false }; }
   } };

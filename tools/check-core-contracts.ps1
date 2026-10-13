@@ -19,6 +19,8 @@ try {
         'electron/communityEtConfig.test.mjs',
         'electron/communityEtRuntime.test.mjs',
         'electron/communityEnrollment.test.mjs',
+        'electron/windowsAdminStartupGate.test.mjs',
+        'scripts/check-community-easytier-direct.mjs',
         'electron/easyTierElevationBroker.test.mjs',
         'scripts/check-community-easytier.mjs',
         'scripts/check-public-community-consent.cjs',

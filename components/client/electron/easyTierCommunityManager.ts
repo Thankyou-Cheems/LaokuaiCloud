@@ -83,7 +83,7 @@ export class EasyTierCommunityManager {
     const c = this.community(lease.serverId);
     if (this.disposed) return this.getState(lease.serverId);
     c.leases.add(lease.leaseId);
-    if (c.state.phase !== "connecting" && c.state.phase !== "connected") this.reconcile(c);
+    if (c.state.phase !== "connecting" && (c.state.phase !== "connected" || c.state.reason === "status-unavailable")) this.reconcile(c);
     await c.operation;
     return this.getState(lease.serverId);
   }

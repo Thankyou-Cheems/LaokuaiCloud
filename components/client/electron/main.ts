@@ -179,12 +179,30 @@ import {
   patchUser,
   saveUser,
 } from "./userStore";
+import { enforceLaokuaiWindowsAdminStartup, isExplicitLaokuaiOfflineLaunch } from "./windowsAdminStartupGate";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const require = createRequire(import.meta.url);
 
 const IS_LAOKUAI = isLaokuaiPackage();
+const IS_I18N_TEST = isI18nTestPackage();
+const EXPLICIT_OFFLINE_TEST = IS_LAOKUAI && IS_I18N_TEST && isExplicitLaokuaiOfflineLaunch(process.argv);
+if (IS_LAOKUAI && !EXPLICIT_OFFLINE_TEST) {
+  const brokerDirectory = join(
+    app.isPackaged ? process.resourcesPath : join(__dirname, "../build"),
+    "community-lan-helper",
+  );
+  enforceLaokuaiWindowsAdminStartup({
+    platform: process.platform,
+    product: true,
+    offlineTest: false,
+    brokerExecutable: join(brokerDirectory, "laokuai-community-broker.exe"),
+    brokerReceipt: join(brokerDirectory, "broker-build.json"),
+    showError: (title, message) => dialog.showErrorBox(title, message),
+    exit: code => process.exit(code),
+  });
+}
 if (IS_LAOKUAI) setNativeApplicationName("唠蒯云");
 const UI_ACCEPTANCE_MODE = (() => {
   try { return createUIAcceptanceMode(IS_LAOKUAI, process.argv); }
@@ -193,7 +211,6 @@ const UI_ACCEPTANCE_MODE = (() => {
     process.exit(2);
   }
 })();
-const IS_I18N_TEST = isI18nTestPackage();
 if (IS_I18N_TEST && !UI_ACCEPTANCE_MODE) isolateI18nTestData();
 const LAOKUAI_PREVIEW = IS_LAOKUAI && process.argv.includes("--laokuai-preview");
 if (LAOKUAI_PREVIEW && (!IS_I18N_TEST || process.env.VITE_DEV_SERVER_URL)) throw new Error("Laokuai preview requires product flags and built product origin");

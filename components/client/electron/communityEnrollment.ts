@@ -121,7 +121,8 @@ export class CommunityEnrollment {
 
   /** Lifecycle errors retry from the saved member, never from a voice-room event. */
   observe(state: EasyTierCommunityState): void {
-    if (state.phase === "connected") { this.retryCount = 0; this.cancelRetry?.(); this.cancelRetry = null; }
+    if (state.reason === "status-unavailable") this.scheduleRecovery();
+    else if (state.phase === "connected") { this.retryCount = 0; this.cancelRetry?.(); this.cancelRetry = null; }
     else if (state.phase === "error" && ["runtime-exited", "connect-failed", "operation-timeout"].includes(state.reason ?? "")) this.scheduleRecovery();
   }
 

@@ -4,7 +4,7 @@ import { getServerAccessToken } from "@/common";
 import { useServerManagement, useSockets } from "@/socket";
 
 import { publishCommunityLanState as publish, useEasyTierCommunityState } from "../lib/communityLanState";
-import { easyTierCommunityAction } from "../lib/easyTierCommunitySubscriptions";
+import { easyTierCommunityAction, presentCommunityLanAction } from "../lib/easyTierCommunitySubscriptions";
 import { CommunityLanStatusControl, type CommunityLanStatusControlProps } from "./CommunityLanStatusControl";
 
 const CommunityLanControlsContext = createContext<CommunityLanStatusControlProps | null>(null);
@@ -72,13 +72,7 @@ export function CommunityLanSession({ children }: { children?: ReactNode }) {
       refresh.current(serverId);
     } catch { setOperationFailed(true); setPreparing(false); }
   };
-  const shownAction = previewDisabled ? { ...action, label: "测试模式：联机未启用", kind: "disabled" as const,
-    message: "本轮测试预览未启用联机。", prepare: false, retry: false }
-    : preparing ? { ...action, label: "准备联机", kind: "pending" as const,
-      message: "正在自动准备社区联机；如 Windows 请求权限，请确认系统提示。社区语音可继续使用。", prepare: false, retry: false }
-    : operationFailed ? { ...action, label: "联机暂不可用", kind: "error" as const,
-      message: "自动联机未完成，可以重试。社区和语音连接不受影响。", prepare: false, retry: true }
-    : action;
+  const shownAction = presentCommunityLanAction(action, state, { previewDisabled, preparing, operationFailed });
   const host = currentlyViewingServer?.host;
   const connection = host ? serverConnectionStatus[host] : undefined;
   const communityLabel = connection === "refused" ? "社区认证或权限被拒绝" : host && sockets[host]?.connected

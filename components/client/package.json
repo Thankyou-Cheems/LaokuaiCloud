@@ -3,7 +3,7 @@
   "private": true,
   "grytLaokuai": true,
   "grytI18nTest": true,
-  "version": "1.13.22-laokuai.beta.20261013.4",
+  "version": "1.13.22-laokuai.beta.20261013.5",
   "description": "唠蒯云 — real-time voice chat desktop client",
   "author": {
     "name": "Gryt Chat",
@@ -98,6 +98,7 @@
     "test:windows-signature": "node scripts/check-windows-signature.mjs",
     "test:builder-config": "node scripts/check-builder-config.mjs",
     "test:helper-packaging": "node scripts/check-helper-packaging.mjs",
+    "test:windows-admin-startup-gate": "node --test electron/windowsAdminStartupGate.test.mjs",
     "test:server-order": "node scripts/check-server-order.mjs",
     "test:voice-state": "node scripts/check-voice-state-reassert.mjs",
     "test:media-state": "node scripts/check-media-state-reassert.mjs",

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-13",
+  "baseCommit": "5ebdc337",
+  "version": "1.13.22-laokuai.beta.20261013.5",
+  "scope": "Administrator-only Windows startup, direct owned ET process and bounded automatic recovery",
+  "ordinaryLaunch": "Read-only packaged helper --check; native instruction then exit before profile or main-window initialization",
+  "elevatedLaunch": "Use the existing owned direct-process adapter; no production elevation broker or extra community consent dialog",
+  "tests": {
+    "coreContractSuites": 24,
+    "coreContractsPassed": true,
+    "administratorGateScenarios": 7,
+    "enrollmentScenarios": 14,
+    "fixedCommunityProvisioningScenarios": 5,
+    "communityIsolationUiScenarios": 19,
+    "directAdapterPassed": true,
+    "applicationTypesPassed": true,
+    "applicationCompilePassed": true,
+    "targetedLintPassed": true,
+    "actualReadOnlyHelperTokenCheck": "ordinary"
+  },
+  "userProfileModifiedByTests": false,
+  "uacRequestedByTests": false,
+  "nativeEtExecuted": false,
+  "serverChanged": false,
+  "memberRelayEnabled": false,
+  "voiceAndSfuDefaultsChanged": false,
+  "priorPackageFailure": "User reported .4 no prompt and enrollment failure. Saved-policy/assets and current authenticated member-session probes passed; the complete original failure was not reproduced. This receipt records the user-requested launch redesign, not a runtime acceptance claim.",
+  "remaining": ["Exact portable extraction and isolated bootstrap", "User elevated launch and actual community enrollment", "Real game, device/media and multi-member WAN acceptance"]
+}
