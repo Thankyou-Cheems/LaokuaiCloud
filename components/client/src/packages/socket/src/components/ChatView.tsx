@@ -798,22 +798,23 @@ export const ChatView = memo(({
           )}
 
           {showVoiceDisabled ? (
-            <div className="flex grow items-center justify-center">
+            <div data-gryt="chat-history" className="flex grow items-center justify-center">
               <span className="text-sm text-gryt-muted" style={{ textAlign: "center", padding: "16px" }}>
                 {tr("ui.textChatIsDisabledInThisVoiceChannel")}
               </span>
             </div>
           ) : isLoadingMessages ? (
-            <div className="flex grow flex-col justify-end" style={{ paddingBottom: "16px" }}>
+            <div data-gryt="chat-history" className="flex grow flex-col justify-end" style={{ paddingBottom: "16px" }}>
               <MessageSkeleton />
             </div>
           ) : chatMessages.length === 0 ? (
-            <div className="flex grow items-center justify-center" style={{ paddingBottom: "16px" }}>
+            <div data-gryt="chat-history" className="flex grow items-center justify-center" style={{ paddingBottom: "16px" }}>
               <WelcomeMessage channelName={channelName} channelType={channelType} conversationKind={conversationKind} serverName={serverName} automated={automated} sealing={sealing} />
             </div>
           ) : showMessages ? (
             <div
               ref={scrollRef}
+              data-gryt="chat-history"
               className="chat-scroll-container"
               onScroll={handleScroll}
             >

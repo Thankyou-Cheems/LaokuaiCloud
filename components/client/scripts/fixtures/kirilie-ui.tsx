@@ -19,6 +19,7 @@ declare global {
       setAppearance(appearance: "light" | "dark"): void;
       openMenu(open: boolean): void;
       openDialog(open: boolean): void;
+      showChat(state: "messages" | "empty" | null): void;
       snapshot(): object;
     };
   }
@@ -34,6 +35,7 @@ function Fixture() {
   const settings = useTheme();
   const [menu, setMenu] = useState(false);
   const [dialog, setDialog] = useState(false);
+  const [chat, setChat] = useState<"messages" | "empty" | null>(null);
   const displayed = resolveDisplayedTheme(settings.themeStyle, settings.resolvedAppearance, null, null);
   useEffect(() => {
     const root = document.documentElement;
@@ -53,6 +55,7 @@ function Fixture() {
       setStyle: settings.setThemeStyle,
       setAppearance: settings.setAppearancePreference,
       openMenu: setMenu, openDialog: setDialog,
+      showChat: setChat,
       snapshot: () => {
         const rect = (node: Element) => {
           const r = node.getBoundingClientRect(), css = getComputedStyle(node);
@@ -75,6 +78,8 @@ function Fixture() {
           picker: find(".laokuai-theme-picker"), input: find("input"),
           danger: find('[data-fixture="danger"]'), disabled: find('[data-fixture="disabled"]'),
           rootStyle: document.documentElement.dataset.themeStyle,
+          chatHistory: find('[data-gryt="chat-history"]'), chatPane: find('[data-gryt="chat-view"]'),
+          composer: find('.gryt-composer'),
         };
       },
     };
@@ -98,7 +103,23 @@ function Fixture() {
             <span className="text-xs text-gryt-muted">社区认证正常 · 联机准备中</span>
           </div>
         </nav>
-        <main data-gryt="conversation-pane" className="min-w-0 flex-1 overflow-y-auto p-4">
+        <main data-gryt="conversation-pane" className={`min-w-0 flex-1 ${chat ? "flex overflow-hidden" : "overflow-y-auto p-4"}`}>
+          {chat ? <div data-gryt="chat-view" className="grow overflow-hidden" style={{ minWidth: 0, background: "var(--gryt-neutral-3)", borderRadius: "var(--gryt-radius-lg)", position: "relative" }}>
+            {/* Mirrors ChatView's existing pane/history shell, including its
+                opaque inline fill. No account, network or message hooks run. */}
+            <div className="flex h-full w-full" style={{ position: "relative" }}>
+              <div className="flex min-w-0 grow flex-col p-3" style={{ position: "relative" }}>
+                <div data-gryt="chat-header" className="mb-4 border-b pb-3 font-bold" style={{ borderColor: "var(--gryt-neutral-6)" }}># TEST · 小花园聊天</div>
+                {chat === "empty" ? <div data-gryt="chat-history" className="flex grow items-center justify-center" style={{ paddingBottom: "16px" }}><span>欢迎来到小花园 · TEST 空频道</span></div>
+                  : <div data-gryt="chat-history" className="chat-scroll-container">
+                    {Array.from({ length: 24 }, (_, i) => <div key={i} className="py-3 text-sm" style={{ color: "var(--gryt-text)" }}>
+                      <b>花叶成员 · TEST {i + 1}</b><p className="m-0">这是一条合成聊天消息，纸页插画在消息后方，滚动和阅读保持清楚。</p>
+                    </div>)}
+                  </div>}
+                <div className="gryt-composer shrink-0 p-3" style={{ backgroundColor: "var(--gryt-neutral-2)" }}><TextField label="TEST 消息输入" defaultValue="插画不覆盖输入区域" /></div>
+              </div>
+            </div>
+          </div> : <>
           <h2 className="mb-3 text-lg font-semibold">手绘风格与设置</h2>
           <ThemeStylePicker value={settings.themeStyle} onChange={settings.setThemeStyle} />
           <div className="my-3 flex flex-wrap gap-2">
@@ -132,6 +153,7 @@ function Fixture() {
               <span data-gryt="member-lan-dns" className="text-xs text-gryt-accent-11" style={{ overflowWrap: "anywhere" }}>{i ? "xingxing" : "xiaohua"}.TEST</span>
             </div>)}
           </section>
+          </>}
         </main>
       </div>
       <Dialog.Root open={dialog} onOpenChange={setDialog}>

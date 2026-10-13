@@ -19,6 +19,14 @@ export interface GeneratedVoicePackManifest {
   recordings: Partial<Record<VoiceAnnouncementEvent, { file: string; text: string; sha256: string }>>;
 }
 export const GENERATED_VOICE_MANIFESTS = import.meta.glob<GeneratedVoicePackManifest>("/src/private-voice/manbo/manifest.json", { eager: true, import: "default" });
+/** 75% on the notification curve is 0.422 gain (-7.5 dB), with no boost.
+ * Only missing preferences/reset use this; saved user percentages stay exact. */
+export function voiceSoundDefaultVolume(event: VoiceAnnouncementEvent, config: VoiceAnnouncementSettings,
+  legacy: { customConnectSoundFile?: string | null; customDisconnectSoundFile?: string | null } = {}): number {
+  const imported = event === "connected" ? legacy.customConnectSoundFile : event === "disconnected" ? legacy.customDisconnectSoundFile : null;
+  if (!imported && config.pack === "manbo" && MANBO_PACK_AVAILABLE) return 75;
+  return event === "peerJoined" || event === "peerLeft" ? 60 : 30;
+}
 export function voiceSoundUrl(event: VoiceAnnouncementEvent, config: VoiceAnnouncementSettings,
   legacy: { customConnectSoundFile?: string | null; customDisconnectSoundFile?: string | null } = {}): string | undefined {
   if (event === "connected" && legacy.customConnectSoundFile) return legacy.customConnectSoundFile;

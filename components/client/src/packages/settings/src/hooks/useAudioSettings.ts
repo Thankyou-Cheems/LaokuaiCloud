@@ -6,7 +6,7 @@ import { PEER_CUE_DEFAULTS, type PeerCueSettings,resolvePeerCueSettings } from "
 import { resolveSquadConfig, SQUAD_DEFAULTS,type SquadConfig } from "../../../../lib/squadMode";
 import { resolveVoiceAnnouncements, type VoiceAnnouncementSettings } from "../../../../lib/voiceAnnouncements";
 import { migrateVoiceTransportPreset, readVoiceTransportPreset, sharedVoicePreset, VOICE_TRANSPORT_SETTINGS_KEY, type VoiceTransportPreset } from "../../../../lib/voiceTransportPreset";
-import { MANBO_PACK_AVAILABLE } from "../../../webRTC/src/adapters/voiceSoundPacks";
+import { MANBO_PACK_AVAILABLE, voiceSoundDefaultVolume } from "../../../webRTC/src/adapters/voiceSoundPacks";
 import { getUserValue, setUserValue } from "./userStorage";
 
 export interface AudioSettingsData {
@@ -50,7 +50,7 @@ export const AUDIO_DEFAULTS: AudioSettingsData = {
   voiceAnnouncements: { pack: MANBO_PACK_AVAILABLE ? "manbo" : "classic", custom: {} },
   voiceTransportPreset: sharedVoicePreset(),
   squadConfig: SQUAD_DEFAULTS,
-  peerVoiceCues: PEER_CUE_DEFAULTS,
+  peerVoiceCues: { ...PEER_CUE_DEFAULTS, joinVolume: MANBO_PACK_AVAILABLE ? 75 : 60, leaveVolume: MANBO_PACK_AVAILABLE ? 75 : 60 },
   noiseGateMode: "automatic",
   micID: undefined,
   outputDeviceID: "",
@@ -75,8 +75,8 @@ export const AUDIO_DEFAULTS: AudioSettingsData = {
   disconnectHotkey: "",
   connectSoundEnabled: true,
   disconnectSoundEnabled: true,
-  connectSoundVolume: 30,
-  disconnectSoundVolume: 30,
+  connectSoundVolume: MANBO_PACK_AVAILABLE ? 75 : 30,
+  disconnectSoundVolume: MANBO_PACK_AVAILABLE ? 75 : 30,
   customConnectSoundFile: null,
   customDisconnectSoundFile: null,
   messageSoundEnabled: false,
@@ -88,10 +88,17 @@ export const AUDIO_DEFAULTS: AudioSettingsData = {
 
 export function loadAudioFromCache(): AudioSettingsData {
   const micId = getUserValue<string | undefined>("micID", undefined);
+  const voiceAnnouncements = resolveVoiceAnnouncements(getUserValue("voiceAnnouncements", AUDIO_DEFAULTS.voiceAnnouncements));
+  const customConnectSoundFile = getUserValue("customConnectSoundFile", AUDIO_DEFAULTS.customConnectSoundFile);
+  const customDisconnectSoundFile = getUserValue("customDisconnectSoundFile", AUDIO_DEFAULTS.customDisconnectSoundFile);
+  const legacy = { customConnectSoundFile, customDisconnectSoundFile };
   return {
-    voiceAnnouncements: resolveVoiceAnnouncements(getUserValue("voiceAnnouncements", AUDIO_DEFAULTS.voiceAnnouncements)),
+    voiceAnnouncements,
     voiceTransportPreset: migrateVoiceTransportPreset(getUserValue<unknown>(VOICE_TRANSPORT_SETTINGS_KEY, undefined),getUserValue<unknown>("eSportsModeEnabled", false)).preset,
-    peerVoiceCues: resolvePeerCueSettings(getUserValue<unknown>("peerVoiceCues", {})),
+    peerVoiceCues: resolvePeerCueSettings(getUserValue<unknown>("peerVoiceCues", {}), {
+      ...PEER_CUE_DEFAULTS, joinVolume: voiceSoundDefaultVolume("peerJoined", voiceAnnouncements),
+      leaveVolume: voiceSoundDefaultVolume("peerLeft", voiceAnnouncements),
+    }),
     noiseGateMode: getUserValue<unknown>("noiseGateMode", "automatic") === "manual" ? "manual" : "automatic",
     squadConfig: resolveSquadConfig(getUserValue<unknown>("squadConfig", {})),
     micID: micId && micId !== "undefined" && micId.trim() !== "" ? micId : undefined,
@@ -114,10 +121,10 @@ export function loadAudioFromCache(): AudioSettingsData {
     disconnectHotkey: getUserValue("disconnectHotkey", AUDIO_DEFAULTS.disconnectHotkey),
     connectSoundEnabled: getUserValue("connectSoundEnabled", AUDIO_DEFAULTS.connectSoundEnabled),
     disconnectSoundEnabled: getUserValue("disconnectSoundEnabled", AUDIO_DEFAULTS.disconnectSoundEnabled),
-    connectSoundVolume: getUserValue("connectSoundVolume", AUDIO_DEFAULTS.connectSoundVolume),
-    disconnectSoundVolume: getUserValue("disconnectSoundVolume", AUDIO_DEFAULTS.disconnectSoundVolume),
-    customConnectSoundFile: getUserValue("customConnectSoundFile", AUDIO_DEFAULTS.customConnectSoundFile),
-    customDisconnectSoundFile: getUserValue("customDisconnectSoundFile", AUDIO_DEFAULTS.customDisconnectSoundFile),
+    connectSoundVolume: getUserValue("connectSoundVolume", voiceSoundDefaultVolume("connected", voiceAnnouncements, legacy)),
+    disconnectSoundVolume: getUserValue("disconnectSoundVolume", voiceSoundDefaultVolume("disconnected", voiceAnnouncements, legacy)),
+    customConnectSoundFile,
+    customDisconnectSoundFile,
     messageSoundEnabled: getUserValue("messageSoundEnabled", AUDIO_DEFAULTS.messageSoundEnabled),
     messageSoundVolume: getUserValue("messageSoundVolume", AUDIO_DEFAULTS.messageSoundVolume),
     customMessageSoundFile: getUserValue("customMessageSoundFile", AUDIO_DEFAULTS.customMessageSoundFile),
@@ -136,10 +143,10 @@ export function useAudioSettings() {
     const safe=readVoiceTransportPreset(value); if(!safe)return;
     setVoiceTransportPresetState(safe); setUserValue(VOICE_TRANSPORT_SETTINGS_KEY,safe);
   }
-  const [peerVoiceCues, setPeerVoiceCuesState] = useState<PeerCueSettings>(PEER_CUE_DEFAULTS);
+  const [peerVoiceCues, setPeerVoiceCuesState] = useState<PeerCueSettings>(AUDIO_DEFAULTS.peerVoiceCues);
   const [noiseGateMode, setNoiseGateModeState] = useState<"automatic" | "manual">("automatic");
   function setPeerVoiceCues(value: PeerCueSettings) {
-    const safe = resolvePeerCueSettings(value); setPeerVoiceCuesState(safe); setUserValue("peerVoiceCues", safe);
+    const safe = resolvePeerCueSettings(value, AUDIO_DEFAULTS.peerVoiceCues); setPeerVoiceCuesState(safe); setUserValue("peerVoiceCues", safe);
   }
   function setNoiseGateMode(value: "automatic" | "manual") {
     setNoiseGateModeState(value); setUserValue("noiseGateMode", value);

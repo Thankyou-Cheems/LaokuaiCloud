@@ -52,6 +52,25 @@ html[data-theme-style="kirilie"] [data-gryt="voice-view"] {
   background-repeat: repeat, no-repeat;
 }
 
+/* Draw inside the message viewport: ChatView's opaque inline pane fill covers
+   the app garden. The paper wash keeps even unboxed message text readable.
+   A CSS background stays behind content, cannot intercept input, and remains
+   in the viewport when message history scrolls. The composer has no artwork. */
+html[data-theme-style="kirilie"] [data-gryt="chat-history"] {
+  --kirilie-chat-muted: #4d583c;
+  --gryt-muted: var(--kirilie-chat-muted);
+  --color-gryt-muted: var(--kirilie-chat-muted);
+  --gryt-neutral-11: var(--kirilie-chat-muted);
+  --color-gryt-neutral-11: var(--kirilie-chat-muted);
+  background-image: var(--kirilie-paper),
+    linear-gradient(rgb(255 253 244 / 75%), rgb(255 253 244 / 75%)),
+    url("../assets/kirilie-garden.svg");
+  background-size: auto, auto, min(320px, 70%) auto;
+  background-position: 0 0, 0 0, right 8px bottom 8px;
+  background-repeat: repeat, no-repeat, no-repeat;
+  background-attachment: scroll;
+}
+
 html[data-theme-style="kirilie"] :is(.member-row, [data-gryt="voice-member"]) {
   border-radius: 11px 14px 10px 13px;
   box-shadow: inset 0 -1px 0 rgb(151 163 106 / 16%);
@@ -188,6 +207,6 @@ html[data-theme-style="kirilie"] [data-gryt="sidebar"] span[style*="--gryt-warni
 .laokuai-theme-choice[data-look="original"] .laokuai-theme-swatch span:nth-child(3) { background: #1e2028; }
 
 @media (forced-colors: active) {
-  html[data-theme-style="kirilie"] .gryt-app { background-image: none; }
+  html[data-theme-style="kirilie"] :is(.gryt-app, [data-gryt="chat-history"]) { background-image: none; }
   .laokuai-theme-choice[aria-pressed="true"] { outline: 2px solid Highlight; }
 }

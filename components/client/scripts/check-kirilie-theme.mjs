@@ -9,6 +9,25 @@ import ts from "typescript";
 import { kirilieTheme, kirilieThemeVariables, readThemeStyle, resolveDisplayedTheme } from "../src/lib/kirilieTheme.ts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+// Check the production JSX, not just a fixture selector: artwork belongs on
+// all four message-history states, never on the composer or a new overlay.
+const chatSource = readFileSync(join(root, "src/packages/socket/src/components/ChatView.tsx"), "utf8");
+const chatAst = ts.createSourceFile("ChatView.tsx", chatSource, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+const historyNodes = [];
+const visit = node => {
+  if (ts.isJsxOpeningElement(node)) {
+    const attr = name => node.attributes.properties.find(p => ts.isJsxAttribute(p) && p.name.getText(chatAst) === name)?.initializer;
+    if (attr("data-gryt")?.text === "chat-history") historyNodes.push(node);
+  }
+  ts.forEachChild(node, visit);
+};
+visit(chatAst);
+assert.equal(historyNodes.length, 4, "disabled, loading, empty and populated history share the artwork hook");
+assert.ok(historyNodes.some(node => node.getText(chatAst).includes('className="chat-scroll-container"')), "actual scrolling message viewport carries the artwork hook");
+for (const node of historyNodes) {
+  assert.equal(node.tagName.getText(chatAst), "div");
+  assert.ok(!node.getText(chatAst).includes("background:"), "history inline fills would hide the artwork");
+}
 const original = { name: "Preserved original" }, draft = { name: "Editor preview" };
 for (const appearance of ["light", "dark"]) {
   assert.deepEqual(resolveDisplayedTheme("kirilie", appearance, original, null), { handDrawn: true, appearance: "light", theme: kirilieTheme });
@@ -62,10 +81,11 @@ for (const saved of [undefined, "original", "kirilie", "invalid"]) {
 }
 
 const variables = kirilieThemeVariables();
+const rgb = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
 const luminance = hex => {
   assert.match(hex, /^#[0-9a-f]{6}$/i);
-  const [r, g, b] = [1, 3, 5].map(i => {
-    const c = parseInt(hex.slice(i, i + 2), 16) / 255;
+  const [r, g, b] = rgb(hex).map(value => {
+    const c = value / 255;
     return c <= .04045 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4;
   });
   return .2126 * r + .7152 * g + .0722 * b;
@@ -84,10 +104,28 @@ for (const [label, foreground, background] of [
   assert.ok(ratio >= 4.5, `${label} contrast ${ratio.toFixed(2)} is below 4.5:1`);
   reports.push(`${label} ${ratio.toFixed(2)}:1`);
 }
+// Conservative full-opacity SVG colours beneath the actual 75% paper wash,
+// including the darker texture stripe. SVG's own alpha only lightens these.
+const chatCss = readFileSync(join(root, "src/styles/kirilie.css"), "utf8");
+assert.match(chatCss, /linear-gradient\(rgb\(255 253 244 \/ 75%\), rgb\(255 253 244 \/ 75%\)\)/);
+const chatMuted = chatCss.match(/--kirilie-chat-muted:\s*(#[0-9a-f]{6})/i)?.[1];
+assert.ok(chatMuted, "history secondary ink is calibrated for the artwork");
+const garden = readFileSync(join(root, "src/assets/kirilie-garden.svg"), "utf8");
+let minimumChatContrast = Infinity;
+for (const color of new Set(garden.match(/#[0-9a-f]{6}/gi))) {
+  const base = rgb(color), wash = rgb("#fffdf4"), pencil = rgb("#988f69");
+  const backdrop = "#" + base.map((value, i) => Math.round((value * .25 + wash[i] * .75) * .972 + pencil[i] * .028).toString(16).padStart(2, "0")).join("");
+  for (const foreground of ["text", "muted", "accent-11"]) {
+    const a = luminance(foreground === "muted" ? chatMuted : variables[`--gryt-${foreground}`]), b = luminance(backdrop);
+    const ratio = (Math.max(a, b) + .05) / (Math.min(a, b) + .05);
+    assert.ok(ratio >= 4.5, `${foreground} over washed garden ${color}: ${ratio.toFixed(2)}:1`);
+    minimumChatContrast = Math.min(minimumChatContrast, ratio);
+  }
+}
 for (const family of ["neutral", "accent", "secondary", "success", "danger", "warning"]) {
   for (let step = 1; step <= 12; step++) {
     assert.equal(variables[`--gryt-${family}-${step}`], variables[`--color-gryt-${family}-${step}`], "CSS and Tailwind tokens differ");
   }
 }
-console.log("Kirilie pure checks PASS: default/restore/editor, preference preservation, token parity and 12 contrast pairs. No visual/product/network acceptance.");
+console.log(`Kirilie pure checks PASS: default/restore/editor, preference preservation, token parity, 12 contrast pairs, four production history hooks and washed garden ink contrast >= ${minimumChatContrast.toFixed(2)}:1. No visual/product/network acceptance.`);
 console.log(reports.join(", "));

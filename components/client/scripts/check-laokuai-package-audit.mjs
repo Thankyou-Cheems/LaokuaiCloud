@@ -4,12 +4,25 @@ import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 const require = createRequire(import.meta.url);
-const { describe,readAsar,verifyPayload,verifyPortable,iconPayloads,writeSquadReceipt,checkSquadReceipt,readTarGz,assertPackedFileScope } = require("./laokuai-package-audit.cjs");
+const { describe,readAsar,verifyPayload,verifyPortable,iconPayloads,writeSquadReceipt,checkSquadReceipt,readTarGz,assertPackedFileScope,readMainBundle } = require("./laokuai-package-audit.cjs");
 const fixtureRoot = path.resolve(import.meta.dirname,"../build");
 fs.mkdirSync(fixtureRoot,{recursive:true});
 const temp = fs.mkdtempSync(path.join(fixtureRoot,"package-audit-synthetic-"));
 let cases = 0;
 const check = (name,fn) => { fn(); cases++; console.log(`PASS ${name}`); };
+check("main audit follows entry imports and rejects missing or escaping chunks", () => {
+  const files = new Map([
+    ["dist-electron/main.js", 'import{a}from"./shared.js";await import("./runtime.js");'],
+    ["dist-electron/shared.js", 'export const a="shared-marker";'],
+    ["dist-electron/runtime.js", 'import "./shared.js";const b="runtime-marker";'],
+    ["dist-electron/unused.js", '"unused-marker"'],
+  ]);
+  const read = file => { assert.ok(files.has(file), "Missing chunk"); return Buffer.from(files.get(file)); };
+  const bundle = readMainBundle(read);
+  assert.match(bundle, /runtime-marker/); assert.match(bundle, /shared-marker/); assert.doesNotMatch(bundle, /unused-marker/);
+  files.delete("dist-electron/runtime.js"); assert.throws(() => readMainBundle(read), /Missing chunk/);
+  files.set("dist-electron/main.js", 'import "../escape.js"'); assert.throws(() => readMainBundle(read), /escapes bundle/);
+});
 const write = (file,bytes) => { const dest = path.join(temp,file); fs.mkdirSync(path.dirname(dest),{recursive:true});fs.writeFileSync(dest,bytes); };
 // Header-only synthetic PE: no machine code, cannot run.
 const pe = Buffer.alloc(512); pe.write("MZ");pe.writeUInt32LE(128,60);pe.write("PE\0\0",128);pe.writeUInt16LE(0x8664,132);pe.writeUInt16LE(0x20b,152);

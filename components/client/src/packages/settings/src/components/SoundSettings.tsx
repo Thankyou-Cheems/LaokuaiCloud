@@ -17,6 +17,7 @@ interface SoundSettingsProps {
   customSoundFile: string | null;
   onCustomSoundFileChange: (file: string | null) => void;
   defaultSoundSrc: string;
+  shouldPlay?: () => boolean;
   showAlert: (
     type: "success" | "error",
     title: string,
@@ -35,6 +36,7 @@ export function SoundSettings({
   customSoundFile,
   onCustomSoundFileChange,
   defaultSoundSrc,
+  shouldPlay,
   showAlert,
 }: SoundSettingsProps) {
   useTranslation();
@@ -46,7 +48,7 @@ export function SoundSettings({
   useEffect(() => {
     playback.current?.stop(); playback.current = null; setIsPlaying(false);
     return () => { playback.current?.stop(); playback.current = null; };
-  }, [customSoundFile, defaultSoundSrc, volume]);
+  }, [customSoundFile, defaultSoundSrc, volume, enabled, shouldPlay]);
 
   useEffect(() => {
     if (!customSoundFile) return;
@@ -154,7 +156,7 @@ export function SoundSettings({
   const testSound = () => {
     playback.current?.stop();
     if (!customSoundFile && !defaultSoundSrc) return;
-    const current = playNotificationSound(customSoundFile || defaultSoundSrc, volume);
+    const current = playNotificationSound(customSoundFile || defaultSoundSrc, volume, { shouldPlay: () => enabled && shouldPlay?.() !== false });
     playback.current = current; setIsPlaying(true);
     void current.finished.then(() => {
       if (playback.current === current) { playback.current = null; setIsPlaying(false); }

@@ -182,7 +182,7 @@ import {
   patchUser,
   saveUser,
 } from "./userStore";
-import { enforceLaokuaiWindowsAdminStartup, isExplicitLaokuaiOfflineLaunch } from "./windowsAdminStartupGate";
+import { isExplicitLaokuaiOfflineLaunch } from "./windowsAdminStartupGate";
 import { cleanupLaokuaiFirewallRules, prepareLaokuaiFirewallRules } from "./windowsFirewallRules";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -242,36 +242,6 @@ function prepareLaokuaiFirewall(easyTierExecutable?: string | null): Promise<boo
   return firewallWork;
 }
 
-if (IS_LAOKUAI && !EXPLICIT_OFFLINE_TEST) {
-  const brokerDirectory = join(
-    app.isPackaged ? process.resourcesPath : join(__dirname, "../build"),
-    "community-lan-helper",
-  );
-  enforceLaokuaiWindowsAdminStartup({
-    platform: process.platform,
-    product: true,
-    offlineTest: false,
-    brokerExecutable: join(brokerDirectory, "laokuai-community-broker.exe"),
-    brokerReceipt: join(brokerDirectory, "broker-build.json"),
-    packaged: app.isPackaged,
-    executable: process.execPath,
-    argv: process.argv,
-    parentPid: process.pid,
-    portableDirectory: process.env.PORTABLE_EXECUTABLE_DIR,
-    promptRestart: () => dialog.showMessageBoxSync({
-      type: "warning",
-      title: "唠蒯云需要管理员权限",
-      message: "唠蒯云需要管理员权限才能启动。",
-      detail: "选择“以管理员身份重新启动”后，Windows 将请求管理员授权。社区联机尚未启动。",
-      buttons: ["以管理员身份重新启动", "退出"],
-      defaultId: 1,
-      cancelId: 1,
-      noLink: true,
-    }) === 0,
-    showError: (title, message) => dialog.showErrorBox(title, message),
-    exit: code => process.exit(code),
-  });
-}
 if (IS_LAOKUAI) setNativeApplicationName("唠蒯云");
 const UI_ACCEPTANCE_MODE = (() => {
   try { return createUIAcceptanceMode(IS_LAOKUAI, process.argv); }

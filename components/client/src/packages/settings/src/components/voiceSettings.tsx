@@ -1,5 +1,5 @@
 import { Divider } from "@gryt/ui";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import connectMp3 from "@/audio/src/assets/connect.mp3";
 import disconnectMp3 from "@/audio/src/assets/disconnect.mp3";
@@ -7,7 +7,7 @@ import { useTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 
 import { NoticeDialog } from "../../../socket/src/components/NoticeDialog";
-import { voiceSoundUrl } from "../../../webRTC/src/adapters/voiceSoundPacks";
+import { voiceSoundDefaultVolume, voiceSoundUrl } from "../../../webRTC/src/adapters/voiceSoundPacks";
 import { PeerVoiceCueSettings } from "./PeerVoiceCueSettings";
 import { SettingsContainer, SliderSetting, ToggleSetting } from "./settingsComponents";
 import { SoundSettings } from "./SoundSettings";
@@ -17,6 +17,13 @@ import { VoiceTransportSettings } from "./VoiceTransportSettings";
 
 export function VoiceSettings() {
   const { t: tr } = useTranslation();
+  const settings = useSettings();
+  const latest = useRef(settings); latest.current = settings;
+  const previewAllowed = (leaving: boolean) => {
+    const s = latest.current;
+    return !s.peerVoiceCues.dnd && !s.isDeafened && !s.isServerDeafened && s.outputVolume > 0 &&
+      (leaving ? s.disconnectSoundEnabled : s.connectSoundEnabled);
+  };
   const {
     eSportsModeEnabled,
     setESportsModeEnabled,
@@ -35,7 +42,7 @@ export function VoiceSettings() {
     afkTimeoutMinutes,
     setAfkTimeoutMinutes,
     voiceAnnouncements,
-  } = useSettings();
+  } = settings;
 
   const [alertDialog, setAlertDialog] = useState<{
     open: boolean;
@@ -102,10 +109,11 @@ export function VoiceSettings() {
           onEnabledChange={setConnectSoundEnabled}
           volume={connectSoundVolume}
           onVolumeChange={setConnectSoundVolume}
-          defaultVolume={10}
+          defaultVolume={voiceSoundDefaultVolume("connected", voiceAnnouncements, { customConnectSoundFile })}
           customSoundFile={customConnectSoundFile}
           onCustomSoundFileChange={setCustomConnectSoundFile}
           defaultSoundSrc={voiceSoundUrl("connected", voiceAnnouncements) ?? connectMp3}
+          shouldPlay={() => previewAllowed(false)}
           showAlert={showAlert}
         />
         <SoundSettings
@@ -115,10 +123,11 @@ export function VoiceSettings() {
           onEnabledChange={setDisconnectSoundEnabled}
           volume={disconnectSoundVolume}
           onVolumeChange={setDisconnectSoundVolume}
-          defaultVolume={10}
+          defaultVolume={voiceSoundDefaultVolume("disconnected", voiceAnnouncements, { customDisconnectSoundFile })}
           customSoundFile={customDisconnectSoundFile}
           onCustomSoundFileChange={setCustomDisconnectSoundFile}
           defaultSoundSrc={voiceSoundUrl("disconnected", voiceAnnouncements) ?? disconnectMp3}
+          shouldPlay={() => previewAllowed(true)}
           showAlert={showAlert}
         />
       </div>

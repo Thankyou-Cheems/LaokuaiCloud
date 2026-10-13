@@ -21,7 +21,7 @@ export interface LaokuaiAdminStartupOptions {
   argv: readonly string[];
   parentPid: number;
   portableDirectory?: string;
-  promptRestart: () => boolean;
+  promptRestart: () => boolean | Promise<boolean>;
   showError: (title: string, message: string) => void;
   exit: (code: number) => never;
   readFile?: typeof readFileSync;
@@ -81,11 +81,11 @@ export function verifyLaokuaiBrokerBundle(
 }
 
 /**
- * Enforce administrator startup for the real Windows product. This function is
- * synchronous by design: no profile, store, window, service or native runtime
- * may be touched after a rejected launch.
+ * Approved launches return synchronously so pre-ready setup keeps its ordering.
+ * A rejected launch returns the prompt task, which always exits. The ESM entry
+ * must NOT await that task: Electron emits ready after the entry module settles.
  */
-export function enforceLaokuaiWindowsAdminStartup(options: LaokuaiAdminStartupOptions): LaokuaiAdminStartupResult {
+export function enforceLaokuaiWindowsAdminStartup(options: LaokuaiAdminStartupOptions): LaokuaiAdminStartupResult | Promise<never> {
   if (!options.product || options.platform !== "win32" || options.offlineTest) return "bypassed";
 
   const readFile = options.readFile ?? readFileSync;
@@ -121,7 +121,11 @@ export function enforceLaokuaiWindowsAdminStartup(options: LaokuaiAdminStartupOp
     options.showError("唠蒯云无法启动", "请在完整解压的绿色目录中右键以管理员身份运行唠蒯云。");
     options.exit(1);
   }
-  if (!options.promptRestart()) options.exit(0);
+  return restartAfterReadiness(options, execute);
+}
+
+async function restartAfterReadiness(options: LaokuaiAdminStartupOptions, execute: typeof execFileSync): Promise<never> {
+  if (!await options.promptRestart()) options.exit(0);
   let request: string;
   try { request = laokuaiAdminRestartRequest(options.argv); }
   catch {

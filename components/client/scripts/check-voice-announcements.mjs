@@ -146,12 +146,45 @@ const soundImports = {
   "../../../../lib/voiceAnnouncements": policy,
 };
 const packs = load("src/packages/webRTC/src/adapters/voiceSoundPacks.ts", soundImports, { privateInputs: { glob: path => path.endsWith("*.wav") ? recordings : {} } });
+const cache = {};
+const audioImports = {
+  react: {}, "@/lib/desktopNotification": { requestNotificationPermission() {} },
+  "../../../../lib/peerVoiceCues": load("src/lib/peerVoiceCues.ts"),
+  "../../../../lib/squadMode": load("src/lib/squadMode.ts"),
+  "../../../../lib/voiceAnnouncements": policy,
+  "../../../../lib/voiceTransportPreset": load("src/lib/voiceTransportPreset.ts"),
+  "../../../webRTC/src/adapters/voiceSoundPacks": packs,
+  "./userStorage": { getUserValue: (key, fallback) => cache[key] === undefined ? fallback : cache[key], setUserValue() { assert.fail("Loading defaults must not write preferences"); } },
+};
+const audioDefaults = load("src/packages/settings/src/hooks/useAudioSettings.ts", audioImports);
+const volumeCurve = load("src/packages/lib/audioVolume.ts");
+const freshAudio = audioDefaults.loadAudioFromCache();
+assert.equal(freshAudio.connectSoundVolume, 75, "untouched Manbo defaults must not attenuate speech by 31 dB");
+assert.equal(freshAudio.disconnectSoundVolume, 75);
+assert.equal(freshAudio.peerVoiceCues.joinVolume, 75);
+assert.equal(freshAudio.peerVoiceCues.leaveVolume, 75);
+assert.equal(volumeCurve.sliderToGain(freshAudio.connectSoundVolume), 0.421875);
+Object.assign(cache, { connectSoundVolume: 30, disconnectSoundVolume: 0, outputVolume: 0, outputDeviceID: "chosen-headset",
+  connectSoundEnabled: false, peerVoiceCues: { enabled: false, dnd: true, joinVolume: 12, leaveVolume: 0 } });
+const preserved = audioDefaults.loadAudioFromCache();
+for (const key of Object.keys(cache)) assert.deepEqual(JSON.parse(JSON.stringify(preserved[key])), cache[key], `explicit ${key} must survive`);
+for (const key of Object.keys(cache)) delete cache[key];
+cache.voiceAnnouncements = { pack: "classic", custom: {} };
+assert.equal(audioDefaults.loadAudioFromCache().connectSoundVolume, 30, "classic default stays unchanged in a private build");
+assert.equal(audioDefaults.loadAudioFromCache().peerVoiceCues.joinVolume, 60);
+delete cache.voiceAnnouncements;
+cache.customConnectSoundFile = "imported:connect";
+assert.equal(audioDefaults.loadAudioFromCache().connectSoundVolume, 30, "imported legacy sound is not made louder");
+delete cache.customConnectSoundFile;
 assert.equal(packs.MANBO_PACK_AVAILABLE, true);
 for (const event of Object.keys(policy.VOICE_PHRASES)) assert.equal(packs.voiceSoundUrl(event, { pack: "manbo" }), `private:${event}`);
 assert.equal(packs.voiceSoundUrl("connected", { pack: "manbo" }, { customConnectSoundFile: "imported:connect" }), "imported:connect");
 assert.equal(packs.voiceSoundUrl("disconnected", { pack: "custom", custom: {} }, { customDisconnectSoundFile: "imported:disconnect" }), "imported:disconnect");
 const noPack = load("src/packages/webRTC/src/adapters/voiceSoundPacks.ts", soundImports, { privateInputs: { glob: () => ({}) } });
 assert.equal(noPack.MANBO_PACK_AVAILABLE, false);
+const publicAudio = load("src/packages/settings/src/hooks/useAudioSettings.ts", { ...audioImports, "../../../webRTC/src/adapters/voiceSoundPacks": noPack });
+assert.equal(publicAudio.loadAudioFromCache().connectSoundVolume, 30);
+assert.equal(publicAudio.loadAudioFromCache().peerVoiceCues.joinVolume, 60);
 assert.equal(noPack.voiceSoundUrl("connected", { pack: "manbo" }), "classic:connect", "previous manbo preference cannot silence a build without private inputs");
 assert.equal(packs.voiceSoundUrl("peerJoined", { pack: "custom", custom: {} }), undefined);
 const audioPlays = [];
@@ -178,6 +211,46 @@ settings.connectSoundEnabled = false; assert.equal(announce("connected", "disabl
 settings.connectSoundEnabled = true; settings.customConnectSoundFile = "imported:connect";
 assert.equal(announce("connected", "import-priority"), true); await spin(); assert.equal(audioPlays.at(-1)[0], "imported:connect");
 sounds.cancelVoiceAnnouncements(); await spin();
+// All nine real preview buttons and the live hook receive the same saved/default
+// percentages. No audio hardware is opened by this deterministic fixture.
+Object.assign(settings, freshAudio, { isDeafened: false, isServerDeafened: false, isMuted: false });
+const jsx = (type, props) => ({ type, props });
+let previewEligible;
+const previewComponent = load("src/packages/settings/src/components/VoiceAnnouncementSettings.tsx", {
+  "@gryt/ui": { Button: "Button", Select: "Select" },
+  react: { useRef: value => ({ current: value }), useEffect: fn => fn() },
+  "react/jsx-runtime": { jsx, jsxs: jsx }, "@/settings": { useSettings: () => settings },
+  "@/lib/notificationSound": { playNotificationSound(url, volume, options) { previewEligible = options.shouldPlay;
+    assert.equal(previewEligible(), true); audioPlays.push([url, volume]); return { stop() {}, finished: Promise.resolve(true) }; } },
+  "../../../../lib/voiceAnnouncements": policy, "../../../webRTC/src/adapters/voiceSoundPacks": packs,
+  "./settingsComponents": { SettingGroup: "Group" }, "./SoundSettings": { SoundSettings: "SoundSettings" },
+}).VoiceAnnouncementSettings;
+const previewView = previewComponent({ showAlert() {} });
+const buttons = [];
+const visit = node => {
+  if (Array.isArray(node)) { node.forEach(visit); return; }
+  if (!node?.props) return;
+  if (node.type === "Button") buttons.push(node);
+  visit(node.props.children);
+};
+visit(previewView); assert.equal(buttons.length, 9);
+for (const [index, event] of Object.keys(policy.VOICE_PHRASES).entries()) {
+  assert.equal(buttons[index].props.disabled, false);
+  buttons[index].props.onClick(); const previewPlay = audioPlays.at(-1);
+  settings.isMuted = event === "microphoneMuted";
+  settings.isDeafened = event === "outputMuted";
+  assert.equal(announce(event, `audible:${event}`), true); await spin();
+  assert.deepEqual(audioPlays.at(-1), previewPlay, `preview/live ${event} volume agrees`);
+  assert.equal(audioPlays.at(-1)[1], 75);
+  settings.isDeafened = false;
+}
+sounds.cancelVoiceAnnouncements(); await spin();
+buttons[0].props.onClick(); settings.peerVoiceCues.dnd = true;
+assert.equal(previewEligible(), false, "DND selected during decode cancels a pending preview");
+settings.peerVoiceCues.dnd = false; settings.peerVoiceCues.enabled = false;
+buttons.length = 0; visit(previewComponent({ showAlert() {} }));
+assert.equal(buttons[2].props.disabled, true, "disabled peer cues cannot preview from the announcement list");
+settings.peerVoiceCues.enabled = true;
 // Actual socket adapter: no roster/self/foreign-room event may invent a cue.
 slots.length = 0;
 const listeners = new Map(); const peerEvents = [];

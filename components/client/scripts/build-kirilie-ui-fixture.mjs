@@ -23,9 +23,10 @@ await build({ configFile: false, root: join(out, "entry"), base: "./", publicDir
   plugins: [tailwindcss()], build: { outDir: join(out, "dist"), emptyOutDir: false,
     rollupOptions: { input: entry } } });
 const inputs = ["src/lib/kirilieTheme.ts", "src/styles/kirilie.css", "src/style.css", "src/assets/kirilie-garden.svg",
-  "src/packages/common/src/hooks/useTheme.ts", "src/packages/settings/src/components/theme/themeStylePicker.tsx", "scripts/fixtures/kirilie-ui.tsx"];
+  "src/packages/common/src/hooks/useTheme.ts", "src/packages/settings/src/components/theme/themeStylePicker.tsx",
+  "src/packages/socket/src/components/ChatView.tsx", "scripts/fixtures/kirilie-ui.tsx"];
 writeFileSync(join(out, "BUILD-RECEIPT.json"), JSON.stringify({ actualBrowserRun: false,
-  scope: "Actual production CSS/tokens, theme hook and style picker, real @gryt/ui dialogs, portal menus, fields, select, switch and tooltip. Synthetic room, channels and member rows. No product bootstrap/account/network/native/media.",
+  scope: "Actual production CSS/tokens, theme hook and style picker, real @gryt/ui dialogs, portal menus, fields, select, switch and tooltip. Synthetic room, channels, member rows and ChatView pane/history shells with the same opaque inline background. No product bootstrap/account/network/native/media.",
   entry: join(out, "dist/index.html"),
   sourceInputHashes: Object.fromEntries(inputs.map(file => [file, createHash("sha256").update(readFileSync(join(root, file))).digest("hex")])) }, null, 2) + "\n");
 console.log(JSON.stringify({ out, actualBrowserRun: false }));

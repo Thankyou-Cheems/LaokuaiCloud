@@ -98,11 +98,14 @@ export default defineConfig({
       ? [
           electron([
             {
-              entry: "electron/main.ts",
+              entry: "electron/bootstrap.ts",
               vite: {
                 build: {
                   outDir: "dist-electron",
-                  rollupOptions: { external: ["electron", "uiohook-napi"] },
+                  rollupOptions: {
+                    external: ["electron", "uiohook-napi"],
+                    output: { entryFileNames: "main.js", chunkFileNames: "[name]-[hash].js" },
+                  },
                 },
               },
             },

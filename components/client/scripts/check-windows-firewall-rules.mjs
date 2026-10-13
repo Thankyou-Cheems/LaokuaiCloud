@@ -110,7 +110,7 @@ try {
   assert.ok(main.includes("if (LAOKUAI_FIREWALL_CLEANUP_REQUESTED)"));
   assert.ok(!source.includes("execFileSync"));
   const workStart = main.indexOf("let firewallWork:");
-  const workEnd = main.indexOf("if (IS_LAOKUAI && !EXPLICIT_OFFLINE_TEST)", workStart);
+  const workEnd = main.indexOf("if (IS_LAOKUAI) setNativeApplicationName", workStart);
   assert.ok(workStart > 0 && workEnd > workStart);
   const wiring = ts.transpileModule(main.slice(workStart, workEnd), { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
   let bootstrapCalls = 0;

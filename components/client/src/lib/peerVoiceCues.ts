@@ -1,10 +1,10 @@
 export interface PeerCueSettings { enabled: boolean; dnd: boolean; joinVolume: number; leaveVolume: number }
 export const PEER_CUE_DEFAULTS: Readonly<PeerCueSettings> = Object.freeze({ enabled: true, dnd: false, joinVolume: 60, leaveVolume: 60 });
-export function resolvePeerCueSettings(value: unknown): PeerCueSettings {
+export function resolvePeerCueSettings(value: unknown, defaults: Readonly<PeerCueSettings> = PEER_CUE_DEFAULTS): PeerCueSettings {
   const input = value && typeof value === "object" ? value as Partial<PeerCueSettings> : {};
-  const volume = (v: unknown) => typeof v === "number" && Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : 60;
+  const volume = (v: unknown, fallback: number) => typeof v === "number" && Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : fallback;
   return { enabled: typeof input.enabled === "boolean" ? input.enabled : true, dnd: input.dnd === true,
-    joinVolume: volume(input.joinVolume), leaveVolume: volume(input.leaveVolume) };
+    joinVolume: volume(input.joinVolume, defaults.joinVolume), leaveVolume: volume(input.leaveVolume, defaults.leaveVolume) };
 }
 /** Event-only: roster snapshots never produce cues. No delayed/batched sound queue. */
 export class PeerCuePolicy {

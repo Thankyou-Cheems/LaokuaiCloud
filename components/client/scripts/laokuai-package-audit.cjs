@@ -13,6 +13,23 @@ const walk = dir => fs.readdirSync(dir, { withFileTypes: true }).sort((a,b) => a
   .flatMap(e => e.isDirectory() ? walk(path.join(dir,e.name)) : [path.join(dir,e.name)]);
 const describe = bytes => ({ bytes: bytes.length, sha256: sha(bytes) });
 
+// Follow only emitted relative ESM imports from the entry. The admin gate must
+// remain separate from the runtime, whose marker checks still apply transitively.
+function readMainBundle(read) {
+  const visited = new Set(), sources = [];
+  function visit(file) {
+    assert.ok(file.startsWith("dist-electron/") && !file.includes(".."), "Main chunk escapes bundle");
+    if (visited.has(file)) return;
+    visited.add(file);
+    const source = read(file).toString(); sources.push(source);
+    for (const match of source.matchAll(/\b(?:from\s*|import\s*\(\s*|import\s*)(["'])(\.\.?\/[^"']+\.js)\1/g)) {
+      visit(path.posix.normalize(path.posix.join(path.posix.dirname(file), match[2])));
+    }
+  }
+  visit("dist-electron/main.js");
+  return sources.join("\n");
+}
+
 function readTarGz(file) {
   const tar = gunzipSync(fs.readFileSync(file)), files = new Map();
   for (let pos = 0; pos + 512 <= tar.length;) {
@@ -183,7 +200,7 @@ function inventory(root,config,{ sourceOnly = false } = {}) {
     manifest.packedFiles[slash(path.relative(root,file))] = describe(fs.readFileSync(file));
   }
   for (const file of ["dist-electron/main.js","dist-electron/preload.cjs","dist/index.html","dist/laokuai-icon.png"]) assert.ok(manifest.packedFiles[file],file);
-  const main=read("dist-electron/main.js").toString();
+  const main=readMainBundle(read);
   for(const marker of ["local.laokuai.chat","laokuai-chat-data","grytI18nTest","squad-scope.exe","persist:laokuai-official-auth"]) assert.ok(main.includes(marker),`Main bundle misses ${marker}`);
   const renderer = walk(path.join(root,"dist/assets")).filter(file => file.endsWith(".js")).map(file => fs.readFileSync(file,"utf8")).join("\n");
   assert.ok(renderer.includes(pkg.version),"Renderer must include current app version");
@@ -284,4 +301,4 @@ function verifyPayload(payload,manifest) {
     payloadFiles:Object.fromEntries(walk(payload).map(file => [slash(path.relative(payload,file)),describe(fs.readFileSync(file))])),
     applicationExecuted:false,realProfileRead:false,scope:"Exact final build files/resources and extracted portable archive; no runtime acceptance" };
 }
-module.exports = { sha,describe,readTarGz,readAsar,inventory,assertPackedFileScope,verifyPayload,verifyPortable,iconPayloads,writeSquadReceipt,checkSquadReceipt };
+module.exports = { sha,describe,readTarGz,readAsar,inventory,assertPackedFileScope,verifyPayload,verifyPortable,iconPayloads,writeSquadReceipt,checkSquadReceipt,readMainBundle };
