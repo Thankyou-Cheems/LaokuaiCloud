@@ -14,7 +14,8 @@ export function peerReceivePolicyCommitted(pc: RTCPeerConnection, policy: MediaP
 export function refreshPeerReceivePolicy(pc: RTCPeerConnection, policy: MediaPolicy, committed = false): void {
   const state = receivePolicies.get(pc);
   if (!state) return;
-  if (committed) state.committedKey = JSON.stringify(canonicalMediaPolicy(policy));
+  // A revoke/regrant round trip must not inherit an earlier answer's grant.
+  state.committedKey = committed ? JSON.stringify(canonicalMediaPolicy(policy)) : undefined;
   state.refresh(policy, committed);
 }
 

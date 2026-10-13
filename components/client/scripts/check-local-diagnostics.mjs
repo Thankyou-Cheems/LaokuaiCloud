@@ -28,6 +28,9 @@ assert.ok(schema.safeDiagnostic(event));
 const route = {phase:'voice', operation:'hybrid-route', action:'finish', code:'ok', status:'p2p',
   selected:'p2p', reason:null, scopeGeneration:2, routeOrdinal:1, routeGeneration:3, selectionRevision:4, forwardingPaused:true};
 assert.ok(schema.safeDiagnostic(route), 'bounded voice routing observations must be accepted');
+for (const reason of ['peer_path_inconsistent', 'invalid_receive_candidate', 'invalid_receive_node']) {
+  assert.equal(schema.safeDiagnostic({...route, reason}).reason, reason, 'controller reason must reach disk schema');
+}
 for (const extra of [{reason:'token=private'}, {status:'raw SDP'}, {routeOrdinal:-1}, {forwardingPaused:'yes'}, {peerId:'private'}, {ip:'10.0.0.1'}])
   assert.equal(schema.safeDiagnostic({...route,...extra}), null);
 assert.ok(schema.safeDiagnostic({phase:'lan',operation:'lan-telemetry',action:'finish',code:'provider-unavailable',httpStatus:409,generation:3}));

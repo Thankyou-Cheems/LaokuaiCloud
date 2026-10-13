@@ -138,7 +138,7 @@ function runtimeFixture(options = {}) {
       signal.addEventListener('abort',()=>reject(new CommunityEtTransportError('request-cancelled')),{once:true});
     });
     if (failure?.op === op) throw new CommunityEtTransportError(failure.code);
-    if (op === 'session') return {v: 1, ...clone(f.verified)};
+    if (op === 'session') {const reply = {v: 1, ...clone(f.verified)}; await options.beforeSessionReply?.(reply, bearer); return reply;}
     if (op === 'revoke') { events.push('revoke'); return {v: 1, revoked: true}; }
     if (op === 'binding') {const reply = {...clone(f.proof), revision}; await options.beforeBindingReply?.(reply); return reply;}
     if (op === 'directory') return options.directory ? options.directory(body, f, signal) : {v: 1, communityId: 'community', members: [{serverUserId: 'member', virtualIp: '10.77.1.2'}]};
@@ -162,6 +162,7 @@ function runtimeFixture(options = {}) {
     }});
   const physical = {activationReason: () => null, shutdownOwned: () => events.push('shutdown'), connect: async scope => {
     cores++; assert.ok(await coordinator.configuration(scope.serverId, scope.signal)); events.push('start');
+    await options.beforePhysicalConnected?.(scope);
     let closed = false; return {instanceId: UUID, close: async () => { if (!closed) {events.push('stop'); closed = true;} },
       applyRelayBudget: options.applyRelayBudget,
       read: denied, readCredentialSample: async signal => {
@@ -752,6 +753,191 @@ test('telemetry diagnostics preserve only enumerated issuer/CLI causes', async (
     assert.equal(diagnostics.at(-1).reason, reason); assert.equal(f.events.includes('stop'), false);
   }
   assert.equal(JSON.stringify(diagnostics).includes('secret'), false); await manager.setEnabled(false);
+});
+
+function enrollmentRuntimeFixture(options = {}) {
+  const f = runtimeFixture(options), timers = [], member = {serverId: 'community', host: 'test.invalid', accessToken: 'original-fixture'};
+  let enrollment;
+  const manager = new EasyTierCommunityManager(f.runtime, state => enrollment?.observe(state),
+    () => f.now.mono, 1000, 10000, () => f.now.wall);
+  enrollment = new CommunityEnrollment({manager, supports: () => true, approve: async () => ({accepted: true}),
+    authenticate: async value => {const result = await f.authenticate(value.accessToken); await options.afterAuthenticate?.(value, result); return result;},
+    releasePreparation: () => undefined, preparationReady: () => true,
+    schedule: (work, delayMs) => {const timer = {work, delayMs, cancelled: false}; timers.push(timer); return () => {timer.cancelled = true;};}});
+  return {...f, timers, member, enrollment, manager, snapshot: token => ({members: [{...member, accessToken: token}], enabled: true}),
+    retry: async () => {const timer = timers.find(timer => !timer.cancelled); assert.ok(timer); timer.cancelled = true; timer.work();
+      for (let i = 0; i < 8; i++) await flush();},
+    close: async () => {enrollment.shutdown(); await manager.setEnabled(false);}};
+}
+
+test('healthy old-session telemetry cannot cancel pending authentication of a rotated bearer', async () => {
+  const f = enrollmentRuntimeFixture();
+  try {
+    await f.enrollment.reconcile(f.snapshot(f.member.accessToken)); await f.manager.refresh('community');
+    f.setFailure({op: 'session', code: 'provider-unavailable'});
+    await assert.rejects(f.enrollment.reconcile(f.snapshot('rotated-fixture')));
+    const timer = f.timers.find(timer => !timer.cancelled); assert.ok(timer); assert.equal(timer.delayMs, 5000);
+    f.now.mono += 2000; f.now.wall += 2000; await f.manager.refresh('community');
+    assert.equal(timer.cancelled, false, 'healthy old-token polling does not authenticate the desired new token');
+    await f.retry();
+    assert.deepEqual(f.timers.map(timer => timer.delayMs), [5000, 10000], 'healthy polling cannot reset auth backoff');
+    f.setFailure(null); await f.manager.refresh('community'); await f.retry();
+    assert.equal(f.calls.filter(call => call.op === 'session' && call.bearer === 'rotated-fixture').length, 3);
+    assert.equal(f.cores(), 1); assert.equal(f.events.includes('stop'), false);
+    f.now.mono += 31000; f.now.wall += 31000; await f.manager.refresh('community');
+    assert.equal(f.calls.find(call => call.op === 'renew').bearer, 'rotated-fixture');
+    assert.equal(f.timers.filter(timer => !timer.cancelled).length, 0);
+  } finally {await f.close();}
+});
+
+test('changed verified scope after temporary authentication failure replaces the manager session', async () => {
+  const f = enrollmentRuntimeFixture();
+  try {
+    await f.enrollment.reconcile(f.snapshot(f.member.accessToken)); await f.manager.refresh('community');
+    f.setFailure({op: 'session', code: 'provider-unavailable'});
+    await assert.rejects(f.enrollment.reconcile(f.snapshot('rotated-fixture'))); f.setFailure(null);
+    f.verified.serverUserId = 'replacement-member'; f.intent.accountId = 'replacement-account';
+    f.scope.accountId = 'replacement-account'; f.grant.scope.accountId = 'replacement-account';
+    f.proof.scope.accountId = 'replacement-account'; f.proof.serverUserId = 'replacement-member';
+    await f.retry();
+    assert.equal(f.cores(), 2, 'retired previous scope must be replaced, even after a failed auth attempt');
+    assert.equal(f.events.filter(event => event === 'stop').length, 1);
+    await f.manager.refresh('community'); assert.ok(f.manager.getState('community').lanSnapshot);
+    assert.equal(f.manager.getState('community').reason, null);
+  } finally {await f.close();}
+});
+
+for (const fault of ['cli', 'binding']) test('ordinary ' + fault + ' outages leave required renewals active across multiple TTLs', async () => {
+  const f = enrollmentRuntimeFixture();
+  try {
+    await f.enrollment.reconcile(f.snapshot(f.member.accessToken));
+    if (fault === 'cli') f.setSampleFailure('status-unavailable');
+    else f.setFailure({op: 'binding', code: 'provider-unavailable'});
+    for (let i = 0; i < 65; i++) {f.now.mono += 2000; f.now.wall += 2000; await f.manager.refresh('community');}
+    assert.ok(f.calls.filter(call => call.op === 'renew').length >= 4);
+    assert.equal(f.cores(), 1); assert.equal(f.events.includes('stop'), false);
+    f.setSampleFailure(null); f.setFailure(null); await f.manager.refresh('community');
+    assert.ok(f.manager.getState('community').lanSnapshot);
+  } finally {await f.close();}
+});
+
+test('permanent auth refusal after a temporary failure cannot keep the old grant alive', async () => {
+  const f = enrollmentRuntimeFixture();
+  try {
+    await f.enrollment.reconcile(f.snapshot(f.member.accessToken)); await f.manager.refresh('community');
+    f.setFailure({op: 'session', code: 'provider-unavailable'});
+    await assert.rejects(f.enrollment.reconcile(f.snapshot('retired-fixture')));
+    f.setFailure({op: 'session', code: 'auth-unavailable'}); await f.retry();
+    assert.deepEqual(f.events.slice(-3), ['stop', 'remove', 'revoke']);
+    await f.manager.refresh('community'); assert.equal(f.manager.getState('community').lanSnapshot, null);
+    assert.equal(f.cores(), 1); assert.equal(f.calls.filter(call => call.op === 'acquire').length, 1);
+    await f.enrollment.reconcile({members: [], enabled: true});
+    assert.equal(f.timers.filter(timer => !timer.cancelled).length, 0);
+  } finally {await f.close();}
+});
+
+test('membership removal cancels pending authentication and clears the last verified runtime', async () => {
+  const f = enrollmentRuntimeFixture();
+  try {
+    await f.enrollment.reconcile(f.snapshot(f.member.accessToken));
+    f.setFailure({op: 'session', code: 'provider-unavailable'});
+    await assert.rejects(f.enrollment.reconcile(f.snapshot('rotated-fixture')));
+    await f.enrollment.reconcile({members: [], enabled: true});
+    assert.equal(f.timers.filter(timer => !timer.cancelled).length, 0);
+    assert.equal(f.events.filter(event => event === 'stop').length, 1);
+    assert.equal(f.calls.filter(call => call.op === 'revoke').length, 1);
+    assert.equal(f.manager.getState('community').phase, 'disabled');
+    await assert.rejects(f.connect(), error => error.reason === 'configuration-required');
+  } finally {await f.close();}
+});
+
+test('failed bearer refresh cannot defer expiry or binding revocation of the old grant', async () => {
+  for (const failure of ['expiry', 'revoked-binding']) {
+    const f = enrollmentRuntimeFixture();
+    try {
+      await f.enrollment.reconcile(f.snapshot(f.member.accessToken));
+      f.setFailure({op: 'session', code: 'provider-unavailable'});
+      await assert.rejects(f.enrollment.reconcile(f.snapshot('rotated-fixture')));
+      if (failure === 'expiry') {f.now.mono += 61000; f.now.wall += 61000;}
+      else f.setFailure({op: 'binding', code: 'auth-unavailable'});
+      await f.manager.refresh('community');
+      assert.equal(f.manager.getState('community').phase, 'error');
+      assert.equal(f.manager.getState('community').lanSnapshot, null);
+      assert.deepEqual(f.events.slice(-3), ['stop', 'remove', 'revoke']); assert.equal(f.cores(), 1);
+      f.enrollment.shutdown(); assert.equal(f.timers.filter(timer => !timer.cancelled).length, 0);
+    } finally {await f.close();}
+  }
+});
+
+test('superseding an in-flight changed-scope authentication must still replace retired manager ownership', async () => {
+  let release, entered;
+  const pending = new Promise(resolve => {release = resolve;}), started = new Promise(resolve => {entered = resolve;});
+  const f = enrollmentRuntimeFixture({beforeSessionReply: async (_reply, bearer) => {
+    if (bearer === 'intermediate-fixture') {entered(); await pending;}
+  }});
+  try {
+    await f.enrollment.reconcile(f.snapshot(f.member.accessToken)); await f.manager.refresh('community');
+    f.verified.serverUserId = 'replacement-member'; f.intent.accountId = 'replacement-account';
+    f.scope.accountId = 'replacement-account'; f.grant.scope.accountId = 'replacement-account';
+    f.proof.scope.accountId = 'replacement-account'; f.proof.serverUserId = 'replacement-member';
+    const first = f.enrollment.reconcile(f.snapshot('intermediate-fixture')); await started;
+    const latest = f.enrollment.reconcile(f.snapshot('latest-fixture')); release();
+    await Promise.all([first, latest]);
+    assert.equal(f.cores(), 2, 'auth already replaced the runtime scope even when its enrollment revision was superseded');
+    await f.manager.refresh('community'); assert.ok(f.manager.getState('community').lanSnapshot);
+  } finally {release(); await f.close();}
+});
+
+for (const boundary of ['remove-readd', 'disable', 'shutdown']) test('committed auth superseded by ' + boundary + ' cannot carry retired replacement responsibility', async () => {
+  let release, entered;
+  const pending = new Promise(resolve => {release = resolve;}), committed = new Promise(resolve => {entered = resolve;});
+  const f = enrollmentRuntimeFixture({afterAuthenticate: async (value, result) => {
+    if (value.accessToken === 'intermediate-fixture') {assert.equal(result.changed, true); entered(); await pending;}
+  }});
+  try {
+    await f.enrollment.reconcile(f.snapshot(f.member.accessToken));
+    f.verified.serverUserId = 'replacement-member'; f.intent.accountId = 'replacement-account';
+    f.scope.accountId = 'replacement-account'; f.grant.scope.accountId = 'replacement-account';
+    f.proof.scope.accountId = 'replacement-account'; f.proof.serverUserId = 'replacement-member';
+    const first = f.enrollment.reconcile(f.snapshot('intermediate-fixture')); await committed;
+    const generation = f.manager.getState('community').generation;
+    if (boundary === 'remove-readd') {
+      const removal = f.enrollment.reconcile({members: [], enabled: true});
+      const latest = f.enrollment.reconcile(f.snapshot('latest-fixture')); release();
+      await Promise.all([first, removal, latest]);
+      assert.equal(f.cores(), 2); assert.equal(f.events.filter(event => event === 'stop').length, 1);
+      assert.equal(f.manager.getState('community').generation, generation + 2, 'fresh enrollment cannot consume a pre-removal scope marker');
+      await f.manager.refresh('community'); assert.ok(f.manager.getState('community').lanSnapshot);
+    } else if (boundary === 'disable') {
+      const disable = f.enrollment.reconcile({...f.snapshot('latest-fixture'), enabled: false}); release();
+      await Promise.all([first, disable]);
+      assert.equal(f.manager.getState('community').phase, 'disabled'); assert.equal(f.cores(), 1);
+    } else {
+      f.enrollment.shutdown(); f.manager.shutdownOwned(); release(); await first;
+      await f.coordinator.drainOwned();
+      assert.equal(f.manager.getState('community').phase, 'disabled'); assert.equal(f.cores(), 1);
+    }
+    assert.equal(f.timers.filter(timer => !timer.cancelled).length, 0);
+  } finally {release(); await f.close();}
+});
+
+test('a superseded completed manager replacement cannot be consumed a second time', async () => {
+  let release, entered;
+  const pending = new Promise(resolve => {release = resolve;}), connecting = new Promise(resolve => {entered = resolve;});
+  const f = enrollmentRuntimeFixture({beforePhysicalConnected: async () => {
+    if (f.cores() === 2) {entered(); await pending;}
+  }});
+  try {
+    await f.enrollment.reconcile(f.snapshot(f.member.accessToken));
+    f.verified.serverUserId = 'replacement-member'; f.intent.accountId = 'replacement-account';
+    f.scope.accountId = 'replacement-account'; f.grant.scope.accountId = 'replacement-account';
+    f.proof.scope.accountId = 'replacement-account'; f.proof.serverUserId = 'replacement-member';
+    const first = f.enrollment.reconcile(f.snapshot('intermediate-fixture')); await connecting;
+    const latest = f.enrollment.reconcile(f.snapshot('latest-fixture')); release(); await Promise.all([first, latest]);
+    assert.equal(f.cores(), 2, 'completed manager replacement cannot restart again when the latest token has the same verified scope');
+    assert.equal(f.events.filter(event => event === 'stop').length, 1);
+    await f.manager.refresh('community'); assert.ok(f.manager.getState('community').lanSnapshot);
+  } finally {release(); await f.close();}
 });
 test('authenticated IPC rejects untrusted frame before any transport operation', async () => {
   const handlers = {}, f = runtimeFixture(), manager = new EasyTierCommunityManager(f.runtime);

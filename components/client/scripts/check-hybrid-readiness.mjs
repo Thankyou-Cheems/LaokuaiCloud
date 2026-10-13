@@ -110,4 +110,10 @@ assert.equal(safe[3].result, "acknowledged"); assert.equal(JSON.stringify(safe).
 safe.forEach(value => diagnosticModule.exports.localHybridDiagnostic(value)); assert.equal(recorded.length, 4);
 const bridged = fixture(); await bridged.render(); bridged.sessions[0].options.onDiagnostic(media);
 assert.equal(bridged.diagnostics.at(-1).operation, "hybrid-path"); bridged.dispose();
+for (const reason of ["peer_path_inconsistent", "invalid_receive_candidate", "invalid_receive_node"]) {
+  const events = [];
+  const observer = diagnosticModule.exports.createHybridDiagnosticObserver(value => events.push(value));
+  observer.state({ status: "active", reason: null, routing: { routes: [{ participantId: "synthetic-peer", sessionId: "synthetic-session", publicationId: "synthetic-publication", status: "recovering", reason, selected: "none", routeGeneration: 1, selectionRevision: 1, forwardingPaused: false }] } });
+  assert.equal(events.at(-1).reason, reason, "controller recovery reason must survive diagnostic projection");
+}
 console.log("PASS late roster readiness, stable remote roster/source updates, local identity/account/room/epoch retirement, ACK-gated reconfigure, cancelled async boot and safe deduplicated diagnostics; VM only");

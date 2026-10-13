@@ -55,6 +55,7 @@ export class BrowserHybridVoiceSession {
   private timer?: ReturnType<typeof setTimeout>;
   private disposed = false;
   private enabled: boolean;
+  private retiringController = false;
   private state: BrowserHybridVoiceState = { status: "disabled", reason: null, routing: null, physicalDirectVerified: false };
   constructor(private readonly options: BrowserHybridVoiceOptions) {
     const pc = options.getPeerConnection(); if (!pc) throw new Error("sfu_media_unavailable"); this.pc = pc;
@@ -192,6 +193,16 @@ export class BrowserHybridVoiceSession {
       }
       if (this.recoveries.size) { this.publish("recovering", "fresh_sfu_restore_required"); await this.recover(snapshot); }
       if (!this.current()) return;
+      if (this.controller && (!this.enabled || this.retiringController)) {
+        // A re-enable request cannot abandon a failed shutdown's SFU restoration.
+        this.retiringController = true;
+        const retiring = this.controller;
+        if (!await retiring.restoreSfuAndDispose()) { this.publish("recovering", "sfu_restore_incomplete"); return; }
+        if (!this.current() || this.controller !== retiring) return;
+        this.unsubscribe?.(); this.unsubscribe = undefined; this.controller = undefined;
+        for (const binding of this.ports.values()) binding.port.releaseRestored();
+        this.ports.clear(); this.retiringController = false;
+      }
       if (!this.enabled && !this.controller) {
         this.publish(this.deferredRestores.size ? "recovering" : "disabled", this.deferredRestores.size ? "fresh_sfu_restore_required" : null); return;
       }
@@ -217,12 +228,6 @@ export class BrowserHybridVoiceSession {
         this.unsubscribe = this.controller.subscribe(() => {
           if (!this.disposed) this.publish(this.recoveries.size ? "recovering" : this.enabled ? "active" : "recovering", this.recoveries.size ? "fresh_sfu_restore_required" : null);
         });
-      }
-      if (!this.enabled) {
-        if (this.controller && !await this.controller.restoreSfuAndDispose()) { this.publish("recovering", "sfu_restore_incomplete"); return; }
-        this.unsubscribe?.(); this.unsubscribe = undefined; this.controller = undefined;
-        for (const binding of this.ports.values()) binding.port.releaseRestored();
-        this.ports.clear(); this.publish("disabled", null); return;
       }
       this.controller!.reconcile(snapshot.scope, snapshot.participants);
       this.controller!.setProbeAdmission(true);

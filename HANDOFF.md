@@ -65,6 +65,13 @@ false，详见 [V2 契约与回退前置](components/server/COMMUNITY-RELAY-V2.m
 
 ## 验证边界与下一步
 
+用户随后要求继续排查。`.11` 后续源码修复见
+[后续稳定性排查](docs/POST11-STABILITY-AUDIT-20261013.md)：认证失败与重叠更新的
+恢复责任、SFU 权限往返的协商记录、SDK 重新启用时的退役恢复、诊断错误枚举。
+这些改动尚未重新构建 SDK vendor 或测试包；桌面 `.11` 和上面的精确源码/ZIP
+记录保持不变。后续打包必须重新生成 SDK 并升级包版本，不能把源码回归当作
+现有 `.11` 已包含的功能或实际双人网络验收。
+
 .10 双人实测失败：成员进出伴随 `media-policy-changed` 重连，ET 状态反复变化，
 P2P 无声。保留该失败，不以旧模拟测试覆盖。修复和边界见
 [语音稳定性修复](docs/VOICE-STABILITY-FIX-20261013.md)。.11 的 routing.3 SDK

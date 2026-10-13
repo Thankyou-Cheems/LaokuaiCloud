@@ -74,6 +74,7 @@
     "check-receive-recovery": "node scripts/check-receive-recovery.mjs",
     "check-media-policy": "node scripts/check-media-policy.mjs",
     "check-roster-media-policy": "node scripts/check-roster-media-policy.mjs",
+    "check-roster-policy-roundtrip": "node --loader ./scripts/source-media-policy-loader.mjs scripts/check-roster-policy-roundtrip.mjs",
     "check-audio-only-engine": "node scripts/check-audio-only-engine.mjs",
     "check-receive-prior": "node scripts/check-receive-prior.mjs",
     "check-transmit-speech-core": "node scripts/generate-transmit-speech.mjs --check",

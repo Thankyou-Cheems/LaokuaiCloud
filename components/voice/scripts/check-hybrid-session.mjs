@@ -63,6 +63,21 @@ try{
  await delayed.update();eq(delayed.getState().status,'recovering');eq(edges.size,0);sourceReady=true;
  const delayedFlight=delayed.update();await settle();await delayed.monitor.read();await delayedFlight;
  eq(edges.size,1);eq(delayed.getState().status,'disabled');delayed.dispose();
+ // Re-enabling after failed orderly shutdown must finish restoration before replacing its controller.
+ scope={...scope,canPublish:true};
+ const toggled=new BrowserHybridVoiceSession({...options,enabled:true,allowNetwork:true});await toggled.update();await settle();
+ const stoppingController=toggled.controller,forward=toggled.authority.setForwarding.bind(toggled.authority);let failRestore=true;
+ toggled.authority.setForwarding=request=>request.enabled&&failRestore?Promise.reject(Error('hybrid_sfu_ack_failed')):forward(request);
+ await toggled.setEnabled(false);eq(toggled.getState().status,'recovering');eq(stoppingController.stopping,true);
+ failRestore=false;const reenable=toggled.setEnabled(true);await settle();
+ eq(toggled.controller,stoppingController);eq(edges.size,1);
+ await toggled.monitor.read();await reenable;await settle();
+ eq(toggled.controller===stoppingController,false);eq(stoppingController.disposed,true);
+ eq(toggled.controller.stopping,false);eq(toggled.controller.getState().probeAdmissionAllowed,true);eq(edges.size,1);
+ eq(toggled.getState().routing.routes[0].selected,'p2p');
+ eq([...toggled.controller.routes.values()][0].pathMonitor!==undefined,true);
+ const finalDisable=toggled.setEnabled(false);await settle();await toggled.monitor.read();await finalDisable;
+ eq(toggled.getState().status,'disabled');toggled.dispose();eq(edges.size,1);
  // An old-room pause obligation never becomes authority to restore a different room.
  scope={...scope,canPublish:true};
  const oldRoom=new BrowserHybridVoiceSession({...options,enabled:true,allowNetwork:true});await oldRoom.update();await settle();oldRoom.dispose();eq(edges.size,0);

@@ -32,6 +32,9 @@ function snapshot(value: unknown): CommunityEnrollmentSnapshot {
 export class CommunityEnrollment {
   private revision = 0;
   private authenticated = new Map<string, Member>();
+  private pendingAuthentication = new Set<string>();
+  private pendingManagerReplacement = new Map<string, {host: string; revision: number}>();
+  private membershipRetiredAt = new Map<string, number>();
   private attempted = new Set<string>();
   private prepared = new Set<string>();
   private denied = new Set<string>();
@@ -46,11 +49,20 @@ export class CommunityEnrollment {
     const next = snapshot(value);
     if (this.stopped) return Promise.resolve([]);
     this.cancelRetry?.(); this.cancelRetry = null;
+    const previousMembers = this.desired?.members ?? [];
     this.desired = { ...next, retry: undefined };
     const revision = ++this.revision;
     if (next.retry) { this.attempted.delete(next.retry); this.prepared.delete(next.retry); this.denied.delete(next.retry); }
     // Cancellation does not wait behind a UAC dialog or a slow authentication flight.
     const wanted = new Map(next.members.filter(m => m.accessToken).map(m => [m.serverId, m]));
+    for (const old of previousMembers) {
+      const member = wanted.get(old.serverId);
+      if (!next.enabled || !member || member.host !== old.host || !this.ports.supports(member as Member)) {
+        this.membershipRetiredAt.set(old.serverId, revision);
+        this.pendingManagerReplacement.delete(old.serverId);
+      }
+    }
+    for (const id of this.pendingAuthentication) if (!wanted.has(id) || !this.ports.supports(wanted.get(id)! as Member)) this.pendingAuthentication.delete(id);
     const retirements: Promise<unknown>[] = [];
     if (!next.enabled) retirements.push(this.ports.manager.setEnabled(false));
     for (const [id, old] of this.authenticated) if (!wanted.has(id) || wanted.get(id)!.host !== old.host) {
@@ -96,10 +108,27 @@ export class CommunityEnrollment {
         this.authenticated.set(id, member);
         try {
           const result = await this.ports.authenticate(member);
+          // Auth may have committed a scope replacement before a newer snapshot
+          // superseded this lane. Carry that fact, but never across retirement.
+          if (result.changed && old && !this.stopped && (this.membershipRetiredAt.get(id) ?? 0) <= revision && this.desired?.enabled &&
+              this.desired.members.some(m => m.serverId === id && m.host === member.host && m.accessToken))
+            this.pendingManagerReplacement.set(id, {host: member.host, revision});
           if (!current()) return [];
-          if (result.changed && old) await this.ports.manager.authenticatedSessionChanged(id);
+          this.pendingAuthentication.delete(id);
+          const replacement = this.pendingManagerReplacement.get(id);
+          if (replacement && replacement.host === member.host && replacement.revision >= (this.membershipRetiredAt.get(id) ?? 0)) {
+            await this.ports.manager.authenticatedSessionChanged(id);
+            if (this.pendingManagerReplacement.get(id) === replacement) this.pendingManagerReplacement.delete(id);
+            if (!current()) return [];
+          }
         } catch {
-          if (current()) this.authenticated.delete(id);
+          if (current()) {
+            // Keep responsibility for the last verified member and its manager
+            // session. Runtime authorization still owns TTL/revocation checks.
+            if (old) this.authenticated.set(id, old);
+            else this.authenticated.delete(id);
+            this.pendingAuthentication.add(id);
+          }
           throw Error("enrollment-authentication-failed");
         }
       }
@@ -123,7 +152,7 @@ export class CommunityEnrollment {
   observe(state: EasyTierCommunityState): void {
     // Missing CLI/binding evidence invalidates telemetry, not the owned core.
     // The manager's normal refresh lane retries observations independently.
-    if (state.phase === "connected") { this.retryCount = 0; this.cancelRetry?.(); this.cancelRetry = null; }
+    if (state.phase === "connected" && this.pendingAuthentication.size === 0) { this.retryCount = 0; this.cancelRetry?.(); this.cancelRetry = null; }
     else if (state.phase === "error" && ["runtime-exited", "connect-failed", "operation-timeout"].includes(state.reason ?? "")) this.scheduleRecovery();
   }
 
@@ -141,6 +170,7 @@ export class CommunityEnrollment {
 
   shutdown(): void {
     this.stopped = true; this.revision++; this.cancelRetry?.(); this.cancelRetry = null;
+    this.pendingManagerReplacement.clear();
     this.ports.releasePreparation();
   }
 }
