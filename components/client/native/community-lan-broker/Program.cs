@@ -42,6 +42,11 @@ class Program {
         public BasicLimits Basic; public IoCounters Io; public UIntPtr ProcessMemory, JobMemory, PeakProcessMemory, PeakJobMemory;
     }
     static bool Elevated() { return new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator); }
+    internal static NamedPipeClientStream CreateClientPipe(string name) {
+        // A command read remains pending while core status is written. A synchronous
+        // Windows pipe handle blocks that write behind the read and deadlocks startup.
+        return new NamedPipeClientStream(".", name, PipeDirection.InOut, PipeOptions.Asynchronous, TokenImpersonationLevel.Identification);
+    }
     static string Sid() { return WindowsIdentity.GetCurrent().User.Value; }
     static void Require(bool condition) { if (!condition) throw new InvalidOperationException("broker-request-rejected"); }
     static string Hash(Stream stream) { using (var sha = SHA256.Create()) return BitConverter.ToString(sha.ComputeHash(stream)).Replace("-", "").ToLowerInvariant(); }
@@ -210,7 +215,7 @@ class Program {
             if (args.Length == 2 && args[0] == "--parent") return Launch(Int32.Parse(args[1]));
             if (args.Length == 4 && args[0] == "--elevated") {
                 Require(Elevated() && args[3] == Sid() && Regex.IsMatch(args[1], @"\Alaokuai-et-[0-9a-f]{32}\z"));
-                using (var pipe = new NamedPipeClientStream(".", args[1], PipeDirection.InOut, PipeOptions.None, TokenImpersonationLevel.Identification)) {
+                using (var pipe = CreateClientPipe(args[1])) {
                     pipe.Connect(10000); uint server;
                     Require(GetNamedPipeServerProcessId(pipe.SafePipeHandle, out server) && server == UInt32.Parse(args[2]));
                     using (var reader = new StreamReader(pipe, Encoding.UTF8, false, 16384, true))

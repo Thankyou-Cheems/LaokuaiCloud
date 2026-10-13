@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-13",
+  "symptom": "After management service recovery, reopening and manual retry still show preparation then error without a new UAC prompt",
+  "diagnosis": "A synchronous Windows NamedPipeClientStream handle blocks status writes while the elevated executor has a pending command read",
+  "fix": "Use PipeOptions.Asynchronous in the production client pipe factory, retaining pipe ACL, PID, SID and normal UAC checks",
+  "regression": {
+    "command": "pwsh -File components/client/scripts/check-community-broker-pipe.ps1",
+    "platform": "Windows x64 .NET Framework 4",
+    "actualProductionFactory": true,
+    "oldSynchronousMode": "FAIL: STARTED blocked behind pending command read",
+    "fixedAsynchronousMode": "PASS: readiness, startup, stop ACK, finish and three sequential sessions",
+    "normalUserExecution": true,
+    "elevationRequested": false,
+    "easyTierOrDriverExecuted": false
+  },
+  "unchanged": ["native EasyTier payload", "member identity", "server configuration", "persistent service installation policy"],
+  "realClientUacTunAfterFix": "pending new portable test",
+  "dualDeviceMedia": "not tested by this repair",
+  "privacy": "No profile, credentials, raw machine logs or user identifiers included"
+}

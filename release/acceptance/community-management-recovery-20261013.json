@@ -34,7 +34,7 @@
     "clientEnrollmentAndRuntimeTests": {"passed": 66, "failed": 0},
     "coreContractSuites": 10,
     "currentPortableRebuildNeeded": false,
-    "realClientUacTunAfterFix": "awaiting user retry",
+    "realClientUacTunAfterFix": "user retry failed: preparation then error without a new UAC prompt; a separate Windows broker duplex deadlock was subsequently reproduced",
     "dualDeviceMedia": "not tested by this repair"
   },
   "privacy": "No password, token, private key, user identity, profile, raw RPC or machine log included"

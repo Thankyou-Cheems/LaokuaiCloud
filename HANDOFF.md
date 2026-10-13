@@ -79,5 +79,14 @@ acquire 返回 503，实际只读 issuer RPC 返回 rpc-unavailable。Linux 临�
 增加独占锁、仅回收已拒绝连接的同属主 socket、保留目录 inode/续期账本及有界重启。
 已部署，8 项回归、真实代理重启/RPC、实际凭据签发→客户端校验/配置→撤销均通过。
 客户端完整协调器 503→自动恢复回归通过，无产品源码修改，无需换包。
-见 `release/acceptance/community-management-recovery-20261013.json`；真实客户端重新
-打开后的 UAC/TUN 状态待用户重试，双设备语音未因本次服务端修复而获得验收。
+见 `release/acceptance/community-management-recovery-20261013.json`。用户重新打开、
+手动重试均仍失败，无新的 UAC 提示；服务端修复不等于整条自动入网已修好。
+
+继续定位到 Windows helper 的双向命名管道：同步 client handle 在等待命令的
+ReadLine 期间堵住 STARTED/STOPPED/FINISHED 回传。真实 Windows 无提权夹具
+复现旧同步模式失败；实际生产 pipe 工厂改为 Asynchronous 后，启动状态、
+停止 ACK、三次复用均通过。没有改变 UAC、ACL、PID 检查或固定 ET 载荷。
+回归入口 `components/client/scripts/check-community-broker-pipe.ps1`，不运行
+ET/驱动、不请求 UAC。新版 20261013.2 正在打包；真实 UAC/TUN 仍待新版验证，
+双设备语音未验收。用户询问免提示入网：当前绿色方案每次应用启动首次入网
+需正常 UAC，同次运行复用；持久服务方案尚未获批，不能安装。
