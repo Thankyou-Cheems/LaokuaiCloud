@@ -41,6 +41,9 @@ Squad 的 `build-receipt.json` 必须与源文件、编译输出匹配。
 精确提交的 SOURCE-OFFER、检查原生文件与声明，再生成 unsigned portable。
 完整入口 `-Stage All` 先编译再打包。输出在
 `components/client/release-laokuai-beta-20261013/`。
+打包中间文件位于新的系统临时目录，避免 Codex 映射工作区 EXE/ASAR 导致写入
+失败；最终 portable 才复制回上述目录。WinCodeSign 工具先校验 SHA512，再只
+提取 Windows 文件，无需为无关 macOS 符号链接提高构建权限。
 
 修改原生源码会改变产物哈希，应同时更新对应构建回执和产品清单，不应绕过
 旧产物检查或把新 EXE 冒充旧冻结版本。应用测试可用根目录

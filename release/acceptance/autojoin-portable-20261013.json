@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-13",
+  "version": "1.13.22-laokuai.beta.20261013.1",
+  "sourceCommit": "800ec22e484d2fef2b23493492b75862d9ed62f0",
+  "file": "唠蒯云-1.13.22-laokuai.beta.20261013.1-zh-CN-win-x64-portable.exe",
+  "bytes": 129281373,
+  "sha256": "d6669238f04439f316e586cdfb7492698f1edd1e0fdf05546b67505da5c20737",
+  "appAsarSha256": "82dfbdaa50814ac3c788e1ceaedaeb4cdf30b9528d55735eeb2d30bc706870fe",
+  "staticPayloadFiles": 146,
+  "staticPayloadPassed": true,
+  "npcapAbsent": true,
+  "sourceArchivesBundled": false,
+  "sourceAssetCount": 6,
+  "sourceAssetSha256Verified": true,
+  "repositoryVisibility": "private",
+  "publicSourceAccess": false,
+  "publicBlocker": "GitHub retains orphaned pre-cleanup Packet.dll objects reachable by old SHA",
+  "tests": {
+    "coreContractSuites": 10,
+    "enrollmentBehaviors": 13,
+    "grantRuntimeBehaviors": 52,
+    "packageAuditBehaviors": 18,
+    "applicationTypes": true,
+    "applicationCompile": true,
+    "targetedLint": true
+  },
+  "bootstrap": {
+    "status": "passed",
+    "exitCode": 0,
+    "rootChildren": 1,
+    "preload": {
+      "electronAPI": "object",
+      "easyTierCommunity": "object"
+    },
+    "visible": false,
+    "focused": false,
+    "unexpectedEvents": 0,
+    "residualOwnedProcesses": 0,
+    "socketSamples": [
+      {
+        "seconds": 1.545,
+        "ownedProcesses": 1,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 3.042,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 4.534,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 5.996,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 7.483,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 8.984,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 10.485,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 11.967,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      }
+    ],
+    "consoleErrors": 23,
+    "realElectronExecuted": true,
+    "isolatedFreshProfile": true,
+    "nativeEtExecuted": false,
+    "realCommunityOrDeviceMediaTest": false
+  },
+  "realUacTunAccepted": false,
+  "dualDeviceVoiceAccepted": false,
+  "publicBinaryRelease": false,
+  "note": "Extracted exact portable payload launched in hidden offline fresh-profile mode. NSIS wrapper not executed. 23 console errors consist of 20 intentional offline CSP/fetch blocks and 3 pre-existing disabled IPC promises; not an error-free console. Socket samples are not continuous packet capture."
+}

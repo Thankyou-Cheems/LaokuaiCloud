@@ -39,7 +39,15 @@ renderer 只提交成员快照。按需 UAC helper 固定载荷、发行者和�
 现包 `唠蒯云-1.13.22-laokuai.beta.20261012.1-zh-CN-win-x64-portable.exe`：
 97,846,494 B，SHA256 `43a630df55d965048632f9bd13b3febeb357419f3d9ea49b28ca5f4330b98ade`。
 源 `2526db90`、编译基点 `a5c557be`。保留旧包；新版本为
-`1.13.22-laokuai.beta.20261013.1`，编译完成、打包与源码公开准备中。
+`1.13.22-laokuai.beta.20261013.1` 已完成，源
+`800ec22e484d2fef2b23493492b75862d9ed62f0`，129,281,373 B（约 123 MiB），
+SHA256 `d6669238f04439f316e586cdfb7492698f1edd1e0fdf05546b67505da5c20737`。
+交付于 `.local/artifacts/autojoin-test-20261013/`，含测试说明和哈希。
+精确便携包解出 146 文件通过静态核对，未含 Npcap 或完整对应源码归档；真实
+隐藏离线新配置启动/DOM/退出通过，八次自有端口采样为零、退出残留零。
+保留 23 条控制台错误：20 条离线 CSP/fetch 拦截、3 条已有禁用 IPC Promise。
+这不接受真实 UAC/TUN/双设备媒体；明细在
+`release/acceptance/autojoin-portable-20261013.json`。
 不关闭用户当前客户端。
 原运行绝对路径和详细来源见 `docs/history/2026-10-13-takeover/HANDOFF.md`。
 
@@ -48,6 +56,10 @@ renderer 只提交成员快照。按需 UAC helper 固定载荷、发行者和�
 origin 为 `https://github.com/Thankyou-Cheems/LaokuaiCloud.git`；最近交接记录
 为 PRIVATE，本轮已重新确认；main 已推送并设为默认。尚未切换可见性：GitHub
 仍能通过旧提交 SHA 返回已从历史清除的 Packet.dll，详见公开清理记录。
+原仓库 ID `R_kgDOVEfFVQ` 保持不变。六份源码附件已上传同仓库的
+`source-materials-20261013` Release，GitHub 返回的大小/SHA256 全部匹配。
+现有 tag 指向清理后的提交；没有上传应用二进制。支持请求草稿在
+`.local/review-20261013/github-cleanup-request.md`，尚未对外发送。
 `cb209bd` 的 8 文件已等价合入，不重复 cherry-pick。
 
 本轮完整 bundle 校验后移除 D 盘 4 条历史分支，仅保留当前开发分支；移除
