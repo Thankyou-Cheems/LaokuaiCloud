@@ -9,8 +9,8 @@
     "visibility": "public",
     "branch": "main",
     "soleGitWriter": "user-directed local developer",
-    "codeCommit": "5eed3757e74f76099a7f2991a6c4c9c38fbe462a",
-    "codeTree": "2b7b3dcc74f152148c0af9d76a6b2ea42466ab3f",
+    "codeCommit": "23bd6281f34ca51dac998469c94f06fbd4d05fbb",
+    "codeTree": "5b97abab737ed0ac3c7bd7b5d1dd73768ac1c361",
     "newRepositoryReason": "Authenticated private-repo metadata and explicitly scoped old local core/game remotes revealed no matching existing private integration repository",
     "historyPolicy": "User explicitly authorized deletion and same-name recreation after six Npcap files were removed from history. Only clean main and source tag pushed from an isolated bare repository. Original and clean local bundles retained; no mirror push.",
     "githubId": "R_kgDOVG00Lg"
@@ -18,14 +18,14 @@
   "components": {
     "client": {
       "path": "components/client",
-      "tree": "e656e9c4acef7a42a286bf436f752378843cc437",
+      "tree": "f38624ac2c86d5f2c0c2751ac0d9fda20170bc88",
       "upstream": "Gryt-chat/client",
       "publicFork": "Thankyou-Cheems/gryt-client-i18n",
       "historyImportedFrom": "06ac43f51dbda3b9444c73270a126e10489110e9",
       "originalHead": "552dc88f3413b83ee29bdb4ab350286e7c9ad2d0",
       "completeDirtySourceSnapshot": "2b9f02076051e3a445bfa99e79d1fc7ac421e19f",
       "originalPreservation": "24 tracked modifications and 6 untracked files retained; all frozen snapshot blobs verified",
-      "version": "1.13.22-laokuai.beta.20261013.8",
+      "version": "1.13.22-laokuai.beta.20261013.9",
       "dependencyLockSha256": "b5e5cf6fb0818e9a18b97f43e75b8d9020ffcf21f9906a2e5fb0f6463557f1c8",
       "lifecycle3SourceCommit": "cb31e2e4ec044a2574f88321bc90cc01c3b51e0c",
       "uiBrandSourceCommit": "c75e6802ac9971b7d4139df8f97b99c7398efd7d",
@@ -33,7 +33,7 @@
         "tree": "8123a71d99a101a3dce02027d476c7e8879ff48d",
         "sourceCommit": "a88f7d75066cf03d65d618bb49cabbff6e8d7884"
       },
-      "sourceCommit": "5eed3757e74f76099a7f2991a6c4c9c38fbe462a",
+      "sourceCommit": "23bd6281f34ca51dac998469c94f06fbd4d05fbb",
       "communityContractWired": true,
       "preservedPreCommunityWiring": {
         "tree": "fbcc9d4e2db64348fc17704d486a421233f7513f",
@@ -3626,17 +3626,16 @@
   "greenDirectoryTestPackage": {
     "schemaVersion": 1,
     "date": "2026-10-13",
-    "version": "1.13.22-laokuai.beta.20261013.8",
-    "sourceCommit": "5eed3757e74f76099a7f2991a6c4c9c38fbe462a",
-    "file": "唠蒯云-1.13.22-laokuai.beta.20261013.8-zh-CN-win-x64-green.zip",
-    "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261013.8-zh-CN-win-x64-green.zip",
-    "bytes": 159058776,
-    "sha256": "f3ddb521bead9577d1924f201053b0d436199d76cc64f9ed7301338f830b17ca",
-    "appAsarSha256": "d1afd33cce70a3c559bd83460ac27a2609ba3c00e7bab6a53f1f6c3e073d449e",
+    "version": "1.13.22-laokuai.beta.20261013.9",
+    "sourceCommit": "23bd6281f34ca51dac998469c94f06fbd4d05fbb",
+    "file": "唠蒯云-1.13.22-laokuai.beta.20261013.9-zh-CN-win-x64-green.zip",
+    "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261013.9-zh-CN-win-x64-green.zip",
+    "bytes": 160183694,
+    "sha256": "9a1f10254a29ea421ccdf09e93865b8c62bcf5b6b93fe5bbb1525bc96cfc6892",
+    "appAsarSha256": "6b9d9aaa81fe7e171a74b2747d89d3cd35ffadfe4c8b63f4bde4e9368771d3d5",
     "staticPayloadFiles": 152,
     "staticPayloadPassed": true,
-    "coreContractSuites": 31,
-    "serverDnsContractTests": 136,
+    "coreContractSuites": 34,
     "clientTypesAndChangedSourceLintPassed": true,
     "bootstrap": {
       "status": "passed",
@@ -3652,45 +3651,160 @@
       "residualOwnedProcesses": 0,
       "socketSamples": [
         {
-          "seconds": 4.632,
-          "ownedProcesses": 3,
+          "seconds": 4.442,
+          "ownedProcesses": 4,
           "tcpCount": 0,
           "udpCount": 0
         },
         {
-          "seconds": 9.252,
+          "seconds": 9.007,
           "ownedProcesses": 6,
           "tcpCount": 0,
           "udpCount": 0
         },
         {
-          "seconds": 13.984,
+          "seconds": 13.577,
           "ownedProcesses": 6,
           "tcpCount": 0,
           "udpCount": 0
         }
       ],
-      "consoleErrors": 23,
+      "consoleErrors": 19,
       "realElectronExecuted": true,
       "isolatedFreshProfile": true,
       "nativeEtExecuted": false,
       "realCommunityOrDeviceMediaTest": false
     },
-    "nativeRuntimeUnchangedFrom": "release/acceptance/community-network-v2-portable-20261013.json",
-    "windowsDnsPolicyLifecycleTested": true,
-    "windowsFriendlyZoneLifecycleTested": true,
-    "temporaryTestRulesRemoved": true,
-    "userConfirmedFriendlyMemberName": true,
-    "directResolverMatchesAssignedIp": true,
-    "systemResolverMatchesAssignedIp": true,
-    "desktopProgramUpdated": true,
-    "desktopPayloadVerified": 152,
-    "profileFilesPreserved": 87,
-    "profileUnchanged": true,
-    "privateBackupRetained": true,
-    "memberRelayDefaultEnabled": false,
-    "memberRelayBackendEnabled": true,
-    "proxyRelayPolicyVersion": 2,
+    "themeFixture": {
+      "status": "PASS-component-fixture-only",
+      "checks": [
+        {
+          "name": "default hand-drawn and original preferences preserved",
+          "passed": true
+        },
+        {
+          "name": "portal menu exists",
+          "passed": true
+        },
+        {
+          "name": "portal dialog exists",
+          "passed": true
+        },
+        {
+          "name": "original dark preference restored",
+          "passed": true
+        },
+        {
+          "name": "narrow layout no horizontal overflow",
+          "passed": true
+        },
+        {
+          "name": "narrow dialog bounded",
+          "passed": true
+        }
+      ],
+      "captures": [
+        {
+          "name": "kirilie-default",
+          "pngSha256": "f5529c1ce6792a70a654eed0c405eeab9f20b0cfce5a2f57534096546b42b709",
+          "visible": false,
+          "focused": false
+        },
+        {
+          "name": "kirilie-menu",
+          "pngSha256": "8e9e1faf5c891758191f7b958474e5dc9fbe5e818cc522c38816349851de0c3d",
+          "visible": false,
+          "focused": false
+        },
+        {
+          "name": "kirilie-dialog",
+          "pngSha256": "555c01731bd7348f31114c9e633084209405831da5782eaed51aa68bfcb38df0",
+          "visible": false,
+          "focused": false
+        },
+        {
+          "name": "original-dark",
+          "pngSha256": "787aa390f00618cb66ce5fddaa928aeee315bfcff6f4f7e6dfb297ad20f6b180",
+          "visible": false,
+          "focused": false
+        },
+        {
+          "name": "kirilie-narrow",
+          "pngSha256": "2160453ac8659d558a4db9276a33d2ae0b16d5882c92f3f1a7ae7e81ea109307",
+          "visible": false,
+          "focused": false
+        },
+        {
+          "name": "kirilie-narrow-dialog",
+          "pngSha256": "6c6edd0f3b2ae2f718215ee2d4a5e708ad72855355691c1ca6157f8c8b4cd204",
+          "visible": false,
+          "focused": false
+        }
+      ],
+      "events": [],
+      "authenticatedApp": false,
+      "realProductionThemeAndControls": true,
+      "syntheticRoomAndMembers": true
+    },
+    "voicePack": {
+      "status": "passed",
+      "exactGeneratedRecordings": {
+        "connected": {
+          "bytes": 161966,
+          "sha256": "18e76f9e516e7682a6dd0b68ba2eab553e76d5e53b419bab28bc6963397ce014"
+        },
+        "disconnected": {
+          "bytes": 157166,
+          "sha256": "d47106a6dd12d404a2d6c7399973acecb2fea1ec80fbeffe4fd5361c01f7519f"
+        },
+        "microphoneMuted": {
+          "bytes": 141806,
+          "sha256": "2b1b0a25ba79960ecae6cab18e33e8e7e8a0b00962e9aea9a392829a3110576b"
+        },
+        "microphoneUnmuted": {
+          "bytes": 147566,
+          "sha256": "3d45fc924573d00cf745642d789bb70b915ccabfe852b9cfb347044660ec9c3d"
+        },
+        "moved": {
+          "bytes": 195566,
+          "sha256": "b89b31329601105f06daacb58d95313f891ac31b1ca832c517a9945eae8f82ac"
+        },
+        "outputMuted": {
+          "bytes": 156206,
+          "sha256": "62bd95650eaf05e8b3655d74111a6ef1c93af5ab0c18709e01f33d464463928a"
+        },
+        "outputUnmuted": {
+          "bytes": 160046,
+          "sha256": "ac124ad671ca539833049d21c827e5259ad55269db1ba51ba378d40549311f06"
+        },
+        "peerJoined": {
+          "bytes": 193646,
+          "sha256": "4d88223fad94ee08ee3f01083837b3befa027f8c6b58386fd2769044b7e1ee62"
+        },
+        "peerLeft": {
+          "bytes": 194606,
+          "sha256": "2ddc4846a86799657bccfcd6dfc609d572045b2788eaf9965894f66bb458189c"
+        }
+      },
+      "apiUsedAtRuntime": false,
+      "sourceRecordingsGitIgnored": true,
+      "bytes": 1508574,
+      "userApprovedVoiceSample": true,
+      "publicAudioRedistributionNotClaimed": true
+    },
+    "administratorRestart": {
+      "normalUac": true,
+      "userMustChooseRestart": true,
+      "cancelDoesNotLoop": true,
+      "fixedDirectoryOnly": true,
+      "oneDriveReadOnlyPathValidationPassed": true,
+      "realUacInteractionAccepted": false
+    },
+    "nativeRuntimeUnchangedFrom": "release/acceptance/friendly-dns-portable-20261013.json",
+    "productionServicesChanged": false,
+    "desktopProgramUpdated": false,
+    "desktopRemainsVersion": "1.13.22-laokuai.beta.20261013.8",
+    "userProfileTouched": false,
     "fixedDirectory": true,
     "administratorRequired": true,
     "automaticElevation": false,
@@ -3701,8 +3815,9 @@
     "dualDeviceGameAccepted": false,
     "twelveFullAppWanAccepted": false,
     "realDeviceMediaAccepted": false,
-    "receipt": "release/acceptance/friendly-dns-portable-20261013.json",
-    "note": "Exact package and isolated bootstrap passed; user started updated desktop and confirmed short name. Direct and Windows system DNS resolved the assigned virtual IP. This is single-device DNS acceptance, not dual-device/game/WAN/voice acceptance. The bootstrap retains 23 existing offline/disabled IPC errors."
+    "liveAnnouncementAccepted": false,
+    "receipt": "release/acceptance/kirilie-voice-portable-20261013.json",
+    "note": "Exact ZIP and nine recordings verified. Hidden fresh-profile bootstrap and isolated actual theme/component rendering passed; this is not live account/device/UAC/media acceptance. Bootstrap retains 19 offline/disabled IPC errors; three socket samples are not continuous tracing. Desktop .8 and its profile remain unchanged."
   },
   "previousGreenDirectoryTestPackage": {
     "schemaVersion": 1,
@@ -3918,5 +4033,86 @@
     "date": "2026-10-13",
     "userApproved": true,
     "receipt": "release/acceptance/friendly-dns-deployment-20261013.json"
+  },
+  "previousFriendlyDnsGreenTestPackage": {
+    "schemaVersion": 1,
+    "date": "2026-10-13",
+    "version": "1.13.22-laokuai.beta.20261013.8",
+    "sourceCommit": "5eed3757e74f76099a7f2991a6c4c9c38fbe462a",
+    "file": "唠蒯云-1.13.22-laokuai.beta.20261013.8-zh-CN-win-x64-green.zip",
+    "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261013.8-zh-CN-win-x64-green.zip",
+    "bytes": 159058776,
+    "sha256": "f3ddb521bead9577d1924f201053b0d436199d76cc64f9ed7301338f830b17ca",
+    "appAsarSha256": "d1afd33cce70a3c559bd83460ac27a2609ba3c00e7bab6a53f1f6c3e073d449e",
+    "staticPayloadFiles": 152,
+    "staticPayloadPassed": true,
+    "coreContractSuites": 31,
+    "serverDnsContractTests": 136,
+    "clientTypesAndChangedSourceLintPassed": true,
+    "bootstrap": {
+      "status": "passed",
+      "exitCode": 0,
+      "rootChildren": 1,
+      "preload": {
+        "electronAPI": "object",
+        "easyTierCommunity": "object"
+      },
+      "visible": false,
+      "focused": false,
+      "unexpectedEvents": 0,
+      "residualOwnedProcesses": 0,
+      "socketSamples": [
+        {
+          "seconds": 4.632,
+          "ownedProcesses": 3,
+          "tcpCount": 0,
+          "udpCount": 0
+        },
+        {
+          "seconds": 9.252,
+          "ownedProcesses": 6,
+          "tcpCount": 0,
+          "udpCount": 0
+        },
+        {
+          "seconds": 13.984,
+          "ownedProcesses": 6,
+          "tcpCount": 0,
+          "udpCount": 0
+        }
+      ],
+      "consoleErrors": 23,
+      "realElectronExecuted": true,
+      "isolatedFreshProfile": true,
+      "nativeEtExecuted": false,
+      "realCommunityOrDeviceMediaTest": false
+    },
+    "nativeRuntimeUnchangedFrom": "release/acceptance/community-network-v2-portable-20261013.json",
+    "windowsDnsPolicyLifecycleTested": true,
+    "windowsFriendlyZoneLifecycleTested": true,
+    "temporaryTestRulesRemoved": true,
+    "userConfirmedFriendlyMemberName": true,
+    "directResolverMatchesAssignedIp": true,
+    "systemResolverMatchesAssignedIp": true,
+    "desktopProgramUpdated": true,
+    "desktopPayloadVerified": 152,
+    "profileFilesPreserved": 87,
+    "profileUnchanged": true,
+    "privateBackupRetained": true,
+    "memberRelayDefaultEnabled": false,
+    "memberRelayBackendEnabled": true,
+    "proxyRelayPolicyVersion": 2,
+    "fixedDirectory": true,
+    "administratorRequired": true,
+    "automaticElevation": false,
+    "persistentService": false,
+    "npcapAbsent": true,
+    "sourceArchivesBundled": false,
+    "publicBinaryRelease": false,
+    "dualDeviceGameAccepted": false,
+    "twelveFullAppWanAccepted": false,
+    "realDeviceMediaAccepted": false,
+    "receipt": "release/acceptance/friendly-dns-portable-20261013.json",
+    "note": "Exact package and isolated bootstrap passed; user started updated desktop and confirmed short name. Direct and Windows system DNS resolved the assigned virtual IP. This is single-device DNS acceptance, not dual-device/game/WAN/voice acceptance. The bootstrap retains 23 existing offline/disabled IPC errors."
   }
 }

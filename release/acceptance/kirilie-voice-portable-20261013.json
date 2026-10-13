@@ -1,0 +1,196 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-13",
+  "version": "1.13.22-laokuai.beta.20261013.9",
+  "sourceCommit": "23bd6281f34ca51dac998469c94f06fbd4d05fbb",
+  "file": "唠蒯云-1.13.22-laokuai.beta.20261013.9-zh-CN-win-x64-green.zip",
+  "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261013.9-zh-CN-win-x64-green.zip",
+  "bytes": 160183694,
+  "sha256": "9a1f10254a29ea421ccdf09e93865b8c62bcf5b6b93fe5bbb1525bc96cfc6892",
+  "appAsarSha256": "6b9d9aaa81fe7e171a74b2747d89d3cd35ffadfe4c8b63f4bde4e9368771d3d5",
+  "staticPayloadFiles": 152,
+  "staticPayloadPassed": true,
+  "coreContractSuites": 34,
+  "clientTypesAndChangedSourceLintPassed": true,
+  "bootstrap": {
+    "status": "passed",
+    "exitCode": 0,
+    "rootChildren": 1,
+    "preload": {
+      "electronAPI": "object",
+      "easyTierCommunity": "object"
+    },
+    "visible": false,
+    "focused": false,
+    "unexpectedEvents": 0,
+    "residualOwnedProcesses": 0,
+    "socketSamples": [
+      {
+        "seconds": 4.442,
+        "ownedProcesses": 4,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 9.007,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 13.577,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      }
+    ],
+    "consoleErrors": 19,
+    "realElectronExecuted": true,
+    "isolatedFreshProfile": true,
+    "nativeEtExecuted": false,
+    "realCommunityOrDeviceMediaTest": false
+  },
+  "themeFixture": {
+    "status": "PASS-component-fixture-only",
+    "checks": [
+      {
+        "name": "default hand-drawn and original preferences preserved",
+        "passed": true
+      },
+      {
+        "name": "portal menu exists",
+        "passed": true
+      },
+      {
+        "name": "portal dialog exists",
+        "passed": true
+      },
+      {
+        "name": "original dark preference restored",
+        "passed": true
+      },
+      {
+        "name": "narrow layout no horizontal overflow",
+        "passed": true
+      },
+      {
+        "name": "narrow dialog bounded",
+        "passed": true
+      }
+    ],
+    "captures": [
+      {
+        "name": "kirilie-default",
+        "pngSha256": "f5529c1ce6792a70a654eed0c405eeab9f20b0cfce5a2f57534096546b42b709",
+        "visible": false,
+        "focused": false
+      },
+      {
+        "name": "kirilie-menu",
+        "pngSha256": "8e9e1faf5c891758191f7b958474e5dc9fbe5e818cc522c38816349851de0c3d",
+        "visible": false,
+        "focused": false
+      },
+      {
+        "name": "kirilie-dialog",
+        "pngSha256": "555c01731bd7348f31114c9e633084209405831da5782eaed51aa68bfcb38df0",
+        "visible": false,
+        "focused": false
+      },
+      {
+        "name": "original-dark",
+        "pngSha256": "787aa390f00618cb66ce5fddaa928aeee315bfcff6f4f7e6dfb297ad20f6b180",
+        "visible": false,
+        "focused": false
+      },
+      {
+        "name": "kirilie-narrow",
+        "pngSha256": "2160453ac8659d558a4db9276a33d2ae0b16d5882c92f3f1a7ae7e81ea109307",
+        "visible": false,
+        "focused": false
+      },
+      {
+        "name": "kirilie-narrow-dialog",
+        "pngSha256": "6c6edd0f3b2ae2f718215ee2d4a5e708ad72855355691c1ca6157f8c8b4cd204",
+        "visible": false,
+        "focused": false
+      }
+    ],
+    "events": [],
+    "authenticatedApp": false,
+    "realProductionThemeAndControls": true,
+    "syntheticRoomAndMembers": true
+  },
+  "voicePack": {
+    "status": "passed",
+    "exactGeneratedRecordings": {
+      "connected": {
+        "bytes": 161966,
+        "sha256": "18e76f9e516e7682a6dd0b68ba2eab553e76d5e53b419bab28bc6963397ce014"
+      },
+      "disconnected": {
+        "bytes": 157166,
+        "sha256": "d47106a6dd12d404a2d6c7399973acecb2fea1ec80fbeffe4fd5361c01f7519f"
+      },
+      "microphoneMuted": {
+        "bytes": 141806,
+        "sha256": "2b1b0a25ba79960ecae6cab18e33e8e7e8a0b00962e9aea9a392829a3110576b"
+      },
+      "microphoneUnmuted": {
+        "bytes": 147566,
+        "sha256": "3d45fc924573d00cf745642d789bb70b915ccabfe852b9cfb347044660ec9c3d"
+      },
+      "moved": {
+        "bytes": 195566,
+        "sha256": "b89b31329601105f06daacb58d95313f891ac31b1ca832c517a9945eae8f82ac"
+      },
+      "outputMuted": {
+        "bytes": 156206,
+        "sha256": "62bd95650eaf05e8b3655d74111a6ef1c93af5ab0c18709e01f33d464463928a"
+      },
+      "outputUnmuted": {
+        "bytes": 160046,
+        "sha256": "ac124ad671ca539833049d21c827e5259ad55269db1ba51ba378d40549311f06"
+      },
+      "peerJoined": {
+        "bytes": 193646,
+        "sha256": "4d88223fad94ee08ee3f01083837b3befa027f8c6b58386fd2769044b7e1ee62"
+      },
+      "peerLeft": {
+        "bytes": 194606,
+        "sha256": "2ddc4846a86799657bccfcd6dfc609d572045b2788eaf9965894f66bb458189c"
+      }
+    },
+    "apiUsedAtRuntime": false,
+    "sourceRecordingsGitIgnored": true,
+    "bytes": 1508574,
+    "userApprovedVoiceSample": true,
+    "publicAudioRedistributionNotClaimed": true
+  },
+  "administratorRestart": {
+    "normalUac": true,
+    "userMustChooseRestart": true,
+    "cancelDoesNotLoop": true,
+    "fixedDirectoryOnly": true,
+    "oneDriveReadOnlyPathValidationPassed": true,
+    "realUacInteractionAccepted": false
+  },
+  "nativeRuntimeUnchangedFrom": "release/acceptance/friendly-dns-portable-20261013.json",
+  "productionServicesChanged": false,
+  "desktopProgramUpdated": false,
+  "desktopRemainsVersion": "1.13.22-laokuai.beta.20261013.8",
+  "userProfileTouched": false,
+  "fixedDirectory": true,
+  "administratorRequired": true,
+  "automaticElevation": false,
+  "persistentService": false,
+  "npcapAbsent": true,
+  "sourceArchivesBundled": false,
+  "publicBinaryRelease": false,
+  "dualDeviceGameAccepted": false,
+  "twelveFullAppWanAccepted": false,
+  "realDeviceMediaAccepted": false,
+  "liveAnnouncementAccepted": false,
+  "receipt": "release/acceptance/kirilie-voice-portable-20261013.json",
+  "note": "Exact ZIP and nine recordings verified. Hidden fresh-profile bootstrap and isolated actual theme/component rendering passed; this is not live account/device/UAC/media acceptance. Bootstrap retains 19 offline/disabled IPC errors; three socket samples are not continuous tracing. Desktop .8 and its profile remain unchanged."
+}
