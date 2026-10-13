@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-13",
+  "version": "1.13.22-laokuai.beta.20261013.3",
+  "sourceCommit": "dd16e768a38064e6edfd5127e8d5b3ab678413b6",
+  "file": "唠蒯云-1.13.22-laokuai.beta.20261013.3-zh-CN-win-x64-portable.exe",
+  "bytes": 129286828,
+  "sha256": "9e39a02a70ca68ed47b98bdc7aa7d264ad24082ff8298ab50e9f0d98322a28bd",
+  "appAsarSha256": "420bcd8c08c264de67417591616a1c0d7143044091665c8bfe06c72fda3d4365",
+  "staticPayloadFiles": 146,
+  "staticPayloadPassed": true,
+  "broker": {
+    "sourceSha256": "84b02d46ca1d3bcd947ede99d063b0193ef785781857a47822665c22dfb500a0",
+    "sha256": "2fab614e5b058b60f833bb8993ce2ac7a5c5fbf57efcdb661bd06c558226bc0a",
+    "schemaVersion": 1,
+    "bytes": 21504
+  },
+  "npcapAbsent": true,
+  "sourceArchivesBundled": false,
+  "tests": {
+    "memberClock": "old-hook red and fixed-hook green",
+    "coreContractSuites": 10,
+    "targetedLint": true,
+    "applicationTypes": true,
+    "applicationCompile": true
+  },
+  "bootstrap": {
+    "status": "passed",
+    "exitCode": 0,
+    "rootChildren": 1,
+    "preload": {
+      "electronAPI": "object",
+      "easyTierCommunity": "object"
+    },
+    "visible": false,
+    "focused": false,
+    "unexpectedEvents": 0,
+    "residualOwnedProcesses": 0,
+    "socketSamples": [
+      {
+        "seconds": 4.776,
+        "ownedProcesses": 4,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 9.895,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 14.912,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      }
+    ],
+    "consoleErrors": 23,
+    "realElectronExecuted": true,
+    "isolatedFreshProfile": true,
+    "nativeEtExecuted": false,
+    "realCommunityOrDeviceMediaTest": false
+  },
+  "realUacTunAccepted": false,
+  "dualDeviceVoiceAccepted": false,
+  "publicBinaryRelease": false,
+  "repositoryVisibility": "public",
+  "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261013.3-zh-CN-win-x64-portable.exe",
+  "note": "This build fixes the renderer telemetry clock. Earlier .2 actual local TUN/RPC observations are separately recorded in member-status-clock-20261013.json. Exact extracted .3 hidden bootstrap is not normal UI/TUN/media acceptance; sampled zero sockets are not continuous tracing."
+}
