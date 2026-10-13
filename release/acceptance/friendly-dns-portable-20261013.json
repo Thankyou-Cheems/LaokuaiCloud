@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-13",
+  "version": "1.13.22-laokuai.beta.20261013.8",
+  "sourceCommit": "5eed3757e74f76099a7f2991a6c4c9c38fbe462a",
+  "file": "唠蒯云-1.13.22-laokuai.beta.20261013.8-zh-CN-win-x64-green.zip",
+  "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261013.8-zh-CN-win-x64-green.zip",
+  "bytes": 159058776,
+  "sha256": "f3ddb521bead9577d1924f201053b0d436199d76cc64f9ed7301338f830b17ca",
+  "appAsarSha256": "d1afd33cce70a3c559bd83460ac27a2609ba3c00e7bab6a53f1f6c3e073d449e",
+  "staticPayloadFiles": 152,
+  "staticPayloadPassed": true,
+  "coreContractSuites": 31,
+  "serverDnsContractTests": 136,
+  "clientTypesAndChangedSourceLintPassed": true,
+  "bootstrap": {
+    "status": "passed",
+    "exitCode": 0,
+    "rootChildren": 1,
+    "preload": {
+      "electronAPI": "object",
+      "easyTierCommunity": "object"
+    },
+    "visible": false,
+    "focused": false,
+    "unexpectedEvents": 0,
+    "residualOwnedProcesses": 0,
+    "socketSamples": [
+      {
+        "seconds": 4.632,
+        "ownedProcesses": 3,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 9.252,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 13.984,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      }
+    ],
+    "consoleErrors": 23,
+    "realElectronExecuted": true,
+    "isolatedFreshProfile": true,
+    "nativeEtExecuted": false,
+    "realCommunityOrDeviceMediaTest": false
+  },
+  "nativeRuntimeUnchangedFrom": "release/acceptance/community-network-v2-portable-20261013.json",
+  "windowsDnsPolicyLifecycleTested": true,
+  "windowsFriendlyZoneLifecycleTested": true,
+  "temporaryTestRulesRemoved": true,
+  "userConfirmedFriendlyMemberName": true,
+  "directResolverMatchesAssignedIp": true,
+  "systemResolverMatchesAssignedIp": true,
+  "desktopProgramUpdated": true,
+  "desktopPayloadVerified": 152,
+  "profileFilesPreserved": 87,
+  "profileUnchanged": true,
+  "privateBackupRetained": true,
+  "memberRelayDefaultEnabled": false,
+  "memberRelayBackendEnabled": true,
+  "proxyRelayPolicyVersion": 2,
+  "fixedDirectory": true,
+  "administratorRequired": true,
+  "automaticElevation": false,
+  "persistentService": false,
+  "npcapAbsent": true,
+  "sourceArchivesBundled": false,
+  "publicBinaryRelease": false,
+  "dualDeviceGameAccepted": false,
+  "twelveFullAppWanAccepted": false,
+  "realDeviceMediaAccepted": false,
+  "receipt": "release/acceptance/friendly-dns-portable-20261013.json",
+  "note": "Exact package and isolated bootstrap passed; user started updated desktop and confirmed short name. Direct and Windows system DNS resolved the assigned virtual IP. This is single-device DNS acceptance, not dual-device/game/WAN/voice acceptance. The bootstrap retains 23 existing offline/disabled IPC errors."
+}

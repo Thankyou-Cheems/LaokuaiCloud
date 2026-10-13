@@ -1,19 +1,19 @@
 # 当前开发交接
 
 更新：2026-10-13。唯一开发目录 `D:\Dev\LaokuaiCloud`，分支 `main`。
-当前绿色测试包为 `1.13.22-laokuai.beta.20261013.7`；邀请、MagicDNS 与实验性
-成员中继源码已接线，生产成员中继两端开关已获批准开启。真实多设备转发、
-系统 DNS、游戏和 12 人 WAN 语音仍未验收。
+当前桌面绿色测试包为 `1.13.22-laokuai.beta.20261013.8`；易记 MagicDNS
+已部署，用户确认短域名显示，本机直接解析和 Windows 系统解析均匹配虚拟 IP。
+生产成员中继两端开关已开启；真实多设备转发、游戏和 12 人 WAN 语音仍未验收。
 
 ## 当前包与源码
 
-- 文件：`唠蒯云-1.13.22-laokuai.beta.20261013.7-zh-CN-win-x64-green.zip`。
-- 应用源码：`c76a75dd20389b059294435922abb806b68b33e4`。
-- 大小：159058859 B；SHA256：
-  `6093ba84620947e63be2a4aaac1b0e9065f8ebd8808a895be435c220786a8d61`。
+- 文件：`唠蒯云-1.13.22-laokuai.beta.20261013.8-zh-CN-win-x64-green.zip`。
+- 应用源码：`5eed3757e74f76099a7f2991a6c4c9c38fbe462a`。
+- 大小：159058776 B；SHA256：
+  `f3ddb521bead9577d1924f201053b0d436199d76cc64f9ed7301338f830b17ca`。
 - 交付目录：`.local/artifacts/autojoin-test-20261013/`。
 - 精确版本、来源、许可证及对应源码以 [release/manifest.json](release/manifest.json)
-  和 [包回执](release/acceptance/community-network-v2-portable-20261013.json) 为准。
+  和 [包回执](release/acceptance/friendly-dns-portable-20261013.json) 为准。
   包不内嵌源码归档，SOURCE-OFFER 指向精确应用提交及 1263 项源码更新清单；
   旧六份对应源码附件保留。
 
@@ -25,8 +25,11 @@
 
 ## 当前生产状态与回退
 
-Gryt 源码 `10b76471abb043709c9dc1fd321e845258976213`，镜像
-`sha256:fe151bbd8361bc492d74c9349610aad1e25c382fe11d850f49d7674fd242f590`。
+Gryt 源码 `5eed3757e74f76099a7f2991a6c4c9c38fbe462a`，镜像
+`sha256:34cde4c1b3744568269bed640feec49706329da0ec8d1fb85a9feb1c8dea1425`。
+易记域名部署见 [回执](release/acceptance/friendly-dns-deployment-20261013.json)：
+仅 Gryt 重启；环境、端口、挂载、12人限制及中继开关保持，SFU/ET/代理未变。
+回退基线是已支持 V2 的 fe151bbd 镜像，操作器在 `release/deployment/friendly-dns/`。
 邀请与 DNS 目录已部署；`LAOKUAI_MEMBER_RELAY_POLICY_V2=1`。
 管理代理源码 SHA256
 `0b1af8c5dcf0c018d0351e002b07e11f5f2a9b46851a22d5d416b1d71dc26591`，
@@ -42,6 +45,7 @@ Gryt 源码 `10b76471abb043709c9dc1fd321e845258976213`，镜像
 
 后续 Compose 操作必须保留全部既有 overlays，尤其是：
 
+- `/opt/stacks/gryt/friendly-dns-20261013-r1/activation.overlay.json`。
 - `/opt/stacks/gryt/member-relay-v2-20261013-r1/activation.overlay.json`。
 - `/opt/stacks/gryt/community-network-v2-20261013-r1/activation.overlay.json`。
 - `/opt/stacks/gryt/member-address-directory-20261013-r3/activation.overlay.json`。
@@ -60,16 +64,21 @@ false，详见 [V2 契约与回退前置](components/server/COMMUNITY-RELAY-V2.m
 
 ## 验证边界与下一步
 
-.7 的 31 组核心检查、另 23 项生产运行时契约、类型/lint、152 文件 ZIP 核验和
+.8 的 31 组核心检查、另 23 项生产运行时契约、类型/lint、152 文件 ZIP 核验和
 真实隐藏离线新配置启动/退出通过。退出0、无自有残留，三次采样无自有 TCP/UDP；
-保留23条已有离线/禁用IPC错误。新原生 core/CLI 已编译；本轮包验收未运行
-ET/TUN、NRPT或设备媒体。后端健康与只读 issuer 验证不等于产品链路验收。
+保留23条已有离线/禁用IPC错误。原生 core/CLI 与 .7 相同；隐藏包验收未运行
+ET/TUN 或设备媒体。另有实际 Windows DNS 规则创建/回读/清理测试，以及
+用户正常启动 .8 后的本机真实 DNS 成功。桌面更新备份保留，87个数据文件未变。
 
-下一步用 .7 验证首次准入、普通重启后的自动联机、两设备域名/IP与游戏连通、
+下一步用当前包验证首次准入、普通重启后的自动联机、两设备域名/IP与游戏连通、
 主动中继同意/额度/关闭收敛，以及实际双设备 P2P→SFU 回退和 12 个完整客户端
 WAN 语音。区分 ET 路径、WebRTC 媒体路径与物理直连；未知保持未知。
 当前审视入口为 [docs/PROJECT-REVIEW.md](docs/PROJECT-REVIEW.md)，设置说明为
 [联机与快捷设置](docs/COMMUNITY-NETWORK-SETTINGS-20261013.md)。
+
+用户已授权继续手绘奇丽叶整套主题（默认、可切回原主题）、中文曼波事件播报，
+并新增非管理员启动对话框中的“以管理员身份重新启动”选项，仍使用正常 UAC。
+正在并行修改源码；桌面 .8 维持当前测试，不自动替换运行中的程序。
 
 开发使用 PowerShell 7、UTF-8 无 BOM；入口 `tools/enter-local-dev.ps1`。入会、
 ET或语音接线改动先运行 `tools/check-core-contracts.ps1`，再做对应检查；纯契约

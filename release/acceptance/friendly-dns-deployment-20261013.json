@@ -1,0 +1,19 @@
+{
+  "sourceCommit": "5eed3757e74f76099a7f2991a6c4c9c38fbe462a",
+  "bundleSha256": "d29d62d8809031509929c8ba776c6dbb2b6cfe1fe78c7cbe65d541815f86f001",
+  "candidateImage": "sha256:34cde4c1b3744568269bed640feec49706329da0ec8d1fb85a9feb1c8dea1425",
+  "baseImage": "sha256:fe151bbd8361bc492d74c9349610aad1e25c382fe11d850f49d7674fd242f590",
+  "runtimeStarted": true,
+  "onlyServerImageChanges": true,
+  "backendRelayGate": "1",
+  "proxyRelayGate": "2",
+  "databaseBackedUp": true,
+  "activated": true,
+  "healthy": true,
+  "environmentPortsMountsPreserved": true,
+  "sfuEtProxyUntouched": true,
+  "oldImageKept": true,
+  "date": "2026-10-13",
+  "userApproved": true,
+  "receipt": "release/acceptance/friendly-dns-deployment-20261013.json"
+}

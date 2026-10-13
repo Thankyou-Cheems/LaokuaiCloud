@@ -9,8 +9,8 @@
     "visibility": "public",
     "branch": "main",
     "soleGitWriter": "user-directed local developer",
-    "codeCommit": "c76a75dd20389b059294435922abb806b68b33e4",
-    "codeTree": "0f2bed36a128ec806d7ef93c88f34753bafb1c6e",
+    "codeCommit": "5eed3757e74f76099a7f2991a6c4c9c38fbe462a",
+    "codeTree": "2b7b3dcc74f152148c0af9d76a6b2ea42466ab3f",
     "newRepositoryReason": "Authenticated private-repo metadata and explicitly scoped old local core/game remotes revealed no matching existing private integration repository",
     "historyPolicy": "User explicitly authorized deletion and same-name recreation after six Npcap files were removed from history. Only clean main and source tag pushed from an isolated bare repository. Original and clean local bundles retained; no mirror push.",
     "githubId": "R_kgDOVG00Lg"
@@ -18,14 +18,14 @@
   "components": {
     "client": {
       "path": "components/client",
-      "tree": "0ca8b040b908f38df2a9347382868f2a255975b7",
+      "tree": "e656e9c4acef7a42a286bf436f752378843cc437",
       "upstream": "Gryt-chat/client",
       "publicFork": "Thankyou-Cheems/gryt-client-i18n",
       "historyImportedFrom": "06ac43f51dbda3b9444c73270a126e10489110e9",
       "originalHead": "552dc88f3413b83ee29bdb4ab350286e7c9ad2d0",
       "completeDirtySourceSnapshot": "2b9f02076051e3a445bfa99e79d1fc7ac421e19f",
       "originalPreservation": "24 tracked modifications and 6 untracked files retained; all frozen snapshot blobs verified",
-      "version": "1.13.22-laokuai.beta.20261013.7",
+      "version": "1.13.22-laokuai.beta.20261013.8",
       "dependencyLockSha256": "b5e5cf6fb0818e9a18b97f43e75b8d9020ffcf21f9906a2e5fb0f6463557f1c8",
       "lifecycle3SourceCommit": "cb31e2e4ec044a2574f88321bc90cc01c3b51e0c",
       "uiBrandSourceCommit": "c75e6802ac9971b7d4139df8f97b99c7398efd7d",
@@ -33,7 +33,7 @@
         "tree": "8123a71d99a101a3dce02027d476c7e8879ff48d",
         "sourceCommit": "a88f7d75066cf03d65d618bb49cabbff6e8d7884"
       },
-      "sourceCommit": "c76a75dd20389b059294435922abb806b68b33e4",
+      "sourceCommit": "5eed3757e74f76099a7f2991a6c4c9c38fbe462a",
       "communityContractWired": true,
       "preservedPreCommunityWiring": {
         "tree": "fbcc9d4e2db64348fc17704d486a421233f7513f",
@@ -180,10 +180,10 @@
     },
     "server": {
       "path": "components/server",
-      "tree": "3fa62c7fae98b2d0f6557ee2965c8b0c4e7088e7",
+      "tree": "ee132a44f319d1b4b2c491b10e787e164c2996df",
       "upstream": "Gryt-chat/server",
       "userFork": null,
-      "sourceCommit": "10b76471abb043709c9dc1fd321e845258976213",
+      "sourceCommit": "5eed3757e74f76099a7f2991a6c4c9c38fbe462a",
       "archivedSourceFilesVerified": 462,
       "importedSourceFiles": 460,
       "excluded": [
@@ -217,7 +217,8 @@
         "sourceCommit": "9db53f79ec1cbf9408b51e0733e6071b00f192a1"
       },
       "memberAddressDirectoryDeployment": "release/acceptance/member-address-directory-deployment-20261013.json",
-      "communityNetworkDeployment": "release/acceptance/community-network-v2-deployment-20261013.json"
+      "communityNetworkDeployment": "release/acceptance/community-network-v2-deployment-20261013.json",
+      "friendlyDnsDeployment": "release/acceptance/friendly-dns-deployment-20261013.json"
     },
     "sfu": {
       "path": "components/sfu",
@@ -3625,6 +3626,177 @@
   "greenDirectoryTestPackage": {
     "schemaVersion": 1,
     "date": "2026-10-13",
+    "version": "1.13.22-laokuai.beta.20261013.8",
+    "sourceCommit": "5eed3757e74f76099a7f2991a6c4c9c38fbe462a",
+    "file": "唠蒯云-1.13.22-laokuai.beta.20261013.8-zh-CN-win-x64-green.zip",
+    "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261013.8-zh-CN-win-x64-green.zip",
+    "bytes": 159058776,
+    "sha256": "f3ddb521bead9577d1924f201053b0d436199d76cc64f9ed7301338f830b17ca",
+    "appAsarSha256": "d1afd33cce70a3c559bd83460ac27a2609ba3c00e7bab6a53f1f6c3e073d449e",
+    "staticPayloadFiles": 152,
+    "staticPayloadPassed": true,
+    "coreContractSuites": 31,
+    "serverDnsContractTests": 136,
+    "clientTypesAndChangedSourceLintPassed": true,
+    "bootstrap": {
+      "status": "passed",
+      "exitCode": 0,
+      "rootChildren": 1,
+      "preload": {
+        "electronAPI": "object",
+        "easyTierCommunity": "object"
+      },
+      "visible": false,
+      "focused": false,
+      "unexpectedEvents": 0,
+      "residualOwnedProcesses": 0,
+      "socketSamples": [
+        {
+          "seconds": 4.632,
+          "ownedProcesses": 3,
+          "tcpCount": 0,
+          "udpCount": 0
+        },
+        {
+          "seconds": 9.252,
+          "ownedProcesses": 6,
+          "tcpCount": 0,
+          "udpCount": 0
+        },
+        {
+          "seconds": 13.984,
+          "ownedProcesses": 6,
+          "tcpCount": 0,
+          "udpCount": 0
+        }
+      ],
+      "consoleErrors": 23,
+      "realElectronExecuted": true,
+      "isolatedFreshProfile": true,
+      "nativeEtExecuted": false,
+      "realCommunityOrDeviceMediaTest": false
+    },
+    "nativeRuntimeUnchangedFrom": "release/acceptance/community-network-v2-portable-20261013.json",
+    "windowsDnsPolicyLifecycleTested": true,
+    "windowsFriendlyZoneLifecycleTested": true,
+    "temporaryTestRulesRemoved": true,
+    "userConfirmedFriendlyMemberName": true,
+    "directResolverMatchesAssignedIp": true,
+    "systemResolverMatchesAssignedIp": true,
+    "desktopProgramUpdated": true,
+    "desktopPayloadVerified": 152,
+    "profileFilesPreserved": 87,
+    "profileUnchanged": true,
+    "privateBackupRetained": true,
+    "memberRelayDefaultEnabled": false,
+    "memberRelayBackendEnabled": true,
+    "proxyRelayPolicyVersion": 2,
+    "fixedDirectory": true,
+    "administratorRequired": true,
+    "automaticElevation": false,
+    "persistentService": false,
+    "npcapAbsent": true,
+    "sourceArchivesBundled": false,
+    "publicBinaryRelease": false,
+    "dualDeviceGameAccepted": false,
+    "twelveFullAppWanAccepted": false,
+    "realDeviceMediaAccepted": false,
+    "receipt": "release/acceptance/friendly-dns-portable-20261013.json",
+    "note": "Exact package and isolated bootstrap passed; user started updated desktop and confirmed short name. Direct and Windows system DNS resolved the assigned virtual IP. This is single-device DNS acceptance, not dual-device/game/WAN/voice acceptance. The bootstrap retains 23 existing offline/disabled IPC errors."
+  },
+  "previousGreenDirectoryTestPackage": {
+    "schemaVersion": 1,
+    "date": "2026-10-13",
+    "version": "1.13.22-laokuai.beta.20261013.6",
+    "sourceCommit": "49f774b64f2535336f8a8e0f8ee3a50decd704a5",
+    "file": "唠蒯云-1.13.22-laokuai.beta.20261013.6-zh-CN-win-x64-green.zip",
+    "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261013.6-zh-CN-win-x64-green.zip",
+    "bytes": 159015382,
+    "sha256": "77614061c4ab8566f61e541f6b4fefd9127fc75a85f3fd30ed6cbe540f2c7ef7",
+    "appAsarSha256": "8dedf3843fc25b8f0c458b33af399cc9b36afaddee41411ca0e64b88242f0324",
+    "staticPayloadFiles": 152,
+    "staticPayloadPassed": true,
+    "coreContractSuites": 25,
+    "sourceReceipt": "release/acceptance/green-package-source-20261013.json",
+    "bootstrap": {
+      "status": "passed",
+      "exitCode": 0,
+      "rootChildren": 1,
+      "preload": {
+        "electronAPI": "object",
+        "easyTierCommunity": "object"
+      },
+      "visible": false,
+      "focused": false,
+      "unexpectedEvents": 0,
+      "residualOwnedProcesses": 0,
+      "socketSamples": [
+        {
+          "seconds": 4.58,
+          "ownedProcesses": 3,
+          "tcpCount": 0,
+          "udpCount": 0
+        },
+        {
+          "seconds": 9.131,
+          "ownedProcesses": 6,
+          "tcpCount": 0,
+          "udpCount": 0
+        },
+        {
+          "seconds": 13.624,
+          "ownedProcesses": 6,
+          "tcpCount": 0,
+          "udpCount": 0
+        }
+      ],
+      "consoleErrors": 23,
+      "realElectronExecuted": true,
+      "isolatedFreshProfile": true,
+      "nativeEtExecuted": false,
+      "realCommunityOrDeviceMediaTest": false
+    },
+    "tokenGate": {
+      "passed": true,
+      "realPackagedTokenHelperExecuted": true,
+      "result": "ordinary-rejected",
+      "actualDialogOpened": false,
+      "gateSourceExecuted": true,
+      "nativeEtExecuted": false,
+      "userProfileWritten": false
+    },
+    "fixedDirectory": true,
+    "administratorRequired": true,
+    "automaticElevation": false,
+    "persistentService": false,
+    "firewallRules": "two program-scoped owned inbound rules; cleanup requires ledger plus matching ownership and attributes",
+    "actualWindowsFirewallMutationTested": false,
+    "actualFirewallPromptsAccepted": false,
+    "memberAddressDirectoryDeployed": true,
+    "magicDnsEnabled": false,
+    "memberRelayEnabled": false,
+    "oldUserProfilePreserved": true,
+    "npcapAbsent": true,
+    "sourceArchivesBundled": false,
+    "publicBinaryRelease": false,
+    "realDeviceMediaAccepted": false,
+    "dualDeviceGameAccepted": false,
+    "twelveFullAppWanAccepted": false,
+    "note": "Exact ZIP and hidden offline fresh-profile bootstrap passed; 23 known offline/disabled IPC errors retained. No native ET/TUN, microphone, real firewall mutation or actual member-copy UI trial executed in this acceptance.",
+    "receipt": "release/acceptance/green-package-portable-20261013.json"
+  },
+  "memberRelayProduction": {
+    "enabled": true,
+    "backendGate": 1,
+    "proxyGate": 2,
+    "clientConsentDefaultEnabled": false,
+    "receipt": "release/acceptance/member-relay-enabled-20261013.json",
+    "activeOverlay": "/opt/stacks/gryt/member-relay-v2-20261013-r1/activation.overlay.json",
+    "actualForwardingAccepted": false
+  },
+  "previousCommunityNetworkGreenTestPackage": {
+    "schemaVersion": 1,
+    "date": "2026-10-13",
     "version": "1.13.22-laokuai.beta.20261013.7",
     "sourceCommit": "c76a75dd20389b059294435922abb806b68b33e4",
     "file": "唠蒯云-1.13.22-laokuai.beta.20261013.7-zh-CN-win-x64-green.zip",
@@ -3728,94 +3900,23 @@
     "productionRuntimeContractTests": 23,
     "receipt": "release/acceptance/community-network-v2-portable-20261013.json"
   },
-  "previousGreenDirectoryTestPackage": {
-    "schemaVersion": 1,
+  "friendlyDnsProduction": {
+    "sourceCommit": "5eed3757e74f76099a7f2991a6c4c9c38fbe462a",
+    "bundleSha256": "d29d62d8809031509929c8ba776c6dbb2b6cfe1fe78c7cbe65d541815f86f001",
+    "candidateImage": "sha256:34cde4c1b3744568269bed640feec49706329da0ec8d1fb85a9feb1c8dea1425",
+    "baseImage": "sha256:fe151bbd8361bc492d74c9349610aad1e25c382fe11d850f49d7674fd242f590",
+    "runtimeStarted": true,
+    "onlyServerImageChanges": true,
+    "backendRelayGate": "1",
+    "proxyRelayGate": "2",
+    "databaseBackedUp": true,
+    "activated": true,
+    "healthy": true,
+    "environmentPortsMountsPreserved": true,
+    "sfuEtProxyUntouched": true,
+    "oldImageKept": true,
     "date": "2026-10-13",
-    "version": "1.13.22-laokuai.beta.20261013.6",
-    "sourceCommit": "49f774b64f2535336f8a8e0f8ee3a50decd704a5",
-    "file": "唠蒯云-1.13.22-laokuai.beta.20261013.6-zh-CN-win-x64-green.zip",
-    "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261013.6-zh-CN-win-x64-green.zip",
-    "bytes": 159015382,
-    "sha256": "77614061c4ab8566f61e541f6b4fefd9127fc75a85f3fd30ed6cbe540f2c7ef7",
-    "appAsarSha256": "8dedf3843fc25b8f0c458b33af399cc9b36afaddee41411ca0e64b88242f0324",
-    "staticPayloadFiles": 152,
-    "staticPayloadPassed": true,
-    "coreContractSuites": 25,
-    "sourceReceipt": "release/acceptance/green-package-source-20261013.json",
-    "bootstrap": {
-      "status": "passed",
-      "exitCode": 0,
-      "rootChildren": 1,
-      "preload": {
-        "electronAPI": "object",
-        "easyTierCommunity": "object"
-      },
-      "visible": false,
-      "focused": false,
-      "unexpectedEvents": 0,
-      "residualOwnedProcesses": 0,
-      "socketSamples": [
-        {
-          "seconds": 4.58,
-          "ownedProcesses": 3,
-          "tcpCount": 0,
-          "udpCount": 0
-        },
-        {
-          "seconds": 9.131,
-          "ownedProcesses": 6,
-          "tcpCount": 0,
-          "udpCount": 0
-        },
-        {
-          "seconds": 13.624,
-          "ownedProcesses": 6,
-          "tcpCount": 0,
-          "udpCount": 0
-        }
-      ],
-      "consoleErrors": 23,
-      "realElectronExecuted": true,
-      "isolatedFreshProfile": true,
-      "nativeEtExecuted": false,
-      "realCommunityOrDeviceMediaTest": false
-    },
-    "tokenGate": {
-      "passed": true,
-      "realPackagedTokenHelperExecuted": true,
-      "result": "ordinary-rejected",
-      "actualDialogOpened": false,
-      "gateSourceExecuted": true,
-      "nativeEtExecuted": false,
-      "userProfileWritten": false
-    },
-    "fixedDirectory": true,
-    "administratorRequired": true,
-    "automaticElevation": false,
-    "persistentService": false,
-    "firewallRules": "two program-scoped owned inbound rules; cleanup requires ledger plus matching ownership and attributes",
-    "actualWindowsFirewallMutationTested": false,
-    "actualFirewallPromptsAccepted": false,
-    "memberAddressDirectoryDeployed": true,
-    "magicDnsEnabled": false,
-    "memberRelayEnabled": false,
-    "oldUserProfilePreserved": true,
-    "npcapAbsent": true,
-    "sourceArchivesBundled": false,
-    "publicBinaryRelease": false,
-    "realDeviceMediaAccepted": false,
-    "dualDeviceGameAccepted": false,
-    "twelveFullAppWanAccepted": false,
-    "note": "Exact ZIP and hidden offline fresh-profile bootstrap passed; 23 known offline/disabled IPC errors retained. No native ET/TUN, microphone, real firewall mutation or actual member-copy UI trial executed in this acceptance.",
-    "receipt": "release/acceptance/green-package-portable-20261013.json"
-  },
-  "memberRelayProduction": {
-    "enabled": true,
-    "backendGate": 1,
-    "proxyGate": 2,
-    "clientConsentDefaultEnabled": false,
-    "receipt": "release/acceptance/member-relay-enabled-20261013.json",
-    "activeOverlay": "/opt/stacks/gryt/member-relay-v2-20261013-r1/activation.overlay.json",
-    "actualForwardingAccepted": false
+    "userApproved": true,
+    "receipt": "release/acceptance/friendly-dns-deployment-20261013.json"
   }
 }
