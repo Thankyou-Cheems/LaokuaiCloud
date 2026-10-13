@@ -3193,6 +3193,12 @@
     "receipt": "release/acceptance/autojoin-portable-20261013.json",
     "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261013.1-zh-CN-win-x64-portable.exe"
   },
+  "communityManagementRecovery": {
+    "receipt": "release/acceptance/community-management-recovery-20261013.json",
+    "deployed": true,
+    "credentialAcquireRecovered": true,
+    "portableRebuildNeeded": false
+  },
   "sourcePublication": {
     "receipt": "release/acceptance/public-source-recreation-20261013.json",
     "repositoryUrl": "https://github.com/Thankyou-Cheems/LaokuaiCloud",

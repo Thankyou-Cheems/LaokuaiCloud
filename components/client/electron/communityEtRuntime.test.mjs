@@ -29,6 +29,7 @@ const {projectCommunityEtBinding} = load(new URL('./communityEtBindingProjection
 const {CommunityEtGrantRuntime} = load(new URL('./communityEtGrantRuntime.ts', import.meta.url));
 const {CommunityEtGrantTransport, CommunityEtTransportError, trustedHttpsOrigin} = load(new URL('./communityEtGrantTransport.ts', import.meta.url));
 const {EasyTierCommunityManager, EasyTierOperationError, EasyTierSessionRetiredError} = load(new URL('./easyTierCommunityManager.ts', import.meta.url));
+const {CommunityEnrollment} = load(new URL('./communityEnrollment.ts', import.meta.url));
 const {registerEasyTierCommunityIpc} = load(new URL('./easyTierCommunityIpc.ts', import.meta.url));
 const KEY = Buffer.alloc(32, 0x31).toString('base64'), ISSUER = Buffer.alloc(32, 0x22).toString('base64');
 const SECRET = Buffer.alloc(32, 0x42).toString('base64'); // Unissued fixture, intentionally not a keypair.
@@ -232,6 +233,46 @@ test('a transient CLI telemetry failure does not retire or restart the live core
   await assert.rejects(s.read(new AbortController().signal), e => !(e instanceof EasyTierSessionRetiredError));
   assert.equal(f.events.includes('stop'), false); assert.equal(f.calls.some(c => c.op === 'revoke'), false);
   f.setSampleFailure(null); await s.read(new AbortController().signal); await s.close();
+});
+
+test('HTTP 503 during acquire is retried through the real enrollment and grant runtime', async () => {
+  const f = runtimeFixture(), timers = [], member = {serverId: 'community', host: 'test.invalid', accessToken: 'opaque'};
+  // The injected port models the HTTP transport after its status mapping: the first
+  // acquire is a provider 503, then the backend returns a normal grant.
+  f.setFailure({op: 'acquire', code: 'provider-unavailable'});
+  let enrollment;
+  const manager = new EasyTierCommunityManager(f.runtime, state => enrollment?.observe(state));
+  enrollment = new CommunityEnrollment({manager, supports: m => m.serverId === member.serverId && m.host === member.host,
+    approve: async () => ({accepted: true}), authenticate: value => f.authenticate(value.accessToken),
+    releasePreparation: () => undefined, preparationReady: () => true,
+    schedule: (work, delayMs) => { const timer = {work, delayMs, cancelled: false}; timers.push(timer); return () => { timer.cancelled = true; }; }});
+
+  const first = await enrollment.reconcile({members: [member], enabled: true});
+  assert.equal(first[0].phase, 'error');
+  assert.equal(first[0].reason, 'connect-failed');
+  assert.equal(timers[0].delayMs, 5000);
+  assert.equal(f.calls.filter(call => call.op === 'session').length, 1);
+  assert.equal(f.calls.filter(call => call.op === 'acquire').length, 1);
+  assert.equal(f.events.includes('write'), false);
+  assert.equal(f.cores(), 0);
+
+  f.setFailure(null);
+  const retry = timers.find(timer => !timer.cancelled);
+  assert.ok(retry);
+  retry.cancelled = true;
+  retry.work();
+  await new Promise(resolve => setImmediate(resolve));
+  await new Promise(resolve => setImmediate(resolve));
+
+  assert.equal(manager.getState(member.serverId).phase, 'connected');
+  assert.equal(f.calls.filter(call => call.op === 'session').length, 1, 'retry must reuse the authenticated session');
+  assert.equal(f.calls.filter(call => call.op === 'acquire').length, 2, 'retry must request a new community grant');
+  assert.equal(f.events.filter(event => event === 'write').length, 1);
+  assert.equal(f.events.filter(event => event === 'start').length, 1);
+  assert.equal(f.cores(), 1);
+
+  await enrollment.reconcile({members: [], enabled: false});
+  enrollment.shutdown();
 });
 test('authenticated IPC rejects untrusted frame before any transport operation', async () => {
   const handlers = {}, f = runtimeFixture(), manager = new EasyTierCommunityManager(f.runtime);
