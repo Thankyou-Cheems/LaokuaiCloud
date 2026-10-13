@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-13",
+  "kind": "hybrid-path-admission-recovery-and-client-integration",
+  "sdk": {
+    "version": "0.6.2-laokuai.routing.1",
+    "vendor": "components/client/vendor/gryt-voice-0.6.2-laokuai.routing.1.tgz",
+    "sha256": "0786cd221317e74690629167e9ddadfdfcb6e5af42d62de7c6a4a54df5aa12ca"
+  },
+  "behaviors": [
+    "selected pair classification from exact track transport",
+    "fresh host underlay admission, one-second stable window",
+    "TURN/known ET relay/unknown do not replace healthy SFU",
+    "15/30/60-second capped ongoing re-probes",
+    "bounded SFU restoration batches with cooldown",
+    "pair-scoped signal counters survive unilateral reconnect",
+    "unique exact decoded track proof",
+    "voice room lifecycle never releases community ET lease",
+    "self path is local/not applicable",
+    "receive-only status when remote receipt missing",
+    "immediate window/tray close with owned background cleanup"
+  ],
+  "checks": {
+    "hybridAssertions": 689,
+    "networkBoundaryAssertions": 58,
+    "integrationAssertions": 23,
+    "sessionAssertions": 26,
+    "authRecoveryAssertions": 129,
+    "receivePathAssertions": 154,
+    "peerPathAssertions": 19,
+    "etUnderlayScenarios": 10,
+    "communityNetworkScenarios": 12,
+    "voiceUiScenarios": 19,
+    "providerDetailsScenarios": 5,
+    "connectionDetailsScenarios": 14,
+    "topologyIconGeometries": 8,
+    "coreChecks": 22,
+    "targetedClientLint": true,
+    "clientTypes": true
+  },
+  "realEvidence": [
+    "release/acceptance/voice-codec-budget-20261013.json",
+    "release/acceptance/sfu-budget-20261013.json",
+    "release/acceptance/voice-budget-deployment-20261013.json"
+  ],
+  "sourceFiles": {
+    "components/voice/src/webrtc/hybrid/HybridRouteController.ts": "ca8ef26f04704dc3fee9d14ab3cd4ea72dc71a56909299e18d46d7a4c639d823",
+    "components/voice/src/webrtc/hybrid/BrowserHybridPeer.ts": "fb4aacf52ab1bf4d03bb3f1459decc6dc5a3eb402e817cb84cc489af5134edfb",
+    "components/voice/src/webrtc/hybrid/BrowserHybridVoiceSession.ts": "0c30fb774b3f72b0cf981d086d529077651e6ee6ce4b8d4686c4679feec6bec2",
+    "components/voice/src/webrtc/hybrid/receivePathStats.ts": "d8b467620a572e940ecd739ff24ef9aca02d98e63865c81df46cc5d9fc6ecf7c",
+    "components/client/src/lib/easyTierVoiceUnderlay.ts": "9251ab1e3d3119c7cbfa665cf0292a9a7ab8e6167c7d21f3fdfd61d5034bf342",
+    "components/client/src/lib/voiceTransportPreset.ts": "da040cf05a0cd0b1deb4945c7e8fa6290006facbde007a1c4bcd3a9a9c0b23d4",
+    "components/client/src/packages/webRTC/src/adapters/HybridVoiceBridge.tsx": "502bc04de30a061f20358260ae3813b431cc6a5c16cd1c62dcdd589188d7e898",
+    "components/client/electron/main.ts": "1d6df92fdf76dc1b3a174b9b6bf3fc6da34801a9c5ed5633057f2c2752a72ba8"
+  },
+  "limitations": [
+    "Full SFU PC disconnection still retires the voice binding; ET community lifetime stays independent.",
+    "ET underlay uses local selected endpoints and owned route-cache correlation, not full physical-path or member-identity proof.",
+    "No two-device WAN, twelve full applications, human listening or game co-existence acceptance.",
+    "Twelve-seat budget targets standard profile, not arbitrary custom packetization or unlimited game relay."
+  ],
+  "rawDiagnosticsOrProfilesImported": false
+}

@@ -61,12 +61,13 @@ const sdp='v=0\r\nm=audio 9 UDP/TLS/RTP/SAVPF 111\r\na=mid:0\r\na=sendrecv\r\na=
 class FakePc {
   connectionState='connected';signalingState='stable';localCalls=0;
   parameters={encodings:[{}],codecs:[{mimeType:'audio/opus'}]};
+  stats=new Map();
   sender={track,getParameters:()=>structuredClone(this.parameters),setParameters:async value=>{this.parameters=value}};
   addTrack(){return this.sender} getTransceivers(){return [{mid:'0',sender:this.sender}]}
   async setRemoteDescription(value){this.remoteDescription=value;this.signalingState='have-remote-offer'}
   async createAnswer(){return {type:'answer',sdp}}
   async setLocalDescription(value){this.localCalls++;this.localDescription=value;this.signalingState='stable'}
-  async getStats(){return new Map()} close(){this.connectionState='closed'}
+  async getStats(){return this.stats} close(){this.connectionState='closed'}
 }
 globalThis.RTCPeerConnection=FakePc;
 {
@@ -88,6 +89,26 @@ for (const bitrate of [48000,64000]) {
   const factory={lease:{scope,remoteSessionId:'socket-b',connectionId:'cap-failure',initiator:false},publication:borrowHybridPublication(microphone,publicationPc),participant,onSignal(){},onFailure(){}};
   const peer=new BrowserHybridPeer(factory,{rtcConfiguration:{iceServers:[]},microphoneCodec:{...profile,maxBitrateBps:64000},channelMaxBitrateBps:5000});
   await rejects(peer.start(),/peer_codec_unavailable/);equal(peer.pc.connectionState,'closed');equal(peer.getMicrophoneCodecState().effectiveMaxBitrateBps,5000);peer.dispose();
+}
+{
+  const priorAudio=globalThis.Audio;
+  globalThis.Audio=class { play(){return Promise.resolve()} pause(){} remove(){} };
+  const remoteTrack={id:'remote-peer-track',kind:'audio',readyState:'live',addEventListener(){},removeEventListener(){}};
+  const remoteStream={getTracks:()=>[remoteTrack],getAudioTracks:()=>[remoteTrack]};
+  const factory={lease:{scope,remoteSessionId:'socket-b',connectionId:'poll-proof',initiator:false},publication:borrowHybridPublication(microphone,publicationPc),participant,onSignal(){},onFailure(){}};
+  const peer=new BrowserHybridPeer(factory,{rtcConfiguration:{iceServers:[]},microphoneCodec:profile});
+  peer.pc.ontrack({track:remoteTrack,streams:[remoteStream]});
+  peer.pc.stats=new Map([['unidentified',{type:'inbound-rtp',kind:'audio',packetsReceived:2,totalSamplesReceived:960}]]);
+  await peer.start(); await new Promise(r=>setImmediate(r)); clearTimeout(peer.timer);
+  let resolved=false; const waiting=peer.waitForMedia().then(value=>{resolved=true;return value});
+  peer.pc.stats=new Map([
+    ['duplicate-1',{type:'inbound-rtp',kind:'audio',trackIdentifier:remoteTrack.id,packetsReceived:3,totalSamplesReceived:1440}],
+    ['duplicate-2',{type:'inbound-rtp',kind:'audio',trackIdentifier:remoteTrack.id,packetsReceived:4,totalSamplesReceived:1920}],
+  ]);
+  peer.poll(); await new Promise(r=>setImmediate(r)); clearTimeout(peer.timer); equal(resolved,false);
+  peer.pc.stats=new Map([['exact',{type:'inbound-rtp',kind:'audio',trackIdentifier:remoteTrack.id,packetsReceived:5,totalSamplesReceived:2400}]]);
+  peer.poll(); const candidate=await waiting; equal(candidate.track,remoteTrack); equal(resolved,true);
+  peer.dispose(); if(priorAudio===undefined) delete globalThis.Audio; else globalThis.Audio=priorAudio;
 }
 {
   let stats=new Map([['in',{type:'inbound-rtp',kind:'audio',trackIdentifier:track.id,packetsReceived:10,totalSamplesReceived:4800}]]),calls=0;

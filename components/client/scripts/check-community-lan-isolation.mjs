@@ -41,4 +41,66 @@ for(const variant of ['missing-grant','disabled','unavailable'])await test('Prod
 await test('ET state never overrides real community permission rejection',async()=>{const f=fakeSocket({denied:true}),join=compile('src/packages/socket/src/utils/joinServerOnce.ts',{'socket.io-client':{io:()=>{queueMicrotask(()=>EventEmitter.prototype.emit.call(f.socket,'connect'));return f.socket;}},'@/common':common,'@/i18n':{i18n:translate},'./challengeHost':challenges,'./serverAuth':auth}).joinServerOnce;const r=await join({host:'community.invalid'});assert.equal(r.ok,false);assert.equal(r.error.error,'forbidden');});
 await test('Wrong-host challenge cannot sign identity or be repaired by ET',async()=>{let signed=0;const f=fakeSocket({badChallenge:true}),join=compile('src/packages/socket/src/utils/joinServerOnce.ts',{'socket.io-client':{io:()=>{queueMicrotask(()=>EventEmitter.prototype.emit.call(f.socket,'connect'));return f.socket;}},'@/common':{...common,answerChallenge:async()=>{signed++;return {};}},'@/i18n':{i18n:translate},'./challengeHost':challenges,'./serverAuth':auth}).joinServerOnce;const r=await join({host:'community.invalid'});assert.equal(r.ok,false);assert.equal(signed,0);assert.ok(!f.emitted.includes('server:verify'));});
 await test('No stable server identity cannot borrow ET connectivity for a room grant',async()=>{const signal={connected:true,id:'session-fixture',emit(){throw Error('Must not emit');}};const room=compile('src/packages/webRTC/src/adapters/roomCoordinator.ts',{'@/socket/src/utils/rateLimitHandler':{handleRateLimitError(){}}}).createRoomCoordinator(signal,'community.invalid');assert.equal((await room.requestAccess('room-fixture')).granted,false);});
+await test('Voice leave, SFU failure, and Hybrid disposal preserve ET lease ownership',async()=>{
+  const roomSource=fs.readFileSync(path.join(root,'src/packages/webRTC/src/adapters/roomCoordinator.ts'),'utf8');
+  const lifecycleSource=fs.readFileSync(path.join(root,'src/packages/webRTC/src/adapters/useVoiceLifecycle.tsx'),'utf8');
+  const bridgeSource=fs.readFileSync(path.join(root,'src/packages/webRTC/src/adapters/HybridVoiceBridge.tsx'),'utf8');
+  const sessionSource=fs.readFileSync(path.resolve(root,'..','voice','src/webrtc/hybrid/BrowserHybridVoiceSession.ts'),'utf8');
+  const etLeaseApi=/\b(?:easyTierCommunity|reconcileEnrollment|disconnectCommunity|syncMemberships|setAuthenticatedSession|et-community-[a-z-]+)\b/;
+  for(const [name,source] of [['room coordinator',roomSource],['voice lifecycle',lifecycleSource],['Hybrid voice bridge',bridgeSource],['Hybrid voice session',sessionSource]])
+    assert.doesNotMatch(source,etLeaseApi,`${name} must not own or release the ET community lease`);
+  const emitted=[],signal={connected:true,id:'voice-test-socket',emit(event){emitted.push(event);}};
+  const room=compile('src/packages/webRTC/src/adapters/roomCoordinator.ts',{'@/socket/src/utils/rateLimitHandler':{handleRateLimitError(){}}}).createRoomCoordinator(signal);
+  room.leave();
+  assert.deepEqual(emitted,['voice:room:leave'],'room leave must remain a voice-only operation');
+
+  // Execute the production bridge cleanup in a VM with a lease spy. This exercises
+  // the actual SFU-failure callback and effect cleanup without a browser, ET core,
+  // driver, or network. The fake resolver exposes release methods so accidental
+  // ownership transfer is observable rather than hidden by a source-only scan.
+  const bridgeCode=ts.transpileModule(bridgeSource,{reportDiagnostics:true,compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}});
+  assert.equal(bridgeCode.diagnostics.filter(x=>x.category===ts.DiagnosticCategory.Error).length,0);
+  const effects=[],sessions=[],registrations=[],lease={releaseCalls:0,disconnectCalls:0,release(){this.releaseCalls++;},disconnectCommunity(){this.disconnectCalls++;}};
+  const pc={connectionState:'connected',getConfiguration(){return {iceServers:[]};}};
+  const socket={connected:true,id:'local-session'};
+  const roster={
+    'local-session':{serverUserId:'local-user',voiceChannelId:'room',hasJoinedChannel:true},
+    'remote-session':{serverUserId:'remote-user',streamID:'remote-publication',voiceChannelId:'room',hasJoinedChannel:true},
+  };
+  const source={receiveCleanup:{}};
+  const sfu={currentServerConnected:'host',currentChannelConnected:'room',isConnected:true,streamSources:{'remote-publication':source},getPeerConnection:()=>pc,getConnectionEpoch:()=>1};
+  const microphone={stop(){throw Error('Hybrid observer must not stop the microphone');}};
+  class Session {
+    constructor(options){this.options=options;this.disposed=false;sessions.push(this);}
+    async update(){}
+    async setEnabled(){}
+    getState(){return {status:'disabled'};}
+    fail(){this.options.onState?.({status:'unsupported',reason:'fixture_sfu_failure',routing:null,physicalDirectVerified:false});}
+    dispose(){this.disposed=true;}
+  }
+  const deps={
+    '@gryt/voice':{BrowserHybridVoiceSession:Session,useSFU:()=>sfu,useMicrophone:()=>microphone},
+    react:{useRef:value=>({current:value}),useEffect:fn=>effects.push(fn)},
+    '@/common':{useUserId:()=> 'account',getServerAccessToken:()=> 'fixture-token'},
+    '@/socket':{useSockets:()=>({sockets:{host:socket},serverDetailsList:{host:{server_info:{server_id:'server'}}},clients:{host:roster}})},
+    '../../../../lib/communityLanState':{useEasyTierCommunityState:()=>({phase:'connected',reason:null,lease})},
+    '../../../../lib/easyTierVoiceUnderlay':{createEasyTierVoiceUnderlayResolver:()=>({resolve:()=>null,release:()=>lease.release(),disconnectCommunity:()=>lease.disconnectCommunity()})},
+    '../../../../lib/memberVoiceLocalNetwork':{readVoiceLocalNetwork:()=>undefined},
+    './MemberVoiceObservationAuthority':{useMemberVoiceObservationAuthority:()=>({update(){},registerSession:(session,binding)=>{const registration={session,binding};registrations.push(registration);return()=>{registration.released=true;};}})},
+  };
+  const bridgeExports={};
+  vm.runInNewContext(bridgeCode.outputText,{exports:bridgeExports,JSON,setTimeout,clearTimeout,require:key=>{assert.ok(Object.hasOwn(deps,key),'Unexpected Hybrid dependency '+key);return deps[key];}});
+  const policy={enabled:true,allowNetwork:true,microphoneCodec:{codec:'opus',maxBitrateBps:64000},onState(){}};
+  bridgeExports.HybridVoiceBridge({policy,config:{connection:{microphoneCodec:{codec:'opus',maxBitrateBps:64000},maxBitrate:null}},registry:{selectTrack(){}}});
+  const cleanups=effects.map(effect=>effect());
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.equal(sessions.length,1,'production bridge should create one session in the fixture');
+  const session=sessions[0];
+  session.fail();
+  assert.equal(lease.releaseCalls,0);assert.equal(lease.disconnectCalls,0,'SFU failure must not release the community lease');
+  cleanups.forEach(cleanup=>typeof cleanup==='function'&&cleanup());
+  assert.equal(session.disposed,true);assert.equal(lease.releaseCalls,0);assert.equal(lease.disconnectCalls,0,'Hybrid disposal must not release the community lease');
+  assert.equal(registrations[0].released,true,'voice observation registration is released independently');
+});
 console.log(JSON.stringify({checks:cases.length,allPassed:true,scope:'Production source under deterministic fake signaling/identity service and SSR. Guard cryptography is stubbed; no real SFU RTP/device or actual P2P path measured.',realNetworkOrNative:false,rawCredentialsOrProfiles:false}));

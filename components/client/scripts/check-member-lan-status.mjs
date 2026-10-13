@@ -116,10 +116,26 @@ check("compact presentation preserves full keyboard/screenreader detail while tr
   assert.equal(span.props.tabIndex,0);assert.equal(span.props.role,"img");assert.equal(span.props['aria-label'],tree.props.title);
   assert.equal(span.props.title,tree.props.title);assert.match(span.props.className,/min-w-0 max-w-full/);
   assert.match(span.props.children[1].props.className,/truncate/);assert.equal(span.props.children[1].props['aria-hidden'],"true");
-  assert.match(span.props['aria-label'],/成员 RTT/);assert.match(span.props['aria-label'],/语音媒体路径.*未知/);
+  assert.match(span.props['aria-label'],/成员 RTT/);assert.match(span.props['aria-label'],/社区联机与语音媒体路径独立/);
+  assert.doesNotMatch(span.props['aria-label'],/尚未接入/);
   assert.doesNotMatch(span.props['aria-label'],/peer-local|peer-remote|user-remote|community-fixture|server-fixture/);
   let stopped=0;span.props.onKeyDown({key:"Enter",stopPropagation(){stopped++;}});span.props.onKeyDown({key:" ",stopPropagation(){stopped++;}});
   span.props.onKeyDown({key:"Tab",stopPropagation(){stopped++;}});assert.equal(stopped,2);
+});
+check("the local member uses the verified self reading instead of a member path",()=>{
+  for(language of ["zh-CN","en"]){
+    const tree=MemberLanStatus({...input(fixture()),authenticatedUserId:"user-local"});const span=tree.props.children;
+    const label=span.props.children[1].props.children;
+    assert.equal(label,`${t("memberLan.enrollment.joined")} · ${t("memberLan.path.self")}`);
+    assert.equal(span.props.children[0].props.kind,"local");
+    assert.doesNotMatch(span.props["aria-label"],/成员 RTT|Measured peer RTT|未知|Unknown/);
+  }
+  const unverified=fixture();unverified.members[0].binding.confidence="unverified";
+  const missing=MemberLanStatus({...input(unverified),authenticatedUserId:"user-local"});
+  assert.equal(missing.props.children.props["data-enrollment"],"unknown");
+  assert.equal(missing.props.children.props.children[0].props.kind,"unknown");
+  assert.doesNotMatch(missing.props.children.props.children[1].props.children,/本机|This device/);
+  language="zh-CN";
 });
 check("green is reserved for fresh verified membership; expired RTT remains explicit",()=>{
   for(const state of ['off','not-joined','joining','error']){

@@ -16,7 +16,8 @@ const provider = read("src/packages/webRTC/src/adapters/VoiceProvider.tsx");
 const peerPolicyExpression = provider.match(/const effectiveHybrid = useMemo\(\(\) => ([\s\S]*?), \[hybrid, voiceTransportPreset\]\)/)[1];
 const productPeerPolicy = (hybrid, voiceTransportPreset) => vm.runInNewContext(peerPolicyExpression, { hybrid, voiceTransportPreset, peerVoicePreset, voicePresetCodec });
 const standardPeerPolicy = productPeerPolicy(productPolicy, sharedVoicePreset());
-assert.equal(sharedVoicePreset().maxBitrateBps, 48_000);
+assert.equal(sharedVoicePreset().maxBitrateBps, 16_000);
+assert.equal(sharedVoicePreset().packetTimeMs, 60);
 assert.equal(standardPeerPolicy.microphoneCodec.maxBitrateBps, 64_000);
 const customPreset = { ...sharedVoicePreset(), selection: "custom", maxBitrateBps: 32000, packetTimeMs: 40, requestDtx: false };
 assert.equal(productPeerPolicy(productPolicy, customPreset).microphoneCodec.maxBitrateBps, 32000);
@@ -57,6 +58,9 @@ function fixture(policy, options = {}) {
     dispose() { this.disposed = true; }
   }
   const deps = { "@gryt/voice": { BrowserHybridVoiceSession: Session, useSFU: () => sfu, useMicrophone: value => { microphoneArgs.push(value); return microphone; } }, react: { useRef: value => ({ current: value }), useEffect: fn => effects.push(fn) }, "@/common": { useUserId: () => "account", getServerAccessToken: () => "fake-in-memory-only" }, "@/socket": { useSockets: () => ({ sockets: { host: socket }, serverDetailsList: { host: { server_info: { server_id: "server" } } }, clients: { host: roster } }) } };
+  deps["../../../../lib/communityLanState"] = { useEasyTierCommunityState: () => undefined };
+  deps["../../../../lib/easyTierVoiceUnderlay"] = { createEasyTierVoiceUnderlayResolver: () => ({ resolve: () => null }) };
+  deps["../../../../lib/memberVoiceLocalNetwork"] = { readVoiceLocalNetwork: () => undefined };
   deps["./MemberVoiceObservationAuthority"] = { useMemberVoiceObservationAuthority: () => ({ update() {},
     registerSession: (session, binding) => { const registration = { session, binding, released: false }; registrations.push(registration); return () => { registration.released = true; }; } }) };
   const exports = {};
@@ -76,6 +80,7 @@ const registration = active.registrations[0]; assert.equal(registration.session,
 for (const [field,value] of Object.entries({ accountId: "account", host: "host", serverId: "server", roomId: "room",
   localUserId: "local-user", localSessionId: "local-session", socket: active.socket, peerConnection: active.pc, connectionEpoch: 1 })) assert.equal(registration.binding[field], value);
 assert.equal(session.options.rtcConfiguration, active.inheritedIce); assert.equal(session.options.allowNetwork, true);
+assert.equal(typeof session.options.pathUnderlayResolver?.resolve, "function");
 assert.equal(session.options.microphoneCodec.maxBitrateBps, 64000);
 assert.equal(session.options.getPeerConnection(), active.pc); assert.equal(session.options.isCurrent(), true);
 const remote = { participantId: "remote-user", sessionId: "remote-session", publicationId: "remote-publication" };

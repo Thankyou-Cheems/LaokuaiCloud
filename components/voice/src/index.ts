@@ -15,5 +15,8 @@ export type { HybridReceivePortOptions } from "./webrtc/hybrid/HybridReceivePort
 export { BrowserHybridVoiceSession } from "./webrtc/hybrid/BrowserHybridVoiceSession.js";
 export type { BrowserHybridVoiceState, BrowserHybridVoiceOptions } from "./webrtc/hybrid/BrowserHybridVoiceSession.js";
 export { ReceivePathObserver } from "./webrtc/hybrid/ReceivePathObserver.js";
-export type { ReceivePathScope, ReceivePathBinding, ReceiveDecodeWindow, ReceiveTransportMetrics, ReceiveTrackObservation,
-  ReceiveSourceSelection, ReceivePathSelectionPort, ReceivePathRow, ReceivePathSnapshot, ReceivePathObserverOptions } from "./webrtc/types/ReceivePath.js";
+export type { ReceivePathScope, ReceivePathBinding, ReceiveDecodeWindow, ReceiveCandidateType, ReceiveCandidateEndpoint,
+  ReceiveTransportPathClass, ReceiveTransportPathReason, ReceiveUnderlayClass, ReceiveUnderlayEvidence,
+  ReceivePathUnderlayResolver, ReceiveTransportPathEvidence, ReceiveTransportPathSummary, ReceiveTransportMetrics,
+  ReceiveTrackObservation, ReceiveSourceSelection, ReceivePathSelectionPort, ReceivePathRow, ReceivePathSnapshot,
+  ReceivePathObserverOptions } from "./webrtc/types/ReceivePath.js";

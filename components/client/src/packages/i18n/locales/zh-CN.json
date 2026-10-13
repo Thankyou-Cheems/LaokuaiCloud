@@ -3639,8 +3639,8 @@
   },
   "transport": {
     "title": "语音带宽",
-    "description": "使用单声道 Opus 和可变码率。标准档请求服务器路径 48 kbps、点对点音频 64 kbps；实际流量取决于协商和频道上限。",
-    "shared": "标准：服务器 48 / 点对点 64 kbps · 20 ms",
+    "description": "标准档为多人语音节省服务器带宽：服务器路径使用 16 kbps / 60 ms，获准的点对点路径使用 64 kbps / 20 ms。服务器路径优先保证说话清晰度；实际流量取决于协商、封包和频道上限。",
+    "shared": "标准：节流服务器语音 / 高品质点对点",
     "custom": "自定义传输偏好",
     "reconnect": "修改后重新连接生效。旧电竞模式不会覆盖这里选择的语音带宽。",
     "bitrate": "码率上限：{{value}} kbps",
@@ -3667,14 +3667,16 @@
   "memberLan": {
     "enrollmentTitle": "社区联机",
     "pathTitle": "本机到成员的联机路径",
+    "localStateTitle": "本机社区联机状态",
     "pathExpired": "路径过期",
     "rttTitle": "实测成员 RTT",
     "sourceTitle": "证据来源",
     "ageTitle": "入网证据年龄",
+    "age": "{{seconds}} 秒",
     "unknown": "未知",
     "stale": "已过期",
     "boundary": "社区联机入网与语音房间独立。仅展示已认证的用户与 peer 绑定及新鲜测量。",
-    "voiceBoundary": "语音媒体路径：此展示尚未接入，显示未知。联机直连不代表语音媒体直连；到 SFU 的 RTT 不等于成员 RTT。",
+    "voiceBoundary": "社区联机与语音媒体路径独立；查看另一成员的连接详情才能看到本机与该成员的语音关系。",
     "enrollment": {
       "off": "联机关闭",
       "not-joined": "未加入",
@@ -3689,7 +3691,8 @@
       "direct": "直连",
       "member-relay": "成员中继",
       "server-relay": "服务器中继",
-      "unknown": "路径未知"
+      "unknown": "路径未知",
+      "self": "本机"
     },
     "source": {
       "authenticated-community": "已认证社区适配器",
@@ -3721,21 +3724,36 @@
     "sfuRtt": "所选语音服务器传输 RTT",
     "loss": "丢包",
     "age": "媒体证据年龄 {{seconds}} 秒",
-    "boundary": "此状态只描述本机与你的语音关系；社区联机状态另列。直连与中转须有当前所选可用媒体及完整底层路径证明。",
+    "boundary": "此状态只描述本机与你的语音关系；社区联机状态另列。EasyTier 直连或中继只表示当前所选 ICE 对与本机路由观测相符，不证明成员绑定或完整物理路径。",
     "labels": {
       "direct": "语音直连",
       "member-relay": "成员中转",
       "server-relay": "服务器中转",
+      "easytier-direct": "EasyTier 直连",
+      "easytier-relay": "EasyTier 中继",
+      "webrtc-non-turn": "WebRTC非TURN",
+      "turn-relay": "TURN 中继",
+      "unknown": "未知",
       "path-pending": "路径待确认",
       "switching": "正在切换",
       "error": "连接异常",
       "pending": "待连接"
     },
     "selected": {
-      "peer": "SDK 选中 peer 媒体",
-      "sfu": "SDK 选中服务器媒体",
-      "none": "SDK 尚未选中媒体",
-      "unknown": "所选媒体未知"
+      "peer": "P2P 语音通道",
+      "sfu": "SFU 服务器转发",
+      "none": "尚未选中语音通道",
+      "unknown": "语音通道未知"
+    },
+    "routeStates": {
+      "sfu": "SFU 已选中",
+      "queued": "冷却待重试",
+      "probing": "正在探测 P2P",
+      "switching": "正在切换",
+      "p2p": "P2P 已选中",
+      "recovering": "恢复中",
+      "failed": "切换失败",
+      "unknown": "状态未知"
     },
     "reasons": {
       "not-integrated": "尚未接入权威语音路径观测",
@@ -3770,7 +3788,10 @@
     "logicalSelection": "已选逻辑媒体传输",
     "availabilityTitle": "新鲜解码媒体",
     "transitionTitle": "选择 / 恢复状态",
+    "routeStatus": "选路状态",
     "physicalPath": "有证据的媒体底层路径",
+    "transportPath": "WebRTC 传输路径",
+    "transportBoundary": "EasyTier 直连或中继只是当前所选 ICE 对的本机路由观测，不证明成员绑定或完整物理路径。",
     "lossWindow": "精确音频 track 丢包窗口",
     "pathAge": "媒体观测年龄",
     "metricsAge": "Transport 指标年龄",
@@ -3778,13 +3799,15 @@
     "metricsStatus": "指标证据状态",
     "notMeasured": "未测得",
     "notReported": "当前提供者尚未报告",
+    "sendEvidence": "发送证据",
+    "sendNotReported": "没有此成员的认证接收回执",
     "localCommunity": "本机社区联机实例",
     "localCommunityReason": "本机实例状态原因",
     "bindingReason": "成员绑定 / 入网缺项",
     "lanPathReason": "联机路径缺项",
     "lanRttReason": "联机 RTT 缺项",
     "lanTitle": "独立社区联机",
-    "selfBoundary": "自己的条目不存在本机到另一成员的媒体关系；本机联机状态独立展示。",
+    "selfBoundary": "本机条目只显示本机社区联机状态和证据年龄；查看另一成员才能看到收发语音关系。",
     "sendBoundary": "发给此成员的已选媒体需要对方认证回执。本机上行字节或 SFU RTCP 不能证明对方收到音频。",
     "metricBoundary": "RTT 属于已选对端 transport 或本机到 SFU transport，不代表端到端收听延迟。丢包属于精确的已选音频 track；当前提供者没有提供码率、累计字节或连续历史。",
     "availability": {

@@ -285,9 +285,19 @@ app.on("before-quit", event => {
   event.preventDefault();
   if (easyTierQuitDraining) return;
   easyTierQuitDraining = true;
+  // Retire the UI/media immediately. Only the main process stays briefly alive
+  // to finish owned native cleanup and credential revocation in the background.
+  isQuitting = true;
+  if (easyTierPoll) { clearInterval(easyTierPoll); easyTierPoll = null; }
+  closeMediaSandbox();
+  if (tray && !tray.isDestroyed()) tray.destroy();
+  tray = null;
+  for (const window of BrowserWindow.getAllWindows()) window.close();
   easyTierEnrollment.shutdown();
   easyTierCommunities.shutdownOwned();
-  void Promise.all([easyTierProduction.drainOwned(), easyTierGrants.drainOwned()]).catch(() => {
+  void Promise.allSettled([easyTierProduction.drainOwned(), easyTierGrants.drainOwned()]).then(results => {
+    if (results.some(result => result.status === "rejected")) throw new Error("owned-cleanup-unconfirmed");
+  }).catch(() => {
     localDiagnostics?.record({phase: "cleanup", operation: "core-stop", action: "finish", code: "cleanup-failed", cleanup: "pending"});
     // No native output, endpoints, credentials or resource identifiers in logs.
     console.warn("[Main] Community LAN stop remains unconfirmed; residual review required");

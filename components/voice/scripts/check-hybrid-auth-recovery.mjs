@@ -100,13 +100,23 @@ function fixture(count = 1) {
       const t = track(`p2p-${args.participant.participantId}`), prior = peers.some(p => p.participantId === args.participant.participantId);
       const peer = { participantId: args.participant.participantId, disposed: false, start: async () => {}, acceptSignal: async () => {},
         waitForMedia: () => prior ? new Promise(() => {}) : Promise.resolve({ track: t, stream: stream(t),
-          decodedFrames: 1, mediaSequence: 1, observedAtMs: clock.now() }),
+          decodedFrames: 1, mediaSequence: 1, observedAtMs: clock.now(), getReceiveObservation: () => {
+            const at = clock.now(), pairId = `pair-${t.id}`, underlay = { classification: 'not-easytier',
+              source: 'host-underlay-resolver', observedAtMs: at };
+            return { trackId: t.id, observedAtMs: at, reason: null, decode: null,
+              metrics: { selectedPairId: pairId, rttMs: null, rttWindow: null, rttSource: 'rtc-selected-candidate-pair',
+                lossFraction: null, lossWindow: null, lossSource: 'exact-audio-track-inbound-rtp',
+                path: { classification: 'non-turn-candidate', pairId, localCandidateType: null,
+                  remoteCandidateType: null, underlay: 'not-easytier' } },
+              transportPath: { source: 'rtc-selected-candidate-pair', observedAtMs: at,
+                classification: 'non-turn-candidate', reason: 'selected-pair', pairId, local: null, remote: null, underlay } };
+          } }),
         isReceiving() { return !this.disposed; }, dispose() { this.disposed = true; }, readMetrics: async () => { throw Error('unused'); } };
       peers.push(peer); return peer;
     };
     return original.call(this, scope, roster);
   };
-  f.session = new BrowserHybridVoiceSession({ enabled: true, allowNetwork: true, socket, getAccessToken: () => 'synthetic-only',
+  f.session = new BrowserHybridVoiceSession({ enabled: true, allowNetwork: true, pathStableMs: 0, socket, getAccessToken: () => 'synthetic-only',
     expectedRoomId: 'room', rtcConfiguration: { iceServers: [] }, getPeerConnection: () => pc, getMicrophone: () => microphone,
     isCurrent: () => f.current, getSource: p => sources.get(p.participantId) ?? null,
     onSelection: (source, selected, revision) => selections.push({ source, selected, revision }) });

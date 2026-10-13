@@ -41,17 +41,20 @@ export function ConnectionDetailsDialog({ open, onOpenChange, nickname, isSelf, 
   const table = (rows: ConnectionDetailsRow[]) => <dl className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] gap-x-3 gap-y-2 text-xs">
     {rows.map(row => <div key={row.label} className="contents"><dt className="min-w-0 break-words text-gryt-muted">{row.label}</dt><dd className="m-0 min-w-0 break-words" style={row.numeric ? { fontVariantNumeric: "tabular-nums" } : undefined}>{row.value}</dd></div>)}
   </dl>;
+  const lanPath = isSelf
+    ? lan.pathReason === "self" ? t("memberLan.path.self") : t(`memberLan.enrollment.${lan.enrollment}`)
+    : t(lan.pathReason === "stale" ? "memberLan.pathExpired" : `memberLan.path.${lan.path}`);
   const lanRows: ConnectionDetailsRow[] = [
     { label: t("connectionDetails.localCommunity"), value: community ? t(`connectionDetails.communityPhase.${community.phase}`) : t("connectionDetails.notReported") },
     { label: t("memberLan.enrollmentTitle"), value: t(`memberLan.enrollment.${lan.enrollment}`) },
-    { label: t("memberLan.pathTitle"), value: t(lan.pathReason === "stale" ? "memberLan.pathExpired" : `memberLan.path.${lan.path}`) },
-    { label: t("memberLan.rttTitle"), value: lan.rttMs === null ? t("connectionDetails.notMeasured") : `${Math.round(lan.rttMs)} ms`, numeric: true },
-    { label: t("memberLan.ageTitle"), value: typeof lanAgeMs === "number" && Number.isFinite(lanAgeMs) && lanAgeMs >= 0 ? t("memberVoicePath.age", { seconds: (lanAgeMs / 1000).toFixed(1) }) : t("connectionDetails.notMeasured"), numeric: true },
+    { label: t(isSelf ? "memberLan.localStateTitle" : "memberLan.pathTitle"), value: lanPath },
+    ...(!isSelf ? [{ label: t("memberLan.rttTitle"), value: lan.rttMs === null ? t("connectionDetails.notMeasured") : `${Math.round(lan.rttMs)} ms`, numeric: true }] : []),
+    { label: t("memberLan.ageTitle"), value: typeof lanAgeMs === "number" && Number.isFinite(lanAgeMs) && lanAgeMs >= 0 ? t("memberLan.age", { seconds: (lanAgeMs / 1000).toFixed(1) }) : t("connectionDetails.notMeasured"), numeric: true },
   ];
   if (community?.reason) lanRows.push({ label: t("connectionDetails.localCommunityReason"), value: t(`connectionDetails.communityReason.${community.reason}`) });
   if (lan.enrollmentReason) lanRows.push({ label: t("connectionDetails.bindingReason"), value: t(`memberLan.reason.${lan.enrollmentReason}`) });
-  if (lan.pathReason) lanRows.push({ label: t("connectionDetails.lanPathReason"), value: t(`memberLan.reason.${lan.pathReason}`) });
-  if (lan.rttReason) lanRows.push({ label: t("connectionDetails.lanRttReason"), value: t(`memberLan.reason.${lan.rttReason}`) });
+  if (!isSelf && lan.pathReason) lanRows.push({ label: t("connectionDetails.lanPathReason"), value: t(`memberLan.reason.${lan.pathReason}`) });
+  if (!isSelf && lan.rttReason) lanRows.push({ label: t("connectionDetails.lanRttReason"), value: t(`memberLan.reason.${lan.rttReason}`) });
   return <Dialog.Root open={open} onOpenChange={onOpenChange}>
     <Dialog.Portal container={portalContainer}><Dialog.Backdrop />
       <Dialog.Popup data-gryt="connection-details-dialog" initialFocus={close} finalFocus={returnFocus}
@@ -60,12 +63,15 @@ export function ConnectionDetailsDialog({ open, onOpenChange, nickname, isSelf, 
         <Dialog.Title>{t("connectionDetails.title", { nickname })}</Dialog.Title>
         <Dialog.Description>{t("connectionDetails.description")}</Dialog.Description>
         {isSelf && <p className="text-xs text-gryt-muted">{t("connectionDetails.selfBoundary")}</p>}
-        {(["receive", "send"] as const).map(direction => <section key={direction} data-gryt={`connection-details-${direction}`} className="border-t border-gryt-border pt-3">
-          <h3 className="mb-3 text-sm font-semibold">{t(`memberVoicePath.${direction}`)}</h3>
-          {table(connectionDetailsDirectionRows(path[direction], t))}
-          {direction === "send" && <p className="mt-3 text-xs text-gryt-muted">{t("connectionDetails.sendBoundary")}</p>}
-        </section>)}
-        <p className="text-xs text-gryt-muted">{t("connectionDetails.metricBoundary")}</p>
+        {!isSelf && <>
+          {(["receive", "send"] as const).map(direction => <section key={direction} data-gryt={`connection-details-${direction}`} className="border-t border-gryt-border pt-3">
+            <h3 className="mb-3 text-sm font-semibold">{t(`memberVoicePath.${direction}`)}</h3>
+            {table(connectionDetailsDirectionRows(path[direction], t, direction))}
+            {direction === "send" && <p className="mt-3 text-xs text-gryt-muted">{t("connectionDetails.sendBoundary")}</p>}
+          </section>)}
+          <p className="text-xs text-gryt-muted">{t("connectionDetails.metricBoundary")}</p>
+          <p className="text-xs text-gryt-muted">{t("connectionDetails.transportBoundary")}</p>
+        </>}
         <section data-gryt="connection-details-lan" className="border-t border-gryt-border pt-3"><h3 className="mb-3 text-sm font-semibold">{t("connectionDetails.lanTitle")}</h3>{table(lanRows)}<p className="mt-3 text-xs text-gryt-muted">{t("memberLan.voiceBoundary")}</p></section>
         <Dialog.Footer><Dialog.Close ref={close} render={<Button tone="neutral" size="small">{t("ui.close")}</Button>} /></Dialog.Footer>
       </Dialog.Popup>

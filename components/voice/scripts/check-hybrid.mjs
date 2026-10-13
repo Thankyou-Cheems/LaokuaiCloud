@@ -35,7 +35,24 @@ function fixture(options = {}, tweaks = {}) {
   const publicationTrack = track("protected-final-publication");
   let publication = { stream: stream(publicationTrack), track: publicationTrack, generation: 1, publicationRevision: 1, publicationAcknowledged: true };
   let signalListener = () => {}, invalidation = () => {}, current = true, subscriptionCount = 0;
-  const makeMedia = (input, seq) => ({ track: input, stream: stream(input), decodedFrames: 128, mediaSequence: seq, observedAtMs: clock.now() });
+  const pathObservation = (input, at, overrides = {}) => {
+    const classification = overrides.classification ?? "non-turn-candidate";
+    const underlayClass = Object.prototype.hasOwnProperty.call(overrides, "underlay") ? overrides.underlay : "not-easytier";
+    const pairId = overrides.pairId ?? `pair-${input.id}`;
+    const pathAt = Object.prototype.hasOwnProperty.call(overrides, "observedAtMs") ? overrides.observedAtMs : at;
+    const underlayAt = Object.prototype.hasOwnProperty.call(overrides, "underlayObservedAtMs") ? overrides.underlayObservedAtMs : pathAt;
+    const underlay = underlayClass === null ? null : { classification: underlayClass, source: "host-underlay-resolver", observedAtMs: underlayAt };
+    const transportPath = { source: "rtc-selected-candidate-pair", observedAtMs: pathAt, classification,
+      reason: classification === "turn-relay" ? "turn-relay" : classification === "unknown" ? "candidate-type-unknown" : "selected-pair",
+      pairId, local: null, remote: null, underlay };
+    return { trackId: input.id, observedAtMs: at, reason: null,
+      decode: { startAtMs: Math.max(0, at - 20), endAtMs: at, packetsDelta: 1, samplesDelta: 480, decodedFramesDelta: 480, fresh: true, source: "rtc-inbound-rtp-totalSamplesReceived" },
+      metrics: { selectedPairId: pairId, rttMs: null, rttWindow: null, rttSource: "rtc-selected-candidate-pair",
+        lossFraction: null, lossWindow: null, lossSource: "exact-audio-track-inbound-rtp", path: {
+          classification, pairId, localCandidateType: null, remoteCandidateType: null, underlay: underlayClass } }, transportPath };
+  };
+  const makeMedia = (input, seq, path = {}) => ({ track: input, stream: stream(input), decodedFrames: 128, mediaSequence: seq, observedAtMs: clock.now(),
+    getReceiveObservation: () => pathObservation(input, clock.now(), typeof path === "function" ? path() : path) });
   const getPort = person => {
     if (ports.has(person.participantId)) return ports.get(person.participantId);
     const input = track(`sfu-${person.publicationId}`);
@@ -84,20 +101,27 @@ function fixture(options = {}, tweaks = {}) {
       check(args.publication.stream === publication.stream, "borrow exact final publication stream");
       const mediaTrack = track(`p2p-${args.participant.publicationId}-${peers.length}`);
       const waiting = deferred();
+      let peerPath = tweaks.peerPath ?? {};
       const peer = {
         args, input: mediaTrack, waiting, disposed: false, receiving: true, accepted: [], metricCalls: 0,
         start: async () => { args.onSignal({ kind: "offer", sdp: "v=0\r\n" }); },
-        waitForMedia: () => tweaks.holdMedia ? waiting.promise : Promise.resolve(makeMedia(mediaTrack, 1)),
+        waitForMedia: () => {
+          if (tweaks.holdMedia) return waiting.promise;
+          const value = makeMedia(mediaTrack, 1, () => peerPath);
+          if (tweaks.noPathObservation) delete value.getReceiveObservation;
+          return Promise.resolve(value);
+        },
         isReceiving: candidate => !peer.disposed && peer.receiving && candidate?.track === mediaTrack,
         acceptSignal: async body => { peer.accepted.push(body); },
         metrics: { source: "simulation", observedAtMs: 0, packetsSent: 0, payloadBytesSent: 0, headerBytesSent: null, totalEncodeTimeSeconds: null },
         readMetrics: async () => { peer.metricCalls++; return { ...peer.metrics }; },
         dispose: () => { peer.disposed = true; events.push(`close:${args.participant.participantId}`); },
+        setPath: value => { peerPath = value; },
       };
       peers.push(peer); return peer;
     },
   };
-  const controller = new HybridRouteController(dependencies, { enabled: true, ...options });
+  const controller = new HybridRouteController(dependencies, { enabled: true, pathStableMs: 0, ...options });
   return { clock, controller, ports, peers, gates, leases, releases, events, signals, authority, dependencies,
     reconcile: (people = [participant(1)], value = scope) => controller.reconcile(value, people),
     signal: signal => signalListener(signal), invalidate: () => invalidation(),
@@ -175,7 +199,7 @@ for (const patch of [{ operationId: "wrong" }, { pairConnectionId: "foreign-pair
 {
   const f = fixture({ switchTimeoutMs: 100 }, { gate: (request, ack) => request.enabled ? Promise.reject(new Error("SECRET MUST NOT LEAK")) : Promise.resolve(ack) });
   f.reconcile(); await settle(); await f.controller.fallback("user-1");
-  equal(f.controller.getState().routes[0].status, "failed"); equal(f.controller.getState().routes[0].reason, "restore_failed");
+  equal(f.controller.getState().routes[0].status, "recovering"); equal(f.controller.getState().routes[0].reason, "restore_failed");
   equal(f.ports.get("user-1").selected, "p2p"); await f.clock.advance(10001);
   equal(f.controller.getState().routes[0].forwardingPaused, false);
   f.peers[0].receiving = false; f.peers[0].args.onFailure("failed"); await settle();
@@ -386,6 +410,98 @@ equal(stoppedTracks, 0, "no capture track is stopped or acquired by the prototyp
   for(const revision of [2,3,4,8]){f.setPublication({...f.publication(),publicationRevision:revision});f.reconcile();await settle();}
   equal(f.peers.length,1,"gate ACK revisions do not recreate the peer");equal(first.disposed,false);equal(f.ports.get("user-1").selected,"p2p");
   f.controller.dispose();equal(f.clock.jobs.size,0);
+}
+{
+  const f = fixture(); f.reconcile(); await settle();
+  const firstOffer = f.signals[0]; equal(firstOffer.connectionId, "server-pair-1"); equal(firstOffer.sequence, 1);
+  f.signal({ ...firstOffer, sourceSessionId: "session-1", destinationSessionId: "local-session", sequence: 1, body: { kind: "answer", sdp: "v=0" } }); await settle();
+  await f.controller.fallback("user-1"); await settle(); await f.clock.advance(15000); await settle();
+  const secondPeer = f.peers.at(-1), secondOffer = f.signals.at(-1);
+  equal(secondOffer.connectionId, "server-pair-2"); equal(secondOffer.sequence, 1, "a new pair starts its offer sequence at one");
+  const rejected = f.controller.getState().rejectedSignals;
+  f.signal({ ...firstOffer, sourceSessionId: "session-1", destinationSessionId: "local-session", sequence: 2, body: { kind: "answer", sdp: "old-pair-replay" } }); await settle();
+  equal(f.controller.getState().rejectedSignals, rejected + 1, "signals from the retired pair are rejected");
+  f.signal({ ...secondOffer, sourceSessionId: "session-1", destinationSessionId: "local-session", sequence: 1, body: { kind: "answer", sdp: "v=0" } }); await settle();
+  equal(secondPeer.accepted.length, 1, "the first answer on the new pair is accepted");
+  f.controller.dispose(); equal(f.clock.jobs.size, 0);
+}
+{
+  const f = fixture({}, { lease: value => Promise.resolve({ ...value, connectionId: "reused-pair" }) }); f.reconcile(); await settle();
+  const firstOffer = f.signals[0]; equal(firstOffer.connectionId, "reused-pair"); equal(firstOffer.sequence, 1);
+  f.signal({ ...firstOffer, sourceSessionId: "session-1", destinationSessionId: "local-session", sequence: 1, body: { kind: "answer", sdp: "v=0" } }); await settle();
+  await f.controller.fallback("user-1"); await settle(); await f.clock.advance(15000); await settle();
+  const secondPeer = f.peers.at(-1), secondOffer = f.signals.at(-1);
+  equal(secondOffer.connectionId, "reused-pair"); equal(secondOffer.sequence, 2, "same-pair reconnect retains the outgoing sequence");
+  const rejected = f.controller.getState().rejectedSignals;
+  f.signal({ ...firstOffer, sourceSessionId: "session-1", destinationSessionId: "local-session", sequence: 1, body: { kind: "answer", sdp: "replayed" } }); await settle();
+  equal(f.controller.getState().rejectedSignals, rejected + 1, "same-pair replay at the old sequence is rejected");
+  f.signal({ ...secondOffer, sourceSessionId: "session-1", destinationSessionId: "local-session", sequence: 2, body: { kind: "answer", sdp: "v=0" } }); await settle();
+  equal(secondPeer.accepted.length, 1, "same-pair reconnect accepts the next sequence");
+  f.controller.dispose(); equal(f.clock.jobs.size, 0);
+}
+{
+  const f = fixture({ pathStableMs: 100, pathMonitorMs: 50 }); f.reconcile(); await settle();
+  equal(f.gates.length, 0, "SFU stays active while the approved path stability window is open");
+  equal(f.controller.getState().routes[0].status, "probing"); await f.clock.advance(99);
+  equal(f.gates.length, 0); await f.clock.advance(1); await settle();
+  equal(f.gates.length, 1); equal(f.controller.getState().routes[0].status, "p2p");
+  f.controller.dispose(); equal(f.clock.jobs.size, 0);
+}
+for (const underlay of ["unknown", "easytier-relay", null]) {
+  const f = fixture({}, { peerPath: { underlay } }); f.reconcile(); await settle();
+  equal(f.gates.length, 0, `${underlay ?? "null"} underlay cannot pause healthy SFU`);
+  equal(f.controller.getState().routes[0].status, "sfu");
+  equal(f.controller.getState().routes[0].reason, "peer_path_not_admitted");
+  equal(f.peers[0].disposed, true); await f.clock.advance(14999); equal(f.peers.length, 1);
+  await f.clock.advance(1); await settle(); equal(f.peers.length, 2, "failed probe is retried after 15 seconds");
+  f.controller.dispose(); equal(f.clock.jobs.size, 0);
+}
+{
+  const f = fixture({}, { peerPath: { underlay: "not-easytier", underlayObservedAtMs: Number.NaN } });
+  f.reconcile(); await settle();
+  equal(f.gates.length, 0, "NaN underlay evidence cannot pause healthy SFU");
+  equal(f.controller.getState().routes[0].reason, "peer_path_not_admitted");
+  f.controller.dispose(); equal(f.clock.jobs.size, 0);
+}
+{
+  const f = fixture({ pathMonitorMs: 100 }); f.reconcile(); await settle();
+  equal(f.controller.getState().routes[0].status, "p2p");
+  f.peers[0].setPath({ underlay: "not-easytier", underlayObservedAtMs: 0 });
+  await f.clock.advance(3100); await settle();
+  equal(f.controller.getState().routes[0].status, "sfu", "stale underlay evidence restores SFU");
+  equal(f.ports.get("user-1").selected, "sfu"); f.controller.dispose(); equal(f.clock.jobs.size, 0);
+}
+{
+  const f = fixture({}, { peerPath: { underlay: "unknown" } }); f.reconcile(); await settle();
+  equal(f.peers.length, 1); f.controller.setProbeAdmission(false, "uplink_budget");
+  await f.clock.advance(15000); await settle();
+  equal(f.peers.length, 1, "a retry timer remains pending while probe admission is closed");
+  f.controller.setProbeAdmission(true); await settle();
+  for (const delay of [30000, 60000, 60000, 60000]) { await f.clock.advance(delay); await settle(); }
+  equal(f.peers.length, 5, "reprobe continues after the fourth attempt with a capped interval");
+  equal(f.controller.getState().routes[0].status, "sfu"); f.controller.dispose(); equal(f.clock.jobs.size, 0);
+}
+{
+  const f = fixture({}, { noPathObservation: true }); f.reconcile(); await settle();
+  equal(f.gates.length, 0, "missing path observation cannot silently become direct");
+  equal(f.controller.getState().routes[0].reason, "peer_path_not_admitted"); f.controller.dispose(); equal(f.clock.jobs.size, 0);
+}
+{
+  const f = fixture(); f.reconcile(); await settle(); equal(f.controller.getState().routes[0].status, "p2p");
+  f.peers[0].setPath({ underlay: "easytier-relay" }); await f.clock.advance(500); await settle();
+  equal(f.controller.getState().routes[0].status, "sfu"); equal(f.ports.get("user-1").selected, "sfu");
+  equal(f.gates.at(-1).enabled, true); equal(f.peers[0].disposed, true); f.controller.dispose(); equal(f.clock.jobs.size, 0);
+}
+{
+  const f = fixture({}, { gate: (request, ack) => request.enabled ? Promise.reject(new Error("restore unavailable")) : Promise.resolve(ack) });
+  f.reconcile(); await settle(); f.peers[0].setPath({ underlay: "easytier-relay" }); await f.clock.advance(500); await settle();
+  equal(f.controller.getState().routes[0].status, "recovering"); equal(f.peers[0].disposed, false);
+  for (const delay of [1000, 2000, 4000, 8000]) { await f.clock.advance(delay); await settle(); }
+  equal(f.gates.filter(request => request.enabled).length, 5, "restore retries are bounded to five attempts before cooldown");
+  equal(f.peers[0].disposed, false, "a healthy peer is retained while SFU restoration is failing");
+  await f.clock.advance(59999); equal(f.gates.filter(request => request.enabled).length, 5);
+  await f.clock.advance(1); await settle(); equal(f.gates.filter(request => request.enabled).length, 6, "cooldown resumes recovery instead of permanent failure");
+  f.controller.dispose(); equal(f.clock.jobs.size, 0);
 }
 console.log(JSON.stringify({ kind: "pure-simulation", assertions, result: "pass", actualPeerConnections: 0,
   realAuthentication: false, realSfuGate: false, realNetwork: false, maximumSimulatedPeers: 19 }, null, 2));

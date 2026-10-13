@@ -4,6 +4,9 @@ import { useEffect, useRef } from "react";
 import { getServerAccessToken, useUserId } from "@/common";
 import { useSockets } from "@/socket";
 
+import { useEasyTierCommunityState } from "../../../../lib/communityLanState";
+import { createEasyTierVoiceUnderlayResolver } from "../../../../lib/easyTierVoiceUnderlay";
+import { readVoiceLocalNetwork } from "../../../../lib/memberVoiceLocalNetwork";
 import type { ReceiveCorrectionRegistry } from "../../../../lib/receiveCorrectionRegistry";
 import { useMemberVoiceObservationAuthority } from "./MemberVoiceObservationAuthority";
 
@@ -25,9 +28,12 @@ export function HybridVoiceBridge({ policy, config, registry }: { policy?: Hybri
   const { currentServerConnected: host, currentChannelConnected: channel, isConnected, streamSources } = sfu;
   const socket = sockets.sockets[host], pc = sfu.getPeerConnection?.() ?? null;
   const serverId = sockets.serverDetailsList[host]?.server_info?.server_id;
+  const community = useEasyTierCommunityState(serverId);
+  const localNetwork = readVoiceLocalNetwork(serverId, community, Date.now());
   const scopeKey = JSON.stringify([account, serverId, host, channel, socket?.id]);
-  const context = useRef({ scopeKey, sfu, microphone, sockets, policy, config });
-  context.current = { scopeKey, sfu, microphone, sockets, policy, config };
+  const context = useRef({ scopeKey, sfu, microphone, sockets, policy, config, localNetwork });
+  context.current = { scopeKey, sfu, microphone, sockets, policy, config, localNetwork };
+  const pathUnderlayResolver = useRef(createEasyTierVoiceUnderlayResolver(() => context.current.localNetwork)).current;
   const live = useRef<{ scopeKey: string; session: BrowserHybridVoiceSession; releaseObservation?: () => void } | undefined>(undefined);
   const configured = policy?.allowNetwork === true;
   const profileKey = JSON.stringify([policy?.rtcConfiguration, policy?.microphoneCodec, config.connection.microphoneCodec, config.connection.maxBitrate]);
@@ -80,6 +86,7 @@ export function HybridVoiceBridge({ policy, config, registry }: { policy?: Hybri
       const session = new BrowserHybridVoiceSession({ socket, expectedRoomId: channel, getAccessToken: () => getServerAccessToken(host) ?? undefined,
         rtcConfiguration: ice, microphoneCodec: codec,
         channelMaxBitrateBps: context.current.config.connection.maxBitrate, enabled: context.current.policy?.enabled, allowNetwork: true,
+        pathUnderlayResolver,
         getPeerConnection: () => context.current.sfu.getPeerConnection?.() ?? null, getMicrophone: () => context.current.microphone,
         isCurrent: current, getSource: sourceFor,
         onSelection: (source, track) => { if (source.receiveCleanup) registry.selectTrack(source.receiveCleanup, track); observations?.update(); },
@@ -90,7 +97,7 @@ export function HybridVoiceBridge({ policy, config, registry }: { policy?: Hybri
     };
     void boot().catch(() => context.current.policy?.onState?.({status:"unsupported",reason:"hybrid_unavailable",routing:null,physicalDirectVerified:false}));
     return () => { cancelled = true; clearTimeout(retry); };
-  }, [account, serverId, host, channel, socket, scopeKey, pc, isConnected, configured, profileKey, registry, observations]);
+  }, [account, serverId, host, channel, socket, scopeKey, pc, isConnected, configured, profileKey, registry, observations, pathUnderlayResolver]);
   useEffect(() => { void live.current?.session.setEnabled(policy?.enabled === true); }, [policy?.enabled]);
   useEffect(() => { void live.current?.session.update(); }, [streamSources, sockets.clients]);
   useEffect(() => () => { live.current?.releaseObservation?.(); live.current?.session.dispose(); live.current = undefined; }, []);

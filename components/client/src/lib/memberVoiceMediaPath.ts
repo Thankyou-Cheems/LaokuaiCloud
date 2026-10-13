@@ -19,6 +19,16 @@ export interface MemberVoiceMediaScope {
   remoteServerUserId: string; remoteSessionId: string; remotePublicationId: string;
   connectionGeneration: number;
 }
+export type VoiceTransportPath = "turn-relay" | "webrtc-non-turn" | "easytier-direct" | "easytier-relay" | "unknown";
+export type VoiceTransportPathClassification = "turn-relay" | "non-turn-candidate" | "unknown";
+export type VoiceTransportUnderlay = "not-easytier" | "easytier-direct" | "easytier-relay" | "unknown" | null;
+export type VoiceRouteStatus = "sfu" | "queued" | "probing" | "switching" | "p2p" | "recovering" | "failed" | "unknown";
+/** Safe selected-pair summary from the SDK. It has no endpoint addresses. */
+export interface VoiceTransportPathSummary {
+  classification: VoiceTransportPathClassification;
+  pairId?: string | null;
+  underlay: VoiceTransportUnderlay;
+}
 export interface SelectedVoiceMediaEvidence {
   source: "sdk-selected-receive-media" | "authenticated-selected-send-media";
   observedAtMs: number;
@@ -55,6 +65,7 @@ export interface SelectedVoiceMediaEvidence {
     scope: "peer-transport" | "sfu-transport";
     rttMs?: number | null;
     loss?: { packetsLost: number; packetsReceived: number; windowMs: number };
+    path?: VoiceTransportPathSummary;
   };
 }
 export interface MemberVoiceMediaEvidence {
@@ -73,7 +84,7 @@ export interface MemberVoiceMediaPathSnapshot {
   /** Independently scoped local ET facts; never used as member/media proof. */
   localNetwork?: VoiceLocalNetworkReading;
 }
-export type VoicePathLabel = "direct" | "member-relay" | "server-relay" | "path-pending" | "switching" | "error" | "pending";
+export type VoicePathLabel = "direct" | "member-relay" | "server-relay" | "easytier-direct" | "easytier-relay" | "webrtc-non-turn" | "turn-relay" | "unknown" | "path-pending" | "switching" | "error" | "pending";
 export type VoicePathReason = "not-integrated" | "scope-mismatch" | "missing" | "expired" | "invalid" | "inconsistent" | "media-unavailable" | "underlay-unproven";
 export interface VoicePathDirection {
   label: VoicePathLabel; reason?: VoicePathReason;
@@ -87,6 +98,10 @@ export interface VoicePathDirection {
   /** Logical SDK selection and fresh decoded availability are independent of underlay. */
   mediaAvailable?: boolean;
   transition?: SelectedVoiceMediaEvidence["transition"];
+  /** Controller state is display-only; it never proves a transport path. */
+  routeStatus?: VoiceRouteStatus;
+  /** Exact selected ICE classification, with EasyTier shown only when the SDK supplied a correlated underlay observation. */
+  transportPath?: VoiceTransportPath;
 }
 export interface MemberVoiceMediaPath { receive: VoicePathDirection; send: VoicePathDirection }
 const pending = (reason: VoicePathReason): VoicePathDirection => ({ label: "path-pending", reason, selected: "unknown", ageMs: null, rttMs: null, lossPercent: null, metricsReason: "missing" });
@@ -94,6 +109,22 @@ const text = (value: unknown): value is string => typeof value === "string" && v
 const generation = (value: number) => Number.isSafeInteger(value) && value > 0;
 const fresh = (at: number, now: number) => Number.isFinite(at) && at >= 0 && at <= now && now - at <= VOICE_MEDIA_EVIDENCE_TTL_MS;
 const sameRoute = (a: {mediaRouteId: string; routeGeneration: number; selectionRevision: number}, b: SelectedVoiceMediaEvidence) => a.mediaRouteId === b.mediaRouteId && a.routeGeneration === b.routeGeneration && a.selectionRevision === b.selectionRevision;
+const transport = (value: unknown): VoiceTransportPath | undefined => {
+  if (!value || typeof value !== "object") return;
+  const path = value as Partial<VoiceTransportPathSummary>;
+  if (!["turn-relay", "non-turn-candidate", "unknown"].includes(path.classification ?? "") ||
+      ![null, "not-easytier", "easytier-direct", "easytier-relay", "unknown"].includes(path.underlay ?? null) ||
+      (path.pairId !== undefined && path.pairId !== null && !text(path.pairId))) return;
+  if (path.classification === "turn-relay") return "turn-relay";
+  if (path.classification === "unknown") return "unknown";
+  if (path.underlay === "easytier-direct") return "easytier-direct";
+  if (path.underlay === "easytier-relay") return "easytier-relay";
+  // A non-TURN candidate is not a physical direct claim. A correlated selected
+  // pair underlay observation is required before an EasyTier label is allowed.
+  return "webrtc-non-turn";
+};
+const routeStatus = (value: unknown): VoiceRouteStatus | undefined =>
+  ["sfu", "queued", "probing", "switching", "p2p", "recovering", "failed", "unknown"].includes(value as string) ? value as VoiceRouteStatus : undefined;
 const validScope = (scope: MemberVoiceMediaScope) => scope &&
   scope.localServerUserId !== scope.remoteServerUserId && scope.localSessionId !== scope.remoteSessionId &&
   ["serverScope", "roomId", "localServerUserId", "localSessionId", "remoteServerUserId", "remoteSessionId", "remotePublicationId"].every(key => text(scope[key as keyof MemberVoiceMediaScope])) &&
@@ -113,7 +144,8 @@ function direction(e: SelectedVoiceMediaEvidence | undefined, kind: "receive" | 
   if (!fresh(e.observedAtMs, now)) return pending(e.observedAtMs <= now ? "expired" : "invalid");
   // SDK owner must resolve contradictory selected/availability/restore facts. Never infer a fix here.
   if (e.availability === "usable" && (e.selected === "none" || e.transition === "confirmed-failed")) return pending("inconsistent");
-  const result: VoicePathDirection = { ...pending("media-unavailable"), selected: e.selected, ageMs: now - e.observedAtMs, mediaAvailable: false, transition: e.transition };
+  const result: VoicePathDirection = { ...pending("media-unavailable"), selected: e.selected, ageMs: now - e.observedAtMs, mediaAvailable: false, transition: e.transition,
+    ...(routeStatus(e.diagnostic?.status) ? { routeStatus: routeStatus(e.diagnostic?.status) } : {}) };
   if (e.selected === "none" && e.availability === "unavailable" && e.transition === "stable") result.label = "pending";
   if (e.transition === "confirmed-switching") {
     const proof = e.mediaProof;
@@ -148,6 +180,8 @@ function direction(e: SelectedVoiceMediaEvidence | undefined, kind: "receive" | 
   if (!m) return result;
   if (!fresh(m.observedAtMs, now)) return { ...result, metricsReason: m.observedAtMs <= now ? "expired" : "invalid" };
   if (m.source !== "selected-media-stats" || !sameRoute(m, e) || m.scope !== (e.selected === "peer" ? "peer-transport" : "sfu-transport")) return { ...result, metricsReason: "invalid" };
+  const transportPath = m.path === undefined ? undefined : transport(m.path);
+  if (m.path !== undefined && (!transportPath || (m.path.pairId !== undefined && m.path.pairId !== null && m.path.pairId !== e.selectedIcePairId))) return { ...result, metricsReason: "invalid" };
   result.metricsScope = m.scope;
   result.metricsAgeMs = now - m.observedAtMs;
   if (typeof m.rttMs === "number" && Number.isFinite(m.rttMs) && m.rttMs >= 0 && m.rttMs <= 60_000) result.rttMs = m.rttMs;
@@ -158,6 +192,11 @@ function direction(e: SelectedVoiceMediaEvidence | undefined, kind: "receive" | 
     result.lossWindowMs = loss.windowMs;
   }
   result.metricsReason = result.rttMs !== null || result.lossPercent !== null ? "measured" : "invalid";
+  if (transportPath) {
+    result.transportPath = transportPath;
+    result.reason = undefined;
+    if (e.selected === "peer") result.label = transportPath;
+  }
   return result;
 }
 export function readMemberVoiceMediaPath(input: { scope?: MemberVoiceMediaScope; evidence?: MemberVoiceMediaEvidence; nowMs?: number }): MemberVoiceMediaPath {

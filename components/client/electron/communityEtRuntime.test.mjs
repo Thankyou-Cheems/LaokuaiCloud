@@ -25,6 +25,7 @@ function load(url) {
 }
 const {publicKeyFingerprint, COMMUNITY_ET_UPSTREAM_COMMIT} = load(new URL('./communityEtGrant.ts', import.meta.url));
 const {verifyOwnedCredentialObservation} = load(new URL('./communityEtCredentialObservation.ts', import.meta.url));
+const {EASYTIER_V270_ROUTE_LIST_SOURCE} = load(new URL('./easyTierCliNetwork.ts', import.meta.url));
 const {projectCommunityEtBinding} = load(new URL('./communityEtBindingProjection.ts', import.meta.url));
 const {CommunityEtGrantRuntime} = load(new URL('./communityEtGrantRuntime.ts', import.meta.url));
 const {CommunityEtGrantTransport, CommunityEtTransportError, trustedHttpsOrigin} = load(new URL('./communityEtGrantTransport.ts', import.meta.url));
@@ -45,7 +46,7 @@ function fixture() {
   const raw = {node_info: {inst_id: UUID, peer_id: 11, ipv4_addr: intent.virtualIp, config: 'DO-NOT-PROJECT'}, peer_routes: [{
     route: {peer_id: 22, ipv4_addr: '10.77.1.1', next_hop_peer_id: 22}, peer: {peer_id: 22, directly_connected_conns: [], conns: [{
       conn_id: '22222222-2222-4222-8222-222222222222', my_peer_id: 11, peer_id: 22, network_name: intent.networkName,
-      secure_auth_level: 'PeerVerified', peer_identity_type: 'Admin', noise_local_static_pubkey: KEY, noise_remote_static_pubkey: ISSUER,
+       secure_auth_level: 'PeerVerified', peer_identity_type: 'Admin', is_closed: false, noise_local_static_pubkey: KEY, noise_remote_static_pubkey: ISSUER,
     }]}}]};
   const sample = {serverId: 'community', instanceId: UUID, generation: 1, acquiredAtMs: now.mono, acquiredAtUnixMs: now.wall,
     acquisitionSource: 'owned-cli-route-list', freshRpc: true, latencyFirst: null, bindings: [],
@@ -66,6 +67,11 @@ test('official named and numeric enums prove the exact issuer, missing default A
   const c = f.raw.peer_routes[0].peer.conns[0]; c.secure_auth_level = 2; delete c.peer_identity_type;
   assert.deepEqual(verifyOwnedCredentialObservation(f.raw, UUID, f.expected), f.observation);
   assert.equal(JSON.stringify(f.observation).includes('DO-NOT-PROJECT'), false);
+});
+test('proto3 omitted is_closed is accepted only with the pinned EasyTier 2.7 route-list source', () => {
+  const f = fixture(); delete f.raw.peer_routes[0].peer.conns[0].is_closed;
+  assert.throws(() => verifyOwnedCredentialObservation(f.raw, UUID, f.expected));
+  assert.deepEqual(verifyOwnedCredentialObservation(f.raw, UUID, f.expected, EASYTIER_V270_ROUTE_LIST_SOURCE), f.observation);
 });
 for (const [name, mutate] of [
   ['missing auth', c => delete c.secure_auth_level], ['unauthenticated', c => c.secure_auth_level = 1],

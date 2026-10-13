@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-13",
+  "userTestedVersion": "1.13.22-laokuai.beta.20261013.3",
+  "userObservations": {
+    "memberStatusNoLongerFlickers": true,
+    "selfDetailsShowMisleadingRemoteUnknownFields": true,
+    "trayQuit": "application window stays for several seconds; desktop remains responsive"
+  },
+  "quitDiagnosis": "Production before-quit prevents closing windows until owned native stop and grant revocation settle",
+  "quitFix": "Close owned renderer windows, upload media sandbox and tray immediately, stop polling, then wait in the main process for both cleanup drains, including a failed drain; this fixture does not measure real voice shutdown",
+  "quitRegression": {
+    "command": "node components/client/scripts/check-community-quit.mjs",
+    "productionHandlerExecutedInFixture": true,
+    "before": "FAIL main window must close before drains resolve",
+    "after": "PASS immediate UI retirement, single-flight cleanup and both success/failure drains settle before exit",
+    "realTrayTimingAfterFix": "pending user test",
+    "existingNativeStopBoundsChanged": false,
+    "newNativeOrNetworkExecution": false
+  },
+  "detailsScope": "Self has no remote-member voice relation; remote member observations remain independently scoped and require fresh selected media evidence",
+  "dualDeviceVoiceOrPhysicalDirectAccepted": false,
+  "privacy": "No user profiles, member identifiers, credentials, raw machine logs or screenshots included"
+}

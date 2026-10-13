@@ -48,11 +48,14 @@ export class WindowsEasyTierCliRuntime implements EasyTierRuntime {
     const check = () => { if (this.stopped || scope.signal.aborted) throw new EasyTierOperationError("connect-failed"); };
     try {
       check();
-      if (!(await this.ports.permission())) throw new EasyTierOperationError("needs-permission");
-      check();
       const config = await this.ports.configuration(scope.serverId, scope.signal);
       check();
       if (config.serverId !== scope.serverId) throw new EasyTierOperationError("configuration-required");
+      // Configuration is a pure product-owned receipt read. Do it before the
+      // Windows permission check so a missing/mismatched receipt cannot prompt
+      // for access that no executable will use.
+      if (!(await this.ports.permission())) throw new EasyTierOperationError("needs-permission");
+      check();
       const directory = await this.ports.verifiedAssets();
       check();
       owner.core = await this.ports.start(directory, config, scope.signal);
@@ -82,16 +85,19 @@ export class WindowsEasyTierCliRuntime implements EasyTierRuntime {
           const {network, observation} = await core.readCredentialNetwork!(signal);
           if (closed || closing || this.stopped || !core.isAlive() || signal.aborted) throw new EasyTierOperationError("runtime-exited");
           return {observation, sample: {serverId: scope.serverId, generation: scope.generation, instanceId: config.instanceId,
-            ...network, acquisitionSource: "owned-cli-route-list", freshRpc: true, bindings: []}};
+            ...network, latencyFirst: config.latencyFirst ?? network.latencyFirst,
+            acquisitionSource: "owned-cli-route-list", freshRpc: true, bindings: []}};
         } : undefined,
         read: async signal => {
           const context = { serverId: scope.serverId, generation: scope.generation, instanceId: config.instanceId,
-            acquiredAtMs: performance.now(), acquiredAtUnixMs: Date.now(), freshRpc: !signal.aborted, latencyFirst: null, bindings: [] };
+            acquiredAtMs: performance.now(), acquiredAtUnixMs: Date.now(), freshRpc: !signal.aborted,
+            latencyFirst: config.latencyFirst ?? null, bindings: [] };
           if (closed || closing || this.stopped || !core.isAlive() || signal.aborted) return { ...context, freshRpc: false, info: { running: false } };
           const network = await core.readNetwork(signal);
           if (closed || closing || this.stopped || !core.isAlive() || signal.aborted) return { ...context, freshRpc: false, info: { running: false } };
           // Verbose CLI supplies real local peer/route facts, not user binding or packet-path proof.
-          return { ...context, ...network, acquisitionSource: "owned-cli-route-list", freshRpc: true, bindings: [] };
+          return { ...context, ...network, latencyFirst: config.latencyFirst ?? network.latencyFirst,
+            acquisitionSource: "owned-cli-route-list", freshRpc: true, bindings: [] };
         },
       };
     } catch (error) {

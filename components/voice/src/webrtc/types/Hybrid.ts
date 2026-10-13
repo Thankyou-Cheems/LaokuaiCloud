@@ -127,6 +127,10 @@ export interface HybridOptions {
   enabled?: boolean;
   /** Network adapters are unsupported until this separate opt-in is provided. */
   allowNetwork?: boolean;
+  /** A candidate path must remain resolver-approved for this long before SFU is paused. */
+  pathStableMs?: number;
+  /** How often an active peer route rechecks the same candidate/underlay evidence. */
+  pathMonitorMs?: number;
   maxPeerConnections?: number;
   maxConcurrentProbes?: number;
   minProbeIntervalMs?: number;

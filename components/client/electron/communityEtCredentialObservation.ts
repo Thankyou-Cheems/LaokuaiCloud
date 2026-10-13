@@ -1,5 +1,5 @@
 import { publicKeyFingerprint } from './communityEtGrant';
-import { sanitizedEasyTierCliNetwork } from './easyTierCliNetwork';
+import { EASYTIER_V270_ROUTE_LIST_SOURCE, sanitizedEasyTierCliNetwork } from './easyTierCliNetwork';
 
 export interface CredentialIdentityExpectation {
   networkName: string; virtualIp: string; publicKeyFingerprint: string; issuerPublicKeyFingerprint: string;
@@ -7,7 +7,8 @@ export interface CredentialIdentityExpectation {
 export interface OwnedCredentialObservation { peerId: number; virtualIp: string; publicKeyB64: string; issuerPinVerified: true }
 const object = (v: unknown): Record<string, unknown> => v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, unknown> : {};
 /** Read actual verbose CLI fields privately; NodeInfo.config never leaves this parser. */
-export function verifyOwnedCredentialObservation(raw: unknown, instanceId: string, expected: CredentialIdentityExpectation): OwnedCredentialObservation {
+export function verifyOwnedCredentialObservation(raw: unknown, instanceId: string, expected: CredentialIdentityExpectation,
+  source: typeof EASYTIER_V270_ROUTE_LIST_SOURCE | null = null): OwnedCredentialObservation {
   const info = sanitizedEasyTierCliNetwork(raw, instanceId);
   if (info.my_node_info.virtual_ipv4 !== expected.virtualIp) throw new Error('credential-node-ip-mismatch');
   const localPeer = info.my_node_info.peer_id, result = object(raw);
@@ -18,8 +19,9 @@ export function verifyOwnedCredentialObservation(raw: unknown, instanceId: strin
     if (!Array.isArray(peer.conns)) continue;
     for (const item of peer.conns) {
       const c = object(item);
+      const closed = c.is_closed === undefined && source === EASYTIER_V270_ROUTE_LIST_SOURCE ? false : c.is_closed;
       if (c.my_peer_id !== localPeer || c.peer_id !== peer.peer_id || c.network_name !== expected.networkName ||
-          c.is_closed === true || (c.is_closed !== undefined && c.is_closed !== false) ||
+          closed !== false ||
           ![2, 'PeerVerified'].includes(c.secure_auth_level as string | number) ||
           ![0, 'Admin'].includes((c.peer_identity_type ?? 0) as string | number)) continue;
       try {

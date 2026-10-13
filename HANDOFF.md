@@ -2,6 +2,17 @@
 
 更新：2026-10-13，用户要求恢复本地审视、纠偏、架构改进与历史清理。
 唯一开发入口 `D:\Dev\LaokuaiCloud`；分支 `main`。
+最新用户目标：本应用还替代 EasyTier Game；腾讯云标称 6 Mbps、实际更低，
+至少 12 人单频道语音，语音故障不能退出社区虚拟局域网。已授权并行实施、
+源码同步与新绿色测试包。当前 .4 源码整合中，未交付前不要把它写成 WAN 通过。
+决定和历史 20 席/公共 ET 证据边界见 `docs/VOICE-DISTRIBUTION-REVIEW-20261013.md`
+顶部最新决定；旧 4×5/2×10 是 2 SDK + 18 RTP 回放端，保留其成功结果。
+服务端增量已部署：SFU 源 35bcd5d3、image585f0a76；server 镜像保持9ddd8f97，
+仅 VOICE_MAX_USERS=12。SFU MAX_PEERS=12，麦克风接收配置16 kbps/60 ms。
+两服务 healthy、外部 /health=200、ports/network/mounts 对比不变，未重启 ET。
+见 `release/acceptance/voice-budget-deployment-20261013.json`。后续 Compose 必须
+保留 `/opt/stacks/gryt/sfu-12-fallback-16k60/activation.overlay.json`；回滚材料
+同目录保留，完整私有 Compose 快照只在服务器，不导出。
 审视原基点 `7ba93a038bd37f0c99f13fdfd6c608ca9bec750c`；因移除 Npcap 历史已
 重写，映射见 `docs/history/2026-10-13-public-cleanup/commit-map.txt`。实时状态
 用 `git status` 和 `git log -1` 查看。清理后的 main 已推送为远端唯一分支。
@@ -110,3 +121,16 @@ SHA256 `9e39a02a70ca68ed47b98bdc7aa7d264ad24082ff8298ab50e9f0d98322a28bd`。
 `release/acceptance/member-status-portable-20261013.json`；实际 UI 闪烁消除待用户
 换包确认，不将 .2 的本机入网观察扩展成 .3 或双设备媒体验收。
 旧包与用户当前配置/运行实例保留。
+
+用户现已确认 .3 不再闪烁；新问题是本机条目错误展示远端未知字段，以及托盘
+退出时窗口等待几秒（桌面正常）。本地已修复本机详情和立即关闭自有 UI、后台
+等待两个有界 cleanup drain；真实新包托盘时延待测。记录在
+`release/acceptance/self-details-and-quit-20261013.json`，尚未生成 .4 包。
+
+用户随后要求重新审视完整语音分发。当前结论和下一轮顺序见
+`docs/VOICE-DISTRIBUTION-REVIEW-20261013.md`。实际 vendor SDK 与源码关键
+选择逻辑一致：收到 peer 媒体就可切换，未门控 TURN/ET 中继，也未按质量重选；
+ET 入网与媒体选中 ICE 没有关联。SFU ACK/租约恢复正确成果和旧真实隔离媒体
+证据保留，完整双设备 WAN 未验收。线上只读白名单确认 Hybrid 开启且当前 6
+人限制，未改变生产配置。18 项统一检查全通过（含 Windows 无提权 pipe fixture）；
+优先完成路径分类与选择，再决定下一包范围，不把 UI 文案修复当作选路已修好。

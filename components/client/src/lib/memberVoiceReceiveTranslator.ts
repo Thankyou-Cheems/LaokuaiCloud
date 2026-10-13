@@ -1,6 +1,6 @@
 import { type HybridScope, type ReceivePathBinding, ReceivePathObserver, type ReceivePathObserverOptions, type ReceivePathRow, type ReceivePathScope, type ReceivePathSnapshot } from "@gryt/voice";
 
-import type { SelectedVoiceMediaEvidence } from "./memberVoiceMediaPath";
+import type { SelectedVoiceMediaEvidence, VoiceTransportPathSummary } from "./memberVoiceMediaPath";
 import { type AuthenticatedVoiceConnection, MemberVoiceMediaStore, type VoiceMediaObservationLease } from "./memberVoiceMediaStore";
 
 /** Captured by the bridge that creates the actual session on this authenticated
@@ -166,9 +166,14 @@ export class MemberVoiceReceiveTranslator {
       const rtt = m.rttWindow, loss = m.lossWindow;
       const rttValid = m.selectedPairId && rtt && recent(rtt.startAtMs, now) && rtt.startAtMs < rtt.endAtMs && rtt.endAtMs === d.endAtMs && m.rttSource === "rtc-selected-candidate-pair";
       const lossValid = loss && loss.startAtMs === d.startAtMs && loss.endAtMs === d.endAtMs && m.lossSource === "exact-audio-track-inbound-rtp";
+      // Keep the client source compatible with older installed voice bundles;
+      // newer bundles expose the same safe summary on metrics.path and rows.
+      const path = (m as typeof m & { path?: VoiceTransportPathSummary }).path ??
+        (row as ReceivePathRow & { transportPath?: VoiceTransportPathSummary }).transportPath;
       e.metrics = { ...route, source: "selected-media-stats", observedAtMs: d.endAtMs,
         scope: row.selected === "p2p" ? "peer-transport" : "sfu-transport", rttMs: rttValid ? m.rttMs : null,
-        ...(lossValid ? { loss: { packetsReceived: loss.received, packetsLost: loss.lost, windowMs: loss.endAtMs - loss.startAtMs } } : {}) };
+        ...(lossValid ? { loss: { packetsReceived: loss.received, packetsLost: loss.lost, windowMs: loss.endAtMs - loss.startAtMs } } : {}),
+        ...(path ? { path: { classification: path.classification, pairId: path.pairId, underlay: path.underlay } } : {}) };
     }
     return e;
   }

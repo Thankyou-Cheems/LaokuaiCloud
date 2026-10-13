@@ -45,7 +45,7 @@ const { EasyTierCommunitySubscriptions, easyTierCommunityAction } = compile("src
 const plain = v => JSON.parse(JSON.stringify(v));
 const defer = () => { let resolve; const promise = new Promise(yes => { resolve = yes; }); return { promise, resolve }; };
 const scope = (serverId = "synthetic-community", signal = new AbortController().signal) => ({ serverId, generation: 1, signal });
-const config = { serverId: "synthetic-community", instanceId: "00000000-0000-4000-8000-000000000001", networkName: "synthetic-community", configFile: path.resolve("never-read.toml"), configSha256: "a".repeat(64), bootstrap: "product-owned" };
+const config = { serverId: "synthetic-community", instanceId: "00000000-0000-4000-8000-000000000001", networkName: "synthetic-community", configFile: path.resolve("never-read.toml"), configSha256: "a".repeat(64), bootstrap: "product-owned", latencyFirst: false };
 const receipt = () => ({ schemaVersion: 1, approved: true, driverPermissionApproved: true, localManagementApproved: true, communities: [config] });
 function ports(overrides = {}) {
   const calls = []; let live = true;
@@ -86,6 +86,7 @@ await test("official CLI read produces private local virtual IP and no user rout
   assert.equal(deps["./easyTierStatus"].projectEasyTierStatus(sample, { ...scope(), instanceId: config.instanceId }, 1000).virtualIp, "10.9.8.7");
   assert.deepEqual(plain(sample.bindings), []);
   assert.equal(deps["./easyTierMemberAdapter"].projectEasyTierMembers(sample, { ...scope(), instanceId: config.instanceId }, "connected", 1000, Date.now(), 10000), null);
+  assert.equal(sample.latencyFirst, false);
   await session.close(); await session.close(); assert.equal(p.calls.filter(c => c === "close").length, 1);
 });
 await test("concurrent second community cannot launch another core or restart active LAN", async () => {

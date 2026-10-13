@@ -32,14 +32,15 @@ const track = () => { const listeners = new Set(); return { id: "track", kind: "
   addEventListener: (_event, f) => listeners.add(f), removeEventListener: (_event, f) => listeners.delete(f),
   end() { this.readyState = "ended"; for (const f of [...listeners]) f(); }, get listeners() { return listeners.size; } }; };
 function fixture() {
-  let active = true, deferred = null, packets = 100, samples = 48000, responses = 10, lost = 5, reads = 0;
+  let active = true, deferred = null, packets = 100, samples = 48000, responses = 10, lost = 5, reads = 0, localCandidateType = null, remoteCandidateType = null;
   const retire = new Set(), inputTrack = track();
   const control = { isCurrent: () => active, subscribeRetirement: f => { retire.add(f); return () => retire.delete(f); } };
   const source = { receiveCleanup: control, stream: { mediaStream: { getTracks: () => [inputTrack] } } };
   const report = () => new Map([
     ["audio", { id: "audio", type: "inbound-rtp", kind: "audio", trackIdentifier: "track", transportId: "transport", packetsReceived: packets, totalSamplesReceived: samples, packetsLost: lost }],
     ["transport", { type: "transport", selectedCandidatePairId: "pair" }],
-    ["pair", { type: "candidate-pair", id: "pair", state: "succeeded", responsesReceived: responses, currentRoundTripTime: 0 }],
+    ["pair", { type: "candidate-pair", id: "pair", state: "succeeded", responsesReceived: responses, currentRoundTripTime: 0, localCandidateId: "local-candidate", remoteCandidateId: "remote-candidate" }],
+    ...(localCandidateType && remoteCandidateType ? [["local-candidate", { type: "local-candidate", candidateType: localCandidateType }], ["remote-candidate", { type: "remote-candidate", candidateType: remoteCandidateType }]] : []),
   ]);
   const pc = { connectionState: "connected", getStats: () => { reads++; return deferred ?? Promise.resolve(report()); } };
   const c = { accountId: "account", host: "server", serverId: "stable-server", serverInstanceId: "instance", roomId: "room", localUserId: "self", localSessionId: "self-session",
@@ -54,7 +55,7 @@ function fixture() {
     path() { const snapshot = store.getSnapshot(); return model.readMemberVoiceMediaPath({ ...snapshot.entries[0], nowMs: snapshot.nowMs }); },
     advance() { now += 1000; packets += 50; samples += 48000; responses++; },
     async fresh() { await translator.observer.sample(); this.advance(); await translator.observer.sample(); },
-    defer(value) { deferred = value; }, setCounters(p, s, l = lost, r = responses) { packets = p; samples = s; lost = l; responses = r; },
+    defer(value) { deferred = value; }, setCandidates(local, remote) { localCandidateType = local; remoteCandidateType = remote; }, setCounters(p, s, l = lost, r = responses) { packets = p; samples = s; lost = l; responses = r; },
     retire() { active = false; for (const f of [...retire]) f(); }, get reads() { return reads; }, get retireListeners() { return retire.size; },
     dispose() { translator.dispose(); assert.equal(retire.size, 0); assert.equal(inputTrack.listeners, 0); },
   };
@@ -139,6 +140,12 @@ await test("two exact-track reports produce SFU decode, no send receipt, details
   assert.equal(f.path().receive.rttMs, 0); assert.equal(f.path().receive.lossPercent, 0); assert.equal(f.path().receive.lossWindowMs, 1000);
   assert.equal(f.path().receive.metricsAgeMs, 0); assert.equal(f.path().send.reason, "missing");
   const reads = f.reads; close(); assert.equal(f.reads, reads); assert.equal(f.path().receive.rttMs, null); f.dispose();
+});
+await test("exact selected ICE summary reaches the UI and keeps non-TURN separate from EasyTier", async () => {
+  const f = fixture(), close = f.translator.requestDetails(); f.setCandidates("host", "srflx"); await f.fresh();
+  assert.equal(f.path().receive.transportPath, "webrtc-non-turn"); assert.equal(f.path().receive.label, "server-relay");
+  f.setCandidates("relay", "host"); f.advance(); await f.translator.observer.sample();
+  assert.equal(f.path().receive.transportPath, "turn-relay"); assert.equal(f.path().receive.label, "server-relay"); close(); f.dispose();
 });
 await test("performance clock and Unix clock cannot substitute for each other", async () => {
   const f = fixture(); await f.fresh(); const row = f.store.getSnapshot().entries[0].evidence.receive;

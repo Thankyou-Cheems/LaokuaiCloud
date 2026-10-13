@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-13",
+  "kind": "existing-voice-services-budget-deployment",
+  "sourceCommit": "35bcd5d3ed6752bfcf53c84c2dbe8d2b52a9cbe5",
+  "build": {
+    "baseBuildReference": "local.laokuai/sfu-base-2b6afca8:current",
+    "baseImageId": "sha256:2b6afca88c4f7d6912c044d3b114d17af56104a4fce95ca7dc14cf0f04ec3a8f",
+    "binaryBytes": 16216224,
+    "binarySha256": "b2ebfcd5485b86d4edfb86710881686ed2c4aafa102e5c73220d0245d4fd3ec8",
+    "candidateReference": "local.laokuai/sfu-12-fallback-16k60:candidate",
+    "dockerBuild": {
+      "copiedFiles": [
+        "sfu"
+      ],
+      "network": "none",
+      "pull": false,
+      "runInstructions": 0
+    },
+    "imageId": "sha256:585f0a76df9420f228f7b47020c35247cb76524f63125ea7c5bf49bb8ee9cd7b",
+    "oldImageKept": true,
+    "schema": 1,
+    "sourceCommit": "35bcd5d3ed6752bfcf53c84c2dbe8d2b52a9cbe5"
+  },
+  "activation": {
+    "candidateImageId": "sha256:585f0a76df9420f228f7b47020c35247cb76524f63125ea7c5bf49bb8ee9cd7b",
+    "etServiceTouched": false,
+    "health": {
+      "server": "healthy",
+      "sfu": "healthy"
+    },
+    "oldImagesKept": true,
+    "privateComposeSnapshot": "compose.before.private.json",
+    "privateComposeSnapshotMode": "0600",
+    "project": "laokuailiao",
+    "rollbackAvailable": true,
+    "schema": 1,
+    "secretValuesPrinted": false,
+    "serverImageId": "sha256:9ddd8f97831436c5b4cae46b04e4c0a9b9afb34961aab5ce4c7d0a9fc80dfc81",
+    "serverVoiceMaxUsers": "12",
+    "services": [
+      "server",
+      "sfu"
+    ],
+    "sfuMaxPeers": "12",
+    "sfuMicrophoneBitrateBps": "16000",
+    "sfuMicrophonePacketTimeMs": "60",
+    "shapePreserved": {
+      "server": true,
+      "sfu": true
+    }
+  },
+  "publicHealthStatus": 200,
+  "operator": {
+    "path": "release/deployment/sfu-12-fallback-16k60/deploy.py",
+    "sha256": "c721c6f576f98276b2c92bfcd961e355782e78180757f95af8c4c98dbe707e97"
+  },
+  "scope": {
+    "backendImageUnchanged": true,
+    "backendEnvironmentDelta": {
+      "VOICE_MAX_USERS": "12"
+    },
+    "sfuBinaryReplaced": true,
+    "etServiceChanged": false,
+    "portsChanged": false,
+    "networksChanged": false,
+    "mountsChanged": false,
+    "credentialOrProfileExported": false
+  },
+  "limits": {
+    "twelveWanUsersAccepted": false,
+    "realGameCoexistenceAccepted": false,
+    "physicalPeerAccepted": false,
+    "arbitraryCustomProfilesBudgetAccepted": false
+  },
+  "rollback": {
+    "directory": "/opt/stacks/gryt/sfu-12-fallback-16k60",
+    "oldImagesKept": true,
+    "privateSnapshotOnServerOnly": true,
+    "activeOverlay": "activation.overlay.json"
+  },
+  "historicalAcceptanceUnchanged": true
+}

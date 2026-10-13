@@ -60,7 +60,7 @@ test('config uses credential secure-mode and exact instance/network/IP without a
     assert.ok(toml.includes('[secure_mode]\nenabled = true\nlocal_private_key = "' + SECRET + '"'));
     assert.ok(toml.includes('[network_identity]\nnetwork_name = "network"'));
     assert.ok(toml.includes('ipv4 = "10.77.1.2/24"'));
-    assert.ok(toml.includes('dhcp = false')); assert.ok(toml.includes('listeners = []'));
+    assert.ok(toml.includes('dhcp = false')); assert.ok(toml.includes('listeners = []')); assert.ok(toml.includes('latency_first = false'));
     for (const forbidden of ['network_secret', 'managed_credentials', 'credential_file', 'reusable', 'issuer_pin']) assert.equal(toml.includes(forbidden), false);
     assert.equal((toml.match(/\[\[peer\]\]/g) ?? []).length, 3);
     assert.equal((toml.match(/peer_public_key = /g) ?? []).length, 3);

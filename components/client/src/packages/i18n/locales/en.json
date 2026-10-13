@@ -3639,8 +3639,8 @@
   },
   "transport": {
     "title": "Voice bandwidth",
-    "description": "Mono Opus with variable bitrate. The standard profile requests 48 kbps via the server and 64 kbps for peer audio; actual traffic depends on negotiation and channel limits.",
-    "shared": "Standard: server 48 / peer 64 kbps · 20 ms",
+    "description": "The standard profile saves server bandwidth for group speech: 16 kbps / 60 ms via the server and 64 kbps / 20 ms on admitted peer paths. Server audio prioritizes speech intelligibility; actual traffic depends on negotiation, packetization and channel limits.",
+    "shared": "Standard: economical server audio / high-quality peer audio",
     "custom": "Custom transport preferences",
     "reconnect": "Changes apply after reconnecting. Legacy esports mode does not override this voice bandwidth selection.",
     "bitrate": "Maximum bitrate: {{value}} kbps",
@@ -3667,14 +3667,16 @@
   "memberLan": {
     "enrollmentTitle": "Community LAN",
     "pathTitle": "Local-to-member LAN path",
+    "localStateTitle": "Local community LAN state",
     "pathExpired": "Path expired",
     "rttTitle": "Measured peer RTT",
     "sourceTitle": "Evidence source",
     "ageTitle": "Membership evidence age",
+    "age": "{{seconds}} seconds",
     "unknown": "Unknown",
     "stale": "Expired",
     "boundary": "Community LAN membership is independent of voice rooms. Only authenticated user-to-peer bindings and fresh measurements are shown.",
-    "voiceBoundary": "Voice media path: unknown in this display. LAN direct connectivity does not prove direct voice media; SFU RTT is not peer RTT.",
+    "voiceBoundary": "Community LAN and voice media paths are independent; view another member's connection details to see this device's voice relationship with them.",
     "enrollment": {
       "off": "LAN off",
       "not-joined": "Not joined",
@@ -3689,7 +3691,8 @@
       "direct": "Direct",
       "member-relay": "Member relay",
       "server-relay": "Server relay",
-      "unknown": "Path unknown"
+      "unknown": "Path unknown",
+      "self": "This device"
     },
     "source": {
       "authenticated-community": "Authenticated community adapter",
@@ -3721,21 +3724,36 @@
     "sfuRtt": "Selected voice server transport RTT",
     "loss": "Packet loss",
     "age": "Media evidence age: {{seconds}} seconds",
-    "boundary": "This describes the voice relationship with this device. Community LAN status is separate. Direct and relay claims require selected usable media and proof of the complete underlay path.",
+    "boundary": "This describes the voice relationship with this device. Community LAN status is separate. EasyTier direct or relay means the selected ICE pair agrees with this device's current local route observation; it does not prove member binding or the complete physical path.",
     "labels": {
       "direct": "Direct voice",
       "member-relay": "Member relay",
       "server-relay": "Server relay",
+      "easytier-direct": "EasyTier direct",
+      "easytier-relay": "EasyTier relay",
+      "webrtc-non-turn": "WebRTC non-TURN",
+      "turn-relay": "TURN relay",
+      "unknown": "Unknown",
       "path-pending": "Path unconfirmed",
       "switching": "Switching",
       "error": "Connection error",
       "pending": "Awaiting connection"
     },
     "selected": {
-      "peer": "SDK selected peer media",
-      "sfu": "SDK selected server media",
-      "none": "SDK has not selected media",
-      "unknown": "Selected media unknown"
+      "peer": "P2P voice channel",
+      "sfu": "SFU server forwarding",
+      "none": "No voice channel selected",
+      "unknown": "Voice channel unknown"
+    },
+    "routeStates": {
+      "sfu": "SFU selected",
+      "queued": "Cooldown; retry pending",
+      "probing": "Probing P2P",
+      "switching": "Switching",
+      "p2p": "P2P selected",
+      "recovering": "Recovering",
+      "failed": "Switch failed",
+      "unknown": "State unknown"
     },
     "reasons": {
       "not-integrated": "Authoritative voice path observations are not connected",
@@ -3770,7 +3788,10 @@
     "logicalSelection": "Selected logical media transport",
     "availabilityTitle": "Fresh decoded media",
     "transitionTitle": "Selection / recovery state",
+    "routeStatus": "Route status",
     "physicalPath": "Proven underlying media path",
+    "transportPath": "WebRTC transport path",
+    "transportBoundary": "EasyTier direct or relay is a local route observation for the selected ICE pair. It does not prove member binding or the complete physical path.",
     "lossWindow": "Audio-track packet-loss window",
     "pathAge": "Media observation age",
     "metricsAge": "Transport measurement age",
@@ -3778,13 +3799,15 @@
     "metricsStatus": "Metric evidence status",
     "notMeasured": "Not measured",
     "notReported": "Not reported by the current provider",
+    "sendEvidence": "Send evidence",
+    "sendNotReported": "No authenticated receive receipt from this member",
     "localCommunity": "Local community instance",
     "localCommunityReason": "Local instance status reason",
     "bindingReason": "Member binding / enrollment limitation",
     "lanPathReason": "LAN path limitation",
     "lanRttReason": "LAN RTT limitation",
     "lanTitle": "Independent community LAN",
-    "selfBoundary": "Your own row has no local-to-remote member media relationship. Local LAN state remains independent.",
+    "selfBoundary": "Your own row shows only local community LAN state and evidence age; view another member to see the send/receive voice relationship.",
     "sendBoundary": "Selected send media requires an authenticated receipt from this member. Local outbound bytes or SFU RTCP do not prove that they received audio.",
     "metricBoundary": "RTT belongs to the selected peer transport or local-to-SFU transport, not an end-to-end listening delay. Loss belongs to the exact selected audio track. Rates, cumulative bytes and history are not supplied by this provider.",
     "availability": {

@@ -20,6 +20,7 @@ const model=compile(base+"connectionDetailsModel.ts",{});
 const pathModel=compile("src/lib/memberVoiceMediaPath.ts",{}),lanModel=compile("src/lib/memberLanStatus.ts",{});
 const emptyPath=pathModel.readMemberVoiceMediaPath({});
 const emptyLan=lanModel.readMemberLanStatus({serverScope:"h",authenticatedUserId:"m"});
+const selfLan={enrollment:"joined",path:"unknown",pathReason:"self",rttMs:null,rttReason:"self",source:"authenticated-community",observedAtMs:1000};
 let clients={c:{serverUserId:"m",hasJoinedChannel:true,voiceChannelId:"r",isConnectedToVoice:true,streamID:"audio"}},sfu={currentServerConnected:"h",currentChannelConnected:"r",isConnected:true};
 let requested,community={phase:"connected",reason:null},lanSnapshot,cacheClears=0,muteChanges=[],volumeChanges=[];
 const sockets={sockets:{},get clients(){return {h:clients};},serverDetailsList:{h:{server_info:{server_id:"community"},channels:[]}}};
@@ -51,9 +52,27 @@ check("known logical P2P is shown while physical path and send proof remain pend
  const switching=model.connectionDetailsDirectionRows({...d,transition:"confirmed-switching",mediaAvailable:false,metricsAgeMs:null},t);assert.equal(switching[2].value,t("connectionDetails.transition.confirmed-switching"));assert.equal(switching[1].value,t("connectionDetails.availability.unknown"));
  const legacy=model.connectionDetailsDirectionRows({...d,mediaAvailable:undefined},t);assert.equal(legacy[1].value,t("connectionDetails.availability.unknown"));
 });
+check("transport summary is shown without upgrading non-TURN to direct and empty send details stay concise",()=>{
+ const d={...emptyPath.receive,selected:"peer",mediaAvailable:true,label:"webrtc-non-turn",transportPath:"webrtc-non-turn",reason:undefined,ageMs:50};
+ const rows=model.connectionDetailsDirectionRows(d,t);assert.equal(rows.find(r=>r.label===t("connectionDetails.transportPath")).value,t("memberVoicePath.labels.webrtc-non-turn"));assert.doesNotMatch(rows.find(r=>r.label===t("connectionDetails.physicalPath")).value,/direct|直连/i);
+ const emptySend={...emptyPath.send,reason:"missing",selected:"unknown",label:"path-pending"};const send=model.connectionDetailsDirectionRows(emptySend,t,"send");assert.equal(send.length,1);assert.equal(send[0].label,t("connectionDetails.sendEvidence"));assert.equal(send[0].value,t("connectionDetails.sendNotReported"));
+});
+check("route status makes recovery and cooldown visible without exposing raw controller reasons",()=>{
+ const d={...emptyPath.receive,selected:"peer",mediaAvailable:true,label:"webrtc-non-turn",transportPath:"webrtc-non-turn",routeStatus:"recovering",reason:undefined,ageMs:50};
+ const rows=model.connectionDetailsDirectionRows(d,t);assert.equal(rows.find(r=>r.label===t("connectionDetails.routeStatus")).value,t("memberVoicePath.routeStates.recovering"));assert.doesNotMatch(rows.map(r=>r.value).join(" "),/fixture|controller/);
+ const queued=model.connectionDetailsDirectionRows({...d,routeStatus:"queued"},t);assert.equal(queued.find(r=>r.label===t("connectionDetails.routeStatus")).value,t("memberVoicePath.routeStates.queued"));
+});
+check("voice selection copy names P2P and SFU without SDK jargon",()=>{
+ for(language of ["en","zh-CN"]){assert.equal(t("memberVoicePath.selected.peer"),language==="zh-CN"?"P2P 语音通道":"P2P voice channel");assert.equal(t("memberVoicePath.selected.sfu"),language==="zh-CN"?"SFU 服务器转发":"SFU server forwarding");assert.match(t("memberVoicePath.selected.none"),language==="zh-CN"?/语音/:/voice/i);assert.match(t("memberVoicePath.selected.unknown"),language==="zh-CN"?/语音/:/voice/i);}
+ language="zh-CN";
+});
 check("view renders both directions and independent local LAN with focus, fullscreen and bounded scroll",()=>{
  for(language of ["en","zh-CN"]){reset();const focus={current:{}},tree=render(dialog.ConnectionDetailsDialog,{open:true,onOpenChange(){},nickname:"Teammate",path:emptyPath,lan:emptyLan,community,returnFocus:focus});const all=nodes(tree),popup=all.find(n=>n.type==="Dialog.Popup");
- assert.ok(all.some(n=>n.props?.["data-gryt"]==="connection-details-receive"));assert.ok(all.some(n=>n.props?.["data-gryt"]==="connection-details-send"));assert.ok(all.some(n=>n.props?.["data-gryt"]==="connection-details-lan"));assert.equal(popup.props.finalFocus,focus);assert.equal(popup.props.initialFocus.current,null);assert.match(popup.props.style.maxHeight,/100dvh - 220px/);assert.match(popup.props.className,/overflow-y-auto/);assert.ok(all.some(n=>n.type==="Dialog.Close"));assert.ok(text(tree).includes(t("connectionDetails.communityPhase.connected")));assert.ok(text(tree).includes(t("connectionDetails.sendBoundary")));}
+ assert.ok(all.some(n=>n.props?.["data-gryt"]==="connection-details-receive"));assert.ok(all.some(n=>n.props?.["data-gryt"]==="connection-details-send"));assert.ok(all.some(n=>n.props?.["data-gryt"]==="connection-details-lan"));assert.equal(popup.props.finalFocus,focus);assert.equal(popup.props.initialFocus.current,null);assert.match(popup.props.style.maxHeight,/100dvh - 220px/);assert.match(popup.props.className,/overflow-y-auto/);assert.ok(all.some(n=>n.type==="Dialog.Close"));assert.ok(text(tree).includes(t("connectionDetails.communityPhase.connected")));assert.ok(text(tree).includes(t("connectionDetails.sendBoundary")));assert.ok(text(tree).includes(t("connectionDetails.transportBoundary")));}
+  for(language of ["en","zh-CN"]){reset();const tree=render(dialog.ConnectionDetailsDialog,{open:true,onOpenChange(){},nickname:"Me",isSelf:true,path:emptyPath,lan:selfLan,community,lanAgeMs:1200});const all=nodes(tree),rendered=text(tree);
+   assert.ok(!all.some(n=>n.props?.["data-gryt"]==="connection-details-receive"));assert.ok(!all.some(n=>n.props?.["data-gryt"]==="connection-details-send"));assert.ok(rendered.includes(t("connectionDetails.selfBoundary")));assert.ok(rendered.includes(t("memberLan.path.self")));assert.ok(!rendered.includes(t("memberLan.path.unknown")));assert.ok(!rendered.includes(t("memberLan.rttTitle")));assert.ok(!rendered.includes(t("memberLan.reason.self")));assert.ok(rendered.includes(t("memberLan.age",{seconds:"1.2"})));assert.ok(!rendered.includes(t("memberVoicePath.age",{seconds:"1.2"})));assert.equal(t("memberLan.age",{seconds:"1.2"}),language==="zh-CN"?"1.2 秒":"1.2 seconds");}
+  const unverifiedSelf={enrollment:"unknown",enrollmentReason:"unverified",path:"unknown",pathReason:"unverified",rttMs:null,rttReason:"unverified"};reset();const unknownTree=render(dialog.ConnectionDetailsDialog,{open:true,onOpenChange(){},nickname:"Me",isSelf:true,path:emptyPath,lan:unverifiedSelf,community,lanAgeMs:null});const unknownText=text(unknownTree);assert.ok(unknownText.includes(t("memberLan.enrollment.unknown")));assert.ok(unknownText.includes(t("memberLan.reason.unverified")));assert.ok(!unknownText.includes(t("memberLan.path.unknown")));assert.ok(!unknownText.includes(t("memberLan.reason.self")));
+  language="zh-CN";
 });
 check("container reads existing hooks, refuses cross-room media, and never requests a new connection",()=>{
  reset();let view=render(dialog.MemberConnectionDetailsDialog,{open:true,onOpenChange(){},nickname:"m",serverHost:"h",serverUserId:"m"});assert.deepEqual(requested,["h","m","audio"]);assert.equal(view.props.path,emptyPath);assert.equal(view.props.lan.enrollment,"unavailable");

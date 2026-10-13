@@ -118,7 +118,7 @@ export class CommunityEtOwnedFiles {
       const actual = await realpath(file), within = relative(actualRoot, actual);
       if (!within || within.startsWith('..') || isAbsolute(within)) throw new EasyTierOperationError('configuration-required');
       return {config: {serverId, instanceId, networkName, configFile: actual,
-        configSha256: createHash('sha256').update(toml).digest('hex'), bootstrap: 'product-owned'}, remove};
+        configSha256: createHash('sha256').update(toml).digest('hex'), bootstrap: 'product-owned', latencyFirst: false}, remove};
     } catch (error) { await handle.close().catch(() => undefined); await remove(); throw error; }
   }
 }

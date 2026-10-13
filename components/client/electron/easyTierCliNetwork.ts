@@ -11,12 +11,23 @@ export interface EasyTierCliNetwork {
   acquiredAtUnixMs: number;
   acquisitionStartedAtMs: number;
   acquisitionStartedAtUnixMs: number;
-  latencyFirst: null;
+  /** The route-list CLI does not report policy; the owned runtime may overlay the
+   * value from the product-owned config after this parser returns. */
+  latencyFirst: boolean | null;
   info: { running: true; my_node_info: { peer_id: number; virtual_ipv4: string | null }; routes: Array<Record<string, unknown>>; peers: Array<Record<string, unknown>> };
 }
 
-/** Accept ONLY the exact verbose RouteListData schema, scoped to the requested UUID. */
-export function sanitizedEasyTierCliNetwork(value: unknown, instanceId: string): EasyTierCliNetwork["info"] {
+/**
+ * This is the only CLI producer whose proto3 default omission we trust.
+ * EasyTier 2.7.0's `PeerConnInfo.is_closed` is a plain proto3 bool and pbjson
+ * omits false; the fixed owned route-list command also obtains live connections
+ * from `list_peer_conns`, which removes closed entries before serialization.
+ * Keep the producer identity explicit so a different CLI/schema cannot silently
+ * turn an absent field into a live connection.
+ */
+export const EASYTIER_V270_ROUTE_LIST_SOURCE = "easytier-2.7.0-owned-route-list" as const;
+
+function sanitize(value: unknown, instanceId: string, trustedV270Source: boolean): EasyTierCliNetwork["info"] {
   const result = object(value), node = object(result.node_info);
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(instanceId)
     || typeof node.inst_id !== "string" || node.inst_id.toLowerCase() !== instanceId.toLowerCase() || !id(node.peer_id)) unavailable();
@@ -41,7 +52,8 @@ export function sanitizedEasyTierCliNetwork(value: unknown, instanceId: string):
         if (connIds.has(conn) || id(c.my_peer_id) !== localPeer || id(c.peer_id) !== remote) unavailable();
         connIds.add(conn);
         const type = object(c.tunnel).tunnel_type;
-        return { conn_id: conn, my_peer_id: localPeer, peer_id: remote, is_closed: typeof c.is_closed === "boolean" ? c.is_closed : null,
+        return { conn_id: conn, my_peer_id: localPeer, peer_id: remote,
+          is_closed: typeof c.is_closed === "boolean" ? c.is_closed : trustedV270Source ? false : null,
           tunnel: { tunnel_type: ["tcp", "udp", "quic", "wg", "wireguard", "ws", "wss", "ring", "faketcp"].includes(String(type)) ? type : null } };
       });
       const direct = rows(peer.directly_connected_conns, 64).map(easyTierConnectionId).filter((c): c is string => c !== null);
@@ -51,4 +63,14 @@ export function sanitizedEasyTierCliNetwork(value: unknown, instanceId: string):
   // NodeInfo.config contains TOML/credentials. Do not parse, return or log it.
   // Bare stats.latency_us and route path_latency lack measurement time; discard them.
   return { running: true, my_node_info: { peer_id: localPeer, virtual_ipv4: easyTierVirtualIp(node.ipv4_addr) }, routes, peers };
+}
+
+/** Accept ONLY the exact verbose RouteListData schema, scoped to the requested UUID. */
+export function sanitizedEasyTierCliNetwork(value: unknown, instanceId: string): EasyTierCliNetwork["info"] {
+  return sanitize(value, instanceId, false);
+}
+
+/** Owned product path: the source contract permits proto3 `false` omission. */
+export function sanitizedEasyTierV270CliNetwork(value: unknown, instanceId: string): EasyTierCliNetwork["info"] {
+  return sanitize(value, instanceId, true);
 }

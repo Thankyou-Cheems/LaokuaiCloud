@@ -68,7 +68,7 @@ function buildValidated(grant: PrivateCommunityGrantV1, trusted: TrustedCommunit
     'dhcp = false', 'listeners = []', '',
     '[network_identity]', `network_name = ${quote(trusted.networkName)}`, '',
     '[secure_mode]', 'enabled = true', `local_private_key = ${quote(grant.credentialSecretB64)}`, '',
-    '[flags]', `dev_name = ${quote('lkc-' + trusted.nativeInstanceId.replace(/-/g, ''))}`,
+    '[flags]', 'latency_first = false', `dev_name = ${quote('lkc-' + trusted.nativeInstanceId.replace(/-/g, ''))}`,
     'enable_exit_node = false', 'relay_network_whitelist = ""', '',
   ];
   for (const endpoint of profile.peerEndpoints) lines.push('[[peer]]', `uri = ${quote(endpoint)}`,

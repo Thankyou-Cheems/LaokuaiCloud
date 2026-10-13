@@ -70,6 +70,11 @@ await test("invalid connection identity and oversized raw graph cannot become lo
     const raw = fixture(); edit(raw); assert.throws(() => network.sanitizedEasyTierCliNetwork(raw, instanceId));
   }
 });
+await test("fixed 2.7 proto3 false omission is trusted only for the owned route-list producer", () => {
+  const raw = fixture(); delete raw.peer_routes[0].peer.conns[0].is_closed;
+  assert.equal(network.sanitizedEasyTierCliNetwork(raw, instanceId).peers[0].conns[0].is_closed, null);
+  assert.equal(network.sanitizedEasyTierV270CliNetwork(raw, instanceId).peers[0].conns[0].is_closed, false);
+});
 await test("unknown closure/tunnel and nonprivate IP remain unknown; bare RTT has no measurement timestamp", () => {
   const raw = fixture(); raw.node_info.ipv4_addr = "invalid-physical-address";
   delete raw.peer_routes[0].peer.conns[0].is_closed; raw.peer_routes[0].peer.conns[0].tunnel.tunnel_type = "unrecognized";
@@ -108,7 +113,7 @@ deps["node:child_process"].execFile = (file, args, options, callback) => {
 deps["node:net"].createServer = () => {
   const server = { once: () => server, listen: (_options, callback) => callback(), address: () => ({ port: 34567 }), close: callback => callback() }; return server;
 };
-const config = { serverId: scope.serverId, instanceId, configFile: "synthetic-never-read.toml" };
+const config = { serverId: scope.serverId, instanceId, configFile: "synthetic-never-read.toml", latencyFirst: false };
 function finish(error = null, value = fixture()) { const p = pending.shift(); p.callback(error, JSON.stringify(value)); p.reader.exitCode = 0; p.reader.emit("exit", 0); }
 await test("owned CLI reads are bounded, scoped and single-flight; each observer gets an isolated copy", async () => {
   const owner = new processes.EasyTierWindowsProcesses(); const core = await owner.start("synthetic-no-files", config, new AbortController().signal);
@@ -141,6 +146,7 @@ await test("production adapter returns acquired nonempty graph; session close dr
   const session = await runtime.connect({ ...scope, signal: new AbortController().signal });
   const read = session.read(new AbortController().signal); resolve(sample()); const result = await read;
   assert.equal(result.info.routes.length, 1); assert.equal(result.info.peers.length, 1); assert.equal(result.bindings.length, 0);
+  assert.equal(result.latencyFirst, false);
   const late = session.read(new AbortController().signal); await session.close(); resolve(sample()); assert.equal((await late).freshRpc, false);
 });
 await test("existing manager IPC returns local facts without inventing a member binding and expires them", async () => {
@@ -158,12 +164,12 @@ await test("existing manager IPC returns local facts without inventing a member 
   monotonic = 5101; utc = 105001; assert.equal(manager.getState(scope.serverId).localDetails, null);
   await manager.disconnect(lease); assert.equal(manager.getState(scope.serverId).localDetails, null); assert.equal(timers.size, 0);
 });
-await test("missing administrator permission cannot acquire a one-shot native credential", async () => {
+await test("configuration is read before permission and missing administrator permission blocks native acquisition", async () => {
   let configurationCalls=0;
   const runtime=new WindowsEasyTierCliRuntime({platform:"win32",permission:async()=>false,
-    configuration:async()=>{configurationCalls++;throw new Error("credential-must-not-be-acquired");},
+    configuration:async()=>{configurationCalls++;return config;},
     verifiedAssets:forbidden,start:forbidden,pause:forbidden,shutdownOwned:forbidden});
   await assert.rejects(runtime.connect({...scope,signal:new AbortController().signal}),error=>error.reason==="needs-permission");
-  assert.equal(configurationCalls,0);
+  assert.equal(configurationCalls,1);
 });
 console.log(`${checks} read-only network checks passed; every runtime port was fake`);

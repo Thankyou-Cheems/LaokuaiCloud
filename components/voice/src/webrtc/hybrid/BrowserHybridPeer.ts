@@ -3,13 +3,15 @@ import { applyLocalMicrophoneCodecSdp, applyMicrophoneCodec, snapshotMicrophoneC
 import { idleMicrophoneCodecState, type MicrophoneCodecProfile, type MicrophoneCodecState } from "../types/MicrophoneCodec";
 import type { HybridMediaCandidate, HybridPeerFactoryOptions, HybridPeerMetrics, HybridPeerSession, HybridPublication, HybridSignalBody } from "../types/Hybrid";
 import { readReceiveStats, ReceiveTrackStats } from "./receivePathStats";
-import type { ReceiveTrackObservation } from "../types/ReceivePath";
+import type { ReceivePathUnderlayResolver, ReceiveTrackObservation } from "../types/ReceivePath";
 
 export interface BrowserHybridPeerOptions {
   /** Explicit host-supplied ICE configuration. No public discovery server is added. */
   rtcConfiguration: RTCConfiguration;
   microphoneCodec: MicrophoneCodecProfile;
   channelMaxBitrateBps?: number | null;
+  /** Optional host-owned ET/VPN evidence; receives only the in-memory selected path. */
+  pathUnderlayResolver?: ReceivePathUnderlayResolver;
 }
 
 // Media identity is independent of mute/PTT/Squad control acknowledgements.
@@ -150,10 +152,39 @@ export class BrowserHybridPeer implements HybridPeerSession {
     void this.stats().then(report => {
       if (this.disposed || this.failed) return;
       const now = performance.now(); let samples = 0, packets = 0;
-      this.receiveObservation = this.remoteTrack ? this.receiveStats.observe(report, this.remoteTrack.id, now) : null;
+      let observation = this.remoteTrack ? this.receiveStats.observe(report, this.remoteTrack.id, now) : null;
+      if (observation && this.options.pathUnderlayResolver) {
+        try {
+          const underlay = this.options.pathUnderlayResolver.resolve(observation.transportPath);
+          if (underlay && underlay.source === "host-underlay-resolver" && Number.isFinite(underlay.observedAtMs) &&
+              underlay.observedAtMs <= observation.transportPath.observedAtMs) {
+            const transportPath = { ...observation.transportPath, underlay };
+            observation = { ...observation, transportPath,
+              metrics: { ...observation.metrics, path: {
+                ...observation.metrics.path, underlay: underlay.classification,
+              } } };
+          }
+        } catch { /* An optional host observer cannot affect media routing. */ }
+      }
+      this.receiveObservation = observation;
+      const remoteTrackId = this.remoteTrack?.id; let matchedRows = 0;
       report.forEach(row => { if (row.type === "inbound-rtp" && (row.kind ?? row.mediaType) === "audio" &&
-        Number.isSafeInteger(row.totalSamplesReceived) && row.totalSamplesReceived >= 0 && Number.isSafeInteger(row.packetsReceived) && row.packetsReceived >= 0 &&
-        (!row.trackIdentifier || row.trackIdentifier === this.remoteTrack?.id)) { samples += row.totalSamplesReceived; packets += row.packetsReceived; } });
+        row.trackIdentifier === remoteTrackId) {
+        matchedRows++;
+        if (Number.isSafeInteger(row.totalSamplesReceived) && row.totalSamplesReceived >= 0 &&
+            Number.isSafeInteger(row.packetsReceived) && row.packetsReceived >= 0) {
+          samples += row.totalSamplesReceived; packets += row.packetsReceived;
+        }
+      } });
+      // ReceiveTrackStats rejects duplicate exact-track rows. Keep the media
+      // proof equally strict; aggregate or unidentified inbound audio must
+      // never be mistaken for this peer's decoded track. Do not treat the
+      // missing/ambiguous sample as a counter reset: wait for one exact row,
+      // then let the normal freshness timeout handle a prolonged absence.
+      if (matchedRows !== 1) {
+        if (this.sequence > 0 && now - this.lastDecodedAt > 3000) this.fail("peer_decoded_media_stale");
+        return;
+      }
       if (samples < this.lastSamples || packets < this.lastPackets) { this.fail("peer_stats_reset"); return; }
       if (Number.isSafeInteger(samples) && Number.isSafeInteger(packets) && samples > this.lastSamples && packets > this.lastPackets && this.remoteTrack?.readyState === "live") {
         this.lastSamples = samples; this.lastPackets = packets; this.decodedFrames = Math.max(1, Math.floor(samples / 480)); ++this.sequence; this.lastDecodedAt = now;

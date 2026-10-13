@@ -24,3 +24,14 @@ jobs:
         run: npx --yes yarn@1.22.22 install --frozen-lockfile --ignore-scripts --non-interactive
       - name: Existing ET and voice contracts plus targeted types
         run: ./tools/check-core-contracts.ps1
+      - name: Build pinned Voice SDK and check routing recovery
+        working-directory: components/voice
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { throw 'Voice dependencies failed' }
+          npm run build
+          if ($LASTEXITCODE -ne 0) { throw 'Voice build failed' }
+          foreach ($suite in @('check-peer-path-stats.mjs', 'check-hybrid.mjs', 'check-hybrid-integration.mjs', 'check-hybrid-session.mjs')) {
+            node "scripts/$suite"
+            if ($LASTEXITCODE -ne 0) { throw "Voice contract failed: $suite" }
+          }

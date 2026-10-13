@@ -74,6 +74,25 @@ check('SFU usable selection is server relay; peer selected media needs complete 
  const e=fixture();e.receive=media('receive','sfu');delete e.receive.underlay;delete e.receive.selectedIcePairId;
  assert.equal(evaluate(e).receive.label,'server-relay');assert.equal(evaluate(e).receive.metricsScope,'sfu-transport');
 });
+check('selected transport stats distinguish TURN, non-TURN and correlated ET underlay without guessing direct',()=>{
+ const e=fixture();delete e.receive.underlay;
+ e.receive.metrics.path={classification:'non-turn-candidate',pairId:'actual-selected-pair',localCandidateType:'host',remoteCandidateType:'srflx',underlay:null};
+ let r=evaluate(e).receive;assert.equal(r.transportPath,'webrtc-non-turn');assert.equal(r.label,'webrtc-non-turn');assert.equal(r.reason,undefined);
+ e.receive.metrics.path.underlay='unknown';r=evaluate(e).receive;assert.equal(r.transportPath,'webrtc-non-turn');assert.equal(r.label,'webrtc-non-turn');
+ e.receive.metrics.path.underlay='easytier-direct';r=evaluate(e).receive;assert.equal(r.transportPath,'easytier-direct');assert.equal(r.label,'easytier-direct');
+ e.receive.metrics.path.underlay='easytier-relay';r=evaluate(e).receive;assert.equal(r.transportPath,'easytier-relay');assert.equal(r.label,'easytier-relay');
+ e.receive.metrics.path.pairId='another-selected-pair';r=evaluate(e).receive;assert.equal(r.transportPath,undefined);assert.equal(r.metricsReason,'invalid');
+ e.receive.metrics.path.pairId='actual-selected-pair';
+ e.receive.metrics.path.classification='turn-relay';r=evaluate(e).receive;assert.equal(r.transportPath,'turn-relay');assert.equal(r.label,'turn-relay');
+ e.receive.metrics.path.underlay='easytier-direct';r=evaluate(e).receive;assert.equal(r.transportPath,'turn-relay');assert.equal(r.label,'turn-relay');
+ e.receive.metrics.path.classification='unknown';r=evaluate(e).receive;assert.equal(r.transportPath,'unknown');assert.equal(r.label,'unknown');
+});
+check('controller recovery and cooldown states are display-only and do not change transport proof',()=>{
+ for(const status of ['queued','probing','switching','recovering','failed']){
+  const e=fixture();e.receive.diagnostic={status,reason:'fixture'};const r=evaluate(e).receive;assert.equal(r.routeStatus,status);assert.equal(r.label,'direct');
+ }
+ const e=fixture();e.receive.diagnostic={status:'untrusted-controller-state',reason:'fixture'};assert.equal(evaluate(e).receive.routeStatus,undefined);
+});
 check('first member hop never proves a member-only path; ET cost is not rendered as bandwidth',()=>{
  const e=fixture();e.receive.underlay.coverage='first-hop-only';e.receive.underlay.kind='member-relay';e.receive.underlay.nextHop='member';e.receive.underlay.cost=1;
  assert.equal(evaluate(e).receive.label,'path-pending');assert.equal(evaluate(e).receive.nextHop,'member');
@@ -124,7 +143,8 @@ check('bidirectional text does not conceal a relayed or unknown send path; acces
  assert.match(span.props.children[1].props.children,/收：语音直连.*发：服务器中转/);assert.doesNotMatch(span.props.children[1].props.className,/truncate/);
  assert.equal(span.props.tabIndex,0);assert.equal(span.props.role,'img');assert.equal(span.props['aria-label'],tree.props.title);assert.equal(span.props.title,tree.props.title);
  assert.match(span.props['aria-label'],/与你的语音路径.*接收.*发送.*服务器传输 RTT/);assert.doesNotMatch(span.props['aria-label'],/selected-route|local-user|server-fixture|track-receive/);
- delete e.send;assert.match(view({path:evaluate(e)}).props.children.props.children[1].props.children,/发：路径待确认/);
+ delete e.send;const receiveOnly=view({path:evaluate(e)}),receiveOnlySpan=receiveOnly.props.children;assert.match(receiveOnlySpan.props.children[1].props.children,/接收：语音直连/);assert.doesNotMatch(receiveOnlySpan.props.children[1].props.children,/发：/);assert.match(receiveOnly.props.title,/没有此成员的认证接收回执/);
+ const easyTier=fixture();delete easyTier.receive.underlay;easyTier.receive.metrics.path={classification:'non-turn-candidate',pairId:'actual-selected-pair',underlay:'easytier-direct'};delete easyTier.send;const easyTierView=view({path:evaluate(easyTier)}),easyTierSpan=easyTierView.props.children;assert.match(easyTierSpan.props.children[1].props.children,/接收：EasyTier 直连/);assert.doesNotMatch(easyTierSpan.props.children[1].props.children,/发：/);assert.equal(easyTierSpan.props.children[0].props.kind,'easytier-direct');assert.equal(easyTierSpan.props.style.color,'var(--gryt-success-11)');assert.match(easyTierView.props.title,/没有此成员的认证接收回执/);
  let stopped=0;for(const key of ['Enter',' ','Tab'])span.props.onKeyDown({key,stopPropagation(){stopped++;}});assert.equal(stopped,2);
 });
 check('full path caveat, independent metric expiry and SDK contradiction are explicit in detail',()=>{
@@ -136,7 +156,7 @@ check('full path caveat, independent metric expiry and SDK contradiction are exp
 });
 check('Chinese/English parity and English fallback cover every displayed reason/state',()=>{
  const compare=(a,b)=>{assert.deepEqual(Object.keys(a).sort(),Object.keys(b).sort());for(const k of Object.keys(a))typeof a[k]==='object'?compare(a[k],b[k]):assert.ok(a[k]&&b[k]);};compare(locales.en.memberVoicePath,locales['zh-CN'].memberVoicePath);
- for(const lang of ['zh-CN','en']){language=lang;for(const label of ['direct','member-relay','server-relay','path-pending','switching','error','pending']){
+  for(const lang of ['zh-CN','en']){language=lang;for(const label of ['direct','member-relay','server-relay','easytier-direct','easytier-relay','webrtc-non-turn','turn-relay','unknown','path-pending','switching','error','pending']){
   const r=evaluate(undefined);r.receive.label=label;view({path:r});
  }}
  language='missing-language';assert.match(view({path:evaluate(undefined)}).props.title,/Voice path with you/);language='zh-CN';

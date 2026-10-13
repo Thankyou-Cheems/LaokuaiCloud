@@ -17,6 +17,8 @@ export interface BrowserHybridVoiceState {
 export interface BrowserHybridVoiceOptions extends BrowserHybridPeerOptions {
   enabled?: boolean;
   allowNetwork?: boolean;
+  pathStableMs?: number;
+  pathMonitorMs?: number;
   socket: HybridSocketTransport;
   getAccessToken(): string | undefined;
   expectedRoomId: string;
@@ -151,7 +153,7 @@ export class BrowserHybridVoiceSession {
               this.recoveries.set(input, { request, port: input, revision }); this.publish("recovering", "fresh_sfu_restore_required");
             }
           },
-        }, { enabled: true, allowNetwork: true });
+        }, { enabled: true, allowNetwork: true, pathStableMs: this.options.pathStableMs, pathMonitorMs: this.options.pathMonitorMs });
         this.unsubscribe = this.controller.subscribe(() => {
           if (!this.disposed) this.publish(this.recoveries.size ? "recovering" : this.enabled ? "active" : "recovering", this.recoveries.size ? "fresh_sfu_restore_required" : null);
         });

@@ -1,4 +1,5 @@
-# Source contracts only: no Electron, native core, server, device or network launch.
+# Source contracts plus bounded local fixtures: no Electron, EasyTier core, server,
+# device, UAC, driver or network launch.
 [CmdletBinding()]
 param([string]$NodePath)
 $ErrorActionPreference = 'Stop'
@@ -23,12 +24,32 @@ try {
         'scripts/check-public-community-consent.cjs',
         'scripts/check-community-lan-isolation.mjs',
         'scripts/check-hybrid-product-bootstrap.mjs',
-        'scripts/check-community-easytier-types.mjs'
+        'scripts/check-easytier-voice-underlay.mjs',
+        'scripts/check-voice-transport-preset.mjs',
+        'scripts/check-member-voice-media-path.mjs',
+        'scripts/check-member-voice-receive-translator.mjs',
+        'scripts/check-community-easytier-types.mjs',
+        'scripts/check-community-lan-clock.mjs',
+        'scripts/check-community-quit.mjs',
+        'scripts/check-member-lan-status.mjs',
+        'scripts/check-connection-details-ui.mjs',
+        'scripts/check-connection-topology-icons.mjs',
+        'scripts/check-private-startup.mjs',
+        'scripts/check-i18n.mjs'
     )
     foreach ($check in $checks) {
         Write-Host "Checking $check"
         & $NodePath $check
         if ($LASTEXITCODE -ne 0) { throw "Source check failed: $check" }
     }
-    Write-Host 'PASS: ten source contract suites. Product autojoin/native/media acceptance is separate.'
+    $fixtureCount = 0
+    if ($IsWindows) {
+        $pipeCheck = 'scripts/check-community-broker-pipe.ps1'
+        Write-Host "Checking $pipeCheck"
+        & (Join-Path $root 'components/client/scripts/check-community-broker-pipe.ps1')
+        if ($LASTEXITCODE -ne 0) { throw "Local fixture failed: $pipeCheck" }
+        $fixtureCount = 1
+    }
+    $totalChecks = $checks.Count + $fixtureCount
+    Write-Host "PASS: $totalChecks checks ($($checks.Count) Node24 source contract suites, $fixtureCount bounded Windows broker-pipe fixtures). Product autojoin/native/media acceptance is separate."
 } finally { Pop-Location }

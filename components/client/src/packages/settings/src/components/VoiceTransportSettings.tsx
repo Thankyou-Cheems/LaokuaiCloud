@@ -33,8 +33,8 @@ export function VoiceTransportSettings() {
         value={preset.maxBitrateBps/1000} onChange={value=>setPreset({...preset,selection:"custom",maxBitrateBps:value*1000})} />
       <SettingGroup title={tr("transport.packetTime")} description={tr("transport.packetTimeDescription")} anchorId="voice-transport-packet-time">
         <select aria-label={tr("transport.packetTime")} value={preset.packetTimeMs}
-          onChange={event=>{const value=Number(event.target.value);if(value===10||value===20||value===40)setPreset({...preset,selection:"custom",packetTimeMs:value});}}>
-          <option value={10}>10 ms</option><option value={20}>20 ms</option><option value={40}>40 ms</option>
+          onChange={event=>{const value=Number(event.target.value);if(value===10||value===20||value===40||value===60)setPreset({...preset,selection:"custom",packetTimeMs:value});}}>
+          <option value={10}>10 ms</option><option value={20}>20 ms</option><option value={40}>40 ms</option><option value={60}>60 ms</option>
         </select>
       </SettingGroup>
       <ToggleSetting title={tr("transport.dtx")} anchorId="voice-transport-dtx" description={tr("transport.dtxDescription")}

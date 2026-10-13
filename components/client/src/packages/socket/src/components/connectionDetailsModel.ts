@@ -35,7 +35,10 @@ export function connectionDetailsPublication(input: {
 }
 
 /** Whitelisted display values only. No inferred rates, cumulative counters or generated history. */
-export function connectionDetailsDirectionRows(d: ConnectionDetailsDirection, t: Translate): ConnectionDetailsRow[] {
+export function connectionDetailsDirectionRows(d: ConnectionDetailsDirection, t: Translate, direction?: "receive" | "send"): ConnectionDetailsRow[] {
+  if (direction === "send" && d.reason === "missing" && d.selected === "unknown") {
+    return [{ label: t("connectionDetails.sendEvidence"), value: t("connectionDetails.sendNotReported") }];
+  }
   const measured = d.metricsReason === "measured";
   const availability = d.mediaAvailable === true ? "usable" : d.label === "error" && d.transition === "confirmed-failed" ? "unavailable" : "unknown";
   const transition = allowed(d.transition, ["stable", "confirmed-switching", "confirmed-failed", "unknown"],
@@ -44,7 +47,7 @@ export function connectionDetailsDirectionRows(d: ConnectionDetailsDirection, t:
   const rtt = measured && scope !== "unknown" && nonnegative(d.rttMs) && d.rttMs <= 60000 ? `${Math.round(d.rttMs)} ms` : t("connectionDetails.notMeasured");
   const loss = measured && nonnegative(d.lossPercent) && d.lossPercent <= 100 ? `${d.lossPercent.toFixed(1)}%` : t("connectionDetails.notMeasured");
   const age = (ms: unknown) => nonnegative(ms) ? t("memberVoicePath.age", { seconds: (ms / 1000).toFixed(1) }) : t("connectionDetails.notMeasured");
-  const label = allowed(d.label, ["direct", "member-relay", "server-relay", "path-pending", "switching", "error", "pending"], "path-pending");
+  const label = allowed(d.label, ["direct", "member-relay", "server-relay", "easytier-direct", "easytier-relay", "webrtc-non-turn", "turn-relay", "unknown", "path-pending", "switching", "error", "pending"], "path-pending");
   const selected = allowed(d.selected, ["peer", "sfu", "none", "unknown"], "unknown");
   const rows: ConnectionDetailsRow[] = [
     { label: t("connectionDetails.logicalSelection"), value: t(`memberVoicePath.selected.${selected}`) },
@@ -57,6 +60,8 @@ export function connectionDetailsDirectionRows(d: ConnectionDetailsDirection, t:
     { label: t("connectionDetails.pathAge"), value: age(d.ageMs), numeric: true },
     { label: t("connectionDetails.metricsAge"), value: measured ? age(d.metricsAgeMs) : t("connectionDetails.notMeasured"), numeric: true },
   ];
+  if (d.routeStatus) rows.splice(3, 0, { label: t("connectionDetails.routeStatus"), value: t(`memberVoicePath.routeStates.${allowed(d.routeStatus, ["sfu", "queued", "probing", "switching", "p2p", "recovering", "failed", "unknown"], "unknown")}`) });
+  if (d.transportPath) rows.splice(4, 0, { label: t("connectionDetails.transportPath"), value: t(`memberVoicePath.labels.${allowed(d.transportPath, ["easytier-direct", "easytier-relay", "webrtc-non-turn", "turn-relay", "unknown"], "unknown")}`) });
   if (d.reason && ["not-integrated", "scope-mismatch", "missing", "expired", "invalid", "inconsistent", "media-unavailable", "underlay-unproven"].includes(d.reason)) rows.push({ label: t("connectionDetails.reason"), value: t(`memberVoicePath.reasons.${d.reason}`) });
   rows.push({ label: t("connectionDetails.metricsStatus"), value: t(`memberVoicePath.metrics.${allowed(d.metricsReason, ["missing", "expired", "invalid", "measured"], "missing")}`) });
   return rows;

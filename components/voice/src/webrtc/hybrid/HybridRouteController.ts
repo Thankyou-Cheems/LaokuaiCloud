@@ -4,6 +4,7 @@ import type {
   HybridPeerMetrics, HybridPeerSession, HybridPublication, HybridReceivePort, HybridRouteState,
   HybridScope, HybridSignal, HybridSignalBody, HybridState,
 } from "../types/Hybrid";
+import type { ReceiveTrackObservation } from "../types/ReceivePath";
 
 interface Route {
   participant: HybridParticipant;
@@ -13,6 +14,8 @@ interface Route {
   state: HybridRouteState;
   peer?: HybridPeerSession;
   lease?: HybridPairLease;
+  /** Signal sequence numbers are scoped to one server-minted pair connection. */
+  signalConnectionId?: string;
   candidate?: HybridMediaCandidate;
   generation: number;
   signalIn: number;
@@ -21,6 +24,13 @@ interface Route {
   inbound: Promise<void>;
   pauseAttempted: boolean;
   pauseUntil: number;
+  pathSince?: number;
+  pathKey?: string;
+  pathMonitor?: unknown;
+  reprobe?: unknown;
+  reprobeAttempt: number;
+  restoreRetry?: unknown;
+  restoreAttempts: number;
   renew?: unknown;
   expiry?: unknown;
   cancellations: Set<() => void>;
@@ -37,7 +47,7 @@ const clockDefault: HybridClock = {
 const id = (value: unknown): value is string => typeof value === "string" && value.length > 0 && value.length <= 256;
 const finite = (value: number) => Number.isFinite(value) && value >= 0;
 const diagnostic = (error: unknown, fallback: string) => error instanceof Error &&
-  /^(operation_timeout|route_cancelled|invalid_pair_lease|decoded_media_unavailable|media_stale_before_switch|forwarding_ack_mismatch|fresh_sfu_media_unavailable|invalid_sfu_media_sequence|stale_receive_selection|invalid_receive_candidate|invalid_receive_node)$/.test(error.message)
+  /^(operation_timeout|route_cancelled|invalid_pair_lease|decoded_media_unavailable|media_stale_before_switch|peer_path_not_admitted|peer_path_unstable|peer_path_unavailable|peer_path_inconsistent|peer_media_stale|forwarding_ack_mismatch|fresh_sfu_media_unavailable|invalid_sfu_media_sequence|stale_receive_selection|invalid_receive_candidate|invalid_receive_node)$/.test(error.message)
   ? error.message : fallback;
 const sameScope = (a: HybridScope, b: HybridScope) => a.serverInstanceId === b.serverInstanceId &&
   a.roomId === b.roomId && a.roomGeneration === b.roomGeneration &&
@@ -61,6 +71,9 @@ const copySignalBody = (body: HybridSignalBody): HybridSignalBody => body.kind =
   } } : { kind: body.kind, sdp: body.sdp };
 const numberOption = (value: number | undefined, fallback: number, min: number, max: number) =>
   value === undefined ? fallback : Number.isFinite(value) ? Math.min(max, Math.max(min, Math.floor(value))) : fallback;
+const reprobeDelaysMs = [15000, 30000, 60000] as const;
+const restoreRetryDelaysMs = [1000, 2000, 4000, 8000] as const;
+const restoreCooldownMs = 60000;
 
 /** Experimental adapter-driven controller; the normal SDK SFU path is unchanged. */
 export class HybridRouteController {
@@ -94,6 +107,8 @@ export class HybridRouteController {
     this.clock = dependencies.clock ?? clockDefault;
     this.options = {
       enabled: options.enabled ?? false, allowNetwork: options.allowNetwork ?? false,
+      pathStableMs: numberOption(options.pathStableMs, 1000, 0, 10000),
+      pathMonitorMs: numberOption(options.pathMonitorMs, 500, 100, 5000),
       maxPeerConnections: numberOption(options.maxPeerConnections, 19, 1, 19),
       maxConcurrentProbes: numberOption(options.maxConcurrentProbes, 2, 1, 19),
       minProbeIntervalMs: numberOption(options.minProbeIntervalMs, 250, 50, 60000),
@@ -210,7 +225,8 @@ export class HybridRouteController {
       const route: Route = {
         participant, scope: { ...scope }, publication: { ...publication! }, port, generation,
         signalIn: 0, signalOut: 0, outbound: Promise.resolve(), inbound: Promise.resolve(),
-        pauseAttempted: restoring, pauseUntil: 0, cancellations: new Set(), pendingIn: 0, pendingOut: 0,
+        pauseAttempted: restoring, pauseUntil: 0, reprobeAttempt: 0, restoreAttempts: 0,
+        cancellations: new Set(), pendingIn: 0, pendingOut: 0,
         state: { participantId: participant.participantId, sessionId: participant.sessionId,
           publicationId: participant.publicationId, routeGeneration: generation, selectionRevision: selection?.revision ?? 0,
           status: restoring ? "sfu" : withinLimit ? "queued" : "sfu", selected: selection?.kind ?? (restoring ? "none" : "sfu"), selectedTrackId: selection?.trackId ?? null,
@@ -251,6 +267,70 @@ export class HybridRouteController {
   private receiving(route: Route, candidate = route.candidate): boolean {
     try { return !!candidate && candidate.track.readyState === "live" && !!route.peer?.isReceiving(candidate); }
     catch { return false; }
+  }
+
+  /**
+   * Candidate type is only a WebRTC fact.  The host underlay resolver must
+   * explicitly approve the selected pair before this controller can pause the
+   * healthy SFU edge.  Keep the summary and full evidence tied to one sample
+   * so a stale EasyTier answer cannot upgrade a newer candidate pair.
+   */
+  private pathAdmission(candidate: HybridMediaCandidate): { key: string; observation: ReceiveTrackObservation } | null {
+    let observation: ReceiveTrackObservation | null = null;
+    try { observation = candidate.getReceiveObservation?.() ?? null; } catch { return null; }
+    if (!observation) return null;
+    const path = observation.transportPath, summary = observation.metrics.path;
+    const underlay = path.underlay;
+    const now = this.clock.now();
+    if (path.classification !== "non-turn-candidate" || summary.classification !== path.classification ||
+        summary.pairId !== path.pairId || summary.underlay !== underlay?.classification ||
+        !id(path.pairId) || !underlay || underlay.source !== "host-underlay-resolver" ||
+        !finite(underlay.observedAtMs) || underlay.observedAtMs > path.observedAtMs ||
+        underlay.observedAtMs > now || now - underlay.observedAtMs > 3000 ||
+        (underlay.classification !== "not-easytier" && underlay.classification !== "easytier-direct")) return null;
+    const observedAt = path.observedAtMs;
+    if (!finite(observedAt) || observedAt > now || now - observedAt > 3000) return null;
+    return { key: `${path.pairId}:${underlay.classification}`, observation };
+  }
+
+  private mediaHealthy(route: Route, candidate = route.candidate): boolean {
+    if (!candidate || !finite(candidate.observedAtMs)) return false;
+    const now = this.clock.now();
+    if (candidate.observedAtMs > now || now - candidate.observedAtMs > 3000) return false;
+    return this.receiving(route, candidate);
+  }
+
+  private wait(route: Route, delayMs: number): Promise<void> {
+    return new Promise((resolve, reject) => {
+      let handle: unknown;
+      const cancel = () => {
+        if (handle !== undefined) this.clock.cancel(handle);
+        route.cancellations.delete(cancel); reject(new Error("route_cancelled"));
+      };
+      handle = this.clock.schedule(() => { route.cancellations.delete(cancel); resolve(); }, Math.max(1, delayMs));
+      route.cancellations.add(cancel);
+    });
+  }
+
+  private async awaitAdmittedPath(route: Route, generation: number, initial: HybridMediaCandidate): Promise<HybridMediaCandidate> {
+    let candidate = initial, stableKey: string | null = null, stableSince = -Infinity;
+    const deadline = this.clock.now() + this.options.probeTimeoutMs;
+    while (true) {
+      if (!this.current(route, generation)) throw new Error("route_cancelled");
+      const admission = this.pathAdmission(candidate);
+      if (!admission) throw new Error("peer_path_not_admitted");
+      if (!this.mediaHealthy(route, candidate)) throw new Error("peer_media_stale");
+      const now = this.clock.now();
+      if (stableKey !== admission.key) { stableKey = admission.key; stableSince = now; route.pathKey = admission.key; route.pathSince = now; }
+      if (now - stableSince >= this.options.pathStableMs) return candidate;
+      if (now >= deadline) throw new Error("peer_path_unstable");
+      await this.wait(route, Math.min(this.options.pathMonitorMs, this.options.pathStableMs - (now - stableSince)));
+      if (!route.peer) throw new Error("peer_path_unavailable");
+      // waitForMedia is a read-only proof request; it never creates a second
+      // PeerConnection. The getter then supplies the same current path fact.
+      candidate = await this.bounded(route, route.peer.waitForMedia(), this.options.pathMonitorMs);
+      route.candidate = candidate;
+    }
   }
 
   setProbeAdmission(allowed: boolean, reason: string | null = null): void {
@@ -311,6 +391,14 @@ export class HybridRouteController {
         throw new Error("invalid_pair_lease");
       }
       route.lease = leased;
+      // A replacement lease starts a fresh signaling stream. Retain counters
+      // only when the authority deliberately reuses the same pair ID; this
+      // keeps old-pair replays invalid while allowing a same-pair reconnect
+      // to continue monotonically.
+      if (route.signalConnectionId !== leased.connectionId) {
+        route.signalConnectionId = leased.connectionId;
+        route.signalIn = 0; route.signalOut = 0;
+      }
       const peer = this.dependencies.createPeer({
         lease: leased, publication: route.publication, participant: route.participant,
         onSignal: body => this.sendSignal(route, generation, body),
@@ -323,9 +411,11 @@ export class HybridRouteController {
         },
       });
       route.peer = peer;
-      const candidate = await this.bounded(route, peer.start().then(() => peer.waitForMedia()), this.options.probeTimeoutMs);
+      let candidate = await this.bounded(route, peer.start().then(() => peer.waitForMedia()), this.options.probeTimeoutMs);
       if (!this.current(route, generation)) return;
       if (!this.validMedia(candidate) || !this.receiving(route, candidate)) throw new Error("decoded_media_unavailable");
+      candidate = await this.awaitAdmittedPath(route, generation, candidate);
+      if (!this.current(route, generation)) return;
       route.candidate = candidate; route.state.status = "switching"; route.pauseAttempted = true; this.emit();
       const request = this.request(route, false);
       const started = this.clock.now();
@@ -335,7 +425,8 @@ export class HybridRouteController {
       if (!this.validMedia(candidate) || !this.receiving(route, candidate)) throw new Error("media_stale_before_switch");
       this.setPause(route, started + ack.leaseRemainingMs);
       this.select(route, "p2p", candidate);
-      route.state.status = "p2p"; route.state.reason = null; this.emit(); this.renew(route);
+      route.state.status = "p2p"; route.state.reason = null; route.reprobeAttempt = 0; route.restoreAttempts = 0;
+      this.emit(); this.renew(route); this.monitorPeer(route);
     } catch (error) {
       if (this.current(route, generation)) await this.fallback(route.participant.participantId,
         diagnostic(error, "probe_failed"));
@@ -383,6 +474,8 @@ export class HybridRouteController {
   fallback(participantId: string, reason = "fallback_requested"): Promise<void> {
     const route = this.routes.get(participantId);
     if (!route || !this.current(route)) return Promise.resolve();
+    if (route.reprobe !== undefined) { this.clock.cancel(route.reprobe); route.reprobe = undefined; }
+    if (route.restoreRetry !== undefined) { this.clock.cancel(route.restoreRetry); route.restoreRetry = undefined; }
     if (route.recovery) return route.recovery;
     const promise = this.recoverRoute(route, reason);
     route.recovery = promise;
@@ -390,9 +483,65 @@ export class HybridRouteController {
     return promise;
   }
 
+  private monitorPeer(route: Route): void {
+    if (route.pathMonitor !== undefined) this.clock.cancel(route.pathMonitor);
+    const generation = route.generation;
+    route.pathMonitor = this.clock.schedule(() => {
+      route.pathMonitor = undefined;
+      void this.checkPeerPath(route, generation);
+    }, this.options.pathMonitorMs);
+  }
+
+  private async checkPeerPath(route: Route, generation: number): Promise<void> {
+    if (!this.current(route, generation) || route.state.status !== "p2p" || !route.peer) return;
+    let candidate = route.candidate;
+    try { candidate = await this.bounded(route, route.peer.waitForMedia(), this.options.pathMonitorMs); }
+    catch {
+      if (this.current(route, generation)) void this.fallback(route.participant.participantId, "p2p_media_lost");
+      return;
+    }
+    if (!this.current(route, generation) || route.state.status !== "p2p") return;
+    route.candidate = candidate;
+    const admission = candidate && this.pathAdmission(candidate);
+      if (!candidate || !admission || !this.mediaHealthy(route, candidate)) {
+        void this.fallback(route.participant.participantId,
+          !admission ? "peer_path_changed" : "p2p_media_lost");
+        return;
+      }
+    route.pathKey = admission.key; route.pathSince = this.clock.now(); this.emit(); this.monitorPeer(route);
+  }
+
+  private scheduleReprobe(route: Route): void {
+    if (this.disposed || this.stopping || route.reprobe !== undefined) return;
+    const delay = reprobeDelaysMs[Math.min(route.reprobeAttempt, reprobeDelaysMs.length - 1)];
+    route.reprobeAttempt = Math.min(route.reprobeAttempt + 1, reprobeDelaysMs.length - 1);
+    route.reprobe = this.clock.schedule(() => {
+      route.reprobe = undefined;
+      if (!this.current(route) || route.state.status !== "sfu") return;
+      // Keep the retry alive while the host-level admission gate is closed.
+      // A timer firing during a temporary budget pause must not consume the
+      // only pending retry and leave an otherwise healthy SFU route stranded.
+      if (!this.admission) { this.scheduleReprobe(route); return; }
+      route.state.status = "queued"; route.state.reason = null; this.emit(); this.pump();
+    }, delay);
+  }
+
+  private scheduleRestoreRetry(route: Route): void {
+    if (this.disposed || this.stopping || route.restoreRetry !== undefined) return;
+    const attempt = route.restoreAttempts + 1;
+    const delay = attempt >= 5 ? restoreCooldownMs : restoreRetryDelaysMs[attempt - 1];
+    route.restoreAttempts = attempt >= 5 ? 0 : attempt;
+    route.restoreRetry = this.clock.schedule(() => {
+      route.restoreRetry = undefined;
+      if (!this.current(route)) return;
+      void this.fallback(route.participant.participantId, "sfu_restore_retry");
+    }, delay);
+  }
+
   private async recoverRoute(route: Route, reason: string): Promise<void> {
     this.cancel(route); route.generation = ++this.generations; route.state.routeGeneration = route.generation;
     const generation = route.generation;
+    const shouldReprobe = !!route.peer || route.pauseAttempted || route.state.status === "probing" || route.state.status === "switching";
     route.state.reason = reason; route.state.status = "recovering";
     const healthy = route.state.selected === "p2p" && this.receiving(route);
     if (route.state.selected === "p2p" && !healthy) {
@@ -412,18 +561,18 @@ export class HybridRouteController {
         if (!this.validMedia(media) || media.mediaSequence <= after) throw new Error("fresh_sfu_media_unavailable");
         this.select(route, "sfu", media);
       }
-      this.closePeer(route); route.state.status = "sfu"; route.pauseAttempted = false;
-      this.restorePorts.delete(route.port); this.emit();
+      this.closePeer(route); route.state.status = "sfu"; route.pauseAttempted = false; route.restoreAttempts = 0;
+      this.restorePorts.delete(route.port); this.emit(); if (shouldReprobe) this.scheduleReprobe(route);
     } catch (error) {
       if (!this.current(route, generation)) return;
-      route.state.status = "failed"; route.state.reason = diagnostic(error, "restore_failed");
-      if (route.state.selected !== "p2p" || !this.receiving(route)) {
+      route.state.status = "recovering"; route.state.reason = diagnostic(error, "restore_failed");
+      if (route.state.selected !== "p2p" || !healthy || !this.receiving(route)) {
         if (route.state.selected === "p2p") {
           try { this.select(route, "none"); } catch { route.state.reason = "receive_selection_failed"; }
         }
         this.closePeer(route);
       }
-      this.emit();
+      this.emit(); this.scheduleRestoreRetry(route);
     }
   }
 
@@ -503,6 +652,12 @@ export class HybridRouteController {
   private cancel(route: Route): void {
     if (route.renew !== undefined) this.clock.cancel(route.renew);
     route.renew = undefined;
+    if (route.pathMonitor !== undefined) this.clock.cancel(route.pathMonitor);
+    route.pathMonitor = undefined;
+    if (route.reprobe !== undefined) this.clock.cancel(route.reprobe);
+    route.reprobe = undefined;
+    if (route.restoreRetry !== undefined) this.clock.cancel(route.restoreRetry);
+    route.restoreRetry = undefined;
     for (const cancel of [...route.cancellations]) cancel();
   }
 
@@ -516,6 +671,7 @@ export class HybridRouteController {
     this.setPause(route, 0);
     if (route.peer) { this.previousMetrics.delete(route.peer); try { route.peer.dispose(); } catch { /* Continue cleanup. */ } }
     route.peer = undefined;
+    route.candidate = undefined; route.pathKey = undefined; route.pathSince = undefined;
     if (route.lease) this.release(route.lease);
     route.lease = undefined;
   }

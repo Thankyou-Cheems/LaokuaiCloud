@@ -3,7 +3,7 @@ import { createServer } from "node:net";
 import { join } from "node:path";
 
 import { type OwnedCredentialObservation,verifyOwnedCredentialObservation } from "./communityEtCredentialObservation";
-import { type EasyTierCliNetwork,sanitizedEasyTierCliNetwork } from "./easyTierCliNetwork";
+import { EASYTIER_V270_ROUTE_LIST_SOURCE, type EasyTierCliNetwork,sanitizedEasyTierV270CliNetwork } from "./easyTierCliNetwork";
 import { EasyTierOperationError } from "./easyTierCommunityManager";
 import type { BrokerCoreProcess, EasyTierElevationBroker } from "./easyTierElevationBroker";
 import type { EasyTierExistingConfiguration } from "./easyTierExistingConfiguration";
@@ -208,8 +208,8 @@ export class EasyTierWindowsProcesses {
         const current = readJson(readSignal, easyTierCliNetworkArguments(config.instanceId, portal)).then(value => {
           if (!isAlive() || readSignal.aborted) throw new EasyTierOperationError("runtime-exited");
           try {
-            const info = sanitizedEasyTierCliNetwork(value, config.instanceId);
-            const observation = config.credentialIdentity ? verifyOwnedCredentialObservation(value, config.instanceId, config.credentialIdentity) : null;
+            const info = sanitizedEasyTierV270CliNetwork(value, config.instanceId);
+            const observation = config.credentialIdentity ? verifyOwnedCredentialObservation(value, config.instanceId, config.credentialIdentity, EASYTIER_V270_ROUTE_LIST_SOURCE) : null;
             return {observation, network: {info, latencyFirst: null, acquisitionStartedAtMs, acquisitionStartedAtUnixMs,
               acquiredAtMs: performance.now(), acquiredAtUnixMs: Date.now()} as EasyTierCliNetwork};
           } catch { throw new EasyTierOperationError("status-unavailable"); }

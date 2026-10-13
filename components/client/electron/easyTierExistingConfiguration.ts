@@ -13,6 +13,8 @@ export interface EasyTierExistingConfiguration {
   configSha256: string;
   /** Provisioner reviewed this config's peer/bootstrap URLs; public fallback is absent. */
   bootstrap: "product-owned";
+  /** Explicit product-owned policy. Legacy receipts without it remain unknown. */
+  latencyFirst?: boolean;
   /** Main-generated live grant, never a renderer field or saved activation capability. */
   credentialIdentity?: CredentialIdentityExpectation;
 }
@@ -38,7 +40,8 @@ export function parseEasyTierActivationReceipt(value: unknown): EasyTierActivati
   for (const c of v.communities) {
     if (!c || !validEasyTierId(c.serverId) || !uuid.test(c.instanceId) || !validEasyTierId(c.networkName)
       || typeof c.configFile !== "string" || !isAbsolute(c.configFile) || !hash.test(c.configSha256)
-      || c.bootstrap !== "product-owned" || ids.has(c.serverId) || instances.has(c.instanceId) || networks.has(c.networkName)) throw new EasyTierOperationError("configuration-required");
+      || c.bootstrap !== "product-owned" || (c.latencyFirst !== undefined && typeof c.latencyFirst !== "boolean")
+      || ids.has(c.serverId) || instances.has(c.instanceId) || networks.has(c.networkName)) throw new EasyTierOperationError("configuration-required");
     ids.add(c.serverId); instances.add(c.instanceId); networks.add(c.networkName);
   }
   return v as EasyTierActivationReceipt;

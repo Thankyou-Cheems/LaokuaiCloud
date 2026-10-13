@@ -1,12 +1,12 @@
 /** Transport intent only. SDP/encoder evidence must come from the Voice SDK. */
 export const VOICE_TRANSPORT_SETTINGS_KEY = "voiceTransportPresetV1";
-export const STANDARD_SFU_BITRATE_BPS = 48_000;
+export const STANDARD_SFU_BITRATE_BPS = 16_000;
 export const STANDARD_PEER_BITRATE_BPS = 64_000;
 export interface VoiceTransportPreset {
   schemaVersion: 1;
   selection: "shared-20" | "custom";
   maxBitrateBps: number;
-  packetTimeMs: 10 | 20 | 40;
+  packetTimeMs: 10 | 20 | 40 | 60;
   channels: 1;
   variableBitrate: true;
   requestDtx: boolean;
@@ -14,14 +14,16 @@ export interface VoiceTransportPreset {
 }
 
 export function sharedVoicePreset(): VoiceTransportPreset {
+  // Retain the persisted selection key so existing standard users migrate without a prompt.
+  // The constrained community's SFU profile trades packet overhead for speech capacity.
   return { schemaVersion: 1, selection: "shared-20", maxBitrateBps: STANDARD_SFU_BITRATE_BPS,
-    packetTimeMs: 20, channels: 1, variableBitrate: true,
+    packetTimeMs: 60, channels: 1, variableBitrate: true,
     requestDtx: true, requestInbandFec: true };
 }
 
 /** Standard peer quality is separate from SFU ingress. Explicit custom limits stay exact. */
 export function peerVoicePreset(preset: VoiceTransportPreset): VoiceTransportPreset {
-  return preset.selection === "custom" ? { ...preset } : { ...sharedVoicePreset(), maxBitrateBps: STANDARD_PEER_BITRATE_BPS };
+  return preset.selection === "custom" ? { ...preset } : { ...sharedVoicePreset(), maxBitrateBps: STANDARD_PEER_BITRATE_BPS, packetTimeMs: 20 };
 }
 
 export function voicePresetCodec(preset: VoiceTransportPreset) {
@@ -35,7 +37,7 @@ export function readVoiceTransportPreset(value: unknown): VoiceTransportPreset |
   if (row.schemaVersion !== 1 || (row.selection !== "shared-20" && row.selection !== "custom") ||
     typeof row.maxBitrateBps !== "number" || !Number.isInteger(row.maxBitrateBps) ||
     row.maxBitrateBps < 6_000 || row.maxBitrateBps > 128_000 ||
-    (row.packetTimeMs !== 10 && row.packetTimeMs !== 20 && row.packetTimeMs !== 40) ||
+    (row.packetTimeMs !== 10 && row.packetTimeMs !== 20 && row.packetTimeMs !== 40 && row.packetTimeMs !== 60) ||
     row.channels !== 1 || row.variableBitrate !== true ||
     typeof row.requestDtx !== "boolean" || typeof row.requestInbandFec !== "boolean") return;
   if (row.selection === "shared-20") return sharedVoicePreset();

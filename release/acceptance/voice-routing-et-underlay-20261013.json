@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "id": "voice-routing-et-underlay-20261013",
+  "date": "2026-10-13",
+  "status": "SOURCE-AUDIT-ONLY",
+  "scope": {
+    "component": "client EasyTier observation and voice-underlay classification",
+    "publicRelay": "product-owned Tencent cheems-p2p bootstrap only",
+    "thirdPartyPublicDiscovery": "disabled",
+    "hashPolicy": "SHA-256 of the current working-tree bytes for owned files only; unrelated root/agent changes are not pinned"
+  },
+  "wiringFacts": {
+    "trustedBootstrap": "PUBLIC_COMMUNITY_TARGET is main-only and writes an approved normal peer with the issuer pin",
+    "memberRelayPolicy": "member configuration does not enable member relay or proxy ranges",
+    "relayRoleEvidence": "a timestamped verified next-hop role is required; route visibility and ICE candidates alone remain unknown",
+    "actualSelectedEtRelayAccepted": false
+  },
+  "ownedSourceSha256": [
+    {
+      "path": "components/client/electron/publicCommunityProvisioning.ts",
+      "bytes": 4134,
+      "sha256": "ce8897a72e8f430b04fea343801dd685ec6daa033294546874506bcb86d02ab7"
+    },
+    {
+      "path": "components/client/electron/communityEtConfig.ts",
+      "bytes": 5477,
+      "sha256": "c8ad60a3f07e27bf2a31c227f7bb2a4ac2fd53845435a5ab814975af887d106c"
+    },
+    {
+      "path": "components/client/electron/communityEtTrustedConfiguration.ts",
+      "bytes": 8521,
+      "sha256": "1bbdb08e3806d360c2600196a812fa8a7d7a58f21a0a5f354d4a2cebcd0918ac"
+    },
+    {
+      "path": "components/client/electron/communityEtGrantRuntime.ts",
+      "bytes": 17414,
+      "sha256": "b9ccdee0ad773a81522a940b6e9d5dddc77f739e03c83c7f36578b6514db9415"
+    },
+    {
+      "path": "components/client/electron/easyTierCliNetwork.ts",
+      "bytes": 4982,
+      "sha256": "0554e586ebdec5e790ee29356363bfd1e62a8938265480fa8b83baab7c46687e"
+    },
+    {
+      "path": "components/client/electron/easyTierStatus.ts",
+      "bytes": 12349,
+      "sha256": "477522d1ff63225a09ab87b92b0e0b6f197793f47719ef7fb69aaa6b2c833ba1"
+    },
+    {
+      "path": "components/client/electron/communityEtCredentialObservation.ts",
+      "bytes": 2490,
+      "sha256": "2239dbfa995e2ce13883257514b9aaa7a8de78438cd98de44baee19f1aca3831"
+    },
+    {
+      "path": "components/client/electron/windowsEasyTierCliRuntime.ts",
+      "bytes": 6650,
+      "sha256": "17030607ffae138da0a125c9ff9bfdb4f7f022f9cadef2ec8d2fcc7b7996157c"
+    },
+    {
+      "path": "components/client/electron/easyTierMemberAdapter.ts",
+      "bytes": 4908,
+      "sha256": "797886965ea2be2c45796a9a038250ed488d61287bf98d11a5d67a06aedaacbb"
+    },
+    {
+      "path": "components/client/src/lib/easyTierVoiceUnderlay.ts",
+      "bytes": 12780,
+      "sha256": "9251ab1e3d3119c7cbfa665cf0292a9a7ab8e6167c7d21f3fdfd61d5034bf342"
+    },
+    {
+      "path": "components/client/scripts/check-easytier-voice-underlay.mjs",
+      "bytes": 6934,
+      "sha256": "219992f70c69bd9307dc7bfbedcd0838f05999562a059ccf31ce12abfb6ab7e4"
+    },
+    {
+      "path": "components/client/scripts/check-community-easytier-network.mjs",
+      "bytes": 14424,
+      "sha256": "a3d6bce764262470fa50107e32c32bee2a6c19490338ab8cab75c553fecd564d"
+    }
+  ],
+  "tests": [
+    "exact current ET VIP and one-hop selected route are ET direct",
+    "known ET VIP with a multi-hop selected route is ET relay",
+    "known VIP without latency policy or live selected direct connection stays unknown",
+    "private endpoints without current ET cache are fail-closed and public pairs are not blocked",
+    "a pair outside the current ET VIP set is ordinary non-ET",
+    "TURN and missing candidate evidence never become ET proof",
+    "valid global IPv6 is non-ET while malformed or private IPv6 stays unknown",
+    "missing or unsupported ICE protocol stays unknown",
+    "unknown ET tunnel protocol cannot be called direct",
+    "expired owned cache cannot approve an ET path"
+  ],
+  "testCommand": "node components/client/scripts/check-easytier-voice-underlay.mjs",
+  "testResult": "10 pure checks passed; no ET process, driver, IPC, network or profile access",
+  "supportingPureChecks": {
+    "command": "node components/client/scripts/check-community-easytier-network.mjs",
+    "result": "12 read-only network checks passed; every runtime port was fake",
+    "permissionOrderRegression": "configuration is read before permission; missing permission prevents verified-assets and native start"
+  },
+  "latestLocalObservation": {
+    "receipt": "release/acceptance/member-status-clock-20261013.json",
+    "ownedCoreStableAcrossObservation": true,
+    "consecutiveScopedRouteReads": 10,
+    "sameLocalPeerAndVirtualIp": true,
+    "localRouteCount": 1,
+    "localPeerCount": 1,
+    "localTcpConnectionEntryCount": 1,
+    "twoDeviceEtRelayAccepted": false
+  },
+  "limitations": [
+    "Local route and owned-core evidence is not proof of the whole packet path or a selected media forwarding path.",
+    "A selected ICE endpoint is not by itself an authenticated member/device binding or an ET relay proof.",
+    "No two-device ET direct/relay voice acceptance was performed; the SFU fallback remains independently evaluated.",
+    "No native ET, driver, deployment, firewall, route or production operation was performed by this receipt."
+  ]
+}

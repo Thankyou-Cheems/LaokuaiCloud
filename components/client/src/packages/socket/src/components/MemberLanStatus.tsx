@@ -16,20 +16,24 @@ export function MemberLanStatus({ serverScope, authenticatedUserId, observerAuth
   const { t } = useTranslation();
   const reading = readMemberLanStatus({ serverScope, authenticatedUserId, observerAuthenticatedUserId, snapshot, nowMs });
   const state = t(`memberLan.enrollment.${reading.enrollment}`);
-  const path = t(reading.pathReason === "stale" ? "memberLan.pathExpired" : `memberLan.path.${reading.path}`);
+  const isSelf = reading.pathReason === "self";
+  const path = t(reading.pathReason === "self" ? "memberLan.path.self"
+    : reading.pathReason === "stale" ? "memberLan.pathExpired" : `memberLan.path.${reading.path}`);
   const rtt = reading.rttMs === null ? t(reading.rttReason === "stale" ? "memberLan.stale" : "memberLan.unknown") : `${Math.round(reading.rttMs)} ms`;
+  const pathTitle = t(reading.pathReason === "self" ? "memberLan.localStateTitle" : "memberLan.pathTitle");
   const details = [t("memberLan.boundary"), `${t("memberLan.enrollmentTitle")}: ${state}`,
     reading.enrollmentReason && t(`memberLan.reason.${reading.enrollmentReason}`),
-    `${t("memberLan.pathTitle")}: ${path}`, reading.pathReason && t(`memberLan.reason.${reading.pathReason}`),
-    `${t("memberLan.rttTitle")}: ${rtt}`, reading.rttReason && t(`memberLan.reason.${reading.rttReason}`),
+    `${pathTitle}: ${path}`, !isSelf && reading.pathReason && t(`memberLan.reason.${reading.pathReason}`),
+    !isSelf && `${t("memberLan.rttTitle")}: ${rtt}`, !isSelf && reading.rttReason && t(`memberLan.reason.${reading.rttReason}`),
     reading.source && `${t("memberLan.sourceTitle")}: ${t(`memberLan.source.${reading.source}`)}`,
     reading.observedAtMs !== undefined && `${t("memberLan.ageTitle")}: ${Math.floor(((nowMs ?? reading.observedAtMs) - reading.observedAtMs) / 1000)} s`,
     t("memberLan.voiceBoundary")].filter(Boolean).join("; ");
   const joined = reading.enrollment === "joined";
-  const icon: ConnectionTopologyKind = reading.enrollment === "joining" ? "connecting"
+  const icon: ConnectionTopologyKind = reading.pathReason === "self" ? "local"
+    : reading.enrollment === "joining" ? "connecting"
     : ["off", "not-joined", "error"].includes(reading.enrollment) ? "disconnected"
     : joined && reading.path !== "unknown" ? reading.path : "unknown";
-  const label = `${state}${joined ? ` · ${path} · ${rtt}` : ""}`;
+  const label = `${state}${joined ? ` · ${path}${isSelf ? "" : ` · ${rtt}`}` : ""}`;
   return <Tooltip title={details}><span role="img" tabIndex={0} aria-label={details} title={details}
     data-gryt="member-lan-status" data-enrollment={reading.enrollment} data-lan-path={reading.path}
     onKeyDown={event => { if (event.key === "Enter" || event.key === " ") event.stopPropagation(); }}

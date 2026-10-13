@@ -27,8 +27,59 @@ export interface ReceiveDecodeWindow {
   fresh: boolean;
   source: "rtc-inbound-rtp-totalSamplesReceived";
 }
+
+/** Candidate types exposed by the WebRTC stats object. Unknown stays unknown. */
+export type ReceiveCandidateType = "host" | "srflx" | "prflx" | "relay" | "unknown";
+
+/** The exact candidate endpoint referenced by the selected candidate pair. */
+export interface ReceiveCandidateEndpoint {
+  candidateId: string;
+  candidateType: ReceiveCandidateType;
+  address: string | null;
+  port: number | null;
+  protocol: string | null;
+}
+
+export type ReceiveTransportPathClass = "turn-relay" | "non-turn-candidate" | "unknown";
+export type ReceiveTransportPathReason = "selected-pair" | "turn-relay" | "candidate-type-unknown" |
+  "candidate-unavailable" | "pair-unavailable" | "track-stats-unavailable" | "track-stats-ambiguous";
+export type ReceiveUnderlayClass = "not-easytier" | "easytier-direct" | "easytier-relay" | "unknown";
+
+/** Host supplied underlay evidence. It never upgrades the ICE class by itself. */
+export interface ReceiveUnderlayEvidence {
+  classification: ReceiveUnderlayClass;
+  source: "host-underlay-resolver";
+  observedAtMs: number;
+}
+
+/** Optional in-memory ET/VPN seam. Implementations must not log the supplied endpoints. */
+export interface ReceivePathUnderlayResolver {
+  resolve(path: ReceiveTransportPathEvidence): ReceiveUnderlayEvidence | null;
+}
+
+/** Exact track-scoped selected transport. Non-TURN is deliberately not physical-direct. */
+export interface ReceiveTransportPathEvidence {
+  source: "rtc-selected-candidate-pair";
+  observedAtMs: number;
+  classification: ReceiveTransportPathClass;
+  reason: ReceiveTransportPathReason;
+  pairId: string | null;
+  local: ReceiveCandidateEndpoint | null;
+  remote: ReceiveCandidateEndpoint | null;
+  underlay: ReceiveUnderlayEvidence | null;
+}
+
+/** Safe summary used by the existing metrics/UI projection; it contains no endpoint address. */
+export interface ReceiveTransportPathSummary {
+  classification: ReceiveTransportPathClass;
+  pairId: string | null;
+  localCandidateType: ReceiveCandidateType | null;
+  remoteCandidateType: ReceiveCandidateType | null;
+  underlay: ReceiveUnderlayClass | null;
+}
+
 export interface ReceiveTransportMetrics {
-  /** Local opaque stats ID only; no address, candidate or SDP is returned. */
+  /** Local opaque stats ID; the safe path summary below contains no endpoint address. */
   selectedPairId: string | null;
   rttMs: number | null;
   rttWindow: { startAtMs: number; endAtMs: number } | null;
@@ -36,6 +87,8 @@ export interface ReceiveTransportMetrics {
   lossFraction: number | null;
   lossWindow: { startAtMs: number; endAtMs: number; received: number; lost: number } | null;
   lossSource: "exact-audio-track-inbound-rtp";
+  /** Exact selected-pair classification, without raw endpoint addresses. */
+  path: ReceiveTransportPathSummary;
 }
 export interface ReceiveTrackObservation {
   trackId: string;
@@ -43,6 +96,8 @@ export interface ReceiveTrackObservation {
   reason: string | null;
   decode: ReceiveDecodeWindow | null;
   metrics: ReceiveTransportMetrics;
+  /** Full endpoint evidence remains in memory for the selection owner. */
+  transportPath: ReceiveTransportPathEvidence;
 }
 export interface ReceiveSourceSelection {
   current: boolean;
@@ -79,6 +134,8 @@ export interface ReceivePathRow {
   observedAtMs: number | null;
   decode: ReceiveDecodeWindow | null;
   metrics: ReceiveTransportMetrics | null;
+  /** Safe selected-pair summary; full endpoints remain in the SDK observation. */
+  transportPath?: ReceiveTransportPathSummary | null;
   metricLeg: "sfu-to-local" | "peer-to-local" | null;
   hybridScope: HybridScope | null;
   physicalPath: "unverified";
