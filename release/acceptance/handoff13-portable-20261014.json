@@ -1,0 +1,180 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-14",
+  "version": "1.13.22-laokuai.beta.20261014.13",
+  "sourceCommit": "85b7208b52841a85a480ca0a26324eb1112a23d1",
+  "file": "唠蒯云-1.13.22-laokuai.beta.20261014.13-zh-CN-win-x64-green.zip",
+  "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261014.13-zh-CN-win-x64-green.zip",
+  "bytes": 161906059,
+  "sha256": "58c6ebdf5616c7649d6a8c25dbb112280a76044191fc7142e47263f2706fd4a6",
+  "appAsarSha256": "61fa52a0366497cb32e5b44d48f7182227fe61a1b4e1be4c729a8742cc995c23",
+  "staticPayloadFiles": 146,
+  "checks": {
+    "status": "passed",
+    "coreContractSuites": 36,
+    "easyTierManagerRegressions": 45,
+    "easyTierRuntimeRegressions": 98,
+    "enrollmentRegressions": 14,
+    "clientBuildAndTypes": "passed",
+    "sdkBuildAndTypes": "passed",
+    "changedClientLint": "passed",
+    "packageAuditScenarios": 19,
+    "incrementalScenarios": 17,
+    "realOfflineWebAudio": true
+  },
+  "bootstrap": {
+    "status": "passed",
+    "exitCode": 0,
+    "rootChildren": 1,
+    "preload": {
+      "electronAPI": "object",
+      "easyTierCommunity": "object"
+    },
+    "visible": false,
+    "focused": false,
+    "unexpectedEvents": 0,
+    "residualOwnedProcesses": 0,
+    "socketSamples": [
+      {
+        "seconds": 1.602,
+        "ownedProcesses": 1,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 3.029,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 4.439,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 5.853,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 7.253,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 8.628,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 10,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 11.376,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 12.787,
+        "ownedProcesses": 5,
+        "tcpCount": 0,
+        "udpCount": 0
+      }
+    ],
+    "consoleErrors": 19,
+    "realElectronExecuted": true,
+    "isolatedFreshProfile": true,
+    "nativeEtExecuted": false,
+    "realCommunityOrDeviceMediaTest": false
+  },
+  "administratorEntry": {
+    "actualBuiltEntry": true,
+    "sourceSha256": "daa34148ed88f94d7e6497bc3c8bc0f5e5018e391d15eb65d10310990ecc2002",
+    "initialReady": false,
+    "entrySettled": true,
+    "promptReady": true,
+    "tokenReads": 1,
+    "nativeUacExecuted": false,
+    "nativeEtExecuted": false,
+    "exitCode": 0
+  },
+  "fixes": [
+    "Complete local verified P2P playback handoff before requesting SFU pause",
+    "Refresh exact media and path evidence after delayed pause acknowledgement",
+    "Keep valid peer audio until acknowledged fresh SFU playback restoration; immediately retire unauthorized media",
+    "Bound sequential audio fades and lifecycle cancellation",
+    "Record bounded handoff and forwarding timings without identities or candidate addresses",
+    "Sample EasyTier immediately after community connect without coupling core lifetime to voice"
+  ],
+  "incremental": {
+    "file": "唠蒯云-12-to-13-update.zip",
+    "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-12-to-13-update.zip",
+    "bytes": 18160780,
+    "sha256": "fb0bfda6e7e8c89e234086f2f0d6cac5c430284085b9ace3a37e507c6e0a46a8",
+    "baseVersion": "1.13.22-laokuai.beta.20261013.12",
+    "baseZipSha256": "4a0ce3c89abd41da1bfc257df0e1c70b90a872b3a9f399e92ae840da41280640",
+    "targetZipSha256": "58c6ebdf5616c7649d6a8c25dbb112280a76044191fc7142e47263f2706fd4a6",
+    "changedFiles": [
+      {
+        "path": "唠蒯云.exe",
+        "kind": "blocks",
+        "payloadSize": 131072
+      },
+      {
+        "path": "resources/app.asar",
+        "kind": "replace",
+        "payloadSize": 57160444
+      },
+      {
+        "path": "resources/community-lan-helper/broker-build.json",
+        "kind": "replace",
+        "payloadSize": 305
+      },
+      {
+        "path": "resources/community-lan-helper/laokuai-community-broker.exe",
+        "kind": "replace",
+        "payloadSize": 62464
+      },
+      {
+        "path": "resources/legal/SOURCE-OFFER.json",
+        "kind": "replace",
+        "payloadSize": 5191
+      },
+      {
+        "path": "resources/legal/THIRD-PARTY-NOTICES.txt",
+        "kind": "replace",
+        "payloadSize": 1351444
+      }
+    ],
+    "allTargetFilesVerified": true,
+    "onlineAutomaticUpdater": false,
+    "publisherSignatureImplemented": false
+  },
+  "nativeRuntimeUnchangedFrom": "release/acceptance/voice-stability12-portable-20261013.json",
+  "voiceRecordingsUnchanged": true,
+  "sourceAttachmentSetUnchanged": true,
+  "productionServicesChanged": false,
+  "desktopProgramUpdated": true,
+  "userProfileModified": false,
+  "desktopUpdate": {
+    "method": "fixed-baseline-block-delta",
+    "payloadFilesVerified": 146,
+    "profileFilesPreserved": 117,
+    "profileHashesUnchanged": true,
+    "fullLocalBackupVerified": true,
+    "applicationLaunched": false
+  },
+  "realTwoDeviceMediaAccepted": false,
+  "realGameCoexistenceAccepted": false,
+  "realTwelveClientWanAccepted": false,
+  "note": "The .12 package remains immutable. Synthetic route/ack regressions and offline real WebAudio gain-envelope checks do not establish perceptual transparency, WAN audibility, NAT traversal or 12-user capacity. Desktop updated through the verified fixed-baseline delta; no production service, ET/TUN, device capture or user client launched."
+}

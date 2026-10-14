@@ -1,20 +1,23 @@
 # 当前开发交接
 
-更新：2026-10-13。唯一开发目录 `D:\Dev\LaokuaiCloud`，分支 `main`。
-最新可交付及桌面绿色测试包为 `1.13.22-laokuai.beta.20261013.12`；易记 MagicDNS
+更新：2026-10-14。唯一开发目录 `D:\Dev\LaokuaiCloud`，分支 `main`。
+最新可交付及桌面绿色测试包为 `1.13.22-laokuai.beta.20261014.13`；易记 MagicDNS
 已部署，用户确认短域名显示，本机直接解析和 Windows 系统解析均匹配虚拟 IP。
 生产成员中继两端开关已开启；真实多设备转发、游戏和 12 人 WAN 语音仍未验收。
 
 ## 当前包与源码
 
-- 文件：`唠蒯云-1.13.22-laokuai.beta.20261013.12-zh-CN-win-x64-green.zip`。
-- 应用源码：`942f1a8a2173b43d2b05902aaa7503fe54c4b9aa`。
-- 大小：161048733 B；SHA256：
-  `4a0ce3c89abd41da1bfc257df0e1c70b90a872b3a9f399e92ae840da41280640`。
+- 文件：`唠蒯云-1.13.22-laokuai.beta.20261014.13-zh-CN-win-x64-green.zip`。
+- 应用源码：`85b7208b52841a85a480ca0a26324eb1112a23d1`，SDK routing.5。
+- 大小：161906059 B；SHA256：
+  `58c6ebdf5616c7649d6a8c25dbb112280a76044191fc7142e47263f2706fd4a6`。
+- `.12 → .13` 增量：`唠蒯云-12-to-13-update.zip`，18160780 B，SHA256：
+  `fb0bfda6e7e8c89e234086f2f0d6cac5c430284085b9ace3a37e507c6e0a46a8`。
+  固定基线/目标哈希，EXE 两个 64 KiB 块及其余变化文件；尚非内置在线自动更新。
 - 交付目录：`.local/artifacts/autojoin-test-20261013/`。
 - 精确版本、来源、许可证及对应源码以 [release/manifest.json](release/manifest.json)
-  和 [包回执](release/acceptance/voice-stability12-portable-20261013.json) 为准。
-  包不内嵌源码归档，SOURCE-OFFER 指向精确应用提交及 1263 项源码更新清单；
+  和 [包回执](release/acceptance/handoff13-portable-20261014.json) 为准。
+  包不内嵌源码归档，SOURCE-OFFER 指向精确应用提交及源码更新清单；
   旧六份对应源码附件保留。
 
 首次通过社区密码或管理员创建的有效免密码普通成员邀请取得身份，之后恢复
@@ -64,6 +67,21 @@ gate 改1。在线 scope 提交 disabled consent 或续租并回读同 key 的 f
 false，详见 [V2 契约与回退前置](components/server/COMMUNITY-RELAY-V2.md)。
 
 ## 验证边界与下一步
+
+`.13` 先完成本地 P2P 播放交接，再暂停 SFU；慢 ACK 后刷新当前媒体证据，恢复时
+保留仍有效的 peer 至精确 SFU 确认、新媒体及本地交接完成。短序贯淡变不等于
+独立编码轨时间对齐，是否主观无感仍待双人听测。ET 接入后立即异步采样，未进
+语音房继续轮询；普通采样失败不重启核心，不提前采集麦克风或伪报 P2P。
+详见 [实现记录](docs/SFU-FIRST-HANDOFF-20261014.md)。
+
+14组 SDK 检查（含786条控制器断言、离线真实 Chromium/WebAudio）与类型/编译、
+36组核心检查、定向 lint、19组包审计、146项最终文件、九条录音哈希通过。
+增量17项检查包含真实 `.12 → .13` 全目标还原；桌面经完整263文件备份后已
+应用同一增量，117项用户/未知文件哈希不变，146项程序与完整包一致，未启动。
+隐藏隔离启动退出0、无残留，9次采样无自有网络，19条既有离线/禁用IPC错误保留。
+实际管理员入口检查通过，无真实 UAC/ET/TUN/设备媒体或服务器操作。
+恢复备份/原始日志在 `.local/handoff13-20261014/` 及更新回执指定的桌面同级
+`.laokuai-update-<GUID>/`，不要提交私人回执。源码已冻结，`.12` 原归档保持不变。
 
 用户随后要求继续排查。`.11` 后续源码修复见
 [后续稳定性排查](docs/POST11-STABILITY-AUDIT-20261013.md)：认证失败与重叠更新的
