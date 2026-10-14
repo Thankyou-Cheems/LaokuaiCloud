@@ -107,7 +107,8 @@ export interface HybridPeerMetrics {
 export interface HybridPeerSession {
   start(): Promise<void>;
   acceptSignal(body: HybridSignalBody): Promise<void>;
-  waitForMedia(): Promise<HybridMediaCandidate>;
+  /** Switching defaults to a 500ms proof; active monitoring may accept a 3000ms continuity window. */
+  waitForMedia(maxAgeMs?: number): Promise<HybridMediaCandidate>;
   isReceiving(candidate: HybridMediaCandidate): boolean;
   readMetrics(): Promise<HybridPeerMetrics>;
   /** Remove senders/handlers and close the PC; do not stop the borrowed publication. */

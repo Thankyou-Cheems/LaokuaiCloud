@@ -1,5 +1,5 @@
 import { publicKeyFingerprint } from './communityEtGrant';
-import { EASYTIER_V270_ROUTE_LIST_SOURCE, sanitizedEasyTierCliNetwork } from './easyTierCliNetwork';
+import { EASYTIER_V270_ROUTE_LIST_SOURCE, sanitizedEasyTierCliNetwork, sanitizedEasyTierV270CliNetwork } from './easyTierCliNetwork';
 
 export interface CredentialIdentityExpectation {
   networkName: string; virtualIp: string; publicKeyFingerprint: string; issuerPublicKeyFingerprint: string;
@@ -9,7 +9,8 @@ const object = (v: unknown): Record<string, unknown> => v && typeof v === 'objec
 /** Read actual verbose CLI fields privately; NodeInfo.config never leaves this parser. */
 export function verifyOwnedCredentialObservation(raw: unknown, instanceId: string, expected: CredentialIdentityExpectation,
   source: typeof EASYTIER_V270_ROUTE_LIST_SOURCE | null = null): OwnedCredentialObservation {
-  const info = sanitizedEasyTierCliNetwork(raw, instanceId);
+  const info = source === EASYTIER_V270_ROUTE_LIST_SOURCE
+    ? sanitizedEasyTierV270CliNetwork(raw, instanceId) : sanitizedEasyTierCliNetwork(raw, instanceId);
   if (info.my_node_info.virtual_ipv4 !== expected.virtualIp) throw new Error('credential-node-ip-mismatch');
   const localPeer = info.my_node_info.peer_id, result = object(raw);
   const rows = Array.isArray(result.peer_routes) ? result.peer_routes : [];

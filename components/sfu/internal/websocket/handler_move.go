@@ -122,7 +122,10 @@ func (h *Handler) negotiateStagedPeer(pc *webrtc.PeerConnection, conn *ThreadSaf
 	if err = pc.SetLocalDescription(offer); err != nil {
 		return err
 	}
-	offer, err = peerManager.PreferMicrophoneOpus20(offer, h.config.AudioOnly && h.config.MicrophoneOpus20)
+	offer, err = peerManager.PreferMicrophoneOpus(offer, h.config.AudioOnly && h.config.MicrophoneOpus20, peerManager.MicrophoneOpusReceivePolicy{
+		MaxAverageBitrateBps: h.config.MicrophoneOpusMaxAverageBitrateBps,
+		PacketTimeMs:         h.config.MicrophoneOpusPacketTimeMs,
+	})
 	if err != nil {
 		return err
 	}

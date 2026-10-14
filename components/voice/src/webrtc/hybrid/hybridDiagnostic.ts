@@ -6,6 +6,17 @@ type PeerFailure = typeof failures[number] | "peer_failure";
 const decodeReasons = ["track_stats_ambiguous", "track_stats_unavailable", "baseline_required", "counter_reset",
   "measurement_gap", "no_decode_increment"] as const;
 type DecodeReason = typeof decodeReasons[number] | "remote_track_missing" | "fresh_decode";
+const protocolFailures = ["hybrid_disabled", "hybrid_unsupported", "hybrid_unauthenticated", "hybrid_permission_denied", "hybrid_protocol_invalid",
+  "hybrid_authority_failed", "hybrid_scope_stale", "hybrid_pair_stale", "hybrid_release_failed", "hybrid_sfu_ack_failed",
+  "hybrid_sfu_unavailable", "hybrid_sfu_ack_timeout", "hybrid_sfu_disconnected", "hybrid_operation_stale", "hybrid_cleanup_conflict",
+  "hybrid_sfu_unauthorized_server", "hybrid_sfu_invalid_hybrid_command", "hybrid_sfu_invalid_hybrid_room", "hybrid_sfu_source_permission_revoked",
+  "hybrid_sfu_peer_generation_changed", "hybrid_sfu_ambiguous_publication", "hybrid_sfu_publication_unavailable", "hybrid_sfu_invalid_audio_lease",
+  "hybrid_sfu_source_retired", "hybrid_sfu_receiver_unavailable", "hybrid_sfu_invalid_pause_duration", "hybrid_sfu_stale_audio_lease",
+  "hybrid_sfu_authority_generation_conflict", "hybrid_sfu_pair_generation_conflict", "operation_timeout", "route_cancelled"] as const;
+/** Fixed protocol codes only; arbitrary thrown text never crosses the media observer. */
+export function hybridProtocolFailure(error: unknown): typeof protocolFailures[number] | undefined {
+  return error instanceof Error ? protocolFailures.find(code => code === error.message) : undefined;
+}
 
 /** Only fixed classifications; no identities, endpoints, SDP, tokens or raw errors. */
 export type BrowserHybridDiagnostic = {
@@ -23,6 +34,7 @@ export type BrowserHybridDiagnostic = {
   action: "pause" | "restore";
   result: "acknowledged" | "failed";
   reason: "validated_ack" | "request_failed" | "forwarding_ack_mismatch";
+  failureReason?: typeof protocolFailures[number];
   elapsedMs?: number;
 } | {
   kind: "handoff";

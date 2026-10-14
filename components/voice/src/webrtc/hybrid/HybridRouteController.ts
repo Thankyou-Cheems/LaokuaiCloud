@@ -5,7 +5,8 @@ import type {
   HybridScope, HybridSignal, HybridSignalBody, HybridState,
 } from "../types/Hybrid";
 import type { ReceiveTrackObservation } from "../types/ReceivePath";
-import type { BrowserHybridDiagnostic } from "./hybridDiagnostic";
+import { hybridProtocolFailure, type BrowserHybridDiagnostic } from "./hybridDiagnostic";
+import { HYBRID_MEDIA_HEALTH_MAX_AGE_MS, HYBRID_MEDIA_PROOF_MAX_AGE_MS } from "./hybridMediaTiming";
 
 interface Route {
   participant: HybridParticipant;
@@ -283,17 +284,17 @@ export class HybridRouteController {
         summary.pairId !== path.pairId || summary.underlay !== underlay?.classification ||
         !id(path.pairId) || !underlay || underlay.source !== "host-underlay-resolver" ||
         !finite(underlay.observedAtMs) || underlay.observedAtMs > path.observedAtMs ||
-        underlay.observedAtMs > now || now - underlay.observedAtMs > 3000 ||
+        underlay.observedAtMs > now || now - underlay.observedAtMs > HYBRID_MEDIA_HEALTH_MAX_AGE_MS ||
         (underlay.classification !== "not-easytier" && underlay.classification !== "easytier-direct")) return null;
     const observedAt = path.observedAtMs;
-    if (!finite(observedAt) || observedAt > now || now - observedAt > 3000) return null;
+    if (!finite(observedAt) || observedAt > now || now - observedAt > HYBRID_MEDIA_HEALTH_MAX_AGE_MS) return null;
     return { key: `${path.pairId}:${underlay.classification}`, observation };
   }
 
   private mediaHealthy(route: Route, candidate = route.candidate): boolean {
     if (!candidate || !finite(candidate.observedAtMs)) return false;
     const now = this.clock.now();
-    if (candidate.observedAtMs > now || now - candidate.observedAtMs > 3000) return false;
+    if (candidate.observedAtMs > now || now - candidate.observedAtMs > HYBRID_MEDIA_HEALTH_MAX_AGE_MS) return false;
     return this.receiving(route, candidate);
   }
 
@@ -325,7 +326,9 @@ export class HybridRouteController {
       if (!route.peer) throw new Error("peer_path_unavailable");
       // waitForMedia is a read-only proof request; it never creates a second
       // PeerConnection. The getter then supplies the same current path fact.
-      candidate = await this.bounded(route, route.peer.waitForMedia(), this.options.pathMonitorMs);
+      const remaining = deadline - this.clock.now();
+      if (!finite(remaining) || remaining === 0) throw new Error("peer_path_unstable");
+      candidate = await this.bounded(route, route.peer.waitForMedia(), remaining);
       route.candidate = candidate;
     }
   }
@@ -371,7 +374,7 @@ export class HybridRouteController {
     const age = this.clock.now() - candidate.observedAtMs;
     return candidate.track.kind === "audio" && candidate.track.readyState === "live" &&
       candidate.stream.getAudioTracks().includes(candidate.track) && Number.isSafeInteger(candidate.decodedFrames) && candidate.decodedFrames > 0 &&
-      Number.isSafeInteger(candidate.mediaSequence) && candidate.mediaSequence > 0 && finite(age) && age <= 500;
+      Number.isSafeInteger(candidate.mediaSequence) && candidate.mediaSequence > 0 && finite(age) && age <= HYBRID_MEDIA_PROOF_MAX_AGE_MS;
   }
 
   private async probe(route: Route): Promise<void> {
@@ -451,7 +454,7 @@ export class HybridRouteController {
 
   private async refreshSwitchCandidate(route: Route, selected: HybridMediaCandidate): Promise<void> {
     if (!route.peer) throw new Error("peer_path_unavailable");
-    const fresh = await this.bounded(route, route.peer.waitForMedia(), this.options.pathMonitorMs);
+    const fresh = await this.bounded(route, route.peer.waitForMedia(), this.options.switchTimeoutMs);
     if (fresh.track !== selected.track || !this.validMedia(fresh) || !this.receiving(route, fresh)) {
       throw new Error("media_stale_before_switch");
     }
@@ -495,8 +498,10 @@ export class HybridRouteController {
     catch { /* Observers do not own playback. */ }
   }
 
-  private reportForwarding(request: HybridForwardingRequest, result: "acknowledged" | "failed", reason: "validated_ack" | "request_failed" | "forwarding_ack_mismatch", started: number): void {
-    const event: BrowserHybridDiagnostic = { kind: "forwarding", action: request.enabled ? "restore" : "pause", result, reason, elapsedMs: this.elapsed(started) };
+  private reportForwarding(request: HybridForwardingRequest, result: "acknowledged" | "failed", reason: "validated_ack" | "request_failed" | "forwarding_ack_mismatch", started: number,
+    failureReason?: Extract<BrowserHybridDiagnostic, { kind: "forwarding" }>["failureReason"]): void {
+    const event: BrowserHybridDiagnostic = { kind: "forwarding", action: request.enabled ? "restore" : "pause", result, reason, elapsedMs: this.elapsed(started),
+      ...(failureReason ? { failureReason } : {}) };
     try { this.dependencies.onDiagnostic?.(event); } catch { /* Observers do not own forwarding. */ }
   }
   private async forwardingRequest(route: Route, request: HybridForwardingRequest, timeout: number): Promise<HybridForwardingAck> {
@@ -504,7 +509,7 @@ export class HybridRouteController {
     try {
       return await this.bounded(route, Promise.resolve().then(() => this.dependencies.authority!.setForwarding(request)), timeout);
     } catch (error) {
-      this.reportForwarding(request, "failed", "request_failed", started);
+      this.reportForwarding(request, "failed", "request_failed", started, hybridProtocolFailure(error));
       throw error;
     }
   }
@@ -548,7 +553,7 @@ export class HybridRouteController {
   private async checkPeerPath(route: Route, generation: number): Promise<void> {
     if (!this.current(route, generation) || route.state.status !== "p2p" || !route.peer) return;
     let candidate = route.candidate;
-    try { candidate = await this.bounded(route, route.peer.waitForMedia(), this.options.pathMonitorMs); }
+    try { candidate = await this.bounded(route, route.peer.waitForMedia(HYBRID_MEDIA_HEALTH_MAX_AGE_MS), this.options.pathMonitorMs); }
     catch {
       if (this.current(route, generation)) void this.fallback(route.participant.participantId, "p2p_media_lost");
       return;

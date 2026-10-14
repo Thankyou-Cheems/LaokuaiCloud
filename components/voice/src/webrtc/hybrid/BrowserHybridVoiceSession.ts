@@ -6,7 +6,7 @@ import { HybridReceivePortAdapter } from "./HybridReceivePortAdapter";
 import { HybridRouteController } from "./HybridRouteController";
 import { SfuDecodedAudioMonitor } from "./SfuDecodedAudioMonitor";
 import { SocketHybridAuthority, type HybridAuthorizedSnapshot, type HybridSocketTransport } from "./SocketHybridAuthority";
-import { createHybridDiagnosticReporter, type BrowserHybridDiagnostic } from "./hybridDiagnostic";
+import { createHybridDiagnosticReporter, hybridProtocolFailure, type BrowserHybridDiagnostic } from "./hybridDiagnostic";
 
 export interface BrowserHybridVoiceState {
   status: "disabled" | "unsupported" | "active" | "recovering" | "disposed";
@@ -126,7 +126,9 @@ export class BrowserHybridVoiceSession {
             await this.authority.restoreForwarding(request);
             this.diagnostic({ kind: "forwarding", action: "restore", result: "acknowledged", reason: "validated_ack" });
           } catch (error) {
-            this.diagnostic({ kind: "forwarding", action: "restore", result: "failed", reason: "request_failed" });
+            const failureReason = hybridProtocolFailure(error);
+            this.diagnostic({ kind: "forwarding", action: "restore", result: "failed", reason: "request_failed",
+              ...(failureReason ? { failureReason } : {}) });
             throw error;
           }
         },

@@ -6,6 +6,7 @@ import { requireAuth } from "../middleware/auth";
 import { sfuRoomId } from "../utils/voiceRooms";
 import { watchVoiceHybrid } from "../utils/voiceHybridLifecycle";
 import type { HandlerContext, EventHandlerMap } from "./types";
+import { hybridSfuFailure } from "../../sfu/hybridProtocol";
 
 interface Scope { serverInstanceId: string; roomId: string; roomGeneration: string; localParticipantId: string; localSessionId: string; canPublish: boolean; canReceive: boolean }
 interface Participant { participantId: string; sessionId: string; publicationId: string; canSendAudio: boolean; canReceiveAudio: boolean }
@@ -155,7 +156,8 @@ export function registerVoiceHybridHandlers(ctx: HandlerContext, options: { enab
       for (const ci of Object.values(clientsInfo)) if (ci.hasJoinedChannel && ci.voiceChannelId === actual.roomId) counts.set(ci.serverUserId, (counts.get(ci.serverUserId) ?? 0) + 1);
       for (const [sid, ci] of Object.entries(clientsInfo)) {
         if (sid === socket.id || ci.serverUserId === local.ci.serverUserId || counts.get(ci.serverUserId) !== 1 || !ci.hasJoinedChannel || ci.voiceChannelId !== actual.roomId) continue;
-        try { const remote = await member(sid); if (remote.participant.canSendAudio && remote.participant.canReceiveAudio) peers.push(remote.participant); } catch {}
+        try { const remote = await member(sid); if (remote.participant.canSendAudio && remote.participant.canReceiveAudio) peers.push(remote.participant); }
+        catch { /* Omit members whose current authentication or channel permission failed. */ }
       }
       return { status: "supported", capabilities: { protocolVersion: 1, authenticatedRoomSignals: true, pairForwardingLeases: true }, scope: actual, participants: peers };
     }),
@@ -221,6 +223,7 @@ export function registerVoiceHybridHandlers(ctx: HandlerContext, options: { enab
         pair_connection_id: request.pairConnectionId ?? "", source_user_id: source.ci.serverUserId, source_session_id: source.socket.id,
         source_publication_id: source.ci.streamID, receiver_user_id: local.ci.serverUserId, receiver_session_id: socket.id,
         revision: ++hub.revision, enabled: request.enabled, pause_ms: request.pauseLeaseMs });
+      if (result.status === "failed") throw new Error(hybridSfuFailure(result.error));
       if (result.status !== "applied" || !result.snapshot || !Number.isFinite(result.snapshot.remaining_ms) ||
         result.snapshot.remaining_ms < 0 || !request.enabled && result.snapshot.remaining_ms <= 0) throw new Error("hybrid_sfu_ack_failed");
       const receiverCurrent = request.enabled ? currentBinding(local) && !local.ci.isServerDeafened && !local.ci.isDeafened : current(local);
@@ -231,7 +234,12 @@ export function registerVoiceHybridHandlers(ctx: HandlerContext, options: { enab
     }),
     "voice:hybrid:release": wrap(async p => {
       const local = await member(socket.id); if (!record(p.lease) || !sameScope(p.lease.scope, scope(local))) throw new Error("hybrid_scope_stale");
-      const pair = await pairOwned(p.lease.connectionId, true); retire(pair, socket); return { status: "released" };
+      const pair = text(p.lease.connectionId) ? hub.pairs.get(p.lease.connectionId) : undefined;
+      const owner = pair && [pair.a, pair.b].find(member => member.socket === socket);
+      if (!pair || !owner || owner.participant.participantId !== local.participant.participantId ||
+        pair.roomId !== p.lease.scope.roomId || pair.roomGeneration !== p.lease.scope.roomGeneration) throw new Error("hybrid_pair_stale");
+      // Retirement removes only this owned pair. A departed/revoked remote cannot block local scope refresh.
+      retire(pair, socket); return { status: "released" };
     }),
   };
 }

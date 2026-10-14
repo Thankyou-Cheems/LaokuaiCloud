@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { createHybridDiagnosticReporter, peerMediaDiagnostic } from '../dist/webrtc/hybrid/hybridDiagnostic.js';
+import { createHybridDiagnosticReporter, hybridProtocolFailure, peerMediaDiagnostic } from '../dist/webrtc/hybrid/hybridDiagnostic.js';
 import { HybridRouteController } from '../dist/webrtc/hybrid/HybridRouteController.js';
 const diagnostic = peerMediaDiagnostic({ trackId: 'private-track', observedAtMs: 20, reason: null,
   decode: { fresh: true }, transportPath: { classification: 'non-turn-candidate', reason: 'selected-pair', pairId: 'private-pair',
@@ -10,6 +10,8 @@ assert.equal(diagnostic.localCandidateType, 'host'); assert.equal(diagnostic.rem
 assert.equal(/private-|192\.0\.2|trackId|pairId|address|candidateId/.test(JSON.stringify(diagnostic)), false);
 assert.equal(peerMediaDiagnostic(null).decodeProof, 'missing');
 assert.equal(peerMediaDiagnostic(null, 'raw secret failure').failureReason, 'peer_failure');
+assert.equal(hybridProtocolFailure(new Error('hybrid_sfu_publication_unavailable')), 'hybrid_sfu_publication_unavailable');
+assert.equal(hybridProtocolFailure(new Error('raw secret token endpoint')), undefined);
 let now = 1000; const prior = globalThis.performance; globalThis.performance = { now: () => now };
 try {
   const events = [], emit = createHybridDiagnosticReporter(event => events.push(event));

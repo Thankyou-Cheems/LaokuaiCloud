@@ -548,7 +548,10 @@ func (h *Handler) handleRenegotiate(peerConnection *webrtc.PeerConnection, conn 
 		h.debugLog("❌ Error setting local description for renegotiation (%s): %v", clientID, err)
 		return err
 	}
-	offer, err = peerManager.PreferMicrophoneOpus20(offer, h.config.AudioOnly && h.config.MicrophoneOpus20)
+	offer, err = peerManager.PreferMicrophoneOpus(offer, h.config.AudioOnly && h.config.MicrophoneOpus20, peerManager.MicrophoneOpusReceivePolicy{
+		MaxAverageBitrateBps: h.config.MicrophoneOpusMaxAverageBitrateBps,
+		PacketTimeMs:         h.config.MicrophoneOpusPacketTimeMs,
+	})
 	if err != nil {
 		return err
 	}

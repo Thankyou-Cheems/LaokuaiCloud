@@ -21,6 +21,11 @@ const pathEvent = {phase:'voice',operation:'hybrid-path',action:'finish',code:'o
 assert.ok(schema.safeDiagnostic(pathEvent));
 for (const extra of [{pathReason:'raw candidate'}, {localCandidateType:'10.0.0.1'}, {failureReason:'secret'}, {selectedPair:'private'}]) assert.equal(schema.safeDiagnostic({...pathEvent,...extra}),null);
 assert.ok(schema.safeDiagnostic({phase:'voice',operation:'hybrid-forwarding',action:'finish',code:'ok',forwardingAction:'restore',result:'acknowledged',reason:'validated_ack'}));
+for (const failureReason of schema.HYBRID_PROTOCOL_DIAGNOSTIC_REASONS) {
+  assert.equal(schema.safeDiagnostic({phase:'voice',operation:'hybrid-forwarding',action:'finish',code:'ok',forwardingAction:'pause',result:'failed',reason:'request_failed',failureReason}).failureReason, failureReason);
+  assert.equal(schema.safeDiagnostic({phase:'voice',operation:'hybrid-scope',action:'finish',code:'ok',status:'unsupported',reason:failureReason}).reason, failureReason);
+}
+assert.equal(schema.safeDiagnostic({phase:'voice',operation:'hybrid-forwarding',action:'finish',code:'ok',failureReason:'raw private token address'}),null);
 const handoff = {phase:'voice',operation:'hybrid-handoff',action:'finish',code:'ok',handoffStage:'local_handoff_completed',reason:'local_handoff_before_pause',elapsedMs:24};
 assert.ok(schema.safeDiagnostic(handoff));
 const quit = {phase:'cleanup',operation:'app-quit',action:'finish',code:'ok',quitStage:'owned-core',elapsedMs:4000};

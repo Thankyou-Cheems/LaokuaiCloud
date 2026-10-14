@@ -6,9 +6,10 @@ import ts from "typescript";
 
 const read = p => fs.readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
 const compile = p => ts.transpileModule(read(p), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
-const recorded = [], diagnosticModule = { exports: {} };
+const recorded = [], diagnosticModule = { exports: {} }, schemaModule = { exports: {} };
+vm.runInNewContext(compile("src/lib/localDiagnostics.ts"), { exports: schemaModule.exports });
 vm.runInNewContext(compile("src/lib/hybridDiagnostics.ts"), { exports: diagnosticModule.exports, require: name => {
-  assert.equal(name, "./localDiagnostics"); return { localDiagnostic: value => recorded.push(value) };
+  assert.equal(name, "./localDiagnostics"); return { ...schemaModule.exports, localDiagnostic: value => recorded.push(value) };
 } });
 function fixture(ready = true) {
   const refs = [], effects = [], pending = [], sessions = [], timers = [], diagnostics = [];
@@ -107,6 +108,15 @@ const media = { kind: "peer-media", pathClass: "non-turn-candidate", pathReason:
 observer.sdk(media); observer.sdk(media); observer.sdk({ kind: "forwarding", action: "restore", result: "acknowledged", reason: "validated_ack", token: "secret-token" });
 assert.equal(safe.length, 4); assert.equal(safe[2].underlayClass, "easytier-direct"); assert.equal(safe[2].decodeProof, "fresh");
 assert.equal(safe[3].result, "acknowledged"); assert.equal(JSON.stringify(safe).includes("secret"), false);
+const failureEvents = [], failureObserver = diagnosticModule.exports.createHybridDiagnosticObserver(value => failureEvents.push(value));
+for (const failureReason of diagnosticModule.exports.HYBRID_PROTOCOL_DIAGNOSTIC_REASONS) {
+  failureObserver.state({ status: "unsupported", reason: failureReason, routing: null });
+  failureObserver.sdk({ kind: "forwarding", action: "pause", result: "failed", reason: "request_failed", failureReason });
+  assert.equal(failureEvents.at(-2).reason, failureReason);
+  assert.equal(failureEvents.at(-1).failureReason, failureReason);
+}
+failureObserver.sdk({ kind: "forwarding", action: "pause", result: "failed", reason: "request_failed", failureReason: "raw secret token address" });
+assert.equal(failureEvents.at(-1).failureReason, undefined);
 safe.forEach(value => diagnosticModule.exports.localHybridDiagnostic(value)); assert.equal(recorded.length, 4);
 observer.sdk({ kind: "handoff", stage: "local_handoff_completed", elapsedMs: 24, reason: "local_handoff_before_pause", token: "secret-token" });
 observer.sdk({ kind: "handoff", stage: "sfu_restore_completed", elapsedMs: 750, reason: "fresh_sfu_restored" });

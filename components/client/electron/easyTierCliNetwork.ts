@@ -22,6 +22,9 @@ export interface EasyTierCliNetwork {
  * EasyTier 2.7.0's `PeerConnInfo.is_closed` is a plain proto3 bool and pbjson
  * omits false; the fixed owned route-list command also obtains live connections
  * from `list_peer_conns`, which removes closed entries before serialization.
+ * Its repeated connection fields also omit empty lists (including indirect
+ * peers' directly_connected_conns). Restore only absent fields to empty lists;
+ * an empty list is not evidence of a direct connection.
  * Keep the producer identity explicit so a different CLI/schema cannot silently
  * turn an absent field into a live connection.
  */
@@ -46,7 +49,7 @@ function sanitize(value: unknown, instanceId: string, trustedV270Source: boolean
     if (remote) {
       if (peerIds.has(remote) || remote === localPeer) unavailable(); peerIds.add(remote);
       const connIds = new Set<string>();
-      const conns = rows(peer.conns, 64).map(v => {
+      const conns = rows(trustedV270Source && peer.conns === undefined ? [] : peer.conns, 64).map(v => {
         const c = object(v), conn = easyTierConnectionId(c.conn_id);
         if (!conn) return unavailable();
         if (connIds.has(conn) || id(c.my_peer_id) !== localPeer || id(c.peer_id) !== remote) unavailable();
@@ -56,7 +59,8 @@ function sanitize(value: unknown, instanceId: string, trustedV270Source: boolean
           is_closed: typeof c.is_closed === "boolean" ? c.is_closed : trustedV270Source ? false : null,
           tunnel: { tunnel_type: ["tcp", "udp", "quic", "wg", "wireguard", "ws", "wss", "ring", "faketcp"].includes(String(type)) ? type : null } };
       });
-      const direct = rows(peer.directly_connected_conns, 64).map(easyTierConnectionId).filter((c): c is string => c !== null);
+      const direct = rows(trustedV270Source && peer.directly_connected_conns === undefined ? [] : peer.directly_connected_conns, 64)
+        .map(easyTierConnectionId).filter((c): c is string => c !== null);
       peers.push({ peer_id: remote, default_conn_id: easyTierConnectionId(peer.default_conn_id), directly_connected_conns: [...new Set(direct)], conns });
     }
   }

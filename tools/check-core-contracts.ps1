@@ -27,6 +27,7 @@ try {
         'electron/windowsAdminStartupGate.test.mjs',
         'scripts/check-windows-firewall-rules.mjs',
         'scripts/check-community-easytier-direct.mjs',
+        'scripts/check-community-easytier-network.mjs',
         'electron/easyTierElevationBroker.test.mjs',
         'scripts/check-community-easytier.mjs',
         'scripts/check-public-community-consent.cjs',

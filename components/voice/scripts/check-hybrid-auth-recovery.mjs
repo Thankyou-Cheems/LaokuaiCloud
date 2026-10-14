@@ -26,6 +26,7 @@ class Socket {
   participants; listeners = new Map(); commands = []; pairs = new Map(); owners = new Map(); next = 0;
   releaseFailures = 0; releaseBarrier; forwardBarrier;
   cleanupConflicts = 0;
+  pauseFailure;
   constructor(participants = [participant(0)]) { this.participants = participants; }
   on(e, f) { const listeners = this.listeners.get(e) ?? new Set(); listeners.add(f); this.listeners.set(e, listeners); }
   off(e, f) { this.listeners.get(e)?.delete(f); }
@@ -53,6 +54,7 @@ class Socket {
     if (event === 'voice:hybrid:forwarding') {
       if (this.forwardBarrier) await this.forwardBarrier.promise;
       const r = payload.request, pair = this.pairs.get(r.pairConnectionId), owner = this.owners.get(r.sourcePublicationId);
+      if (!r.enabled && this.pauseFailure) return { v: 1, status: 'failed', error: this.pauseFailure };
       if (r.pairConnectionId !== null && (!pair || !r.enabled && !pair.active)) return { v: 1, status: 'failed', error: 'hybrid_pair_stale' };
       if (pair && !pair.active && owner !== r.pairConnectionId || owner && owner !== r.pairConnectionId && this.pairs.get(owner)?.active) {
         this.cleanupConflicts++; return { v: 1, status: 'failed', error: 'hybrid_cleanup_conflict' };
@@ -87,8 +89,8 @@ function fixture(count = 1) {
     })) };
   const microphone = { microphoneBuffer: { publicationStream: stream(final) },
     transmissionState: { publicationAcknowledged: true, publicationRevision: 1, generation: 1 } };
-  const peers = [], selections = [];
-  const f = { socket, edges, sources, advance, pc, microphone, peers, selections, final, current: true };
+  const peers = [], selections = [], diagnostics = [];
+  const f = { socket, edges, sources, advance, pc, microphone, peers, selections, diagnostics, final, current: true };
   let now = performance.now(), timerId = 0; const scheduled = new Map();
   const clock = { now: () => now, schedule(fn, delay) { const id = ++timerId; scheduled.set(id, { fn, at: now + delay }); return id; },
     cancel(id) { scheduled.delete(id); } };
@@ -119,6 +121,7 @@ function fixture(count = 1) {
   f.session = new BrowserHybridVoiceSession({ enabled: true, allowNetwork: true, pathStableMs: 0, socket, getAccessToken: () => 'synthetic-only',
     expectedRoomId: 'room', rtcConfiguration: { iceServers: [] }, getPeerConnection: () => pc, getMicrophone: () => microphone,
     isCurrent: () => f.current, getSource: p => sources.get(p.participantId) ?? null,
+    onDiagnostic: event => diagnostics.push(event),
     onSelection: (source, selected, revision) => selections.push({ source, selected, revision }) });
   f.pump = async () => { f.tick(300); await settle(); await f.session.monitor.read(); await settle(); };
   f.retire = () => { f.session.dispose(); eq([...socket.listeners.values()].reduce((n, s) => n + s.size, 0), 0); eq(peers.every(p => p.disposed), true); };
@@ -136,6 +139,15 @@ async function revoke(f) {
   await f.session.update(); eq(f.session.getState().reason, 'hybrid_unauthenticated');
 }
 try {
+  {
+    const f = fixture(); try {
+      f.socket.pauseFailure = 'hybrid_sfu_publication_unavailable';
+      await f.session.update(); await settle();
+      const failed = f.diagnostics.find(event => event.kind === 'forwarding' && event.action === 'pause' && event.result === 'failed');
+      eq(failed?.failureReason, 'hybrid_sfu_publication_unavailable');
+      eq(JSON.stringify(f.diagnostics).includes('publication-0'), false);
+    } finally { f.retire(); }
+  }
   for (const count of [1, 3]) {
     const f = fixture(count);
     try {

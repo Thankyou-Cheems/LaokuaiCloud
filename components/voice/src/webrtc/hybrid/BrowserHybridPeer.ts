@@ -5,6 +5,7 @@ import type { HybridMediaCandidate, HybridPeerFactoryOptions, HybridPeerMetrics,
 import { readReceiveStats, ReceiveTrackStats } from "./receivePathStats";
 import type { ReceivePathUnderlayResolver, ReceiveTrackObservation } from "../types/ReceivePath";
 import { createHybridDiagnosticReporter, peerMediaDiagnostic, type BrowserHybridDiagnostic } from "./hybridDiagnostic";
+import { HYBRID_MEDIA_HEALTH_MAX_AGE_MS, HYBRID_MEDIA_PROOF_MAX_AGE_MS, HYBRID_PEER_STATS_POLL_MS } from "./hybridMediaTiming";
 
 export interface BrowserHybridPeerOptions {
   /** Explicit host-supplied ICE configuration. No public discovery server is added. */
@@ -184,16 +185,16 @@ export class BrowserHybridPeer implements HybridPeerSession {
       // Only one exact-track row proves this peer's media; ambiguous/absent
       // stats wait for freshness expiry without resetting valid counters.
       if (matchedRows !== 1) {
-        if (this.sequence > 0 && now - this.lastDecodedAt > 3000) this.fail("peer_decoded_media_stale");
+        if (this.sequence > 0 && now - this.lastDecodedAt > HYBRID_MEDIA_HEALTH_MAX_AGE_MS) this.fail("peer_decoded_media_stale");
         return;
       }
       if (samples < this.lastSamples || packets < this.lastPackets) { this.fail("peer_stats_reset"); return; }
       if (Number.isSafeInteger(samples) && Number.isSafeInteger(packets) && samples > this.lastSamples && packets > this.lastPackets && this.remoteTrack?.readyState === "live") {
         this.lastSamples = samples; this.lastPackets = packets; this.decodedFrames = Math.max(1, Math.floor(samples / 480)); ++this.sequence; this.lastDecodedAt = now;
         const candidate = this.candidate(); if (candidate) for (const waiter of this.waiters) waiter.resolve(candidate); this.waiters.clear();
-      } else if (this.sequence > 0 && now - this.lastDecodedAt > 3000) this.fail("peer_decoded_media_stale");
+      } else if (this.sequence > 0 && now - this.lastDecodedAt > HYBRID_MEDIA_HEALTH_MAX_AGE_MS) this.fail("peer_decoded_media_stale");
     }).catch(() => this.fail("peer_stats_unavailable")).finally(() => {
-      if (!this.disposed && !this.failed) this.timer = setTimeout(() => this.poll(), this.sequence > 0 ? 500 : 200);
+      if (!this.disposed && !this.failed) this.timer = setTimeout(() => this.poll(), this.sequence > 0 ? HYBRID_PEER_STATS_POLL_MS : 200);
     });
   }
   private candidate(): HybridMediaCandidate | undefined {
@@ -204,15 +205,18 @@ export class BrowserHybridPeer implements HybridPeerSession {
   getReceiveObservation(): ReceiveTrackObservation | null {
     const value = this.receiveObservation;
     return !this.disposed && !this.failed && this.pc.connectionState === "connected" && this.remoteTrack?.readyState === "live" &&
-      value?.trackId === this.remoteTrack.id && performance.now() - value.observedAtMs <= 3000 ? structuredClone(value) : null;
+      value?.trackId === this.remoteTrack.id && performance.now() - value.observedAtMs <= HYBRID_MEDIA_HEALTH_MAX_AGE_MS ? structuredClone(value) : null;
   }
   private isHealthy(): boolean {
     return !this.disposed && !this.failed && this.pc.connectionState === "connected" &&
-      this.remoteTrack?.readyState === "live" && performance.now() - this.lastDecodedAt <= 3000;
+      this.remoteTrack?.readyState === "live" && performance.now() - this.lastDecodedAt <= HYBRID_MEDIA_HEALTH_MAX_AGE_MS;
   }
-  waitForMedia(): Promise<HybridMediaCandidate> {
+  waitForMedia(maxAgeMs = HYBRID_MEDIA_PROOF_MAX_AGE_MS): Promise<HybridMediaCandidate> {
     this.ensure(); const candidate = this.candidate();
-    return candidate ? Promise.resolve(candidate) : new Promise((resolve, reject) => this.waiters.add({ resolve, reject }));
+    // Switching needs fresh decode proof; health monitoring may use the separate
+    // 3s tolerance. An old cache never stands in for the next actual RTP sample.
+    return candidate && performance.now() - candidate.observedAtMs <= maxAgeMs ? Promise.resolve(candidate) :
+      new Promise((resolve, reject) => this.waiters.add({ resolve, reject }));
   }
   isReceiving(candidate: HybridMediaCandidate): boolean { return candidate.track === this.remoteTrack && this.isHealthy(); }
   async readMetrics(): Promise<HybridPeerMetrics> {

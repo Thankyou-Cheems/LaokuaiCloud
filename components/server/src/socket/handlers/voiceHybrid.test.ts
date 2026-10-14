@@ -27,10 +27,10 @@ before(async () => {
 async function fixture(enabled = true) {
   const clients: Clients = {}, sockets = new Map(), deliveries: { id: string; event: string; data: any }[] = [], commands: SfuHybridCommand[] = [];
   const io = { sockets: { sockets }, to() { return { emit() {} }; } };
-  let supported = true, gateAck = true, duringGate: (() => void) | undefined;
+  let supported = true, gateAck = true, gateError: string | undefined, duringGate: (() => void) | undefined;
   const sfu = { isConnected: () => true, async requestHybrid(command: SfuHybridCommand) {
     commands.push(command); if (command.phase === "probe") return { status: supported ? "supported" : "failed" };
-    duringGate?.(); return { status: gateAck ? "applied" : "failed", snapshot: { remaining_ms: command.enabled ? 0 : command.pause_ms, forwarded_packets: 0, held_packets: 0 } };
+    duringGate?.(); return { status: gateAck ? "applied" : "failed", error: gateError, snapshot: { remaining_ms: command.enabled ? 0 : command.pause_ms, forwarded_packets: 0, held_packets: 0 } };
   } };
   async function member(channel = "source") {
     const sid = `socket-${++seq}`, gryt = `synthetic-${randomUUID()}`, user = await upsertUser(gryt, sid);
@@ -57,10 +57,46 @@ async function fixture(enabled = true) {
   const request = (bound: any, generation = 1, operation = 1, enabled = false, id: string | null = bound.lb.lease.connectionId) => ({ scope: bound.sb.scope,
     pairConnectionId: id, sourceParticipantId: a.ci.serverUserId, sourceSessionId: a.sid, sourcePublicationId: a.ci.streamID, destinationSessionId: b.sid,
     routeGeneration: generation, operationId: `${generation}:${operation}`, enabled, pauseLeaseMs: enabled ? 0 : 10000 });
-  return { a, b, io, clients, commands, deliveries, member, scope, lease, request, supported(value: boolean) { supported = value; }, gateAck(value: boolean) { gateAck = value; },
+  return { a, b, io, clients, commands, deliveries, member, scope, lease, request, supported(value: boolean) { supported = value; }, gateAck(value: boolean, error?: string) { gateAck = value; gateError = error; },
     duringGate(fn: () => void) { duringGate = fn; }, dispose() { a.dispose(); b.dispose(); } };
 }
 describe("Hybrid handler: real local JWT/database, no socket or media listener", () => {
+  it("preserves fixed SFU rejection codes and rejects raw error details", async () => {
+    const f = await fixture(); try {
+      const bound = await f.lease();
+      for (const error of ["peer_generation_changed", "publication_unavailable", "receiver_unavailable", "source_permission_revoked"]) {
+        f.gateAck(false, error);
+        assert.equal((await f.b.call("voice:hybrid:forwarding", { request: f.request(bound) })).error, `hybrid_sfu_${error}`);
+      }
+      f.gateAck(false, "private-peer-token-address");
+      assert.equal((await f.b.call("voice:hybrid:forwarding", { request: f.request(bound) })).error, "hybrid_sfu_ack_failed");
+    } finally { f.dispose(); }
+  });
+  it("releases an owned pair after the remote member has left or lost authentication", async () => {
+    for (const remoteState of ["left", "revoked"]) {
+      const f = await fixture(); try {
+        const bound = await f.lease();
+        if (remoteState === "left") f.a.ci.hasJoinedChannel = false;
+        else f.a.ci.accessToken = "invalid-token";
+        const refreshed = await f.b.call("voice:hybrid:scope");
+        assert.equal(refreshed.status, "supported");
+        assert.deepEqual(refreshed.participants, []);
+        const released = await f.b.call("voice:hybrid:release", { lease: { ...bound.lb.lease, scope: refreshed.scope } });
+        assert.equal(released.status, "released", `old pair cleanup must not depend on remote ${remoteState} authentication: ${released.error}`);
+        assert.equal((await f.b.call("voice:hybrid:release", { lease: { ...bound.lb.lease, scope: refreshed.scope } })).status, "released");
+        assert.equal((await f.b.call("voice:hybrid:scope")).status, "supported");
+      } finally { f.dispose(); }
+    }
+  });
+  it("keeps retirement scoped to the authenticated pair owner and current room generation", async () => {
+    const f = await fixture(); const third = await f.member(); try {
+      const bound = await f.lease(), outsider = await third.call("voice:hybrid:scope");
+      assert.equal((await third.call("voice:hybrid:release", { lease: { ...bound.lb.lease, scope: outsider.scope } })).error, "hybrid_pair_stale");
+      assert.equal((await f.b.call("voice:hybrid:release", { lease: { ...bound.lb.lease, scope: { ...bound.sb.scope, roomGeneration: "old-generation" } } })).error, "hybrid_scope_stale");
+      assert.equal((await f.b.call("voice:hybrid:release", { lease: bound.lb.lease }, "wrong-token")).error, "hybrid_unauthenticated");
+      assert.equal((await f.b.call("voice:hybrid:release", { lease: bound.lb.lease })).status, "released");
+    } finally { third.dispose(); f.dispose(); }
+  });
   it("restores an authorized receiver after its publish permission is revoked without admitting new peer media", async () => {
     const f=await fixture();try {
       const bound=await f.lease();assert.equal((await f.b.call("voice:hybrid:forwarding",{request:f.request(bound)})).status,"applied");

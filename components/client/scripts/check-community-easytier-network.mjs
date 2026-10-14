@@ -77,6 +77,32 @@ await test("fixed 2.7 proto3 false omission is trusted only for the owned route-
   assert.equal(network.sanitizedEasyTierCliNetwork(raw, instanceId).peers[0].conns[0].is_closed, null);
   assert.equal(network.sanitizedEasyTierV270CliNetwork(raw, instanceId).peers[0].conns[0].is_closed, false);
 });
+await test("owned 2.7 route-list preserves both members when an indirect peer omits empty repeated fields", () => {
+  const raw = fixture();
+  const indirect = structuredClone(raw.peer_routes[0]);
+  indirect.route.peer_id = 4; indirect.route.ipv4_addr = "10.9.0.4/24";
+  indirect.peer.peer_id = 4; indirect.peer.conns[0].peer_id = 4;
+  delete indirect.peer.directly_connected_conns;
+  raw.peer_routes.push(indirect);
+  assert.throws(() => network.sanitizedEasyTierCliNetwork(raw, instanceId), /invalid-owned-network-status/);
+  const result = network.sanitizedEasyTierV270CliNetwork(raw, instanceId);
+  assert.equal(result.my_node_info.virtual_ipv4, "10.9.0.1");
+  assert.equal(result.routes.length, 2); assert.equal(result.peers.length, 2);
+  assert.deepEqual(plain(result.peers[1].directly_connected_conns), []);
+  assert.equal(result.peers[1].conns.length, 1);
+  delete indirect.peer.conns;
+  const noConnections = network.sanitizedEasyTierV270CliNetwork(raw, instanceId);
+  assert.deepEqual(plain(noConnections.peers[1].conns), []);
+  assert.deepEqual(plain(noConnections.peers[1].directly_connected_conns), []);
+});
+await test("owned proto3 empty defaults do not accept null, wrong types, or oversized connection lists", () => {
+  for (const key of ["conns", "directly_connected_conns"]) {
+    for (const value of [null, {}, "", Array(65).fill({})]) {
+      const raw = fixture(); raw.peer_routes[0].peer[key] = value;
+      assert.throws(() => network.sanitizedEasyTierV270CliNetwork(raw, instanceId), /invalid-owned-network-status/);
+    }
+  }
+});
 await test("unknown closure/tunnel and nonprivate IP remain unknown; bare RTT has no measurement timestamp", () => {
   const raw = fixture(); raw.node_info.ipv4_addr = "invalid-physical-address";
   delete raw.peer_routes[0].peer.conns[0].is_closed; raw.peer_routes[0].peer.conns[0].tunnel.tunnel_type = "unrecognized";
@@ -124,6 +150,30 @@ await test("owned CLI reads are bounded, scoped and single-flight; each observer
   assert.equal(left.acquisitionStartedAtMs, 100); assert.equal(left.acquiredAtMs, 120);
   left.info.routes[0].peer_id = 99; assert.equal(right.info.routes[0].peer_id, 2);
   await core.close(); assert.equal(child.kills, 0); assert.equal(timers.size, 0);
+});
+await test("production credential network collection accepts a joined indirect member without losing issuer proof", async () => {
+  const raw = fixture(), localKey = Buffer.alloc(32, 0x31).toString("base64"), issuerKey = Buffer.alloc(32, 0x22).toString("base64");
+  const issuer = raw.peer_routes[0].peer.conns[0];
+  Object.assign(issuer, { noise_local_static_pubkey: localKey, noise_remote_static_pubkey: issuerKey,
+    secure_auth_level: "PeerVerified", peer_identity_type: "Admin", network_name: "fixture-network" });
+  const indirect = structuredClone(raw.peer_routes[0]);
+  indirect.route.peer_id = 4; indirect.peer.peer_id = 4; indirect.peer.conns[0].peer_id = 4;
+  indirect.peer.conns[0].peer_identity_type = "Credential";
+  delete indirect.peer.directly_connected_conns;
+  raw.peer_routes.push(indirect);
+  const fingerprint = value => crypto.createHash("sha256").update(Buffer.from(value, "base64")).digest("hex");
+  const credentialIdentity = { networkName: "fixture-network", virtualIp: "10.9.0.1",
+    publicKeyFingerprint: fingerprint(localKey), issuerPublicKeyFingerprint: fingerprint(issuerKey) };
+  const core = await new processes.EasyTierWindowsProcesses().start("synthetic-no-files", {...config, credentialIdentity}, new AbortController().signal);
+  try {
+    const read = core.readCredentialNetwork(new AbortController().signal); finish(null, raw);
+    const result = await read;
+    assert.equal(result.observation.issuerPinVerified, true);
+    assert.equal(result.network.info.my_node_info.virtual_ipv4, "10.9.0.1");
+    assert.equal(result.network.info.routes.length, 2);
+    assert.equal(core.isAlive(), true);
+    assert.equal(child.kills, 0);
+  } finally { await core.close(); }
 });
 await test("cancelled joining observer does not kill shared acquisition, and next read is not cached", async () => {
   const core = await new processes.EasyTierWindowsProcesses().start("synthetic-no-files", config, new AbortController().signal);

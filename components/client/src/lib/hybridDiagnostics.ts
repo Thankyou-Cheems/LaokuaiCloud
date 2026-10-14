@@ -1,9 +1,11 @@
 import type { BrowserHybridDiagnostic, BrowserHybridVoiceState } from "@gryt/voice";
 
-import { localDiagnostic } from "./localDiagnostics";
+import { DIAGNOSTIC_REASONS as HYBRID_DIAGNOSTIC_REASONS, HYBRID_PROTOCOL_DIAGNOSTIC_REASONS, localDiagnostic } from "./localDiagnostics";
+
+export { HYBRID_PROTOCOL_DIAGNOSTIC_REASONS } from "./localDiagnostics";
 
 /** Fixed enum: SDK errors and observer input never become free text in local logs. */
-export const HYBRID_DIAGNOSTIC_REASONS = ["other", "network_disabled", "identity_unavailable", "socket_unavailable", "sfu_media_unavailable", "codec_unavailable", "roster_unavailable", "epoch_unavailable", "scope_retired", "reconfigure_restore_pending", "hybrid_unavailable", "hybrid_scope_stale", "hybrid_command_timeout", "hybrid_command_rejected", "hybrid_authority_unavailable", "fresh_sfu_restore_required", "sfu_restore_incomplete", "authenticated_pair_protocol_unavailable", "network_not_authorized", "permission_unavailable", "protected_publication_unavailable", "peer_limit", "auth_recovery_cleanup", "probe_budget_closed", "peer_path_not_admitted", "peer_media_stale", "peer_path_unstable", "peer_path_unavailable", "peer_path_inconsistent", "invalid_receive_candidate", "invalid_receive_node", "decoded_media_unavailable", "media_stale_before_switch", "operation_timeout", "invalid_pair_lease", "forwarding_ack_mismatch", "probe_failed", "restore_failed", "peer_failed", "peer_path_changed", "p2p_media_lost", "sfu_restore_retry", "receive_selection_failed", "invalid_sfu_media_sequence", "fresh_sfu_media_unavailable", "lease_renew_failed", "pause_lease_expired", "signal_relay_failed", "signal_accept_failed", "controller_stopping", "pair_invalidated", "authority_invalidated", "binding_restore_required", "binding_stale", "binding_changed", "receive_binding_retired", "stale_receive_selection", "sfu_binding_retired", "scope_changed", "invalid_scope", "route_cancelled"] as const;
+export { HYBRID_DIAGNOSTIC_REASONS };
 type Reason = typeof HYBRID_DIAGNOSTIC_REASONS[number] | "validated_ack" | "request_failed";
 type PeerDiagnostic = Extract<BrowserHybridDiagnostic, { kind: "peer-media" }>;
 type ForwardingDiagnostic = Extract<BrowserHybridDiagnostic, { kind: "forwarding" }>;
@@ -30,7 +32,7 @@ export interface HybridDiagnostic {
   underlayClass?: PeerDiagnostic["underlayClass"];
   decodeProof?: PeerDiagnostic["decodeProof"];
   decodeReason?: PeerDiagnostic["decodeReason"];
-  failureReason?: PeerDiagnostic["failureReason"];
+  failureReason?: PeerDiagnostic["failureReason"] | ForwardingDiagnostic["failureReason"];
   forwardingAction?: ForwardingDiagnostic["action"];
   result?: ForwardingDiagnostic["result"];
 }
@@ -62,6 +64,8 @@ export function createHybridDiagnosticObserver(callback: (diagnostic: HybridDiag
       handoffStage: event.stage, elapsedMs: Math.min(bounded(event.elapsedMs), 60_000), reason: event.reason,
     } : { operation: "hybrid-forwarding", scopeGeneration, status: event.result === "failed" ? "recovering" : "active",
       forwardingAction: event.action, result: event.result, reason: event.reason,
+      ...("failureReason" in event && HYBRID_PROTOCOL_DIAGNOSTIC_REASONS.includes(event.failureReason as typeof HYBRID_PROTOCOL_DIAGNOSTIC_REASONS[number]) ?
+        { failureReason: event.failureReason as ForwardingDiagnostic["failureReason"] } : {}),
       ...(event.elapsedMs === undefined ? {} : { elapsedMs: Math.min(bounded(event.elapsedMs), 60_000) }) };
     // Media snapshots repeat on every stats poll. Command/handoff events are finite
     // attempts; retain their timings even when a retry has the same outcome.
