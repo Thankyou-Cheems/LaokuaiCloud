@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-14",
+  "sourceCommit": "06708268dfda7e5021e145970c913968d190f40c",
+  "status": "passed",
+  "coreSuites": 37,
+  "coreNodeSuites": 34,
+  "boundedWindowsFixtures": 3,
+  "clientTypecheck": "passed",
+  "clientChangedSourceLint": "passed",
+  "sdkPureJsGroups": [
+    "check-hybrid-media-freshness",
+    "check-hybrid",
+    "check-hybrid-session",
+    "check-hybrid-auth-recovery",
+    "check-hybrid-diagnostics",
+    "check-hybrid-network-boundary",
+    "check-hybrid-integration",
+    "check-hybrid-source-ownership"
+  ],
+  "serverHybridHandlerTests": 12,
+  "serverHybridHandlerTestsPassed": true,
+  "serverTypecheck": "passed",
+  "serverTargetedLintErrors": 0,
+  "serverExistingLintWarnings": 10,
+  "githubWorkflowAtSourceCommit": {
+    "status": "failed",
+    "run": "https://github.com/Thankyou-Cheems/LaokuaiCloud/actions/runs/38559004682",
+    "failure": "Windows firewall fixture tried to execute an unbuilt helper binary; subsequent SDK step was skipped.",
+    "localChecksDoNotOverrideRemoteFailure": true
+  },
+  "localRealPeerConnectionStarted": false,
+  "localNativeEasyTierStarted": false,
+  "localMicrophoneUsed": false,
+  "realTwoDeviceMediaAccepted": false,
+  "note": "Source checks and bounded fixtures only. SFU isolated Linux validation and deployed-state verification are recorded separately. Historical .15 listening and connection failures remain unresolved acceptance evidence until new real-device tests."
+}

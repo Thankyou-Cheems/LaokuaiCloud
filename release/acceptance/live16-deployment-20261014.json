@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-14",
+  "status": "deployed",
+  "sourceCommit": "06708268dfda7e5021e145970c913968d190f40c",
+  "sourceArchiveSha256": "68f8ae83f8af84f6356b38d137aaa2ba6f4336d3af07dcfdb402c756cafbd354",
+  "images": {
+    "server": "sha256:cf83e3e70f5b4a649b3b65268ae9d2e81f39c7cea551a4ab2cc49624d65de23c",
+    "sfu": "sha256:b4d3097e33f01ba79586fa87fa62f3d2d9ca3593e9c0100d7f943fcb90f0abca"
+  },
+  "rollbackImages": {
+    "server": "sha256:34cde4c1b3744568269bed640feec49706329da0ec8d1fb85a9feb1c8dea1425",
+    "sfu": "sha256:585f0a76df9420f228f7b47020c35247cb76524f63125ea7c5bf49bb8ee9cd7b"
+  },
+  "bundleSha256": "29030d351e5058454e3650f63491459e63714e171c05d0129b8f72d8a93d0515",
+  "sfuBinarySha256": "e00b3b34c34a03dc434075fe893ecf5c8b65db4d8502949af67da7c1d435cce9",
+  "goToolchainImage": "sha256:07d6e65bb14b257e518eb70088f0c6826c86ff6185538bdb946bcda8e211d03b",
+  "goVersion": "go version go1.25.14 linux/amd64",
+  "isolatedGoTestsPassed": true,
+  "testedPackages": [
+    "internal/svc",
+    "internal/track",
+    "internal/room",
+    "internal/websocket",
+    "internal/webrtc",
+    "internal/config"
+  ],
+  "testNetwork": "none",
+  "testSourceAndModuleCacheReadOnly": true,
+  "deploymentOperatorSha256": "bb449d3e41d990ab76eed01a873de08aa56b146b5a733a91055d32b3044f6c5d",
+  "offlineWrapperSha256": "8ea9ccb863fc50870bed79b528d03e3e6bd17fac7bc7de70933a99151025167e",
+  "moduleCacheManifestSha256": "7459b363232a9da462b8a77d0997215e65e7be5b8698413f8d6f27ac6792615a",
+  "preparationNote": "Original pinned inputs and original baseline retained. The offline wrapper excludes only two verified owned preparation container IDs, never production services. Earlier preparation failures remain private evidence.",
+  "activationRecordSha256": "8a3cfd06017244f353069d90508faa32f6c8a1830b287e4d395459f9af4e8db6",
+  "restartedServices": [
+    "server",
+    "sfu"
+  ],
+  "allPriorOverlaysPreserved": true,
+  "preservedComposeFiles": [
+    "/opt/stacks/gryt/compose.yml",
+    "/opt/stacks/gryt/community-et-real-9db53f79/backend-sfu.override.json",
+    "/opt/stacks/gryt/community-et-real-9db53f79/server-release-version.override.json",
+    "/opt/stacks/gryt/community-password-beta-a5c557be/server-password.override.json",
+    "/opt/stacks/gryt/sfu-12-fallback-16k60/activation.overlay.json",
+    "/opt/stacks/gryt/member-address-directory-20261013-r3/activation.overlay.json",
+    "/opt/stacks/gryt/community-network-v2-20261013-r1/activation.overlay.json",
+    "/opt/stacks/gryt/member-relay-v2-20261013-r1/activation.overlay.json",
+    "/opt/stacks/gryt/friendly-dns-20261013-r1/activation.overlay.json",
+    "/opt/stacks/gryt/voice-member-move-20261014-r1/activation.overlay.json"
+  ],
+  "activationOverlay": "/opt/stacks/gryt/live16-voice-fixes-06708268dfda-r2/activation.overlay.json",
+  "environmentPortsMountsPreserved": true,
+  "easyTierContainersAndManagementProxyGenerationUnchanged": true,
+  "voiceMaxUsers": 12,
+  "sfuBitrateBps": 16000,
+  "sfuPacketTimeMs": 60,
+  "memberRelayAndMemberMoveGatesPreserved": true,
+  "oldImagesKept": true,
+  "databaseBackupOnServer": true,
+  "databaseRestored": false,
+  "databaseModifiedByOperator": false,
+  "publicHealth": {
+    "checkedAt": "2026-10-14T12:11:54.4591898+00:00",
+    "endpoint": "https://voice.ruikang.wang/health",
+    "statusCode": 200,
+    "status": "healthy",
+    "realMediaTest": false
+  },
+  "realTwoDeviceMediaAccepted": false,
+  "realListeningQualityAccepted": false,
+  "note": "Successful deployment and health checks do not establish stable P2P, perceptual quality or 12-user WAN capacity. Current SFU bitrate/packet-time cap is unchanged."
+}

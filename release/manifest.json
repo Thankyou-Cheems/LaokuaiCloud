@@ -9,8 +9,8 @@
     "visibility": "public",
     "branch": "main",
     "soleGitWriter": "user-directed local developer",
-    "codeCommit": "79d0856c843b614e1ef14f0b30787e79d2bc9a96",
-    "codeTree": "afefc03d10e9bb2f60c07e38dade24d5bdf459cb",
+    "codeCommit": "06708268dfda7e5021e145970c913968d190f40c",
+    "codeTree": "b49a69bde107ff064ee1cb5993fdc950a94bff72",
     "newRepositoryReason": "Authenticated private-repo metadata and explicitly scoped old local core/game remotes revealed no matching existing private integration repository",
     "historyPolicy": "User explicitly authorized deletion and same-name recreation after six Npcap files were removed from history. Only clean main and source tag pushed from an isolated bare repository. Original and clean local bundles retained; no mirror push.",
     "githubId": "R_kgDOVG00Lg"
@@ -18,22 +18,22 @@
   "components": {
     "client": {
       "path": "components/client",
-      "tree": "10b7efcc55381419ea1dbcf7a4b849b37ea99418",
+      "tree": "84b3d64ded225b3824519743e72535b720c6290a",
       "upstream": "Gryt-chat/client",
       "publicFork": "Thankyou-Cheems/gryt-client-i18n",
       "historyImportedFrom": "06ac43f51dbda3b9444c73270a126e10489110e9",
       "originalHead": "552dc88f3413b83ee29bdb4ab350286e7c9ad2d0",
       "completeDirtySourceSnapshot": "2b9f02076051e3a445bfa99e79d1fc7ac421e19f",
       "originalPreservation": "24 tracked modifications and 6 untracked files retained; all frozen snapshot blobs verified",
-      "version": "1.13.22-laokuai.beta.20261014.15",
-      "dependencyLockSha256": "927bb9eda4a1f4b17f2668f4e620ded0b22312b3d03687e6340ec9e00ec044aa",
+      "version": "1.13.22-laokuai.beta.20261014.16",
+      "dependencyLockSha256": "5de3329b278abc9442777f349ae65ff022eeb8b8b80f63f961a430d378107be3",
       "lifecycle3SourceCommit": "cb31e2e4ec044a2574f88321bc90cc01c3b51e0c",
       "uiBrandSourceCommit": "c75e6802ac9971b7d4139df8f97b99c7398efd7d",
       "preservedPreEtContract": {
         "tree": "8123a71d99a101a3dce02027d476c7e8879ff48d",
         "sourceCommit": "a88f7d75066cf03d65d618bb49cabbff6e8d7884"
       },
-      "sourceCommit": "b4ab252e26c6938556c168435dc9132b0f56aae0",
+      "sourceCommit": "06708268dfda7e5021e145970c913968d190f40c",
       "communityContractWired": true,
       "preservedPreCommunityWiring": {
         "tree": "fbcc9d4e2db64348fc17704d486a421233f7513f",
@@ -56,20 +56,21 @@
     },
     "voice": {
       "path": "components/voice",
-      "tree": "87d70ff05949388d9d799774d9027a78ea575abc",
+      "tree": "1bd96f71b750975df21815a6cfc4703740d24f35",
       "upstream": "Gryt-chat/voice",
       "publicFork": "Thankyou-Cheems/voice",
-      "sourceCommit": "85b7208b52841a85a480ca0a26324eb1112a23d1",
-      "sourceFiles": 312,
+      "sourceCommit": "06708268dfda7e5021e145970c913968d190f40c",
+      "sourceFiles": 88,
       "importCorrespondence": "Current routing source and pinned locally rebuilt package; prior lifecycle package and evidence preserved.",
       "license": "AGPL-3.0-only; Signalsmith MIT and all receive-rnn notices preserved",
       "package": {
-        "path": "components/client/vendor/gryt-voice-0.6.2-laokuai.routing.5.tgz",
-        "version": "0.6.2-laokuai.routing.5",
-        "bytes": 3776775,
-        "sha256": "6dd2d560ba51cdf5aef35afa78cae868fcb6d33b03f441a76aa6854e87303601",
-        "installedFilesVerified": 187,
-        "clientDependencyAndLockExact": true
+        "path": "components/client/vendor/gryt-voice-0.6.2-laokuai.routing.6.tgz",
+        "version": "0.6.2-laokuai.routing.6",
+        "bytes": 3778054,
+        "sha256": "d7f6548f193ff36f68e4b8ad771a24e54af00d0a6a9e6e7f40289e90475d6952",
+        "installedFilesVerified": 216,
+        "clientDependencyAndLockExact": true,
+        "receipt": "release/acceptance/live16-sdk-20261014.json"
       },
       "closedPcFix": {
         "sourceCommit": "114a9ad0ba2d9e1e83b9a762a150dba6a54e0ee4",
@@ -200,14 +201,26 @@
         "sha256": "6018f7f184771fdb6b4ac86da43558b7efb9ffad27b0eb6d48e1c51b624bed4a",
         "installedFilesVerified": 187,
         "clientDependencyAndLockExact": true
+      },
+      "previousRouting5": {
+        "sourceCommit": "85b7208b52841a85a480ca0a26324eb1112a23d1",
+        "tree": "87d70ff05949388d9d799774d9027a78ea575abc",
+        "package": {
+          "path": "components/client/vendor/gryt-voice-0.6.2-laokuai.routing.5.tgz",
+          "version": "0.6.2-laokuai.routing.5",
+          "bytes": 3776775,
+          "sha256": "6dd2d560ba51cdf5aef35afa78cae868fcb6d33b03f441a76aa6854e87303601",
+          "installedFilesVerified": 187,
+          "clientDependencyAndLockExact": true
+        }
       }
     },
     "server": {
       "path": "components/server",
-      "tree": "ee132a44f319d1b4b2c491b10e787e164c2996df",
+      "tree": "fb02311caf85ecdb396104509ba760eb100a3fcf",
       "upstream": "Gryt-chat/server",
       "userFork": null,
-      "sourceCommit": "5eed3757e74f76099a7f2991a6c4c9c38fbe462a",
+      "sourceCommit": "06708268dfda7e5021e145970c913968d190f40c",
       "archivedSourceFilesVerified": 462,
       "importedSourceFiles": 460,
       "excluded": [
@@ -242,14 +255,19 @@
       },
       "memberAddressDirectoryDeployment": "release/acceptance/member-address-directory-deployment-20261013.json",
       "communityNetworkDeployment": "release/acceptance/community-network-v2-deployment-20261013.json",
-      "friendlyDnsDeployment": "release/acceptance/friendly-dns-deployment-20261013.json"
+      "friendlyDnsDeployment": "release/acceptance/friendly-dns-deployment-20261013.json",
+      "previousLive15": {
+        "sourceCommit": "5eed3757e74f76099a7f2991a6c4c9c38fbe462a",
+        "tree": "ee132a44f319d1b4b2c491b10e787e164c2996df"
+      },
+      "live16Deployment": "release/acceptance/live16-deployment-20261014.json"
     },
     "sfu": {
       "path": "components/sfu",
-      "tree": "26d82edddacbb02aec958f4f30af03c2b067dc4b",
+      "tree": "b36a52127f18009d95dc5c8d5b530304a468845c",
       "upstream": "Gryt-chat/sfu",
       "userFork": null,
-      "sourceCommit": "35bcd5d3ed6752bfcf53c84c2dbe8d2b52a9cbe5",
+      "sourceCommit": "06708268dfda7e5021e145970c913968d190f40c",
       "sourceFiles": 99,
       "modified": true,
       "preservedBaseSnapshot": {
@@ -276,7 +294,12 @@
       "preservedPreBudget": {
         "sourceCommit": "011f12b92af2732cc6a86a088c5f753dfd5c1a14",
         "tree": "3d64d5904681d59590be940870ce045e5c1577ff"
-      }
+      },
+      "previousLive15": {
+        "sourceCommit": "35bcd5d3ed6752bfcf53c84c2dbe8d2b52a9cbe5",
+        "tree": "26d82edddacbb02aec958f4f30af03c2b067dc4b"
+      },
+      "live16Deployment": "release/acceptance/live16-deployment-20261014.json"
     },
     "easytier": {
       "path": "components/easytier",
@@ -2588,6 +2611,12 @@
       "codeFreeze": "9db53f79ec1cbf9408b51e0733e6071b00f192a1",
       "scopeCases": 115,
       "requireReadyExit": 2
+    },
+    "live16": {
+      "sourceCommit": "06708268dfda7e5021e145970c913968d190f40c",
+      "receipt": "release/acceptance/live16-source-checks-20261014.json",
+      "realTwoDeviceMediaAccepted": false,
+      "deploymentReceipt": "release/acceptance/live16-deployment-20261014.json"
     }
   },
   "securityBoundary": {
@@ -3147,105 +3176,76 @@
   },
   "currentTestPackage": {
     "schemaVersion": 1,
-    "date": "2026-10-13",
-    "version": "1.13.22-laokuai.beta.20261013.1",
-    "sourceCommit": "800ec22e484d2fef2b23493492b75862d9ed62f0",
-    "file": "唠蒯云-1.13.22-laokuai.beta.20261013.1-zh-CN-win-x64-portable.exe",
-    "bytes": 129281373,
-    "sha256": "d6669238f04439f316e586cdfb7492698f1edd1e0fdf05546b67505da5c20737",
-    "appAsarSha256": "82dfbdaa50814ac3c788e1ceaedaeb4cdf30b9528d55735eeb2d30bc706870fe",
+    "date": "2026-10-14",
+    "version": "1.13.22-laokuai.beta.20261014.16",
+    "sourceCommit": "06708268dfda7e5021e145970c913968d190f40c",
+    "sourceTree": "b49a69bde107ff064ee1cb5993fdc950a94bff72",
+    "file": "唠蒯云-1.13.22-laokuai.beta.20261014.16-zh-CN-win-x64-green.zip",
+    "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261014.16-zh-CN-win-x64-green.zip",
+    "bytes": 159346785,
+    "sha256": "44af025dff01dce720440a64d487cce098242c429f41229237d288881134d557",
+    "appAsarSha256": "f9976d88c763b2fa949c3cb854f036d181bccd8bf0811754008a92a4aae6adfc",
     "staticPayloadFiles": 146,
     "staticPayloadPassed": true,
+    "payloadBytes": 383720480,
+    "voiceSdk": "0.6.2-laokuai.routing.6",
+    "voiceSdkReceipt": "release/acceptance/live16-sdk-20261014.json",
+    "sourceChecks": "release/acceptance/live16-source-checks-20261014.json",
+    "selfExtractor": {
+      "schemaVersion": 1,
+      "version": "1.13.22-laokuai.beta.20261014.16",
+      "file": "唠蒯云-1.13.22-laokuai.beta.20261014.16-绿色自解压.exe",
+      "bytes": 111755008,
+      "sha256": "a31e5315b55ad9e273cbb1cd62a8d4b04ab1eeba1d721b95980a444a0a848464",
+      "baseZipSha256": "44af025dff01dce720440a64d487cce098242c429f41229237d288881134d557",
+      "payloadFiles": 146,
+      "compression": "per-file LZMA, non-solid",
+      "elevation": "asInvoker",
+      "pluginsUsed": false,
+      "runtimeTestPassed": true,
+      "extraLicense": "resources/legal/SELF-EXTRACTOR-LICENSE.txt",
+      "compilerSha256": "e277b7378931b74392015f5ad6b1d744dcd8a347baa4480350a75ebeab8d8e3d",
+      "scriptSha256": "aa541d62f9b6ddfd3f5341ebea899bea99613fb419f21187e6fa7ba6369072a2",
+      "validation": {
+        "status": "passed",
+        "verifiedProgramFiles": 146,
+        "licenseVerified": true,
+        "unicodeAndSpaceDirectory": true,
+        "nonemptyDirectoryRefused": true,
+        "existingProfileUnchanged": true,
+        "temporaryDestinationRefused": true,
+        "observedTempProbes": 3,
+        "temporaryPayloadObserved": false,
+        "temporaryResidualFiles": 0,
+        "programLaunched": false,
+        "realUserDataAccessed": false,
+        "sha256": "a31e5315b55ad9e273cbb1cd62a8d4b04ab1eeba1d721b95980a444a0a848464"
+      },
+      "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261014.16-绿色自解压.exe",
+      "sourceCommit": "06708268dfda7e5021e145970c913968d190f40c"
+    },
+    "incremental": {
+      "file": "唠蒯云-15-to-16-update.zip",
+      "bytes": 15669079,
+      "sha256": "58c8c64ac84433bfbec1ae90893046267eb382a2feac0e0c894ccf84d288ba21",
+      "baseZipSha256": "70ec7fb029a9e06d0ef9b0ed300a5e829c44e4c31e57bb5be5f78f2b269109de",
+      "targetZipSha256": "44af025dff01dce720440a64d487cce098242c429f41229237d288881134d557"
+    },
+    "desktopUpdateReceipt": "release/acceptance/desktop16-incremental-20261014.json",
+    "desktopProgramUpdated": true,
+    "protectedFilesPreserved": 131,
+    "protectedFileHashesUnchanged": true,
     "npcapAbsent": true,
     "sourceArchivesBundled": false,
-    "sourceAssetCount": 6,
-    "sourceAssetSha256Verified": true,
-    "repositoryVisibility": "public",
-    "publicSourceAccess": true,
-    "publicBlocker": null,
-    "tests": {
-      "coreContractSuites": 10,
-      "enrollmentBehaviors": 13,
-      "grantRuntimeBehaviors": 52,
-      "packageAuditBehaviors": 18,
-      "applicationTypes": true,
-      "applicationCompile": true,
-      "targetedLint": true
-    },
-    "bootstrap": {
-      "status": "passed",
-      "exitCode": 0,
-      "rootChildren": 1,
-      "preload": {
-        "electronAPI": "object",
-        "easyTierCommunity": "object"
-      },
-      "visible": false,
-      "focused": false,
-      "unexpectedEvents": 0,
-      "residualOwnedProcesses": 0,
-      "socketSamples": [
-        {
-          "seconds": 1.545,
-          "ownedProcesses": 1,
-          "tcpCount": 0,
-          "udpCount": 0
-        },
-        {
-          "seconds": 3.042,
-          "ownedProcesses": 6,
-          "tcpCount": 0,
-          "udpCount": 0
-        },
-        {
-          "seconds": 4.534,
-          "ownedProcesses": 6,
-          "tcpCount": 0,
-          "udpCount": 0
-        },
-        {
-          "seconds": 5.996,
-          "ownedProcesses": 6,
-          "tcpCount": 0,
-          "udpCount": 0
-        },
-        {
-          "seconds": 7.483,
-          "ownedProcesses": 6,
-          "tcpCount": 0,
-          "udpCount": 0
-        },
-        {
-          "seconds": 8.984,
-          "ownedProcesses": 6,
-          "tcpCount": 0,
-          "udpCount": 0
-        },
-        {
-          "seconds": 10.485,
-          "ownedProcesses": 6,
-          "tcpCount": 0,
-          "udpCount": 0
-        },
-        {
-          "seconds": 11.967,
-          "ownedProcesses": 6,
-          "tcpCount": 0,
-          "udpCount": 0
-        }
-      ],
-      "consoleErrors": 23,
-      "realElectronExecuted": true,
-      "isolatedFreshProfile": true,
-      "nativeEtExecuted": false,
-      "realCommunityOrDeviceMediaTest": false
-    },
-    "realUacTunAccepted": false,
-    "dualDeviceVoiceAccepted": false,
-    "publicBinaryRelease": false,
-    "note": "Extracted exact portable payload launched in hidden offline fresh-profile mode. NSIS wrapper not executed. 23 console errors consist of 20 intentional offline CSP/fetch blocks and 3 pre-existing disabled IPC promises; not an error-free console. Socket samples are not continuous packet capture.",
-    "receipt": "release/acceptance/autojoin-portable-20261013.json",
-    "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261013.1-zh-CN-win-x64-portable.exe"
+    "sourceAttachmentSetUnchanged": true,
+    "voiceRecordingsUnchanged": true,
+    "applicationLaunchedAfterUpdate": false,
+    "nativeRuntimeUnchanged": true,
+    "realTwoDeviceMediaAccepted": false,
+    "realGameCoexistenceAccepted": false,
+    "realTwelveClientWanAccepted": false,
+    "note": "Fixed ET observation parsing, unified media proof/health timing and stage deadlines, added safe protocol diagnostics and pinned routing.6. Desktop data/config verified unchanged. SFU/Gryt deployment recorded separately; listening and stable two-device acceptance remain pending.",
+    "receipt": "release/acceptance/live16-portable-20261014.json"
   },
   "communityManagementRecovery": {
     "receipt": "release/acceptance/community-management-recovery-20261013.json",
@@ -3650,23 +3650,27 @@
   "greenDirectoryTestPackage": {
     "schemaVersion": 1,
     "date": "2026-10-14",
-    "version": "1.13.22-laokuai.beta.20261014.15",
-    "sourceCommit": "b4ab252e26c6938556c168435dc9132b0f56aae0",
-    "extractorSourceCommit": "79d0856c843b614e1ef14f0b30787e79d2bc9a96",
-    "file": "唠蒯云-1.13.22-laokuai.beta.20261014.15-zh-CN-win-x64-green.zip",
-    "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261014.15-zh-CN-win-x64-green.zip",
-    "bytes": 159346962,
-    "sha256": "70ec7fb029a9e06d0ef9b0ed300a5e829c44e4c31e57bb5be5f78f2b269109de",
-    "appAsarSha256": "aa5eb7fcbaff4e81a3fd2ce571f99584e0ea51a2c6649f594d05fa7ed7f3d8ab",
-    "payloadBytes": 383716684,
+    "version": "1.13.22-laokuai.beta.20261014.16",
+    "sourceCommit": "06708268dfda7e5021e145970c913968d190f40c",
+    "sourceTree": "b49a69bde107ff064ee1cb5993fdc950a94bff72",
+    "file": "唠蒯云-1.13.22-laokuai.beta.20261014.16-zh-CN-win-x64-green.zip",
+    "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261014.16-zh-CN-win-x64-green.zip",
+    "bytes": 159346785,
+    "sha256": "44af025dff01dce720440a64d487cce098242c429f41229237d288881134d557",
+    "appAsarSha256": "f9976d88c763b2fa949c3cb854f036d181bccd8bf0811754008a92a4aae6adfc",
     "staticPayloadFiles": 146,
+    "staticPayloadPassed": true,
+    "payloadBytes": 383720480,
+    "voiceSdk": "0.6.2-laokuai.routing.6",
+    "voiceSdkReceipt": "release/acceptance/live16-sdk-20261014.json",
+    "sourceChecks": "release/acceptance/live16-source-checks-20261014.json",
     "selfExtractor": {
       "schemaVersion": 1,
-      "version": "1.13.22-laokuai.beta.20261014.15",
-      "file": "唠蒯云-1.13.22-laokuai.beta.20261014.15-绿色自解压.exe",
-      "bytes": 111745661,
-      "sha256": "141bcbc3498f7d08d6a9a6ff635c7dbe8c6cfa22264862f48f8a930f2ac1d66f",
-      "baseZipSha256": "70ec7fb029a9e06d0ef9b0ed300a5e829c44e4c31e57bb5be5f78f2b269109de",
+      "version": "1.13.22-laokuai.beta.20261014.16",
+      "file": "唠蒯云-1.13.22-laokuai.beta.20261014.16-绿色自解压.exe",
+      "bytes": 111755008,
+      "sha256": "a31e5315b55ad9e273cbb1cd62a8d4b04ab1eeba1d721b95980a444a0a848464",
+      "baseZipSha256": "44af025dff01dce720440a64d487cce098242c429f41229237d288881134d557",
       "payloadFiles": 146,
       "compression": "per-file LZMA, non-solid",
       "elevation": "asInvoker",
@@ -3675,7 +3679,6 @@
       "extraLicense": "resources/legal/SELF-EXTRACTOR-LICENSE.txt",
       "compilerSha256": "e277b7378931b74392015f5ad6b1d744dcd8a347baa4480350a75ebeab8d8e3d",
       "scriptSha256": "aa541d62f9b6ddfd3f5341ebea899bea99613fb419f21187e6fa7ba6369072a2",
-      "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261014.15-绿色自解压.exe",
       "validation": {
         "status": "passed",
         "verifiedProgramFiles": 146,
@@ -3689,115 +3692,33 @@
         "temporaryResidualFiles": 0,
         "programLaunched": false,
         "realUserDataAccessed": false,
-        "sha256": "141bcbc3498f7d08d6a9a6ff635c7dbe8c6cfa22264862f48f8a930f2ac1d66f"
+        "sha256": "a31e5315b55ad9e273cbb1cd62a8d4b04ab1eeba1d721b95980a444a0a848464"
       },
-      "sourceUrl": "https://github.com/Thankyou-Cheems/LaokuaiCloud/tree/79d0856c843b614e1ef14f0b30787e79d2bc9a96/tools",
-      "sourceCommit": "79d0856c843b614e1ef14f0b30787e79d2bc9a96",
-      "extraLicenseFiles": 1,
-      "applicationPayloadMatchesZip": true,
-      "comparedTo14ZipSavedPercent": 31.3
+      "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261014.16-绿色自解压.exe",
+      "sourceCommit": "06708268dfda7e5021e145970c913968d190f40c"
     },
-    "checks": {
-      "clientTypesAndBuild": "passed",
-      "targetedLint": "passed",
-      "packageAuditScenarios": 19,
-      "obsoleteMainChunkRejected": true,
-      "finalPayloadFilesVerified": 146,
-      "soundsVerified": 9
+    "incremental": {
+      "file": "唠蒯云-15-to-16-update.zip",
+      "bytes": 15669079,
+      "sha256": "58c8c64ac84433bfbec1ae90893046267eb382a2feac0e0c894ccf84d288ba21",
+      "baseZipSha256": "70ec7fb029a9e06d0ef9b0ed300a5e829c44e4c31e57bb5be5f78f2b269109de",
+      "targetZipSha256": "44af025dff01dce720440a64d487cce098242c429f41229237d288881134d557"
     },
-    "bootstrap": {
-      "status": "passed",
-      "exitCode": 0,
-      "rootChildren": 1,
-      "preload": {
-        "electronAPI": "object",
-        "easyTierCommunity": "object"
-      },
-      "visible": false,
-      "focused": false,
-      "unexpectedEvents": 0,
-      "residualOwnedProcesses": 0,
-      "socketSamples": [
-        {
-          "seconds": 0.986,
-          "ownedProcesses": 1,
-          "tcpCount": 0,
-          "udpCount": 0
-        },
-        {
-          "seconds": 2.283,
-          "ownedProcesses": 6,
-          "tcpCount": 0,
-          "udpCount": 0
-        },
-        {
-          "seconds": 3.59,
-          "ownedProcesses": 6,
-          "tcpCount": 0,
-          "udpCount": 0
-        },
-        {
-          "seconds": 4.917,
-          "ownedProcesses": 6,
-          "tcpCount": 0,
-          "udpCount": 0
-        },
-        {
-          "seconds": 6.262,
-          "ownedProcesses": 6,
-          "tcpCount": 0,
-          "udpCount": 0
-        },
-        {
-          "seconds": 7.605,
-          "ownedProcesses": 6,
-          "tcpCount": 0,
-          "udpCount": 0
-        },
-        {
-          "seconds": 8.879,
-          "ownedProcesses": 6,
-          "tcpCount": 0,
-          "udpCount": 0
-        },
-        {
-          "seconds": 10.223,
-          "ownedProcesses": 6,
-          "tcpCount": 0,
-          "udpCount": 0
-        },
-        {
-          "seconds": 11.565,
-          "ownedProcesses": 6,
-          "tcpCount": 0,
-          "udpCount": 0
-        }
-      ],
-      "consoleErrors": 19,
-      "realElectronExecuted": true,
-      "isolatedFreshProfile": true,
-      "nativeEtExecuted": false,
-      "realCommunityOrDeviceMediaTest": false
-    },
-    "administratorEntry": {
-      "actualBuiltEntry": true,
-      "sourceSha256": "5a8c9528bf287335db3d186a685e30b7ed41a037e6c52b375c2bafe972a8c16b",
-      "initialReady": false,
-      "entrySettled": true,
-      "promptReady": true,
-      "tokenReads": 1,
-      "nativeUacExecuted": false,
-      "nativeEtExecuted": false,
-      "exitCode": 0
-    },
-    "voiceSdkUnchanged": "routing.5",
-    "runtimeBehaviorChanges": false,
-    "desktopModified": false,
-    "desktopVersion": "1.13.22-laokuai.beta.20261014.14",
-    "userDataAccessed": false,
-    "productionChanged": false,
-    "note": "Only stale generated Electron chunks were removed. The self-extractor directly releases identical app files plus its license to a new fixed directory, refuses existing directories and TEMP targets, and never launches the app. Three empty NSIS TEMP writability probes were observed for three test executions; no temporary application payload or residual files. No real ET/TUN/media acceptance was performed.",
-    "receipt": "release/acceptance/compact15-portable-20261014.json"
+    "desktopUpdateReceipt": "release/acceptance/desktop16-incremental-20261014.json",
+    "desktopProgramUpdated": true,
+    "protectedFilesPreserved": 131,
+    "protectedFileHashesUnchanged": true,
+    "npcapAbsent": true,
+    "sourceArchivesBundled": false,
+    "sourceAttachmentSetUnchanged": true,
+    "voiceRecordingsUnchanged": true,
+    "applicationLaunchedAfterUpdate": false,
+    "nativeRuntimeUnchanged": true,
+    "realTwoDeviceMediaAccepted": false,
+    "realGameCoexistenceAccepted": false,
+    "realTwelveClientWanAccepted": false,
+    "note": "Fixed ET observation parsing, unified media proof/health timing and stage deadlines, added safe protocol diagnostics and pinned routing.6. Desktop data/config verified unchanged. SFU/Gryt deployment recorded separately; listening and stable two-device acceptance remain pending.",
+    "receipt": "release/acceptance/live16-portable-20261014.json"
   },
   "previousGreenDirectoryTestPackage": {
     "schemaVersion": 1,
@@ -5156,6 +5077,273 @@
     "easyTierNativeInputsUnchangedFrom": "release/acceptance/handoff13-portable-20261014.json",
     "brokerRebuiltFromUnchangedSource": true
   },
-  "currentDesktopVersion": "1.13.22-laokuai.beta.20261014.15",
-  "currentDesktopUpdateReceipt": "release/acceptance/desktop15-incremental-20261014.json"
+  "currentDesktopVersion": "1.13.22-laokuai.beta.20261014.16",
+  "currentDesktopUpdateReceipt": "release/acceptance/desktop16-incremental-20261014.json",
+  "previousCompact15Package": {
+    "schemaVersion": 1,
+    "date": "2026-10-14",
+    "version": "1.13.22-laokuai.beta.20261014.15",
+    "sourceCommit": "b4ab252e26c6938556c168435dc9132b0f56aae0",
+    "extractorSourceCommit": "79d0856c843b614e1ef14f0b30787e79d2bc9a96",
+    "file": "唠蒯云-1.13.22-laokuai.beta.20261014.15-zh-CN-win-x64-green.zip",
+    "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261014.15-zh-CN-win-x64-green.zip",
+    "bytes": 159346962,
+    "sha256": "70ec7fb029a9e06d0ef9b0ed300a5e829c44e4c31e57bb5be5f78f2b269109de",
+    "appAsarSha256": "aa5eb7fcbaff4e81a3fd2ce571f99584e0ea51a2c6649f594d05fa7ed7f3d8ab",
+    "payloadBytes": 383716684,
+    "staticPayloadFiles": 146,
+    "selfExtractor": {
+      "schemaVersion": 1,
+      "version": "1.13.22-laokuai.beta.20261014.15",
+      "file": "唠蒯云-1.13.22-laokuai.beta.20261014.15-绿色自解压.exe",
+      "bytes": 111745661,
+      "sha256": "141bcbc3498f7d08d6a9a6ff635c7dbe8c6cfa22264862f48f8a930f2ac1d66f",
+      "baseZipSha256": "70ec7fb029a9e06d0ef9b0ed300a5e829c44e4c31e57bb5be5f78f2b269109de",
+      "payloadFiles": 146,
+      "compression": "per-file LZMA, non-solid",
+      "elevation": "asInvoker",
+      "pluginsUsed": false,
+      "runtimeTestPassed": true,
+      "extraLicense": "resources/legal/SELF-EXTRACTOR-LICENSE.txt",
+      "compilerSha256": "e277b7378931b74392015f5ad6b1d744dcd8a347baa4480350a75ebeab8d8e3d",
+      "scriptSha256": "aa541d62f9b6ddfd3f5341ebea899bea99613fb419f21187e6fa7ba6369072a2",
+      "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261014.15-绿色自解压.exe",
+      "validation": {
+        "status": "passed",
+        "verifiedProgramFiles": 146,
+        "licenseVerified": true,
+        "unicodeAndSpaceDirectory": true,
+        "nonemptyDirectoryRefused": true,
+        "existingProfileUnchanged": true,
+        "temporaryDestinationRefused": true,
+        "observedTempProbes": 3,
+        "temporaryPayloadObserved": false,
+        "temporaryResidualFiles": 0,
+        "programLaunched": false,
+        "realUserDataAccessed": false,
+        "sha256": "141bcbc3498f7d08d6a9a6ff635c7dbe8c6cfa22264862f48f8a930f2ac1d66f"
+      },
+      "sourceUrl": "https://github.com/Thankyou-Cheems/LaokuaiCloud/tree/79d0856c843b614e1ef14f0b30787e79d2bc9a96/tools",
+      "sourceCommit": "79d0856c843b614e1ef14f0b30787e79d2bc9a96",
+      "extraLicenseFiles": 1,
+      "applicationPayloadMatchesZip": true,
+      "comparedTo14ZipSavedPercent": 31.3
+    },
+    "checks": {
+      "clientTypesAndBuild": "passed",
+      "targetedLint": "passed",
+      "packageAuditScenarios": 19,
+      "obsoleteMainChunkRejected": true,
+      "finalPayloadFilesVerified": 146,
+      "soundsVerified": 9
+    },
+    "bootstrap": {
+      "status": "passed",
+      "exitCode": 0,
+      "rootChildren": 1,
+      "preload": {
+        "electronAPI": "object",
+        "easyTierCommunity": "object"
+      },
+      "visible": false,
+      "focused": false,
+      "unexpectedEvents": 0,
+      "residualOwnedProcesses": 0,
+      "socketSamples": [
+        {
+          "seconds": 0.986,
+          "ownedProcesses": 1,
+          "tcpCount": 0,
+          "udpCount": 0
+        },
+        {
+          "seconds": 2.283,
+          "ownedProcesses": 6,
+          "tcpCount": 0,
+          "udpCount": 0
+        },
+        {
+          "seconds": 3.59,
+          "ownedProcesses": 6,
+          "tcpCount": 0,
+          "udpCount": 0
+        },
+        {
+          "seconds": 4.917,
+          "ownedProcesses": 6,
+          "tcpCount": 0,
+          "udpCount": 0
+        },
+        {
+          "seconds": 6.262,
+          "ownedProcesses": 6,
+          "tcpCount": 0,
+          "udpCount": 0
+        },
+        {
+          "seconds": 7.605,
+          "ownedProcesses": 6,
+          "tcpCount": 0,
+          "udpCount": 0
+        },
+        {
+          "seconds": 8.879,
+          "ownedProcesses": 6,
+          "tcpCount": 0,
+          "udpCount": 0
+        },
+        {
+          "seconds": 10.223,
+          "ownedProcesses": 6,
+          "tcpCount": 0,
+          "udpCount": 0
+        },
+        {
+          "seconds": 11.565,
+          "ownedProcesses": 6,
+          "tcpCount": 0,
+          "udpCount": 0
+        }
+      ],
+      "consoleErrors": 19,
+      "realElectronExecuted": true,
+      "isolatedFreshProfile": true,
+      "nativeEtExecuted": false,
+      "realCommunityOrDeviceMediaTest": false
+    },
+    "administratorEntry": {
+      "actualBuiltEntry": true,
+      "sourceSha256": "5a8c9528bf287335db3d186a685e30b7ed41a037e6c52b375c2bafe972a8c16b",
+      "initialReady": false,
+      "entrySettled": true,
+      "promptReady": true,
+      "tokenReads": 1,
+      "nativeUacExecuted": false,
+      "nativeEtExecuted": false,
+      "exitCode": 0
+    },
+    "voiceSdkUnchanged": "routing.5",
+    "runtimeBehaviorChanges": false,
+    "desktopModified": false,
+    "desktopVersion": "1.13.22-laokuai.beta.20261014.14",
+    "userDataAccessed": false,
+    "productionChanged": false,
+    "note": "Only stale generated Electron chunks were removed. The self-extractor directly releases identical app files plus its license to a new fixed directory, refuses existing directories and TEMP targets, and never launches the app. Three empty NSIS TEMP writability probes were observed for three test executions; no temporary application payload or residual files. No real ET/TUN/media acceptance was performed.",
+    "receipt": "release/acceptance/compact15-portable-20261014.json"
+  },
+  "historicalInitialTestPackage": {
+    "schemaVersion": 1,
+    "date": "2026-10-13",
+    "version": "1.13.22-laokuai.beta.20261013.1",
+    "sourceCommit": "800ec22e484d2fef2b23493492b75862d9ed62f0",
+    "file": "唠蒯云-1.13.22-laokuai.beta.20261013.1-zh-CN-win-x64-portable.exe",
+    "bytes": 129281373,
+    "sha256": "d6669238f04439f316e586cdfb7492698f1edd1e0fdf05546b67505da5c20737",
+    "appAsarSha256": "82dfbdaa50814ac3c788e1ceaedaeb4cdf30b9528d55735eeb2d30bc706870fe",
+    "staticPayloadFiles": 146,
+    "staticPayloadPassed": true,
+    "npcapAbsent": true,
+    "sourceArchivesBundled": false,
+    "sourceAssetCount": 6,
+    "sourceAssetSha256Verified": true,
+    "repositoryVisibility": "public",
+    "publicSourceAccess": true,
+    "publicBlocker": null,
+    "tests": {
+      "coreContractSuites": 10,
+      "enrollmentBehaviors": 13,
+      "grantRuntimeBehaviors": 52,
+      "packageAuditBehaviors": 18,
+      "applicationTypes": true,
+      "applicationCompile": true,
+      "targetedLint": true
+    },
+    "bootstrap": {
+      "status": "passed",
+      "exitCode": 0,
+      "rootChildren": 1,
+      "preload": {
+        "electronAPI": "object",
+        "easyTierCommunity": "object"
+      },
+      "visible": false,
+      "focused": false,
+      "unexpectedEvents": 0,
+      "residualOwnedProcesses": 0,
+      "socketSamples": [
+        {
+          "seconds": 1.545,
+          "ownedProcesses": 1,
+          "tcpCount": 0,
+          "udpCount": 0
+        },
+        {
+          "seconds": 3.042,
+          "ownedProcesses": 6,
+          "tcpCount": 0,
+          "udpCount": 0
+        },
+        {
+          "seconds": 4.534,
+          "ownedProcesses": 6,
+          "tcpCount": 0,
+          "udpCount": 0
+        },
+        {
+          "seconds": 5.996,
+          "ownedProcesses": 6,
+          "tcpCount": 0,
+          "udpCount": 0
+        },
+        {
+          "seconds": 7.483,
+          "ownedProcesses": 6,
+          "tcpCount": 0,
+          "udpCount": 0
+        },
+        {
+          "seconds": 8.984,
+          "ownedProcesses": 6,
+          "tcpCount": 0,
+          "udpCount": 0
+        },
+        {
+          "seconds": 10.485,
+          "ownedProcesses": 6,
+          "tcpCount": 0,
+          "udpCount": 0
+        },
+        {
+          "seconds": 11.967,
+          "ownedProcesses": 6,
+          "tcpCount": 0,
+          "udpCount": 0
+        }
+      ],
+      "consoleErrors": 23,
+      "realElectronExecuted": true,
+      "isolatedFreshProfile": true,
+      "nativeEtExecuted": false,
+      "realCommunityOrDeviceMediaTest": false
+    },
+    "realUacTunAccepted": false,
+    "dualDeviceVoiceAccepted": false,
+    "publicBinaryRelease": false,
+    "note": "Extracted exact portable payload launched in hidden offline fresh-profile mode. NSIS wrapper not executed. 23 console errors consist of 20 intentional offline CSP/fetch blocks and 3 pre-existing disabled IPC promises; not an error-free console. Socket samples are not continuous packet capture.",
+    "receipt": "release/acceptance/autojoin-portable-20261013.json",
+    "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261013.1-zh-CN-win-x64-portable.exe"
+  },
+  "currentProductionDeployment": {
+    "sourceCommit": "06708268dfda7e5021e145970c913968d190f40c",
+    "receipt": "release/acceptance/live16-deployment-20261014.json",
+    "images": {
+      "server": "sha256:cf83e3e70f5b4a649b3b65268ae9d2e81f39c7cea551a4ab2cc49624d65de23c",
+      "sfu": "sha256:b4d3097e33f01ba79586fa87fa62f3d2d9ca3593e9c0100d7f943fcb90f0abca"
+    },
+    "status": "deployed",
+    "voiceMaxUsers": 12,
+    "sfuBitrateBps": 16000,
+    "sfuPacketTimeMs": 60,
+    "realTwoDeviceMediaAccepted": false
+  }
 }

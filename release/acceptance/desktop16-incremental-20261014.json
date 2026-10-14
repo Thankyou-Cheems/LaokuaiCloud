@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-14",
+  "status": "passed",
+  "baseVersion": "1.13.22-laokuai.beta.20261014.15",
+  "version": "1.13.22-laokuai.beta.20261014.16",
+  "applicationSourceCommit": "06708268dfda7e5021e145970c913968d190f40c",
+  "method": "fixed-baseline-block-delta",
+  "incremental": {
+    "file": "唠蒯云-15-to-16-update.zip",
+    "bytes": 15669079,
+    "sha256": "58c8c64ac84433bfbec1ae90893046267eb382a2feac0e0c894ccf84d288ba21",
+    "baseZipSha256": "70ec7fb029a9e06d0ef9b0ed300a5e829c44e4c31e57bb5be5f78f2b269109de",
+    "targetZipSha256": "44af025dff01dce720440a64d487cce098242c429f41229237d288881134d557"
+  },
+  "desktopProgramUpdated": true,
+  "payloadFilesVerified": 146,
+  "protectedFilesPreserved": 131,
+  "protectedFileHashesUnchanged": true,
+  "fullLocalBackupVerified": true,
+  "incrementalRegressionScenarios": 17,
+  "applicationLaunched": false,
+  "nativeEtExecuted": false,
+  "realTwoDeviceMediaAccepted": false,
+  "note": "Updated the stopped desktop from the exact .15 baseline. All 146 program hashes and 131 existing data/config file hashes verified. Complete backup and private update reports remain local. Production deployment is recorded separately."
+}

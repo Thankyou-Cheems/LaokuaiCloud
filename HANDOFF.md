@@ -1,9 +1,28 @@
 # 当前开发交接
 
 更新：2026-10-14。唯一开发目录 `D:\Dev\LaokuaiCloud`，分支 `main`。
-桌面已增量更新为 `1.13.22-laokuai.beta.20261014.15`，账号数据和配置逐项校验未变。易记 MagicDNS
+桌面已增量更新为 `1.13.22-laokuai.beta.20261014.16`，账号数据和配置逐项校验未变。易记 MagicDNS
 已部署并经用户确认，成员中继两端服务端开关已开启，成员移动能力也已启用。
 真实多设备转发、移频恢复、游戏和 12 人 WAN 语音仍未验收。
+
+## .16 纠偏包与桌面更新
+
+- 固定源码 `06708268dfda7e5021e145970c913968d190f40c`，SDK routing.6，已推送 public main。
+- 修复 ET 省略空列表导致状态丢失、旧配对清理、媒体新鲜度与阶段等待冲突、
+  SFU 重协商编码策略；客户端诊断原因复用同一枚举。没有新增重试状态机。
+- 桌面 146 项程序文件匹配 .16，131 项原有账号/配置等文件哈希未变，
+  277 文件完整备份保留于本地。更新后未启动应用。
+- `.15 → .16` 增量 15669079 B；新用户自解压 111755008 B；ZIP 159346785 B。
+  精确哈希与源码见 [包回执](release/acceptance/live16-portable-20261014.json) 和
+  [桌面回执](release/acceptance/desktop16-incremental-20261014.json)。
+- 37 组核心、客户端类型/lint、8 组 SDK 检查通过；增量 17 项及自解压只释放
+  文件的验证通过。没有启动真实桌面客户端或本机 Go/ICE 测试。
+- 上述是本地记录。源码提交的 GitHub CI 因干净环境缺少 helper 失败，后续
+  SDK 步骤被跳过；不能记为 CI 通过，后续测试纠偏单独记录。
+- [纠偏归属](docs/VOICE-CORRECTION16-20261014.md) 与
+  [慢统计红绿证据](docs/MEDIA-FRESHNESS16-20261014.md)。真实双人持续 P2P、听感
+  仍待新版实测。Gryt/SFU 已更新并通过健康检查，ET/代理代次未变；见
+  [部署回执](release/acceptance/live16-deployment-20261014.json)。
 
 ## .15 在线失败与待交付修复
 
@@ -12,13 +31,13 @@
 [在线诊断记录](docs/LIVE15-VOICE-DIAGNOSIS-20261014.md)。真实 ET RouteList 的
 ProtoJSON 空列表省略触发本地整图拒绝，已红绿复现；另发现媒体新鲜度契约
 冲突、离房后旧 pair 清理问题、SFU 重协商/移频编码策略不一致。修复源码与
-诊断改进尚未打新包或部署，桌面及线上服务仍保持原版本。
+诊断改进现已整合到上述 .16 桌面包；本节保留 .15 失败调查，后端状态另记。
 
 本轮 Windows 上的 Go WebRTC 测试触发了 `webrtc.test.exe` 防火墙提示，已
 停止并确认进程退出。用户在线测试期间不得再跑真实 ICE/网络 Go 套件；改在
 隔离环境执行。不要将测试程序提示当成产品防火墙问题，不删除非本应用规则。
 
-## 最新精简分发包
+## 前一 .15 精简分发包
 
 - `唠蒯云-1.13.22-laokuai.beta.20261014.15-绿色自解压.exe`：111745661 B，SHA256 `141bcbc3498f7d08d6a9a6ff635c7dbe8c6cfa22264862f48f8a930f2ac1d66f`。
 - 应用源码 `b4ab252e26c6938556c168435dc9132b0f56aae0`；自解压源码 `79d0856c843b614e1ef14f0b30787e79d2bc9a96`。
@@ -59,6 +78,14 @@ ProtoJSON 空列表省略触发本地整图拒绝，已红绿复现；另发现�
 
 ## 当前生产状态与回退
 
+当前 Gryt 与 SFU 均来自 `06708268dfda7e5021e145970c913968d190f40c`；只更新这两份镜像。
+Gryt：`sha256:cf83e3e70f5b4a649b3b65268ae9d2e81f39c7cea551a4ab2cc49624d65de23c`；
+SFU：`sha256:b4d3097e33f01ba79586fa87fa62f3d2d9ca3593e9c0100d7f943fcb90f0abca`。公网 health 200，环境、端口、挂载、成员/聊天数据、
+12 人限制、16 kbps / 60 ms、中继与移频开关保持；ET 容器及管理代理代次未变。
+部署与回退使用 `release/deployment/live16-voice-fixes/run-phase.ps1` 的固定 r2
+离线 wrapper 入口（精确参数见其 README）。旧镜像与在线数据库备份保留。
+以下是仍需保留的此前部署来源，不表示当前镜像仍是旧版。
+
 Gryt 源码 `5eed3757e74f76099a7f2991a6c4c9c38fbe462a`，镜像
 `sha256:34cde4c1b3744568269bed640feec49706329da0ec8d1fb85a9feb1c8dea1425`。
 易记域名部署见 [回执](release/acceptance/friendly-dns-deployment-20261013.json)：
@@ -83,6 +110,7 @@ Gryt 源码 `5eed3757e74f76099a7f2991a6c4c9c38fbe462a`，镜像
 
 后续 Compose 操作必须保留全部既有 overlays，尤其是：
 
+- `/opt/stacks/gryt/live16-voice-fixes-06708268dfda-r2/activation.overlay.json`。
 - `/opt/stacks/gryt/friendly-dns-20261013-r1/activation.overlay.json`。
 - `/opt/stacks/gryt/voice-member-move-20261014-r1/activation.overlay.json`。
 - `/opt/stacks/gryt/member-relay-v2-20261013-r1/activation.overlay.json`。
