@@ -15,7 +15,7 @@ export class LocalDiagnosticWriter {
     // Countdown numbers are observations, not distinct messages.
     const key = JSON.stringify([event.phase, event.operation, event.action, event.code, event.hostSlot, event.cleanup,
       event.generation, event.httpStatus, event.scopeGeneration, event.routeOrdinal, event.routeGeneration,
-      event.selectionRevision, event.status, event.selected, event.reason, event.forwardingPaused,
+      event.selectionRevision, event.quitStage, event.status, event.selected, event.reason, event.forwardingPaused,
       event.connected, event.rosterReady, event.epochReady, event.pathClass, event.pathReason,
       event.localCandidateType, event.remoteCandidateType, event.underlayClass, event.decodeProof,
       event.decodeReason, event.failureReason, event.forwardingAction, event.result, event.handoffStage]);

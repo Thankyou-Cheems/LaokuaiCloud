@@ -3860,7 +3860,7 @@
     }
   }
 ,
-  "voiceRoom": {"members_one":"{{count}} 人","members_other":"{{count}} 人","expand":"展开房间成员","collapse":"收起房间成员","current":"你所在的语音房间"}
+  "voiceRoom": {"members_one":"{{count}} 人","members_other":"{{count}} 人","expand":"展开房间成员","collapse":"收起房间成员","current":"你所在的语音房间","dragMember":"拖动 {{name}} 到其他语音频道","dropMember":"松开以移动 {{name}} 到 {{channel}}","moveUnavailable":"当前社区或成员客户端尚未支持语音频道移动"}
 ,
   "connectionDetails": {
     "menu": "连接详情",

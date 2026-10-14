@@ -3860,7 +3860,7 @@
     }
   }
 ,
-  "voiceRoom": {"members_one":"{{count}} member","members_other":"{{count}} members","expand":"Show room members","collapse":"Hide room members","current":"Your current voice room"}
+  "voiceRoom": {"members_one":"{{count}} member","members_other":"{{count}} members","expand":"Show room members","collapse":"Hide room members","current":"Your current voice room","dragMember":"Drag {{name}} to another voice channel","dropMember":"Release to move {{name}} to {{channel}}","moveUnavailable":"This community or member client does not yet support voice channel moves"}
 ,
   "connectionDetails": {
     "menu": "Connection details",

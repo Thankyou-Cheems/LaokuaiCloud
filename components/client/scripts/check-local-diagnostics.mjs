@@ -1,8 +1,10 @@
+/* eslint-env node */
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import vm from 'node:vm';
+
 import ts from 'typescript';
 const root = path.resolve(import.meta.dirname, '..');
 function load(file, imports = {}) {
@@ -21,6 +23,10 @@ for (const extra of [{pathReason:'raw candidate'}, {localCandidateType:'10.0.0.1
 assert.ok(schema.safeDiagnostic({phase:'voice',operation:'hybrid-forwarding',action:'finish',code:'ok',forwardingAction:'restore',result:'acknowledged',reason:'validated_ack'}));
 const handoff = {phase:'voice',operation:'hybrid-handoff',action:'finish',code:'ok',handoffStage:'local_handoff_completed',reason:'local_handoff_before_pause',elapsedMs:24};
 assert.ok(schema.safeDiagnostic(handoff));
+const quit = {phase:'cleanup',operation:'app-quit',action:'finish',code:'ok',quitStage:'owned-core',elapsedMs:4000};
+for (const quitStage of schema.QUIT_DIAGNOSTIC_STAGES) assert.ok(schema.safeDiagnostic({...quit,quitStage}));
+for (const extra of [{quitStage:'private-host'}, {elapsedMs:Infinity}, {elapsedMs:-1}, {elapsedMs:3_600_001},
+  {phase:'socket'}, {operation:'core-stop'}, {token:'secret'}, {exception:'raw-private-error'}]) assert.equal(schema.safeDiagnostic({...quit,...extra}),null);
 for (const extra of [{handoffStage:'private-peer'}, {elapsedMs:Infinity}, {reason:'raw exception'}]) assert.equal(schema.safeDiagnostic({...handoff,...extra}),null);
 assert.ok(schema.safeDiagnostic(networkDiagnostic({event:'http',action:'finish',operation:'binding',httpStatus:409,code:'provider-unavailable'})));
 assert.equal(schema.safeDiagnostic(networkDiagnostic({event:'http',action:'finish',operation:'binding',httpStatus:409,code:'provider-unavailable',reason:'binding-pending'})).reason,'binding-pending');
@@ -50,6 +56,10 @@ try {
   writer.record(route); writer.record({...route,selected:'sfu',status:'recovering',forwardingPaused:false}); writer.flush();
   const transitions = fs.readFileSync(path.join(dir,'events.jsonl'),'utf8').trim().split('\n').map(JSON.parse);
   assert.equal(transitions.filter(row=>row.event.operation==='hybrid-route').length,2,'route transitions must not aggregate away');
+  writer.record(quit); writer.record({...quit,quitStage:'dns-stop',elapsedMs:1200}); writer.flush();
+  const quitRows = fs.readdirSync(dir).flatMap(name=>fs.readFileSync(path.join(dir,name),'utf8').trim().split('\n').map(JSON.parse)).filter(row=>row.event.quitStage);
+  assert.equal(quitRows.length,2,'parallel quit stages must not aggregate away');
+  assert.deepEqual(quitRows.map(row=>row.event.quitStage).sort(),['dns-stop','owned-core']);
   for (let i = 0; i < 50; i++) {writer.record({...event, elapsedMs: i}); writer.flush();}
   assert.deepEqual(ioErrors, []);
   const files = fs.readdirSync(dir); assert.equal(files.length, 3);

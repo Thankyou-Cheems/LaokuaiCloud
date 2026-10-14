@@ -39,6 +39,7 @@ import semver from "semver";
 import { fileURLToPath } from "url";
 
 import { parseCombo, type ParsedCombo } from "../src/lib/hotkeys";
+import type { LocalDiagnostic } from "../src/lib/localDiagnostics";
 import { SQUAD_DEFAULTS, squadCombo, type SquadConfig, squadTargetValid, squadVirtualKey, validateSquadConfig } from "../src/lib/squadMode";
 import {
   checkAddonUpdates,
@@ -256,7 +257,6 @@ const LAOKUAI_PREVIEW = IS_LAOKUAI && process.argv.includes("--laokuai-preview")
 if (LAOKUAI_PREVIEW && (!IS_I18N_TEST || process.env.VITE_DEV_SERVER_URL)) throw new Error("Laokuai preview requires product flags and built product origin");
 const localDiagnostics = IS_LAOKUAI ? new LocalDiagnosticWriter(join(app.getPath("userData"), "laokuai-diagnostics")) : null;
 localDiagnostics?.record({phase: "app", operation: "app-bootstrap", action: "start", code: "ok"});
-app.on("will-quit", () => {localDiagnostics?.record({phase: "cleanup", operation: "app-quit", action: "finish", code: "ok"}); localDiagnostics?.close();});
 
 const applicationIpc = UI_ACCEPTANCE_MODE ? createUIAcceptanceIpc(ipcMain) : ipcMain;
 
@@ -365,35 +365,80 @@ let easyTierQuitDrained = false;
 let easyTierQuitDraining = false;
 let cleanupFirewallOnQuit = false;
 // Registered before updater hooks: ordinary quits wait for owned instance stop.
+let quitStartedMono: number | null = null;
+let quitCleanupFailed = false;
+function recordQuitStage(stage: NonNullable<LocalDiagnostic["quitStage"]>, action: "start" | "send" | "finish",
+  startedMono = performance.now(), code: "ok" | "cleanup-failed" = "ok"): void {
+  const elapsed = performance.now() - startedMono;
+  try {
+    localDiagnostics?.record({phase: "cleanup", operation: "app-quit", action, code, quitStage: stage,
+      elapsedMs: Number.isFinite(elapsed) ? Math.min(3_600_000, Math.max(0, Math.floor(elapsed))) : 0});
+  } catch { /* Observers cannot delay or prevent shutdown. */ }
+}
+async function drainQuitStage<T>(stage: NonNullable<LocalDiagnostic["quitStage"]>, work: () => Promise<T>,
+  confirmed: (value: T) => boolean = () => true): Promise<T> {
+  const started = performance.now(); recordQuitStage(stage, "start", started);
+  try {
+    const result = await work(); const ok = confirmed(result);
+    if (!ok) quitCleanupFailed = true;
+    recordQuitStage(stage, "finish", started, ok ? "ok" : "cleanup-failed"); return result;
+  }
+  catch (error) { quitCleanupFailed = true; recordQuitStage(stage, "finish", started, "cleanup-failed"); throw error; }
+}
+function finishQuitStage(stage: NonNullable<LocalDiagnostic["quitStage"]>, work: () => void): void {
+  const started = performance.now(); recordQuitStage(stage, "start", started);
+  try { work(); recordQuitStage(stage, "finish", started); }
+  catch { quitCleanupFailed = true; recordQuitStage(stage, "finish", started, "cleanup-failed"); }
+}
+function runQuitTasks(tasks: readonly (() => unknown)[]): void {
+  let failed = false;
+  for (const task of tasks) { try { task(); } catch { failed = true; } }
+  if (failed) throw new Error("quit-cleanup-failed");
+}
 app.on("before-quit", event => {
   if (LAOKUAI_PREVIEW) {localDiagnostics?.record({phase: "cleanup", operation: "core-stop", action: "finish", code: "ok", cleanup: "not-started"}); return;}
   if (UI_ACCEPTANCE_MODE || (IS_I18N_TEST && !IS_LAOKUAI) || easyTierQuitDrained) return;
   event.preventDefault();
   if (easyTierQuitDraining) return;
   easyTierQuitDraining = true;
+  quitStartedMono = performance.now();
+  recordQuitStage("lifecycle", "start", quitStartedMono);
   firewallStopping = true;
   // Retire the UI/media immediately. Only the main process stays briefly alive
   // to finish owned native cleanup and credential revocation in the background.
   isQuitting = true;
-  if (easyTierPoll) { clearInterval(easyTierPoll); easyTierPoll = null; }
-  closeMediaSandbox();
-  if (tray && !tray.isDestroyed()) tray.destroy();
-  tray = null;
-  for (const window of BrowserWindow.getAllWindows()) window.close();
-  easyTierEnrollment.shutdown();
-  easyTierCommunities.shutdownOwned();
-  void Promise.allSettled([easyTierProduction.drainOwned(), easyTierGrants.drainOwned(), communityDns.stop()]).then(async results => {
+  finishQuitStage("ui-retire", () => {
+    runQuitTasks([
+      () => { if (easyTierPoll) { clearInterval(easyTierPoll); easyTierPoll = null; } },
+      closeMediaSandbox,
+      () => { const old = tray; tray = null; if (old && !old.isDestroyed()) old.destroy(); },
+      () => runQuitTasks(BrowserWindow.getAllWindows().map(window => () => window.close())),
+    ]);
+  });
+  finishQuitStage("owned-shutdown", () => {
+    runQuitTasks([() => easyTierEnrollment.shutdown(), () => easyTierCommunities.shutdownOwned()]);
+  });
+  void Promise.allSettled([
+    drainQuitStage("owned-core", () => easyTierProduction.drainOwned()),
+    drainQuitStage("grant-revoke", () => easyTierGrants.drainOwned()),
+    drainQuitStage("dns-stop", () => communityDns.stop()),
+  ]).then(async results => {
     if (results.some(result => result.status === "rejected")) throw new Error("owned-cleanup-unconfirmed");
-    await firewallWork;
+    await drainQuitStage("firewall-wait", async () => { await firewallWork; });
     if (cleanupFirewallOnQuit) {
-      const report = await cleanupLaokuaiFirewallRules(laokuaiFirewallOptions());
+      const report = await drainQuitStage("firewall-cleanup", async () => {
+        const result = await cleanupLaokuaiFirewallRules(laokuaiFirewallOptions());
+        return result;
+      }, result => result.status === "prepared" || result.status === "bypassed");
       if (report.status !== "prepared" && report.status !== "bypassed") {
         dialog.showErrorBox("部分网络规则未清理", "只移除了确认由本应用创建的规则。属性被修改、同名冲突或系统策略限制的规则会保留；本地账本已保留，修复后可按绿色包说明中的清理步骤重试。");
       }
     }
   }).catch(() => {
+    quitCleanupFailed = true;
     if (cleanupFirewallOnQuit) dialog.showErrorBox("网络规则未完全清理", "社区联机退出或本应用名称解析规则清理尚未确认，未确认归属的规则会保留。请确认本应用已完全退出后，再按绿色包说明中的清理步骤重试。");
-    localDiagnostics?.record({phase: "cleanup", operation: "core-stop", action: "finish", code: "cleanup-failed", cleanup: "pending"});
+    try { localDiagnostics?.record({phase: "cleanup", operation: "core-stop", action: "finish", code: "cleanup-failed", cleanup: "pending"}); }
+    catch { /* Diagnostics cannot replace the cleanup outcome with an observer failure. */ }
     // No native output, endpoints, credentials or resource identifiers in logs.
     console.warn("[Main] Community LAN stop remains unconfirmed; residual review required");
   }).finally(() => { easyTierQuitDrained = true; app.quit(); });
@@ -2987,6 +3032,7 @@ function buildTrayContextMenu(): Menu {
       label: "清理本应用网络规则并退出",
       click: () => {
         cleanupFirewallOnQuit = true;
+        recordQuitStage("tray-click", "send");
         isQuitting = true;
         app.quit();
       },
@@ -2994,6 +3040,7 @@ function buildTrayContextMenu(): Menu {
     {
       label: nativeT(IS_LAOKUAI ? "privateQuit" : "1a2285d8881f"),
       click: () => {
+        recordQuitStage("tray-click", "send");
         isQuitting = true;
         app.quit();
       },
@@ -5078,25 +5125,23 @@ if (!gotSingleInstanceLock) {
         "[Main] will-quit: flushing stores and cleaning up"
       );
 
-      flushUserStore();
-      flushGlobalStore();
-      closeMediaSandbox();
-      if (easyTierPoll) clearInterval(easyTierPoll);
-      easyTierCommunities.shutdownOwned();
-
-      squadBroker?.stop();
-      if (uiohookRunning) {
-        uiohookLib?.uIOhook.stop();
-        uiohookRunning = false;
-      }
-
-      localServer?.close();
-      localServer = null;
-
-      // Removes the socket file before this returns; the close finishes on its own.
-      void presenceSource?.stop();
-
-      cleanupOnQuit();
+      finishQuitStage("user-store-flush", flushUserStore);
+      finishQuitStage("global-store-flush", flushGlobalStore);
+      finishQuitStage("final-cleanup", () => {
+        // An optional subsystem failure must not skip the remaining owned cleanup.
+        const tasks = [closeMediaSandbox,
+          () => { if (easyTierPoll) clearInterval(easyTierPoll); },
+          () => easyTierCommunities.shutdownOwned(),
+          () => squadBroker?.stop(),
+          () => { if (uiohookRunning) { uiohookLib?.uIOhook.stop(); uiohookRunning = false; } },
+          () => { localServer?.close(); localServer = null; },
+          // Removes the socket file synchronously; asynchronous close is not awaited here.
+          () => { void presenceSource?.stop().catch(() => undefined); },
+          cleanupOnQuit];
+        runQuitTasks(tasks);
+      });
+      recordQuitStage("lifecycle", "finish", quitStartedMono ?? performance.now(), quitCleanupFailed ? "cleanup-failed" : "ok");
+      try { localDiagnostics?.close(); } catch { /* Last observer must never prevent process exit. */ }
     }
   );
 }

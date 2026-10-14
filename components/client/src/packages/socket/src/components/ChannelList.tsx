@@ -27,12 +27,15 @@ import { channelHref } from "@/lib/mentionTokens";
 import { Channel, SidebarItem, SidebarReorderEntry } from "@/settings/src/types/server";
 
 import { PiCaretDownFill, PiCaretRightFill, PiChatCircleFill, PiChatsFill, PiGameControllerFill, PiGaugeFill, PiKeyboardFill, PiLockSimpleFill, PiRobotFill, PiSpeakerHighFill } from "../../../../lib/icons";
+import { useServerPermissions } from "../hooks/usePermissions";
+import { useSockets } from "../hooks/useSockets";
 import type { Client } from "../types/clients";
 import { ConnectedUser } from "./connectedUser";
 import { EmojiText } from "./EmojiText";
 import { LabelledDivider } from "./LabelledDivider";
 import { MarkAsReadItem } from "./MarkAsReadItem";
 import type { AdminActions,MemberInfo } from "./MemberSidebar";
+import { SidebarDragRow } from "./SidebarDragRow";
 import {
   buildReorderPayload,
   type ChannelPlacement,
@@ -46,6 +49,9 @@ import {
   restoreHiddenRows,
 } from "./sidebarTree";
 import { UnreadIndicator } from "./UnreadIndicator";
+import { useVoiceMemberDrag } from "./useVoiceMemberDrag";
+import { VoiceDraggableMember } from "./VoiceDraggableMember";
+import { VoiceMemberDropZone } from "./VoiceMemberDropZone";
 
 /** A role id. The server defines its own; these only pass one along. */
 type Role = string;
@@ -157,10 +163,18 @@ export const ChannelList = ({
   // The same analyser source the voice tile uses, so the row's ring and the
   // tile's agree. false takes no handle; useMicrophone is a singleton.
   const { microphoneBuffer } = useMicrophone(false);
+  const { sockets, serverDetailsList } = useSockets();
+  const { has, roles } = useServerPermissions(serverHost);
 
   const memberByServerUserId = new Map(
     (members || []).map((m) => [m.serverUserId, m])
   );
+  const voiceDrag = useVoiceMemberDrag({
+    host: serverHost, generation: sockets[serverHost]?.id, connected: sockets[serverHost]?.connected === true,
+    enabled: serverDetailsList[serverHost]?.server_info?.voice_atomic_move_enabled === true,
+    canDisconnect: has("disconnect_members"), role: currentUserRole, roles, members: memberByServerUserId,
+    clients, channels, authoritativeChannels: serverDetailsList[serverHost]?.channels ?? [],
+  }, sockets[serverHost]);
   const avatarByServerUserId = new Map<string, string | null | undefined>(
     (members || []).map((m) => [m.serverUserId, m.avatarFileId])
   );
@@ -342,7 +356,7 @@ export const ChannelList = ({
     const membersId = `voice-members-${encodeURIComponent(serverHost)}-${encodeURIComponent(channelId)}`;
 
     return (
-      <div className="flex flex-col items-start w-full relative">
+      <VoiceMemberDropZone drag={voiceDrag} channelId={channelId} channelName={channel?.name}>
         {/* Ghost unless it is the one you are in. Every row was a plain
             <Button>, which is the filled accent one, so the whole list read as
             selected and the channel you were actually in was invisible —
@@ -462,6 +476,7 @@ export const ChannelList = ({
                   {voiceMembers.map(
                     (id) =>
                       clients[id].hasJoinedChannel && clients[id].voiceChannelId === channelId && (
+                        <VoiceDraggableMember key={id} drag={voiceDrag} clientId={id}>
                         <ConnectedUser
                           serverHost={serverHost}
                           streamId={clients[id].streamID}
@@ -520,6 +535,7 @@ export const ChannelList = ({
                           onToggleRole={adminActions?.onToggleRole && clients[id].serverUserId ? (role: Role, hold: boolean) => adminActions.onToggleRole!(clients[id].serverUserId!, role, hold) : undefined}
                           key={id}
                         />
+                        </VoiceDraggableMember>
                       )
                   )}
                 </div>
@@ -527,7 +543,7 @@ export const ChannelList = ({
             )}
           </AnimatePresence>
         )}
-      </div>
+      </VoiceMemberDropZone>
     );
   };
 
@@ -892,7 +908,7 @@ export const ChannelList = ({
           for its row at once, rather than fading beside the copy it carries. */}
       <AnimatePresence initial={false} mode="popLayout" custom={draggedGroup !== null}>
         {localItems.map((item, index) => (
-          <Reorder.Item
+          <SidebarDragRow
             key={stableKeyById.get(item.id) ?? item.id}
             value={item}
             as="div"
@@ -931,7 +947,7 @@ export const ChannelList = ({
             ) : (
               wrapWithContextMenu(item, index, renderItem(item))
             )}
-          </Reorder.Item>
+          </SidebarDragRow>
         ))}
       </AnimatePresence>
     </Reorder.Group>

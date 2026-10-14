@@ -1,18 +1,14 @@
 import { useTranslation } from "@/i18n";
 import { useReceiveCorrection } from "@/webRTC/src/components/ReceiveCorrectionAdapter";
 
-import { readReceiveCorrection, RECEIVE_CORRECTION_LABELS_EN, RECEIVE_CORRECTION_LABELS_ZH } from "../../../../lib/receiveCorrection";
+import { RECEIVE_CORRECTION_LABELS_EN, RECEIVE_CORRECTION_LABELS_ZH, receiveCorrectionFromMeasurement } from "../../../../lib/receiveCorrection";
 import { ReceiveCorrectionRing } from "./ReceiveCorrectionRing";
 
 /** Receiver-local measurements, keyed by server identity and primary mic route. */
 export function RemoteReceiveCorrection({ host, member, streamId, compact }: { host?: string; member?: string; streamId?: string; compact?: boolean }) {
   const { i18n, t } = useTranslation();
   const measurement = useReceiveCorrection(host, member, streamId);
-  const snapshot = measurement ? {
-    learnedAutoGainDb: measurement.learnedAutoGainDb,
-    appliedAutoGainDb: measurement.appliedAutoGainDb,
-    state: measurement.status === "settled" ? "stable" as const : measurement.status === "unavailable" ? "unknown" as const : measurement.status,
-  } : readReceiveCorrection();
+  const snapshot = receiveCorrectionFromMeasurement(measurement);
   const reasonKeys = {
     noise_budget: "receiveCorrection.noiseBudget", gain_range: "receiveCorrection.gainRange",
     noise_evidence_missing: "receiveCorrection.noiseMissing", analyzer_unavailable: "receiveCorrection.analyzerUnavailable",
@@ -21,7 +17,7 @@ export function RemoteReceiveCorrection({ host, member, streamId, compact }: { h
   } as const;
   const diagnostic = measurement?.limitReasons.map(reason => {
     const key = reasonKeys[reason];
-    return key ? `${t(key)} (${reason})` : reason;
+    return key ? t(key) : reason;
   }).join("; ");
   return <ReceiveCorrectionRing {...snapshot}
     compact={compact}

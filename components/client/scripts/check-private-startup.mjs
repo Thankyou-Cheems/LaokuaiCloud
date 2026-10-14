@@ -66,8 +66,9 @@ assert.ok(main.includes('"laokuai://auth?error=login_window_failed"'));
 native.setNativeLanguagePreference("zh-CN", []);
 const control = new Function("app", "process", "Tray", "nativeImage", "Menu", "window", "nativeT", "refreshNativeLanguage", `
   let mainWindow=window, tray=null, closeToTray=true, isQuitting=false, IS_LAOKUAI=true, isUserSignedIn=false;
-  const LAOKUAI_FIREWALL_ENABLED=false;
+  let LAOKUAI_FIREWALL_ENABLED=false;
   let cleanupFirewallOnQuit=false;
+  const quitDiagnostics=[], recordQuitStage=(...event)=>quitDiagnostics.push(event);
   let voiceState={inVoice:true,muted:false,deafened:false,serverName:'Fixture only'};
   const updates={ready:()=>false}, updatesComeFromTheAppStore=true;
   const startupLog=()=>{}, createMainWindow=()=>{}, installNewestUpdate=()=>{}, checkForUpdatesInBackground=()=>{};
@@ -77,8 +78,10 @@ const control = new Function("app", "process", "Tray", "nativeImage", "Menu", "w
   return { createTray, refreshTray, toggleMainWindow, currentTrayIconPath, trayTooltip, buildTrayContextMenu,
     set: values=>{ if('quitting' in values)isQuitting=values.quitting; if('closeToTray' in values)closeToTray=values.closeToTray;
       if('signedIn' in values)isUserSignedIn=values.signedIn; if('private' in values)IS_LAOKUAI=values.private;
+      if('firewall' in values)LAOKUAI_FIREWALL_ENABLED=values.firewall;
       if('voice' in values)voiceState={...voiceState,...values.voice}; if(values.destroyTray)tray.destroyed=true; },
-    tray:()=>tray, voice:()=>({...voiceState}), quitting:()=>isQuitting, etShutdownCalls:()=>etShutdownCalls };
+    tray:()=>tray, voice:()=>({...voiceState}), quitting:()=>isQuitting, etShutdownCalls:()=>etShutdownCalls,
+    quitDiagnostics:()=>quitDiagnostics, cleanupRequested:()=>cleanupFirewallOnQuit };
 `)(app, { platform: "win32" }, FakeTray, { createFromPath: file => ({ file, isEmpty: () => missingImage }) },
   { buildFromTemplate: value => value }, window, native.nativeT, () => {});
 const close = () => { let prevented = false; windowEvents.close({ preventDefault: () => { prevented = true; } }); return prevented; };
@@ -96,6 +99,14 @@ check("menu offers explicit restore and quit", () => {
   close(); const menu = control.buildTrayContextMenu(); assert.equal(menu[0].label, native.nativeT("726dff642ff6"));
   menu[0].click(); assert.equal(visible, true); menu.find(item => item.label === native.nativeT("privateQuit")).click();
   assert.equal(quitCalls, 1); assert.equal(control.quitting(), true); assert.equal(close(), false);
+  assert.deepEqual(control.quitDiagnostics().at(-1), ['tray-click','send']);
+});
+check("explicit network-rule cleanup menu records a safe quit request before quitting", () => {
+  control.set({firewall:true,quitting:false}); const before=quitCalls;
+  control.buildTrayContextMenu().find(item=>item.label==='清理本应用网络规则并退出').click();
+  assert.equal(quitCalls,before+1); assert.equal(control.cleanupRequested(),true);
+  assert.equal(control.quitting(),true); assert.deepEqual(control.quitDiagnostics().at(-1),['tray-click','send']);
+  control.set({firewall:false});
 });
 check("saved false close-to-tray is respected", () => { control.set({ quitting: false, closeToTray: false }); assert.equal(close(), false); });
 check("missing or destroyed tray permits close", () => { control.set({ closeToTray: true, destroyTray: true }); assert.equal(close(), false); });

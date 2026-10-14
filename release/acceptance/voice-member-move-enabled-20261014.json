@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-14",
+  "status": "enabled",
+  "gate": "true",
+  "serverImage": "sha256:34cde4c1b3744568269bed640feec49706329da0ec8d1fb85a9feb1c8dea1425",
+  "sfuImage": "sha256:585f0a76df9420f228f7b47020c35247cb76524f63125ea7c5bf49bb8ee9cd7b",
+  "restartServices": [
+    "server"
+  ],
+  "existingOverlaysPreserved": 9,
+  "maxUsers": 12,
+  "allOtherEnvironmentPortsMountsPreserved": true,
+  "otherServicesUnchanged": true,
+  "databaseModifiedByOperator": false,
+  "backupOnServerOnly": true,
+  "capability": {
+    "status": "passed",
+    "voiceAtomicMoveEnabled": true,
+    "authenticated": false,
+    "joinedCommunity": false,
+    "joinedVoice": false
+  },
+  "activationOverlay": "/opt/stacks/gryt/voice-member-move-20261014-r1/activation.overlay.json",
+  "rollback": "release/deployment/voice-member-move/operator.py rollback",
+  "userAuthorized": true,
+  "realTwoClientMoveAccepted": false
+}

@@ -20,6 +20,7 @@ const evidenceEnums = {
   handoffStage:["peer_media_ready", "local_handoff_started", "local_handoff_completed", "sfu_restore_completed", "recovery_failed"],
 } as const;
 type EvidenceFields = { [K in keyof typeof evidenceEnums]?: typeof evidenceEnums[K][number] };
+export const QUIT_DIAGNOSTIC_STAGES = ["tray-click", "lifecycle", "ui-retire", "owned-shutdown", "owned-core", "grant-revoke", "dns-stop", "firewall-wait", "firewall-cleanup", "user-store-flush", "global-store-flush", "final-cleanup"] as const;
 export const ET_DIAGNOSTIC_REASONS = ["binding-pending", "binding-unproven", "provider-sample-conflict", "provider-observation-mismatch", "route-binding-mismatch", "duplicate-key-owner", "connection-evidence-conflict", "grant-operation-busy", "grant-operation-retired", "operation-retired", "unknown-grant", "inactive-binding-grant", "expired-grant", "reconciliation-required", "revocation-unconfirmed", "renewal-not-extended", "community-et-unavailable", "community-et-disabled", "provider-incompatible", "issuer-store-unavailable"] as const;
 export interface LocalDiagnostic extends EvidenceFields {
   phase: "app" | "socket" | "api" | "lan" | "cleanup" | "voice";
@@ -29,6 +30,7 @@ export interface LocalDiagnostic extends EvidenceFields {
   hostSlot?: number; retryAfterMs?: number; nextRetryMs?: number;
   elapsedMs?: number; sent?: number; suppressed?: number;
   cleanup?: "confirmed" | "pending" | "not-started";
+  quitStage?: typeof QUIT_DIAGNOSTIC_STAGES[number];
   generation?: number; httpStatus?: number; scopeGeneration?: number; routeOrdinal?: number;
   routeGeneration?: number; selectionRevision?: number;
   status?: typeof statuses[number]; selected?: "sfu" | "p2p" | "none";
@@ -37,7 +39,7 @@ export interface LocalDiagnostic extends EvidenceFields {
 }
 const numeric = ["hostSlot", "retryAfterMs", "nextRetryMs", "elapsedMs", "sent", "suppressed", "generation", "httpStatus", "scopeGeneration", "routeOrdinal", "routeGeneration", "selectionRevision"] as const;
 const booleans = ["forwardingPaused", "connected", "rosterReady", "epochReady"] as const;
-const fields = new Set(["phase", "operation", "action", "code", "cleanup", "status", "selected", "reason", ...numeric, ...booleans, ...Object.keys(evidenceEnums)]);
+const fields = new Set(["phase", "operation", "action", "code", "cleanup", "quitStage", "status", "selected", "reason", ...numeric, ...booleans, ...Object.keys(evidenceEnums)]);
 export function safeDiagnostic(value: unknown): LocalDiagnostic | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const v = value as Record<string, unknown>;
@@ -73,6 +75,11 @@ export function safeDiagnostic(value: unknown): LocalDiagnostic | null {
   if (v.cleanup !== undefined) {
     if (!["confirmed", "pending", "not-started"].includes(String(v.cleanup))) return null;
     result.cleanup = v.cleanup as LocalDiagnostic["cleanup"];
+  }
+  if (v.quitStage !== undefined) {
+    if (!QUIT_DIAGNOSTIC_STAGES.includes(v.quitStage as NonNullable<LocalDiagnostic["quitStage"]>) ||
+        v.phase !== "cleanup" || v.operation !== "app-quit") return null;
+    result.quitStage = v.quitStage as LocalDiagnostic["quitStage"];
   }
   return result;
 }

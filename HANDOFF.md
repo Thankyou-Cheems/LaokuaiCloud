@@ -35,6 +35,10 @@ Gryt 源码 `5eed3757e74f76099a7f2991a6c4c9c38fbe462a`，镜像
 仅 Gryt 重启；环境、端口、挂载、12人限制及中继开关保持，SFU/ET/代理未变。
 回退基线是已支持 V2 的 fe151bbd 镜像，操作器在 `release/deployment/friendly-dns/`。
 邀请与 DNS 目录已部署；`LAOKUAI_MEMBER_RELAY_POLICY_V2=1`。
+2026-10-14 用户授权后仅开启 `VOICE_ATOMIC_MOVE_ENABLED=true` 并重启 Gryt，
+镜像和其他配置不变；匿名 `server:info` 能力确认通过，SFU/ET/管理代理未重启。
+见 [成员移动启用回执](release/acceptance/voice-member-move-enabled-20261014.json)。
+实际双端移频仍待测试。
 管理代理源码 SHA256
 `0b1af8c5dcf0c018d0351e002b07e11f5f2a9b46851a22d5d416b1d71dc26591`，
 `MEMBER_RELAY_POLICY_VERSION=2`。用户主动同意仍默认关闭，.7 可直接测试，
@@ -50,6 +54,7 @@ Gryt 源码 `5eed3757e74f76099a7f2991a6c4c9c38fbe462a`，镜像
 后续 Compose 操作必须保留全部既有 overlays，尤其是：
 
 - `/opt/stacks/gryt/friendly-dns-20261013-r1/activation.overlay.json`。
+- `/opt/stacks/gryt/voice-member-move-20261014-r1/activation.overlay.json`。
 - `/opt/stacks/gryt/member-relay-v2-20261013-r1/activation.overlay.json`。
 - `/opt/stacks/gryt/community-network-v2-20261013-r1/activation.overlay.json`。
 - `/opt/stacks/gryt/member-address-directory-20261013-r3/activation.overlay.json`。
