@@ -1,0 +1,5 @@
+{
+  "aoo": {"repository":"https://github.com/Spacechild1/aoo.git","commit":"dc2a5be2962ba02d6cebe297f31f2774f34e7bc7","version":"2.0-pre4","license":"BSD-3-Clause"},
+  "opus": {"repository":"https://github.com/xiph/opus.git","commit":"82ac57d9f1aaf575800cf17373348e45b7ce6c0d","license":"BSD-3-Clause and accompanying patent grants"},
+  "portaudio": {"repository":"https://github.com/PortAudio/portaudio.git","commit":"147dd722548358763a8b649b3e4b41dfffbcfbb6","license":"MIT"}
+}
