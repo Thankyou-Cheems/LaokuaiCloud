@@ -1,0 +1,194 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-14",
+  "commit": "c92aa7b05c2eec059fa52e25e21969d0b054bdd7",
+  "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud/actions/runs/38563359957",
+  "status": "completed",
+  "conclusion": "success",
+  "jobs": [
+    {
+      "name": "Windows source, types and bounded CLR fixtures",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud/actions/runs/38563359957/job/115849755967",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install pinned JavaScript dependencies without lifecycle scripts",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build the CLR helper required by self-tests",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Client source and VM contracts",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Client types and syntax",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Bounded Windows IPC and CLR fixtures",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Presentation checks (separate from routing proof)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "name": "SFU six-package regressions in network-disabled container",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud/actions/runs/38563359957/job/115849756157",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Isolated Go policy, signaling, room and transport regression",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "name": "Voice source methods and media-proof regressions",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud/actions/runs/38563359957/job/115849756444",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install pinned Voice dependencies without lifecycle scripts",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Production Peer/controller, authorization recovery and diagnostics",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "name": "Gryt real JWT/database pair retirement handlers",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud/actions/runs/38563359957/job/115849756452",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/setup-node@v4",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install pinned Gryt dependencies without lifecycle scripts",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Pair retirement and authentication through real handler methods",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    }
+  ],
+  "priorSourceRun": {
+    "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud/actions/runs/38559004682",
+    "conclusion": "failure",
+    "sdkStep": "skipped"
+  },
+  "initialSplitRun": {
+    "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud/actions/runs/38563031275",
+    "conclusion": "failure",
+    "reason": "Gryt npm installer used without an npm lockfile; Windows, SDK and SFU jobs passed."
+  },
+  "localCoreGroups": [
+    "SourceContracts",
+    "Types",
+    "Presentation",
+    "WindowsFixtures"
+  ],
+  "historicalTimingRegressionsRejected": 3,
+  "packagedApplicationCommit": "06708268dfda7e5021e145970c913968d190f40c",
+  "packagedApplicationChangedByTestReview": false,
+  "realTwoDeviceMediaAccepted": false,
+  "realListeningQualityAccepted": false,
+  "note": "Completed CI on the exact test/tooling commit. No promotion of source or synthetic checks to real-device/WAN acceptance; prior failures retained."
+}

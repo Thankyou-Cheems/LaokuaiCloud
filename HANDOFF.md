@@ -24,6 +24,15 @@
   仍待新版实测。Gryt/SFU 已更新并通过健康检查，ET/代理代次未变；见
   [部署回执](release/acceptance/live16-deployment-20261014.json)。
 
+## 测试与 CI 纠偏
+
+测试/工具提交 `c92aa7b05c2eec059fa52e25e21969d0b054bdd7` 的四个独立 GitHub job 已实际通过。
+移除默认旧 broker 检查、分开展示检查，补齐干净环境 helper 构建；修正
+读取即产生媒体进度的模拟，生产 Peer/controller 组合拒绝三个旧时限缺陷。
+见 [审视记录](docs/TEST-STRATEGY-REVIEW-20261014.md) 与
+[精确 CI 回执](release/acceptance/test-ci-correction-20261014.json)。
+这是测试与 CI 改动，不改变上述 .16 冻结程序；实际双机验收仍待完成。
+
 ## .15 在线失败与待交付修复
 
 用户 10 月 14 日双人实测：入语音后地址消失、P2P 短暂成功后反复回退、SFU
