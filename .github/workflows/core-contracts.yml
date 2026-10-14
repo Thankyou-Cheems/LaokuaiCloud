@@ -64,7 +64,7 @@ jobs:
           node-version: '24'
       - name: Install pinned Gryt dependencies without lifecycle scripts
         working-directory: components/server
-        run: npm ci --ignore-scripts --no-audit --no-fund
+        run: npx --yes yarn@1.22.22 install --frozen-lockfile --ignore-scripts --non-interactive
       - name: Pair retirement and authentication through real handler methods
         run: ./tools/check-production-routing.ps1 -Component Gryt
   isolated-sfu:
