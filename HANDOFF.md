@@ -17,6 +17,12 @@
 实际 AoO/Opus 离线检查通过，多人输出限幅避免硬削波；真实双机仍待验收。
 不要将离线检查当成双机、12 人或 6 Mbps 服务器验收。
 
+整合式候选源码 `a40dfb0a5910b07749c50aee7d56df4146659d48` 已推送上述分支，
+版本 `1.13.22-laokuai.native.20261014.1`，绿色 ZIP 159963129 字节、153 文件
+解压逐项哈希一致。见 [包回执](release/acceptance/native-lan-voice1-package-20261014.json)。
+本地包 `.local/artifacts/native-lan-voice-20261014/`，线上原生模式尚未启用，
+部署影响与回滚范围见 [候选部署说明](release/deployment/native-lan-voice/README.md)。
+
 ## 原生音频实验 1（被后续需求替代，保留证据）
 
 用户已要求先制作原生音频经 EasyTier 虚拟 IP 的实验，验证后再考虑移除 Electron。

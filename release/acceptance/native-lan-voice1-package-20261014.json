@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "branch": "codex/native-lan-voice",
+  "sourceCommit": "a40dfb0a5910b07749c50aee7d56df4146659d48",
+  "version": "1.13.22-laokuai.native.20261014.1",
+  "archive": {
+    "file": "唠蒯云-1.13.22-laokuai.native.20261014.1-zh-CN-win-x64-green.zip",
+    "bytes": 159963129,
+    "sha256": "087a35f3998f4a4014e1895f6264d475cc91f3492aadb8be46c9fa478d1bd2cb"
+  },
+  "nativeHelper": {
+    "sha256": "0c9e609bd5403b8ebbc3cc24c3895d9fba0f30efa701933907cd776167e93e8f",
+    "bytes": 1108992,
+    "protocol": "aoo-et-ipv4-v1"
+  },
+  "payloadFiles": 153,
+  "checks": {
+    "coreContracts": true,
+    "clientTypesLintAndCompile": true,
+    "serverBehaviorTests": 84,
+    "nativeRuntimeAndIpcTests": 17,
+    "nativeHelperPureChecks": 134,
+    "actualOfflineAooOpus": true,
+    "hiddenElectronOfflineBoot": true,
+    "finalPayload": true,
+    "zipExtractionMatches": true
+  },
+  "limitations": {
+    "realTwoDeviceAudioAccepted": false,
+    "realTwelveMemberWanAccepted": false,
+    "sixMbpsAllRelayAccepted": false,
+    "productionChanged": false,
+    "desktopChanged": false,
+    "profileChanged": false,
+    "legacyPolicyBaselineUnavailable": "701200d0"
+  }
+}
