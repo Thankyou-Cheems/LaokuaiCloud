@@ -31,6 +31,16 @@ New-Item -ItemType Directory -Path $junctionTarget | Out-Null
 New-Item -ItemType Junction -Path (Join-Path $fixtureRoot 'junction-install') -Target $junctionTarget | Out-Null
 $shortcutTarget = Join-Path $fixtureRoot 'shortcut-target'
 New-Item -ItemType Directory -Path $shortcutTarget | Out-Null
+$fixtureStage = 'create existing synthetic shortcut targets'
+Write-Host "[NativeUpdater] $fixtureStage"
+# Supply existing native paths to the COM setter rather than dangling targets;
+# the native fixture later replaces their bytes with its known baseline.
+foreach ($targetDirectory in @($shortcutTarget, $junctionTarget)) {
+    New-Item -ItemType Directory -Path (Join-Path $targetDirectory 'resources') | Out-Null
+    [IO.File]::WriteAllBytes((Join-Path $targetDirectory '唠蒯云.exe'), [byte[]]@(0x21))
+    [IO.File]::WriteAllBytes((Join-Path $targetDirectory 'resources/app.asar'), [byte[]]@(0x21))
+}
+[IO.File]::WriteAllBytes((Join-Path $shortcutTarget 'not-the-app.exe'), [byte[]]@(0x21))
 $fixtureStage = 'create WScript.Shell COM instance'
 Write-Host "[NativeUpdater] $fixtureStage"
 $shortcutShell = New-Object -ComObject WScript.Shell
@@ -43,12 +53,14 @@ try {
     )) {
         $fixtureStage = "create shortcut: $($link.Name)"
         Write-Host "[NativeUpdater] $fixtureStage"
-        $shortcut = $shortcutShell.CreateShortcut((Join-Path $fixtureRoot $link.Name))
+        [string]$shortcutPath = [IO.Path]::GetFullPath((Join-Path $fixtureRoot ([string]$link.Name)))
+        [string]$shortcutTargetPath = [IO.Path]::GetFullPath([string]$link.Target)
+        $shortcut = $shortcutShell.CreateShortcut($shortcutPath)
         try {
             $fixtureStage = "set shortcut target: $($link.Name)"
-            $shortcut.TargetPath = $link.Target
+            $shortcut.TargetPath = $shortcutTargetPath
             $fixtureStage = "set shortcut arguments: $($link.Name)"
-            $shortcut.Arguments = $link.Arguments
+            $shortcut.Arguments = [string]$link.Arguments
             $fixtureStage = "save shortcut: $($link.Name)"
             $shortcut.Save()
         }
