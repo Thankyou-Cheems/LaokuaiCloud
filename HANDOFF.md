@@ -15,6 +15,11 @@
 helper 129 项纯内存检查、4 项 stdin 启动边界及界面自检通过。真实声卡和 ET 双机
 仍待验收，不据此宣布更稳定或移除 Electron。12 路全互联全部经服务器会超出
 6 Mbps；容量通过不代表带宽通过。详见 [实验记录](docs/NATIVE-AUDIO-LAB1-20261014.md)。
+实验源码固定 `278385779fecd1f10bd434df12763323368c8f54`，ZIP 595468 字节，
+10 个文件解压逐项哈希一致，包内 helper / 面板纯自检通过；
+精确哈希见 [包回执](release/acceptance/native-audio1-package-20261014.json)。
+本地包在 `.local/artifacts/native-audio1-20261014/`，无需 PowerShell 即可双击面板，
+未自动启动真实语音，未覆盖桌面。双方保持原应用 ET 在线，退出旧语音频道后再测试。
 
 ## .17 本地候选与原生音频评估
 

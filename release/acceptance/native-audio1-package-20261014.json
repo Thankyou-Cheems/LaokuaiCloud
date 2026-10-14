@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "experiment": "native-audio-1",
+  "sourceCommit": "278385779fecd1f10bd434df12763323368c8f54",
+  "zip": {
+    "name": "唠蒯云-原生语音实验1-win-x64.zip",
+    "bytes": 595468,
+    "sha256": "85650ee7c0107c89dc302f88eb50021ee8f49a614b63a97895ae97222ff3022c"
+  },
+  "files": [
+    {
+      "path": "唠蒯云-原生语音实验.exe",
+      "bytes": 31744,
+      "sha256": "ca87d7b5beeaed0606b421e4c10f19e07aaa186ec7a64510e6708ff052a5ee2f"
+    },
+    {
+      "path": "使用说明.md",
+      "bytes": 4420,
+      "sha256": "8e08c96d231ad800c289c78e7fa463851afe43b94cc81f1c0db0f96178658d40"
+    },
+    {
+      "path": "laokuai-native-audio.exe",
+      "bytes": 1056256,
+      "sha256": "2d11bbdaf20f38722465a22a581a27ed32f4650c1759930e99dcf8cb9154600f"
+    },
+    {
+      "path": "SOURCE-OFFER.json",
+      "bytes": 1064,
+      "sha256": "2915d0b9b109e2b3b8e2a7f1eb7703d9d6a2db8c21dfe5493b0579eca55c3863"
+    },
+    {
+      "path": "licenses/AoO-BSD.txt",
+      "bytes": 2058,
+      "sha256": "8a928398db0765dcd69b5357e36b78fd182cbdae38dac74bff9a67a895580fa6"
+    },
+    {
+      "path": "licenses/LaokuaiCloud-AGPL-3.0-or-later.txt",
+      "bytes": 35419,
+      "sha256": "89a9378fe10f04bebca8f2fe736cee04800ca343cf5a4612bd0104e20161fc75"
+    },
+    {
+      "path": "licenses/Opus-COPYING.txt",
+      "bytes": 1972,
+      "sha256": "fde149f902d124a8c02a218527c440ee2fab6884323f180061b1405fb06af60e"
+    },
+    {
+      "path": "licenses/Opus-patent-notice.txt",
+      "bytes": 725,
+      "sha256": "e0f2e5f47e854bd07a7abb71744a65f367b57b3fba3cb0afeafb1d61e389636c"
+    },
+    {
+      "path": "licenses/oscpack.txt",
+      "bytes": 1661,
+      "sha256": "02a07957a73c94e51ad40bee65d21a6ce33f8b876213401bd89df10e4cc2707d"
+    },
+    {
+      "path": "licenses/PortAudio.txt",
+      "bytes": 3604,
+      "sha256": "24f3d353ae19b58ce4e86915b71eaadb564e797682d2284be90b8a7e078e5d9c"
+    }
+  ],
+  "desktopModified": false,
+  "productionModified": false,
+  "realAudioAcceptance": false,
+  "realEasyTierAcceptance": false,
+  "archiveExtractionVerified": true,
+  "packagedSelfTestsPassed": true
+}
