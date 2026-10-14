@@ -84,7 +84,7 @@ function fixture(count = 1) {
   }
   const final = track('protected-final'), pc = { connectionState: 'connected', getSenders: () => [{ track: final }],
     getStats: async () => new Map(participants.map(p => {
-      const id = `sfu-${p.participantId}`, next = samples.get(id) + (advance.has(p.participantId) ? 1 : 0); samples.set(id, next);
+      const id = `sfu-${p.participantId}`, next = samples.get(id);
       return [id, { type: 'inbound-rtp', kind: 'audio', trackIdentifier: id, packetsReceived: next, totalSamplesReceived: next * 480 }];
     })) };
   const microphone = { microphoneBuffer: { publicationStream: stream(final) },
@@ -100,10 +100,11 @@ function fixture(count = 1) {
     this.dependencies.createPeer = args => {
       eq(args.publication.track, final);
       const t = track(`p2p-${args.participant.participantId}`), prior = peers.some(p => p.participantId === args.participant.participantId);
+      const observedAt = clock.now(); // One explicitly supplied initial peer frame, not a fresh frame on every read.
       const peer = { participantId: args.participant.participantId, disposed: false, start: async () => {}, acceptSignal: async () => {},
         waitForMedia: () => prior ? new Promise(() => {}) : Promise.resolve({ track: t, stream: stream(t),
-          decodedFrames: 1, mediaSequence: 1, observedAtMs: clock.now(), getReceiveObservation: () => {
-            const at = clock.now(), pairId = `pair-${t.id}`, underlay = { classification: 'not-easytier',
+          decodedFrames: 1, mediaSequence: 1, observedAtMs: observedAt, getReceiveObservation: () => {
+            const at = observedAt, pairId = `pair-${t.id}`, underlay = { classification: 'not-easytier',
               source: 'host-underlay-resolver', observedAtMs: at };
             return { trackId: t.id, observedAtMs: at, reason: null, decode: null,
               metrics: { selectedPairId: pairId, rttMs: null, rttWindow: null, rttSource: 'rtc-selected-candidate-pair',
@@ -123,7 +124,14 @@ function fixture(count = 1) {
     isCurrent: () => f.current, getSource: p => sources.get(p.participantId) ?? null,
     onDiagnostic: event => diagnostics.push(event),
     onSelection: (source, selected, revision) => selections.push({ source, selected, revision }) });
-  f.pump = async () => { f.tick(300); await settle(); await f.session.monitor.read(); await settle(); };
+  f.pump = async () => {
+    f.tick(300);
+    // Simulate packet arrival separately from the production monitor's read.
+    for (const p of participants) if (advance.has(p.participantId)) {
+      const id = `sfu-${p.participantId}`; samples.set(id, samples.get(id) + 1);
+    }
+    await settle(); await f.session.monitor.read(); await settle();
+  };
   f.retire = () => { f.session.dispose(); eq([...socket.listeners.values()].reduce((n, s) => n + s.size, 0), 0); eq(peers.every(p => p.disposed), true); };
   return f;
 }

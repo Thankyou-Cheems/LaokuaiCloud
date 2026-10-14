@@ -94,6 +94,7 @@
     "check-closed-pc-cleanup": "node scripts/check-closed-pc-cleanup.mjs",
     "check-hybrid-auth-recovery": "node scripts/check-hybrid-auth-recovery.mjs",
     "check-hybrid-media-freshness": "node scripts/check-hybrid-media-freshness.mjs",
+    "check-hybrid-regressions": "node scripts/check-hybrid-regressions.mjs",
     "check-receive-path": "node scripts/check-receive-path.mjs",
     "check-peer-path-stats": "node scripts/check-peer-path-stats.mjs",
     "check-lifecycle-epochs": "node scripts/check-lifecycle-epochs.mjs",

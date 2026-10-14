@@ -1,4 +1,4 @@
-name: Core source contracts
+name: Source contracts and routing regressions
 on:
   pull_request:
   push:
@@ -6,7 +6,8 @@ on:
 permissions:
   contents: read
 jobs:
-  contracts:
+  windows-contracts:
+    name: Windows source, types and bounded CLR fixtures
     runs-on: windows-latest
     timeout-minutes: 15
     env:
@@ -22,16 +23,58 @@ jobs:
       - name: Install pinned JavaScript dependencies without lifecycle scripts
         working-directory: components/client
         run: npx --yes yarn@1.22.22 install --frozen-lockfile --ignore-scripts --non-interactive
-      - name: Existing ET and voice contracts plus targeted types
-        run: ./tools/check-core-contracts.ps1
-      - name: Build pinned Voice SDK and check routing recovery
+      - name: Build the CLR helper required by self-tests
+        run: ./tools/build-ci-contract-helper.ps1
+      - name: Client source and VM contracts
+        run: ./tools/check-core-contracts.ps1 -Group SourceContracts
+      - name: Client types and syntax
+        run: ./tools/check-core-contracts.ps1 -Group Types
+      - name: Bounded Windows IPC and CLR fixtures
+        run: ./tools/check-core-contracts.ps1 -Group WindowsFixtures
+      - name: Presentation checks (separate from routing proof)
+        run: ./tools/check-core-contracts.ps1 -Group Presentation
+  voice-production-methods:
+    name: Voice source methods and media-proof regressions
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install pinned Voice dependencies without lifecycle scripts
         working-directory: components/voice
-        run: |
-          npm ci --ignore-scripts --no-audit --no-fund
-          if ($LASTEXITCODE -ne 0) { throw 'Voice dependencies failed' }
-          npm run build
-          if ($LASTEXITCODE -ne 0) { throw 'Voice build failed' }
-          foreach ($suite in @('check-peer-path-stats.mjs', 'check-hybrid.mjs', 'check-hybrid-integration.mjs', 'check-hybrid-session.mjs')) {
-            node "scripts/$suite"
-            if ($LASTEXITCODE -ne 0) { throw "Voice contract failed: $suite" }
-          }
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Production Peer/controller, authorization recovery and diagnostics
+        run: ./tools/check-production-routing.ps1 -Component Voice
+  gryt-authenticated-handlers:
+    name: Gryt real JWT/database pair retirement handlers
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install pinned Gryt dependencies without lifecycle scripts
+        working-directory: components/server
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Pair retirement and authentication through real handler methods
+        run: ./tools/check-production-routing.ps1 -Component Gryt
+  isolated-sfu:
+    name: SFU six-package regressions in network-disabled container
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - name: Isolated Go policy, signaling, room and transport regression
+        run: ./tools/check-isolated-sfu-ci.ps1

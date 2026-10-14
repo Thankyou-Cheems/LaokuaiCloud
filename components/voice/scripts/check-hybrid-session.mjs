@@ -10,7 +10,8 @@ const final=track('stable-final'),finalStream=stream(final),sf=track('sfu'),remo
 const context={createMediaStreamSource:()=>new Node()};class Node{context=context;connect(to){edges.add(this);return to}disconnect(){edges.delete(this)}}
 const sourceNode=new Node();sourceNode.mediaStream=stream(sf);const analyser=new Node();sourceNode.connect(analyser);
 let retirement;const source={stream:sourceNode,analyser,receiveCleanup:{isCurrent:()=>true,subscribeRetirement(fn){retirement=fn;return()=>retirement=undefined}}};
-let count=0;const pc={connectionState:'connected',getSenders:()=>[{track:final}],getStats:async()=>new Map([['in',{type:'inbound-rtp',kind:'audio',trackIdentifier:sf.id,packetsReceived:++count,totalSamplesReceived:count*480}]])};
+let count=0;const pc={connectionState:'connected',getSenders:()=>[{track:final}],getStats:async()=>new Map([['in',{type:'inbound-rtp',kind:'audio',trackIdentifier:sf.id,packetsReceived:count,totalSamplesReceived:count*480}]])};
+const receiveSfuFrame=async session=>{count++;await session.monitor.read()};
 const microphone={microphoneBuffer:{publicationStream:finalStream},transmissionState:{publicationAcknowledged:true,publicationRevision:1,generation:1}};
 let scope={serverInstanceId:'instance',roomId:'room',roomGeneration:'epoch',localParticipantId:'local',localSessionId:'socket',canPublish:true,canReceive:true};
 const participant={participantId:'remote',sessionId:'remote-socket',publicationId:'actual-publication',canSendAudio:true,canReceiveAudio:true};
@@ -18,7 +19,7 @@ const listeners=new Map(),commands=[];
 const socket={id:'socket',connected:true,on(e,f){const set=listeners.get(e)??new Set();set.add(f);listeners.set(e,set)},off(e,f){listeners.get(e)?.delete(f)},emit(e){for(const f of listeners.get(e)??[])f()},timeout(){return{emitWithAck:async(event,p)=>{commands.push({event,p});if(event==='voice:hybrid:scope')return{v:1,status:'supported',capabilities:{protocolVersion:1,authenticatedRoomSignals:true,pairForwardingLeases:true},scope,participants:[participant]};if(event==='voice:hybrid:lease')return{v:1,status:'leased',lease:{connectionId:'actual-server-pair',scope,remoteSessionId:participant.sessionId,initiator:true}};if(event==='voice:hybrid:forwarding')return{v:1,status:'applied',ack:{...p.request,applied:true,leaseRemainingMs:p.request.enabled?0:10000}};return{v:1,status:'released'}}}}};
 // Only the external peer adapter is replaced. Auth lifecycle/controller/selector/monitor are the real implementation.
 const peerMedia=()=>{const at=performance.now(),underlay={classification:'not-easytier',source:'host-underlay-resolver',observedAtMs:at},transportPath={source:'rtc-selected-candidate-pair',observedAtMs:at,classification:'non-turn-candidate',reason:'selected-pair',pairId:'pair-peer',local:null,remote:null,underlay};return{track:remote,stream:stream(remote),decodedFrames:1,mediaSequence:1,observedAtMs:at,getReceiveObservation:()=>({trackId:remote.id,observedAtMs:at,reason:null,decode:{startAtMs:at-20,endAtMs:at,packetsDelta:1,samplesDelta:480,decodedFramesDelta:480,fresh:true,source:'rtc-inbound-rtp-totalSamplesReceived'},metrics:{selectedPairId:'pair-peer',rttMs:null,rttWindow:null,rttSource:'rtc-selected-candidate-pair',lossFraction:null,lossWindow:null,lossSource:'exact-audio-track-inbound-rtp',path:{classification:'non-turn-candidate',pairId:'pair-peer',localCandidateType:null,remoteCandidateType:null,underlay:'not-easytier'}},transportPath})};};
-HybridRouteController.prototype.reconcile=function(scope,participants){this.dependencies.createPeer=args=>{peers++;eq(args.publication.track,final);eq(args.publication.stream,finalStream);let disposed=false;return{start:async()=>{},acceptSignal:async()=>{},waitForMedia:async()=>peerMedia(),isReceiving:()=>!disposed,dispose:()=>disposed=true,readMetrics:async()=>{throw Error('unused')}}};return original.call(this,scope,participants)};
+HybridRouteController.prototype.reconcile=function(scope,participants){this.dependencies.createPeer=args=>{peers++;eq(args.publication.track,final);eq(args.publication.stream,finalStream);let disposed=false;const initialMedia=peerMedia();return{start:async()=>{},acceptSignal:async()=>{},waitForMedia:async()=>initialMedia,isReceiving:()=>!disposed,dispose:()=>disposed=true,readMetrics:async()=>{throw Error('unused')}}};return original.call(this,scope,participants)};
 const selections=[],diagnostics=[];const options={socket,getAccessToken:()=> 'synthetic-only',expectedRoomId:'room',rtcConfiguration:{iceServers:[]},microphoneCodec:{codec:'opus',channels:1,maxBitrateBps:24000,packetTimeMs:20,vbr:true,dtx:true,fec:true},pathStableMs:0,getPeerConnection:()=>pc,getMicrophone:()=>microphone,isCurrent:()=>true,getSource:()=>source,onSelection:(_,t)=>selections.push(t),onDiagnostic:event=>diagnostics.push(event)};
 try{
  const disabled=new BrowserHybridVoiceSession(options);await disabled.update();eq(disabled.getState().status,'disabled');eq(commands.length,0);disabled.dispose();eq(edges.size,1);
@@ -27,7 +28,7 @@ try{
  socket.emit('token:revoked');await settle();eq(selections.at(-1),null);eq(edges.size,0);eq(session.getState().status,'recovering');
  scope={...scope,canPublish:false};const recovery=session.update();await settle();eq(edges.size,0);
  const port=[...session.ports.values()][0].port;eq(port.getSelectionRevision()>0,true);
- await session.monitor.read();await recovery;eq(edges.size,1);eq(selections.at(-1),sf);eq(peers,1);
+ await receiveSfuFrame(session);await recovery;eq(edges.size,1);eq(selections.at(-1),sf);eq(peers,1);
  eq(commands.filter(c=>c.event==='voice:hybrid:forwarding').at(-1).p.request.enabled,true);
  await session.setEnabled(false);eq(session.getState().status,'disabled');eq(edges.size,1);eq(retirement,undefined);
  session.dispose();eq(edges.size,1);eq([...listeners.values()].reduce((n,s)=>n+s.size,0),0);eq(stops,0);
@@ -42,7 +43,7 @@ try{
   if(receiveOnly)scope={...scope,canPublish:false};
   const replacement=new BrowserHybridVoiceSession({...options,enabled:receiveOnly,allowNetwork:receiveOnly});
   const releaseBefore=commands.filter(c=>c.event==='voice:hybrid:release').length;
-  const recovery=replacement.update();await settle();eq(edges.size,0);await replacement.monitor.read();await recovery;
+  const recovery=replacement.update();await settle();eq(edges.size,0);await receiveSfuFrame(replacement);await recovery;
   eq(edges.size,1);eq(selections.at(-1),sf);eq(replacement.getState().status,receiveOnly?'active':'disabled');
   eq(commands.filter(c=>c.event==='voice:hybrid:release').length>releaseBefore,true);
   replacement.dispose();eq(edges.size,1);
@@ -55,13 +56,13 @@ try{
  await retry.update();eq(edges.size,0);const firstRequest=commands.filter(c=>c.event==='voice:hybrid:forwarding'&&c.p.request.enabled).at(-1).p.request;
  const retryFlight=retry.update();await settle();const secondRequest=commands.filter(c=>c.event==='voice:hybrid:forwarding'&&c.p.request.enabled).at(-1).p.request;
  eq(secondRequest.routeGeneration>firstRequest.routeGeneration,true);eq(secondRequest.operationId!==firstRequest.operationId,true);
- await retry.monitor.read();await retryFlight;eq(edges.size,1);retry.dispose();
+ await receiveSfuFrame(retry);await retryFlight;eq(edges.size,1);retry.dispose();
  // Remote roster/source may arrive later while the replacement has P2P disabled.
  scope={...scope,canPublish:true};
  const delayedSource=new BrowserHybridVoiceSession({...options,enabled:true,allowNetwork:true});await delayedSource.update();await settle();delayedSource.dispose();eq(edges.size,0);
  let sourceReady=false;const delayed=new BrowserHybridVoiceSession({...options,getSource:()=>sourceReady?source:null});
  await delayed.update();eq(delayed.getState().status,'recovering');eq(edges.size,0);sourceReady=true;
- const delayedFlight=delayed.update();await settle();await delayed.monitor.read();await delayedFlight;
+ const delayedFlight=delayed.update();await settle();await receiveSfuFrame(delayed);await delayedFlight;
  eq(edges.size,1);eq(delayed.getState().status,'disabled');delayed.dispose();
  // Re-enabling after failed orderly shutdown must finish restoration before replacing its controller.
  scope={...scope,canPublish:true};
@@ -71,12 +72,12 @@ try{
  await toggled.setEnabled(false);eq(toggled.getState().status,'recovering');eq(stoppingController.stopping,true);
  failRestore=false;const reenable=toggled.setEnabled(true);await settle();
  eq(toggled.controller,stoppingController);eq(edges.size,1);
- await toggled.monitor.read();await reenable;await settle();
+ await receiveSfuFrame(toggled);await reenable;await settle();
  eq(toggled.controller===stoppingController,false);eq(stoppingController.disposed,true);
  eq(toggled.controller.stopping,false);eq(toggled.controller.getState().probeAdmissionAllowed,true);eq(edges.size,1);
  eq(toggled.getState().routing.routes[0].selected,'p2p');
  eq([...toggled.controller.routes.values()][0].pathMonitor!==undefined,true);
- const finalDisable=toggled.setEnabled(false);await settle();await toggled.monitor.read();await finalDisable;
+ const finalDisable=toggled.setEnabled(false);await settle();await receiveSfuFrame(toggled);await finalDisable;
  eq(toggled.getState().status,'disabled');toggled.dispose();eq(edges.size,1);
  // An old-room pause obligation never becomes authority to restore a different room.
  scope={...scope,canPublish:true};

@@ -30,7 +30,18 @@ const profile = { codec: 'opus', channels: 1, maxBitrateBps: 64000, packetTimeMs
 const scope = { serverInstanceId: 'server', roomId: 'room', roomGeneration: 'room-1', localParticipantId: 'local', localSessionId: 'session-local', canPublish: true, canReceive: true };
 const person = { participantId: 'remote', sessionId: 'session-remote', publicationId: 'publication-remote', canSendAudio: true, canReceiveAudio: true };
 
-function fixture({ statsDelayMs = 0 } = {}) {
+const regressions = {
+  staleCache: { file: 'BrowserHybridPeer.ts',
+    before: 'performance.now() - candidate.observedAtMs <= maxAgeMs',
+    after: 'performance.now() - candidate.observedAtMs <= HYBRID_MEDIA_HEALTH_MAX_AGE_MS' },
+  probePollDeadline: { file: 'HybridRouteController.ts',
+    before: 'route.peer.waitForMedia(), remaining',
+    after: 'route.peer.waitForMedia(), this.options.pathMonitorMs' },
+  switchPollDeadline: { file: 'HybridRouteController.ts',
+    before: 'route.peer.waitForMedia(), this.options.switchTimeoutMs',
+    after: 'route.peer.waitForMedia(), this.options.pathMonitorMs' },
+};
+function fixture({ statsDelayMs = 0, regression } = {}) {
   const clock = new Clock(), remoteTrack = track('remote-track'), remoteStream = stream(remoteTrack);
   class FakePc {
     connectionState = 'connected'; signalingState = 'stable';
@@ -38,7 +49,8 @@ function fixture({ statsDelayMs = 0 } = {}) {
     parameters = { encodings: [{}], codecs: [{ mimeType: 'audio/opus' }] };
     addTrack(input) { this.sender = { track: input, getParameters: () => structuredClone(this.parameters), setParameters: async value => { this.parameters = value; } }; return this.sender; }
     async getStats() {
-      const counts = this.statsSource();
+      // Snapshot the external stats response; reading it never emits RTP.
+      const counts = { ...this.statsSource() };
       if (statsDelayMs) await new Promise(resolve => clock.schedule(resolve, statsDelayMs));
       return new Map([
         ['inbound', { id: 'inbound', type: 'inbound-rtp', kind: 'audio', trackIdentifier: remoteTrack.id, packetsReceived: counts.packets, totalSamplesReceived: counts.samples, transportId: 'transport' }],
@@ -54,10 +66,16 @@ function fixture({ statsDelayMs = 0 } = {}) {
     performance: { now: clock.now }, setTimeout: clock.schedule, clearTimeout: clock.cancel,
     RTCPeerConnection: FakePc, Audio: class { play() { return Promise.resolve(); } pause() {} remove() {} } });
   const modules = new Map();
+  let mutations = 0;
   function loadSource(path) {
     if (modules.has(path)) return modules.get(path).exports;
     const module = { exports: {} }; modules.set(path, module);
-    const output = ts.transpileModule(readFileSync(path, 'utf8'), { fileName: path,
+    let source = readFileSync(path, 'utf8');
+    if (regression && path.endsWith('/' + regression.file) || regression && path.endsWith('\\' + regression.file)) {
+      assert.equal(source.split(regression.before).length - 1, 1, 'historical regression must alter exactly one production seam');
+      source = source.replace(regression.before, regression.after); mutations++;
+    }
+    const output = ts.transpileModule(source, { fileName: path,
       compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS } }).outputText;
     const run = vm.runInContext(`(function(exports, require, module) { ${output}\n})`, context, { filename: path });
     run(module.exports, name => {
@@ -68,6 +86,7 @@ function fixture({ statsDelayMs = 0 } = {}) {
   }
   const { BrowserHybridPeer } = loadSource(resolve(sourceRoot, 'webrtc/hybrid/BrowserHybridPeer.ts'));
   const { HybridRouteController } = loadSource(resolve(sourceRoot, 'webrtc/hybrid/HybridRouteController.ts'));
+  assert.equal(mutations, regression ? 1 : 0, 'regression actually landed in the loaded source');
   const publicationTrack = track('publication'), publication = { stream: stream(publicationTrack), track: publicationTrack, generation: 1, publicationRevision: 1, publicationAcknowledged: true };
   const peers = [], failures = [];
   const makePeer = factory => {
@@ -80,8 +99,10 @@ function fixture({ statsDelayMs = 0 } = {}) {
 }
 
 // The public proof request must wait when the last actual RTP sample is >500ms old.
-{
-  const f = fixture(), peer = f.standalone(); await peer.start(); await settle();
+async function cachedProofScenario(regression) {
+  const f = fixture({ regression }), peer = f.standalone();
+  try {
+  await peer.start(); await settle();
   const first = await peer.waitForMedia(); assert.equal(first.observedAtMs, 0);
   await f.clock.advance(501);
   let resolved = false;
@@ -96,13 +117,15 @@ function fixture({ statsDelayMs = 0 } = {}) {
   peer.pc.counters.packets++; peer.pc.counters.samples += 480; await f.clock.advance(500);
   const actual = await fresh;
   assert.equal(actual.observedAtMs, 1500); assert.equal(actual.mediaSequence, first.mediaSequence + 1);
-  peer.dispose(); assert.equal(f.clock.jobs.size, 0);
+  } finally { peer.dispose(); }
+  assert.equal(f.clock.jobs.size, 0);
 }
+await cachedProofScenario();
 
 // Real controller + real peer: quiet counters during path stabilization must
 // await the next decode instead of returning a stale cache and aborting switch.
-function controllerFixture({ packetsResumeAt = 1500, statsDelayMs = 0, pauseAckDelayMs = 0, controllerOptions = {} } = {}) {
-  const f = fixture({ statsDelayMs }), selected = [], gates = [], sfuTrack = track('sfu');
+function controllerFixture({ packetsResumeAt = 1500, statsDelayMs = 0, pauseAckDelayMs = 0, controllerOptions = {}, regression } = {}) {
+  const f = fixture({ statsDelayMs, regression }), selected = [], gates = [], sfuTrack = track('sfu');
   let sequence = 1;
   const port = { isCurrent: () => true, getSfuMediaSequence: () => sequence,
     waitForSfuMedia: async after => ({ track: sfuTrack, stream: stream(sfuTrack), decodedFrames: 1,
@@ -136,25 +159,31 @@ function controllerFixture({ packetsResumeAt = 1500, statsDelayMs = 0, pauseAckD
   assert.equal(f.gates.filter(request => !request.enabled).length, 1);
   await f.controller.restoreSfuAndDispose();
 }
-{
+async function switchDeadlineScenario(regression) {
   // A pause ACK may outlive the cached proof. Its refresh uses the existing
   // switch budget, including a slow stats response, rather than one poll period.
   const f = controllerFixture({ packetsResumeAt: 1001, statsDelayMs: 20, pauseAckDelayMs: 501,
-    controllerOptions: { pathStableMs: 0 } });
+    controllerOptions: { pathStableMs: 0 }, regression });
+  try {
   await settle(); await f.clock.advance(1100);
   assert.equal(f.controller.getState().routes[0].status, 'p2p', 'ACK refresh must wait for actual next media within the switch budget');
   assert.equal(f.gates.filter(request => !request.enabled).length, 1);
   await f.controller.restoreSfuAndDispose();
+  } finally { f.controller.dispose(); }
 }
-{
+await switchDeadlineScenario();
+async function probeDeadlineScenario(regression) {
   // A 20ms stats response makes the next 500ms poll miss a 500ms proof-wait
   // deadline, even though real new RTP is decoded well inside the 3s health window.
-  const f = controllerFixture({ packetsResumeAt: 1520, statsDelayMs: 20 });
+  const f = controllerFixture({ packetsResumeAt: 1520, statsDelayMs: 20, regression });
+  try {
   await settle(); await f.clock.advance(1600);
   assert.equal(f.controller.getState().routes[0].status, 'p2p', 'slow poll must use the probe budget, not the monitoring period');
   assert.equal(f.gates.filter(request => !request.enabled).length, 1);
   await f.controller.restoreSfuAndDispose();
+  } finally { f.controller.dispose(); }
 }
+await probeDeadlineScenario();
 {
   const f = controllerFixture({ packetsResumeAt: Infinity, controllerOptions: { probeTimeoutMs: 1500 } });
   await settle(); await f.clock.advance(1501);
@@ -165,4 +194,9 @@ function controllerFixture({ packetsResumeAt = 1500, statsDelayMs = 0, pauseAckD
   f.controller.dispose();
 }
 
-console.log('hybrid media freshness: real Peer/controller cache, RTP-only refresh, stable switch and timeout SFU fallback passed; no real PC/network');
+// Run the SAME behavioral scenarios against known earlier failure modes in
+// memory. A green current implementation alone cannot establish sensitivity.
+await assert.rejects(cachedProofScenario(regressions.staleCache), /fresh proof must not return/);
+await assert.rejects(probeDeadlineScenario(regressions.probePollDeadline), /slow poll must use the probe budget/);
+await assert.rejects(switchDeadlineScenario(regressions.switchPollDeadline), /ACK refresh must wait for actual next media/);
+console.log('hybrid media freshness: production Peer/controller cache, RTP-only progress, probe/switch deadlines and SFU preservation passed; all 3 historical regressions rejected in memory; no real PC/network');

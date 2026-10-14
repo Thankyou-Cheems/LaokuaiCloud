@@ -15,7 +15,7 @@ class Clock {
   async advance(ms) {
     const end = this.time + ms;
     await settle();
-    for (let guard = 0; guard < 1000; guard++) {
+    for (let guard = 0; guard < 10000; guard++) {
       const entry = [...this.jobs].sort((a, b) => a[1].time - b[1].time)[0];
       if (!entry || entry[1].time > end) { this.time = end; await settle(); return; }
       this.time = entry[1].time; this.jobs.delete(entry[0]); entry[1].callback(); await settle();
@@ -51,8 +51,13 @@ function fixture(options = {}, tweaks = {}) {
         lossFraction: null, lossWindow: null, lossSource: "exact-audio-track-inbound-rtp", path: {
           classification, pairId, localCandidateType: null, remoteCandidateType: null, underlay: underlayClass } }, transportPath };
   };
-  const makeMedia = (input, seq, path = {}) => ({ track: input, stream: stream(input), decodedFrames: 128, mediaSequence: seq, observedAtMs: clock.now(),
-    getReceiveObservation: () => pathObservation(input, clock.now(), typeof path === "function" ? path() : path) });
+  // An evidence snapshot is immutable between emitted frames. A caller cannot
+  // manufacture packet/decode progress merely by asking for it again.
+  const makeMedia = (input, seq, path = {}) => {
+    const at = clock.now(), observation = pathObservation(input, at, typeof path === "function" ? path() : path);
+    return { track: input, stream: stream(input), decodedFrames: 128, mediaSequence: seq, observedAtMs: at,
+      getReceiveObservation: () => structuredClone(observation) };
+  };
   const getPort = person => {
     if (ports.has(person.participantId)) return ports.get(person.participantId);
     const input = track(`sfu-${person.publicationId}`);
@@ -102,20 +107,32 @@ function fixture(options = {}, tweaks = {}) {
       const mediaTrack = track(`p2p-${args.participant.publicationId}-${peers.length}`);
       const waiting = deferred();
       let peerPath = tweaks.peerPath ?? {};
+      let frameTimer, latestMedia, mediaSequence = 0;
+      const mediaWaiters = new Set();
+      const emitFrame = () => {
+        frameTimer = undefined;
+        if (peer.disposed) return;
+        if (peer.receiving) {
+          latestMedia = makeMedia(mediaTrack, ++mediaSequence, peerPath);
+          if (tweaks.noPathObservation) delete latestMedia.getReceiveObservation;
+          for (const waiter of mediaWaiters) waiter(latestMedia);
+          mediaWaiters.clear();
+        }
+        frameTimer = clock.schedule(emitFrame, 250);
+      };
       const peer = {
         args, input: mediaTrack, waiting, disposed: false, receiving: true, accepted: [], metricCalls: 0,
-        start: async () => { args.onSignal({ kind: "offer", sdp: "v=0\r\n" }); },
-        waitForMedia: () => {
+        start: async () => { emitFrame(); args.onSignal({ kind: "offer", sdp: "v=0\r\n" }); },
+        waitForMedia: (maxAgeMs = 500) => {
           if (tweaks.holdMedia) return waiting.promise;
-          const value = makeMedia(mediaTrack, 1, () => peerPath);
-          if (tweaks.noPathObservation) delete value.getReceiveObservation;
-          return Promise.resolve(value);
+          if (latestMedia && clock.now() - latestMedia.observedAtMs <= maxAgeMs) return Promise.resolve(latestMedia);
+          return new Promise(resolve => mediaWaiters.add(resolve));
         },
         isReceiving: candidate => !peer.disposed && peer.receiving && candidate?.track === mediaTrack,
         acceptSignal: async body => { peer.accepted.push(body); },
         metrics: { source: "simulation", observedAtMs: 0, packetsSent: 0, payloadBytesSent: 0, headerBytesSent: null, totalEncodeTimeSeconds: null },
         readMetrics: async () => { peer.metricCalls++; return { ...peer.metrics }; },
-        dispose: () => { peer.disposed = true; events.push(`close:${args.participant.participantId}`); },
+        dispose: () => { peer.disposed = true; clock.cancel(frameTimer); mediaWaiters.clear(); events.push(`close:${args.participant.participantId}`); },
         setPath: value => { peerPath = value; },
       };
       peers.push(peer); return peer;

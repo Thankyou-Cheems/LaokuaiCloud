@@ -10,13 +10,13 @@ const settle=async()=>{for(let n=0;n<150;n++)await Promise.resolve()};
 class Clock{time=0;id=0;jobs=new Map();now=()=>this.time;schedule=(callback,delay)=>{const id=++this.id;this.jobs.set(id,{callback,at:this.time+delay});return id};cancel=id=>this.jobs.delete(id);async advance(ms){const end=this.time+ms;await settle();for(let n=0;n<5000;n++){const job=[...this.jobs].sort((a,b)=>a[1].at-b[1].at)[0];if(!job||job[1].at>end){this.time=end;await settle();return;}this.time=job[1].at;this.jobs.delete(job[0]);job[1].callback();await settle()}throw Error('timer_loop')}}
 const track=id=>({id,kind:'audio',readyState:'live',enabled:true});const stream=track=>({getAudioTracks:()=>[track],getTracks:()=>[track]});
 const clock=new Clock(),pairs=new Map(),controllers=[],ports=[],allPeers=[];
-const media=(t,seq)=>({
- track:t,stream:stream(t),decodedFrames:10,mediaSequence:seq,observedAtMs:clock.now(),
+const media=(t,seq)=>{const at=clock.now();return({
+ track:t,stream:stream(t),decodedFrames:10,mediaSequence:seq,observedAtMs:at,
  getReceiveObservation:()=>{
-  const at=clock.now(),underlay={classification:'not-easytier',source:'host-underlay-resolver',observedAtMs:at},transportPath={source:'rtc-selected-candidate-pair',observedAtMs:at,classification:'non-turn-candidate',reason:'selected-pair',pairId:`pair-${t.id}`,local:null,remote:null,underlay};
+  const underlay={classification:'not-easytier',source:'host-underlay-resolver',observedAtMs:at},transportPath={source:'rtc-selected-candidate-pair',observedAtMs:at,classification:'non-turn-candidate',reason:'selected-pair',pairId:`pair-${t.id}`,local:null,remote:null,underlay};
   return {trackId:t.id,observedAtMs:at,reason:null,decode:{startAtMs:Math.max(0,at-20),endAtMs:at,packetsDelta:1,samplesDelta:480,decodedFramesDelta:480,fresh:true,source:'rtc-inbound-rtp-totalSamplesReceived'},metrics:{selectedPairId:transportPath.pairId,rttMs:null,rttWindow:null,rttSource:'rtc-selected-candidate-pair',lossFraction:null,lossWindow:null,lossSource:'exact-audio-track-inbound-rtp',path:{classification:'non-turn-candidate',pairId:transportPath.pairId,localCandidateType:null,remoteCandidateType:null,underlay:'not-easytier'}},transportPath};
  }
-});
+})};
 const member=n=>({participantId:'p'+n,sessionId:'s'+n,publicationId:'pub'+n,canSendAudio:true,canReceiveAudio:true});
 for(let n=0;n<5;n++){
  const scope={serverInstanceId:'instance',roomId:'room',roomGeneration:'epoch',localParticipantId:'p'+n,localSessionId:'s'+n,canPublish:true,canReceive:true};
