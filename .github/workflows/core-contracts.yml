@@ -31,10 +31,19 @@ jobs:
         run: ./tools/check-core-contracts.ps1 -Group Types
       - name: Bounded Windows IPC and CLR fixtures
         run: ./tools/check-core-contracts.ps1 -Group WindowsFixtures
-      - name: Native incremental updater with protected-data fixtures
-        run: ./tools/tests/check-native-updater.ps1
       - name: Presentation checks (separate from routing proof)
         run: ./tools/check-core-contracts.ps1 -Group Presentation
+  native-updater:
+    name: Native Windows updater and protected-data fixtures
+    runs-on: windows-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@v4
+      - name: Production updater engine and hidden UI flows
+        run: ./tools/tests/check-native-updater.ps1
   voice-production-methods:
     name: Voice source methods and media-proof regressions
     runs-on: ubuntu-latest
