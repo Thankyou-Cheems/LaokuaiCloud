@@ -77,6 +77,73 @@ await test("friendly DNS projection preserves authenticated device assignments a
 });
 function session(id = "instance-a", close = async () => {}) { return { instanceId: id, close, read: async () => sample() }; }
 function fakeRuntime(connect = async () => session()) { return { activationReason: () => null, connect, shutdownOwned() {} }; }
+function sampleFor(context, instanceId = "instance-a") {
+  const value = sample();
+  Object.assign(value, { serverId: context.serverId, generation: context.generation, instanceId });
+  for (const binding of value.bindings) Object.assign(binding, { serverId: context.serverId, generation: context.generation, instanceId });
+  return value;
+}
+
+await test("first community telemetry starts without a room or poll and cannot hold connect", async () => {
+  const pending = defer(); let reads = 0, context;
+  const manager = new EasyTierCommunityManager(fakeRuntime(async current => {
+    context = current;
+    return { ...session(), read: () => { reads++; return pending.promise; } };
+  }));
+  await manager.setEnabled(true);
+  const state = await manager.connect(lease());
+  assert.equal(state.phase, "connected");
+  assert.equal(reads, 1, "the first read starts before the periodic poll");
+  assert.equal(state.virtualIp, null, "pending telemetry is not readiness evidence");
+  await manager.refresh("community-a"); manager.refreshAll(); await drain();
+  assert.equal(reads, 1, "manual and periodic polls share the pending first-read lane");
+  pending.resolve(sampleFor(context)); await drain();
+  assert.equal(manager.getState("community-a").virtualIp, "10.44.0.2");
+  await manager.disconnectCommunity("community-a");
+});
+
+await test("a late first read cannot publish into a replacement scope or release its lane", async () => {
+  const reads = []; let closes = 0;
+  const manager = new EasyTierCommunityManager(fakeRuntime(async context => {
+    const instanceId = `instance-${reads.length}`;
+    return { ...session(instanceId, async () => { closes++; }), read: signal => {
+      const pending = defer(); reads.push({ ...pending, signal, context, instanceId }); return pending.promise;
+    } };
+  }));
+  await manager.setEnabled(true); await manager.connect(lease());
+  await manager.authenticatedSessionChanged("community-a");
+  assert.equal(reads.length, 2); assert.equal(reads[0].signal.aborted, true);
+  assert.notEqual(reads[0].context.generation, reads[1].context.generation);
+  assert.equal(closes, 1);
+  reads[0].resolve(sampleFor(reads[0].context, reads[0].instanceId)); await drain();
+  assert.equal(manager.getState("community-a").virtualIp, null);
+  await manager.refresh("community-a");
+  assert.equal(reads.length, 2, "the old completion cannot release the new first-read lane");
+  reads[1].resolve(sampleFor(reads[1].context, reads[1].instanceId)); await drain();
+  assert.equal(manager.getState("community-a").virtualIp, "10.44.0.2");
+  await manager.disconnectCommunity("community-a"); assert.equal(closes, 2);
+});
+
+await test("failed first telemetry remains a live community and the next poll recovers", async () => {
+  let starts = 0, closes = 0, reads = 0;
+  const manager = new EasyTierCommunityManager(fakeRuntime(async context => {
+    starts++;
+    return { ...session("instance-a", async () => { closes++; }), read: async () => {
+      if (++reads === 1) throw new Error("private-first-read-error");
+      return sampleFor(context);
+    } };
+  }));
+  await manager.setEnabled(true); await manager.connect(lease()); await drain();
+  assert.equal(manager.getState("community-a").phase, "connected");
+  assert.equal(manager.getState("community-a").reason, "status-unavailable");
+  assert.equal(manager.getState("community-a").virtualIp, null);
+  assert.equal(starts, 1); assert.equal(closes, 0);
+  await manager.refresh("community-a");
+  assert.equal(manager.getState("community-a").reason, null);
+  assert.equal(manager.getState("community-a").virtualIp, "10.44.0.2");
+  assert.equal(starts, 1); assert.equal(closes, 0);
+  await manager.disconnectCommunity("community-a");
+});
 
 await test("activation is off and cannot launch from an IPC enable request", async () => {
   const manager = new EasyTierCommunityManager(null);

@@ -10,7 +10,7 @@ Create one session for one current account/server/socket/channel/SFU-PC binding,
 
 `borrowHybridPublication()` initially requires the exact final publication ACK and current SFU sender track object. After admission, its physical stream/track identity generation remains stable across user mute, PTT and Squad gate revisions. Every peer uses that same gated track, never a second capture/DSP/raw fallback. Replacement stream/track, ended track, PC replacement or loss invalidates the binding. Sharing a track does not share Opus encoding across PeerConnections.
 
-The receive adapter takes ownership of the existing source→analyser edge. Analyser, leveler, per-user manual gain and final bus stay intact. It disconnects before connecting another input, emits the actual selected track object and monotonically increasing selection revision, and detaches synchronously on `receiveCleanup.subscribeRetirement`. `none` clears live receiver identity immediately. The client registry retains participant/physical receiver identity across selections, increments live track generation and rejects stale measurements/prior callbacks. The persistent participant cache is not deleted or exchanged; a new live track resumes its validated stored prior. Live worklet measurement windows are invalidated on track change, not represented as continuous measurements of the old track.
+The receive adapter takes ownership of the existing source→analyser edge. Analyser, leveler, per-user manual gain and final bus stay intact. Current WebAudio handoffs prepare the new source muted, fade the old source out over 12 ms, then fade the new source in over 12 ms. The two independent encodings are not mixed throughout a call or time-aligned. Selection emits the actual target track object and monotonically increasing revision; optional `waitForSelection(revision)` confirms completion in audio time before forwarding changes or outgoing peer disposal. `none` and `receiveCleanup.subscribeRetirement` detach synchronously, including during a fade. The client registry retains participant/physical receiver identity across selections, increments live track generation and rejects stale measurements/prior callbacks. The persistent participant cache is not deleted or exchanged; a new live track resumes its validated stored prior. Live worklet measurement windows are invalidated on track change, not represented as continuous measurements of the old track.
 
 PTT/mute/Squad control ACK revisions no longer retire stable peer media. Probe queues use shared session ordering, not each client's arbitrary roster arrival order; the five-controller ring fixture reproduced zero matching directions before this change and all 20 after it, with two probe slots. That is simulation, not five real users or capacity evidence.
 
@@ -47,3 +47,37 @@ permission is unavailable. A different room/account/session cannot inherit it.
 Synthetic regressions: `check-roster-media-policy`, `check-hybrid-source-ownership`,
 `check-hybrid-diagnostics`, `check-hybrid-network-boundary`, `check-hybrid-session`
 and `check-hybrid-auth-recovery`. These do not verify real network/audio success.
+
+## Routing.5 local handoff (2026-10-14)
+
+SFU remains audible while peer decoded-media and admitted-path stability are
+verified. The controller then completes the local handoff, refreshes the exact
+peer track/path proof, and requests the SFU pause. A delayed pause ACK refreshes
+peer evidence rather than rejecting the original 500 ms snapshot. Pause lease
+state still requires every exact ACK field and a nonexpired lease. ACK failure
+or timeout keeps a healthy selected peer through bounded restore requests and
+retries; SFU replaces it only after the exact restore ACK, fresh SFU decoded
+media and local gain handoff. Permission/epoch/pair revocation remains immediate.
+
+The input's audio-time completion wait has its own one-second wall-time bound
+so a suspended context cannot leave a 5 ms polling loop indefinitely. A failed
+prepared-node migration removes the new muted graph and preserves the original
+edge. Synchronous legacy `dispose(true)` returns the unity SFU edge without a
+timer owned by the retired input. Custom receive ports lacking gain automation
+or the optional completion method retain synchronous selection behavior.
+
+Sanitized diagnostics add `handoff` stages for first verified peer media, local
+start/completion, SFU recovery completion/failure, plus bounded elapsed times for
+pause/restore ACKs. These are local operation measurements, not network latency,
+room-to-first-SFU timing, longest audible outage or listening-quality claims.
+
+`check-hybrid.mjs` covers 100/750 ms pause ACKs, delayed local completion,
+pause/restore timeout retention, late ACK fencing, fresh SFU handoff and immediate
+revocation. `check-hybrid-handoff-headless.mjs <playwright module path>` uses real
+Chromium WebAudio with synthetic constant sources at 44.1/48 kHz, muted output,
+blocked microphone access and loopback-only requests. It checks the gain envelope,
+no summed-source boost, exact zero after revocation, synchronous SFU restoration,
+graph-error rollback, suspended-context timeout and successor ownership. It has
+no real peer, SFU gate or WAN media, and cannot establish perceptual transparency,
+encoding-delay alignment or dual-device acceptance. Continuous RTT/loss quality
+selection and the dependency on the live SFU-PC binding are unchanged.

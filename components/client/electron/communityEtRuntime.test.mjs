@@ -543,6 +543,7 @@ test('ordinary app shutdown drains exact core, secret file and backend revoke on
 test('manager does not present connected after real retirement', async () => {
   const f = runtimeFixture(); await f.authenticate('one'); const manager = new EasyTierCommunityManager(f.runtime);
   await manager.setEnabled(true); await manager.connect({serverId: 'community', leaseId: 'renderer-community'});
+  await flush(); // The immediate first read is independent of connect completion.
   await manager.refresh('community'); assert.equal(manager.getState('community').phase, 'connected'); f.setPolicy(false);
   await manager.refresh('community'); assert.equal(manager.getState('community').phase, 'error');
   assert.equal(manager.getState('community').virtualIp, null); await manager.setEnabled(false);
@@ -551,6 +552,7 @@ test('manager does not present connected after real retirement', async () => {
 test('native process exit retires the grant and same-token authentication can replace it', async () => {
   const f = runtimeFixture(); await f.authenticate('one'); const manager = new EasyTierCommunityManager(f.runtime);
   await manager.setEnabled(true); await manager.connect({serverId: 'community', leaseId: 'renderer-community'});
+  await flush();
   f.setSampleFailure('runtime-exited'); await manager.refresh('community');
   assert.equal(manager.getState('community').phase, 'error');
   assert.equal(manager.getState('community').reason, 'runtime-exited');
@@ -617,7 +619,7 @@ for (const failure of ['cli', 'binding']) test('persistent ' + failure + ' obser
     authenticate: value => f.authenticate(value.accessToken), releasePreparation: () => undefined, preparationReady: () => true,
     schedule: (work, delayMs) => {const timer = {work, delayMs, cancelled: false}; timers.push(timer); return () => {timer.cancelled = true;};}});
   try {
-    await enrollment.reconcile({members: [member], enabled: true}); await manager.refresh('community');
+    await enrollment.reconcile({members: [member], enabled: true}); await flush(); await manager.refresh('community');
     assert.ok(manager.getState('community').lanSnapshot);
     const generation = manager.getState('community').generation;
     if (failure === 'cli') f.setSampleFailure('status-unavailable');
@@ -690,6 +692,7 @@ test('observer exceptions cannot prevent grant start, auth retirement or shutdow
   const manager = new EasyTierCommunityManager(f.runtime, () => {throw Error('observer-failed');},
     () => f.now.mono, 8000, 10000, () => f.now.wall, diagnostic);
   await manager.setEnabled(true); await manager.connect({serverId: 'community', leaseId: 'renderer-community'});
+  await flush();
   await manager.refresh('community'); f.setFailure({op: 'binding', code: 'auth-unavailable'});
   await manager.refresh('community');
   assert.equal(manager.getState('community').phase, 'error');
@@ -704,12 +707,15 @@ test('observer exceptions cannot prevent grant start, auth retirement or shutdow
 
 test('a timed-out observation cannot permanently block polling or release a newer read lane', async () => {
   const f = fixture(), reads = []; let starts = 0, stops = 0, generation;
+  let finishFirstRead;
+  const firstReadFinished = new Promise(resolve => {finishFirstRead = resolve;});
   const manager = new EasyTierCommunityManager({activationReason: () => null, shutdownOwned: () => undefined,
     connect: async scope => {starts++; generation = scope.generation; return {instanceId: UUID,
       close: async () => {stops++;}, read: () => new Promise(resolve => reads.push(resolve))};}},
-    () => undefined, () => f.now.mono, 30, 10000, () => f.now.wall);
+    () => undefined, () => f.now.mono, 30, 10000, () => f.now.wall,
+    event => {if (event.event === 'telemetry' && event.action === 'finish') finishFirstRead();});
   await manager.setEnabled(true); await manager.connect({serverId: 'community', leaseId: 'renderer-community'});
-  await manager.refresh('community');
+  await firstReadFinished; // Await the background read's own deadline, not a coalesced poll.
   assert.equal(manager.getState('community').reason, 'status-unavailable');
   const nextRead = manager.refresh('community'); assert.equal(reads.length, 2, 'poll retries even if the old port ignored abort');
   reads[0]({...clone(f.sample), generation}); await flush();
@@ -728,6 +734,7 @@ test('an aborted CLI read cannot retire a live core; a subsequent confirmed exit
   const manager = new EasyTierCommunityManager(f.runtime, () => undefined, () => f.now.mono, 30, 10000, () => f.now.wall,
     event => diagnostics.push(event));
   await manager.setEnabled(true); await manager.connect({serverId: 'community', leaseId: 'renderer-community'});
+  await flush();
   await manager.refresh('community'); stall = true;
   await manager.refresh('community'); await flush();
   assert.equal(manager.getState('community').phase, 'connected'); assert.equal(manager.getState('community').reason, 'status-unavailable');
@@ -744,6 +751,7 @@ test('telemetry diagnostics preserve only enumerated issuer/CLI causes', async (
   const manager = new EasyTierCommunityManager(f.runtime, () => undefined, () => f.now.mono, 1000, 10000, () => f.now.wall,
     event => diagnostics.push(event));
   await manager.setEnabled(true); await manager.connect({serverId: 'community', leaseId: 'renderer-community'});
+  await flush();
   for (const [error, reason] of [[Error('issuer-connection-unverified'), 'issuer-connection-unverified'],
     [new EasyTierOperationError('status-unavailable', 'parse-failed'), 'parse-failed'],
     [new EasyTierOperationError('status-unavailable', 'cli-timeout'), 'cli-timeout'],

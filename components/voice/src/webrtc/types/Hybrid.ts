@@ -88,8 +88,10 @@ export interface HybridReceivePort {
   getSelectionRevision?(): number;
   /** Snapshot of the one edge actually selected by its owner, not decoded/ICE guesses. */
   getSelection?(): { kind: "sfu" | "p2p" | "none"; trackId: string | null; revision: number };
-  /** Must disconnect the old input before connecting one new input, preserving the DSP/manual nodes. */
+  /** Own one audible input, preserving DSP/manual nodes. `none` revokes synchronously. */
   select(kind: "sfu" | "p2p" | "none", candidate: HybridMediaCandidate | undefined, selectionRevision: number): void;
+  /** Resolve after the bounded local gain handoff; reject if that revision loses ownership. */
+  waitForSelection?(selectionRevision: number): Promise<void>;
   waitForSfuMedia(afterSequence: number): Promise<HybridMediaCandidate>;
   getSfuMediaSequence(): number;
 }

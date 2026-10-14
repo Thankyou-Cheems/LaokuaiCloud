@@ -7,11 +7,14 @@ export const HYBRID_DIAGNOSTIC_REASONS = ["other", "network_disabled", "identity
 type Reason = typeof HYBRID_DIAGNOSTIC_REASONS[number] | "validated_ack" | "request_failed";
 type PeerDiagnostic = Extract<BrowserHybridDiagnostic, { kind: "peer-media" }>;
 type ForwardingDiagnostic = Extract<BrowserHybridDiagnostic, { kind: "forwarding" }>;
+type HandoffDiagnostic = Extract<BrowserHybridDiagnostic, { kind: "handoff" }>;
 export interface HybridDiagnostic {
-  operation: "hybrid-scope" | "hybrid-route" | "hybrid-path" | "hybrid-forwarding";
+  operation: "hybrid-scope" | "hybrid-route" | "hybrid-path" | "hybrid-forwarding" | "hybrid-handoff";
   scopeGeneration: number;
   status: "waiting" | "created" | "retired" | BrowserHybridVoiceState["status"] | "sfu" | "queued" | "probing" | "switching" | "p2p" | "failed";
-  reason: Reason | null;
+  reason: Reason | HandoffDiagnostic["reason"] | null;
+  handoffStage?: HandoffDiagnostic["stage"];
+  elapsedMs?: number;
   connected?: boolean;
   rosterReady?: boolean;
   epochReady?: boolean;
@@ -54,11 +57,19 @@ export function createHybridDiagnosticObserver(callback: (diagnostic: HybridDiag
       pathClass: event.pathClass, pathReason: event.pathReason, localCandidateType: event.localCandidateType,
       remoteCandidateType: event.remoteCandidateType, underlayClass: event.underlayClass, decodeProof: event.decodeProof,
       decodeReason: event.decodeReason, failureReason: event.failureReason,
+    } : event.kind === "handoff" ? {
+      operation: "hybrid-handoff", scopeGeneration, status: event.stage === "recovery_failed" ? "recovering" : "active",
+      handoffStage: event.stage, elapsedMs: Math.min(bounded(event.elapsedMs), 60_000), reason: event.reason,
     } : { operation: "hybrid-forwarding", scopeGeneration, status: event.result === "failed" ? "recovering" : "active",
-      forwardingAction: event.action, result: event.result, reason: event.reason };
-    const key = event.kind === "peer-media" ? event.kind : `${event.kind}:${event.action}`;
-    const signature = JSON.stringify(value); if (previousSdk.get(key) === signature) return;
-    previousSdk.set(key, signature); emit(value);
+      forwardingAction: event.action, result: event.result, reason: event.reason,
+      ...(event.elapsedMs === undefined ? {} : { elapsedMs: Math.min(bounded(event.elapsedMs), 60_000) }) };
+    // Media snapshots repeat on every stats poll. Command/handoff events are finite
+    // attempts; retain their timings even when a retry has the same outcome.
+    if (event.kind === "peer-media") {
+      const signature = JSON.stringify(value); if (previousSdk.get(event.kind) === signature) return;
+      previousSdk.set(event.kind, signature);
+    }
+    emit(value);
   }, state(state: BrowserHybridVoiceState) {
     scope(state.status, state.reason);
     const currentKeys = new Set((state.routing?.routes ?? []).map(route => JSON.stringify([route.participantId, route.sessionId, route.publicationId])));

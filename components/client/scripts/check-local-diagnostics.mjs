@@ -19,6 +19,9 @@ const pathEvent = {phase:'voice',operation:'hybrid-path',action:'finish',code:'o
 assert.ok(schema.safeDiagnostic(pathEvent));
 for (const extra of [{pathReason:'raw candidate'}, {localCandidateType:'10.0.0.1'}, {failureReason:'secret'}, {selectedPair:'private'}]) assert.equal(schema.safeDiagnostic({...pathEvent,...extra}),null);
 assert.ok(schema.safeDiagnostic({phase:'voice',operation:'hybrid-forwarding',action:'finish',code:'ok',forwardingAction:'restore',result:'acknowledged',reason:'validated_ack'}));
+const handoff = {phase:'voice',operation:'hybrid-handoff',action:'finish',code:'ok',handoffStage:'local_handoff_completed',reason:'local_handoff_before_pause',elapsedMs:24};
+assert.ok(schema.safeDiagnostic(handoff));
+for (const extra of [{handoffStage:'private-peer'}, {elapsedMs:Infinity}, {reason:'raw exception'}]) assert.equal(schema.safeDiagnostic({...handoff,...extra}),null);
 assert.ok(schema.safeDiagnostic(networkDiagnostic({event:'http',action:'finish',operation:'binding',httpStatus:409,code:'provider-unavailable'})));
 assert.equal(schema.safeDiagnostic(networkDiagnostic({event:'http',action:'finish',operation:'binding',httpStatus:409,code:'provider-unavailable',reason:'binding-pending'})).reason,'binding-pending');
 assert.equal(schema.safeDiagnostic(networkDiagnostic({event:'http',action:'finish',operation:'binding',httpStatus:409,code:'provider-unavailable',reason:'raw-private-message'})),null);

@@ -129,6 +129,76 @@ function fixture(options = {}, tweaks = {}) {
     publication: () => publication, media: makeMedia, subscriptionCount: () => subscriptionCount };
 }
 
+// A fresh peer must already play before an arbitrarily delayed server pause ACK.
+for (const ackDelay of [100, 750]) {
+  const pending = deferred(); let pauseAck;
+  const f = fixture({ pathStableMs: 1000 }, { gate: (request, ack) => {
+    if (!request.enabled) { pauseAck = ack; return pending.promise; }
+    return Promise.resolve(ack);
+  } });
+  f.reconcile(); await settle(); equal(f.ports.get("user-1").selected, "sfu");
+  await f.clock.advance(1000);
+  equal(f.ports.get("user-1").selected, "p2p", "local handoff precedes pause request/ACK");
+  await f.clock.advance(ackDelay); pending.resolve(pauseAck); await settle();
+  equal(f.controller.getState().routes[0].selected, "p2p", "slow ACK cannot invalidate a playing fresh peer");
+  equal(f.controller.getState().routes[0].reason, null); f.controller.dispose(); await settle();
+}
+{
+  const localHandoff = deferred();
+  const f = fixture(); const port = f.dependencies.getReceivePort(participant(1));
+  port.waitForSelection = () => localHandoff.promise;
+  f.reconcile(); await settle(); equal(f.gates.length, 0, "no server pause until local audio handoff completes");
+  f.invalidate(); await settle(); localHandoff.resolve(); await settle();
+  equal(port.selected, "none", "revocation disconnects immediately during a local fade");
+  equal(f.gates.filter(request => !request.enabled).length, 0); f.controller.dispose();
+}
+{
+  const handoff = deferred(); const f = fixture();
+  const port = f.dependencies.getReceivePort(participant(1));
+  port.waitForSelection = () => handoff.promise;
+  f.reconcile(); await settle(); equal(f.gates.length, 0);
+  await f.clock.advance(750); handoff.resolve(); await settle();
+  equal(port.selected, "p2p"); equal(f.controller.getState().routes[0].reason, null);
+  equal(f.gates.filter(request => !request.enabled).length, 1, "refresh media after local handoff before pause");
+  f.controller.dispose(); await settle();
+}
+{
+  const handoff = deferred(); const f = fixture();
+  const port = f.dependencies.getReceivePort(participant(1));
+  port.waitForSelection = () => port.selected === "p2p" ? handoff.promise : Promise.resolve();
+  f.reconcile(); await settle(); equal(f.gates.length, 0);
+  f.peers[0].receiving = false; f.peers[0].args.onFailure("failed before server pause"); await settle();
+  equal(port.selected, "sfu", "lost peer during local handoff still restores fresh SFU before any pause");
+  equal(f.gates.map(request => request.enabled), [true]); equal(f.peers[0].disposed, true);
+  handoff.resolve(); await settle(); equal(port.selected, "sfu", "late local completion cannot reselect the old peer");
+  f.controller.dispose(); await settle(); equal(f.clock.jobs.size, 0);
+}
+{
+  const pause = deferred(), restore = deferred(); let restores = 0, latePause;
+  const f = fixture({ switchTimeoutMs: 100 }, { gate: (request, ack) => {
+    if (!request.enabled) { latePause = ack; return pause.promise; }
+    return ++restores === 1 ? restore.promise : Promise.resolve(ack);
+  } });
+  f.reconcile(); await settle(); equal(f.ports.get("user-1").selected, "p2p");
+  await f.clock.advance(101); equal(f.controller.getState().routes[0].status, "recovering");
+  equal(f.ports.get("user-1").selected, "p2p", "pause timeout keeps independently verified audio");
+  await f.clock.advance(101); equal(f.peers[0].disposed, false, "restore timeout keeps healthy peer");
+  equal(f.ports.get("user-1").selected, "p2p");
+  pause.resolve(latePause); await settle(); equal(f.controller.getState().routes[0].forwardingPaused, false);
+  await f.clock.advance(1000); equal(f.ports.get("user-1").selected, "sfu");
+  equal(f.peers[0].disposed, true); f.controller.dispose(); await settle(); equal(f.clock.jobs.size, 0);
+}
+{
+  const f = fixture(); f.reconcile(); await settle(); const port = f.ports.get("user-1");
+  const completed = deferred(); port.waitForSelection = () => completed.promise;
+  const restoring = f.controller.fallback("user-1"); await settle();
+  equal(port.selected, "sfu"); equal(f.peers[0].disposed, false, "do not close outgoing peer before SFU local fade completes");
+  f.peers[0].args.onFailure("old peer failed during fresh SFU fade"); await settle();
+  equal(port.selected, "sfu", "failed outgoing peer must not clear verified incoming SFU");
+  completed.resolve(); await restoring; equal(f.peers[0].disposed, true);
+  f.controller.dispose(); await settle(); equal(f.clock.jobs.size, 0);
+}
+
 for (const tweaks of [{ noAuthority: true }, { unsupported: true }, { environment: "network" }]) {
   const f = fixture({}, tweaks); f.reconcile(); await settle();
   equal(f.controller.getState().status, "unsupported"); equal(f.peers.length, 0); equal(f.leases.length, 0);
@@ -143,7 +213,7 @@ for (const tweaks of [{ noAuthority: true }, { unsupported: true }, { environmen
   equal(f.controller.getState().routes[0].status, "p2p"); equal(f.ports.get("user-1").selected, "p2p");
   equal(f.gates[0].enabled, false); equal(f.gates[0].pairConnectionId, "server-pair-1");
   equal(f.controller.getState().routes[0].forwardingPaused, true);
-  check(f.events.indexOf("gate:false:user-1") < f.events.indexOf("select:p2p:user-1"), "pause ACK precedes direct selection");
+  check(f.events.indexOf("select:p2p:user-1") < f.events.indexOf("gate:false:user-1"), "local direct handoff precedes SFU pause");
   equal(f.signals[0].connectionId, "server-pair-1"); equal(f.signals[0].sequence, 1);
   const peer = f.peers[0]; const base = { ...f.signals[0], sourceSessionId: "session-1", destinationSessionId: "local-session",
     body: { kind: "answer", sdp: "v=0" } };
@@ -171,19 +241,19 @@ for (const tweaks of [{ noAuthority: true }, { unsupported: true }, { environmen
   const pause = deferred(); let sentAck;
   const f = fixture({}, { gate: (request, ack) => { if (!request.enabled) { sentAck = ack; return pause.promise; } return Promise.resolve(ack); } });
   f.reconcile(); await settle(); equal(f.controller.getState().routes[0].status, "switching");
-  equal(f.ports.get("user-1").selected, "sfu"); equal(f.controller.getState().routes[0].forwardingPaused, false);
+  equal(f.ports.get("user-1").selected, "p2p"); equal(f.controller.getState().routes[0].forwardingPaused, false);
   const oldGeneration = f.controller.getState().routes[0].routeGeneration;
   f.reconcile([]); await settle(); pause.resolve(sentAck); await settle();
   equal(f.controller.getState().routes.length, 0); check(f.peers[0].disposed); check(f.gates.at(-1).routeGeneration > oldGeneration);
   equal(f.gates.at(-1).enabled, true); equal(f.ports.get("user-1").selected, "none");
-  equal(f.events.filter(event => event.startsWith("select:p2p")).length, 0); f.controller.dispose(); equal(f.clock.jobs.size, 0);
+  equal(f.events.filter(event => event.startsWith("select:p2p")).length, 1); f.controller.dispose(); equal(f.clock.jobs.size, 0);
 }
 for (const patch of [{ operationId: "wrong" }, { pairConnectionId: "foreign-pair" }, { routeGeneration: -1 },
   { applied: false }, { leaseRemainingMs: 0 }, { enabled: true }, { destinationSessionId: "foreign-session" }]) {
   const f = fixture({}, { gate: (request, ack) => Promise.resolve(request.enabled ? ack : { ...ack, ...patch }) });
   f.reconcile(); await settle(); equal(f.ports.get("user-1").selected, "sfu"); equal(f.peers[0].disposed, true);
   equal(f.controller.getState().routes[0].reason, "forwarding_ack_mismatch");
-  equal(f.events.filter(value => value.startsWith("select:p2p")).length, 0); f.controller.dispose();
+  equal(f.events.filter(value => value.startsWith("select:p2p")).length, 1); f.controller.dispose();
 }
 {
   const f = fixture({}, { holdMedia: true }); f.reconcile(); await settle();
@@ -311,7 +381,9 @@ for (const patch of [{ operationId: "wrong" }, { pairConnectionId: "foreign-pair
 {
   const hold = deferred(); let ack;
   const f = fixture({}, { gate: (request, value) => { if (!request.enabled) { ack = value; return hold.promise; } return Promise.resolve(value); } });
-  f.reconcile(); await settle(); await f.clock.advance(501); hold.resolve(ack); await settle();
+  f.reconcile(); await settle(); await f.clock.advance(501);
+  f.peers[0].waitForMedia = () => Promise.resolve({ ...f.media(f.peers[0].input, 1), observedAtMs: 0 });
+  hold.resolve(ack); await settle();
   equal(f.controller.getState().routes[0].reason, "media_stale_before_switch");
   equal(f.ports.get("user-1").selected, "sfu"); equal(f.peers[0].disposed, true);
   f.controller.dispose(); equal(f.clock.jobs.size, 0);

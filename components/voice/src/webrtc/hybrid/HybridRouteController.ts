@@ -270,12 +270,8 @@ export class HybridRouteController {
     catch { return false; }
   }
 
-  /**
-   * Candidate type is only a WebRTC fact.  The host underlay resolver must
-   * explicitly approve the selected pair before this controller can pause the
-   * healthy SFU edge.  Keep the summary and full evidence tied to one sample
-   * so a stale EasyTier answer cannot upgrade a newer candidate pair.
-   */
+  /** Require matching current pair/underlay evidence from the host resolver.
+   * Candidate type alone cannot admit a path or prove EasyTier direct routing. */
   private pathAdmission(candidate: HybridMediaCandidate): { key: string; observation: ReceiveTrackObservation } | null {
     let observation: ReceiveTrackObservation | null = null;
     try { observation = candidate.getReceiveObservation?.() ?? null; } catch { return null; }
@@ -380,6 +376,7 @@ export class HybridRouteController {
 
   private async probe(route: Route): Promise<void> {
     const generation = route.generation;
+    const probeStarted = this.clock.now();
     let leased: HybridPairLease | undefined;
     try {
       const leasePromise = this.dependencies.authority!.leasePair(route.scope, route.participant);
@@ -392,10 +389,8 @@ export class HybridRouteController {
         throw new Error("invalid_pair_lease");
       }
       route.lease = leased;
-      // A replacement lease starts a fresh signaling stream. Retain counters
-      // only when the authority deliberately reuses the same pair ID; this
-      // keeps old-pair replays invalid while allowing a same-pair reconnect
-      // to continue monotonically.
+      // New pair IDs reset signaling; deliberately reused IDs retain counters
+      // so replay rejection stays monotonic across same-pair reconnects.
       if (route.signalConnectionId !== leased.connectionId) {
         route.signalConnectionId = leased.connectionId;
         route.signalIn = 0; route.signalOut = 0;
@@ -406,7 +401,9 @@ export class HybridRouteController {
         onFailure: () => {
           if (this.routes.get(route.participant.participantId) !== route || route.peer !== peer) return;
           if (route.state.status === "recovering") {
-            try { this.select(route, "none"); } catch { /* Keep disconnect failures observable. */ }
+            if (route.state.selected === "p2p") {
+              try { this.select(route, "none"); } catch { /* Keep disconnect failures observable. */ }
+            }
             this.closePeer(route); this.emit();
           } else if (this.current(route)) void this.fallback(route.participant.participantId, "peer_failed");
         },
@@ -415,17 +412,32 @@ export class HybridRouteController {
       let candidate = await this.bounded(route, peer.start().then(() => peer.waitForMedia()), this.options.probeTimeoutMs);
       if (!this.current(route, generation)) return;
       if (!this.validMedia(candidate) || !this.receiving(route, candidate)) throw new Error("decoded_media_unavailable");
+      this.reportHandoff("peer_media_ready", probeStarted, "verified_media");
       candidate = await this.awaitAdmittedPath(route, generation, candidate);
       if (!this.current(route, generation)) return;
-      route.candidate = candidate; route.state.status = "switching"; route.pauseAttempted = true; this.emit();
+      route.candidate = candidate; route.state.status = "switching"; this.emit();
+      // Prepare and complete playback locally while the SFU still forwards.
+      // Neither signaling latency nor the server pause can open a silent gap.
+      if (!this.validMedia(candidate)) throw new Error("media_stale_before_switch");
+      const handoffStarted = this.clock.now();
+      this.reportHandoff("local_handoff_started", probeStarted, "local_handoff_before_pause");
+      this.select(route, "p2p", candidate);
+      await this.selectionComplete(route);
+      if (!this.current(route, generation)) return;
+      await this.refreshSwitchCandidate(route, candidate);
+      if (!this.current(route, generation)) return;
+      this.reportHandoff("local_handoff_completed", handoffStarted, "local_handoff_before_pause");
+      route.pauseAttempted = true;
       const request = this.request(route, false);
       const started = this.clock.now();
       const ack = await this.forwardingRequest(route, request, this.options.switchTimeoutMs);
       if (!this.current(route, generation)) return;
       this.validateAck(request, ack, started);
-      if (!this.validMedia(candidate) || !this.receiving(route, candidate)) throw new Error("media_stale_before_switch");
       this.setPause(route, started + ack.leaseRemainingMs);
-      this.select(route, "p2p", candidate);
+      // ACK may arrive long after the admission snapshot. Refresh the exact
+      // track/path proof instead of rejecting still-playing audio by its age.
+      await this.refreshSwitchCandidate(route, candidate);
+      if (!this.current(route, generation)) return;
       route.state.status = "p2p"; route.state.reason = null; route.reprobeAttempt = 0; route.restoreAttempts = 0;
       this.emit(); this.renew(route); this.monitorPeer(route);
     } catch (error) {
@@ -435,6 +447,22 @@ export class HybridRouteController {
     } finally {
       if (leased && leased !== route.lease) this.release(leased);
     }
+  }
+
+  private async refreshSwitchCandidate(route: Route, selected: HybridMediaCandidate): Promise<void> {
+    if (!route.peer) throw new Error("peer_path_unavailable");
+    const fresh = await this.bounded(route, route.peer.waitForMedia(), this.options.pathMonitorMs);
+    if (fresh.track !== selected.track || !this.validMedia(fresh) || !this.receiving(route, fresh)) {
+      throw new Error("media_stale_before_switch");
+    }
+    const admission = this.pathAdmission(fresh);
+    if (!admission || admission.key !== route.pathKey) throw new Error("peer_path_not_admitted");
+    route.candidate = fresh;
+  }
+
+  private async selectionComplete(route: Route): Promise<void> {
+    if (route.port.waitForSelection) await this.bounded(route,
+      route.port.waitForSelection(route.state.selectionRevision), this.options.switchTimeoutMs);
   }
 
   private request(route: Route, enabled: boolean): HybridForwardingRequest {
@@ -453,21 +481,30 @@ export class HybridRouteController {
       request.operationId !== ack.operationId || request.enabled !== ack.enabled || request.pauseLeaseMs !== ack.pauseLeaseMs ||
       ack.applied !== true || !finite(ack.leaseRemainingMs) || (!request.enabled &&
         (ack.leaseRemainingMs > request.pauseLeaseMs || started + ack.leaseRemainingMs <= this.clock.now()))) {
-      this.reportForwarding(request, "failed", "forwarding_ack_mismatch");
+      this.reportForwarding(request, "failed", "forwarding_ack_mismatch", started);
       throw new Error("forwarding_ack_mismatch");
     }
-    this.reportForwarding(request, "acknowledged", "validated_ack");
+    this.reportForwarding(request, "acknowledged", "validated_ack", started);
   }
 
-  private reportForwarding(request: HybridForwardingRequest, result: "acknowledged" | "failed", reason: "validated_ack" | "request_failed" | "forwarding_ack_mismatch"): void {
-    const event: BrowserHybridDiagnostic = { kind: "forwarding", action: request.enabled ? "restore" : "pause", result, reason };
+  private elapsed(started: number): number { return Math.min(60000, Math.max(0, Math.round(this.clock.now() - started))); }
+
+  private reportHandoff(stage: Extract<BrowserHybridDiagnostic, { kind: "handoff" }>["stage"], started: number,
+    reason: Extract<BrowserHybridDiagnostic, { kind: "handoff" }>["reason"]): void {
+    try { this.dependencies.onDiagnostic?.({ kind: "handoff", stage, elapsedMs: this.elapsed(started), reason }); }
+    catch { /* Observers do not own playback. */ }
+  }
+
+  private reportForwarding(request: HybridForwardingRequest, result: "acknowledged" | "failed", reason: "validated_ack" | "request_failed" | "forwarding_ack_mismatch", started: number): void {
+    const event: BrowserHybridDiagnostic = { kind: "forwarding", action: request.enabled ? "restore" : "pause", result, reason, elapsedMs: this.elapsed(started) };
     try { this.dependencies.onDiagnostic?.(event); } catch { /* Observers do not own forwarding. */ }
   }
   private async forwardingRequest(route: Route, request: HybridForwardingRequest, timeout: number): Promise<HybridForwardingAck> {
+    const started = this.clock.now();
     try {
       return await this.bounded(route, Promise.resolve().then(() => this.dependencies.authority!.setForwarding(request)), timeout);
     } catch (error) {
-      this.reportForwarding(request, "failed", "request_failed");
+      this.reportForwarding(request, "failed", "request_failed", started);
       throw error;
     }
   }
@@ -534,9 +571,8 @@ export class HybridRouteController {
     route.reprobe = this.clock.schedule(() => {
       route.reprobe = undefined;
       if (!this.current(route) || route.state.status !== "sfu") return;
-      // Keep the retry alive while the host-level admission gate is closed.
-      // A timer firing during a temporary budget pause must not consume the
-      // only pending retry and leave an otherwise healthy SFU route stranded.
+      // Temporary budget closure reschedules the pending retry rather than
+      // consuming it and stranding an otherwise healthy SFU route.
       if (!this.admission) { this.scheduleReprobe(route); return; }
       route.state.status = "queued"; route.state.reason = null; this.emit(); this.pump();
     }, delay);
@@ -555,9 +591,11 @@ export class HybridRouteController {
   }
 
   private async recoverRoute(route: Route, reason: string): Promise<void> {
+    const recoveryStarted = this.clock.now();
     this.cancel(route); route.generation = ++this.generations; route.state.routeGeneration = route.generation;
     const generation = route.generation;
     const shouldReprobe = !!route.peer || route.pauseAttempted || route.state.status === "probing" || route.state.status === "switching";
+    const needsRestore = route.pauseAttempted || route.state.selected !== "sfu";
     route.state.reason = reason; route.state.status = "recovering";
     const healthy = route.state.selected === "p2p" && this.receiving(route);
     if (route.state.selected === "p2p" && !healthy) {
@@ -565,7 +603,7 @@ export class HybridRouteController {
     }
     this.emit();
     try {
-      if (route.pauseAttempted) {
+      if (needsRestore) {
         const after = route.port.getSfuMediaSequence();
         if (!Number.isSafeInteger(after) || after < 0) throw new Error("invalid_sfu_media_sequence");
         const request = this.request(route, true); const started = this.clock.now();
@@ -576,12 +614,16 @@ export class HybridRouteController {
         if (!this.current(route, generation)) return;
         if (!this.validMedia(media) || media.mediaSequence <= after) throw new Error("fresh_sfu_media_unavailable");
         this.select(route, "sfu", media);
+        await this.selectionComplete(route);
+        if (!this.current(route, generation)) return;
       }
       this.closePeer(route); route.state.status = "sfu"; route.pauseAttempted = false; route.restoreAttempts = 0;
+      this.reportHandoff("sfu_restore_completed", recoveryStarted, "fresh_sfu_restored");
       this.restorePorts.delete(route.port); this.emit(); if (shouldReprobe) this.scheduleReprobe(route);
     } catch (error) {
       if (!this.current(route, generation)) return;
       route.state.status = "recovering"; route.state.reason = diagnostic(error, "restore_failed");
+      this.reportHandoff("recovery_failed", recoveryStarted, "restore_failed");
       if (route.state.selected !== "p2p" || !healthy || !this.receiving(route)) {
         if (route.state.selected === "p2p") {
           try { this.select(route, "none"); } catch { route.state.reason = "receive_selection_failed"; }

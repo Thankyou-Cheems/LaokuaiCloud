@@ -57,11 +57,8 @@ const unknownPath = (observedAtMs: number, reason: ReceiveTransportPathReason, p
   source: "rtc-selected-candidate-pair", observedAtMs, classification: "unknown", reason, pairId, local, remote, underlay: null,
 });
 
-/**
- * Resolve the exact inbound audio track to its selected ICE pair and both
- * candidate records. A non-relay ICE pair is only a non-TURN candidate path;
- * it is never reported as a physical or EasyTier direct path.
- */
+/** Resolve this exact inbound track to its selected pair and candidate records.
+ * Non-TURN alone never proves physical or EasyTier direct routing. */
 export function readReceiveTransportPath(report: RTCStatsReport, trackId: string, at: number): ReceiveTransportPathEvidence {
   const rows: any[] = []; report.forEach(row => {
     if (row.type === "inbound-rtp" && (row.kind ?? row.mediaType) === "audio" && row.trackIdentifier === trackId) rows.push(row);

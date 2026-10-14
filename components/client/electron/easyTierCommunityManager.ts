@@ -186,6 +186,8 @@ export class EasyTierCommunityManager {
       c.state.phase = "connected";
       c.state.reason = null;
       this.publish(c);
+      // Populate community telemetry immediately without extending the connect lane.
+      void this.refresh(c.state.serverId).catch(() => undefined);
     });
     c.tail = work.catch(error => {
       if (generation === c.state.generation && !cancel.signal.aborted) {

@@ -17,6 +17,11 @@ try {
   emit(peerMediaDiagnostic(null)); assert.equal(events.length, 1, 'rate bound missing');
   now += 1001; emit(peerMediaDiagnostic(null)); assert.equal(events.length, 2);
   emit(peerMediaDiagnostic(null, 'peer_stats_unavailable')); assert.equal(events.at(-1).failureReason, 'peer_stats_unavailable');
+  const handoff = { kind: 'handoff', stage: 'local_handoff_completed', elapsedMs: 24, reason: 'local_handoff_before_pause' };
+  emit(handoff); emit(handoff); assert.deepEqual(events.at(-1), handoff);
+  const handoffCount = events.length;
+  emit({ ...handoff, stage: 'sfu_restore_completed', reason: 'fresh_sfu_restored', elapsedMs: 180 });
+  assert.equal(events.length, handoffCount + 1, 'completion of a different stage must survive rate dedup');
   const forwarding = { kind: 'forwarding', action: 'pause', result: 'acknowledged', reason: 'validated_ack' };
   for (let i=0; i<200; ++i) { now += 1001; emit({ ...forwarding, result: i%2 ? 'failed' : 'acknowledged', reason: i%2 ? 'request_failed' : 'validated_ack' }); }
   assert.ok(events.length <= 128);

@@ -181,11 +181,8 @@ export class BrowserHybridPeer implements HybridPeerSession {
           samples += row.totalSamplesReceived; packets += row.packetsReceived;
         }
       } });
-      // ReceiveTrackStats rejects duplicate exact-track rows. Keep the media
-      // proof equally strict; aggregate or unidentified inbound audio must
-      // never be mistaken for this peer's decoded track. Do not treat the
-      // missing/ambiguous sample as a counter reset: wait for one exact row,
-      // then let the normal freshness timeout handle a prolonged absence.
+      // Only one exact-track row proves this peer's media; ambiguous/absent
+      // stats wait for freshness expiry without resetting valid counters.
       if (matchedRows !== 1) {
         if (this.sequence > 0 && now - this.lastDecodedAt > 3000) this.fail("peer_decoded_media_stale");
         return;

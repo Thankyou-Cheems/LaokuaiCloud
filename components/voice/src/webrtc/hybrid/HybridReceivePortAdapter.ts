@@ -64,6 +64,7 @@ export class HybridReceivePortAdapter implements HybridReceivePort {
   private selectedCandidate?: HybridMediaCandidate;
   isCurrent(): boolean { return !this.disposed && this.input.isCurrent(); }
   getSelectionRevision(): number { return this.input.getSelectionRevision(); }
+  waitForSelection(revision: number): Promise<void> { return this.input.waitForSelection(revision); }
   getSelection() { return { kind: this.selected, trackId: this.selected === "sfu" ? this.sfuTrack.id :
     this.selected === "p2p" ? this.selectedCandidate?.track.id ?? null : null, revision: this.getSelectionRevision() }; }
   getSfuMediaSequence(): number { return this.evidence.getSequence(); }
@@ -84,6 +85,8 @@ export class HybridReceivePortAdapter implements HybridReceivePort {
     const media = await this.waitForSfuMedia(sequence);
     if (!isAuthorized() || !this.isCurrent() || revision !== this.getSelectionRevision()) throw new Error("stale_receive_selection");
     this.select("sfu", media, revision + 1);
+    await this.waitForSelection(revision + 1);
+    if (!isAuthorized() || !this.isCurrent() || revision + 1 !== this.getSelectionRevision()) throw new Error("stale_receive_selection");
   }
   dispose(): void {
     if (this.disposed) return;

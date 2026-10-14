@@ -18,7 +18,7 @@ export class LocalDiagnosticWriter {
       event.selectionRevision, event.status, event.selected, event.reason, event.forwardingPaused,
       event.connected, event.rosterReady, event.epochReady, event.pathClass, event.pathReason,
       event.localCandidateType, event.remoteCandidateType, event.underlayClass, event.decodeProof,
-      event.decodeReason, event.failureReason, event.forwardingAction, event.result]);
+      event.decodeReason, event.failureReason, event.forwardingAction, event.result, event.handoffStage]);
     const old = this.pending.get(key), now = Date.now();
     if (old) {old.event = event; old.count = Math.min(old.count + 1, 1_000_000); old.lastMs = now;}
     else if (this.pending.size < 256) this.pending.set(key, {event, count: 1, firstMs: now, lastMs: now});

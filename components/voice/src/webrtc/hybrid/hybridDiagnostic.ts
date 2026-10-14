@@ -23,6 +23,12 @@ export type BrowserHybridDiagnostic = {
   action: "pause" | "restore";
   result: "acknowledged" | "failed";
   reason: "validated_ack" | "request_failed" | "forwarding_ack_mismatch";
+  elapsedMs?: number;
+} | {
+  kind: "handoff";
+  stage: "peer_media_ready" | "local_handoff_started" | "local_handoff_completed" | "sfu_restore_completed" | "recovery_failed";
+  elapsedMs: number;
+  reason: "verified_media" | "local_handoff_before_pause" | "fresh_sfu_restored" | "restore_failed";
 };
 
 export function peerMediaDiagnostic(observation: ReceiveTrackObservation | null, failure?: string): BrowserHybridDiagnostic {
@@ -52,6 +58,7 @@ export function createHybridDiagnosticReporter(observer?: (event: BrowserHybridD
     if (at - windowStart >= 60000) { windowStart = at; count = 0; last.clear(); }
     if (count >= 128) return;
     const kind = event.kind === "forwarding" ? `${event.kind}:${event.action}:${event.result}`
+      : event.kind === "handoff" ? `${event.kind}:${event.stage}`
       : event.failureReason ? "peer-media:failure" : event.kind;
     const key = JSON.stringify(event), prior = last.get(kind);
     if (prior && (prior.key === key || at - prior.at < 1000)) return;

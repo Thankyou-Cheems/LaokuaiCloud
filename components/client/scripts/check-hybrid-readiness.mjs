@@ -108,6 +108,13 @@ observer.sdk(media); observer.sdk(media); observer.sdk({ kind: "forwarding", act
 assert.equal(safe.length, 4); assert.equal(safe[2].underlayClass, "easytier-direct"); assert.equal(safe[2].decodeProof, "fresh");
 assert.equal(safe[3].result, "acknowledged"); assert.equal(JSON.stringify(safe).includes("secret"), false);
 safe.forEach(value => diagnosticModule.exports.localHybridDiagnostic(value)); assert.equal(recorded.length, 4);
+observer.sdk({ kind: "handoff", stage: "local_handoff_completed", elapsedMs: 24, reason: "local_handoff_before_pause", token: "secret-token" });
+observer.sdk({ kind: "handoff", stage: "sfu_restore_completed", elapsedMs: 750, reason: "fresh_sfu_restored" });
+observer.sdk({ kind: "forwarding", action: "restore", result: "acknowledged", reason: "validated_ack", elapsedMs: 700 });
+assert.equal(safe.at(-3).operation, "hybrid-handoff"); assert.equal(safe.at(-3).elapsedMs, 24);
+assert.equal(safe.at(-2).handoffStage, "sfu_restore_completed"); assert.equal(safe.at(-1).elapsedMs, 700);
+assert.equal(JSON.stringify(safe).includes("secret"), false);
+safe.slice(-3).forEach(value => diagnosticModule.exports.localHybridDiagnostic(value)); assert.equal(recorded.length, 7);
 const bridged = fixture(); await bridged.render(); bridged.sessions[0].options.onDiagnostic(media);
 assert.equal(bridged.diagnostics.at(-1).operation, "hybrid-path"); bridged.dispose();
 for (const reason of ["peer_path_inconsistent", "invalid_receive_candidate", "invalid_receive_node"]) {

@@ -27,11 +27,15 @@ const snapshot = (members = [member], enabled = true, retry) => ({members, enabl
 function fixture() {
   const calls = [], timers = []; let auth = null, ready = true, retired = false, readFailure = null, approval = async () => ({accepted: true}), authHook = async () => {};
   const manager = new EasyTierCommunityManager({activationReason: () => null, shutdownOwned() {},
-    connect: async ({serverId}) => {
+    connect: async ({serverId, generation}) => {
       assert.ok(auth, 'no native start before verified membership'); calls.push('connect:' + serverId);
       return {instanceId: 'fixture-instance', read: async () => {
-        if (readFailure) throw readFailure;
-        retired = true; throw new EasyTierSessionRetiredError('runtime-exited');
+        if (readFailure) {
+          if (readFailure instanceof EasyTierSessionRetiredError) retired = true;
+          throw readFailure;
+        }
+        return {serverId, generation, instanceId: 'fixture-instance', acquiredAtMs: 0, acquiredAtUnixMs: Date.now(),
+          freshRpc: true, latencyFirst: false, info: {running: true}, bindings: []};
       }, close: async () => {calls.push('close');}};
     }}, state => enrollment.observe(state), () => 0, 1000);
   const enrollment = new CommunityEnrollment({manager, supports: m => m.host === member.host,
@@ -110,10 +114,12 @@ test('malformed IPC snapshot is rejected before side effects', () => {
 });
 
 test('owned core exit revalidates the same saved token and automatically reconnects', async () => {
-  const f = fixture(); await f.enrollment.reconcile(snapshot());
+  const f = fixture(); await f.enrollment.reconcile(snapshot()); await tick();
+  f.failRead(new EasyTierSessionRetiredError('runtime-exited'));
   await f.manager.refresh(member.serverId);
   assert.equal(f.manager.getState(member.serverId).phase, 'error');
   assert.equal(f.timers[0].delayMs, 5000);
+  f.recoverRead();
   await f.retry();
   assert.equal(f.manager.getState(member.serverId).phase, 'connected');
   assert.equal(f.calls.filter(x => x.startsWith('auth:')).length, 2);
@@ -121,7 +127,7 @@ test('owned core exit revalidates the same saved token and automatically reconne
   assert.equal(f.calls.filter(x => x.startsWith('approve:')).length, 1);
 });
 test('status-unavailable keeps telemetry retries separate from membership recovery', async () => {
-  const f = fixture(); await f.enrollment.reconcile(snapshot());
+  const f = fixture(); await f.enrollment.reconcile(snapshot()); await tick();
   f.failRead(Error('status unavailable')); await f.manager.refresh(member.serverId);
   assert.equal(f.manager.getState(member.serverId).reason, 'status-unavailable');
   assert.equal(f.timers.filter(t => !t.cancelled).length, 0);
@@ -135,7 +141,8 @@ test('status-unavailable keeps telemetry retries separate from membership recove
   assert.equal(f.calls.includes('close'), false);
 });
 test('lost permission broker is prepared again, but a refusal stops automatic prompts', async () => {
-  const f = fixture(); await f.enrollment.reconcile(snapshot()); f.loseBroker();
+  const f = fixture(); await f.enrollment.reconcile(snapshot()); await tick(); f.loseBroker();
+  f.failRead(new EasyTierSessionRetiredError('runtime-exited'));
   f.approval(async () => ({accepted: false})); await f.manager.refresh(member.serverId); await f.retry();
   await f.enrollment.reconcile(snapshot());
   assert.equal(f.calls.filter(x => x.startsWith('approve:')).length, 2);
@@ -151,6 +158,8 @@ test('temporary authentication failure retries with backoff and stops when membe
   assert.equal(f.calls.filter(x => x.startsWith('connect:')).length, 0);
 });
 test('shutdown cancels pending automatic recovery', async () => {
-  const f = fixture(); await f.enrollment.reconcile(snapshot()); await f.manager.refresh(member.serverId);
+  const f = fixture(); await f.enrollment.reconcile(snapshot()); await tick();
+  f.failRead(new EasyTierSessionRetiredError('runtime-exited')); await f.manager.refresh(member.serverId);
+  assert.equal(f.timers.filter(t => !t.cancelled).length, 1);
   f.enrollment.shutdown(); assert.equal(f.timers.filter(t => !t.cancelled).length, 0);
 });
