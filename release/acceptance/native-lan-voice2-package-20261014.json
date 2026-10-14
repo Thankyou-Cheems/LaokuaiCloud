@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "branch": "codex/native-lan-voice",
+  "sourceCommit": "59e3d1588b91ac04d990e2c652167afc821df6de",
+  "version": "1.13.22-laokuai.native.20261014.2",
+  "archive": {
+    "file": "唠蒯云-1.13.22-laokuai.native.20261014.2-zh-CN-win-x64-green.zip",
+    "bytes": 159963754,
+    "sha256": "a44db2f308c9f5dac51c8a7790739a5d5595067a27a3f43fe48064d717c9cef4"
+  },
+  "nativeHelper": {
+    "sha256": "0c9e609bd5403b8ebbc3cc24c3895d9fba0f30efa701933907cd776167e93e8f",
+    "bytes": 1108992,
+    "protocol": "aoo-et-ipv4-v1"
+  },
+  "payloadFiles": 153,
+  "checks": {
+    "coreSourceContracts": true,
+    "communityTypes": true,
+    "clientTypesLintAndCompile": true,
+    "productionAdapterChecks": 31,
+    "networkChecks": 15,
+    "productionQuitOrder": true,
+    "finalPayload": true,
+    "hiddenElectronOfflineBoot": true,
+    "zipExtractionMatches": true
+  },
+  "limitations": {
+    "realStartupAfterFixConfirmed": false,
+    "realTwoDeviceAudioAccepted": false,
+    "productionChanged": false,
+    "profileChanged": false
+  },
+  "desktop": {
+    "programFilesVerified": 153,
+    "updated": true,
+    "applicationLaunched": false,
+    "fullBackupFilesVerified": 295,
+    "protectedFilesUnchanged": 142
+  }
+}
