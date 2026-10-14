@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "format": "laokuai-native-incremental-exe-v1",
+  "sourceCommit": "743b5804504994c4bede420c3003c1a30be361b4",
+  "sourceUrl": "https://github.com/Thankyou-Cheems/LaokuaiCloud/tree/743b5804504994c4bede420c3003c1a30be361b4/tools/native-updater",
+  "file": "唠蒯云-15到16-双击更新.exe",
+  "bytes": 16044032,
+  "sha256": "636c88e3b75b636bd10db2383d3a2fbbca4a6d43899bd3a87f8518cb3c9df034",
+  "embeddedUpdateSha256": "58c8c64ac84433bfbec1ae90893046267eb382a2feac0e0c894ccf84d288ba21",
+  "baseVersion": "1.13.22-laokuai.beta.20261014.15",
+  "targetVersion": "1.13.22-laokuai.beta.20261014.16",
+  "runtime": "Windows built-in .NET Framework 4.x",
+  "requiresPowerShell": false,
+  "elevation": "asInvoker",
+  "compilerSha256": "46809206887326d2d24db1eff1f3064de972c3451abe766b49111450a5e08e00",
+  "inputs": {
+    "tools/native-updater/UpdateEngine.cs": "4168b500b3e3d729634b09886274f64138986a291a9a6b56938c64a2b64d05ac",
+    "tools/native-updater/Discovery.cs": "7476ffbffdbbe47a85e117dd88fc905a9e4ffea10a8e99751d6877737b31e035",
+    "tools/native-updater/Program.cs": "6c333d4ecca7a507e3c23241e2a28f6b01d8ebc2162a1f2c06117fbbc8534881",
+    "generated/BuildInfo.cs": "96375d09b1bb450318b6f05f570c29d18dac275efac8f51e438a1a3cada9a675",
+    "tools/native-updater/updater.manifest": "4b36452ecd8368d4f0ce3cb5a0a181f6cb100da99e2a61c29dae14177ec7e40f",
+    "tools/incremental-program-paths.json": "daf63c04a2ade390d83e284945ae7f060cab13c542443f9177f6350e8d99aa8e",
+    "components/client/LICENSE": "7b1ec9b5e4ce9af39763885b79276fc39297811f00188c454d67561cab3a96cd",
+    "components/client/private-brand/icon.ico": "b95f8bd229b8f5c631bcb1bd6f628a7c0480aa9fd5e4c1659b17863226e1ffe7"
+  },
+  "validation": {
+    "syntheticFixtureGroups": 13,
+    "syntheticResult": "passed",
+    "realArchiveFixtureGroups": 14,
+    "realArchiveResult": "passed",
+    "independentlyComparedTargetFiles": 146,
+    "protectedSyntheticAccountAndConfigUnchanged": true,
+    "realBaseZipSha256": "70ec7fb029a9e06d0ef9b0ed300a5e829c44e4c31e57bb5be5f78f2b269109de",
+    "realTargetZipSha256": "44af025dff01dce720440a64d487cce098242c429f41229237d288881134d557",
+    "productionExeEmbeddedHashAndLicenseVerified": true,
+    "productionFormInitializationVerified": true,
+    "productionEngineRecognizesVerifiedTargetFixture": true,
+    "productionHasNoTestSeams": true,
+    "hiddenFormFlows": [
+      "one baseline updates automatically",
+      "multiple baselines require selection",
+      "target plus baseline requires selection",
+      "target-only makes no writes",
+      "post-completion search does not apply twice"
+    ],
+    "failureChecks": [
+      "checksum mismatch",
+      "invalid baseline",
+      "locked program",
+      "running fixture process",
+      "path traversal",
+      "junction redirection",
+      "non-program manifest",
+      "missing/corrupt payload",
+      "invalid block offset",
+      "rollback and same-engine retry",
+      "interrupted journal refusal"
+    ],
+    "userDesktopModified": false,
+    "realUserDataReadOrModified": false,
+    "userApplicationLaunched": false,
+    "productionServicesModified": false,
+    "limitation": "File updates and isolated UI flows only; real two-device audio/game and 12-person WAN acceptance remain pending.",
+    "finalShortcutFixture": "IShellLinkW creates real Unicode shortcuts; unchanged production Discovery reads them; 13 local groups passed"
+  },
+  "payloadExtractionToSystemTemp": false,
+  "date": "2026-10-14",
+  "applicationSourceCommit": "06708268dfda7e5021e145970c913968d190f40c",
+  "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-15到16-双击更新.exe",
+  "ci": {
+    "status": "not-passed; remaining remote work cancelled to respect user budget",
+    "automaticPushDisabled": true,
+    "remainingTriggers": [
+      "pull_request",
+      "workflow_dispatch"
+    ],
+    "monthlyAllowanceUserReportedMinutes": 1000,
+    "remainingAllowance": "unknown",
+    "history": [
+      {
+        "sourceCommit": "743b5804504994c4bede420c3003c1a30be361b4",
+        "outcome": "native fixture setup failed; other jobs passed after one SFU dependency-download retry",
+        "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud/actions/runs/38566707263",
+        "runId": 38566707263
+      },
+      {
+        "sourceCommit": "f5cf24fef61eec1e33db2877cb52c3f4af16cbe1",
+        "outcome": "localized native fixture failure to WScript TargetPath setter E_INVALIDARG",
+        "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud/actions/runs/38567377989",
+        "runId": 38567377989
+      },
+      {
+        "sourceCommit": "7b3c2b21116e64e9c9fcfe30c305697b6aa1b39c",
+        "outcome": "existing target and explicit strings did not fix setter; remaining run cancelled at user budget request",
+        "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud/actions/runs/38567714954",
+        "runId": 38567714954
+      }
+    ],
+    "finalFixtureCorrection": "Test-only shortcut generation now uses Unicode IShellLinkW, retaining all production reader assertions",
+    "finalCorrectionLocalResult": "13 groups passed",
+    "finalCorrectionRemoteResult": "not run",
+    "productionSourceUnchangedSinceArtifact": true
+  }
+}

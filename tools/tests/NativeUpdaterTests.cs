@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
@@ -12,8 +13,8 @@ using System.Web.Script.Serialization;
 using System.Windows.Forms;
 using LaokuaiUpdater;
 
-// Console fixture compiled with the actual engine/discovery. No WinForms UI,
-// product executable, desktop scan, process launch or network test is used.
+// Fixture compiled with the actual engine/discovery and hidden production Form.
+// Only a test-owned child is launched; no product, desktop scan or network is used.
 internal static class NativeUpdaterTests
 {
     private static string Root;
@@ -22,6 +23,50 @@ internal static class NativeUpdaterTests
     private static readonly JavaScriptSerializer Json = new JavaScriptSerializer();
     private static readonly Encoding Utf8 = new UTF8Encoding(false);
     private static void IgnoreProgress(string message) { }
+
+    // Create actual .lnk files with the OS Unicode API. PowerShell's WScript
+    // TargetPath setter fails with E_INVALIDARG on the en-US CI runner, including
+    // existing targets; production reads remain covered by Discovery below.
+    [ComImport, Guid("00021401-0000-0000-C000-000000000046")]
+    private class ShellLink { }
+
+    [ComImport, Guid("000214F9-0000-0000-C000-000000000046"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IShellLinkW
+    {
+        void GetPath([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder path, int count, IntPtr findData, uint flags);
+        void GetIDList(out IntPtr itemList);
+        void SetIDList(IntPtr itemList);
+        void GetDescription([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder description, int count);
+        void SetDescription([MarshalAs(UnmanagedType.LPWStr)] string description);
+        void GetWorkingDirectory([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder directory, int count);
+        void SetWorkingDirectory([MarshalAs(UnmanagedType.LPWStr)] string directory);
+        void GetArguments([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder arguments, int count);
+        void SetArguments([MarshalAs(UnmanagedType.LPWStr)] string arguments);
+        void GetHotkey(out short hotkey);
+        void SetHotkey(short hotkey);
+        void GetShowCmd(out int command);
+        void SetShowCmd(int command);
+        void GetIconLocation([Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder path, int count, out int index);
+        void SetIconLocation([MarshalAs(UnmanagedType.LPWStr)] string path, int index);
+        void SetRelativePath([MarshalAs(UnmanagedType.LPWStr)] string path, uint reserved);
+        void Resolve(IntPtr window, uint flags);
+        void SetPath([MarshalAs(UnmanagedType.LPWStr)] string path);
+    }
+
+    private static void CreateShortcut(string name, string target, string arguments)
+    {
+        Console.WriteLine("[NativeUpdater] create Unicode shortcut fixture: " + name);
+        object link = new ShellLink();
+        try
+        {
+            IShellLinkW unicode = (IShellLinkW)link;
+            unicode.SetPath(Path.GetFullPath(target));
+            unicode.SetArguments(arguments);
+            ((System.Runtime.InteropServices.ComTypes.IPersistFile)link).Save(Path.Combine(Root, name), true);
+            Assert(File.Exists(Path.Combine(Root, name)), "Unicode shortcut was not saved: " + name);
+        }
+        finally { Marshal.FinalReleaseComObject(link); }
+    }
 
     private sealed class Fixture
     {
@@ -306,6 +351,13 @@ internal static class NativeUpdaterTests
                 Assert(Discovery.SelectUniqueCandidate(candidates) == null, "ambiguous candidates were silently selected");
                 Assert(String.Equals(Discovery.SelectUniqueCandidate(new string[] { first.Directory, first.Directory }), first.Directory, StringComparison.OrdinalIgnoreCase), "same directory duplicate was not deduplicated");
                 NewFixture("shortcut", Path.Combine(Root, "shortcut-target"));
+                string shortcutExe = Path.Combine(Root, "shortcut-target", "唠蒯云.exe");
+                string wrongExe = Path.Combine(Root, "shortcut-target", "not-the-app.exe");
+                File.WriteAllBytes(wrongExe, new byte[] { 0x21 });
+                CreateShortcut("正常 中文链接.lnk", shortcutExe, "");
+                CreateShortcut("带参数.lnk", shortcutExe, "--fixture-argument");
+                CreateShortcut("非应用.lnk", wrongExe, "");
+                CreateShortcut("重定向.lnk", Path.Combine(Root, "junction-install", "唠蒯云.exe"), "");
                 Assert(String.Equals(Discovery.ReadShortcutTargetDirectory(Path.Combine(Root, "正常 中文链接.lnk")), Path.Combine(Root, "shortcut-target"), StringComparison.OrdinalIgnoreCase), "safe local shortcut not recognized");
                 foreach (string link in new string[] { "带参数.lnk", "非应用.lnk", "重定向.lnk" })
                     Assert(Discovery.ReadShortcutTargetDirectory(Path.Combine(Root, link)) == null, "unsafe shortcut accepted: " + link);

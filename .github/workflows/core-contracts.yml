@@ -1,7 +1,6 @@
 name: Source contracts and routing regressions
 on:
   pull_request:
-  push:
   workflow_dispatch:
 permissions:
   contents: read

@@ -2,6 +2,13 @@
   "schema": 2,
   "id": "laokuai-cloud-receive-path-et-observation-frozen-20261011",
   "stage": "community-network-green-test-package",
+  "nativeIncrementalUpdater": {
+    "receipt": "release/acceptance/native-incremental16-20261014.json",
+    "sourceCommit": "743b5804504994c4bede420c3003c1a30be361b4",
+    "base": ".15",
+    "target": ".16",
+    "requiresPowerShell": false
+  },
   "ready": false,
   "repository": {
     "url": "https://github.com/Thankyou-Cheems/LaokuaiCloud",

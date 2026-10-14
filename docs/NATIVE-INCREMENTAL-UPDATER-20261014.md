@@ -1,5 +1,8 @@
 # 双击增量更新
 
+交付：`唠蒯云-15到16-双击更新.exe`，约 16.0 MB。
+精确源码、哈希与验证结果见[发布回执](../release/acceptance/native-incremental16-20261014.json)。
+
 `.15 → .16` 提供一个独立 Windows EXE，内嵌已冻结的增量数据。使用系统自带的
 .NET Framework，不要求用户安装 PowerShell 7、7-Zip 或 Node.js。
 开发构建和自动化测试仍使用 PowerShell 7，用户运行更新器不调用 PowerShell。

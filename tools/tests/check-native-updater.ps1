@@ -29,44 +29,8 @@ Write-Host "[NativeUpdater] $fixtureStage; directory=$fixtureRoot"
 $junctionTarget = Join-Path $fixtureRoot 'junction-target'
 New-Item -ItemType Directory -Path $junctionTarget | Out-Null
 New-Item -ItemType Junction -Path (Join-Path $fixtureRoot 'junction-install') -Target $junctionTarget | Out-Null
-$shortcutTarget = Join-Path $fixtureRoot 'shortcut-target'
-New-Item -ItemType Directory -Path $shortcutTarget | Out-Null
-$fixtureStage = 'create existing synthetic shortcut targets'
-Write-Host "[NativeUpdater] $fixtureStage"
-# Supply existing native paths to the COM setter rather than dangling targets;
-# the native fixture later replaces their bytes with its known baseline.
-foreach ($targetDirectory in @($shortcutTarget, $junctionTarget)) {
-    New-Item -ItemType Directory -Path (Join-Path $targetDirectory 'resources') | Out-Null
-    [IO.File]::WriteAllBytes((Join-Path $targetDirectory '唠蒯云.exe'), [byte[]]@(0x21))
-    [IO.File]::WriteAllBytes((Join-Path $targetDirectory 'resources/app.asar'), [byte[]]@(0x21))
-}
-[IO.File]::WriteAllBytes((Join-Path $shortcutTarget 'not-the-app.exe'), [byte[]]@(0x21))
-$fixtureStage = 'create WScript.Shell COM instance'
-Write-Host "[NativeUpdater] $fixtureStage"
-$shortcutShell = New-Object -ComObject WScript.Shell
-try {
-    foreach ($link in @(
-        @{Name='正常 中文链接.lnk';Target=(Join-Path $shortcutTarget '唠蒯云.exe');Arguments=''},
-        @{Name='带参数.lnk';Target=(Join-Path $shortcutTarget '唠蒯云.exe');Arguments='--fixture-argument'},
-        @{Name='非应用.lnk';Target=(Join-Path $shortcutTarget 'not-the-app.exe');Arguments=''},
-        @{Name='重定向.lnk';Target=(Join-Path $fixtureRoot 'junction-install/唠蒯云.exe');Arguments=''}
-    )) {
-        $fixtureStage = "create shortcut: $($link.Name)"
-        Write-Host "[NativeUpdater] $fixtureStage"
-        [string]$shortcutPath = [IO.Path]::GetFullPath((Join-Path $fixtureRoot ([string]$link.Name)))
-        [string]$shortcutTargetPath = [IO.Path]::GetFullPath([string]$link.Target)
-        $shortcut = $shortcutShell.CreateShortcut($shortcutPath)
-        try {
-            $fixtureStage = "set shortcut target: $($link.Name)"
-            $shortcut.TargetPath = $shortcutTargetPath
-            $fixtureStage = "set shortcut arguments: $($link.Name)"
-            $shortcut.Arguments = [string]$link.Arguments
-            $fixtureStage = "save shortcut: $($link.Name)"
-            $shortcut.Save()
-        }
-        finally { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($shortcut) }
-    }
-} finally { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($shortcutShell) }
+# The native fixture creates real Unicode .lnk files through IShellLinkW.
+# Production Discovery still reads them through its normal WScript getter.
 $fixtureStage = 'compile production engine, discovery and form with fixture'
 Write-Host "[NativeUpdater] $fixtureStage"
 $compiler = Join-Path $env:SystemRoot 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
