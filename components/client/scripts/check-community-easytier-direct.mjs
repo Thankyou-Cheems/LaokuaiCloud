@@ -103,4 +103,25 @@ const scoped = exports.createWindowsEasyTierProduction(root, product, undefined,
 const release = await scoped.runtime.ports.prepareOwnedInterface({}, {}, new AbortController().signal);
 await scoped.drainOwned(); await release();
 assert.equal(releases, 1);
+// A rule creation that ignores cancellation can still return a late handle.
+// Production quit must await that handle and remove the rule before the NIC.
+let completePreparation;
+const preparation = new Promise(resolve => { completePreparation = resolve; });
+const stages = [], observe = event => stages.push(event);
+const pending = exports.createWindowsEasyTierProduction(root, product, undefined, helper, undefined,
+  async () => { await preparation; return async () => { calls.push("interface:release-late"); }; }, observe);
+assert.equal(pending.runtime.ports.onStartupStage, observe);
+const beforeQuit = calls.length;
+const lateHandle = pending.runtime.ports.prepareOwnedInterface({}, {}, new AbortController().signal);
+pending.runtime.ports.shutdownOwned();
+const draining = pending.drainOwned();
+for (let index = 0; index < 16; index++) await Promise.resolve();
+assert.equal(calls.slice(beforeQuit).some(call => call.startsWith("processes:")), false);
+completePreparation(); await lateHandle; await draining;
+for (let index = 0; index < 16; index++) await Promise.resolve();
+const quitCalls = calls.slice(beforeQuit);
+assert.equal(quitCalls[0], "interface:release-late");
+assert.equal(quitCalls.filter(call => call === "interface:release-late").length, 1);
+assert.ok(quitCalls.includes("processes:drain"));
+assert.ok(quitCalls.includes("processes:shutdown"));
 console.log(JSON.stringify({ passed: true, directChild: true, elevationBrokerConstructed: false, drainVerified: true }));

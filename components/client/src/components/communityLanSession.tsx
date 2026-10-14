@@ -5,6 +5,7 @@ import { useServerManagement, useSockets } from "@/socket";
 
 import { publishCommunityLanState as publish, useEasyTierCommunityState } from "../lib/communityLanState";
 import { easyTierCommunityAction, presentCommunityLanAction } from "../lib/easyTierCommunitySubscriptions";
+import { nativeVoiceEnabled } from "../lib/voiceFacade";
 import { CommunityLanStatusControl, type CommunityLanStatusControlProps } from "./CommunityLanStatusControl";
 
 const CommunityLanControlsContext = createContext<CommunityLanStatusControlProps | null>(null);
@@ -62,7 +63,7 @@ export function CommunityLanSession({ children }: { children?: ReactNode }) {
   }, [servers, enabled, modeReady, previewDisabled]);
   const serverId = currentlyViewingServer?.serverId;
   const state = useEasyTierCommunityState(serverId);
-  const action = easyTierCommunityAction(state, enabled);
+  const action = easyTierCommunityAction(state, enabled, nativeVoiceEnabled);
   const prepare = async () => {
     if (!serverId || !window.easyTierCommunity) return;
     setPreparing(true);
@@ -72,7 +73,7 @@ export function CommunityLanSession({ children }: { children?: ReactNode }) {
       refresh.current(serverId);
     } catch { setOperationFailed(true); setPreparing(false); }
   };
-  const shownAction = presentCommunityLanAction(action, state, { previewDisabled, preparing, operationFailed });
+  const shownAction = presentCommunityLanAction(action, state, { previewDisabled, preparing, operationFailed, voiceDependsOnLan: nativeVoiceEnabled });
   const host = currentlyViewingServer?.host;
   const connection = host ? serverConnectionStatus[host] : undefined;
   const communityLabel = connection === "refused" ? "社区认证或权限被拒绝" : host && sockets[host]?.connected

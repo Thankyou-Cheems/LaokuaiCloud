@@ -126,20 +126,87 @@ await test("shutdown is exact owned-process port and terminal for late connect",
   runtime.shutdownOwned(); runtime.shutdownOwned(); assert.equal(p.calls.filter(c => c === "terminate").length, 1);
   await assert.rejects(runtime.connect(scope()));
 });
-await test("owned interface rule preparation follows readiness and is released on canceled startup", async () => {
+await test("ready credential core remains connected when optional ICMP preparation exceeds manager deadline", async () => {
+  const entered = defer(), prepared = defer(), states = [], p = ports();
+  p.configuration = async () => ({ ...config, credentialIdentity: { synthetic: true } });
+  p.core.readCredentialObservation = async () => ({ synthetic: true });
+  p.prepareOwnedInterface = async () => {
+    p.calls.push("interface-prepare"); entered.resolve();
+    await prepared.promise;
+    return async () => { p.calls.push("interface-release"); };
+  };
+  const runtime = new WindowsEasyTierCliRuntime(p);
+  const manager = new deps["./easyTierCommunityManager"].EasyTierCommunityManager(runtime, state => states.push(state), () => 1000);
+  await manager.setEnabled(true);
+  const connecting = manager.connect({ serverId: config.serverId, leaseId: "synthetic-member" });
+  await entered.promise;
+  // Drain ready-core work before advancing any still-live manager deadline.
+  for (let index = 0; index < 32; index++) await Promise.resolve();
+  for (const [id, callback] of [...timers]) { timers.delete(id); callback(); }
+  const state = await connecting;
+  prepared.resolve();
+  for (let index = 0; index < 32; index++) await Promise.resolve();
+  try {
+    assert.equal(state.reason, null, `ready core was retired: ${state.reason}`);
+    assert.equal(state.phase, "connected");
+    assert.equal(state.virtualIp, "10.9.8.7");
+    assert.equal(p.core.isAlive(), true);
+    assert.equal(states.some(value => value.reason === "operation-timeout"), false);
+  } finally { await manager.disconnectCommunity(config.serverId); }
+  assert.deepEqual(p.calls.slice(-2), ["interface-release", "close"]);
+});
+await test("cancelled session drains late interface preparation before releasing its owned core", async () => {
   const entered = defer(), completed = defer(), controller = new AbortController();
   const p = ports();
   p.prepareOwnedInterface = async (receivedConfig, core, signal) => {
     assert.equal(core, p.core); assert.equal(core.isAlive(), true);
-    assert.equal(receivedConfig.instanceId, config.instanceId); assert.equal(signal, controller.signal);
+    assert.equal(receivedConfig.instanceId, config.instanceId); assert.notEqual(signal, controller.signal);
+    controller.signal.addEventListener("abort", () => assert.equal(signal.aborted, true));
     p.calls.push("interface-prepare"); entered.resolve();
     await completed.promise;
     return async () => { p.calls.push("interface-release"); };
   };
   const runtime = new WindowsEasyTierCliRuntime(p), pending = runtime.connect(scope(undefined, controller.signal));
-  await entered.promise; controller.abort(); completed.resolve();
-  await assert.rejects(pending, error => error.reason === "connect-failed");
+  await entered.promise; const session = await pending; controller.abort();
+  const closing = session.close();
+  await Promise.resolve(); assert.equal(p.core.isAlive(), true);
+  assert.equal(p.calls.includes("close"), false);
+  await assert.rejects(runtime.connect(scope("other-community")), error => error.reason === "multi-community-unavailable");
+  completed.resolve(); await closing;
   assert.deepEqual(p.calls.slice(-3), ["interface-prepare", "interface-release", "close"]);
+});
+await test("optional interface preparation errors keep ready LAN alive and emit safe stage evidence", async () => {
+  const events = [], p = ports({ onStartupStage: event => events.push(plain(event)) });
+  p.prepareOwnedInterface = async () => { throw new Error("synthetic-private-error-must-not-leak"); };
+  const session = await new WindowsEasyTierCliRuntime(p).connect(scope());
+  for (let index = 0; index < 16; index++) await Promise.resolve();
+  assert.equal(p.core.isAlive(), true);
+  assert.equal((await session.read(new AbortController().signal)).info.running, true);
+  assert.deepEqual(events.filter(event => event.action === "start").map(event => event.stage),
+    ["configuration", "permission", "assets", "core-start", "credential-ready", "icmp-prepare"]);
+  assert.equal(events.at(-1).stage, "icmp-prepare"); assert.equal(events.at(-1).reason, "failed");
+  assert.equal(events.at(-1).observationReason, "other");
+  assert.ok(events.every(event => Number.isFinite(event.elapsedMs) && event.elapsedMs >= 0));
+  assert.equal(JSON.stringify(events).includes("synthetic-private"), false);
+  await session.close();
+});
+await test("diagnostic observer exceptions cannot interrupt ready LAN or cleanup", async () => {
+  const p = ports({ onStartupStage: () => { throw new Error("synthetic-observer-error"); } });
+  const session = await new WindowsEasyTierCliRuntime(p).connect(scope());
+  assert.equal(p.core.isAlive(), true); await session.close();
+  assert.equal(p.core.isAlive(), false);
+});
+await test("shutdown cancels optional preparation through its session lifetime signal", async () => {
+  const entered = defer(), completed = defer(), p = ports(); let preparationSignal;
+  p.prepareOwnedInterface = async (receivedConfig, core, signal) => {
+    preparationSignal = signal; entered.resolve(); await completed.promise;
+    return async () => { p.calls.push("interface-release"); };
+  };
+  const runtime = new WindowsEasyTierCliRuntime(p), connecting = runtime.connect(scope());
+  await entered.promise; const session = await connecting;
+  runtime.shutdownOwned(); assert.equal(preparationSignal.aborted, true);
+  completed.resolve(); await session.close();
+  assert.equal(p.calls.filter(value => value === "interface-release").length, 1);
 });
 await test("session close releases only its prepared interface rule once", async () => {
   const p = ports();
@@ -155,6 +222,24 @@ await test("rule cleanup failure still stops its core without leaving a live ada
   const runtime = new WindowsEasyTierCliRuntime(p), session = await runtime.connect(scope());
   await assert.rejects(session.close(), error => error.reason === 'cleanup-failed');
   assert.equal(p.core.isAlive(), false);
+});
+await test("failed interface cleanup retains ownership and retries release before replacement", async () => {
+  const p = ports(); let failRelease = true, releases = 0;
+  p.prepareOwnedInterface = async () => async () => {
+    releases++; if (failRelease) throw new Error("synthetic cleanup failure");
+    p.calls.push("interface-release");
+  };
+  const runtime = new WindowsEasyTierCliRuntime(p), session = await runtime.connect(scope());
+  await assert.rejects(session.close(), error => error.reason === "cleanup-failed");
+  await assert.rejects(runtime.connect(scope("other-community")), error => error.reason === "multi-community-unavailable");
+  assert.equal(p.calls.filter(value => value === "start").length, 1);
+  failRelease = false;
+  await session.close(); await session.close();
+  assert.equal(releases, 2);
+  assert.equal(p.calls.filter(value => value === "interface-release").length, 1);
+  const next = ports(); p.start = async () => { p.calls.push("start"); return next.core; };
+  const replacement = await runtime.connect(scope()); await replacement.close();
+  assert.equal(p.calls.filter(value => value === "start").length, 2);
 });
 await test("real CLI node output is sanitized before entering lifecycle status", async () => {
   const value = processes.sanitizedEasyTierCliNode({ peer_id: 7, ipv4_addr: "10.9.8.7/24", config: "must-not-leave-main", stun_info: { public_ip: ["must-not-leave-main"] }, ip_list: {} });

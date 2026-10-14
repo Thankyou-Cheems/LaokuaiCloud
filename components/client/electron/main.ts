@@ -362,6 +362,7 @@ const easyTierProduction = createWindowsEasyTierProduction(
   () => join(app.isPackaged ? process.resourcesPath : join(__dirname, "../build"), "community-lan-helper"),
   executable => prepareLaokuaiFirewall(executable),
   (config, core, signal) => ownedTunFirewall.prepare(config, core, signal),
+  event => startupLog(`Community LAN startup: stage=${event.stage} action=${event.action} elapsedMs=${event.elapsedMs} reason=${event.reason ?? 'none'} observation=${event.observationReason ?? 'none'}`),
 );
 const prepareEasyTierPermission = async (): Promise<boolean> => {
   return easyTierProduction.preparePermission();

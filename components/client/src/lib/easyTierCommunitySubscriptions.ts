@@ -49,10 +49,12 @@ export function presentCommunityLanAction(action: CommunityLanAction, state: Eas
   operationFailed?: boolean;
   preparing?: boolean;
   previewDisabled?: boolean;
+  voiceDependsOnLan?: boolean;
 } = {}): CommunityLanAction {
-  const { operationFailed = false, preparing = false, previewDisabled = false } = options;
+  const { operationFailed = false, preparing = false, previewDisabled = false, voiceDependsOnLan = false } = options;
+  const voice = voiceDependsOnLan ? "局域网语音需要社区联机可用；文字聊天仍可使用。" : "社区和语音连接不受影响。";
   if (previewDisabled) return { ...action, label: "测试模式：联机未启用", kind: "disabled", message: "本轮测试预览未启用联机。", prepare: false, retry: false };
-  if (preparing) return { ...action, label: "准备联机", kind: "pending", message: "正在自动准备社区联机；请稍候。社区语音可继续使用。", prepare: false, retry: false };
+  if (preparing) return { ...action, label: "准备联机", kind: "pending", message: `正在自动准备社区联机；请稍候。${voice}`, prepare: false, retry: false };
   const setupFailure = state?.phase === "activation-required" || SETUP_REASONS.has(state?.reason ?? "");
   const explicitAction = setupFailure || state?.phase === "connected" || state?.phase === "disconnecting" || state?.reason === "cleanup-failed";
   if (!operationFailed || explicitAction) return action;
@@ -62,22 +64,22 @@ export function presentCommunityLanAction(action: CommunityLanAction, state: Eas
     label: "联机暂不可用",
     kind: "error",
     message: transient
-      ? "自动联机暂时未完成，应用会自动重试；你也可以立即重试。社区和语音连接不受影响。"
-      : "未能取得联机接入结果，请稍候；也可立即重试。社区和语音连接不受影响。",
+      ? `自动联机暂时未完成，应用会自动重试；你也可以立即重试。${voice}`
+      : `未能取得联机接入结果，请稍候；也可立即重试。${voice}`,
     prepare: false,
     retry: true,
     retryLabel: "立即重试",
   };
 }
 
-export function easyTierCommunityAction(state: EasyTierCommunityState | undefined, enabled = true): CommunityLanAction {
-  const voice = "联机与社区语音独立；实际语音状态请查看频道。";
+export function easyTierCommunityAction(state: EasyTierCommunityState | undefined, enabled = true, voiceDependsOnLan = false): CommunityLanAction {
+  const voice = voiceDependsOnLan ? "局域网语音通过社区联机传输；实际语音状态请查看频道。" : "联机与社区语音独立；实际语音状态请查看频道。";
   const view = (label: string, kind: CommunityLanAction["kind"], message: string,
     prepare = false, retry = false, retryLabel = "重试"): CommunityLanAction => ({label, kind, message, prepare, retry, retryLabel});
   if (!enabled && state && ["connected", "connecting", "disconnecting"].includes(state.phase))
     return view("正在关闭", "pending", `正在关闭社区联机，等待组件确认退出。${voice}`);
   if ((!enabled && !(state?.phase === "error" && state.reason === "cleanup-failed")) || state?.phase === "disabled")
-    return view("已关闭", "disabled", `社区联机已关闭。关闭联机不会关闭语音聊天。${voice}`);
+    return view("已关闭", "disabled", voiceDependsOnLan ? "社区联机已关闭，局域网语音不可用；文字聊天仍可使用。" : `社区联机已关闭。关闭联机不会关闭语音聊天。${voice}`);
   if (!state) return view("读取中", "pending", `正在读取社区联机状态…${voice}`);
   if (state.phase === "connected") return view("已连接", "connected", `${state.virtualIp ? `社区联机已连接 · ${state.virtualIp}。` : "社区联机已连接。"}${voice}`);
   if (state.phase === "connecting") return view("连接中", "pending", `正在连接社区联机…${voice}`);

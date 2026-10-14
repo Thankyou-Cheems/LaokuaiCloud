@@ -11,7 +11,8 @@ import { type WindowsEasyTierCliPorts,WindowsEasyTierCliRuntime } from "./window
 export function createWindowsEasyTierProduction(root: () => string, bundledDirectory: () => string,
   configuration?: (serverId: string, signal: AbortSignal) => Promise<EasyTierExistingConfiguration>, brokerDirectory?: () => string,
   prepareNetworking?: (coreExecutable: string) => Promise<boolean>,
-  prepareOwnedInterface?: WindowsEasyTierCliPorts['prepareOwnedInterface']) {
+  prepareOwnedInterface?: WindowsEasyTierCliPorts['prepareOwnedInterface'],
+  onStartupStage?: WindowsEasyTierCliPorts['onStartupStage']) {
   const assets = new EasyTierWindowsAssets(root, bundledDirectory);
   // The application is now required to start elevated.  Keep the helper only as
   // a read-only token check; it must never become a second launch path for ET.
@@ -64,6 +65,7 @@ export function createWindowsEasyTierProduction(root: () => string, bundledDirec
     return work;
   };
   const runtime = new WindowsEasyTierCliRuntime({
+    onStartupStage,
     platform: process.platform === "win32" && process.arch !== "x64" ? "unsupported-windows-arch" : process.platform,
     configuration: configuration ?? (serverId => readEasyTierExistingConfiguration(root(), serverId)),
     permission: checkPermission,
