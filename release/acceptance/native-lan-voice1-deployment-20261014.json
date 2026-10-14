@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "branch": "codex/native-lan-voice",
+  "sourceCommit": "a40dfb0a5910b07749c50aee7d56df4146659d48",
+  "version": "1.13.22-laokuai.native.20261014.1",
+  "authorization": "User approved matching Gryt backend deployment, native mode activation and desktop update with old version backup and profile preservation.",
+  "server": {
+    "image": "sha256:40e7c980b2f3073a8f3176118707da4a85b1053fee6ba07f50540e3b06943211",
+    "previousImage": "sha256:cf83e3e70f5b4a649b3b65268ae9d2e81f39c7cea551a4ab2cc49624d65de23c",
+    "bundleSha256": "5fd80940a359a57fbedb296d3ffab0732929cddfbcdc3a07a388077d84d8e102",
+    "nativeLanVoice": true,
+    "publicProtocolVersion": 1,
+    "publicHealth": true,
+    "isolatedStartup": true,
+    "voiceMaxUsers": 12,
+    "memberRelayEnabled": true,
+    "independentContainersUnchanged": 17,
+    "managementProxyUnchanged": true,
+    "databaseBackupIntegrityPassed": true,
+    "databaseRestored": false,
+    "onlyRuntimeDelta": ["server image", "NATIVE_LAN_VOICE_ENABLED=true"]
+  },
+  "desktop": {
+    "updated": true,
+    "programFilesHashVerified": 153,
+    "profileAndUnknownFilesUnchanged": 137,
+    "fullOldBackupFilesHashVerified": 283,
+    "oldVersion": "1.13.22-laokuai.beta.20261014.16",
+    "profileChanged": false,
+    "applicationLaunched": false
+  },
+  "realTwoDeviceAudioAccepted": false,
+  "realTwelveMemberWanAccepted": false,
+  "sixMbpsAllRelayAccepted": false,
+  "githubCiTriggered": false
+}

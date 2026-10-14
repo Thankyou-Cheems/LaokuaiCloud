@@ -1,7 +1,7 @@
 # 当前开发交接
 
 更新：2026-10-14。唯一开发目录 `D:\Dev\LaokuaiCloud`，当前实验分支 `codex/native-lan-voice`。
-桌面已增量更新为 `1.13.22-laokuai.beta.20261014.16`，账号数据和配置逐项校验未变。易记 MagicDNS
+桌面已更新为 `1.13.22-laokuai.native.20261014.1`，账号数据和配置逐项校验未变。易记 MagicDNS
 已部署并经用户确认，成员中继两端服务端开关已开启，成员移动能力也已启用。
 真实多设备转发、移频恢复、游戏和 12 人 WAN 语音仍未验收。
 
@@ -9,7 +9,8 @@
 
 用户已否定下述独立面板，要求从当前客户端建立分支，保留自动成员发现与频道
 管理，音频改走 EasyTier 虚拟 IP。实现和限制见
-[原生分支说明](docs/NATIVE-LAN-BRANCH-20261014.md)。原桌面 .16 和生产不变。
+[原生分支说明](docs/NATIVE-LAN-BRANCH-20261014.md)。用户随后明确批准部署及桌面更新，
+现 Gryt 原生模式已开启；桌面 .16 完整备份留在 `.local/backups/`，未启动新版麦克风。
 本分支需要 Gryt 原生控制协议开关；不能直接与旧 WebRTC 客户端互通。
 默认设备、固定路径 helper、私有频道授权、成员音量及移频接线已实现。
 核心检查、客户端编译/类型/lint、服务端 84 项行为检查通过；真实 Electron
@@ -20,8 +21,11 @@
 整合式候选源码 `a40dfb0a5910b07749c50aee7d56df4146659d48` 已推送上述分支，
 版本 `1.13.22-laokuai.native.20261014.1`，绿色 ZIP 159963129 字节、153 文件
 解压逐项哈希一致。见 [包回执](release/acceptance/native-lan-voice1-package-20261014.json)。
-本地包 `.local/artifacts/native-lan-voice-20261014/`，线上原生模式尚未启用，
-部署影响与回滚范围见 [候选部署说明](release/deployment/native-lan-voice/README.md)。
+本地包 `.local/artifacts/native-lan-voice-20261014/`。线上镜像 `40e7c980b2f3`，公网
+健康与 `server:info` 原生协议 1 已验证；17 个其他容器及 ET 管理代理未重启。
+桌面 153 项程序文件核验通过，137 项账号/配置/其他文件字节未变，旧版 283 文件完整备份。
+见 [部署与桌面回执](release/acceptance/native-lan-voice1-deployment-20261014.json) 和
+[部署与回滚说明](release/deployment/native-lan-voice/README.md)。双方必须用新版；真实双机仍待用户测试。
 
 ## 原生音频实验 1（被后续需求替代，保留证据）
 
