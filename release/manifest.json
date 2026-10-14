@@ -5156,5 +5156,6 @@
     "easyTierNativeInputsUnchangedFrom": "release/acceptance/handoff13-portable-20261014.json",
     "brokerRebuiltFromUnchangedSource": true
   },
-  "currentDesktopVersion": "1.13.22-laokuai.beta.20261014.14"
+  "currentDesktopVersion": "1.13.22-laokuai.beta.20261014.15",
+  "currentDesktopUpdateReceipt": "release/acceptance/desktop15-incremental-20261014.json"
 }

@@ -1,7 +1,7 @@
 # 当前开发交接
 
 更新：2026-10-14。唯一开发目录 `D:\Dev\LaokuaiCloud`，分支 `main`。
-桌面仍为 `1.13.22-laokuai.beta.20261014.14`，数据和配置未动；最新分发版为`.15`。易记 MagicDNS
+桌面已增量更新为 `1.13.22-laokuai.beta.20261014.15`，账号数据和配置逐项校验未变。易记 MagicDNS
 已部署并经用户确认，成员中继两端服务端开关已开启，成员移动能力也已启用。
 真实多设备转发、移频恢复、游戏和 12 人 WAN 语音仍未验收。
 
@@ -15,7 +15,14 @@
 - 标准ZIP：159346962 B，SHA256 `70ec7fb029a9e06d0ef9b0ed300a5e829c44e4c31e57bb5be5f78f2b269109de`；运行文件合计383716684 B。
 - 见 [精简方案](docs/COMPACT-PACKAGING-20261014.md) 与 [精确回执](release/acceptance/compact15-portable-20261014.json)。
 
-## 桌面.14包与源码
+## 桌面 .15 增量更新
+
+- 已从 .14 更新到 .15；增量包 15498862 B，SHA256 bf97df7a4b4b5053766968a5ccfb8c98dfb64d56a16ba6a8cabdc0e2b159f148。
+- 146 项程序文件与 .15 标准包逐项一致；128 项原有非程序文件（含账号及配置）哈希未变，完整本地备份已校验。
+- 17 项增量更新检查通过；更新后未启动应用，真实双机测试仍待用户执行。
+- 见 [桌面更新回执](release/acceptance/desktop15-incremental-20261014.json)。
+
+## 前一桌面.14包与源码
 
 - 文件：`唠蒯云-1.13.22-laokuai.beta.20261014.14-zh-CN-win-x64-green.zip`。
 - 应用源码：`d28b2ebca208cee06bc9c5d8ab0afbad90365d4a`，SDK 保持 routing.5。

@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-14",
+  "status": "passed",
+  "baseVersion": "1.13.22-laokuai.beta.20261014.14",
+  "version": "1.13.22-laokuai.beta.20261014.15",
+  "applicationSourceCommit": "b4ab252e26c6938556c168435dc9132b0f56aae0",
+  "method": "fixed-baseline-block-delta",
+  "incremental": {
+    "file": "唠蒯云-14-to-15-update.zip",
+    "bytes": 15498862,
+    "sha256": "bf97df7a4b4b5053766968a5ccfb8c98dfb64d56a16ba6a8cabdc0e2b159f148",
+    "baseZipSha256": "c550caadd726751124018560cc2c15f5c68ae41e94d5bf87e4bc0ca95dbda965",
+    "targetZipSha256": "70ec7fb029a9e06d0ef9b0ed300a5e829c44e4c31e57bb5be5f78f2b269109de"
+  },
+  "desktopProgramUpdated": true,
+  "payloadFilesVerified": 146,
+  "protectedFilesPreserved": 128,
+  "protectedFileHashesUnchanged": true,
+  "fullLocalBackupVerified": true,
+  "incrementalRegressionScenarios": 17,
+  "applicationLaunched": false,
+  "nativeEtExecuted": false,
+  "productionChanged": false,
+  "realTwoDeviceMediaAccepted": false,
+  "note": "Updated the stopped desktop application through the exact .14 to .15 delta. All target program hashes and all pre-existing protected file hashes verified. Account data and preferences preserved. Private backup and updater report retained locally."
+}
