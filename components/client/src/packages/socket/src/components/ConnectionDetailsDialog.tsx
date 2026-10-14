@@ -1,5 +1,4 @@
 import { Button, Dialog } from "@gryt/ui";
-import { useSFU } from "@gryt/voice";
 import { type RefObject, useEffect, useRef, useState } from "react";
 
 import { getOwnServerUserId } from "@/common";
@@ -10,6 +9,7 @@ import { useMemberVoiceMediaPath } from "@/webRTC/src/components/MemberVoiceMedi
 import { useEasyTierCommunityState, useEasyTierMemberSnapshot } from "../../../../lib/communityLanState";
 import type { EasyTierCommunityState } from "../../../../lib/easyTierCommunity";
 import { type MemberLanReading, readMemberLanStatus } from "../../../../lib/memberLanStatus";
+import { nativeVoiceEnabled, useNativeAudioStatus, useSFU } from "../../../../lib/voiceFacade";
 import { useServerManagement } from "../hooks/useServerManagement";
 import { useSockets } from "../hooks/useSockets";
 import { connectionDetailsDirectionRows, type ConnectionDetailsPath, connectionDetailsPublication, type ConnectionDetailsRow } from "./connectionDetailsModel";
@@ -31,6 +31,7 @@ export interface ConnectionDetailsDialogProps {
 /** Read-only view. No SDK sampling, protocol requests, history, profile or network actions. */
 export function ConnectionDetailsDialog({ open, onOpenChange, nickname, isSelf, path, lan, community, lanAgeMs, returnFocus }: ConnectionDetailsDialogProps) {
   const { t } = useTranslation();
+  const nativeStatus=useNativeAudioStatus();
   const close = useRef<HTMLButtonElement>(null);
   const [portalContainer, setPortalContainer] = useState<HTMLElement | undefined>(() => document.fullscreenElement instanceof HTMLElement ? document.fullscreenElement : undefined);
   useEffect(() => {
@@ -61,9 +62,16 @@ export function ConnectionDetailsDialog({ open, onOpenChange, nickname, isSelf, 
         style={{ top: "48px", transform: "translateX(-50%)", translate: "none", width: "min(540px, calc(100vw - 24px))", maxWidth: "calc(100vw - 24px)", maxHeight: "max(120px, calc(100dvh - 220px))" }}
         className="overflow-y-auto motion-reduce:!transition-none">
         <Dialog.Title>{t("connectionDetails.title", { nickname })}</Dialog.Title>
-        <Dialog.Description>{t("connectionDetails.description")}</Dialog.Description>
-        {isSelf && <p className="text-xs text-gryt-muted">{t("connectionDetails.selfBoundary")}</p>}
-        {!isSelf && <>
+        <Dialog.Description>{nativeVoiceEnabled ? "原生 AoO / Opus 音频通过社区 EasyTier 虚拟地址传输。" : t("connectionDetails.description")}</Dialog.Description>
+        {nativeVoiceEnabled && <section data-gryt="native-audio-details" className="border-t border-gryt-border pt-3">
+          {table([{label:"本机音频组件",value:nativeStatus?.phase ?? "idle"},
+            {label:"本机采集 RMS",value:nativeStatus?.captureRms.toFixed(4) ?? "—",numeric:true},
+            {label:"本机播放混音 RMS",value:nativeStatus?.playbackRms.toFixed(4) ?? "—",numeric:true},
+            {label:"本机 UDP 发 / 收包",value:`${nativeStatus?.packetsSent ?? 0} / ${nativeStatus?.packetsReceived ?? 0}`,numeric:true}])}
+          <p className="mt-3 text-xs text-gryt-muted">此处为本机组件和所有接收音频的混音遥测；所选成员的独立音频交付与响度尚未测量。EasyTier 网络路径详情见下方。</p>
+        </section>}
+        {isSelf && !nativeVoiceEnabled && <p className="text-xs text-gryt-muted">{t("connectionDetails.selfBoundary")}</p>}
+        {!isSelf && !nativeVoiceEnabled && <>
           {(["receive", "send"] as const).map(direction => <section key={direction} data-gryt={`connection-details-${direction}`} className="border-t border-gryt-border pt-3">
             <h3 className="mb-3 text-sm font-semibold">{t(`memberVoicePath.${direction}`)}</h3>
             {table(connectionDetailsDirectionRows(path[direction], t, direction))}

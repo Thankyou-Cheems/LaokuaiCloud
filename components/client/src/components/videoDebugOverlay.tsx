@@ -1,9 +1,10 @@
-import { useCamera, useScreenShare, useSFU } from "@gryt/voice";
+import { useCamera, useScreenShare } from "@gryt/voice";
 import { useEffect, useRef, useState } from "react";
 
 import { i18n, LocalizedText, useTranslation } from "@/i18n";
 
 import { PiVideoCameraFill } from "../lib/icons";
+import { nativeVoiceEnabled, useSFU } from "../lib/voiceFacade";
 import { DebugOverlay } from "./debugOverlay";
 import {
   type ConnectionDiagnostics,
@@ -337,6 +338,9 @@ function InboundSection({ s, index }: { s: InboundDiagnostics; index: number }) 
 }
 
 export function VideoDebugOverlay({ isVisible }: VideoDebugOverlayProps) {
+  return nativeVoiceEnabled ? null : <LegacyVideoDebugOverlay isVisible={isVisible}/>;
+}
+function LegacyVideoDebugOverlay({ isVisible }: VideoDebugOverlayProps) {
   useTranslation();
   const diagnostics = useVideoDebugDiagnostics(isVisible);
   const { cameraEnabled } = useCamera();

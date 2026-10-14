@@ -1,10 +1,10 @@
 import { Button } from "@gryt/ui";
-import { useSFU } from "@gryt/voice";
 import { useEffect, useRef } from "react";
 
 import { useTranslation } from "@/i18n";
 import { Controls } from "@/webRTC";
 
+import { useSFU } from "../../../../lib/voiceFacade";
 import { useAloneInCall } from "../hooks/useAloneInCall";
 
 /** One persistent control owner, independent of media visibility and fullscreen. */

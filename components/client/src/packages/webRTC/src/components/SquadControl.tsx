@@ -1,10 +1,9 @@
-import { useMicrophone } from "@gryt/voice";
-
 import { useTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 
 import { PiGameControllerFill } from "../../../../lib/icons";
 import { useSquadSnapshot } from "../../../../lib/squadRuntime";
+import { useMicrophone } from "../../../../lib/voiceFacade";
 import { SquadStatusText } from "../../../settings/src/components/squadSettings";
 import { CallControlButton } from "./CallControlButton";
 import { HoverAudioControl } from "./HoverAudioControl";

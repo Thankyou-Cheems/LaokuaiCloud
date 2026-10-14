@@ -96,7 +96,7 @@ const load = (path, overrides = {}) => {
     "@/lib/outputDevice": () => load("src/packages/lib/outputDevice.ts"),
     "../../../../lib/squadMode": () => load("src/lib/squadMode.ts"),
     // This routing test uses the source-build default, without optional Vite private assets.
-    "../../../webRTC/src/adapters/voiceSoundPacks": { MANBO_PACK_AVAILABLE: false },
+    "../../../webRTC/src/adapters/voiceSoundPacks": { MANBO_PACK_AVAILABLE: false,voiceSoundDefaultVolume:event=>event==='peerJoined'||event==='peerLeft' ? 60 : 30 },
     "@/lib/desktopNotification": { requestNotificationPermission: async () => "granted" },
     "../../../../lib/electron": { isElectron: () => false, getElectronAPI: () => null },
     "./deviceId": { isDeviceId: () => true, getDeviceId: () => "guest" },
@@ -108,6 +108,7 @@ const load = (path, overrides = {}) => {
     navigator: { mediaDevices },
     fetch: async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(1) }),
     require: (name) => {
+      if(name.endsWith('/voiceFacade') && '@gryt/voice' in dependencies) return dependencies['@gryt/voice'];
       if (name in dependencies) {
         const dependency = dependencies[name];
         return typeof dependency === "function" ? dependency() : dependency;

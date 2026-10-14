@@ -41,5 +41,11 @@ if (nativeProvenance.privateBuild.sourceCommit !== '089b6182c603c8ab60044b673eff
     originalSourceAttachmentsRetained:true,files:supplements,compilerOrNativeExecutionIsSeparate:true};
 }
 const output = path.join(root,'build/legal/SOURCE-OFFER.json');
+if (JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8')).grytNativeLanVoice === true) {
+  const dependencies = JSON.parse(fs.readFileSync(path.resolve(root,'../../experiments/native-audio/dependencies.json'),'utf8'));
+  offer.nativeLanAudio = {sourceTree:repository+'/tree/'+sourceCommit+'/experiments/native-audio',
+    buildInstructions:repository+'/blob/'+sourceCommit+'/tools/build-native-lan-audio.ps1',
+    dependencies, asset:JSON.parse(fs.readFileSync(path.join(root,'electron/nativeLanAudioAsset.json'),'utf8'))};
+}
 fs.mkdirSync(path.dirname(output),{recursive:true}); fs.writeFileSync(output,JSON.stringify(offer,null,2)+'\n');
 console.log('Pinned source offer written; this does not publish or prove remote availability.');

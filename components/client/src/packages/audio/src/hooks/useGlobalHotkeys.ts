@@ -1,10 +1,10 @@
-import { useMicrophone } from "@gryt/voice";
 import { createElement, useCallback, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
 import { i18n as socketHooksI18n } from "@/i18n";
 import { useSettings } from "@/settings";
 import { socketHookToast } from "@/socket/src/utils/socketHookMessages";
+import { useEffectiveVoicePolicy } from "@/webRTC/src/components/EffectiveVoicePolicy";
 
 import { getElectronAPI, isElectron } from "../../../../lib/electron";
 import {
@@ -17,6 +17,7 @@ import {
   releasesMouseEvent,
 } from "../../../../lib/hotkeys";
 import { PiMicrophoneSlashFill, PiSpeakerSlashFill } from "../../../../lib/icons";
+import { useMicrophone } from "../../../../lib/voiceFacade";
 
 function isInputFocused(): boolean {
   const el = document.activeElement;
@@ -47,12 +48,13 @@ export function useGlobalHotkeys(onDisconnect?: () => void) {
   // false takes no microphone handle — useMicrophone is a singleton, and this
   // hook only needs the push-to-talk gate on it.
   const { setPushToTalkActive } = useMicrophone(false);
+  const effectivePolicy=useEffectiveVoicePolicy();
 
   const [globalCapture, setGlobalCapture] = useState(false);
 
   // A push-to-talk binding only counts while that input mode is on, otherwise
   // holding the key in voice-activity mode would register a press for nothing.
-  const pttBinding = inputMode === "push_to_talk" ? pushToTalkKey : "";
+  const pttBinding = inputMode === "push_to_talk" || effectivePolicy?.requiredPushToTalk === true ? pushToTalkKey : "";
 
   const bindings: Record<HotkeyAction, string> = {
     ptt: pttBinding,

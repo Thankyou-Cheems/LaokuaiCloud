@@ -1,4 +1,4 @@
-import { type BrowserHybridVoiceSession, type ReceivePathBinding, useSFU } from "@gryt/voice";
+import { type BrowserHybridVoiceSession, type ReceivePathBinding } from "@gryt/voice";
 import { type ReactNode, useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { useUserId } from "@/common";
@@ -8,6 +8,7 @@ import { useEasyTierCommunityState } from "../../../../lib/communityLanState";
 import { readVoiceLocalNetwork } from "../../../../lib/memberVoiceLocalNetwork";
 import { type AuthenticatedVoiceConnection, MemberVoiceMediaStore } from "../../../../lib/memberVoiceMediaStore";
 import { type HybridVoiceObservationBinding, MemberVoiceReceiveTranslator, type VoiceReceiveHost } from "../../../../lib/memberVoiceReceiveTranslator";
+import { useSFU } from "../../../../lib/voiceFacade";
 import { MemberVoiceMediaPathProvider } from "../components/MemberVoiceMediaPathAdapter";
 import { MemberVoiceObservationAuthorityProvider } from "./MemberVoiceObservationAuthority";
 

@@ -43,7 +43,7 @@ function compile(path, dependencies) {
   vm.runInNewContext(result.outputText, { exports, document, window, HTMLElement: class {},
     setTimeout(callback, delay) { const id = ++timerId; scheduled.set(id, { callback, delay }); return id; },
     clearTimeout(id) { scheduled.delete(id); },
-    require(name) { assert.ok(Object.hasOwn(dependencies, name), `unexpected dependency ${name}`); return dependencies[name]; },
+    require(name) { assert.ok((Object.hasOwn(dependencies, name) || (name.endsWith("/voiceFacade") && Object.hasOwn(dependencies,"@gryt/voice"))), `unexpected dependency ${name}`); return name.endsWith("/voiceFacade") ? dependencies["@gryt/voice"] : dependencies[name]; },
   });
   return exports;
 }
@@ -199,7 +199,7 @@ check("English and Chinese copy preserves the post-leveling manual-volume explan
   assert.match(locales.en.receiveVolume.description, /after automatic leveling/);
   assert.match(locales.en.receiveLeveling.description, /not automatically compensated/);
   assert.match(locales["zh-CN"].receiveVolume.description, /之后/);
-  assert.match(locales["zh-CN"].receiveLeveling.description, /不会自动补回来/);
+  assert.match(locales["zh-CN"].receiveLeveling.description, /不会自动补回/);
   language = "en"; reset(); policy = undefined;
   assert.equal(nodes(render(VoiceModeControl)).find(node => node.props?.title).props.title, "Ctrl + Mouse 4");
   assert.match(read("src/packages/i18n/index.ts"), /fallbackLng: "en"/);

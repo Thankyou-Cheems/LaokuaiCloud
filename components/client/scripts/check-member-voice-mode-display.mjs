@@ -13,7 +13,7 @@ function compile(path, dependencies) {
   const result = ts.transpileModule(read(path), { reportDiagnostics:true, compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX} });
   assert.deepEqual(result.diagnostics?.filter(d => d.category===ts.DiagnosticCategory.Error),[],path);
   const exports = {};
-  vm.runInNewContext(result.outputText, {exports,Date:{now:()=>clock},setInterval:fn=>(expiry=fn,1),clearInterval(){},require:name=>{assert.ok(Object.hasOwn(dependencies,name),name);return dependencies[name];}});
+  vm.runInNewContext(result.outputText, {exports,Date:{now:()=>clock},setInterval:fn=>(expiry=fn,1),clearInterval(){},require:name=>{assert.ok((Object.hasOwn(dependencies,name) || (name.endsWith("/voiceFacade") && Object.hasOwn(dependencies,"@gryt/voice"))),name);return name.endsWith("/voiceFacade") ? dependencies["@gryt/voice"] : dependencies[name];}});
   return exports;
 }
 const model = compile("src/lib/voiceMode.ts",{});

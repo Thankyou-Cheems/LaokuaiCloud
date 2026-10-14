@@ -16,7 +16,7 @@ const compile = (url, deps = {}) => {
   assert.deepEqual(out.diagnostics.filter(d => d.category === ts.DiagnosticCategory.Error), []);
   const exports = {};
   vm.runInNewContext(out.outputText, { exports, structuredClone, performance: { now: () => now },
-    setTimeout: clock.schedule, clearTimeout: clock.cancel, require: key => { assert.ok(Object.hasOwn(deps, key), key); return deps[key]; } });
+    setTimeout: clock.schedule, clearTimeout: clock.cancel, require: key => { assert.ok((Object.hasOwn(deps, key) || (key.endsWith("/voiceFacade") && Object.hasOwn(deps,"@gryt/voice"))), key); return key.endsWith("/voiceFacade") ? deps["@gryt/voice"] : deps[key]; } });
   return exports;
 };
 const stats = compile(new URL("webrtc/hybrid/receivePathStats.ts", voice));

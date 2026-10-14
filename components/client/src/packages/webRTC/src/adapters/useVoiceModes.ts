@@ -1,10 +1,10 @@
-import { useMicrophone, useSFU } from "@gryt/voice";
 import { useEffect, useRef } from "react";
 
 import { useSettings } from "@/settings";
 import { useSockets } from "@/socket";
 
 import { useSquadSnapshot } from "../../../../lib/squadRuntime";
+import { useMicrophone, useSFU } from "../../../../lib/voiceFacade";
 import { deriveVoiceMode } from "../../../../lib/voiceMode";
 import { acceptVoiceMode, clearVoiceModes, pruneVoiceModes, publishLocalVoiceMode } from "../../../../lib/voiceModeStore";
 

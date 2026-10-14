@@ -1,4 +1,4 @@
-import { BrowserHybridVoiceSession, type BrowserHybridVoiceState, type HybridParticipant, type MicrophoneCodecProfile, useMicrophone, useSFU, type VoiceConfig } from "@gryt/voice";
+import { BrowserHybridVoiceSession, type BrowserHybridVoiceState, type HybridParticipant, type MicrophoneCodecProfile, type VoiceConfig } from "@gryt/voice";
 import { useEffect, useRef } from "react";
 
 import { getServerAccessToken, useUserId } from "@/common";
@@ -9,6 +9,7 @@ import { createEasyTierVoiceUnderlayResolver } from "../../../../lib/easyTierVoi
 import { createHybridDiagnosticObserver, type HybridDiagnostic } from "../../../../lib/hybridDiagnostics";
 import { readVoiceLocalNetwork } from "../../../../lib/memberVoiceLocalNetwork";
 import type { ReceiveCorrectionRegistry } from "../../../../lib/receiveCorrectionRegistry";
+import { useMicrophone, useSFU } from "../../../../lib/voiceFacade";
 import { useMemberVoiceObservationAuthority } from "./MemberVoiceObservationAuthority";
 
 /** Separate explicit network opt-in. It enables voice only and never starts EasyTier. */

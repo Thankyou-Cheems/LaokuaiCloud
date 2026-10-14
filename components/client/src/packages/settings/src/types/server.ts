@@ -116,6 +116,7 @@ export type serverDetails = {
     }[];
     max_members?: number;
     voice_enabled?: boolean;
+    native_lan_voice_enabled?: boolean;
     /** True only after opt-in server policy and a successful live SFU move probe. */
     voice_atomic_move_enabled?: boolean;
     avatar_max_bytes?: number | null;

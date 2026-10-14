@@ -7,6 +7,7 @@ import { sfuRoomId, voiceRoomName } from "./voiceRooms";
 import { forgetStashedVoiceState } from "./voiceStash";
 import { clearVoiceQuality } from "./voiceQualityLifecycle";
 import { invalidateHybridSession } from "./voiceHybridLifecycle";
+import { removeNativeVoice } from "./nativeVoiceLifecycle";
 
 export type VoiceSfu = Pick<SFUClient, "disconnectUser" | "untrackUserConnection">;
 
@@ -20,6 +21,7 @@ export async function removeFromVoice(params: {
   sid: string;
 }): Promise<boolean> {
   const { io, clientsInfo, serverId, sfuClient, sid } = params;
+  if (removeNativeVoice(io, sid)) return true;
   const ci = clientsInfo[sid];
   if (!ci?.hasJoinedChannel || !ci.voiceChannelId) return false;
 

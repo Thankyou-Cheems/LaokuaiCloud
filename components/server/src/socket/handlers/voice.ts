@@ -26,6 +26,7 @@ import { CAP_SPEAK } from "../../sfu/clientToken";
 import { registerVoiceModeHandlers } from "./voiceMode";
 import { voiceCapabilities } from "../utils/voiceCapabilities";
 import { audioOnlyEnabled } from "../../sfu/audioOnly";
+import { nativeLanVoiceEnabled, removeNativeVoice } from "../utils/nativeVoiceLifecycle";
 
 const RL_REQUEST_ROOM: RateLimitRule = { limit: 10, windowMs: 60_000, scorePerAction: 1, maxScore: 8, scoreDecayMs: 5000 };
 const RL_JOINED_CHANNEL: RateLimitRule = { limit: 10, windowMs: 60_000, scorePerAction: 0.5, maxScore: 6, scoreDecayMs: 3000 };
@@ -107,6 +108,7 @@ export function registerVoiceHandlers(ctx: HandlerContext): EventHandlerMap {
     ...registerVoiceModeHandlers({ io, socket, clientId, clientsInfo,
       roomFor: id => voiceRoomName(serverId, id), identified: () => socketIsIdentified(clientsInfo, clientId) }),
     'voice:camera:state': async (payload: { enabled: boolean; streamId?: string }) => {
+      if (nativeLanVoiceEnabled()) return;
       if (!clientsInfo[clientId]) return;
       const enabled = typeof payload === 'boolean' ? payload : Boolean(payload?.enabled);
       const streamId = typeof payload === 'object' ? (payload.streamId || "") : "";
@@ -129,6 +131,7 @@ export function registerVoiceHandlers(ctx: HandlerContext): EventHandlerMap {
     },
 
     'voice:screen:state': async (payload: { enabled: boolean; videoStreamId?: string; audioStreamId?: string }) => {
+      if (nativeLanVoiceEnabled()) return;
       if (!clientsInfo[clientId]) return;
       const enabled = typeof payload === 'object' ? Boolean(payload?.enabled) : Boolean(payload);
       const videoStreamId = typeof payload === 'object' ? (payload.videoStreamId || "") : "";
@@ -202,6 +205,7 @@ export function registerVoiceHandlers(ctx: HandlerContext): EventHandlerMap {
     },
 
     'voice:stream:set': (streamID: string) => {
+      if (nativeLanVoiceEnabled()) return;
       if (streamID === "") {
         ++roomRequestRevision;
         if (clientsInfo[clientId] && !clientsInfo[clientId].hasJoinedChannel) clientsInfo[clientId].voiceChannelId = "";
@@ -278,6 +282,10 @@ export function registerVoiceHandlers(ctx: HandlerContext): EventHandlerMap {
     /** A room of one, because reaching the SFU over HTTP proves nothing. Its
         own event so it never sets `voiceChannelId` to a channel that is not real. */
     'voice:doctor:request': async () => {
+      if (nativeLanVoiceEnabled()) {
+        socket.emit("voice:doctor:error", { error: "native_voice_only", message: "Native audio uses the community ET network." });
+        return;
+      }
       const userId = clientsInfo[clientId]?.serverUserId;
       consola.info(`[Voice:Doctor] request from client=${clientId} user=${userId}`);
 
@@ -338,6 +346,10 @@ export function registerVoiceHandlers(ctx: HandlerContext): EventHandlerMap {
     },
 
     'voice:room:request': async (roomId: string) => {
+      if (nativeLanVoiceEnabled()) {
+        socket.emit("voice:room:error", { error: "native_voice_only", message: "Use native community audio." });
+        return;
+      }
       const revision = ++roomRequestRevision;
       const requestClient = clientsInfo[clientId];
       const userId = requestClient?.serverUserId;
@@ -501,6 +513,10 @@ export function registerVoiceHandlers(ctx: HandlerContext): EventHandlerMap {
     },
 
     'voice:channel:joined': async (hasJoined: boolean) => {
+      if (nativeLanVoiceEnabled()) {
+        if (!hasJoined) removeNativeVoice(io, clientId, "left");
+        return;
+      }
       if (!hasJoined) {
         ++roomRequestRevision;
         if (clientsInfo[clientId] && !clientsInfo[clientId].hasJoinedChannel) clientsInfo[clientId].voiceChannelId = "";
@@ -622,6 +638,7 @@ export function registerVoiceHandlers(ctx: HandlerContext): EventHandlerMap {
     },
 
     'voice:peer:connected': (streamId: string) => {
+      if (nativeLanVoiceEnabled()) return;
       const c = Object.keys(clientsInfo).find((id) => clientsInfo[id].streamID === streamId);
       if (c && clientsInfo[c]) {
         clientsInfo[c].isConnectedToVoice = true;
@@ -631,6 +648,7 @@ export function registerVoiceHandlers(ctx: HandlerContext): EventHandlerMap {
     },
 
     'voice:peer:disconnected': (streamId: string) => {
+      if (nativeLanVoiceEnabled()) return;
       const c = Object.keys(clientsInfo).find((id) => clientsInfo[id].streamID === streamId);
       if (c && clientsInfo[c]) {
         clientsInfo[c].isConnectedToVoice = false;
@@ -667,6 +685,13 @@ export function registerVoiceHandlers(ctx: HandlerContext): EventHandlerMap {
 
         const [targetSocketId, targetClient] = targetEntry;
         const targetSocket = io.sockets.sockets.get(targetSocketId);
+        if (removeNativeVoice(io, targetSocketId, "admin_disconnected")) {
+          targetSocket?.emit("voice:kicked", { reason: "Disconnected from voice by an admin." });
+          socket.emit("voice:disconnect:success", { targetServerUserId: targetUserId });
+          void insertServerAudit({ actorServerUserId: auth.tokenPayload.serverUserId,
+            action: "voice_disconnect", target: targetUserId }).catch(() => {});
+          return;
+        }
 
         consola.info(`[Voice:kick] actor=${auth.tokenPayload.serverUserId} target=${targetUserId} channel=${targetClient.streamID}`);
 

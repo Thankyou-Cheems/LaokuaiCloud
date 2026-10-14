@@ -46,7 +46,7 @@ function fixture(ready = true) {
   const exports = {};
   vm.runInNewContext(compile("src/packages/webRTC/src/adapters/HybridVoiceBridge.tsx"), { exports,
     setTimeout(callback) { const timer = { callback, cancelled: false }; timers.push(timer); return timer; }, clearTimeout(timer) { if (timer) timer.cancelled = true; },
-    require: name => { assert.ok(Object.hasOwn(deps, name), name); return deps[name]; } });
+    require: name => { assert.ok((Object.hasOwn(deps, name) || (name.endsWith("/voiceFacade") && Object.hasOwn(deps,"@gryt/voice"))), name); return name.endsWith("/voiceFacade") ? deps["@gryt/voice"] : deps[name]; } });
   const flush = async () => { for (let n = 0; n < 12; n++) await Promise.resolve(); };
   const render = async () => { refIndex = effectIndex = 0; exports.HybridVoiceBridge({ policy, config, registry });
     for (const { n, callback } of pending.splice(0)) { effects[n].cleanup?.(); effects[n].cleanup = callback(); } await flush(); };

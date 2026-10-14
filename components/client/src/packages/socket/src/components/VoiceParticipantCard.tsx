@@ -1,6 +1,5 @@
 import { Avatar, Button, Skeleton, Tooltip } from "@gryt/ui";
 import type { StreamSources } from "@gryt/voice";
-import { useMicrophone } from "@gryt/voice";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
@@ -8,6 +7,7 @@ import { getUploadsFileUrl, resolveAvatarSrc } from "@/common";
 import { i18n as socketI18n, useTranslation as useSocketTranslation } from "@/i18n";
 
 import { PiEyeFill, PiEyeSlashFill, PiMicrophoneSlashFill, PiScreencastFill, PiSpeakerSlashFill, PiVideoCameraFill } from "../../../../lib/icons";
+import { useMicrophone } from "../../../../lib/voiceFacade";
 import { useDrawnVideoSize } from "../hooks/useDrawnVideoSize";
 import { toObjectPosition, useVideoFraming } from "../hooks/useVideoFraming";
 import { cameraStreamFor } from "../lib/cameraStream";

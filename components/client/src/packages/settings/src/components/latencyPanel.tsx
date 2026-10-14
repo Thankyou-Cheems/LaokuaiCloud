@@ -1,11 +1,11 @@
 import { Button, Chip } from "@gryt/ui";
 import type { LatencyBreakdown } from "@gryt/voice";
-import { useVoiceLatency } from "@gryt/voice";
 import { useState } from "react";
 
 import { i18n, useTranslation } from "@/i18n";
 
 import { PiEyeFill } from "../../../../lib/icons";
+import { nativeVoiceEnabled, useVoiceLatency } from "../../../../lib/voiceFacade";
 
 function ms(value: number | null): string {
   if (value === null) return "—";
@@ -119,6 +119,9 @@ function ratingLabel(estimatedMs: number | null): string {
 }
 
 export function LatencyPanel() {
+  return nativeVoiceEnabled ? <p>原生 AoO / EasyTier 音频延迟尚未测量。浏览器 WebRTC / RNNoise 延迟统计不适用于此路径；本机音频组件遥测见音频设置。</p> : <LegacyLatencyPanel/>;
+}
+function LegacyLatencyPanel() {
   useTranslation();
   const { latency, modeLabel } = useVoiceLatency(true);
 

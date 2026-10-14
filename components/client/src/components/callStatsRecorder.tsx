@@ -1,10 +1,10 @@
-import { useVoiceLatency } from "@gryt/voice";
 import { useEffect, useRef } from "react";
 
 import { useSockets } from "@/socket";
 import { useVoicePresence } from "@/webRTC";
 
 import { endCallTimeline, recordCallSample, startCallTimeline } from "../lib/reports/callTimeline";
+import { useVoiceLatency } from "../lib/voiceFacade";
 
 /**
  * Records the call's numbers once a second while you're in one (GRYT-1663). Mounted at the

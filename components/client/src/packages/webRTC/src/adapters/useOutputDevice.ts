@@ -1,9 +1,10 @@
-import { useSpeakers } from "@gryt/voice";
 import { useEffect } from "react";
 
 import { setNotificationOutputDevice } from "@/lib/notificationSound";
 import { type AudioOutput, routeOutputDevice } from "@/lib/outputDevice";
 import { useSettings } from "@/settings";
+
+import { useSpeakers } from "../../../../lib/voiceFacade";
 
 export function useOutputDevice(): void {
   const { outputDeviceID } = useSettings();

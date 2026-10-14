@@ -108,6 +108,11 @@ bool deviceIndex(const std::string& value, int& index) {
     index = static_cast<int>(parsed);
     return true;
 }
+bool gainValue(const std::string& value, float& gain) {
+    if (value.empty() || value.size() > 16 || value.find_first_not_of("0123456789.") != std::string::npos) return false;
+    std::istringstream input(value);
+    return bool(input >> gain) && input.eof() && std::isfinite(gain) && gain >= 0.f && gain <= 2.f;
+}
 int hexDigit(char c) noexcept {
     if (c >= '0' && c <= '9') return c - '0';
     if (c >= 'a' && c <= 'f') return c - 'a' + 10;
@@ -117,9 +122,13 @@ int hexDigit(char c) noexcept {
 struct Config {
     PeerAddress local;
     std::vector<PeerAddress> peers;
+    std::vector<float> peerGains;
+    std::vector<bool> canPublish, canReceive;
     std::array<std::uint8_t, 32> key{};
     int input = -1;
     int output = -1;
+    bool muted = false, deafened = false;
+    float inputGain = 1.f, outputGain = 1.f;
     ~Config() { SecureZeroMemory(key.data(), key.size()); }
 };
 
@@ -199,7 +208,7 @@ bool parseFields(ReadLine readLine, Config& cfg, bool loopback) {
         start = comma + 1;
         if (start == value.size()) return false;
     }
-    if (cfg.peers.empty() || !readLine(value)) return false;
+    if (!readLine(value)) return false;
     bool validKey = value.size() == 64;
     if (validKey) {
         for (std::size_t i = 0; i < cfg.key.size(); ++i) {
@@ -215,7 +224,30 @@ bool parseFields(ReadLine readLine, Config& cfg, bool loopback) {
     if (!readLine(value) || value != "duplex") return false;
     if (!readLine(value) || !deviceIndex(value, cfg.input)) return false;
     if (!readLine(value) || !deviceIndex(value, cfg.output)) return false;
-    return readLine(value) && value == "start";
+    if (!readLine(value)) return false;
+    if (value == "start") return true;
+    std::istringstream controls(value);
+    std::string startCommand, muted, deafened, inGain, outGain, peerControls, extra;
+    if (!(controls >> startCommand >> muted >> deafened >> inGain >> outGain) ||
+        startCommand != "start" || (muted != "0" && muted != "1") || (deafened != "0" && deafened != "1") ||
+        !gainValue(inGain, cfg.inputGain) || !gainValue(outGain, cfg.outputGain)) return false;
+    cfg.muted = muted == "1"; cfg.deafened = deafened == "1";
+    if (controls >> peerControls) {
+        if (controls >> extra) return false;
+        std::istringstream entries(peerControls);
+        std::string entry;
+        while (std::getline(entries, entry, ',')) {
+            const auto first = entry.find(':'), last = entry.rfind(':');
+            float gain = 0;
+            if (first == std::string::npos || last != first + 2 || entry.size() != last + 2 ||
+                !gainValue(entry.substr(0, first), gain) || (entry[first + 1] != '0' && entry[first + 1] != '1') ||
+                (entry[last + 1] != '0' && entry[last + 1] != '1')) return false;
+            cfg.peerGains.push_back(gain);
+            cfg.canPublish.push_back(entry[first + 1] == '1'); cfg.canReceive.push_back(entry[last + 1] == '1');
+        }
+        if (cfg.peerGains.size() != cfg.peers.size() || peerControls.back() == ',') return false;
+    }
+    return true;
 }
 bool parseConfig(Input& input, Config& cfg, bool loopback) {
     return parseFields([&](std::string& line) { return input.line(line); }, cfg, loopback);
@@ -365,7 +397,14 @@ PaDeviceIndex defaultDevice(bool capture) {
 
 struct Host {
     explicit Host(const Config& config) : cfg(config), envelope(config) {
-        for (const auto& peer : cfg.peers) if (!engine.addPeer(peer)) throw std::runtime_error("engine-peer");
+        for (std::size_t i = 0; i < cfg.peers.size(); ++i) {
+            const bool controls = !cfg.peerGains.empty();
+            if (!engine.addPeer(cfg.peers[i], controls ? cfg.canPublish[i] : true, controls ? cfg.canReceive[i] : true))
+                throw std::runtime_error("engine-peer");
+            if (controls && !engine.setPeerGain(cfg.peers[i], cfg.peerGains[i])) throw std::runtime_error("engine-peer");
+        }
+        muted.store(cfg.muted); deafened.store(cfg.deafened);
+        inputGain.store(cfg.inputGain); engine.setOutputGain(cfg.outputGain);
     }
     const Config& cfg;
     Engine engine;
@@ -373,6 +412,8 @@ struct Host {
     SOCKET socket = INVALID_SOCKET;
     std::atomic<bool> stopping{false};
     std::atomic<bool> muted{false};
+    std::atomic<bool> deafened{false};
+    std::atomic<float> inputGain{1.f};
     std::atomic<bool> networkFailed{false};
     std::atomic<std::uint64_t> authRejected{0}, replayRejected{0}, udpSent{0}, udpReceived{0}, transportRejected{0};
     std::atomic<std::uint64_t> sendFailures{0}, captureUnderflows{0}, captureOverflows{0}, playbackUnderflows{0}, playbackOverflows{0};
@@ -411,15 +452,21 @@ struct Host {
         if (flags & paInputOverflow) ++host.captureOverflows;
         if (flags & paOutputUnderflow) ++host.playbackUnderflows;
         if (flags & paOutputOverflow) ++host.playbackOverflows;
-        const bool muted = host.muted.load(std::memory_order_relaxed);
-        if (in && !muted && host.inputChannels == 2) {
-            for (unsigned long i = 0; i < frames; ++i) host.monoInput[i] = (in[i * 2] + in[i * 2 + 1]) * .5f;
+        const bool deafened = host.deafened.load(std::memory_order_relaxed);
+        const bool muted = host.muted.load(std::memory_order_relaxed) || deafened;
+        if (in && !muted) {
+            const auto gain = host.inputGain.load(std::memory_order_relaxed);
+            for (unsigned long i = 0; i < frames; ++i) {
+                const auto sample = host.inputChannels == 2 ? (in[i * 2] + in[i * 2 + 1]) * .5f : in[i];
+                host.monoInput[i] = std::isfinite(sample) ? std::clamp(sample * gain, -1.f, 1.f) : 0.f;
+            }
             in = host.monoInput.data();
         }
         const auto* samples = (!in || muted) ? host.silence.data() : in;
         auto* mono = host.outputChannels == 2 ? host.monoOutput.data() : out;
         const bool ok = host.engine.process(samples, mono, static_cast<int>(frames), host.audioNtp());
         if (!ok) std::fill(mono, mono + frames, 0.f);
+        if (deafened) std::fill(mono, mono + frames, 0.f);
         if (host.outputChannels == 2) {
             for (unsigned long i = 0; i < frames; ++i) out[i * 2] = out[i * 2 + 1] = mono[i];
         }
@@ -490,6 +537,7 @@ struct Host {
         const auto s = engine.stats();
         const float capture = captureRms.load(), playback = playbackRms.load();
         std::cout << "{\"event\":\"stats\",\"muted\":" << (muted.load() ? "true" : "false")
+            << ",\"deafened\":" << (deafened.load() ? "true" : "false")
             << ",\"peers\":" << s.peers << ",\"processCalls\":" << s.processCalls
             << ",\"inputFrames\":" << s.inputFrames << ",\"outputActiveFrames\":" << s.outputActiveFrames
             << ",\"packetsSent\":" << s.packetsSent << ",\"bytesSent\":" << s.bytesSent
@@ -597,7 +645,8 @@ int run(Config& cfg, Input& input) {
         if (Pa_OpenStream(&stream, &in, &out, 48000, 480, paClipOff, Host::audio, &host) != paNoError) { failure = "audio-open"; break; }
         network = std::thread(&Host::network, &host);
         if (Pa_StartStream(stream) != paNoError) { failure = "audio-start"; break; }
-        std::cout << "{\"event\":\"ready\",\"muted\":false,\"peerCount\":" << cfg.peers.size()
+        std::cout << "{\"event\":\"ready\",\"muted\":" << (host.muted.load() ? "true" : "false")
+            << ",\"peerCount\":" << cfg.peers.size()
             << ",\"inputDevice\":" << in.device << ",\"outputDevice\":" << out.device
             << ",\"inputChannels\":" << in.channelCount << ",\"outputChannels\":" << out.channelCount
             << ",\"inputHostApi\":" << jsonString(Pa_GetHostApiInfo(inDevice->hostApi)->name)
@@ -609,6 +658,37 @@ int run(Config& cfg, Input& input) {
             if (status < 0 || command == "stop") host.stopping.store(true);
             else if (status > 0 && command == "mute") host.muted.store(true);
             else if (status > 0 && command == "unmute") host.muted.store(false);
+            else if (status > 0 && command == "deafen") host.deafened.store(true);
+            else if (status > 0 && command == "undeafen") host.deafened.store(false);
+            else if (status > 0 && (command.rfind("input-gain ", 0) == 0 || command.rfind("output-gain ", 0) == 0)) {
+                const bool capture = command.rfind("input-gain ", 0) == 0;
+                float gain = 0.f;
+                if (!gainValue(command.substr(capture ? 11 : 12), gain)) error("invalid-command");
+                else if (capture) host.inputGain.store(gain);
+                else host.engine.setOutputGain(gain);
+            }
+            else if (status > 0 && command.rfind("peer-gain ", 0) == 0) {
+                std::istringstream values(command.substr(10));
+                std::string endpoint, gainText, extra;
+                PeerAddress peer; unsigned port = 0; float gain = 0.f;
+                bool valid = bool(values >> endpoint >> gainText) && !(values >> extra);
+                const auto colon = endpoint.find(':');
+                valid = valid && colon != std::string::npos && ipv4(endpoint.substr(0, colon), peer.ipv4) &&
+                    decimal(endpoint.substr(colon + 1), port, 65535) && gainValue(gainText, gain);
+                peer.port = static_cast<std::uint16_t>(port);
+                if (!valid || !host.engine.setPeerGain(peer, gain)) error("invalid-command");
+            }
+            else if (status > 0 && command.rfind("peer-permissions ", 0) == 0) {
+                std::istringstream values(command.substr(17));
+                std::string endpoint, publish, receive, extra;
+                PeerAddress peer; unsigned port = 0;
+                bool valid = bool(values >> endpoint >> publish >> receive) && !(values >> extra);
+                const auto colon = endpoint.find(':');
+                valid = valid && colon != std::string::npos && ipv4(endpoint.substr(0, colon), peer.ipv4) &&
+                    decimal(endpoint.substr(colon + 1), port, 65535) && (publish == "0" || publish == "1") && (receive == "0" || receive == "1");
+                peer.port = static_cast<std::uint16_t>(port);
+                if (!valid || !host.engine.setPeerPermissions(peer, publish == "1", receive == "1")) error("invalid-command");
+            }
             else if (status > 0) error("invalid-command");
             if (Pa_IsStreamActive(stream) <= 0 && !host.stopping.load()) { failure = "audio-inactive"; break; }
             const auto now = std::chrono::steady_clock::now();
@@ -661,7 +741,13 @@ int selfTest() {
     modified = fields; modified[3] = "192.168.1.2:39177"; require(!configAccepted(modified));
     modified = fields; modified[3] = "10.203.217.1:39177"; require(!configAccepted(modified));
     modified = fields; modified[3] += ",10.203.217.2:39177"; require(!configAccepted(modified));
-    modified = fields; modified[3] = ""; require(!configAccepted(modified));
+    modified = fields; modified[3] = ""; require(configAccepted(modified));
+    modified[8] = "start 1 1 0.5 2"; require(configAccepted(modified));
+    modified[8] = "start 0 0 nan 1"; require(!configAccepted(modified));
+    modified[8] = "start 0 0 1 2.1"; require(!configAccepted(modified));
+    float gain = 0.f;
+    require(gainValue("0", gain) && gain == 0.f);
+    require(!gainValue("NaN", gain) && !gainValue("1 trailing", gain) && !gainValue("-1", gain));
     modified = fields; modified[4] = std::string(64, '0'); require(!configAccepted(modified));
     modified = fields; modified[4][0] = 'g'; require(!configAccepted(modified));
     modified = fields; modified[2] = "80"; require(!configAccepted(modified));

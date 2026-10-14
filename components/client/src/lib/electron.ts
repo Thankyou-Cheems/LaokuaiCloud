@@ -218,6 +218,7 @@ export interface ElectronAPI {
   isElectron: true;
   /** Read-only product policy supplied by main; not a media authorization. */
   hybridVoiceEnabled?: boolean;
+  nativeLanVoiceEnabled?: boolean;
   lanDiscoveryEnabled?: boolean;
   /** False where the compositor draws and places windows itself. */
   drawsWindowChrome: boolean;

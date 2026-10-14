@@ -1,7 +1,9 @@
-import { SFUConnectionState, useSFU } from "@gryt/voice";
+import { SFUConnectionState } from "@gryt/voice";
 import { useMemo } from "react";
 
 import { useSettings } from "@/settings";
+
+import { useSFU } from "../../../../lib/voiceFacade";
 
 export type VoicePresence = {
   /* A call is in play: up, coming up, or trying to come back. Everything that

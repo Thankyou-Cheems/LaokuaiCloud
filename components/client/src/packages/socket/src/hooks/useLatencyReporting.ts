@@ -1,7 +1,8 @@
-import { type LatencyBreakdown, useVoiceLatency } from "@gryt/voice";
-import { useSFU } from "@gryt/voice";
+import { type LatencyBreakdown } from "@gryt/voice";
 import { useEffect, useRef } from "react";
 import { Socket } from "socket.io-client";
+
+import { nativeVoiceEnabled, useSFU, useVoiceLatency } from "../../../../lib/voiceFacade";
 
 const REPORT_INTERVAL_MS = 2000;
 
@@ -16,6 +17,7 @@ export function useLatencyReporting(socket: Socket | null) {
   latencyRef.current = latency;
 
   useEffect(() => {
+    if(nativeVoiceEnabled)return;
     if (!socket?.connected || !isConnected) return;
 
     const report = () => {

@@ -1,4 +1,3 @@
-import { useMicrophone } from "@gryt/voice";
 import { useEffect } from "react";
 
 import { useSettings } from "@/settings";
@@ -6,6 +5,7 @@ import { useSettings } from "@/settings";
 import { getElectronAPI } from "../../../../lib/electron";
 import { squadGateRequired } from "../../../../lib/squadMode";
 import { publishSquadGate, publishSquadSnapshot, useSquadGateEnabled, useSquadSnapshot } from "../../../../lib/squadRuntime";
+import { useMicrophone } from "../../../../lib/voiceFacade";
 
 /** Native events only alter the temporary reason, never user/server/PTT mute. */
 export function useSquadProtection() {

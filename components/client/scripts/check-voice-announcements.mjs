@@ -14,6 +14,7 @@ function load(path, imports = {}, globals = {}) {
   } }).outputText;
   const module = { exports: {} };
   runInNewContext(compiled, { module, exports: module.exports, require: name => {
+    if(name.endsWith('/voiceFacade') && '@gryt/voice' in imports) return {...imports['@gryt/voice'],nativeVoiceEnabled:false};
     if (!(name in imports)) throw new Error(`Unexpected dependency: ${name}`);
     return imports[name];
   }, setTimeout: setTimer, clearTimeout: id => timers.delete(id), Date, ...globals });

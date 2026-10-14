@@ -1,5 +1,4 @@
 import { warmSfuSelection } from "@gryt/voice";
-import {attachSocketDiagnostics} from "../utils/socketDiagnostics";
 import { createElement, Dispatch, MutableRefObject, SetStateAction } from "react";
 import toast from "react-hot-toast";
 import { Socket } from "socket.io-client";
@@ -46,6 +45,7 @@ import {
 } from "@/settings/src/types/server";
 
 import { PiArrowsClockwiseFill, PiClockFill, PiInfoFill } from "../../../../lib/icons";
+import { nativeVoiceEnabled } from "../../../../lib/voiceFacade";
 import { type DmKeyFix, dmKeyWarningsOff, showDmKeyWarning } from "../components/dmKeyWarningToast";
 import { MemberInfo } from "../components/MemberSidebar";
 import {
@@ -62,6 +62,7 @@ import { fetchCustomEmojis, setCustomEmojis } from "../utils/emojiData";
 import { setExternalEmojisAllowed } from "../utils/externalEmojiPolicy";
 import { firstTimeOnThisSocket } from "../utils/publishedOnce";
 import { handleRateLimitError } from "../utils/rateLimitHandler";
+import {attachSocketDiagnostics} from "../utils/socketDiagnostics";
 import { socketHookToast } from "../utils/socketHookMessages";
 import { syncAvatarToHost } from "../utils/syncAvatarToHost";
 import { noteServerMute } from "./textMute";
@@ -357,7 +358,7 @@ export function registerServerSocketEvents(socket: Socket, host: string, ctx: Se
     serverMlsReady(host);
 
     if (data.sfu_hosts?.length) {
-      warmSfuSelection(host, data.sfu_hosts);
+      if (!nativeVoiceEnabled) warmSfuSelection(host, data.sfu_hosts);
     }
 
     setFailedServerDetails(prev => {

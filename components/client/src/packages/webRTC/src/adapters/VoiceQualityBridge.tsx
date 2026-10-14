@@ -1,9 +1,9 @@
 /* eslint-disable react-refresh/only-export-components -- The context and its read hook share one adapter. */
-import { useSFU } from "@gryt/voice";
 import { createContext, type ReactNode, useContext, useEffect, useRef, useState } from "react";
 
 import { useSockets } from "@/socket";
 
+import { useSFU } from "../../../../lib/voiceFacade";
 import type { VoiceQualityReport } from "../../../../lib/voiceQualityStats";
 import { VoiceQualityStore } from "../../../../lib/voiceQualityStore";
 

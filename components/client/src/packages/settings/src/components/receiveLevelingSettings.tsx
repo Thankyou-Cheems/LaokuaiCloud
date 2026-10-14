@@ -1,9 +1,10 @@
 import { Alert } from "@gryt/ui";
-import { type ReceiveLevelingState, useSpeakers } from "@gryt/voice";
+import { type ReceiveLevelingState } from "@gryt/voice";
 
 import { useTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 
+import { useSpeakers } from "../../../../lib/voiceFacade";
 import { ToggleSetting } from "./settingsComponents";
 
 export function ReceiveLevelingControl({ enabled, onChange, state }: {

@@ -46,6 +46,7 @@ async function scenario(failure, cleanup = false, dnsFailure = false, syncFailur
     easyTierCommunities: { shutdownOwned: () => { calls.push("stop-owned"); if (prefixFailure === 'communities') throw Error('private-communities-error'); } },
     easyTierProduction: { drainOwned: () => { calls.push("drain-native"); return native.promise; } },
     easyTierGrants: { drainOwned: () => { calls.push("drain-grant"); return grant.promise; } },
+    nativeLanAudio: { dispose: async () => { calls.push("stop-native-audio"); } },
     communityDns: { stop: () => { calls.push("drain-dns"); return dns.promise; } },
     flushUserStore: () => { calls.push("flush-user"); now += 3; if (syncFailure) throw Error('private-error'); },
     flushGlobalStore: () => { calls.push("flush-global"); now += 5; },
@@ -75,6 +76,7 @@ async function scenario(failure, cleanup = false, dnsFailure = false, syncFailur
   assert.equal(diagnostics.filter(e => e.quitStage === 'lifecycle' && e.action === 'start').length, 1);
   handler(event);
   assert.equal(calls.filter(c => c === "drain-native").length, 1, "repeat quit shares cleanup");
+  assert.equal(calls.filter(c => c === "stop-native-audio").length, 1, "repeat quit stops its audio helper once");
   now = 104;
   if (failure) native.reject(new Error("fixture cleanup failure")); else native.resolve();
   await flush();

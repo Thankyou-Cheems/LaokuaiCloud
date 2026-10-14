@@ -30,6 +30,8 @@ import { getJwtSecret, verifyAccessToken } from "./utils/jwt";
 import { getSqliteDb } from "./db/sqlite/connection";
 import { checkSessionAllowed } from "./moderation/sessionGate";
 import { createCommunityGrantFactory } from "./easytier/communityGrantFactory";
+import type { CommunityGrantApi } from "./easytier/communityGrantApi";
+import { nativeLanVoiceEnabled } from "./socket/utils/nativeVoiceLifecycle";
 import { communityEtManagementTransport, readCommunityEtDeployment } from "./config/communityEt";
 import { probeSqliteWrite } from "./db/sqlite/connection";
 import { createDatabaseHealth } from "./utils/databaseHealth";
@@ -95,6 +97,7 @@ let communityEtRouter: express.RequestHandler = (_req, res) => {
   res.setHeader("Cache-Control", "no-store");
   res.status(503).json({v: 1, error: "community-et-disabled"});
 };
+let communityGrantService: Pick<CommunityGrantApi, "binding"> | null = null;
 // The normal SQLite/auth services own identity; no separate account system or listener.
 app.use("/api/community-et", (req, res, next) => communityEtRouter(req, res, next));
 async function initializeCommunityEt(): Promise<void> {
@@ -112,7 +115,7 @@ async function initializeCommunityEt(): Promise<void> {
         runtimeGeneration: () => deployment.nativeRuntimeGeneration},
       provider: deployment.provider, managementTransport: communityEtManagementTransport(deployment),
       rateLimit: httpRateLimit("http:community-et", RL_HTTP_API)});
-    factory.initializeSchema(); communityEtRouter = factory.router;
+    factory.initializeSchema(); communityEtRouter = factory.router; communityGrantService = factory.service;
   } catch {
     // Raw parser/RPC/config text can contain private data; do not log it.
     consola.warn("Community ET configuration unavailable; enrollment remains disabled");
@@ -206,6 +209,10 @@ let sfuClient: SFUClient | null = null;
 /** Not at import time: the signing key lives in `server_config` and
     `initSqlite()` is started rather than awaited. */
 function startSfuClient(): void {
+  if (nativeLanVoiceEnabled()) {
+    consola.info("Native ET voice enabled; SFU media service is not initialized");
+    return;
+  }
   if (!process.env.SFU_WS_HOST) {
     consola.error("No SFU host defined! Server will not send or retrieve streams.");
     return;
@@ -437,7 +444,7 @@ io.on("connection", (socket) => {
       origin: socket.handshake.headers.origin,
     });
   }
-  socketHandler(io, socket, sfuClient);
+  socketHandler(io, socket, sfuClient, communityGrantService);
 });
 
 const HOST = process.env.HOST || "127.0.0.1";

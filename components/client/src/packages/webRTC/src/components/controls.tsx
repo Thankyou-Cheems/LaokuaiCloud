@@ -1,5 +1,5 @@
 import { IconButton } from "@gryt/ui";
-import { getIsBrowserSupported, useSFU } from "@gryt/voice";
+import { getIsBrowserSupported } from "@gryt/voice";
 import { useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 
@@ -8,6 +8,7 @@ import { useSettings } from "@/settings";
 import { useServerPermissions } from "@/socket/src/hooks/usePermissions";
 
 import { PiPhoneDisconnectFill } from "../../../../lib/icons";
+import { useSFU } from "../../../../lib/voiceFacade";
 import { LEAVE_CLASS } from "./CallControlButton";
 import { SquadControl } from "./SquadControl";
 import { VoiceAudioControls } from "./VoiceAudioControls";

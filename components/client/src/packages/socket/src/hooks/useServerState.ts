@@ -1,5 +1,4 @@
-import { isSpeaking, useMicrophone, useSpeakers } from "@gryt/voice";
-import { useSFU } from "@gryt/voice";
+import { isSpeaking } from "@gryt/voice";
 import type { Dispatch, SetStateAction } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Socket } from "socket.io-client";
@@ -8,6 +7,7 @@ import { getServerAccessToken } from "@/common";
 import { setReceiveAudioGain } from "@/lib/receiveAudio";
 import { useSettings } from "@/settings";
 
+import { useMicrophone, useSFU,useSpeakers } from "../../../../lib/voiceFacade";
 import { byRosterClientId, type ByServerUser, heldKey } from "../lib/heldVoicePresence";
 import type { Clients } from "../types/clients";
 import { type ChannelSelection, NO_CHANNEL, selectChannel } from "../utils/channelSelection";

@@ -13,7 +13,7 @@ const load = (file, dependencies, globals = {}) => {
   assert.deepEqual(result.diagnostics.filter(d => d.category === ts.DiagnosticCategory.Error), []);
   const exports = {};
   vm.runInNewContext(result.outputText, { exports, structuredClone, ...globals,
-    require(name) { assert.ok(Object.hasOwn(dependencies, name), name); return dependencies[name]; },
+    require(name) { assert.ok((Object.hasOwn(dependencies, name) || (name.endsWith("/voiceFacade") && Object.hasOwn(dependencies,"@gryt/voice"))), name); return name.endsWith("/voiceFacade") ? dependencies["@gryt/voice"] : dependencies[name]; },
   });
   return exports;
 };

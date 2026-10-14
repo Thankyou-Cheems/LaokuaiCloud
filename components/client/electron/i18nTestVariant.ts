@@ -15,6 +15,11 @@ export function isLaokuaiPackage(): boolean {
   return metadata.grytLaokuai === true;
 }
 
+export function isNativeLanVoicePackage(): boolean {
+  const metadata = JSON.parse(readFileSync(join(app.getAppPath(), "package.json"), "utf8"));
+  return metadata.grytLaokuai === true && metadata.grytNativeLanVoice === true;
+}
+
 export function isolateI18nTestData(): void {
   const own = isLaokuaiPackage();
   // The portable wrapper supplies its permanent directory, rather than its

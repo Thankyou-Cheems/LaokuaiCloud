@@ -1,12 +1,14 @@
-import { useSFU } from "@gryt/voice";
-
 import { useTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 
+import { nativeVoiceEnabled, useSFU } from "../../../../lib/voiceFacade";
 import { sharedVoicePreset } from "../../../../lib/voiceTransportPreset";
 import { SettingGroup, SliderSetting, ToggleSetting } from "./settingsComponents";
 
 export function VoiceTransportSettings() {
+  return nativeVoiceEnabled ? <p>原生 AoO / Opus · EasyTier 虚拟地址 · UDP 39177。房间成员与密钥由社区自动授权；当前 helper 使用固定编码参数，浏览器 RTP 编码选项不适用。</p> : <LegacyVoiceTransportSettings/>;
+}
+function LegacyVoiceTransportSettings() {
   const { t: tr } = useTranslation();
   const { voiceTransportPreset: preset, setVoiceTransportPreset: setPreset } = useSettings();
   const { microphoneCodecState: codec } = useSFU();

@@ -9,7 +9,7 @@ import {pathToFileURL} from 'node:url';
 import vm from 'node:vm';
 const require=createRequire(import.meta.url),ts=require('typescript'),React=require('react'),jsx=require('react/jsx-runtime'),ui=Object.assign({},...await Promise.all(['menu','tooltip','icon-button'].map(name=>import(pathToFileURL(require.resolve('@gryt/ui/'+name).replace(/\.cjs$/, '.js')).href)))),{renderToStaticMarkup}=require('react-dom/server');
 const root=path.resolve(import.meta.dirname,'..'),quiet=new Proxy({}, {get:()=>()=>{}});
-function compile(file,deps,globals={}){const result=ts.transpileModule(fs.readFileSync(path.join(root,file),'utf8'),{reportDiagnostics:true,compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}});assert.equal(result.diagnostics.filter(x=>x.category===ts.DiagnosticCategory.Error).length,0);const exports={};vm.runInNewContext(result.outputText,{exports,console:quiet,setTimeout,clearTimeout,...globals,require:key=>{if(key.endsWith("/roomAccessCooldown")||key.endsWith("/localDiagnostics"))return coordinatorTestDependency(key);assert.ok(Object.hasOwn(deps,key),'Unexpected module '+key);return deps[key];}});return exports;}
+function compile(file,deps,globals={}){const result=ts.transpileModule(fs.readFileSync(path.join(root,file),'utf8'),{reportDiagnostics:true,compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}});assert.equal(result.diagnostics.filter(x=>x.category===ts.DiagnosticCategory.Error).length,0);const exports={};vm.runInNewContext(result.outputText,{exports,console:quiet,setTimeout,clearTimeout,...globals,require:key=>{if(key.endsWith("/roomAccessCooldown")||key.endsWith("/localDiagnostics"))return coordinatorTestDependency(key);assert.ok((Object.hasOwn(deps,key) || (key.endsWith("/voiceFacade") && Object.hasOwn(deps,"@gryt/voice"))),'Unexpected module '+key);return key.endsWith("/voiceFacade") ? deps["@gryt/voice"] : deps[key];}});return exports;}
 const logic=compile('src/lib/easyTierCommunitySubscriptions.ts',{}),cases=[];
 async function test(name,fn){await fn();cases.push(name);console.log('PASS '+name);}
 const state=(phase,reason=null)=>({serverId:'server-fixture',generation:1,phase,reason,virtualIp:null,lanSnapshot:null});
@@ -103,7 +103,7 @@ await test('Voice leave, SFU failure, and Hybrid disposal preserve ET lease owne
     './MemberVoiceObservationAuthority':{useMemberVoiceObservationAuthority:()=>({update(){},registerSession:(session,binding)=>{const registration={session,binding};registrations.push(registration);return()=>{registration.released=true;};}})},
   };
   const bridgeExports={};
-  vm.runInNewContext(bridgeCode.outputText,{exports:bridgeExports,JSON,setTimeout,clearTimeout,require:key=>{assert.ok(Object.hasOwn(deps,key),'Unexpected Hybrid dependency '+key);return deps[key];}});
+  vm.runInNewContext(bridgeCode.outputText,{exports:bridgeExports,JSON,setTimeout,clearTimeout,require:key=>{assert.ok((Object.hasOwn(deps,key) || (key.endsWith("/voiceFacade") && Object.hasOwn(deps,"@gryt/voice"))),'Unexpected Hybrid dependency '+key);return key.endsWith("/voiceFacade") ? deps["@gryt/voice"] : deps[key];}});
   const policy={enabled:true,allowNetwork:true,microphoneCodec:{codec:'opus',maxBitrateBps:64000},onState(){}};
   bridgeExports.HybridVoiceBridge({policy,config:{connection:{microphoneCodec:{codec:'opus',maxBitrateBps:64000},maxBitrate:null}},registry:{selectTrack(){}}});
   const cleanups=effects.map(effect=>effect());

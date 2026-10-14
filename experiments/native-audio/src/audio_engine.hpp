@@ -58,7 +58,11 @@ public:
     Engine(Engine&&) = delete;
     Engine& operator=(Engine&&) = delete;
 
-    bool addPeer(PeerAddress address);
+    bool addPeer(PeerAddress address, bool canPublish = true, bool canReceive = true);
+    // Safe from the control thread; peers remain immutable while streaming.
+    bool setPeerGain(PeerAddress address, float gain) noexcept;
+    bool setOutputGain(float gain) noexcept;
+    bool setPeerPermissions(PeerAddress address, bool canPublish, bool canReceive) noexcept;
     bool process(const float* input, float* output, int frames, std::uint64_t ntp) noexcept;
     bool receive(const std::uint8_t* bytes, std::size_t size, PeerAddress from) noexcept;
     bool send(PacketCallback callback, void* context) noexcept;

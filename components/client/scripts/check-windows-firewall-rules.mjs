@@ -97,6 +97,22 @@ try {
     writeLedgerFile: () => { throw new Error("disk unavailable"); }, invoke: () => { writeFailCalls++; } });
   assert.equal(writeFail.status, "failed"); assert.equal(writeFailCalls, 0);
   assert.equal((await firewall.prepareLaokuaiFirewallRules({ ...options, product: false, invoke: () => { throw new Error("bypass violated"); } })).status, "bypassed");
+  // An integrated native sidecar gets its own stable path rule; never broadens or
+  // removes unrelated rules. Use the same fake COM and durable ledger as above.
+  fake.clear(); fs.unlinkSync(ledgerFile);
+  const nativePath = "C:\\唠蒯云\\resources\\native-lan-audio\\laokuai-native-audio.exe";
+  const nativeOptions = {...options, nativeAudioExecutable:nativePath};
+  const nativeFirst = await firewall.prepareLaokuaiFirewallRules(nativeOptions);
+  assert.equal(nativeFirst.status,"prepared"); assert.equal(nativeFirst.installed.length,3);
+  assert.equal(new Set(nativeFirst.installed.map(rule=>rule.name)).size,3);
+  const nativeAdds=adds;
+  assert.equal((await firewall.prepareLaokuaiFirewallRules(nativeOptions)).status,"prepared");
+  assert.equal(adds,nativeAdds);
+  const nativeMissing=await firewall.prepareLaokuaiFirewallRules({...nativeOptions,fileExists:file=>file!==nativePath});
+  assert.notEqual(nativeMissing.status,"prepared");
+  fake.set("unrelated-rule",{owner:"someone-else"});
+  assert.equal((await firewall.cleanupLaokuaiFirewallRules(nativeOptions)).status,"prepared");
+  assert.deepEqual([...fake.keys()],["unrelated-rule"]);
   // Check the real native ownership/mutation functions against CLR objects.
   if (process.platform === "win32") {
     const helper = fileURLToPath(new URL("../build/community-lan-helper/laokuai-community-broker.exe", import.meta.url));

@@ -1,4 +1,3 @@
-import { useMicrophone, useVoiceLatency } from "@gryt/voice";
 import { useDeviceEnumeration } from "@gryt/voice";
 import { useEffect, useState } from "react";
 
@@ -7,6 +6,8 @@ import { useSettings } from "@/settings";
 import { useServerManagement,useSockets } from "@/socket";
 
 import { PiCircleFill, PiMicrophoneFill } from "../lib/icons";
+import { useVoiceLatency } from "../lib/voiceFacade";
+import { nativeVoiceEnabled, useMicrophone,useNativeAudioStatus } from "../lib/voiceFacade";
 import { DebugOverlay } from "./debugOverlay";
 
 interface MicrophoneDebugOverlayProps {
@@ -18,6 +19,17 @@ const StateDot = ({ on }: { on: boolean }) => (
 );
 
 export function MicrophoneDebugOverlay({ isVisible }: MicrophoneDebugOverlayProps) {
+  return nativeVoiceEnabled ? <NativeAudioDebug isVisible={isVisible}/> : <LegacyMicrophoneDebugOverlay isVisible={isVisible}/>;
+}
+function NativeAudioDebug({isVisible}:MicrophoneDebugOverlayProps) {
+  const status=useNativeAudioStatus();
+  if(!isVisible)return null;
+  return <div role="status" className="fixed bottom-4 right-4 z-50 bg-gryt-surface p-3 rounded border border-gryt-border">
+    原生 AoO / ET · {status?.phase ?? "idle"}<br/>采集 RMS {status?.captureRms.toFixed(4) ?? "—"} · 播放混音 RMS {status?.playbackRms.toFixed(4) ?? "—"}<br/>
+    UDP 发 {status?.packetsSent ?? 0} / 收 {status?.packetsReceived ?? 0}<br/>浏览器媒体/DSP诊断不适用于此路径
+  </div>;
+}
+function LegacyMicrophoneDebugOverlay({ isVisible }: MicrophoneDebugOverlayProps) {
   useTranslation();
   const { 
     microphoneBuffer, 

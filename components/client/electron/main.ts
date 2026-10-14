@@ -126,7 +126,7 @@ import {
   syncAtLaunch as syncHelperStartup,
   unregister as unregisterHelper,
 } from "./helperStartup";
-import { isI18nTestPackage, isLaokuaiPackage, isolateI18nTestData } from "./i18nTestVariant";
+import { isI18nTestPackage, isLaokuaiPackage, isNativeLanVoicePackage, isolateI18nTestData } from "./i18nTestVariant";
 import {
   getDiscoveredLanServers,
   rescanLanServers,
@@ -135,6 +135,9 @@ import {
 import { openLaokuaiLogin } from "./laokuaiAuthWindow";
 import {LocalDiagnosticWriter} from "./localDiagnostics";
 import { closeMediaSandbox } from "./mediaSandbox";
+import { verifiedNativeLanAudioExecutable } from "./nativeLanAudioAssets";
+import { registerNativeLanAudioIpc } from "./nativeLanAudioIpc";
+import { NativeLanAudioRuntime } from "./nativeLanAudioRuntime";
 import {networkDiagnostic} from "./networkDiagnostics";
 import { readNowPlaying } from "./nowPlaying";
 import { createOwnedTunFirewallSession } from "./ownedTunFirewallSession";
@@ -193,6 +196,8 @@ const __dirname = dirname(__filename);
 const require = createRequire(import.meta.url);
 
 const IS_LAOKUAI = isLaokuaiPackage();
+const IS_NATIVE_LAN_VOICE = isNativeLanVoicePackage();
+const nativeAudioRoot = app.isPackaged ? process.resourcesPath : join(__dirname, "../build");
 const IS_I18N_TEST = isI18nTestPackage();
 const EXPLICIT_OFFLINE_TEST = IS_LAOKUAI && IS_I18N_TEST && isExplicitLaokuaiOfflineLaunch(process.argv);
 
@@ -219,6 +224,7 @@ const laokuaiFirewallOptions = (easyTierExecutable?: string | null) => ({
   product: LAOKUAI_FIREWALL_ENABLED,
   appExecutable: process.execPath,
   easyTierExecutable,
+  nativeAudioExecutable: IS_NATIVE_LAN_VOICE ? join(nativeAudioRoot, "native-lan-audio", "laokuai-native-audio.exe") : undefined,
   helperExecutable: join(app.isPackaged ? process.resourcesPath : join(__dirname, "../build"), "community-lan-helper", "laokuai-community-broker.exe"),
   ledgerFile: LAOKUAI_FIREWALL_LEDGER,
 });
@@ -341,6 +347,14 @@ const communityDns = new CommunityDnsPolicy({
 });
 const easyTierGrants = createCommunityEtGrantRuntime(() => easyTierProductRoot(app.getPath("userData")), communityDnsEnabled ? communityDns : undefined,
   () => communityNetworkSettings.forSession(), communityRelayPreferences, event => localDiagnostics?.record(networkDiagnostic(event)));
+const nativeLanAudio = new NativeLanAudioRuntime({
+  verifyExecutable: () => IS_NATIVE_LAN_VOICE && !LAOKUAI_PREVIEW && !UI_ACCEPTANCE_MODE
+    ? verifiedNativeLanAudioExecutable(nativeAudioRoot) : null,
+  spawn,
+  onStatus: status => {
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("native-lan-audio-state", status);
+  },
+});
 const easyTierProduction = createWindowsEasyTierProduction(
   () => easyTierProductRoot(app.getPath("userData")),
   () => join(app.isPackaged ? process.resourcesPath : join(__dirname, "../build"), "community-lan", "product", "2.7.0-laokuai"),
@@ -425,6 +439,7 @@ app.on("before-quit", event => {
     runQuitTasks([() => easyTierEnrollment.shutdown(), () => easyTierCommunities.shutdownOwned()]);
   });
   void Promise.allSettled([
+    nativeLanAudio.dispose(),
     drainQuitStage("owned-core", () => easyTierProduction.drainOwned()),
     drainQuitStage("grant-revoke", () => easyTierGrants.drainOwned()),
     drainQuitStage("dns-stop", () => communityDns.stop()),
@@ -2416,7 +2431,7 @@ function createMainWindow(): BrowserWindow {
       // to know before its first paint, or it renders and then vanishes.
       additionalArguments: [
         ...(drawsWindowButtons() ? [] : [NO_WINDOW_CHROME_FLAG]),
-        ...(IS_LAOKUAI ? ["--laokuai-product", "--laokuai-hybrid-voice"] : []),
+        ...(IS_LAOKUAI ? ["--laokuai-product", IS_NATIVE_LAN_VOICE ? "--laokuai-native-lan-voice" : "--laokuai-hybrid-voice"] : []),
       ],
       contextIsolation: true,
       nodeIntegration: false,
@@ -2544,9 +2559,14 @@ function createMainWindow(): BrowserWindow {
     );
   });
 
+  mainWindow.webContents.on("did-start-navigation", (_event, _url, inPlace, isMainFrame) => {
+    if (isMainFrame && !inPlace) void nativeLanAudio.stop();
+  });
+  mainWindow.webContents.once("destroyed", () => { void nativeLanAudio.stop(); });
   mainWindow.webContents.on(
     "render-process-gone",
     (_event, details) => {
+      void nativeLanAudio.stop();
       startupLog(
         `Render process gone: ${details.reason} (exit code ${details.exitCode})`
       );
@@ -4889,6 +4909,18 @@ if (!gotSingleInstanceLock) {
         () => installNewestUpdate()
       );
 
+      registerNativeLanAudioIpc(applicationIpc, {
+        allowed: event => IS_NATIVE_LAN_VOICE && !LAOKUAI_PREVIEW && !UI_ACCEPTANCE_MODE &&
+          !!mainWindow && !mainWindow.isDestroyed() && event.senderFrame === mainWindow.webContents.mainFrame,
+        runtime: nativeLanAudio,
+        binding: serverId => easyTierGrants.nativeVoiceBinding(serverId),
+        virtualIp: serverId => {
+          const state = easyTierCommunities.getState(serverId);
+          // Use the active owned grant, not the expiring diagnostic sample.
+          if (state.phase !== "connected") return undefined;
+          try { return easyTierGrants.nativeVoiceVirtualIp(serverId); } catch { return undefined; }
+        },
+      });
       registerEasyTierCommunityIpc(applicationIpc, easyTierCommunities, event =>
           !!mainWindow && !mainWindow.isDestroyed() && event.senderFrame === mainWindow.webContents.mainFrame,
           LAOKUAI_PREVIEW || UI_ACCEPTANCE_MODE ? async () => ({ ready: false }) : prepareEasyTierRuntime,

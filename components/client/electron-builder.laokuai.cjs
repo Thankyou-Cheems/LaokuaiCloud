@@ -1,10 +1,11 @@
 /* eslint-env node */
 /* eslint-disable @typescript-eslint/no-var-requires */
 const config = require("./electron-builder.i18n-test.cjs");
+const nativeLanVoice = require("./package.json").grytNativeLanVoice === true;
 config.appId = "local.laokuai.chat";
 config.productName = "唠蒯云";
 config.extraMetadata = { name: "laokuai-chat", productName: config.productName,
-  grytI18nTest: true, grytLaokuai: true };
+  grytI18nTest: true, grytLaokuai: true, grytNativeLanVoice: nativeLanVoice };
 config.directories.output = "release-laokuai-beta-20261013";
 config.win.icon = "private-brand/icon.ico";
 config.win.executableName = "唠蒯云";
@@ -16,6 +17,9 @@ config.extraFiles = [{ from: "GREEN-PACKAGE-README.txt", to: "使用说明.txt" 
 config.win.extraResources = require("./scripts/community-easytier-resources.cjs");
 config.portable.artifactName = "唠蒯云-${version}-zh-CN-win-x64-portable.exe";
 config.extraResources = config.extraResources.filter(entry => entry.to !== "legal/I18N-PORTABLE-TEST.md");
+if (nativeLanVoice) {
+  config.extraResources.push({from:"build/native-lan-audio",to:"native-lan-audio"});
+}
 config.extraResources = config.extraResources.map(entry => entry.to === "icon.png"
   ? { from: "private-brand/icon.png", to: "icon.png" } : entry);
 // Every runtime tray state uses the exact approved Kiriye artwork, resized only.
@@ -51,6 +55,13 @@ config.beforeBuild = async (...args) => {
 };
 // npmRebuild=false skips beforeBuild; validate resources at every packaging run.
 config.beforePack = async (...args) => {
+  if (nativeLanVoice) {
+    const fs = require("node:fs"), path = require("node:path"), crypto = require("node:crypto");
+    const pin = require("./electron/nativeLanAudioAsset.json");
+    const bytes = fs.readFileSync(path.join(__dirname,"build/native-lan-audio/laokuai-native-audio.exe"));
+    if (bytes.length !== pin.bytes || crypto.createHash("sha256").update(bytes).digest("hex") !== pin.sha256)
+      throw new Error("Native audio helper differs from the pinned build");
+  }
   require("./scripts/check-easytier-patched-payload.cjs").assertPatchedEasyTierPayload(__dirname, config);
   await config.beforeBuild(...args);
   const fs = require("node:fs");

@@ -1,6 +1,4 @@
 import { Alert, Divider, IconButton, Select, type SelectOption, Slider, Tabs, Tooltip } from "@gryt/ui";
-import { useMicrophone, useSpeakers } from "@gryt/voice";
-import { useSFU } from "@gryt/voice";
 import { voiceLog } from "@gryt/voice";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -9,6 +7,8 @@ import { MAX_VOLUME_PERCENT } from "@/lib/audioVolume";
 import { useSettings } from "@/settings";
 
 import { PiArrowsClockwiseFill, PiWarningFill } from "../../../../lib/icons";
+import { useMicrophone, useSFU,useSpeakers } from "../../../../lib/voiceFacade";
+import { nativeVoiceEnabled, useNativeAudioStatus } from "../../../../lib/voiceFacade";
 import { hasLiveAudioInput, readAnalyserDbfs } from "./audioObservation";
 import { ReceiveLevelingSettings } from "./receiveLevelingSettings";
 import { ReceivePriorSettings } from "./ReceivePriorSettings";
@@ -60,6 +60,30 @@ function dedupeByValue(options: SelectOption[]): SelectOption[] {
 }
 
 export function AudioSettings() {
+  return nativeVoiceEnabled ? <NativeAudioSettings/> : <LegacyAudioSettings/>;
+}
+function NativeAudioSettings() {
+  const s=useSettings(), status=useNativeAudioStatus();
+  const db=(rms:number|undefined)=>rms===undefined ? "—" : rms>0 ? `${(20*Math.log10(rms)).toFixed(1)} dBFS` : "−∞ dBFS";
+  return <SettingsContainer>
+    <p role="status">原生 AoO / Opus 音频通过社区 EasyTier 虚拟地址传输。使用 Windows 系统默认输入和输出设备；更改系统默认设备后重新进入房间。</p>
+    <SettingGroup title="原生音频状态" description="实际 helper 遥测；仅反映本机采集及接收混音，不代表对方收到声音。">
+      <p>状态：{status?.phase ?? "idle"} · 采集 {db(status?.captureRms)} · 播放混音 {db(status?.playbackRms)}</p>
+      <p>发送包：{status?.packetsSent ?? 0} · 接收包：{status?.packetsReceived ?? 0} · 成员连接：{status?.peerCount ?? 0}</p>
+    </SettingGroup>
+    <ToggleSetting title="麦克风静音" description="停止向房间发送音频" checked={s.isMuted} onCheckedChange={s.setIsMuted}/>
+    <ToggleSetting title="输出静音" description="静音所有接收音频并停止发送" checked={s.isDeafened} onCheckedChange={s.setIsDeafened}/>
+    <SettingGroup title="输入模式" description="按键讲话沿用已保存的快捷键；频道强制 PTT 仍然有效。">
+      <select aria-label="输入模式" value={s.inputMode} onChange={event=>s.setInputMode(event.target.value==="push_to_talk" ? "push_to_talk" : "voice_activity")}>
+        <option value="voice_activity">持续采集（无降噪门限）</option><option value="push_to_talk">按键讲话</option>
+      </select>
+    </SettingGroup>
+    <SliderSetting title="麦克风音量" description="原生输入增益" value={s.micVolume} onChange={s.setMicVolume} min={0} max={200}/>
+    <ReceiveVolumeSetting/>
+    <p>此原生版本尚未提供 RNNoise、自动增益、压缩器、噪声门限、自动接收均衡或浏览器麦克风试听。原有偏好保留，但本路径不应用这些效果。</p>
+  </SettingsContainer>;
+}
+function LegacyAudioSettings() {
   const { t: tr } = useTranslation();
   const {
     micID,

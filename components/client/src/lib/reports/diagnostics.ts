@@ -1,11 +1,11 @@
 import type { Diagnostics } from "@gryt/core";
-import { useSFU } from "@gryt/voice";
 import { useEffect, useState } from "react";
 
 import { useEmbeddedServer } from "@/settings/src/hooks/useEmbeddedServer";
 import { useServerManagement, useSockets } from "@/socket";
 
 import { getElectronAPI, isElectron } from "../electron";
+import { useSFU } from "../voiceFacade";
 import { installId } from "./installId";
 import { lastPlace, sessionUptimeSec } from "./session";
 

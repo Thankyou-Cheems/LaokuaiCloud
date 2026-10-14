@@ -1,5 +1,5 @@
 import type { VoiceConfig, VoiceConfigCallbacks } from "@gryt/voice";
-import { setVoiceHost, useMicrophone, useSFU, useSpeakers, VoiceConfigProvider, VoiceSingletonHooks } from "@gryt/voice";
+import { setVoiceHost, VoiceConfigProvider, VoiceSingletonHooks } from "@gryt/voice";
 import { type ReactNode,useEffect,useLayoutEffect,useMemo, useRef,useState } from "react";
 
 import {useUserId} from "@/common";
@@ -9,12 +9,15 @@ import { useServerManagement, useSockets } from "@/socket";
 import {createMoveAuthoritySession} from "../../../../lib/moveAuthoritySession";
 import {isMovePolicyAcknowledged,type MovePolicyBinding,type MovePolicyEvidence} from "../../../../lib/movePolicy";
 import { transmitSpeechIndicator } from "../../../../lib/transmitSpeechIndicator";
+import { useMicrophone, useSFU, useSpeakers } from "../../../../lib/voiceFacade";
+import { nativeVoiceEnabled } from "../../../../lib/voiceFacade";
 import { peerVoicePreset, voicePresetCodec } from "../../../../lib/voiceTransportPreset";
 import {emitAuthenticated} from "../../../socket/src/utils/tokenManager";
 import {EffectiveVoicePolicyProvider} from "../components/EffectiveVoicePolicy";
 import { ReceiveLevelingProvider } from "../components/ReceiveLevelingAdapter";
 import { TransmitSpeechProvider } from "../components/TransmitSpeechAdapter";
 import type { HybridVoicePolicy } from "./HybridVoiceBridge";
+import { NativeVoiceProvider } from "./NativeVoiceProvider";
 import { ReceiveCorrectionBridge } from "./ReceiveCorrectionBridge";
 import { createRoomCoordinator } from "./roomCoordinator";
 import { useOutputDevice } from "./useOutputDevice";
@@ -96,7 +99,10 @@ function useDeviceCallbacks(): VoiceConfigCallbacks {
   );
 }
 
-export function VoiceProvider({ children, hybrid }: { children?: ReactNode; hybrid?: HybridVoicePolicy }) {
+export function VoiceProvider(props: { children?: ReactNode; hybrid?: HybridVoicePolicy }) {
+  return nativeVoiceEnabled ? <NativeVoiceProvider>{props.children}</NativeVoiceProvider> : <LegacyVoiceProvider {...props}/>;
+}
+function LegacyVoiceProvider({ children, hybrid }: { children?: ReactNode; hybrid?: HybridVoicePolicy }) {
   const account=useUserId();
   const { voiceTransportPreset } = useSettings();
   const effectiveHybrid = useMemo(() => hybrid ? { ...hybrid,

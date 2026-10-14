@@ -1,4 +1,4 @@
-import { exportReceiveLevelPrior, type ReceiveAutoLevelSnapshot, useSFU, useSpeakers, type VoiceConfig } from "@gryt/voice";
+import { exportReceiveLevelPrior, type ReceiveAutoLevelSnapshot, type VoiceConfig } from "@gryt/voice";
 import { type ReactNode, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { useUserId } from "@/common";
@@ -8,6 +8,7 @@ import { ReceiveCorrectionRegistry } from "../../../../lib/receiveCorrectionRegi
 import { ReceivePriorCache, type ReceivePriorScope } from "../../../../lib/receivePriorCache";
 import { subscribeReceivePriorLifecycle } from "../../../../lib/receivePriorLifecycle";
 import { ReceivePriorSession } from "../../../../lib/receivePriorSession";
+import { useSFU, useSpeakers } from "../../../../lib/voiceFacade";
 import { ReceiveCorrectionProvider } from "../components/ReceiveCorrectionAdapter";
 import { ReceivePriorProvider } from "../components/ReceivePriorAdapter";
 import { HybridVoiceBridge, type HybridVoicePolicy } from "./HybridVoiceBridge";

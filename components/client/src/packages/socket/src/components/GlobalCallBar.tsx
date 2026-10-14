@@ -1,7 +1,6 @@
-import { useSFU } from "@gryt/voice";
-
 import { useVoicePresence } from "@/webRTC/src/adapters/useVoicePresence";
 
+import { useSFU } from "../../../../lib/voiceFacade";
 import { useSockets } from "../hooks/useSockets";
 import { RoomCallBar } from "./RoomCallBar";
 

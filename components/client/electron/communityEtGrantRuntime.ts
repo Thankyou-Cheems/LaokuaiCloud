@@ -124,6 +124,24 @@ export class CommunityEtGrantRuntime {
     return {v: 1, serverId, desiredEnabled: false, desiredBytesPerSecond: 0, status: 'off', reason: 'not-connected',
       confirmedEnabled: false, localBudgetApplied: false, bytesPerSecond: 0, leaseExpiresAtMs: null};
   }
+  /** Read-only handle for native voice registration; no network secret or bearer crosses IPC.
+   * The backend must independently prove this exact device against its current grant. */
+  nativeVoiceVirtualIp(serverId: string): string {
+    this.nativeVoiceBinding(serverId);
+    return this.contexts.get(serverId)!.gate.privateGrantForConfig()!.virtualIp;
+  }
+
+  nativeVoiceBinding(serverId: string): CommunityBindingRequestV1 {
+    if (!communityIdentity(serverId)) throw new Error('invalid-community-id');
+    const c = this.contexts.get(serverId);
+    if (!c) throw new Error('native-voice-lan-unavailable');
+    this.current(c);
+    const grant = c.gate.privateGrantForConfig();
+    if (!grant || !c.configuration || this.ports.monoMs() >= c.grantExpiresMono)
+      throw new Error('native-voice-lan-unavailable');
+    return {v: 1, communityId: grant.scope.communityId, deviceId: grant.scope.deviceId,
+      nativeInstanceId: grant.scope.nativeInstanceId, grantId: grant.grantId};
+  }
   async setRelayPreference(value: unknown): Promise<CommunityRelayState> {
     const preference = parseRelayPreference(value), c = this.contexts.get(preference.serverId);
     if (!c) throw new EasyTierOperationError('configuration-required');

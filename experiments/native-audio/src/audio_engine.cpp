@@ -160,8 +160,13 @@ bool normalResult(AooError result) noexcept {
 struct Engine::Impl {
     EngineOptions options;
     AooSource::Ptr source;
-    AooSink::Ptr sink;
+    std::array<AooSink::Ptr, maxPeers> sinks{};
+    std::array<std::atomic<float>, maxPeers> gains{};
+    std::array<float, 480> peerOutput{};
+    float mixGain = 1.f;
+    std::atomic<float> outputGain{1.f};
     std::array<PeerAddress, maxPeers> peers{};
+    std::array<std::atomic<bool>, maxPeers> canPublish{}, canReceive{};
     std::array<sockaddr_in, maxPeers> addresses{};
     std::uint32_t peerCount{};
     std::atomic<bool> started{false};
@@ -180,12 +185,9 @@ struct Engine::Impl {
         }
         ensureRuntime();
         source = AooSource::create(endpointId);
-        sink = AooSink::create(endpointId);
-        if (!source || !sink) throw std::runtime_error("AoO endpoint allocation failed");
+        if (!source) throw std::runtime_error("AoO endpoint allocation failed");
         checked(source->setup(1, 48000, options.blockFrames, kAooFixedBlockSize), "source setup");
-        checked(sink->setup(1, 48000, options.blockFrames, kAooFixedBlockSize), "sink setup");
         checked(source->setEventHandler(nullptr, nullptr, kAooEventModeNone), "disable source event queue");
-        checked(sink->setEventHandler(nullptr, nullptr, kAooEventModeNone), "disable sink event queue");
         AooFormatOpus format;
         AooFormatOpus_init(&format, 1, 48000, codecFrames, OPUS_APPLICATION_VOIP);
         checked(source->setFormat(format.header), "Opus VOIP format");
@@ -195,14 +197,7 @@ struct Engine::Impl {
         checked(source->setResendBufferSize(0.250), "bounded resend history");
         checked(source->setPacketSize(1200), "bounded datagram");
         checked(source->setDynamicResampling(kAooTrue), "source clock compensation");
-        checked(sink->setDynamicResampling(kAooTrue), "sink clock compensation");
         checked(source->setBinaryFormat(kAooFalse), "source OSC mode");
-        checked(sink->setBinaryFormat(kAooFalse), "sink OSC mode");
-        checked(sink->setLatency(options.bufferSeconds), "initial jitter latency");
-        checked(sink->setBufferSize(std::max(0.300, options.bufferSeconds * 2)), "bounded sink queue");
-        checked(sink->setResendLimit(4), "bounded resend requests");
-        checked(sink->setResendInterval(0.020), "resend interval");
-        checked(sink->setSourceTimeout(5.0), "source timeout");
         checked(source->startStream(0, nullptr), "start stream");
         // pre4's Opus wrapper exposes bitrate/complexity/signal controls only.
         // Its opus_multistream_encoder_init defaults leave FEC and DTX off;
@@ -231,6 +226,12 @@ struct Engine::Impl {
             sending.failed = true;
             return -1;
         }
+        std::uint32_t peer = 0;
+        while (!(sending.impl->peers[peer] == destination)) ++peer;
+        // Keep AoO handshake/ping traffic alive while suppressing encoded audio.
+        constexpr char dataPattern[] = "/aoo/sink/1/data";
+        if (!sending.impl->canReceive[peer].load(std::memory_order_relaxed) &&
+            size >= sizeof(dataPattern) && std::memcmp(data, dataPattern, sizeof(dataPattern)) == 0) return size;
         bool accepted = false;
         try { accepted = sending.callback(sending.context, data, static_cast<std::size_t>(size), destination); }
         catch (...) { accepted = false; }
@@ -244,17 +245,58 @@ struct Engine::Impl {
 Engine::Engine(const EngineOptions& options) : impl_(std::make_unique<Impl>(options)) {}
 Engine::~Engine() = default;
 
-bool Engine::addPeer(PeerAddress address) {
+bool Engine::addPeer(PeerAddress address, bool canPublish, bool canReceive) {
     auto& impl = *impl_;
     if (impl.started.load(std::memory_order_relaxed) || address.ipv4 == 0 || address.port == 0 ||
         (address.ipv4 >> 24) >= 224 || impl.peerCount >= maxPeers || impl.known(address)) return false;
     const auto index = impl.peerCount;
     impl.addresses[index] = socketAddress(address);
+    auto sink = AooSink::create(endpointId);
+    if (!sink) return false;
+    checked(sink->setup(1, 48000, impl.options.blockFrames, kAooFixedBlockSize), "sink setup");
+    checked(sink->setEventHandler(nullptr, nullptr, kAooEventModeNone), "disable sink event queue");
+    checked(sink->setDynamicResampling(kAooTrue), "sink clock compensation");
+    checked(sink->setBinaryFormat(kAooFalse), "sink OSC mode");
+    checked(sink->setLatency(impl.options.bufferSeconds), "initial jitter latency");
+    checked(sink->setBufferSize(std::max(0.300, impl.options.bufferSeconds * 2)), "bounded sink queue");
+    checked(sink->setResendLimit(4), "bounded resend requests");
+    checked(sink->setResendInterval(0.020), "resend interval");
+    checked(sink->setSourceTimeout(5.0), "source timeout");
     const AooEndpoint endpoint{&impl.addresses[index], sizeof(sockaddr_in), endpointId};
     if (impl.source->addSink(endpoint, kAooTrue) != kAooOk) return false;
     impl.peers[index] = address;
+    impl.canPublish[index] = canPublish;
+    impl.canReceive[index] = canReceive;
+    impl.sinks[index] = std::move(sink);
+    impl.gains[index].store(1.0f);
     ++impl.peerCount;
     return true;
+}
+
+bool Engine::setPeerGain(PeerAddress address, float gain) noexcept {
+    if (!std::isfinite(gain) || gain < 0.0f || gain > 2.0f) return false;
+    for (std::uint32_t i = 0; i < impl_->peerCount; ++i) {
+        if (impl_->peers[i] == address) {
+            impl_->gains[i].store(gain, std::memory_order_relaxed);
+            return true;
+        }
+    }
+    return false;
+}
+bool Engine::setOutputGain(float gain) noexcept {
+    if (!std::isfinite(gain) || gain < 0.f || gain > 2.f) return false;
+    impl_->outputGain.store(gain, std::memory_order_relaxed);
+    return true;
+}
+bool Engine::setPeerPermissions(PeerAddress address, bool canPublish, bool canReceive) noexcept {
+    for (std::uint32_t i = 0; i < impl_->peerCount; ++i) {
+        if (impl_->peers[i] == address) {
+            impl_->canPublish[i].store(canPublish, std::memory_order_relaxed);
+            impl_->canReceive[i].store(canReceive, std::memory_order_relaxed);
+            return true;
+        }
+    }
+    return false;
 }
 
 bool Engine::process(const float* input, float* output, int frames, std::uint64_t ntp) noexcept {
@@ -273,13 +315,33 @@ bool Engine::process(const float* input, float* output, int frames, std::uint64_
         impl.input[index] = std::clamp(input[index], -1.0f, 1.0f);
     }
     AooSample* inputChannels[] = {impl.input.data()};
-    AooSample* outputChannels[] = {output};
     const auto sourceResult = impl.source->process(inputChannels, frames, ntp);
-    const auto sinkResult = impl.sink->process(outputChannels, frames, ntp, nullptr, nullptr);
+    bool sinkOk = true;
+    for (std::uint32_t peer = 0; peer < impl.peerCount; ++peer) {
+        impl.peerOutput.fill(0.0f);
+        AooSample* outputChannels[] = {impl.peerOutput.data()};
+        sinkOk &= normalResult(impl.sinks[peer]->process(outputChannels, frames, ntp, nullptr, nullptr));
+        const auto gain = impl.gains[peer].load(std::memory_order_relaxed);
+        if (impl.canPublish[peer].load(std::memory_order_relaxed))
+            for (int i = 0; i < frames; ++i) output[i] += impl.peerOutput[i] * gain;
+    }
+    // The sum of individually valid voice samples can exceed full scale. Use
+    // the complete fixed callback block as lookahead: attack immediately, then
+    // release over approximately 100 ms. This preserves peer gain ratios and
+    // avoids the sustained waveform distortion of a hard-clipped room mix.
+    float peak = 0.f;
+    const float outputGain = impl.outputGain.load(std::memory_order_relaxed);
+    for (int index = 0; index < frames; ++index) {
+        if (!std::isfinite(output[index])) output[index] = 0.f;
+        output[index] *= outputGain;
+        peak = std::max(peak, std::abs(output[index]));
+    }
+    const float targetGain = peak > .95f ? .95f / peak : 1.f;
+    impl.mixGain = targetGain < impl.mixGain ? targetGain : impl.mixGain + (targetGain - impl.mixGain) * .09516258f;
     std::uint64_t active = 0, clipped = 0;
     for (int index = 0; index < frames; ++index) {
         auto& sample = output[index];
-        if (!std::isfinite(sample)) sample = 0.0f;
+        sample *= impl.mixGain;
         if (std::abs(sample) > 1.0f) { sample = std::clamp(sample, -1.0f, 1.0f); ++clipped; }
         if (std::abs(sample) > 0.0001f) ++active;
     }
@@ -287,7 +349,7 @@ bool Engine::process(const float* input, float* output, int frames, std::uint64_
     impl.inputFrames.fetch_add(frames, std::memory_order_relaxed);
     impl.outputActiveFrames.fetch_add(active, std::memory_order_relaxed);
     impl.clippedSamples.fetch_add(clipped, std::memory_order_relaxed);
-    if (!normalResult(sourceResult) || !normalResult(sinkResult)) {
+    if (!normalResult(sourceResult) || !sinkOk) {
         impl.processErrors.fetch_add(1, std::memory_order_relaxed);
         return false;
     }
@@ -307,11 +369,15 @@ bool Engine::receive(const std::uint8_t* bytes, std::size_t size, PeerAddress fr
     if (aoo_parsePattern(bytes, static_cast<AooInt32>(size), &type, &id, &offset) != kAooOk ||
         id != endpointId || !envelope.boundedStream(type)) return reject();
     const auto address = socketAddress(from);
+    std::uint32_t peer = 0;
+    while (!(impl.peers[peer] == from)) ++peer; // known(from) was checked above.
+    if (type == kAooMsgTypeSink && !impl.canPublish[peer].load(std::memory_order_relaxed) && std::strcmp(envelope.pattern, "/aoo/sink/1/data") == 0)
+        return reject();
     AooError result;
     if (type == kAooMsgTypeSource) {
         result = impl.source->handleMessage(bytes, static_cast<AooInt32>(size), &address, sizeof(address));
     } else if (type == kAooMsgTypeSink) {
-        result = impl.sink->handleMessage(bytes, static_cast<AooInt32>(size), &address, sizeof(address));
+        result = impl.sinks[peer]->handleMessage(bytes, static_cast<AooInt32>(size), &address, sizeof(address));
     } else return reject();
     // A ping may overtake the first stream-start packet. AoO reports NotFound
     // for this harmless ordering; it is not a malformed datagram or a reason
@@ -330,8 +396,10 @@ bool Engine::send(PacketCallback callback, void* context) noexcept {
     if (!callback) return false;
     Impl::Sending sending{&impl, callback, context};
     const auto sourceResult = impl.source->send(Impl::emit, &sending);
-    const auto sinkResult = impl.sink->send(Impl::emit, &sending);
-    return !sending.failed && normalResult(sourceResult) && normalResult(sinkResult);
+    bool sinkOk = true;
+    for (std::uint32_t peer = 0; peer < impl.peerCount; ++peer)
+        sinkOk &= normalResult(impl.sinks[peer]->send(Impl::emit, &sending));
+    return !sending.failed && normalResult(sourceResult) && sinkOk;
 }
 
 EngineStats Engine::stats() const noexcept {

@@ -17,6 +17,7 @@ import { cardFields } from "../../utils/memberCard";
 import { reconcileVoiceQuality } from "./voiceQualityLifecycle";
 import { reconcileVoiceMoves } from "./voiceMoveLifecycle";
 import { reconcileVoiceHybrid } from "./voiceHybridLifecycle";
+import { reconcileNativeVoice } from "./nativeVoiceLifecycle";
 
 /** A member whose permissions were never cached receives no broadcasts, so all
     three admission paths call this and all three await it. */
@@ -147,6 +148,7 @@ async function emitClientsNow(io: Server, clientsInfo: Clients, stateHash: strin
 }
 
 export function syncAllClients(io: Server, clientsInfo: Clients) {
+  reconcileNativeVoice(io);
   reconcileVoiceHybrid(io);
   reconcileVoiceMoves(io);
   reconcileVoiceQuality(io, clientsInfo);
@@ -474,6 +476,7 @@ function tellConversation(
 }
 
 export function broadcastMemberList(io: Server, clientsInfo: Clients, instanceId: string): void {
+  reconcileNativeVoice(io);
   reconcileVoiceMoves(io);
   reconcileVoiceQuality(io, clientsInfo);
   // Ahead of the debounce below, and not subject to it. A call view that draws

@@ -1,5 +1,4 @@
 import { Button, IconButton, Tooltip } from "@gryt/ui";
-import { useSFU } from "@gryt/voice";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
@@ -14,6 +13,7 @@ import { SidebarItem } from "@/settings/src/types/server";
 
 import { useEasyTierMemberSnapshot } from "../../../../lib/communityLanState";
 import { PiCaretLeftBold, PiGearSixFill } from "../../../../lib/icons";
+import { useSFU } from "../../../../lib/voiceFacade";
 import { useFakeChat } from "../dev/fakeChat";
 import { useFakeChatRunning } from "../dev/fakeChatController";
 import {

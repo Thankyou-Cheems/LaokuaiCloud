@@ -12,8 +12,8 @@ function compile(path, dependencies) {
   } });
   const exports = {};
   vm.runInNewContext(compiled.outputText, { exports, require(name) {
-    assert.ok(Object.hasOwn(dependencies, name), `unapproved dependency ${name}`);
-    return dependencies[name];
+    assert.ok((Object.hasOwn(dependencies, name) || (name.endsWith("/voiceFacade") && Object.hasOwn(dependencies,"@gryt/voice"))), `unapproved dependency ${name}`);
+    return name.endsWith("/voiceFacade") ? dependencies["@gryt/voice"] : dependencies[name];
   } });
   return exports;
 }

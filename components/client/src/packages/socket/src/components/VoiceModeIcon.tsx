@@ -1,11 +1,11 @@
 import { Tooltip } from "@gryt/ui";
-import { useMicrophone } from "@gryt/voice";
 
 import { useTranslation } from "@/i18n";
 import { useSettings } from "@/settings";
 
 import { PiBroadcastFill, PiGameControllerFill, PiKeyboardFill, PiMicrophoneFill, PiMicrophoneSlashFill, PiWarningFill } from "../../../../lib/icons";
 import { useSquadSnapshot } from "../../../../lib/squadRuntime";
+import { useMicrophone } from "../../../../lib/voiceFacade";
 import { deriveVoiceMode, type VoiceModeState } from "../../../../lib/voiceMode";
 import { useLocalVoiceMode, useRemoteVoiceMode } from "../../../../lib/voiceModeStore";
 

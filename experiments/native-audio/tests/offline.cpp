@@ -65,6 +65,8 @@ struct Simulation {
     bool impair = false;
     bool interrupt = false;
     bool mixing = false;
+    bool controls = false;
+    std::array<double, 5> controlEnergy{};
     double probeFrequency = 0;
     PeerAddress sending{};
 
@@ -104,13 +106,21 @@ struct Simulation {
                     return node.address == datagram.to;
                 });
                 require(destination != nodes.end(), "AoO sent outside the configured peers");
-                require(destination->engine->receive(datagram.bytes.data(), datagram.size,
-                                                     datagram.from), "AoO rejected a valid modeled datagram");
+                const bool accepted = destination->engine->receive(datagram.bytes.data(), datagram.size, datagram.from);
+                constexpr char dataPattern[] = "/aoo/sink/1/data";
+                const bool permissionRejection = controls && destination->address == nodes[0].address && now >= 5.0 && now < 7.0 &&
+                    datagram.size >= sizeof(dataPattern) && std::equal(dataPattern, dataPattern + sizeof(dataPattern), datagram.bytes.begin());
+                require(accepted || permissionRejection, "AoO rejected a valid modeled datagram");
                 ++delivered;
             }
             for (std::size_t index = 0; index < nodes.size(); ++index) {
                 auto& node = nodes[index];
                 while (node.next <= now + 1e-9) {
+                    if (controls && index == 0) {
+                        require(node.engine->setPeerGain(nodes[1].address, now >= 3.0 && now < 5.0 ? 0.f : 1.f), "member gain update failed");
+                        require(node.engine->setPeerPermissions(nodes[1].address, !(now >= 5.0 && now < 7.0), true), "publish permission update failed");
+                        require(nodes[1].engine->setPeerPermissions(node.address, true, !(now >= 7.0 && now < 9.0)), "receive permission update failed");
+                    }
                     for (int sample = 0; sample < frames; ++sample) {
                         const double phase = static_cast<double>(node.samples + sample) / 48000.0;
                         const double frequency = probeFrequency > 0 ? probeFrequency :
@@ -128,6 +138,11 @@ struct Simulation {
                         node.peak = std::max(node.peak, std::abs(sample));
                         node.energy += static_cast<double>(sample) * sample;
                         blockEnergy += static_cast<double>(sample) * sample;
+                        if (controls && index == 0) {
+                            const int phase = now < 3 ? 0 : now < 5 ? 1 : now < 7 ? 2 : now < 9 ? 3 : 4;
+                            const double start = phase == 0 ? 0 : phase == 1 ? 3 : phase == 2 ? 5 : phase == 3 ? 7 : 9;
+                            if (now >= start + .5) controlEnergy[phase] += static_cast<double>(sample) * sample;
+                        }
                         if (now >= 8.0) {
                             node.tailEnergy += static_cast<double>(sample) * sample;
                             // Magnitude of sine/cosine correlation is invariant
@@ -184,6 +199,7 @@ void scenario(const std::string& name, int bitrate, bool impaired, bool interrup
             }
         }
     }
+    if (mixing) for (auto& node : simulation.nodes) require(node.engine->setOutputGain(2.f), "valid output gain rejected");
     simulation.run();
     require(simulation.delivered > 100, "no actual AoO datagram traffic");
     std::uint64_t clipped = 0;
@@ -208,6 +224,10 @@ void scenario(const std::string& name, int bitrate, bool impaired, bool interrup
         }
         require(stats.packetsSent > 0 && stats.packetsReceived > 0, "codec transport counters are empty");
         require(stats.processErrors == 0, "core reported audio processing errors");
+        if (mixing) {
+            require(stats.clippedSamples == 0, "multi-source room mix hard-clipped decoded audio");
+            require(node.peak <= .950001f, "multi-source limiter escaped its headroom bound");
+        }
         require(!stats.fecEnabled && !stats.dtxEnabled, "FEC/DTX declaration differs from expected explicit settings");
         clipped += stats.clippedSamples;
         decoded += stats.outputActiveFrames;
@@ -238,6 +258,14 @@ void validation() {
                 "valid bounded peer rejected");
     }
     require(!engine.addPeer({0x0A000100u, 19900}), "peer limit not enforced");
+    require(engine.setPeerGain({0x0A000001u, 19900}, 0.f), "valid member mute rejected");
+    require(engine.setPeerGain({0x0A000001u, 19900}, 2.f), "valid member gain rejected");
+    require(!engine.setPeerGain({0x0A000001u, 19900}, std::numeric_limits<float>::quiet_NaN()), "NaN member gain accepted");
+    require(!engine.setPeerGain({0x0A000001u, 19900}, 2.1f), "unbounded member gain accepted");
+    require(!engine.setPeerGain({0x0A000100u, 19900}, 1.f), "unknown member gain accepted");
+    require(!engine.setOutputGain(2.1f), "unbounded output gain accepted");
+    require(engine.setPeerPermissions({0x0A000001u, 19900}, false, false), "bounded peer permissions rejected");
+    require(!engine.setPeerPermissions({0x0A000100u, 19900}, false, false), "unknown peer permissions accepted");
     const std::array<std::uint8_t, 4> garbage{1, 2, 3, 4};
     require(!engine.receive(garbage.data(), garbage.size(), {0x0A000200u, 19900}),
             "unconfigured endpoint accepted");
@@ -253,11 +281,28 @@ void validation() {
     require(threw, "unsupported bitrate accepted");
     std::cout << "{\"scenario\":\"input-bounds-and-shutdown\",\"passed\":true}\n";
 }
+
+void controlScenario() {
+    Simulation sim;
+    sim.controls = true;
+    for (unsigned i = 0; i < 2; ++i) {
+        Node node; node.address = {0x0A7B0001u + i, 19900}; node.engine = std::make_unique<Engine>();
+        sim.nodes.push_back(std::move(node));
+    }
+    for (unsigned i = 0; i < 2; ++i) require(sim.nodes[i].engine->addPeer(sim.nodes[1 - i].address), "control peer failed");
+    sim.run();
+    require(sim.controlEnergy[0] > 1 && sim.controlEnergy[4] > 1, "actual codec failed to recover after controls");
+    require(sim.controlEnergy[1] == 0, "member volume zero leaked decoded samples");
+    require(sim.controlEnergy[2] == 0, "publish permission leaked decoded samples");
+    require(sim.controlEnergy[3] < .01, "receive permission leaked sustained encoded audio");
+    std::cout << "{\"scenario\":\"live-member-gain-and-permissions\",\"actualAooAndOpus\":true,\"passed\":true}\n";
+}
 } // namespace
 
 int main() {
     try {
         validation();
+        controlScenario();
         for (int bitrate : {24000, 32000, 48000, 64000}) {
             scenario("two-endpoint-baseline", bitrate, false, false, 0, 2, false);
         }

@@ -2,7 +2,19 @@ import { contextBridge, ipcRenderer, webFrame } from "electron";
 
 import type { EasyTierCommunityAPI, EasyTierCommunityState } from "../src/lib/easyTierCommunity";
 import {safeDiagnostic} from "../src/lib/localDiagnostics";
+import type { NativeLanAudioDesired, NativeLanAudioStatus } from "../src/lib/nativeLanAudio";
 import type { SquadConfig, SquadSnapshot } from "../src/lib/squadMode";
+
+contextBridge.exposeInMainWorld("nativeLanAudio", {
+  getBinding: (serverId: string) => ipcRenderer.invoke("native-lan-audio-binding", serverId),
+  reconcile: (desired: NativeLanAudioDesired | null) => ipcRenderer.invoke("native-lan-audio-reconcile", desired),
+  getStatus: () => ipcRenderer.invoke("native-lan-audio-status"),
+  onStatus: (callback: (status: NativeLanAudioStatus) => void) => {
+    const listener = (_event: unknown, status: NativeLanAudioStatus) => callback(status);
+    ipcRenderer.on("native-lan-audio-state", listener);
+    return () => ipcRenderer.removeListener("native-lan-audio-state", listener);
+  },
+});
 
 const easyTierCommunity: EasyTierCommunityAPI = {
   getRelayState: serverId => ipcRenderer.invoke("et-community-relay-get", serverId),
@@ -81,6 +93,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
   isElectron: true,
   // Main sets this only for the authorized private product, never the i18n variant.
   hybridVoiceEnabled: process.argv.includes("--laokuai-hybrid-voice"),
+  nativeLanVoiceEnabled: process.argv.includes("--laokuai-native-lan-voice"),
   lanDiscoveryEnabled: !process.argv.includes("--laokuai-product"),
 
   // False where the compositor manages windows itself, so the app draws no

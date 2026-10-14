@@ -5,7 +5,7 @@ import vm from 'node:vm';
 import ts from 'typescript';
 import {execFileSync} from 'node:child_process';
 const root=path.resolve(import.meta.dirname,'..');
-function load(source,deps){const exports={};vm.runInNewContext(ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText,{exports,require:name=>{assert.ok(name in deps);return deps[name];}});return exports;}
+function load(source,deps){const exports={};vm.runInNewContext(ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText,{exports,require:name=>{assert.ok(name in deps || (name.endsWith("/voiceFacade") && "@gryt/voice" in deps));return name.endsWith("/voiceFacade") ? deps["@gryt/voice"] : deps[name];}});return exports;}
 const policy=load(fs.readFileSync(path.join(root,'src/lib/pureVoicePolicy.ts'),'utf8'),{});
 function harness(source){
  const sfu={currentServerConnected:'fixture-server',currentChannelConnected:'fixture-room',isConnected:false};

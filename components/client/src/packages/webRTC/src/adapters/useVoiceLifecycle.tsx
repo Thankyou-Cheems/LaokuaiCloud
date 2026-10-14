@@ -1,4 +1,4 @@
-import { SFUConnectionState, useSFU } from "@gryt/voice";
+import { SFUConnectionState } from "@gryt/voice";
 import { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
@@ -8,6 +8,7 @@ import { useServerManagement, useSockets } from "@/socket";
 
 import {diagnosticCode, localDiagnostic} from "../../../../lib/localDiagnostics";
 import { VoiceConnectionCuePolicy } from "../../../../lib/voiceAnnouncements";
+import { nativeVoiceEnabled, useSFU } from "../../../../lib/voiceFacade";
 import { cancelVoiceAnnouncements, useVoiceSounds } from "./useVoiceSounds";
 
 /**
@@ -214,6 +215,9 @@ export function useVoiceLifecycle() {
   // The server hanging up on us, which it does when the same account takes the
   // channel on another device. useSocketEvents raises this from three places.
   useEffect(() => {
+    // Native admission has its own terminal, room-scoped stopped event. Legacy
+    // leave echoes from the previous room must not cancel a new native join.
+    if(nativeVoiceEnabled)return;
     const handler = (event: Event) => {
       const detail = (event as CustomEvent<{ host?: string; reason?: string }>).detail;
 

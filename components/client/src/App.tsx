@@ -1,4 +1,3 @@
-import { useSFU } from "@gryt/voice";
 import { useCallback, useEffect, useState } from "react";
 
 import { useGlobalHotkeys } from "@/audio";
@@ -45,6 +44,7 @@ import { TrayVoiceState } from "./components/trayVoiceState";
 import { VaultUpgradePrompt } from "./components/vaultUpgradePrompt";
 import { Welcome } from "./components/welcome";
 import { offerSharedLook } from "./lib/sharedLook";
+import { useSFU } from "./lib/voiceFacade";
 
 export function App() {
   const { isSignedIn, login, loginInProgress } = useAccount();

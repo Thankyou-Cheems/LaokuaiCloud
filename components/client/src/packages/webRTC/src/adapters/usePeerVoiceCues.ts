@@ -1,10 +1,10 @@
-import { useSFU } from "@gryt/voice";
 import { useEffect, useRef } from "react";
 
 import { useSettings } from "@/settings";
 import { useSockets } from "@/socket";
 
 import { PeerCuePolicy } from "../../../../lib/peerVoiceCues";
+import { useSFU } from "../../../../lib/voiceFacade";
 import { useVoiceSounds } from "./useVoiceSounds";
 
 /** Real room events only; decode/resume cannot resurrect a cue from an old connection. */

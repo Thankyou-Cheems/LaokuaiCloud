@@ -1,8 +1,8 @@
-import { useSFU } from "@gryt/voice";
 import { useEffect, useRef } from "react";
 
 import { useSockets } from "@/socket";
 
+import { useSFU } from "../../../../lib/voiceFacade";
 import { VoiceQualitySampler } from "../../../../lib/voiceQualityStats";
 import { emitAuthenticated } from "../../../socket/src/utils/tokenManager";
 

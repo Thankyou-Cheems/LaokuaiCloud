@@ -37,6 +37,7 @@ import { MLS_CIPHERSUITE_ID } from "../../services/mlsWire";
 import { mlsRetentionDays } from "../../jobs/mlsRetention";
 import { voiceAtomicMoveEnabled } from "./voiceMoveCapability";
 import { audioOnlyEnabled } from "../../sfu/audioOnly";
+import { nativeLanVoiceEnabled } from "./nativeVoiceLifecycle";
 
 // Module-level references set by socketHandler so REST routes can trigger broadcasts
 let _io: Server | null = null;
@@ -217,8 +218,11 @@ export async function sendInfo(socket: Socket, clientsInfo: Clients | undefined,
   }
 
   const serverInfo = {
-    voice_atomic_move_enabled: await voiceAtomicMoveEnabled(),
-    voice_audio_only: audioOnlyEnabled(),
+    voice_atomic_move_enabled: nativeLanVoiceEnabled() || await voiceAtomicMoveEnabled(),
+    voice_audio_only: nativeLanVoiceEnabled() || audioOnlyEnabled(),
+    nativeLanVoice: nativeLanVoiceEnabled(),
+    native_lan_voice_enabled: nativeLanVoiceEnabled(),
+    nativeLanVoiceProtocol: nativeLanVoiceEnabled() ? 1 : null,
     name: displayName,
     description,
     members: activeMembers.toString(),

@@ -1,5 +1,5 @@
 import { Button } from "@gryt/ui";
-import { type TransmissionState, useMicrophone } from "@gryt/voice";
+import { type TransmissionState } from "@gryt/voice";
 import { useEffect, useState } from "react";
 
 import { useTranslation } from "@/i18n";
@@ -8,6 +8,7 @@ import { useSettings } from "@/settings";
 import { getElectronAPI } from "../../../../lib/electron";
 import { normalizeSquadKey, SQUAD_DEFAULTS, type SquadConfig, type SquadSnapshot, validateSquadConfig } from "../../../../lib/squadMode";
 import { useSquadSnapshot } from "../../../../lib/squadRuntime";
+import { useMicrophone } from "../../../../lib/voiceFacade";
 import { HotkeyCapture } from "./hotkeySettings";
 import { SettingGroup, ToggleSetting } from "./settingsComponents";
 

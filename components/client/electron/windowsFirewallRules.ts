@@ -67,6 +67,8 @@ export interface LaokuaiFirewallOptions {
   appExecutable: string;
   /** The actual verified cache path used by the launched EasyTier core. */
   easyTierExecutable?: string | null;
+  /** Fixed, hash-verified native audio sidecar. It is another owned app executable. */
+  nativeAudioExecutable?: string | null;
   /** Packaged community-lan-broker.exe, which handles COM firewall calls. */
   helperExecutable: string;
   ledgerFile: string;
@@ -122,8 +124,8 @@ function ruleFor(kind: LaokuaiFirewallRuleKind, program: string): LaokuaiFirewal
 }
 
 /** Pure target construction used by the main process and source tests. */
-export function buildLaokuaiFirewallRules(appExecutable: string, easyTierExecutable?: string | null): LaokuaiFirewallRule[] {
-  const values = [ruleFor("app", appExecutable), ruleFor("easytier", easyTierExecutable ?? "")];
+export function buildLaokuaiFirewallRules(appExecutable: string, easyTierExecutable?: string | null, nativeAudioExecutable?: string | null): LaokuaiFirewallRule[] {
+  const values = [ruleFor("app", appExecutable), ruleFor("easytier", easyTierExecutable ?? ""), ruleFor("app", nativeAudioExecutable ?? "")];
   const result: LaokuaiFirewallRule[] = [];
   for (const rule of values) {
     if (!rule || result.some(existing => existing.name === rule.name)) continue;
@@ -256,10 +258,10 @@ export async function prepareLaokuaiFirewallRules(options: LaokuaiFirewallOption
   let prior: LaokuaiFirewallRule[];
   try { prior = readLedger(options.ledgerFile, read); }
   catch { return { ...emptyReport("failed"), failures: [{ operation: "ensure", name: "firewall-ledger", code: "ledger-read-failed" }] }; }
-  const current = buildLaokuaiFirewallRules(options.appExecutable, options.easyTierExecutable)
+  const current = buildLaokuaiFirewallRules(options.appExecutable, options.easyTierExecutable, options.nativeAudioExecutable)
     .filter(rule => { try { return fileExists(rule.program); } catch { return false; } })
     .map(rule => prior.find(old => old.name === rule.name) ?? rule);
-  if (current.length !== (options.easyTierExecutable ? 2 : 1)) {
+  if (current.length !== 1 + (options.easyTierExecutable ? 1 : 0) + (options.nativeAudioExecutable ? 1 : 0)) {
     return { ...emptyReport("failed"), failures: [{ operation: "ensure", name: "firewall-target", code: "target-missing-or-invalid" }] };
   }
   const currentNames = new Set(current.map(rule => rule.name));

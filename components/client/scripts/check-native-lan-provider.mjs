@@ -1,0 +1,75 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {createRequire,stripTypeScriptTypes} from 'node:module';
+import vm from 'node:vm';
+const require=createRequire(import.meta.url),ts=require('typescript');
+const data=code=>'data:text/javascript;base64,'+Buffer.from(code).toString('base64');
+const contractSource=stripTypeScriptTypes(readFileSync(new URL('../src/lib/nativeLanAudio.ts',import.meta.url),'utf8'),{mode:'transform'});
+const contract=await import(data(contractSource));
+const source=stripTypeScriptTypes(readFileSync(new URL('../src/lib/nativeRoomSession.ts',import.meta.url),'utf8'),{mode:'transform'}).replace('"./nativeLanAudio"',JSON.stringify(data(contractSource)));
+const session=await import(data(source));
+const compiled=ts.transpileModule(readFileSync(new URL('../src/packages/webRTC/src/adapters/NativeVoiceProvider.tsx',import.meta.url),'utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText;
+const callbacks=new Map(),emitted=[],desired=[],effects=[],timers=new Map(),states=[];
+let index=0,timerId=0,onStatus,bindingWait=null;
+const socket={id:'generation',connected:true,on(name,fn){callbacks.set(name,fn);},off(name,fn){if(callbacks.get(name)===fn)callbacks.delete(name);},emit(name,payload){emitted.push({name,payload});}};
+const prefs={isMuted:false,isServerMuted:false,isDeafened:false,isServerDeafened:false,inputMode:'voice_activity',micVolume:100,outputVolume:100,userVolumes:{}};
+const native={async reconcile(value){desired.push(value);return {...idle,phase:value?'running':'idle'};},async getBinding(){return bindingWait ? bindingWait : {v:1,communityId:'community',deviceId:'device',nativeInstanceId:'instance',grantId:'grant'};},onStatus(fn){onStatus=fn;return()=>{onStatus=null;};}};
+const idle={phase:'idle',peerCount:0,muted:true,deafened:true,captureRms:0,playbackRms:0,packetsSent:0,packetsReceived:0,processErrors:0};
+const react={useRef:initial=>({current:initial}),useCallback:fn=>fn,useMemo:fn=>fn(),useState(initial){const slot=index++;states[slot]=initial;return [initial,update=>{states[slot]=typeof update==='function'?update(states[slot]):update;}];},useEffect(fn){effects.push(fn);}};
+const jsx=(type,props)=>({type,props});
+const deps={react,'react/jsx-runtime':{jsx,jsxs:jsx},'@gryt/voice':{SFUConnectionState:{DISCONNECTED:'disconnected',REQUESTING_ACCESS:'requesting_access',CONNECTING:'connecting',CONNECTED:'connected',RECONNECTING:'reconnecting'}},
+  '@/common':{useUserId:()=> 'account'},'@/settings':{useSettings:()=>prefs},'@/socket':{useServerManagement:()=>({currentlyViewingServer:{host:'host'}}),useSockets:()=>({sockets:{host:socket},serverDetailsList:{host:{server_info:{server_id:'server',native_lan_voice_enabled:true},channels:[{id:'room',type:'voice'},{id:'destination',type:'voice'}]}}})},
+  '../../../../lib/nativeRoomSession':session,'../../../../lib/nativeLanAudio':contract,'../../../../lib/voiceFacade':{NativeVoiceContext:{Provider:'NativeContext'}},
+  '../../../socket/src/utils/tokenManager':{emitAuthenticated:async(s,event,payload,host,valid)=>{if(valid()){s.emit(event,payload);return true;}return false;}},
+  '../components/EffectiveVoicePolicy':{EffectiveVoicePolicyProvider:'Policy'},'../components/ReceiveLevelingAdapter':{ReceiveLevelingProvider:'Level'},'../components/TransmitSpeechAdapter':{TransmitSpeechProvider:'Speech'},
+  './useSquadProtection':{useSquadProtection(){}},'./useVoiceLifecycle':{useVoiceLifecycle(){}},'./useVoiceModes':{useVoiceModes(){}},'./usePeerVoiceCues':{usePeerVoiceCues(){}}};
+const exports={};vm.runInNewContext(compiled,{exports,window:{nativeLanAudio:native},setInterval(fn,delay){const id=++timerId;timers.set(id,{fn,delay});return id;},clearInterval:id=>timers.delete(id),setTimeout(fn,delay){const id=++timerId;timers.set(id,{fn,delay,once:true});return id;},clearTimeout:id=>timers.delete(id),require:name=>{assert.ok(name in deps,name);return deps[name];}});
+const tree=exports.NativeVoiceProvider({children:'child'}),facade=tree.props.value;
+const cleanups=effects.map(fn=>fn());
+await facade.sfu.connect('room');
+assert.equal(emitted.filter(item=>item.name==='voice:native:join').length,1);
+const snapshot={v:1,serverId:'server',channelId:'room',revision:1,epoch:'epoch',localIp:'10.203.217.1',key:'a'.repeat(64),peers:[],serverTimeMs:1000,expiresAtMs:16000,canPublish:true,canReceive:true,requirePTT:false};
+callbacks.get('voice:native:snapshot')(snapshot);
+assert.equal(desired.at(-1).roomId,'room');
+const beforeTransient=desired.length;
+callbacks.get('voice:native:error')({v:1,error:'binding_unavailable'});
+callbacks.get('voice:native:error')({v:1,error:'native_voice_unavailable'});
+assert.equal(desired.length,beforeTransient,'temporary grant renewal error preserves original private room lease');
+assert.equal(emitted.filter(item=>item.name==='voice:native:leave').length,0);
+// 120 seconds of real-shaped 5 Hz telemetry must emit only one media transition.
+for(let tick=0;tick<600;tick++)onStatus({...idle,phase:'running',serverId:'server',roomId:'room',captureRms:0.1,packetsSent:tick});
+assert.equal(emitted.filter(item=>item.name==='voice:native:media').length,1);
+assert.equal(emitted.find(item=>item.name==='voice:native:media').payload.connected,true);
+callbacks.get('voice:native:stopped')({v:1,reason:'server_deafened'});
+assert.equal(desired.at(-1),null);
+const mediaDuringSuspension=emitted.filter(item=>item.name==='voice:native:media').length;
+onStatus({...idle,phase:'running',serverId:'server',roomId:'room',captureRms:0.2});
+assert.equal(emitted.filter(item=>item.name==='voice:native:media').length,mediaDuringSuspension,'late running telemetry cannot revive suspended audio');
+const leavesBefore=emitted.filter(item=>item.name==='voice:native:leave').length;
+const joinTimer=[...timers.values()].find(timer=>timer.once && timer.delay===10000);
+joinTimer.fn();
+assert.equal(emitted.filter(item=>item.name==='voice:native:leave').length,leavesBefore,'server deafen must retain admitted room beyond initial join deadline');
+callbacks.get('voice:native:snapshot')({...snapshot,revision:2});
+onStatus({...idle,phase:'running',serverId:'server',roomId:'room'});
+onStatus({...idle,phase:'error',serverId:'server',roomId:'room',error:'audio-device'});
+assert.equal(emitted.filter(item=>item.name==='voice:native:media').length,4);
+const beforeRetry=desired.length;
+facade.microphone.retryTransmission();await new Promise(resolve=>setImmediate(resolve));
+assert.equal(desired[beforeRetry],null);assert.equal(desired.at(-1).roomId,'room','explicit retry clears failed identity before retrying same live room');
+callbacks.get('voice:move:committed')({v:1,status:'committed',generation:'generation',sourceChannelId:'room',destinationChannelId:'destination'});
+assert.equal(desired.at(-1),null);
+callbacks.get('voice:native:snapshot')({...snapshot,revision:0,channelId:'destination'});
+assert.equal(desired.at(-1).roomId,'destination');
+const staleSnapshot=callbacks.get('voice:native:snapshot');
+await facade.sfu.disconnect();
+const count=desired.length;staleSnapshot({...snapshot,revision:8});assert.equal(desired.length,count);
+assert.equal(timers.size,0);assert.equal(callbacks.size,0);
+let resolveBinding;bindingWait=new Promise(resolve=>{resolveBinding=resolve;});
+const pending=facade.sfu.connect('room');await Promise.resolve();await Promise.resolve();
+await facade.sfu.disconnect();resolveBinding({v:1,communityId:'community',deviceId:'device',nativeInstanceId:'instance',grantId:'grant'});await pending;
+assert.equal(emitted.filter(item=>item.name==='voice:native:join').length,1,'late binding cannot join after leave');
+assert.throws(()=>facade.sfu.addVideoTrack(),/仅支持/);
+await assert.rejects(()=>facade.sfu.connect('dm_private'),/仅支持/);
+cleanups.forEach(fn=>typeof fn==='function'&&fn());
+await Promise.resolve();
+console.log('Native provider production lifecycle: auth binding, private solo snapshot, 120s telemetry transition budget, move rekey, late snapshot/binding, teardown and unsupported video/DM passed; fake IPC/socket, no devices.');

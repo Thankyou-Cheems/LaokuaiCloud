@@ -1,4 +1,3 @@
-import {useMicrophone,useSFU} from "@gryt/voice";
 import {createElement,useEffect,useRef,useState} from "react";
 import toast from "react-hot-toast";
 
@@ -9,6 +8,7 @@ import {useSockets} from "@/socket";
 import {createMoveAuthority} from "../../../../lib/moveAuthority";
 import type {MovePolicyBinding} from "../../../../lib/movePolicy";
 import {readMovePrepare} from "../../../../lib/movePrepare";
+import { useMicrophone, useSFU } from "../../../../lib/voiceFacade";
 import {emitAuthenticated} from "../../../socket/src/utils/tokenManager";
 import {VoiceMoveRecoveryNotice} from "../components/VoiceMoveRecoveryNotice";
 

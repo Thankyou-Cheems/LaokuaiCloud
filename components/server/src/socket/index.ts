@@ -1,4 +1,4 @@
-import { sfuRoomId, voiceRoomName } from "./utils/voiceRooms";
+import { voiceRoomName } from "./utils/voiceRooms";
 import consola from "consola";
 
 import { addressLabel } from "../utils/addressLabel";
@@ -39,6 +39,9 @@ import { getVouchChain, signServerProof } from "../auth/serverIdentity";
 import { registerChatHandlers } from "./handlers/chat";
 import { registerDirectMessageHandlers } from "./handlers/dm";
 import { registerVoiceHandlers } from "./handlers/voice";
+import { registerNativeVoiceHandlers } from "./handlers/voiceNative";
+import { nativeLanVoiceEnabled, removeNativeVoice } from "./utils/nativeVoiceLifecycle";
+import type { CommunityGrantApi } from "../easytier/communityGrantApi";
 import { registerVoiceMoveHandlers } from "./handlers/voiceMove";
 import { registerVoiceHybridHandlers } from "./handlers/voiceHybrid";
 import { registerVoiceQualityHandlers } from "./handlers/voiceQuality";
@@ -72,6 +75,7 @@ const MAX_CLIENT_NONCE_LENGTH = 256;
 
 /** Wire the SFU callbacks. Call once, after `io` and `sfuClient` exist. */
 export function setupSFUSync(io: Server, sfuClient: SFUClient): void {
+  if (nativeLanVoiceEnabled()) return;
   setVoiceMoveCapabilitySource(sfuClient);
   const serverId = getServerIdFromEnv();
 
@@ -277,7 +281,8 @@ async function getTokenVersionForServer(): Promise<number> {
   return cfg?.token_version ?? 0;
 }
 
-export function socketHandler(io: Server, socket: Socket, sfuClient: SFUClient | null) {
+export function socketHandler(io: Server, socket: Socket, sfuClient: SFUClient | null,
+  communityGrantService: Pick<CommunityGrantApi, "binding"> | null = null) {
   const clientId = socket.id;
   const serverId = getServerIdFromEnv();
   const verboseLogs = (process.env.NODE_ENV || "").toLowerCase() !== "production";
@@ -297,11 +302,11 @@ export function socketHandler(io: Server, socket: Socket, sfuClient: SFUClient |
   if (verboseLogs) {
     const originalEmit = socket.emit;
     socket.emit = function (event: string, ...args: unknown[]) {
-      console.log(`SERVER EMIT ${clientId}:`, event, args.length > 0 ? args : "");
+      if (!event.startsWith("voice:native:")) console.log(`SERVER EMIT ${clientId}:`, event, args.length > 0 ? args : "");
       return originalEmit.call(this, event, ...args);
     };
     socket.onAny((event: string, ...args: unknown[]) => {
-      console.log(`SERVER RECV ${clientId}:`, event, args.length > 0 ? args : "");
+      if (!event.startsWith("voice:native:")) console.log(`SERVER RECV ${clientId}:`, event, args.length > 0 ? args : "");
     });
   }
 
@@ -334,6 +339,7 @@ export function socketHandler(io: Server, socket: Socket, sfuClient: SFUClient |
     serverId,
     clientsInfo,
     sfuClient,
+    communityGrantService,
     getClientIp: () => getClientIp(socket),
     clientAddressIsOwn: () => clientAddressIsOwn(socket),
   };
@@ -348,8 +354,9 @@ export function socketHandler(io: Server, socket: Socket, sfuClient: SFUClient |
     ...registerChatHandlers(ctx),
     ...registerDirectMessageHandlers(ctx),
     ...registerVoiceHandlers(ctx),
-    ...registerVoiceMoveHandlers(ctx),
-    ...registerVoiceHybridHandlers(ctx),
+    ...(nativeLanVoiceEnabled() ? {} : registerVoiceMoveHandlers(ctx)),
+    ...registerNativeVoiceHandlers(ctx),
+    ...(nativeLanVoiceEnabled() ? {} : registerVoiceHybridHandlers(ctx)),
     ...registerCallHandlers(ctx),
     ...registerMemberHandlers(ctx),
     ...registerSessionHandlers(ctx),
@@ -420,7 +427,8 @@ export function socketHandler(io: Server, socket: Socket, sfuClient: SFUClient |
 
     // Kept whatever took the socket away: gated on "transport close" it dropped
     // on a ping timeout while media carried on. The SFU decides when it dies.
-    if (hadVoice && wasRegistered) {
+    if (nativeLanVoiceEnabled()) removeNativeVoice(io, clientId, "socket_disconnected");
+    if (hadVoice && wasRegistered && !nativeLanVoiceEnabled()) {
       consola.info(`[Voice:Stash] Holding voice state for ${serverUserId} (socket gone: ${reason})`);
       stashedVoiceState.set(serverUserId, voiceStateOf(clientInfo));
       beginVoiceRecoveryGrace(serverUserId);

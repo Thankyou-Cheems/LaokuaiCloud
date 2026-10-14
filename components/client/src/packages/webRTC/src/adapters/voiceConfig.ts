@@ -1,4 +1,4 @@
-import { useSFU,type VoiceConfig } from "@gryt/voice";
+import { type VoiceConfig } from "@gryt/voice";
 import { useMemo } from "react";
 
 import { useSettings } from "@/settings";
@@ -7,6 +7,7 @@ import { useSockets } from "@/socket";
 import type { MovePolicyBinding } from "../../../../lib/movePolicy";
 import { receiveMicrophoneStreamIds } from "../../../../lib/pureVoicePolicy";
 import { useSquadGateEnabled } from "../../../../lib/squadRuntime";
+import { useSFU } from "../../../../lib/voiceFacade";
 import { voicePresetCodec } from "../../../../lib/voiceTransportPreset";
 
 /**

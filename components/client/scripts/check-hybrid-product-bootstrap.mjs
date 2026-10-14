@@ -28,13 +28,14 @@ assert.equal(productPeerPolicy(productPolicy, customPreset).microphoneCodec.dtx,
 assert.equal(productPeerPolicy(undefined, sharedVoicePreset()), undefined);
 const main = read("electron/main.ts"), preload = read("electron/preload.ts"), renderer = read("src/main.tsx");
 const argsExpression = main.match(/additionalArguments:\s*(\[[\s\S]*?\n\s*\]),\n\s*contextIsolation/)[1];
-for (const own of [false, true]) for (const chrome of [false, true]) {
-  const args = vm.runInNewContext(argsExpression, { IS_LAOKUAI: own, drawsWindowButtons: () => chrome, NO_WINDOW_CHROME_FLAG: "--gryt-no-window-chrome" });
-  assert.equal(args.includes("--laokuai-hybrid-voice"), own);
+for (const own of [false, true]) for (const chrome of [false, true]) for (const native of [false,true]) {
+  const args = vm.runInNewContext(argsExpression, { IS_LAOKUAI: own, IS_NATIVE_LAN_VOICE: own && native, drawsWindowButtons: () => chrome, NO_WINDOW_CHROME_FLAG: "--gryt-no-window-chrome" });
+  assert.equal(args.includes("--laokuai-hybrid-voice"), own && !native);
+  assert.equal(args.includes("--laokuai-native-lan-voice"), own && native);
   assert.equal(args.includes("--gryt-no-window-chrome"), !chrome);
   const enabled = vm.runInNewContext(preload.match(/hybridVoiceEnabled: ([^\n]+),/)[1], { process: { argv: args } });
   const selected = vm.runInNewContext(renderer.match(/<VoiceProvider hybrid=\{([^\n]+)\}>/)[1], { window: { electronAPI: { hybridVoiceEnabled: enabled } }, LAOKUAI_HYBRID_VOICE_POLICY: productPolicy });
-  assert.equal(selected === productPolicy, own);
+  assert.equal(selected === productPolicy, own && !native);
 }
 assert.equal(vm.runInNewContext(renderer.match(/<VoiceProvider hybrid=\{([^\n]+)\}>/)[1], { window: {}, LAOKUAI_HYBRID_VOICE_POLICY: productPolicy }), undefined);
 const bridgeCode = ts.transpileModule(read("src/packages/webRTC/src/adapters/HybridVoiceBridge.tsx"), { reportDiagnostics: true, compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } });
@@ -67,7 +68,7 @@ function fixture(policy, options = {}) {
   deps["./MemberVoiceObservationAuthority"] = { useMemberVoiceObservationAuthority: () => ({ update() {},
     registerSession: (session, binding) => { const registration = { session, binding, released: false }; registrations.push(registration); return () => { registration.released = true; }; } }) };
   const exports = {};
-  vm.runInNewContext(bridgeCode.outputText, { exports, JSON, setTimeout: noOwnership, clearTimeout() {}, require: name => { assert.ok(Object.hasOwn(deps, name), name); return deps[name]; } });
+  vm.runInNewContext(bridgeCode.outputText, { exports, JSON, setTimeout: noOwnership, clearTimeout() {}, require: name => { assert.ok((Object.hasOwn(deps, name) || (name.endsWith("/voiceFacade") && Object.hasOwn(deps,"@gryt/voice"))), name); return name.endsWith("/voiceFacade") ? deps["@gryt/voice"] : deps[name]; } });
   const suppliedPolicy = policy && { ...policy, onState: state => emitted.push(state) };
   exports.HybridVoiceBridge({ policy: suppliedPolicy, config: { connection: { microphoneCodec: { codec: "opus", maxBitrateBps: 48000 }, maxBitrate: options.channelCap ?? null } }, registry: { selectTrack() {} } });
   const cleanups = effects.map(effect => effect());

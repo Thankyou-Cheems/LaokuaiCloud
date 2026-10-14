@@ -1,9 +1,9 @@
-import { useSFU } from "@gryt/voice";
 import { useLayoutEffect } from "react";
 
 import { useSockets } from "@/socket";
 
 import type { ReceiveCorrectionRegistry } from "../../../../lib/receiveCorrectionRegistry";
+import { useSFU } from "../../../../lib/voiceFacade";
 
 export function useReceiveAudioRoles(registry: ReceiveCorrectionRegistry,scopeKey=""): void {
   const { currentServerConnected, currentChannelConnected, connectionState, isConnected, streamSources } = useSFU();

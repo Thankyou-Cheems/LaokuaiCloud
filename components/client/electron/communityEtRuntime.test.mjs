@@ -177,6 +177,20 @@ function runtimeFixture(options = {}) {
     authenticate: token => coordinator.setAuthenticatedSession({serverId: 'community', host: 'test.invalid', accessToken: token}),
     connect: () => coordinator.wrap(physical).connect({serverId: 'community', generation: 1, signal: new AbortController().signal})};
 }
+test('native voice reads only active owned grant identity without network or lifecycle side effects', async () => {
+  const f = runtimeFixture();
+  assert.throws(() => f.coordinator.nativeVoiceBinding('community'));
+  await f.authenticate('opaque'); const session = await f.connect();
+  const before = [f.calls.length, f.events.length];
+  const binding = f.coordinator.nativeVoiceBinding('community');
+  assert.deepEqual(Object.keys(binding).sort(), ['communityId','deviceId','grantId','nativeInstanceId','v']);
+  assert.equal(binding.communityId, 'community');
+  assert.equal(f.coordinator.nativeVoiceVirtualIp('community'), '10.77.1.2');
+  assert.equal(JSON.stringify(binding).includes(SECRET), false);
+  assert.deepEqual([f.calls.length, f.events.length], before);
+  await session.close();
+  assert.throws(() => f.coordinator.nativeVoiceBinding('community'));
+});
 test('real wiring reaches private config, same-sample proof and public binding through injected ports', async () => {
   const f = runtimeFixture(); await f.authenticate('opaque'); const s = await f.connect(); const sample = await s.read(new AbortController().signal);
   assert.equal(sample.bindings.length, 1); assert.equal(sample.bindings[0].userId, 'member');
