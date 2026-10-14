@@ -31,6 +31,8 @@ jobs:
         run: ./tools/check-core-contracts.ps1 -Group Types
       - name: Bounded Windows IPC and CLR fixtures
         run: ./tools/check-core-contracts.ps1 -Group WindowsFixtures
+      - name: Native incremental updater with protected-data fixtures
+        run: ./tools/tests/check-native-updater.ps1
       - name: Presentation checks (separate from routing proof)
         run: ./tools/check-core-contracts.ps1 -Group Presentation
   voice-production-methods:
