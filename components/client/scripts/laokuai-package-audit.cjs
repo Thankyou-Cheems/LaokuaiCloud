@@ -15,7 +15,7 @@ const describe = bytes => ({ bytes: bytes.length, sha256: sha(bytes) });
 
 // Follow only emitted relative ESM imports from the entry. The admin gate must
 // remain separate from the runtime, whose marker checks still apply transitively.
-function readMainBundle(read) {
+function readMainBundle(read, emittedFiles = []) {
   const visited = new Set(), sources = [];
   function visit(file) {
     assert.ok(file.startsWith("dist-electron/") && !file.includes(".."), "Main chunk escapes bundle");
@@ -27,6 +27,11 @@ function readMainBundle(read) {
     }
   }
   visit("dist-electron/main.js");
+  for (const file of emittedFiles) {
+    if (/^dist-electron\/(?:main|windowsAdminStartupGate)-[^/]+\.js$/.test(file)) {
+      assert.ok(visited.has(file), `Obsolete main chunk in package: ${file}`);
+    }
+  }
   return sources.join("\n");
 }
 
@@ -200,7 +205,7 @@ function inventory(root,config,{ sourceOnly = false } = {}) {
     manifest.packedFiles[slash(path.relative(root,file))] = describe(fs.readFileSync(file));
   }
   for (const file of ["dist-electron/main.js","dist-electron/preload.cjs","dist/index.html","dist/laokuai-icon.png"]) assert.ok(manifest.packedFiles[file],file);
-  const main=readMainBundle(read);
+  const main=readMainBundle(read,Object.keys(manifest.packedFiles));
   for(const marker of ["local.laokuai.chat","laokuai-chat-data","grytI18nTest","squad-scope.exe","persist:laokuai-official-auth"]) assert.ok(main.includes(marker),`Main bundle misses ${marker}`);
   const renderer = walk(path.join(root,"dist/assets")).filter(file => file.endsWith(".js")).map(file => fs.readFileSync(file,"utf8")).join("\n");
   assert.ok(renderer.includes(pkg.version),"Renderer must include current app version");

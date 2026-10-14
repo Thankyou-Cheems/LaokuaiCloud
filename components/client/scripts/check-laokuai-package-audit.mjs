@@ -20,6 +20,8 @@ check("main audit follows entry imports and rejects missing or escaping chunks",
   const read = file => { assert.ok(files.has(file), "Missing chunk"); return Buffer.from(files.get(file)); };
   const bundle = readMainBundle(read);
   assert.match(bundle, /runtime-marker/); assert.match(bundle, /shared-marker/); assert.doesNotMatch(bundle, /unused-marker/);
+  assert.throws(() => readMainBundle(read, ['dist-electron/main-old.js']), /Obsolete main chunk/);
+  readMainBundle(read, ['dist-electron/mediaSandboxPage.js', 'dist-electron/preload.cjs']);
   files.delete("dist-electron/runtime.js"); assert.throws(() => readMainBundle(read), /Missing chunk/);
   files.set("dist-electron/main.js", 'import "../escape.js"'); assert.throws(() => readMainBundle(read), /escapes bundle/);
 });

@@ -103,6 +103,9 @@ export default defineConfig({
                 build: {
                   target: "node22", // Electron main supports ESM top-level await.
                   outDir: "dist-electron",
+                  // Electron entries build sequentially into one directory.
+                  // Only the first entry removes obsolete hash-named chunks.
+                  emptyOutDir: true,
                   rollupOptions: {
                     external: ["electron", "uiohook-napi"],
                     output: { entryFileNames: "main.js", chunkFileNames: "[name]-[hash].js" },
