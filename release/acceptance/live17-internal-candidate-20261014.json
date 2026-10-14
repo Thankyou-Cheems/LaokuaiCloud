@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-14",
+  "kind": "internal-candidate-not-delivered",
+  "sourceCommit": "fbbbd6ab98f00fdec75a126d2d6c976c805eaa19",
+  "version": "1.13.22-laokuai.beta.20261014.17",
+  "voiceVersion": "0.6.2-laokuai.routing.7",
+  "zip": {
+    "file": "唠蒯云-1.13.22-laokuai.beta.20261014.17-zh-CN-win-x64-green.zip",
+    "bytes": 159357676,
+    "sha256": "3c4e7768b2ce190a267f941131249f724f6423849d0a0169a5fb9ed7f9ff55d6"
+  },
+  "payloadFileCount": 146,
+  "appAsarSha256": "4b5bb5d2e1f9d649a21395457a720a0b0a46b47588d0ab2d8b0eaa4bae532832",
+  "staticPackageAudit": "passed",
+  "checks": {
+    "core": "passed",
+    "clientTypes": "passed",
+    "changedClientLint": "passed",
+    "productionRuntimeFixtures": 26,
+    "voiceOfflineGroups": 7,
+    "voicePublicSurface": "passed",
+    "desktopCompilation": "passed",
+    "serverApiRouterServiceTests": 74,
+    "serverTypes": "passed"
+  },
+  "failuresRetained": [
+    "Initial integration used old routing.6 declarations; rebuilt and synchronized routing.7.",
+    "Quit fixture lacked new cleanup port; added port and exact call assertion.",
+    "Initial changed-file lint found import ordering; sorted and reran."
+  ],
+  "runtime": {
+    "desktopUpdated": false,
+    "profileModified": false,
+    "productionDeployed": false,
+    "nativeNetworkActivated": false,
+    "githubCiTriggered": false,
+    "twoDeviceAcceptance": "not-run",
+    "soundQualityAcceptance": "not-run"
+  },
+  "delivery": {
+    "incrementalBuilt": false,
+    "publishedBinary": false,
+    "ready": false,
+    "reason": "User removed mandatory SFU-first audio; this candidate retains old policy and is not the new architecture."
+  }
+}
