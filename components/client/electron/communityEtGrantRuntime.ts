@@ -4,11 +4,11 @@ import type { CommunityNetworkPreferences } from '../src/lib/communityNetworkPre
 import type { CommunityRelayState } from '../src/lib/communityRelay';
 import type { CommunityDnsPolicy } from './communityDnsPolicy';
 import { parseCommunityDnsDirectory } from './communityDnsResolver';
-import { projectCommunityEtBinding } from './communityEtBindingProjection';
+import { projectCommunityEtBinding, projectCommunityEtDirectoryBindings } from './communityEtBindingProjection';
 import { buildCommunityEtConfig } from './communityEtConfig';
 import { communityIdentity, exact, MainGrantGate, sameScope, type TrustedCommunityIntent } from './communityEtGrant';
 import { CommunityEtGrantTransport, type CommunityEtHttpDiagnostic,CommunityEtTransportError, type TrustedCommunityTarget, validCommunityBearer, type VerifiedCommunitySession } from './communityEtGrantTransport';
-import type {CommunityAcquireRequestV1, CommunityBindingProofV1, CommunityBindingRequestV1, CommunityDirectoryMemberV1} from './communityEtHttpContract';
+import type {CommunityAcquireRequestV1, CommunityBindingProofV1, CommunityBindingRequestV1, CommunityDirectoryBindingsV1,CommunityDirectoryMemberV1} from './communityEtHttpContract';
 import { CommunityEtOwnedFiles, readCommunityGrantTarget } from './communityEtTrustedConfiguration';
 import { type CommunityRelayPreferenceStore,CommunityRelayRuntime, parseRelayPreference } from './communityRelayRuntime';
 import { EasyTierOperationError, type EasyTierRuntime, type EasyTierSession,EasyTierSessionRetiredError } from './easyTierCommunityManager';
@@ -29,6 +29,8 @@ interface Context {
   recentGrants: Array<{grant: import('./communityEtGrant').PrivateCommunityGrantV1; expiresMono: number; acceptedMono: number}>;
   renewDueMono: number; grantExpiresMono: number; lastGrantId: string | null; retired: boolean; pendingRevoke: {grantId: string} | null;
   directory: { fetchedAtMono: number; observedAtUnixMs: number; members: CommunityDirectoryMemberV1[]; pending: Promise<CommunityDirectoryMemberV1[]> | null;
+    bindings: CommunityDirectoryBindingsV1 | null;
+    bindingsRejected: boolean;
     dns: Array<{dnsName: string; virtualIp: string; expiresAtUnixMs: number; expiresAtMono: number}> };
 }
 export interface CommunityEtGrantRuntimePorts {
@@ -98,7 +100,7 @@ export class CommunityEtGrantRuntime {
       this.contexts.set(input.serverId, {target, bearer: input.accessToken, verified, gate, cancel: new AbortController(),
         configuration: null, removeConfig: null, closeNative: null, pendingRenew: null, retireFlight: null, relay: null, mutationTail: Promise.resolve(), recentGrants: [], revisionFloor: 0,
         renewDueMono: Infinity, grantExpiresMono: 0, lastGrantId: null, retired: false, pendingRevoke: null,
-        directory: {fetchedAtMono: -Infinity, observedAtUnixMs: 0, members: [], pending: null, dns: []}});
+        directory: {fetchedAtMono: -Infinity, observedAtUnixMs: 0, members: [], pending: null, dns: [], bindings: null, bindingsRejected: false}});
       return {serverId: input.serverId, changed: true, authenticated: true};
     } catch (error) {
       // Genuine failed auth cannot leave a formerly authenticated scope active.
@@ -203,7 +205,8 @@ export class CommunityEtGrantRuntime {
   private async directory(c: Context, signal: AbortSignal): Promise<CommunityDirectoryMemberV1[]> {
     const now = Math.floor(this.ports.monoMs());
     const requestedAtUnixMs = this.ports.wallMs();
-    if (now - c.directory.fetchedAtMono < 5000) return c.directory.members;
+    // Refresh before the five-second node proof expires, even with slow HTTP.
+    if (now - c.directory.fetchedAtMono < 2000) return c.directory.members;
     if (c.directory.pending) return c.directory.pending;
     const work = (async () => {
       // The optional roster must not consume the required LAN telemetry budget.
@@ -213,27 +216,38 @@ export class CommunityEtGrantRuntime {
         const readSignal = combined(signal, c.cancel.signal, timeout.signal);
         let withDns = !!this.ports.dns && (this.ports.preferences?.().magicDns ?? true);
         let value: unknown;
-        try {
+        if (!c.directory.bindingsRejected) try {
           value = await this.ports.transport.post(c.target, 'directory', c.bearer,
-            {...body, ...(withDns ? {includeDnsNames: true, dnsNameStyle: 'friendly'} : {})}, readSignal);
+            {...body, includeBindings: true, ...(withDns ? {includeDnsNames: true, dnsNameStyle: 'friendly'} : {})}, readSignal);
         } catch (error) {
-          // Negotiate only an explicit optional-extension rejection. Authentication,
-          // outages, malformed replies and clock/TTL failures never downgrade.
-          if (!withDns || readSignal.aborted || !(error instanceof CommunityEtTransportError) || error.code !== 'directory-extension-unsupported') throw error;
+          if (readSignal.aborted || !(error instanceof CommunityEtTransportError) || error.code !== 'directory-extension-unsupported') throw error;
+          c.directory.bindingsRejected = true;
+        }
+        if (c.directory.bindingsRejected) {
           try {
-            value = await this.ports.transport.post(c.target, 'directory', c.bearer, {...body, includeDnsNames: true}, readSignal);
-          } catch (legacyError) {
-            if (readSignal.aborted || !(legacyError instanceof CommunityEtTransportError) || legacyError.code !== 'directory-extension-unsupported') throw legacyError;
-            withDns = false;
-            value = await this.ports.transport.post(c.target, 'directory', c.bearer, body, readSignal);
+            value = await this.ports.transport.post(c.target, 'directory', c.bearer,
+              {...body, ...(withDns ? {includeDnsNames: true, dnsNameStyle: 'friendly'} : {})}, readSignal);
+          } catch (error) {
+            // Only explicit extension rejection permits negotiation. Authentication,
+            // outages, malformed replies and TTL failures never downgrade.
+            if (!withDns || readSignal.aborted || !(error instanceof CommunityEtTransportError) || error.code !== 'directory-extension-unsupported') throw error;
+            try {
+              value = await this.ports.transport.post(c.target, 'directory', c.bearer, {...body, includeDnsNames: true}, readSignal);
+            } catch (legacyError) {
+              if (readSignal.aborted || !(legacyError instanceof CommunityEtTransportError) || legacyError.code !== 'directory-extension-unsupported') throw legacyError;
+              withDns = false;
+              value = await this.ports.transport.post(c.target, 'directory', c.bearer, body, readSignal);
+            }
           }
         }
         if (signal.aborted || c.cancel.signal.aborted) throw new CommunityEtTransportError('request-cancelled');
         if (timeout.signal.aborted) throw new CommunityEtTransportError('provider-unavailable');
         let members: CommunityDirectoryMemberV1[];
+        const envelope = value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+        const {bindings: bindingValue, ...directoryValue} = envelope;
         if (withDns && this.ports.dns) {
           try {
-            const parsed = parseCommunityDnsDirectory(value, c.verified.intent.communityId);
+            const parsed = parseCommunityDnsDirectory(directoryValue, c.verified.intent.communityId);
             members = parsed.members.map(({serverUserId, virtualIp}) => ({serverUserId, virtualIp}));
             this.current(c);
             this.ports.dns.publish(c.verified.intent.communityId, parsed, now, requestedAtUnixMs);
@@ -242,14 +256,15 @@ export class CommunityEtGrantRuntime {
               expiresAtMono: now + row.dnsExpiresAtMs - parsed.dns.serverTimeMs}));
           } catch { throw new CommunityEtTransportError('invalid-response'); }
         } else {
-          members = this.ports.transport.parseDirectory(value, c.verified.intent.communityId);
+          members = this.ports.transport.parseDirectory(directoryValue, c.verified.intent.communityId);
           this.current(c); c.directory.dns = []; this.ports.dns?.clear(c.verified.intent.communityId);
         }
+        c.directory.bindings = bindingValue === undefined ? null : this.ports.transport.parseDirectoryBindings(bindingValue, members);
         this.current(c); c.directory.fetchedAtMono = now; c.directory.observedAtUnixMs = requestedAtUnixMs; c.directory.members = members;
         return members;
       } catch (error) {
         if (this.contexts.get(c.target.communityId) === c) {
-          c.directory.dns = []; this.ports.dns?.clear(c.verified.intent.communityId);
+          c.directory.bindings = null; c.directory.dns = []; this.ports.dns?.clear(c.verified.intent.communityId);
         }
         if (signal.aborted || c.cancel.signal.aborted) throw new CommunityEtTransportError('request-cancelled');
         if (error instanceof CommunityEtTransportError && error.code === 'auth-unavailable') return this.retired(c, 'configuration-required');
@@ -424,7 +439,9 @@ export class CommunityEtGrantRuntime {
           const dnsAddresses = dnsReady ? c.directory.dns.filter(row => this.ports.monoMs() < row.expiresAtMono &&
             this.ports.wallMs() < row.expiresAtUnixMs && this.ports.wallMs() >= c.directory.observedAtUnixMs)
             .map(({dnsName, virtualIp, expiresAtUnixMs}) => ({dnsName, virtualIp, expiresAtUnixMs})) : [];
-          return {...sample, bindings: [binding], directory, directoryObservedAtUnixMs: c.directory.observedAtUnixMs, dnsReady, dnsAddresses};
+          const remoteBindings = c.directory.bindings ? projectCommunityEtDirectoryBindings(c.directory.bindings, sample,
+            c.directory.fetchedAtMono, c.directory.observedAtUnixMs).filter(row => row.peerId !== binding.peerId && row.expiresAtMs > this.ports.monoMs()) : [];
+          return {...sample, bindings: [binding, ...remoteBindings], directory, directoryObservedAtUnixMs: c.directory.observedAtUnixMs, dnsReady, dnsAddresses};
           } catch (error) { void c.relay?.suspend('telemetry-stale').catch(() => undefined); throw error; }
         }};
       } catch (error) {

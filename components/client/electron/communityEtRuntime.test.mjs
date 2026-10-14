@@ -186,6 +186,51 @@ test('real wiring reaches private config, same-sample proof and public binding t
   assert.equal(JSON.stringify(sample).includes(SECRET), false); await s.close();
   assert.deepEqual(f.events.slice(-3), ['stop', 'remove', 'revoke']);
 });
+test('directory node proof is normalized once, refreshed before expiry and removed on optional outage',async()=>{
+  let mode='good';
+  const f=runtimeFixture({directory:(body,fixture)=>{
+    assert.equal(body.includeBindings,true);
+    if(mode==='outage')throw new CommunityEtTransportError('provider-unavailable');
+    return {v:1,communityId:'community',members:[{serverUserId:'remote',virtualIp:'10.77.1.3'}],
+      bindings:{serverTimeMs:fixture.now.wall+90000,maxAgeMs:5000,members:[{serverUserId:'remote',virtualIp:'10.77.1.3',peerId:22,expiresAtMs:fixture.now.wall+95000}]}};
+  }});
+  await f.authenticate('one');const session=await f.connect();
+  const first=await session.read(new AbortController().signal),remote=first.bindings.find(row=>row.userId==='remote');
+  assert.ok(remote);assert.equal(remote.expiresAtMs,f.now.mono+5000);assert.equal(remote.observedAtUnixMs,f.now.wall);
+  f.now.mono+=1000;f.now.wall+=1000;
+  const cached=await session.read(new AbortController().signal);
+  assert.equal(cached.bindings.find(row=>row.userId==='remote').expiresAtMs,remote.expiresAtMs);
+  assert.equal(f.calls.filter(call=>call.op==='directory').length,1);
+  f.now.mono+=1000;f.now.wall+=1000;
+  const fresh=await session.read(new AbortController().signal);
+  assert.equal(f.calls.filter(call=>call.op==='directory').length,2);
+  assert.equal(fresh.bindings.find(row=>row.userId==='remote').expiresAtMs,f.now.mono+5000);
+  mode='outage';f.now.mono+=2000;f.now.wall+=2000;
+  const absent=await session.read(new AbortController().signal);
+  assert.equal(absent.bindings.length,1);assert.equal(f.cores(),1);assert.equal(f.events.includes('stop'),false);await session.close();
+});
+test('node directory parser rejects duplicate peers, unexpected fields, unassigned IPs and unbounded lifetime',()=>{
+  const transport=new CommunityEtGrantTransport({post:denied}),members=[{serverUserId:'remote',virtualIp:'10.77.1.3'}];
+  const good=()=>({serverTimeMs:100000,maxAgeMs:5000,members:[{...members[0],peerId:22,expiresAtMs:105000}]});
+  assert.equal(transport.parseDirectoryBindings(good(),members).members.length,1);
+  for(const mutate of [v=>v.members.push({...v.members[0]}),v=>v.members[0].peerId=0,v=>v.members[0].virtualIp='10.77.1.9',
+    v=>v.members[0].expiresAtMs=105001,v=>v.members[0].expiresAtMs=100000,v=>v.members[0].physicalDirectVerified=true]) {
+    const value=good();mutate(value);assert.throws(()=>transport.parseDirectoryBindings(value,members),/invalid-response/);
+  }
+});
+test('slow directory HTTP consumes the node lifetime and cached refreshes never reclaim it',async()=>{
+  const f=runtimeFixture({directory:(_body,fixture)=>{
+    fixture.now.mono+=800;fixture.now.wall+=800;
+    return {v:1,communityId:'community',members:[{serverUserId:'remote',virtualIp:'10.77.1.3'}],
+      bindings:{serverTimeMs:fixture.now.wall,maxAgeMs:5000,members:[{serverUserId:'remote',virtualIp:'10.77.1.3',peerId:22,expiresAtMs:fixture.now.wall+5000}]}};
+  }});
+  await f.authenticate('one');const session=await f.connect();const started=f.now.mono;
+  const first=await session.read(new AbortController().signal),proof=first.bindings.find(row=>row.userId==='remote');
+  assert.equal(proof.expiresAtMs,started+5000);assert.equal(proof.expiresAtMs-f.now.mono,4200);
+  f.now.mono+=1000;f.now.wall+=1000;const cached=await session.read(new AbortController().signal);
+  assert.equal(cached.bindings.find(row=>row.userId==='remote').expiresAtMs,proof.expiresAtMs);
+  assert.equal(f.calls.filter(call=>call.op==='directory').length,1);await session.close();
+});
 
 test('real coordinator joins V2 qualification to V1 LAN gate and zeroes relay on telemetry failure without stopping LAN', async () => {
   const budgets = [], keys = [], saved = [];
@@ -377,8 +422,8 @@ test('old backend DNS rejection falls back to authenticated numeric directory wi
   }, dns: {publish: denied, clear: id => cleared.push(id), isReady: () => false}});
   await f.authenticate('one'); const s = await f.connect(); const sample = await s.read(new AbortController().signal);
   assert.equal(sample.directory.length, 1); assert.deepEqual(sample.dnsAddresses, []); assert.equal(f.cores(), 1);
-  assert.deepEqual(f.calls.filter(call => call.op === 'directory').map(call => call.body.includeDnsNames), [true, true, undefined]);
-  assert.deepEqual(f.calls.filter(call => call.op === 'directory').map(call => call.body.dnsNameStyle), ['friendly', undefined, undefined]);
+  assert.deepEqual(f.calls.filter(call => call.op === 'directory').map(call => call.body.includeDnsNames), [true, true, true, undefined]);
+  assert.deepEqual(f.calls.filter(call => call.op === 'directory').map(call => call.body.dnsNameStyle), ['friendly', 'friendly', undefined, undefined]);
   assert.ok(cleared.includes('community')); await s.close();
 });
 test('unsupported friendly style retains legacy DNS on an otherwise DNS-capable backend',async()=>{
@@ -389,7 +434,7 @@ test('unsupported friendly style retains legacy DNS on an otherwise DNS-capable 
   },dns:{publish:(...args)=>published.push(args),clear:()=>undefined,isReady:()=>true}});
   await f.authenticate('one');const s=await f.connect();const sample=await s.read(new AbortController().signal);
   assert.equal(published.length,1);assert.equal(sample.dnsAddresses[0].dnsName,dnsName);assert.equal(f.cores(),1);
-  assert.deepEqual(f.calls.filter(call=>call.op==='directory').map(call=>call.body.dnsNameStyle),['friendly',undefined]);
+  assert.deepEqual(f.calls.filter(call=>call.op==='directory').map(call=>call.body.dnsNameStyle),['friendly','friendly',undefined]);
   await s.close();
 });
 test('friendly DNS names retain canonical resolver form in readiness-gated runtime samples',async()=>{
@@ -419,7 +464,7 @@ test('legacy negotiation auth failure retires membership without numeric fallbac
   },dns:{publish:denied,clear:()=>undefined,isReady:()=>false}});
   await f.authenticate('one');const s=await f.connect();
   await assert.rejects(s.read(new AbortController().signal),error=>error instanceof EasyTierSessionRetiredError);
-  assert.equal(f.calls.filter(call=>call.op==='directory').length,2);assert.ok(f.events.includes('stop'));
+  assert.equal(f.calls.filter(call=>call.op==='directory').length,3);assert.ok(f.events.includes('stop'));
 });
 test('negotiation shares one timeout budget and cannot retry after cancellation',async()=>{
   const signals=[];
@@ -430,8 +475,8 @@ test('negotiation shares one timeout budget and cannot retry after cancellation'
   },dns:{publish:denied,clear:()=>undefined,isReady:()=>false}});
   await f.authenticate('one');const s=await f.connect();const sample=await s.read(new AbortController().signal);
   assert.deepEqual(sample.directory,[]);assert.deepEqual(sample.dnsAddresses,[]);
-  assert.equal(signals.length,2);assert.equal(signals[0],signals[1]);assert.equal(signals[1].aborted,true);
-  assert.equal(f.calls.filter(call=>call.op==='directory').length,2);assert.equal(f.events.includes('stop'),false);await s.close();
+  assert.equal(signals.length,3);assert.ok(signals.every(signal=>signal===signals[0]));assert.equal(signals[2].aborted,true);
+  assert.equal(f.calls.filter(call=>call.op==='directory').length,3);assert.equal(f.events.includes('stop'),false);await s.close();
 });
 test('retired request clock from DNS publication hides names without negotiating or refreshing age',async()=>{
   const f=runtimeFixture({directory:dnsDirectory,dns:{publish:()=>{throw Error('dns-request-retired');},clear:()=>undefined,isReady:()=>false}});

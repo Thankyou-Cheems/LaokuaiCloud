@@ -56,6 +56,30 @@ function sample() {
 function enrolledSample() {
   const s = sample(); s.bindings.push({ ...s.bindings[0], userId: "local-user", deviceId: "local-device", peerId: 1 }); return s;
 }
+await test('authenticated node and local route visibility are independent from selected physical path and RTT',()=>{
+  const s=enrolledSample();s.selectedRoutes=[];s.rtt=[];s.bindings[0].virtualIp='10.44.0.7';
+  s.directory=[{serverUserId:'user-a',virtualIp:'10.44.0.7'}];s.directoryObservedAtUnixMs=time;
+  const read=()=>memberContract.readMemberLanStatus({serverScope:scope.serverId,authenticatedUserId:'user-a',observerAuthenticatedUserId:'local-user',
+    snapshot:memberAdapter.projectEasyTierMembers(s,scope,'connected',time,time),nowMs:time});
+  assert.equal(read().enrollment,'joined');assert.equal(read().routeVisible,true);assert.equal(read().path,'unknown');assert.equal(read().rttMs,null);
+  s.info.routes[0].ipv4_addr='10.44.0.99';assert.equal(read().enrollment,'joined');assert.equal(read().routeVisible,false);
+  s.info.routes=[];assert.equal(read().enrollment,'joined');assert.equal(read().routeVisible,false);
+  const frozen=memberAdapter.projectEasyTierMembers(s,scope,'connected',time,time);
+  frozen.members.find(member=>member.binding.authenticatedUserId==='user-a').binding.expiresAtMs=time+5000;
+  assert.equal(memberContract.readMemberLanStatus({serverScope:scope.serverId,authenticatedUserId:'user-a',observerAuthenticatedUserId:'local-user',
+    snapshot:frozen,nowMs:time+5000}).enrollment,'stale');
+  s.bindings[0].expiresAtMs=time;assert.equal(read().enrollment,'unknown');
+});
+await test('multiple authenticated devices preserve connected node state and addresses without choosing one path',()=>{
+  const s=enrolledSample();s.directoryObservedAtUnixMs=time;
+  s.directory=[{serverUserId:'user-a',virtualIp:'10.44.0.7'},{serverUserId:'user-a',virtualIp:'10.44.0.8'}];
+  s.bindings[0].virtualIp='10.44.0.7';s.bindings.push({...s.bindings[0],peerId:8,deviceId:'device-b',virtualIp:'10.44.0.8'});
+  const read=()=>memberContract.readMemberLanStatus({serverScope:scope.serverId,authenticatedUserId:'user-a',observerAuthenticatedUserId:'local-user',
+    snapshot:memberAdapter.projectEasyTierMembers(s,scope,'connected',time,time),nowMs:time});
+  assert.equal(read().enrollment,'joined');assert.equal(read().connectedDevices,2);assert.equal(read().path,'unknown');
+  assert.deepEqual(plain(read().virtualIps),['10.44.0.7','10.44.0.8']);
+  s.bindings[2].peerId=7;assert.equal(read().enrollment,'unknown');
+});
 const projection = s => plain(status.projectEasyTierStatus(s, scope, time));
 await test("friendly DNS projection preserves authenticated device assignments and exact namespace boundaries",async()=>{
   for(const zone of ['lk.internal.','lk-0123abcd.internal.']) {

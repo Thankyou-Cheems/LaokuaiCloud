@@ -3738,6 +3738,10 @@
     "bitrateTitle": "码率上限（kbps）"
   },
   "memberLan": {
+    "nodeConnected": "节点已连接",
+    "routeVisible": "ET路由可见",
+    "routePending": "路径待观测",
+    "nodeBoundary": "节点已连接表示社区 ET 管理端已验证节点身份及路由；ET路由可见表示本机路由表包含该节点，不等于物理直连或游戏已连通。",
     "enrollmentTitle": "社区联机",
     "pathTitle": "本机到成员的联机路径",
     "localStateTitle": "本机社区联机状态",

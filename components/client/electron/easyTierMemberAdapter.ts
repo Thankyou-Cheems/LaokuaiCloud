@@ -18,7 +18,7 @@ export function projectEasyTierMembers(sample: EasyTierStatusSample | null, scop
   const status = projectEasyTierStatus(sample, scope, nowMs, maxAgeMs);
   const info = object(sample.info);
   const localPeer = object(info.my_node_info).peer_id;
-  const bindings = sample.bindings.filter(b => b.serverId === scope.serverId && b.instanceId === scope.instanceId && b.generation === scope.generation);
+  const scopedBindings = sample.bindings.filter(b => b.serverId === scope.serverId && b.instanceId === scope.instanceId && b.generation === scope.generation);
   // The server roster is authenticated independently from local ET telemetry.
   // Revalidate it here as well because this adapter is the UI trust boundary.
   const directory = new Map<string, string[]>();
@@ -43,17 +43,29 @@ export function projectEasyTierMembers(sample: EasyTierStatusSample | null, scop
   if (dnsZones.size > 1) dnsByIp.clear();
   const memberDns = (virtualIps: readonly string[]) => virtualIps.flatMap(address => dnsByIp.has(address) ? [dnsByIp.get(address)!] : []);
   const validBinding = (binding: EasyTierIdentityBinding) => binding.authenticated && !!binding.deviceId && !!binding.userId && Number.isSafeInteger(binding.peerId) && binding.peerId > 0 && binding.peerId <= 0xffffffff && binding.expiresAtMs > nowMs && validTime(binding.observedAtUnixMs);
-  const locals = bindings.filter(b => b.peerId === localPeer);
+  const locals = scopedBindings.filter(b => b.peerId === localPeer);
   if (locals.length !== 1 || !validBinding(locals[0])) return null;
   const local = locals[0];
+  // Several authenticated devices are one member row. Preserve their node state
+  // while withholding a single path when that member has several addresses.
+  const groups = new Map<string, EasyTierIdentityBinding[]>();
+  for (const candidate of scopedBindings) {
+    if (candidate !== local && candidate.userId === local.userId) continue;
+    groups.set(candidate.userId, [...groups.get(candidate.userId) ?? [], candidate]);
+  }
+  const bindings = [...groups.values()].map(group => group[0]);
   const peers = status.peers;
   const routes = Array.isArray(info.routes) ? info.routes.map(object) : [];
   const members: LanMemberEvidence[] = bindings.map(binding => {
-    const ambiguous = bindings.filter(b => b.userId === binding.userId).length !== 1 || bindings.filter(b => b.peerId === binding.peerId).length !== 1;
-    const verified = !ambiguous && validBinding(binding);
+    const group = groups.get(binding.userId)!;
+    const ambiguous = group.some(candidate => scopedBindings.filter(b => b.peerId === candidate.peerId).length !== 1) ||
+      new Set(group.map(candidate => candidate.deviceId)).size !== group.length;
+    const verified = !ambiguous && group.every(validBinding);
     const member: LanMemberEvidence = {
-      binding: { authenticatedUserId: binding.userId, peerId: verified ? String(binding.peerId) : null, confidence: ambiguous ? "ambiguous" : verified ? "verified" : "unverified", source: "authenticated-community", observedAtMs: binding.observedAtUnixMs },
+      binding: { authenticatedUserId: binding.userId, peerId: verified ? String(binding.peerId) : null, confidence: ambiguous ? "ambiguous" : verified ? "verified" : "unverified", source: "authenticated-community", observedAtMs: binding.observedAtUnixMs,
+        expiresAtMs: Math.floor(unixNowMs + Math.min(...group.map(candidate => candidate.expiresAtMs)) - nowMs) },
       enrollment: { state: binding === local ? enrollmentForPhase(phase) : binding.enrollment, source: binding === local ? "easytier-local" : "authenticated-community", observedAtMs: binding === local ? sample.acquiredAtUnixMs : binding.enrollmentObservedAtUnixMs },
+      ...(verified && binding !== local ? {connectedDevices: group.length} : {}),
     };
     const peer = peers.find(p => p.userId === binding.userId);
     // The address is useful for game/LAN setup, but it is only safe to expose
@@ -77,6 +89,12 @@ export function projectEasyTierMembers(sample: EasyTierStatusSample | null, scop
     const path: NonNullable<LanMemberEvidence["path"]> = {
       kind: peer.route === "physical-direct" ? "direct" : "unknown", source: "easytier-local", communityId: scope.serverId,
       fromPeerId: String(local.peerId), toPeerId: String(binding.peerId), observedAtMs: sample.acquiredAtUnixMs,
+      // Route visibility needs the authenticated peer+address join, independently
+      // from the stronger selected-forwarding/physical-path evidence below.
+      routeVisible: validTime(sample.acquiredAtUnixMs) && sample.freshRpc && nowMs >= sample.acquiredAtMs && nowMs - sample.acquiredAtMs <= 5000 &&
+        !!binding.virtualIp && directory.get(binding.userId)?.includes(binding.virtualIp) === true &&
+        routes.filter(r => r.peer_id === binding.peerId).length === 1 &&
+        easyTierVirtualIp(routes.find(r => r.peer_id === binding.peerId)?.ipv4_addr) === binding.virtualIp,
     };
     if (peer.route === "relay") {
       const route = routes.find(r => r.peer_id === binding.peerId);

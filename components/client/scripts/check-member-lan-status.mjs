@@ -161,7 +161,8 @@ check("green is reserved for fresh verified membership; expired RTT remains expl
   assert.doesNotMatch(MemberLanStatus(input(undefined)).props.children.props.style.color,/success/);
   const stale=fixture();stale.observedAtMs=now-10_001;assert.doesNotMatch(MemberLanStatus(input(stale)).props.children.props.style.color,/success/);
   const snapshot=fixture();remote(snapshot).path.rtt.observedAtMs=now-10_001;
-  const span=MemberLanStatus(input(snapshot)).props.children;assert.match(span.props.style.color,/success/);assert.match(span.props.children[1].props.children,/已过期/);
+  const view=MemberLanStatus(input(snapshot)),span=view.props.children;assert.match(span.props.style.color,/success/);assert.match(view.props.title,/已过期/);
+  assert.doesNotMatch(span.props.children[1].props.children,/未知|已过期/);
   remote(snapshot).path.observedAtMs=now-10_001;assert.match(MemberLanStatus(input(snapshot)).props.children.props.children[1].props.children,/路径过期/);
 });
 check("LAN icon geometry follows proven route or enrollment; unknown/stale never borrow direct",()=>{
@@ -235,6 +236,13 @@ check("DNS display rejects malformed unassigned excessive expiry and ambiguous d
     remote(snapshot).dnsAddresses=[{dnsName:`d-${'b'.repeat(32)}.c-${'a'.repeat(32)}.lan.voice.ruikang.wang.`,virtualIp:"10.77.1.8",expiresAtUnixMs:now+5000}];
     mutate(remote(snapshot));assert.equal(evaluate(snapshot).dnsAddresses,undefined);
   }
+});
+check('remote connected node labels show route visibility independently and omit unmeasured RTT',()=>{
+  language='zh-CN';const snapshot=fixture();remote(snapshot).path.kind='unknown';delete remote(snapshot).path.rtt;remote(snapshot).path.routeVisible=true;
+  const label=()=>MemberLanStatus(input(snapshot)).props.children.props.children[1].props.children;
+  assert.equal(label(),'节点已连接 · ET路由可见');
+  remote(snapshot).path.routeVisible=false;assert.equal(label(),'节点已连接 · 路径待观测');
+  assert.doesNotMatch(label(),/未知|ms/);assert.match(MemberLanStatus(input(snapshot)).props.title,/不等于物理直连/);
 });
 check("EN/ZH mappings cover every state/reason and route; no arbitrary errors, IPs or keys are rendered",()=>{
   function compare(a,b){assert.deepEqual(Object.keys(a).sort(),Object.keys(b).sort());for(const key of Object.keys(a))typeof a[key]==='object'?compare(a[key],b[key]):assert.ok(a[key]&&b[key]);}

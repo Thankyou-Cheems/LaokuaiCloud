@@ -3738,6 +3738,10 @@
     "bitrateTitle": "Maximum bitrate (kbps)"
   },
   "memberLan": {
+    "nodeConnected": "Node connected",
+    "routeVisible": "ET route visible",
+    "routePending": "Path awaiting observation",
+    "nodeBoundary": "Node connected means the community ET authority verified the node identity and route. ET route visible means this device has a matching route; it does not prove physical directness or game connectivity.",
     "enrollmentTitle": "Community LAN",
     "pathTitle": "Local-to-member LAN path",
     "localStateTitle": "Local community LAN state",

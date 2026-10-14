@@ -126,6 +126,36 @@ await test("shutdown is exact owned-process port and terminal for late connect",
   runtime.shutdownOwned(); runtime.shutdownOwned(); assert.equal(p.calls.filter(c => c === "terminate").length, 1);
   await assert.rejects(runtime.connect(scope()));
 });
+await test("owned interface rule preparation follows readiness and is released on canceled startup", async () => {
+  const entered = defer(), completed = defer(), controller = new AbortController();
+  const p = ports();
+  p.prepareOwnedInterface = async (receivedConfig, core, signal) => {
+    assert.equal(core, p.core); assert.equal(core.isAlive(), true);
+    assert.equal(receivedConfig.instanceId, config.instanceId); assert.equal(signal, controller.signal);
+    p.calls.push("interface-prepare"); entered.resolve();
+    await completed.promise;
+    return async () => { p.calls.push("interface-release"); };
+  };
+  const runtime = new WindowsEasyTierCliRuntime(p), pending = runtime.connect(scope(undefined, controller.signal));
+  await entered.promise; controller.abort(); completed.resolve();
+  await assert.rejects(pending, error => error.reason === "connect-failed");
+  assert.deepEqual(p.calls.slice(-3), ["interface-prepare", "interface-release", "close"]);
+});
+await test("session close releases only its prepared interface rule once", async () => {
+  const p = ports();
+  p.prepareOwnedInterface = async () => async () => { p.calls.push("interface-release"); };
+  const runtime = new WindowsEasyTierCliRuntime(p), session = await runtime.connect(scope());
+  await session.close(); await session.close();
+  assert.deepEqual(p.calls.slice(-2), ["interface-release", "close"]);
+  assert.equal(p.calls.filter(value => value === "interface-release").length, 1);
+});
+await test("rule cleanup failure still stops its core without leaving a live adapter", async () => {
+  const p = ports();
+  p.prepareOwnedInterface = async () => async () => { throw new Error('synthetic ownership mismatch'); };
+  const runtime = new WindowsEasyTierCliRuntime(p), session = await runtime.connect(scope());
+  await assert.rejects(session.close(), error => error.reason === 'cleanup-failed');
+  assert.equal(p.core.isAlive(), false);
+});
 await test("real CLI node output is sanitized before entering lifecycle status", async () => {
   const value = processes.sanitizedEasyTierCliNode({ peer_id: 7, ipv4_addr: "10.9.8.7/24", config: "must-not-leave-main", stun_info: { public_ip: ["must-not-leave-main"] }, ip_list: {} });
   assert.deepEqual(plain(value), { peerId: 7, virtualIp: "10.9.8.7" });

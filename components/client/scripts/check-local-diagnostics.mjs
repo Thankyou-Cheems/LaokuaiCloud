@@ -19,6 +19,15 @@ assert.deepEqual(JSON.parse(JSON.stringify(networkDiagnostic({event:'state',acti
   {phase:'lan',operation:'lan-state',action:'finish',code:'status-unavailable',generation:2,status:'connected',reason:null});
 const pathEvent = {phase:'voice',operation:'hybrid-path',action:'finish',code:'ok',scopeGeneration:1,pathClass:'non-turn-candidate',pathReason:'selected-pair',localCandidateType:'host',remoteCandidateType:'srflx',underlayClass:'not-easytier',decodeProof:'fresh',decodeReason:'fresh_decode',failureReason:null};
 assert.ok(schema.safeDiagnostic(pathEvent));
+const {createHybridDiagnosticObserver} = load('src/lib/hybridDiagnostics.ts', {'./localDiagnostics':schema});
+for (const pairUnavailableReason of ['transport-unavailable', 'pair-record-unavailable', 'pair-not-succeeded']) {
+  const forwarded = [];
+  createHybridDiagnosticObserver(event => forwarded.push(event)).sdk({kind:'peer-media',pathClass:'unknown',pathReason:'pair-unavailable',
+    pairUnavailableReason,localCandidateType:'unknown',remoteCandidateType:'unknown',underlayClass:'unknown',decodeProof:'fresh',decodeReason:'fresh_decode',failureReason:null});
+  assert.equal(forwarded[0].pairUnavailableReason,pairUnavailableReason,'SDK fixed detail must reach client observer');
+  assert.equal(schema.safeDiagnostic({phase:'voice',action:'finish',code:'ok',...forwarded[0]}).pairUnavailableReason,pairUnavailableReason);
+}
+assert.equal(schema.safeDiagnostic({...pathEvent,pairUnavailableReason:'private transport id address'}),null);
 for (const extra of [{pathReason:'raw candidate'}, {localCandidateType:'10.0.0.1'}, {failureReason:'secret'}, {selectedPair:'private'}]) assert.equal(schema.safeDiagnostic({...pathEvent,...extra}),null);
 assert.ok(schema.safeDiagnostic({phase:'voice',operation:'hybrid-forwarding',action:'finish',code:'ok',forwardingAction:'restore',result:'acknowledged',reason:'validated_ack'}));
 for (const failureReason of schema.HYBRID_PROTOCOL_DIAGNOSTIC_REASONS) {

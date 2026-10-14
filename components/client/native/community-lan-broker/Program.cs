@@ -6,6 +6,8 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Pipes;
+using System.Net.NetworkInformation;
+using System.Net.Sockets;
 using System.Collections;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -43,6 +45,33 @@ class FirewallWireResponse {
     public List<string> removed { get; set; }
     public List<FirewallWireFailure> failures { get; set; }
 }
+class TunFirewallScope {
+    public string guid { get; set; }
+    public string luid { get; set; }
+    public int ifIndex { get; set; }
+    public string localAddress { get; set; }
+    public string remoteSubnet { get; set; }
+    public string interfaceAlias { get; set; }
+}
+class TunFirewallRule : TunFirewallScope {
+    public int schemaVersion { get; set; }
+    public string name { get; set; }
+    public string ownershipId { get; set; }
+}
+class TunFirewallRequest {
+    public int schemaVersion { get; set; }
+    public string operation { get; set; }
+    public TunFirewallScope evidence { get; set; }
+    public TunFirewallRule[] rules { get; set; }
+}
+class TunFirewallResponse {
+    public int schemaVersion { get; set; }
+    public TunFirewallScope scope { get; set; }
+    public List<string> installed { get; set; }
+    public List<string> removed { get; set; }
+    public List<FirewallWireFailure> failures { get; set; }
+}
+class TunFirewallNotReadyException : Exception {}
 
 class Program {
     const string Ready = "LAOKUAI_BROKER_READY_V1";
@@ -78,9 +107,9 @@ class Program {
     static string Sid() { return WindowsIdentity.GetCurrent().User.Value; }
     static void Require(bool condition) { if (!condition) throw new InvalidOperationException("broker-request-rejected"); }
     static string Hash(Stream stream) { using (var sha = SHA256.Create()) return BitConverter.ToString(sha.ComputeHash(stream)).Replace("-", "").ToLowerInvariant(); }
-    static string Line(TextReader input) {
+    static string Line(TextReader input, int maximum = 16384) {
         var b = new StringBuilder(); int c;
-        while ((c = input.Read()) >= 0) { if (c == '\n') return b.ToString().TrimEnd('\r'); Require(b.Length < 16384); b.Append((char)c); }
+        while ((c = input.Read()) >= 0) { if (c == '\n') return b.ToString().TrimEnd('\r'); Require(b.Length < maximum); b.Append((char)c); }
         return b.Length == 0 ? null : b.ToString();
     }
     static string PathWithoutLinks(string value) {
@@ -310,6 +339,167 @@ class Program {
     static string FirewallDescription(FirewallWireRule rule) {
         return "LaokuaiCloud managed inbound v2; owner=" + rule.ownershipId;
     }
+
+    // Independent ICMP protocol/ledger: legacy app and core rules remain v2.
+    const string TunFirewallPrefix = "LaokuaiCloud.OwnedTun.Icmp.v1.";
+    [DllImport("iphlpapi.dll")] static extern uint ConvertInterfaceLuidToGuid(ref ulong luid, out Guid guid);
+    [DllImport("iphlpapi.dll")] static extern uint ConvertInterfaceLuidToIndex(ref ulong luid, out uint index);
+    static uint TunIpv4(string value) {
+        Require(value != null && Regex.IsMatch(value, @"\A(0|[1-9][0-9]{0,2})(\.(0|[1-9][0-9]{0,2})){3}\z"));
+        uint result = 0;
+        foreach (var piece in value.Split('.')) { uint octet; Require(UInt32.TryParse(piece, out octet) && octet <= 255); result = (result << 8) | octet; }
+        return result;
+    }
+    static bool TunPrivateIpv4(ulong value) {
+        return (value >= 0x0a000000 && value <= 0x0affffff) || (value >= 0xac100000 && value <= 0xac1fffff) || (value >= 0xc0a80000 && value <= 0xc0a8ffff);
+    }
+    static void ValidateTunScope(TunFirewallScope scope, bool alias) {
+        Guid guid; ulong luid;
+        Require(scope != null && scope.guid != null && Regex.IsMatch(scope.guid, @"\A[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}\z")
+            && Guid.TryParse(scope.guid, out guid) && guid != Guid.Empty);
+        Require(scope.luid != null && Regex.IsMatch(scope.luid, @"\A[1-9][0-9]{0,19}\z") && UInt64.TryParse(scope.luid, out luid) && luid > 0 && scope.ifIndex > 0);
+        var local = TunIpv4(scope.localAddress); Require(TunPrivateIpv4(local));
+        Require(scope.remoteSubnet != null); var parts = scope.remoteSubnet.Split('/'); int prefix;
+        Require(parts.Length == 2 && Regex.IsMatch(parts[1], @"\A([1-9]|[12][0-9]|3[0-2])\z") && Int32.TryParse(parts[1], out prefix));
+        prefix = Int32.Parse(parts[1]); var network = TunIpv4(parts[0]); var size = 1UL << (32 - prefix);
+        Require(network % size == 0 && TunPrivateIpv4(network) && TunPrivateIpv4(network + size - 1) && local >= network && local < network + size);
+        if (alias) Require(!String.IsNullOrEmpty(scope.interfaceAlias) && scope.interfaceAlias.Length <= 256 && !Regex.IsMatch(scope.interfaceAlias, @"[\x00-\x1f]"));
+    }
+    static string TunFirewallRuleName(TunFirewallScope scope) {
+        ValidateTunScope(scope, true);
+        var identity = String.Join("\0", new[]{scope.guid, scope.luid, scope.ifIndex.ToString(System.Globalization.CultureInfo.InvariantCulture), scope.interfaceAlias, scope.localAddress, scope.remoteSubnet});
+        using (var sha = SHA256.Create()) return TunFirewallPrefix + BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(identity))).Replace("-", "").ToLowerInvariant().Substring(0, 24);
+    }
+    static void ValidateTunRule(TunFirewallRule rule) {
+        Require(rule != null && rule.schemaVersion == 1); ValidateTunScope(rule, true);
+        Require(rule.name == TunFirewallRuleName(rule) && rule.ownershipId != null && Regex.IsMatch(rule.ownershipId, @"\A[0-9a-f]{32}\z"));
+    }
+    static TunFirewallScope ResolveTunScope(TunFirewallScope expected) {
+        ValidateTunScope(expected, false);
+        // LUID/GUID/index come from the exact owned child receipt. Never select
+        // an adapter by its alias, a renderer field, or the EasyTier brand.
+        ulong luid = UInt64.Parse(expected.luid); Guid guid; uint index;
+        Require(ConvertInterfaceLuidToGuid(ref luid, out guid) == 0 && guid.ToString("D") == expected.guid);
+        Require(ConvertInterfaceLuidToIndex(ref luid, out index) == 0 && index == expected.ifIndex);
+        TunFirewallScope result = null;
+        foreach (var nic in NetworkInterface.GetAllNetworkInterfaces()) {
+            Guid candidate;
+            if (!Guid.TryParse(nic.Id, out candidate) || candidate != guid) continue;
+            Require(result == null);
+            var properties = nic.GetIPProperties(); var ipv4 = properties.GetIPv4Properties();
+            var addresses = new List<string>();
+            foreach (var address in properties.UnicastAddresses) if (address.Address.AddressFamily == AddressFamily.InterNetwork) addresses.Add(address.Address.ToString());
+            result = ResolveTunInterface(expected, candidate.ToString("D"), ipv4 == null ? expected.ifIndex : ipv4.Index,
+                nic.Name, nic.OperationalStatus == OperationalStatus.Up && ipv4 != null, addresses.ToArray());
+        }
+        if (result == null) throw new TunFirewallNotReadyException(); return result;
+    }
+    static TunFirewallScope ResolveTunInterface(TunFirewallScope expected, string guid, int index, string alias, bool up, string[] addresses) {
+        // Identity mismatches are permanent failures. Only a verified NIC's
+        // pending operational state / IPv4 assignment receives a retry code.
+        Require(guid == expected.guid && index == expected.ifIndex);
+        if (!up || Array.IndexOf(addresses, expected.localAddress) < 0) throw new TunFirewallNotReadyException();
+        var result = new TunFirewallScope { guid = expected.guid, luid = expected.luid, ifIndex = expected.ifIndex,
+            localAddress = expected.localAddress, remoteSubnet = expected.remoteSubnet, interfaceAlias = alias };
+        ValidateTunScope(result, true); return result;
+    }
+    static string TunFirewallDescription(TunFirewallRule rule) {
+        return "LaokuaiCloud owned TUN ICMPv4 echo v1; owner=" + rule.ownershipId + "; guid=" + rule.guid + "; luid=" + rule.luid + "; index=" + rule.ifIndex;
+    }
+    static bool TunFirewallInterface(object rule, string alias) {
+        var values = ComProperty(rule, "Interfaces") as Array;
+        return values != null && values.Length == 1 && Convert.ToString(values.GetValue(0)) == alias;
+    }
+    static bool OwnedTunFirewallRule(object current, TunFirewallRule expected) {
+        try {
+            return ComString(current, "Name") == expected.name && ComString(current, "Description") == TunFirewallDescription(expected)
+                && String.IsNullOrEmpty(ComString(current, "ApplicationName")) && String.IsNullOrEmpty(ComString(current, "ServiceName"))
+                && ComInt(current, "Direction") == FirewallDirectionIn && ComInt(current, "Action") == FirewallActionAllow
+                && ComInt(current, "Profiles") == FirewallProfileAll && ComInt(current, "Protocol") == 1
+                && ComString(current, "IcmpTypesAndCodes") == "8:*" && ComBool(current, "Enabled") && !ComBool(current, "EdgeTraversal")
+                && ComString(current, "Grouping") == FirewallGroup && ComString(current, "InterfaceTypes") == "All"
+                && TunFirewallInterface(current, expected.interfaceAlias)
+                && TunSameLocalAddress(ComString(current, "LocalAddresses"), expected.localAddress)
+                && TunSameSubnet(ComString(current, "RemoteAddresses"), expected.remoteSubnet);
+        } catch { return false; }
+    }
+    static bool TunSameLocalAddress(string current, string expected) {
+        // FWRule canonicalizes a single IPv4 setter to /255.255.255.255.
+        // Only these exact single-host equivalents preserve the address scope.
+        return current == expected || current == expected + "/32" || current == expected + "/255.255.255.255";
+    }
+    static bool TunSameSubnet(string current, string expected) {
+        // Windows can return a dotted netmask after a CIDR setter. Accept only
+        // its exact semantic equivalent; no lists, keywords, ranges or '*'.
+        if (current == expected) return true;
+        var parts = expected.Split('/'); int prefix = Int32.Parse(parts[1]);
+        uint mask = prefix == 32 ? UInt32.MaxValue : UInt32.MaxValue << (32 - prefix);
+        var dotted = String.Join(".", new[]{(mask >> 24).ToString(), ((mask >> 16) & 255).ToString(), ((mask >> 8) & 255).ToString(), (mask & 255).ToString()});
+        return current == parts[0] + "/" + dotted;
+    }
+    static void AddOwnedTunFirewallRule(object rules, TunFirewallRule expected, Func<object> createRule) {
+        var rule = createRule();
+        SetComProperty(rule, "Name", expected.name); SetComProperty(rule, "Description", TunFirewallDescription(expected));
+        SetComProperty(rule, "Direction", FirewallDirectionIn); SetComProperty(rule, "Action", FirewallActionAllow);
+        SetComProperty(rule, "Profiles", FirewallProfileAll); SetComProperty(rule, "Protocol", 1);
+        SetComProperty(rule, "IcmpTypesAndCodes", "8:*"); SetComProperty(rule, "InterfaceTypes", "All");
+        // INetFwRule.Interfaces uses friendly names; GUID is resolved and
+        // revalidated immediately before this setter, and retained in owner metadata.
+        SetComProperty(rule, "Interfaces", new object[]{expected.interfaceAlias});
+        SetComProperty(rule, "Grouping", FirewallGroup); SetComProperty(rule, "EdgeTraversal", false);
+        SetComProperty(rule, "LocalAddresses", expected.localAddress); SetComProperty(rule, "RemoteAddresses", expected.remoteSubnet);
+        SetComProperty(rule, "Enabled", true);
+        rules.GetType().InvokeMember("Add", BindingFlags.InvokeMethod, null, rules, new object[]{rule});
+    }
+    static TunFirewallResponse ApplyTunFirewallRequest(object rules, TunFirewallRequest request, Func<object> createRule, Func<TunFirewallScope, TunFirewallScope> resolve) {
+        var response = new TunFirewallResponse { schemaVersion = 1, installed = new List<string>(), removed = new List<string>(), failures = new List<FirewallWireFailure>() };
+        foreach (var rule in request.rules) {
+            ValidateTunRule(rule);
+            var operation = request.operation == "ensure" ? "ensure" : "remove";
+            try {
+                if (operation == "ensure") Require(resolve(rule).interfaceAlias == rule.interfaceAlias);
+                var matches = FirewallRulesByName(rules, rule.name);
+                if (operation == "ensure" && matches.Count == 0) {
+                    AddOwnedTunFirewallRule(rules, rule, createRule); matches = FirewallRulesByName(rules, rule.name);
+                }
+                if (matches.Count > 1 || (matches.Count == 1 && !OwnedTunFirewallRule(matches[0], rule))) {
+                    response.failures.Add(Failure(operation, rule.name, "ownership-mismatch")); continue;
+                }
+                if (operation == "ensure") { Require(matches.Count == 1); response.installed.Add(rule.name); }
+                else {
+                    // Cleanup works after the owned adapter has disappeared;
+                    // authority is the full ledger handle and exact rule shape.
+                    if (matches.Count == 1) rules.GetType().InvokeMember("Remove", BindingFlags.InvokeMethod, null, rules, new object[]{rule.name});
+                    Require(FirewallRulesByName(rules, rule.name).Count == 0); response.removed.Add(rule.name);
+                }
+            } catch (TunFirewallNotReadyException) { response.failures.Add(Failure(operation, rule.name, "tun-not-ready")); }
+            catch { response.failures.Add(Failure(operation, rule.name, operation == "ensure" ? "tun-prepare-failed" : "com-remove-failed")); }
+        }
+        return response;
+    }
+    static TunFirewallResponse ResolveTunFirewallRequest(TunFirewallRequest request, Func<TunFirewallScope, TunFirewallScope> resolve) {
+        var response = new TunFirewallResponse { schemaVersion = 1, installed = new List<string>(), removed = new List<string>(), failures = new List<FirewallWireFailure>() };
+        try { response.scope = resolve(request.evidence); }
+        catch (TunFirewallNotReadyException) { response.failures.Add(Failure("ensure", "owned-tun-firewall", "tun-not-ready")); }
+        catch { response.failures.Add(Failure("ensure", "owned-tun-firewall", "tun-scope-unverified")); }
+        return response;
+    }
+    static int TunFirewallCommand(TextReader input, TextWriter output) {
+        Require(Elevated()); var line = Line(input, 65536); Require(line != null && line.Length <= 65536);
+        var request = FirewallJson.Deserialize<TunFirewallRequest>(line);
+        Require(request != null && request.schemaVersion == 1 && (request.operation == "resolve" || request.operation == "ensure" || request.operation == "remove")
+            && request.rules != null && request.rules.Length <= 64);
+        TunFirewallResponse response;
+        if (request.operation == "resolve") {
+            Require(request.rules.Length == 0);
+            response = ResolveTunFirewallRequest(request, ResolveTunScope);
+        } else {
+            foreach (var rule in request.rules) ValidateTunRule(rule);
+            var policy = ComCreate("HNetCfg.FwPolicy2");
+            response = ApplyTunFirewallRequest(ComProperty(policy, "Rules"), request, () => ComCreate("HNetCfg.FWRule"), ResolveTunScope);
+        }
+        output.WriteLine(FirewallJson.Serialize(response)); output.Flush(); return 0;
+    }
     static void AddOwnedFirewallRule(object rules, FirewallWireRule expected, Func<object> createRule) {
         var rule = createRule();
         SetComProperty(rule, "Name", expected.name);
@@ -396,6 +586,8 @@ class Program {
         public string ServiceName { get; set; }
         public string LocalAddresses { get; set; }
         public string RemoteAddresses { get; set; }
+        public object Interfaces { get; set; }
+        public string IcmpTypesAndCodes { get; set; }
         public int Profiles { get; set; }
         public int Protocol { get; set; }
         public int Direction { get; set; }
@@ -450,6 +642,70 @@ class Program {
         Require(ApplyFirewallRequest(moved, reconcile, () => new FakeFirewallRule()).failures.Count == 2 && moved.Removes == 0);
         Console.WriteLine("PASS firewall CLR fixture: create/verify/idempotence, 13 property collisions, duplicates, ownership cleanup, failed replacement; no host firewall access");
     }
+    static void TunFirewallSelfTest() {
+        var expected = new TunFirewallRule { schemaVersion = 1, guid = "11111111-1111-1111-1111-111111111111", luid = "1234", ifIndex = 17,
+            interfaceAlias = "唠蒯云 TUN", localAddress = "10.126.0.3", remoteSubnet = "10.126.0.0/24", ownershipId = new String('c', 32) };
+        expected.name = TunFirewallRuleName(expected); ValidateTunRule(expected);
+        var ensure = new TunFirewallRequest { schemaVersion = 1, operation = "ensure", rules = new[]{expected} };
+        var remove = new TunFirewallRequest { schemaVersion = 1, operation = "remove", rules = new[]{expected} };
+        Func<TunFirewallScope, TunFirewallScope> resolve = scope => scope;
+        var rules = new FakeFirewallRules();
+        Require(ApplyTunFirewallRequest(rules, ensure, () => new FakeFirewallRule(), resolve).installed.Count == 1 && rules.Adds == 1);
+        Require(ApplyTunFirewallRequest(rules, ensure, () => new FakeFirewallRule(), resolve).installed.Count == 1 && rules.Adds == 1);
+        var rule = (FakeFirewallRule)rules.Values[0];
+        Require(rule.Protocol == 1 && rule.IcmpTypesAndCodes == "8:*" && rule.LocalAddresses == expected.localAddress
+            && rule.RemoteAddresses == expected.remoteSubnet && TunFirewallInterface(rule, expected.interfaceAlias));
+        var edits = new Action<FakeFirewallRule>[] {
+            current => current.Action = 0, current => current.Direction = 2, current => current.Enabled = false,
+            current => current.Profiles = 3, current => current.Protocol = 6, current => current.ApplicationName = @"C:\foreign.exe",
+            current => current.Grouping = "foreign", current => current.Description = "foreign-owner", current => current.InterfaceTypes = "Lan",
+            current => current.EdgeTraversal = true, current => current.ServiceName = "foreign", current => current.RemoteAddresses = "*",
+            current => current.LocalAddresses = "*", current => current.Interfaces = new object[]{"private CheemsTier"},
+            current => current.Interfaces = new object[]{expected.interfaceAlias, "Ethernet"}, current => current.Interfaces = null,
+            current => current.IcmpTypesAndCodes = "*", current => current.IcmpTypesAndCodes = "0:*"
+        };
+        foreach (var edit in edits) {
+            var fresh = new FakeFirewallRules(); ApplyTunFirewallRequest(fresh, ensure, () => new FakeFirewallRule(), resolve);
+            edit((FakeFirewallRule)fresh.Values[0]);
+            Require(ApplyTunFirewallRequest(fresh, remove, null, null).failures.Count == 1 && fresh.Removes == 0);
+            Require(ApplyTunFirewallRequest(fresh, ensure, () => new FakeFirewallRule(), resolve).failures.Count == 1 && fresh.Adds == 1);
+        }
+        rule.RemoteAddresses = "10.126.0.0/255.255.255.0";
+        foreach (var local in new[]{"10.126.0.3", "10.126.0.3/32", "10.126.0.3/255.255.255.255"}) {
+            rule.LocalAddresses = local; Require(OwnedTunFirewallRule(rule, expected));
+        }
+        foreach (var local in new[]{"10.126.0.3/24", "10.126.0.3/255.255.255.0", "10.126.0.3,10.126.0.5", "*"}) {
+            rule.LocalAddresses = local; Require(!OwnedTunFirewallRule(rule, expected));
+        }
+        rule.LocalAddresses = "10.126.0.3/255.255.255.255";
+        rules.Values.Add(rule); Require(ApplyTunFirewallRequest(rules, remove, null, null).failures.Count == 1 && rules.Removes == 0);
+        rules.Values.RemoveAt(1);
+        // No adapter resolution during removal: stale owned handles can be cleaned after TUN exit.
+        Require(ApplyTunFirewallRequest(rules, remove, null, scope => { throw new Exception("adapter gone"); }).removed.Count == 1 && rules.Removes == 1);
+        Require(ApplyTunFirewallRequest(rules, remove, null, null).removed.Count == 1 && rules.Removes == 1);
+        var missing = new FakeFirewallRules();
+        Require(ApplyTunFirewallRequest(missing, ensure, () => new FakeFirewallRule(), scope => { throw new Exception("adapter unavailable"); }).failures.Count == 1 && missing.Adds == 0);
+        Require(ApplyTunFirewallRequest(missing, ensure, () => new FakeFirewallRule(), scope => new TunFirewallScope {interfaceAlias = "renamed"}).failures.Count == 1 && missing.Adds == 0);
+        var deferred = ApplyTunFirewallRequest(missing, ensure, () => new FakeFirewallRule(), scope => {throw new TunFirewallNotReadyException();});
+        Require(deferred.failures.Count == 1 && deferred.failures[0].code == "tun-not-ready" && missing.Adds == 0);
+        var resolving = new TunFirewallRequest {schemaVersion = 1, operation = "resolve", evidence = expected, rules = new TunFirewallRule[0]};
+        var notReady = ResolveTunFirewallRequest(resolving, scope => ResolveTunInterface(scope, scope.guid, scope.ifIndex, scope.interfaceAlias, true, new string[0]));
+        Require(notReady.failures.Count == 1 && notReady.failures[0].code == "tun-not-ready");
+        var down = ResolveTunFirewallRequest(resolving, scope => ResolveTunInterface(scope, scope.guid, scope.ifIndex, scope.interfaceAlias, false, new[]{scope.localAddress}));
+        Require(down.failures.Count == 1 && down.failures[0].code == "tun-not-ready");
+        foreach (var identity in new[]{"guid", "index"}) {
+            var mismatch = ResolveTunFirewallRequest(resolving, scope => ResolveTunInterface(scope, identity == "guid" ? "22222222-2222-2222-2222-222222222222" : scope.guid,
+                identity == "index" ? scope.ifIndex + 1 : scope.ifIndex, scope.interfaceAlias, false, new string[0]));
+            Require(mismatch.failures.Count == 1 && mismatch.failures[0].code == "tun-scope-unverified");
+        }
+        Require(ResolveTunFirewallRequest(resolving, scope => ResolveTunInterface(scope, scope.guid, scope.ifIndex, scope.interfaceAlias, true, new[]{scope.localAddress})).scope != null);
+        foreach (var subnet in new[]{"0.0.0.0/0", "10.126.0.1/24", "10.126.1.0/24", "10.0.0.0/7", "192.168.0.0/15", "*"}) {
+            var original = expected.remoteSubnet; expected.remoteSubnet = subnet; bool rejected = false;
+            try { ValidateTunScope(expected, true); } catch { rejected = true; }
+            expected.remoteSubnet = original; Require(rejected);
+        }
+        Console.WriteLine("PASS scoped TUN firewall CLR fixture: " + expected.name + "; exact ICMP/alias/local/subnet, idempotence, 18 collisions, duplicate protection, retained-interface cleanup, invalid and renamed adapters; no host firewall access");
+    }
     static int Main(string[] args) {
         try {
             Console.InputEncoding = new UTF8Encoding(false); Console.OutputEncoding = new UTF8Encoding(false);
@@ -465,6 +721,8 @@ class Program {
             if (args.Length == 2 && args[0] == "--restart-app") return RestartApp(Int32.Parse(args[1]));
             if (args.Length == 1 && args[0] == "--firewall") return FirewallCommand(Console.In, Console.Out);
             if (args.Length == 1 && args[0] == "--firewall-self-test") { FirewallSelfTest(); return 0; }
+            if (args.Length == 1 && args[0] == "--firewall-tun") return TunFirewallCommand(Console.In, Console.Out);
+            if (args.Length == 1 && args[0] == "--firewall-tun-self-test") { TunFirewallSelfTest(); return 0; }
             if (args.Length == 1 && args[0] == "--dns-policy") { Require(Elevated()); return CommunityDnsPolicy.Command(Console.In, Console.Out); }
             if (args.Length == 1 && args[0] == "--dns-policy-self-test") { CommunityDnsPolicy.SelfTest(); return 0; }
             if (args.Length == 1 && args[0] == "--self-test") { SelfTest(); return 0; }

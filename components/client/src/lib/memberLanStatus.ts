@@ -20,6 +20,8 @@ export interface LanIdentityBinding {
   confidence: LanBindingConfidence;
   source: "authenticated-community";
   observedAtMs: number;
+  /** Local normalized Unix deadline of an optional short-lived issuer proof. */
+  expiresAtMs?: number;
 }
 export interface LanPeerPathEvidence {
   /** Actual measured route from this observer, not the remote peer's own route. */
@@ -29,6 +31,8 @@ export interface LanPeerPathEvidence {
   fromPeerId: string;
   toPeerId: string;
   observedAtMs: number;
+  /** Matching authenticated peer and virtual address in the local ET route table. */
+  routeVisible?: boolean;
   rtt?: {
     scope: "peer";
     source: "easytier-local";
@@ -42,6 +46,7 @@ export interface LanPeerPathEvidence {
 export interface LanMemberEvidence {
   binding: LanIdentityBinding;
   enrollment: { state: LanEnrollment; source: LanEvidenceSource; observedAtMs: number };
+  connectedDevices?: number;
   /** The authenticated member's EasyTier virtual IPv4, never a physical/public address. */
   virtualIp?: string;
   /** Distinct server-issued addresses when the account has several devices. */
@@ -69,6 +74,8 @@ export interface MemberLanReading {
   path: LanPath;
   pathReason?: LanReadingReason;
   rttMs: number | null;
+  routeVisible?: boolean;
+  connectedDevices?: number;
   rttReason?: LanReadingReason;
   /** Safe enums only; identity/peer IDs and arbitrary diagnostic text stay private. */
   source?: LanEvidenceSource;
@@ -98,6 +105,10 @@ function ageReason(timestamp: number, nowMs: number): "stale" | "invalid" | unde
 function bindingReason(binding: LanIdentityBinding | undefined, nowMs: number): LanReadingReason | undefined {
   if (!binding || !nonempty(binding.authenticatedUserId) || binding.source !== "authenticated-community") return "unverified";
   if (binding.confidence !== "verified") return binding.confidence === "ambiguous" ? "ambiguous" : "unverified";
+  if (binding.expiresAtMs !== undefined) {
+    if (!Number.isSafeInteger(binding.expiresAtMs) || binding.expiresAtMs <= binding.observedAtMs) return 'invalid';
+    if (binding.expiresAtMs <= nowMs) return 'stale';
+  }
   return ageReason(binding.observedAtMs, nowMs);
 }
 /** Fail closed to unknown. Rendering does not authenticate a claimed binding itself. */
@@ -144,6 +155,7 @@ export function readMemberLanStatus({ serverScope, authenticatedUserId, observer
     new Set(dnsAddresses.map(address => address.virtualIp)).size === dnsAddresses.length &&
     new Set(dnsAddresses.map(address => communityDnsNameZone(address.dnsName))).size <= 1 ? dnsAddresses : [];
   const result: MemberLanReading = { enrollment: member.enrollment.state, path: "unknown", rttMs: null,
+    connectedDevices: Number.isSafeInteger(member.connectedDevices) && member.connectedDevices! > 0 && member.connectedDevices! <= 254 ? member.connectedDevices : undefined,
     virtualIp: validAddresses.length === 1 ? validAddresses[0] : undefined,
     virtualIps: validAddresses.length ? validAddresses : undefined,
     dnsAddresses: validDns.length ? validDns.map(address => ({dnsName: address.dnsName, virtualIp: address.virtualIp, expiresAtUnixMs: address.expiresAtUnixMs})) : undefined,
@@ -174,6 +186,7 @@ export function readMemberLanStatus({ serverScope, authenticatedUserId, observer
   const pathAge = ageReason(path.observedAtMs, clock);
   if (pathAge) return noPath(pathAge);
   result.path = path.kind;
+  result.routeVisible = path.routeVisible === true;
   if (path.kind === "unknown") result.pathReason = "missing";
   const rtt = path.rtt;
   if (!rtt) return { ...result, rttReason: "missing" };

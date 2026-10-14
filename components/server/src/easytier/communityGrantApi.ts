@@ -16,21 +16,27 @@ export interface CommunitySessionResponseV1 { v: 1; serverUserId: string; intent
 export interface CommunityRevokeResponseV1 { v: 1; revoked: true }
 /**
  * A read-only roster of addresses assigned by this community's ET authority.
- * It deliberately contains no peer IDs, physical endpoints, keys or voice data.
+ * Legacy rows contain no peer IDs, physical endpoints, keys or voice data.
+ * includeBindings opts into separately bounded issuer node proofs.
  * The address is stable for the authenticated account+device registration.
  * A serverUserId may appear for several devices, each with a distinct address.
  * Active credential authorization never proves online/route connectivity.
  */
-export interface CommunityDirectoryRequestV1 { v: 1; communityId: string; includeDnsNames?: true; dnsNameStyle?: 'friendly' }
+export interface CommunityDirectoryRequestV1 { v: 1; communityId: string; includeDnsNames?: true; dnsNameStyle?: 'friendly'; includeBindings?: true }
 export interface CommunityDirectoryMemberV1 { serverUserId: string; virtualIp: string }
+/** Authenticated issuer connection and route; never a physical-path or RTT claim. */
+export interface CommunityDirectoryBindingV1 { serverUserId: string; virtualIp: string; peerId: number; expiresAtMs: number }
+export interface CommunityDirectoryBindingsV1 { serverTimeMs: number; maxAgeMs: 5000; members: CommunityDirectoryBindingV1[] }
 export interface CommunityDirectoryResponseV1 {
   v: 1; communityId: string; members: CommunityDirectoryMemberV1[];
+  bindings?: CommunityDirectoryBindingsV1;
 }
 /** Opt-in only: legacy requests keep their exact legacy response shape. */
 export interface CommunityDnsDirectoryMemberV1 extends CommunityDirectoryMemberV1 { dnsName: string; dnsExpiresAtMs: number }
 export interface CommunityDnsDirectoryResponseV1 {
   v: 1; communityId: string; members: CommunityDnsDirectoryMemberV1[];
   dns: { zone: string; serverTimeMs: number; maxAgeMs: number };
+  bindings?: CommunityDirectoryBindingsV1;
 }
 export interface CommunityBindingProofV1 {
   v: 1; serverUserId: string; scope: CommunityGrantScope; grantId: string; credentialId: string; revision: number;
@@ -57,9 +63,10 @@ export function parseCommunityGrantRequest(kind: 'session' | 'acquire' | 'renew'
   if (kind === 'directory') {
     const hasDns = !!raw && typeof raw === 'object' && Object.prototype.hasOwnProperty.call(raw, 'includeDnsNames');
     const hasStyle = !!raw && typeof raw === 'object' && Object.prototype.hasOwnProperty.call(raw, 'dnsNameStyle');
-    exact<CommunityDirectoryRequestV1>(raw, ['v', 'communityId', ...(hasDns ? ['includeDnsNames'] : []), ...(hasStyle ? ['dnsNameStyle'] : [])], 'invalid-directory-query');
+    const hasBindings = !!raw && typeof raw === 'object' && Object.prototype.hasOwnProperty.call(raw, 'includeBindings');
+    exact<CommunityDirectoryRequestV1>(raw, ['v', 'communityId', ...(hasDns ? ['includeDnsNames'] : []), ...(hasStyle ? ['dnsNameStyle'] : []), ...(hasBindings ? ['includeBindings'] : [])], 'invalid-directory-query');
     if (raw.v !== 1 || !communityIdentity(raw.communityId) || (hasDns && raw.includeDnsNames !== true) ||
-        (hasStyle && (!hasDns || raw.dnsNameStyle !== 'friendly'))) fail('invalid-directory-query');
+        (hasStyle && (!hasDns || raw.dnsNameStyle !== 'friendly')) || (hasBindings && raw.includeBindings !== true)) fail('invalid-directory-query');
     return structuredClone(raw);
   }
   const keys = ['v','communityId','deviceId','nativeInstanceId'];

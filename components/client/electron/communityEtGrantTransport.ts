@@ -2,7 +2,7 @@ import { request } from 'node:https';
 
 import type { TrustedCommunityBootstrap } from './communityEtConfig';
 import { exact, id, intent, privateIpv4, type TrustedCommunityIntent } from './communityEtGrant';
-import type { CommunityDirectoryMemberV1, CommunityDirectoryResponseV1, CommunitySessionResponseV1 } from './communityEtHttpContract';
+import type { CommunityDirectoryBindingsV1, CommunityDirectoryMemberV1, CommunityDirectoryResponseV1, CommunitySessionResponseV1 } from './communityEtHttpContract';
 
 export interface TrustedCommunityTarget {
   communityId: string; serverHost: string; origin: string; serverInstanceId: string;
@@ -80,7 +80,7 @@ export const communityEtHttpsPort: CommunityEtHttpPort = {
           const reason = res.statusCode === 200 ? null : responseServiceReason(chunks, size);
           if (res.statusCode === 401 || res.statusCode === 403) { reject(new CommunityEtTransportError('auth-unavailable', reason)); return; }
           if (res.statusCode === 400 && operation === 'directory' && body && typeof body === 'object' &&
-              (body as {includeDnsNames?: unknown}).includeDnsNames === true) {
+              ((body as {includeDnsNames?: unknown}).includeDnsNames === true || (body as {includeBindings?: unknown}).includeBindings === true)) {
             reject(new CommunityEtTransportError('directory-extension-unsupported', reason)); return;
           }
           if (res.statusCode !== 200) { reject(new CommunityEtTransportError('provider-unavailable', reason)); return; }
@@ -131,6 +131,23 @@ export class CommunityEtGrantTransport {
       result.push({serverUserId: member.serverUserId, virtualIp: member.virtualIp});
     }
     return result;
+  }
+  parseDirectoryBindings(value: unknown, members: CommunityDirectoryMemberV1[]): CommunityDirectoryBindingsV1 {
+    try {
+      exact<CommunityDirectoryBindingsV1>(value, ['serverTimeMs', 'maxAgeMs', 'members'], 'invalid-directory-bindings');
+      if (!Number.isSafeInteger(value.serverTimeMs) || value.serverTimeMs <= 0 || value.maxAgeMs !== 5000 ||
+          !Array.isArray(value.members) || value.members.length > 256) throw new Error('invalid-directory-bindings');
+      const peers = new Set<number>(), addresses = new Set<string>();
+      for (const row of value.members) {
+        exact(row, ['serverUserId', 'virtualIp', 'peerId', 'expiresAtMs'], 'invalid-directory-bindings');
+        if (!id(row.serverUserId) || !privateIpv4(row.virtualIp) || !members.some(m => m.serverUserId === row.serverUserId && m.virtualIp === row.virtualIp) ||
+            !Number.isSafeInteger(row.peerId) || row.peerId < 1 || row.peerId > 0xffffffff || peers.has(row.peerId) || addresses.has(row.virtualIp) ||
+            !Number.isSafeInteger(row.expiresAtMs) || row.expiresAtMs <= value.serverTimeMs || row.expiresAtMs > value.serverTimeMs + value.maxAgeMs)
+          throw new Error('invalid-directory-bindings');
+        peers.add(row.peerId); addresses.add(row.virtualIp);
+      }
+      return structuredClone(value);
+    } catch { throw new CommunityEtTransportError('invalid-response'); }
   }
   async post(target: TrustedCommunityTarget, operation: string, bearer: string, body: unknown, signal: AbortSignal): Promise<unknown> {
     if (!operations.includes(operation as typeof operations[number])) throw new CommunityEtTransportError('auth-unavailable');

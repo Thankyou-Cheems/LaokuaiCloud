@@ -18,8 +18,8 @@ export function MemberLanStatus({ serverScope, authenticatedUserId, observerAuth
 }) {
   const { t } = useTranslation();
   const reading = readMemberLanStatus({ serverScope, authenticatedUserId, observerAuthenticatedUserId, snapshot, nowMs });
-  const state = t(`memberLan.enrollment.${reading.enrollment}`);
   const isSelf = reading.pathReason === "self";
+  const state = t(reading.enrollment === 'joined' && !isSelf ? 'memberLan.nodeConnected' : `memberLan.enrollment.${reading.enrollment}`);
   const path = t(reading.pathReason === "self" ? "memberLan.path.self"
     : reading.pathReason === "stale" ? "memberLan.pathExpired" : `memberLan.path.${reading.path}`);
   const rtt = reading.rttMs === null ? t(reading.rttReason === "stale" ? "memberLan.stale" : "memberLan.unknown") : `${Math.round(reading.rttMs)} ms`;
@@ -33,6 +33,7 @@ export function MemberLanStatus({ serverScope, authenticatedUserId, observerAuth
     reading.virtualIps?.length && `${t("memberLan.virtualIpTitle")}: ${reading.virtualIps.join(", ")}`,
     reading.dnsAddresses?.length && `${t("memberLan.dnsTitle")}: ${reading.dnsAddresses.map(address => `${communityDnsDisplayName(address.dnsName)} → ${address.virtualIp}`).join(", ")}`,
     reading.enrollment === "assigned" && t("memberLan.addressAssignmentBoundary"),
+    reading.enrollment === "joined" && !isSelf && t("memberLan.nodeBoundary"),
     (reading.virtualIps?.length ?? 0) > 1 && t("memberLan.multipleDeviceAddresses"),
     t("memberLan.voiceBoundary")].filter(Boolean).join("; ");
   const joined = reading.enrollment === "joined";
@@ -40,7 +41,9 @@ export function MemberLanStatus({ serverScope, authenticatedUserId, observerAuth
     : reading.enrollment === "joining" ? "connecting"
     : ["off", "not-joined", "error"].includes(reading.enrollment) ? "disconnected"
     : joined && reading.path !== "unknown" ? reading.path : "unknown";
-  const label = `${state}${joined ? ` · ${path}${isSelf ? "" : ` · ${rtt}`}` : ""}`;
+  const routeLabel = isSelf || reading.pathReason === 'stale' ? path : reading.routeVisible ? t('memberLan.routeVisible')
+    : reading.path !== 'unknown' ? path : t('memberLan.routePending');
+  const label = `${state}${joined ? ` · ${routeLabel}${!isSelf && reading.rttMs !== null ? ` · ${rtt}` : ""}` : ""}`;
   const copyVirtualIp = (event: MouseEvent<HTMLButtonElement>, address: string) => {
     event.stopPropagation();
     if (!navigator.clipboard) { toast.error(t("memberLan.copyFailed")); return; }

@@ -1,9 +1,9 @@
 import { readFile, realpath, stat } from "node:fs/promises";
 import { isAbsolute, join, relative } from "node:path";
 
+import type { CredentialIdentityExpectation } from "./communityEtCredentialObservation";
 import { EasyTierOperationError, validEasyTierId } from "./easyTierCommunityManager";
 import { easyTierSha256 } from "./easyTierWindowsAssets";
-import type { CredentialIdentityExpectation } from "./communityEtCredentialObservation";
 
 export interface EasyTierExistingConfiguration {
   serverId: string;
@@ -17,6 +17,8 @@ export interface EasyTierExistingConfiguration {
   latencyFirst?: boolean;
   /** Main-generated live grant, never a renderer field or saved activation capability. */
   credentialIdentity?: CredentialIdentityExpectation;
+  /** Live main-generated scope from the authenticated grant and pinned bootstrap. */
+  ownedFirewallScope?: {localAddress: string; prefixLength: number};
 }
 export interface EasyTierActivationReceipt {
   schemaVersion: 1;

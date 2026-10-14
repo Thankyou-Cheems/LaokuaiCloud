@@ -1,6 +1,7 @@
 import type {
   ReceiveCandidateEndpoint,
   ReceiveCandidateType,
+  ReceivePairUnavailableReason,
   ReceiveTrackObservation,
   ReceiveTransportPathEvidence,
   ReceiveTransportPathReason,
@@ -53,8 +54,10 @@ const summary = (path: ReceiveTransportPathEvidence): ReceiveTransportPathSummar
 });
 
 const unknownPath = (observedAtMs: number, reason: ReceiveTransportPathReason, pairId: string | null = null,
-  local: ReceiveCandidateEndpoint | null = null, remote: ReceiveCandidateEndpoint | null = null): ReceiveTransportPathEvidence => ({
+  local: ReceiveCandidateEndpoint | null = null, remote: ReceiveCandidateEndpoint | null = null,
+  pairUnavailableReason: ReceivePairUnavailableReason | null = null): ReceiveTransportPathEvidence => ({
   source: "rtc-selected-candidate-pair", observedAtMs, classification: "unknown", reason, pairId, local, remote, underlay: null,
+  pairUnavailableReason,
 });
 
 /** Resolve this exact inbound track to its selected pair and candidate records.
@@ -65,9 +68,12 @@ export function readReceiveTransportPath(report: RTCStatsReport, trackId: string
   });
   if (rows.length !== 1) return unknownPath(at, rows.length > 1 ? "track-stats-ambiguous" : "track-stats-unavailable");
   const transport: any = report.get(rows[0].transportId);
-  if (!transport || transport.type !== "transport" || typeof transport.selectedCandidatePairId !== "string") return unknownPath(at, "pair-unavailable");
+  if (!transport || transport.type !== "transport" || typeof transport.selectedCandidatePairId !== "string" || transport.selectedCandidatePairId.length === 0) {
+    return unknownPath(at, "pair-unavailable", null, null, null, "transport-unavailable");
+  }
   const pairId = transport.selectedCandidatePairId, pair: any = report.get(pairId);
-  if (!pair || pair.type !== "candidate-pair" || pair.state !== "succeeded") return unknownPath(at, "pair-unavailable", pairId);
+  if (!pair || pair.type !== "candidate-pair") return unknownPath(at, "pair-unavailable", pairId, null, null, "pair-record-unavailable");
+  if (pair.state !== "succeeded") return unknownPath(at, "pair-unavailable", pairId, null, null, "pair-not-succeeded");
   const local = endpoint(report, pair.localCandidateId, "local-candidate"), remote = endpoint(report, pair.remoteCandidateId, "remote-candidate");
   if (!local || !remote) return unknownPath(at, "candidate-unavailable", pairId, local, remote);
   if (local.candidateType === "relay" || remote.candidateType === "relay") {

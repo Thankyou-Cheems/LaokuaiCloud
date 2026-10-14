@@ -28,6 +28,7 @@ interface Route {
   pauseUntil: number;
   pathSince?: number;
   pathKey?: string;
+  pathPairId?: string;
   pathMonitor?: unknown;
   reprobe?: unknown;
   reprobeAttempt: number;
@@ -76,6 +77,8 @@ const numberOption = (value: number | undefined, fallback: number, min: number, 
 const reprobeDelaysMs = [15000, 30000, 60000] as const;
 const restoreRetryDelaysMs = [1000, 2000, 4000, 8000] as const;
 const restoreCooldownMs = 60000;
+// Three default stats polls at most, measured from the last admitted path.
+const pathStatsGapMaxMs = 1500;
 
 /** Experimental adapter-driven controller; the normal SDK SFU path is unchanged. */
 export class HybridRouteController {
@@ -319,7 +322,7 @@ export class HybridRouteController {
       if (!admission) throw new Error("peer_path_not_admitted");
       if (!this.mediaHealthy(route, candidate)) throw new Error("peer_media_stale");
       const now = this.clock.now();
-      if (stableKey !== admission.key) { stableKey = admission.key; stableSince = now; route.pathKey = admission.key; route.pathSince = now; }
+      if (stableKey !== admission.key) { stableKey = admission.key; stableSince = now; route.pathKey = admission.key; route.pathSince = now; route.pathPairId = admission.observation.transportPath.pairId!; }
       if (now - stableSince >= this.options.pathStableMs) return candidate;
       if (now >= deadline) throw new Error("peer_path_unstable");
       await this.wait(route, Math.min(this.options.pathMonitorMs, this.options.pathStableMs - (now - stableSince)));
@@ -460,7 +463,7 @@ export class HybridRouteController {
     }
     const admission = this.pathAdmission(fresh);
     if (!admission || admission.key !== route.pathKey) throw new Error("peer_path_not_admitted");
-    route.candidate = fresh;
+    route.candidate = fresh; route.pathSince = this.clock.now();
   }
 
   private async selectionComplete(route: Route): Promise<void> {
@@ -561,12 +564,34 @@ export class HybridRouteController {
     if (!this.current(route, generation) || route.state.status !== "p2p") return;
     route.candidate = candidate;
     const admission = candidate && this.pathAdmission(candidate);
-      if (!candidate || !admission || !this.mediaHealthy(route, candidate)) {
-        void this.fallback(route.participant.participantId,
-          !admission ? "peer_path_changed" : "p2p_media_lost");
-        return;
-      }
-    route.pathKey = admission.key; route.pathSince = this.clock.now(); this.emit(); this.monitorPeer(route);
+    if (!candidate || !this.mediaHealthy(route, candidate)) {
+      void this.fallback(route.participant.participantId, "p2p_media_lost"); return;
+    }
+    if (!admission) {
+      if (this.allowPathStatsGap(route, candidate)) { this.monitorPeer(route); return; }
+      void this.fallback(route.participant.participantId, "peer_path_changed"); return;
+    }
+    route.pathKey = admission.key; route.pathPairId = admission.observation.transportPath.pairId!;
+    route.pathSince = this.clock.now(); this.emit(); this.monitorPeer(route);
+  }
+
+  /** Continuity only: never admit, classify, or refresh an unobserved transport. */
+  private allowPathStatsGap(route: Route, candidate: HybridMediaCandidate): boolean {
+    const now = this.clock.now();
+    if (route.pathSince === undefined || !route.pathPairId || now - route.pathSince >= pathStatsGapMaxMs) return false;
+    let observation: ReceiveTrackObservation | null;
+    try { observation = candidate.getReceiveObservation?.() ?? null; } catch { return false; }
+    if (!observation || observation.trackId !== candidate.track.id) return false;
+    const path = observation.transportPath, decode = observation.decode;
+    return path.classification === "unknown" && path.reason === "pair-unavailable" &&
+      (path.pairUnavailableReason === "transport-unavailable" || path.pairUnavailableReason === "pair-record-unavailable") &&
+      (path.pairId === null || path.pairId === route.pathPairId) &&
+      observation.metrics.path.classification === "unknown" && observation.metrics.path.pairId === path.pairId &&
+      path.underlay?.classification !== "easytier-relay" &&
+      finite(path.observedAtMs) && path.observedAtMs === observation.observedAtMs && path.observedAtMs <= now &&
+      now - path.observedAtMs <= HYBRID_MEDIA_PROOF_MAX_AGE_MS &&
+      !!decode?.fresh && decode.packetsDelta > 0 && decode.samplesDelta > 0 &&
+      decode.endAtMs === observation.observedAtMs && decode.startAtMs < decode.endAtMs;
   }
 
   private scheduleReprobe(route: Route): void {
@@ -734,7 +759,7 @@ export class HybridRouteController {
     this.setPause(route, 0);
     if (route.peer) { this.previousMetrics.delete(route.peer); try { route.peer.dispose(); } catch { /* Continue cleanup. */ } }
     route.peer = undefined;
-    route.candidate = undefined; route.pathKey = undefined; route.pathSince = undefined;
+    route.candidate = undefined; route.pathKey = undefined; route.pathPairId = undefined; route.pathSince = undefined;
     if (route.lease) this.release(route.lease);
     route.lease = undefined;
   }

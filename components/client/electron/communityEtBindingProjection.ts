@@ -1,8 +1,18 @@
-import type { CommunityBindingProofV1 } from './communityEtHttpContract';
-import { exact, publicKeyFingerprint, sameScope, scope, type PrivateCommunityGrantV1 } from './communityEtGrant';
-import type { VerifiedCommunitySession } from './communityEtGrantTransport';
 import type { OwnedCredentialObservation } from './communityEtCredentialObservation';
+import { exact, type PrivateCommunityGrantV1,publicKeyFingerprint, sameScope, scope } from './communityEtGrant';
+import type { VerifiedCommunitySession } from './communityEtGrantTransport';
+import type { CommunityBindingProofV1 } from './communityEtHttpContract';
+import type { CommunityDirectoryBindingsV1 } from './communityEtHttpContract';
 import type { EasyTierIdentityBinding, EasyTierStatusSample } from './easyTierStatus';
+
+/** Normalize issuer time once; subsequent ET polls cannot refresh a cached proof. */
+export function projectCommunityEtDirectoryBindings(value: CommunityDirectoryBindingsV1, sample: EasyTierStatusSample,
+  requestStartedMonoMs: number, requestedAtUnixMs: number): EasyTierIdentityBinding[] {
+  return value.members.map(row => ({serverId: sample.serverId, instanceId: sample.instanceId, generation: sample.generation,
+    userId: row.serverUserId, peerId: row.peerId, authenticated: true, deviceId: row.virtualIp,
+    virtualIp: row.virtualIp, expiresAtMs: requestStartedMonoMs + row.expiresAtMs - value.serverTimeMs,
+    observedAtUnixMs: requestedAtUnixMs, enrollment: 'joined', enrollmentObservedAtUnixMs: requestedAtUnixMs}));
+}
 
 /** Join trusted HTTPS authority with the exact owned CLI sample. Never infer another member. */
 export function projectCommunityEtBinding(value: unknown, grant: PrivateCommunityGrantV1,

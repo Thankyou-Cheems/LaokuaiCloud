@@ -27,6 +27,7 @@ export interface HybridDiagnostic {
   forwardingPaused?: boolean;
   pathClass?: PeerDiagnostic["pathClass"];
   pathReason?: PeerDiagnostic["pathReason"];
+  pairUnavailableReason?: PeerDiagnostic["pairUnavailableReason"];
   localCandidateType?: PeerDiagnostic["localCandidateType"];
   remoteCandidateType?: PeerDiagnostic["remoteCandidateType"];
   underlayClass?: PeerDiagnostic["underlayClass"];
@@ -57,6 +58,7 @@ export function createHybridDiagnosticObserver(callback: (diagnostic: HybridDiag
     const value: HybridDiagnostic = event.kind === "peer-media" ? {
       operation: "hybrid-path", scopeGeneration, status: event.failureReason ? "failed" : "active", reason: null,
       pathClass: event.pathClass, pathReason: event.pathReason, localCandidateType: event.localCandidateType,
+      pairUnavailableReason: event.pairUnavailableReason,
       remoteCandidateType: event.remoteCandidateType, underlayClass: event.underlayClass, decodeProof: event.decodeProof,
       decodeReason: event.decodeReason, failureReason: event.failureReason,
     } : event.kind === "handoff" ? {

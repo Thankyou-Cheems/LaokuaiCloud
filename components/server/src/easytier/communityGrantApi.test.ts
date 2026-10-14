@@ -55,6 +55,15 @@ test('friendly DNS negotiation requires the exact style and explicit DNS opt-in'
   Object.defineProperty(body,'dnsNameStyle',{get:()=>assert.fail('style getter must not run')});
   assert.throws(()=>parseCommunityGrantRequest('directory',body),ContractError);
 });
+test('node bindings are a separate exact opt-in, compatible with numeric and DNS directories',()=>{
+  for(const extras of [{},{includeDnsNames:true as const,dnsNameStyle:'friendly' as const}]) {
+    const body={v:1 as const,communityId:'community',...extras,includeBindings:true as const};
+    assert.deepEqual(parseCommunityGrantRequest('directory',body),body);
+    for(const flag of [false,undefined,null,'true',1])assert.throws(()=>parseCommunityGrantRequest('directory',{...body,includeBindings:flag}),ContractError);
+    Object.defineProperty(body,'includeBindings',{get:()=>assert.fail('binding getter must not run')});
+    assert.throws(()=>parseCommunityGrantRequest('directory',body),ContractError);
+  }
+});
 for (const field of ['accountId','serverUserId','sessionId','networkName','adminInstanceId','credentialSecretB64','rpcUrl','bootstrap']) {
   test(`reject client-provided ${field}`, () => {
     assert.throws(() => parseCommunityGrantRequest('session',{...base,[field]:'untrusted'}), ContractError);

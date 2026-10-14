@@ -14,6 +14,8 @@ export interface EasyTierIdentityBinding {
   authenticated: boolean;
   expiresAtMs: number;
   deviceId: string;
+  /** Authenticated directory address, checked independently against the local route. */
+  virtualIp?: string;
   observedAtUnixMs: number;
   enrollment: LanEnrollment;
   enrollmentObservedAtUnixMs: number;
@@ -162,6 +164,7 @@ export function projectEasyTierStatus(sample: EasyTierStatusSample | null, scope
     if (matching.length !== 1) continue;
     const route = matching[0];
     state.virtualIp = easyTierVirtualIp(route.ipv4_addr);
+    if (binding.virtualIp !== undefined && state.virtualIp !== binding.virtualIp) { state.virtualIp = null; continue; }
     if (sample.latencyFirst === null || localPeer === null) continue;
     const nextHop = peerId(sample.latencyFirst ? route.next_hop_peer_id_latency_first : route.next_hop_peer_id);
     if (nextHop === null || nextHop === localPeer) continue;

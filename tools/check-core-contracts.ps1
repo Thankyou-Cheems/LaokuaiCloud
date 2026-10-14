@@ -31,6 +31,8 @@ try {
         'electron/communityEnrollment.test.mjs',
         'electron/windowsAdminStartupGate.test.mjs',
         'scripts/check-windows-firewall-rules.mjs',
+        'scripts/check-owned-tun-firewall.mjs',
+        'scripts/check-owned-tun-session.mjs',
         'scripts/check-community-easytier-direct.mjs',
         'scripts/check-community-easytier-network.mjs',
         'scripts/check-community-easytier.mjs',

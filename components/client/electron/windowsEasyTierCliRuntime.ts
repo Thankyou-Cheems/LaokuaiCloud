@@ -9,6 +9,8 @@ export interface WindowsEasyTierCliPorts {
   verifiedAssets(): Promise<string>;
   start(directory: string, config: EasyTierExistingConfiguration, signal: AbortSignal): Promise<EasyTierCliCore>;
   shutdownOwned(): void;
+  /** Optional product-only, scoped rule preparation after the owned NIC is ready. */
+  prepareOwnedInterface?(config: EasyTierExistingConfiguration, core: EasyTierCliCore, signal: AbortSignal): Promise<() => Promise<void>>;
   /** Production waits between CLI attempts. Pure tests supply an immediate wait. */
   pause(signal: AbortSignal): Promise<void>;
 }
@@ -34,11 +36,15 @@ export class WindowsEasyTierCliRuntime implements EasyTierRuntime {
     const owner = { serverId: scope.serverId, core: null as EasyTierCliCore | null, cleanupPending: false, close: async () => undefined as void };
     this.owner = owner;
     let closed = false, closing: Promise<void> | null = null;
+    let releaseInterface: (() => Promise<void>) | undefined;
     const close = (): Promise<void> => {
       if (closed) return Promise.resolve();
       if (closing) return closing;
       closing = (async () => {
-        await owner.core?.close();
+        // Windows may erase the interface alias from a rule after the NIC is
+        // removed. Verify/remove our exact rule while that identity still exists.
+        try { await releaseInterface?.(); }
+        finally { await owner.core?.close(); }
         if (this.owner === owner) this.owner = null;
         closed = true;
       })().catch(() => { closing = null; owner.cleanupPending = true; throw new EasyTierOperationError("cleanup-failed"); });
@@ -77,6 +83,8 @@ export class WindowsEasyTierCliRuntime implements EasyTierRuntime {
       if (!ready) throw new EasyTierOperationError("connect-failed");
       check();
       const core = owner.core;
+      releaseInterface = await this.ports.prepareOwnedInterface?.(config, core, scope.signal);
+      check();
       return {
         instanceId: config.instanceId, close,
         applyRelayBudget: core.applyRelayBudget ? (budget, lease, signal) => core.applyRelayBudget!(budget, lease, signal) : undefined,

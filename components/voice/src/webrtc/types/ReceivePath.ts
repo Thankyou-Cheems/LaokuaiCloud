@@ -43,6 +43,8 @@ export interface ReceiveCandidateEndpoint {
 export type ReceiveTransportPathClass = "turn-relay" | "non-turn-candidate" | "unknown";
 export type ReceiveTransportPathReason = "selected-pair" | "turn-relay" | "candidate-type-unknown" |
   "candidate-unavailable" | "pair-unavailable" | "track-stats-unavailable" | "track-stats-ambiguous";
+/** Fixed detail for the three distinct selected-pair lookup failures. */
+export type ReceivePairUnavailableReason = "transport-unavailable" | "pair-record-unavailable" | "pair-not-succeeded";
 export type ReceiveUnderlayClass = "not-easytier" | "easytier-direct" | "easytier-relay" | "unknown";
 
 /** Host supplied underlay evidence. It never upgrades the ICE class by itself. */
@@ -63,6 +65,7 @@ export interface ReceiveTransportPathEvidence {
   observedAtMs: number;
   classification: ReceiveTransportPathClass;
   reason: ReceiveTransportPathReason;
+  pairUnavailableReason?: ReceivePairUnavailableReason | null;
   pairId: string | null;
   local: ReceiveCandidateEndpoint | null;
   remote: ReceiveCandidateEndpoint | null;

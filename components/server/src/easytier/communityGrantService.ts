@@ -7,14 +7,14 @@ import {
   type CommunityGrantScope, type CredentialProvider, type NativeAuthority, type PrivateCommunityGrantV1,
   type PrivateCommunityGrant, type RelayConsentV2, type PrivateNativeCredentialReceipt, type TrustedCommunityIntent,
 } from './communityGrant';
-import { verifyCurrentDeviceBinding } from './communityDeviceBinding';
+import { verifyCurrentDeviceBinding, type ProviderPeerObservation } from './communityDeviceBinding';
 import { deriveCredentialFingerprint } from './communityCredentialProvider';
 import { parseRelayRequest, relayGrantFromReadback, type CommunityRelayRequestV2, type CommunityRelayRenewRequestV2,
   type CommunityRelayResponseV2, type RelayCredentialProvider, type StoredRelayState } from './communityRelayPolicy';
 import type { CommunityMemberAuthorizer, CommunityMemberIdentity } from './communityGrantAuth';
 import {
   parseCommunityGrantRequest, type CommunityAcquireRequestV1, type CommunityBindingRequestV1,
-  type CommunityDirectoryRequestV1, type CommunityDirectoryResponseV1, type CommunityDnsDirectoryResponseV1,
+  type CommunityDirectoryRequestV1, type CommunityDirectoryResponseV1, type CommunityDnsDirectoryResponseV1, type CommunityDirectoryBindingsV1,
   type CommunityGrantApi, type CommunityRenewRequestV1, type CommunitySessionRequestV1,
 } from './communityGrantApi';
 import {
@@ -353,6 +353,51 @@ export class CommunityGrantService implements CommunityGrantApi {
         publicKeyFingerprint:proof.publicKeyFingerprint,physicalDirectVerified:false as const};
     } finally {this.#store.release(lease);}
   }
+  /** One issuer graph per roster, rather than one management request per member. */
+  async #directoryBindings(communityId: string): Promise<() => CommunityDirectoryBindingsV1> {
+    const started = this.#clock.monoMs(), generation = this.#config.runtimeGeneration();
+    const entries = this.#store.bindingDirectory(communityId, this.#clock.wallMs());
+    let sample: ProviderPeerObservation | null = null;
+    if (entries.length && positive(generation)) {
+      try {
+        const observed = await this.#provider.observeAuthenticatedPeer({instance: this.#config.authority.adminInstanceId,
+          expectedProviderGeneration: generation, scope: copiedScope(entries[0].session.intent)});
+        if (!('status' in observed)) sample = observed;
+      } catch { /* Optional ET observation never blocks the authenticated address roster. */ }
+    }
+    const members: CommunityDirectoryBindingsV1['members'] = [];
+    if (sample && this.#auth.directorySessionAllowed) {
+      for (const entry of entries) {
+        const session = entry.session, grant = entry.state.record.grant!;
+        if (session.serverTokenVersion === undefined || session.userTokenVersion === undefined) continue;
+        if (!await this.#auth.directorySessionAllowed({...session, accountId: session.intent.accountId,
+          serverTokenVersion: session.serverTokenVersion, userTokenVersion: session.userTokenVersion}, communityId)) continue;
+        const liveSession = this.#store.sessionForScope(session.intent), current = this.#store.load(session.intent);
+        if (!liveSession || liveSession.sessionId !== session.sessionId || liveSession.authorizationEpoch !== session.authorizationEpoch ||
+            liveSession.expiresAtMs <= this.#clock.wallMs() || current.operation || current.record.revision !== entry.state.record.revision ||
+            current.record.grant?.grantId !== grant.grantId || generation !== this.#config.runtimeGeneration() || this.#clock.monoMs() - started >= 5000) continue;
+        try {
+          const proof = verifyCurrentDeviceBinding(current.record, sample, this.#clock.wallMs(), this.#clock.monoMs(), generation);
+          const expiresAtMs = Math.min(grant.expiresAtMs, liveSession.expiresAtMs,
+            this.#clock.wallMs() + 5000 - (this.#clock.monoMs() - Math.min(started, sample.observedMonoMs)));
+          if (expiresAtMs > this.#clock.wallMs()) members.push({serverUserId: session.serverUserId,
+            virtualIp: proof.virtualIp, peerId: proof.peerId, expiresAtMs});
+        } catch { /* Missing, conflicting or retired node evidence remains an assignment. */ }
+      }
+    }
+    const serverTimeMs = this.#clock.wallMs();
+    // Final synchronous recheck after all caller/DNS authorization awaits. A
+    // replacement credential at the same reserved IP cannot inherit an old peer.
+    return () => ({serverTimeMs, maxAgeMs: 5000, members: generation === this.#config.runtimeGeneration()
+      ? members.filter(row => {
+        const entry = entries.find(e => e.session.serverUserId === row.serverUserId && e.session.intent.virtualIp === row.virtualIp);
+        if (!entry || row.expiresAtMs <= this.#clock.wallMs()) return false;
+        const liveSession = this.#store.sessionForScope(entry.session.intent), current = this.#store.load(entry.session.intent);
+        return liveSession?.sessionId === entry.session.sessionId && liveSession.authorizationEpoch === entry.session.authorizationEpoch &&
+          liveSession.expiresAtMs > this.#clock.wallMs() && !current.operation && current.record.state === 'active' &&
+          current.record.revision === entry.state.record.revision && current.record.grant?.grantId === entry.state.record.grant?.grantId;
+      }) : []});
+  }
   async directory(bearer: string, raw: CommunityDirectoryRequestV1): Promise<CommunityDirectoryResponseV1 | CommunityDnsDirectoryResponseV1> {
     this.#enabled();
     const body = parseCommunityGrantRequest('directory', raw);
@@ -361,6 +406,7 @@ export class CommunityGrantService implements CommunityGrantApi {
     const style = body.dnsNameStyle ?? 'legacy';
     const directory = body.includeDnsNames === true ? this.#store.dnsDirectory(body.communityId, this.#clock.wallMs(), style) : null;
     const members = directory?.members ?? this.#store.directory(body.communityId, this.#clock.wallMs());
+    const readBindings = body.includeBindings === true ? await this.#directoryBindings(body.communityId) : undefined;
     const allowedSessions = new Map<string, string>();
     if (directory) {
       if (!this.#auth.directorySessionAllowed) fail('auth-unavailable');
@@ -375,6 +421,7 @@ export class CommunityGrantService implements CommunityGrantApi {
     }
     const current = await this.#identity(bearer, body.communityId);
     if (current.tokenDigest !== identity.tokenDigest || current.serverUserId !== identity.serverUserId) fail('auth-retired');
+    const bindings = readBindings?.();
     if (directory) {
       // Recheck grants and scope after asynchronous membership reads; do not
       // carry an old authorization decision into a replaced session or address.
@@ -387,9 +434,14 @@ export class CommunityGrantService implements CommunityGrantApi {
         const dnsExpiresAtMs = Math.min(member.dnsExpiresAtMs, live.dnsExpiresAtMs);
         return dnsExpiresAtMs > this.#clock.wallMs() ? [{...member, dnsExpiresAtMs}] : [];
       });
+      const addresses = new Set(names.map(row => `${row.serverUserId}:${row.virtualIp}`));
       return {v: 1 as const, communityId: body.communityId, members: names,
-        dns: {zone: directory.zone, serverTimeMs: directory.serverTimeMs, maxAgeMs: directory.maxAgeMs}};
+        dns: {zone: directory.zone, serverTimeMs: directory.serverTimeMs, maxAgeMs: directory.maxAgeMs},
+        ...(bindings ? {bindings: {...bindings, members: bindings.members.filter(row => addresses.has(`${row.serverUserId}:${row.virtualIp}`))}} : {})};
     }
-    return {v: 1 as const, communityId: body.communityId, members};
+    const freshMembers = bindings ? this.#store.directory(body.communityId, this.#clock.wallMs()) : members;
+    const addresses = new Set(freshMembers.map(row => `${row.serverUserId}:${row.virtualIp}`));
+    return {v: 1 as const, communityId: body.communityId, members: freshMembers,
+      ...(bindings ? {bindings: {...bindings, members: bindings.members.filter(row => addresses.has(`${row.serverUserId}:${row.virtualIp}`))}} : {})};
   }
 }

@@ -328,3 +328,180 @@ export async function cleanupLaokuaiFirewallRules(options: LaokuaiFirewallOption
   return { status: classify([], response.removed, failures), installed: [], removed: response.removed, failures };
 }
 
+/** Main-only evidence from the live owned core receipt and verified community configuration. */
+export interface LaokuaiOwnedTunFirewallEvidence {
+  guid: string;
+  luid: string;
+  ifIndex: number;
+  localAddress: string;
+  remoteSubnet: string;
+}
+export interface LaokuaiOwnedTunFirewallRule extends LaokuaiOwnedTunFirewallEvidence {
+  schemaVersion: 1;
+  interfaceAlias: string;
+  name: string;
+  ownershipId: string;
+}
+export interface LaokuaiOwnedTunFirewallRequest {
+  schemaVersion: 1;
+  operation: "resolve" | "ensure" | "remove";
+  evidence?: LaokuaiOwnedTunFirewallEvidence;
+  rules: LaokuaiOwnedTunFirewallRule[];
+}
+export interface LaokuaiOwnedTunFirewallResponse {
+  schemaVersion: 1;
+  scope?: LaokuaiOwnedTunFirewallEvidence & { interfaceAlias: string };
+  installed: string[];
+  removed: string[];
+  failures: LaokuaiFirewallWireFailure[];
+}
+export interface LaokuaiOwnedTunFirewallOptions {
+  platform: NodeJS.Platform;
+  product: boolean;
+  helperExecutable: string;
+  /** Separate from firewall-rules.json: preserves the original two-rule protocol. */
+  ledgerFile: string;
+  readLedgerFile?: (path: string) => string;
+  writeLedgerFile?: (path: string, contents: string) => void;
+  invoke?: (helper: string, request: LaokuaiOwnedTunFirewallRequest) => LaokuaiOwnedTunFirewallResponse | Promise<LaokuaiOwnedTunFirewallResponse>;
+  logger?: (message: string) => void;
+}
+export interface LaokuaiOwnedTunFirewallReport {
+  status: LaokuaiFirewallReport["status"];
+  installed: LaokuaiOwnedTunFirewallRule[];
+  removed: string[];
+  failures: LaokuaiFirewallWireFailure[];
+}
+const TUN_RULE_PREFIX = "LaokuaiCloud.OwnedTun.Icmp.v1.";
+function ipv4Number(value: unknown): number | null {
+  if (typeof value !== "string" || !/^(0|[1-9][0-9]{0,2})(\.(0|[1-9][0-9]{0,2})){3}$/.test(value)) return null;
+  const octets = value.split(".").map(Number);
+  if (octets.some(octet => octet > 255)) return null;
+  return octets.reduce((number, octet) => number * 256 + octet, 0);
+}
+function privateIpv4Number(value: number): boolean {
+  return (value >= 0x0a000000 && value <= 0x0affffff)
+    || (value >= 0xac100000 && value <= 0xac1fffff)
+    || (value >= 0xc0a80000 && value <= 0xc0a8ffff);
+}
+export function validLaokuaiOwnedTunFirewallEvidence(value: unknown): value is LaokuaiOwnedTunFirewallEvidence {
+  if (!value || typeof value !== "object") return false;
+  const scope = value as LaokuaiOwnedTunFirewallEvidence;
+  if (typeof scope.guid !== "string" || !/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(scope.guid)
+    || scope.guid === "00000000-0000-0000-0000-000000000000"
+    || typeof scope.luid !== "string" || !/^[1-9][0-9]{0,19}$/.test(scope.luid) || BigInt(scope.luid) > 0xffffffffffffffffn
+    || !Number.isInteger(scope.ifIndex) || scope.ifIndex < 1 || scope.ifIndex > 0x7fffffff
+    || typeof scope.remoteSubnet !== "string") return false;
+  const address = ipv4Number(scope.localAddress), parts = scope.remoteSubnet.split("/");
+  if (address === null || !privateIpv4Number(address) || parts.length !== 2 || !/^([1-9]|[12][0-9]|3[0-2])$/.test(parts[1])) return false;
+  const network = ipv4Number(parts[0]), size = 2 ** (32 - Number(parts[1]));
+  return network !== null && network % size === 0 && privateIpv4Number(network)
+    && privateIpv4Number(network + size - 1) && address >= network && address < network + size;
+}
+function tunIdentity(scope: LaokuaiOwnedTunFirewallEvidence & { interfaceAlias: string }): string {
+  return [scope.guid, scope.luid, scope.ifIndex, scope.interfaceAlias, scope.localAddress, scope.remoteSubnet].join("\0");
+}
+function tunRuleName(scope: LaokuaiOwnedTunFirewallEvidence & { interfaceAlias: string }): string {
+  return `${TUN_RULE_PREFIX}${createHash("sha256").update(tunIdentity(scope)).digest("hex").slice(0, 24)}`;
+}
+function validTunScope(value: unknown): value is LaokuaiOwnedTunFirewallEvidence & { interfaceAlias: string } {
+  if (!validLaokuaiOwnedTunFirewallEvidence(value)) return false;
+  const alias = (value as { interfaceAlias?: unknown }).interfaceAlias;
+  return typeof alias === "string" && alias.length > 0 && alias.length <= 256
+    && ![...alias].some(character => character.charCodeAt(0) < 32);
+}
+function validTunRule(value: unknown): value is LaokuaiOwnedTunFirewallRule {
+  if (!validTunScope(value)) return false;
+  const rule = value as LaokuaiOwnedTunFirewallRule;
+  return rule.schemaVersion === 1 && rule.name === tunRuleName(rule)
+    && typeof rule.ownershipId === "string" && /^[0-9a-f]{32}$/.test(rule.ownershipId);
+}
+function readTunLedger(options: LaokuaiOwnedTunFirewallOptions): LaokuaiOwnedTunFirewallRule[] {
+  try {
+    const contents = (options.readLedgerFile ?? (file => readFileSync(file, "utf8")))(options.ledgerFile);
+    if (Buffer.byteLength(contents, "utf8") > MAX_LEDGER_BYTES) throw new Error("tun-ledger-too-large");
+    const ledger = JSON.parse(contents) as { schemaVersion: unknown; rules: unknown[] };
+    if (ledger.schemaVersion !== 1 || !Array.isArray(ledger.rules) || ledger.rules.length > 64
+      || !ledger.rules.every(validTunRule) || new Set(ledger.rules.map(rule => rule.name)).size !== ledger.rules.length) throw new Error("tun-ledger-invalid");
+    return ledger.rules;
+  } catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return []; throw error; }
+}
+function writeTunLedger(options: LaokuaiOwnedTunFirewallOptions, rules: LaokuaiOwnedTunFirewallRule[]): void {
+  if (rules.length > 64) throw new Error("tun-ledger-too-many-rules");
+  const contents = `${JSON.stringify({ schemaVersion: 1, rules }, null, 2)}\n`;
+  if (Buffer.byteLength(contents, "utf8") > MAX_LEDGER_BYTES) throw new Error("tun-ledger-too-large");
+  mkdirSync(dirname(options.ledgerFile), { recursive: true });
+  (options.writeLedgerFile ?? atomicLedgerWrite)(options.ledgerFile, contents);
+}
+async function invokeTunFirewall(options: LaokuaiOwnedTunFirewallOptions, request: LaokuaiOwnedTunFirewallRequest): Promise<LaokuaiOwnedTunFirewallResponse> {
+  let result: LaokuaiOwnedTunFirewallResponse;
+  if (options.invoke) result = await options.invoke(options.helperExecutable, request);
+  else {
+    const output = await new Promise<string>((resolve, reject) => {
+      const child = execFile(options.helperExecutable, ["--firewall-tun"], { windowsHide: true, shell: false,
+        timeout: 8000, maxBuffer: MAX_WIRE_BYTES, encoding: "utf8" }, (error, stdout) => error ? reject(error) : resolve(stdout));
+      child.stdin?.end(`${JSON.stringify(request)}\n`);
+    });
+    result = JSON.parse(output) as LaokuaiOwnedTunFirewallResponse;
+  }
+  if (!result || result.schemaVersion !== 1 || !Array.isArray(result.installed) || !Array.isArray(result.removed) || !Array.isArray(result.failures)
+    || !result.installed.every(name => typeof name === "string") || !result.removed.every(name => typeof name === "string")
+    || !result.failures.every(failure => !!failure && ["ensure", "remove"].includes(failure.operation)
+      && typeof failure.name === "string" && typeof failure.code === "string")) throw new Error("tun-response-invalid");
+  return result;
+}
+function tunReport(status: LaokuaiOwnedTunFirewallReport["status"], code?: string, operation: "ensure" | "remove" = "ensure"): LaokuaiOwnedTunFirewallReport {
+  return { status, installed: [], removed: [], failures: code ? [{ operation, name: "owned-tun-firewall", code }] : [] };
+}
+/** Call only after owned NIC evidence and community identity are verified. Serialize calls with release/cleanup. */
+export async function prepareLaokuaiOwnedTunFirewallRules(options: LaokuaiOwnedTunFirewallOptions, evidence: LaokuaiOwnedTunFirewallEvidence): Promise<LaokuaiOwnedTunFirewallReport> {
+  if (!options.product || options.platform !== "win32") return tunReport("bypassed");
+  if (!options.helperExecutable || !validLaokuaiOwnedTunFirewallEvidence(evidence)) return tunReport("failed", "tun-scope-invalid");
+  let prior: LaokuaiOwnedTunFirewallRule[];
+  try { prior = readTunLedger(options); } catch { return tunReport("failed", "ledger-read-failed"); }
+  let resolved: LaokuaiOwnedTunFirewallResponse;
+  try { resolved = await invokeTunFirewall(options, { schemaVersion: 1, operation: "resolve", evidence, rules: [] }); }
+  catch { return tunReport("failed", "helper-unavailable"); }
+  if (resolved.failures.length > 0) return tunReport("failed", resolved.failures.every(failure => failure.code === "tun-not-ready") ? "tun-not-ready" : "tun-scope-unverified");
+  if (!validTunScope(resolved.scope)
+    || ["guid", "luid", "ifIndex", "localAddress", "remoteSubnet"].some(key => resolved.scope![key as keyof LaokuaiOwnedTunFirewallEvidence] !== evidence[key as keyof LaokuaiOwnedTunFirewallEvidence])) return tunReport("failed", "tun-scope-unverified");
+  const scope = resolved.scope, name = tunRuleName(scope);
+  const rule: LaokuaiOwnedTunFirewallRule = prior.find(old => old.name === name)
+    ?? { ...scope, schemaVersion: 1, name, ownershipId: randomUUID().replace(/-/g, "") };
+  const retained = prior.some(old => old.name === name) ? prior : [...prior, rule];
+  // Ownership is persisted before any native mutation, including failed/partial installation.
+  try { writeTunLedger(options, retained); } catch { return tunReport("failed", "ledger-write-failed"); }
+  let response: LaokuaiOwnedTunFirewallResponse;
+  try { response = await invokeTunFirewall(options, { schemaVersion: 1, operation: "ensure", rules: [rule] }); }
+  catch { return tunReport("failed", "helper-unavailable"); }
+  const installed = response.installed.includes(name) ? [rule] : [];
+  const failures = response.failures.filter(failure => failure.name === name);
+  if (!installed.length && !failures.length) failures.push({ operation: "ensure", name, code: "verification-missing" });
+  return { status: failures.length ? installed.length ? "partial" : "failed" : "prepared", installed, removed: [], failures };
+}
+/** Release exact handles returned by preparation; never infer authority from adapter aliases or rule prefixes. */
+export async function releaseLaokuaiOwnedTunFirewallRules(options: LaokuaiOwnedTunFirewallOptions, handles: readonly LaokuaiOwnedTunFirewallRule[]): Promise<LaokuaiOwnedTunFirewallReport> {
+  if (!options.product || options.platform !== "win32") return tunReport("bypassed");
+  if (!options.helperExecutable || !handles.every(validTunRule)) return tunReport("failed", "tun-handle-invalid", "remove");
+  let prior: LaokuaiOwnedTunFirewallRule[];
+  try { prior = readTunLedger(options); } catch { return tunReport("failed", "ledger-read-failed", "remove"); }
+  const candidates = prior.filter(rule => handles.some(handle => handle.name === rule.name && handle.ownershipId === rule.ownershipId));
+  if (!candidates.length) return tunReport("prepared");
+  let response: LaokuaiOwnedTunFirewallResponse;
+  try { response = await invokeTunFirewall(options, { schemaVersion: 1, operation: "remove", rules: candidates }); }
+  catch { return tunReport("failed", "helper-unavailable", "remove"); }
+  const removed = response.removed.filter(name => candidates.some(rule => rule.name === name));
+  const failures = response.failures.filter(failure => candidates.some(rule => rule.name === failure.name));
+  for (const rule of candidates) if (!removed.includes(rule.name) && !failures.some(failure => failure.name === rule.name)) failures.push({ operation: "remove", name: rule.name, code: "verification-missing" });
+  try { writeTunLedger(options, prior.filter(rule => !removed.includes(rule.name))); }
+  catch { failures.push({ operation: "remove", name: "owned-tun-firewall", code: "ledger-write-failed" }); }
+  return { status: failures.length ? removed.length ? "partial" : "failed" : "prepared", installed: [], removed, failures };
+}
+/** Explicit user cleanup also handles persisted rules from a previous interrupted owned lifecycle. */
+export async function cleanupLaokuaiOwnedTunFirewallRules(options: LaokuaiOwnedTunFirewallOptions): Promise<LaokuaiOwnedTunFirewallReport> {
+  if (!options.product || options.platform !== "win32") return tunReport("bypassed");
+  let prior: LaokuaiOwnedTunFirewallRule[];
+  try { prior = readTunLedger(options); } catch { return tunReport("failed", "ledger-read-failed", "remove"); }
+  return releaseLaokuaiOwnedTunFirewallRules(options, prior);
+}
+

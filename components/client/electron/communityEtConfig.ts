@@ -43,9 +43,12 @@ export class PrivateCommunityEtConfig {
   #issuerFingerprint: string;
   #isCurrent: () => boolean;
   #latencyFirst: boolean;
-  constructor(toml: string, issuerFingerprint: string, isCurrent: () => boolean, latencyFirst = false) {
+  #firewallScope: {localAddress: string; prefixLength: number} | undefined;
+  constructor(toml: string, issuerFingerprint: string, isCurrent: () => boolean, latencyFirst = false,
+    firewallScope?: {localAddress: string; prefixLength: number}) {
     this.#toml = toml; this.#issuerFingerprint = issuerFingerprint; this.#isCurrent = isCurrent;
     this.#latencyFirst = latencyFirst;
+    this.#firewallScope = firewallScope && {...firewallScope};
   }
   withPrivateToml<T>(ownedWriter: (toml: string) => T): T {
     if (!this.#isCurrent()) fail('stale-config');
@@ -56,6 +59,9 @@ export class PrivateCommunityEtConfig {
   }
   toJSON(): {kind: string} { return {kind: 'private-community-et-config'}; }
   routingPreferences(): {latencyFirst: boolean} { return {latencyFirst: this.#latencyFirst}; }
+  firewallScope(): {localAddress: string; prefixLength: number} | undefined {
+    return this.#firewallScope && {...this.#firewallScope};
+  }
 }
 function buildValidated(grant: PrivateCommunityGrantV1, trusted: TrustedCommunityIntent, profile: TrustedCommunityBootstrap,
   isCurrent: () => boolean, preferences: CommunityNetworkPreferences): PrivateCommunityEtConfig {
@@ -82,7 +88,8 @@ function buildValidated(grant: PrivateCommunityGrantV1, trusted: TrustedCommunit
   for (const endpoint of profile.peerEndpoints) lines.push('[[peer]]', `uri = ${quote(endpoint)}`,
     `peer_public_key = ${quote(profile.issuerPublicKeyB64)}`, '');
   // reusable=false is verified issuer policy; adding it to TOML would not enforce it.
-  return new PrivateCommunityEtConfig(lines.join('\n'), profile.issuerPublicKeyFingerprint, isCurrent, settings.latencyFirst);
+  return new PrivateCommunityEtConfig(lines.join('\n'), profile.issuerPublicKeyFingerprint, isCurrent, settings.latencyFirst,
+    {localAddress: trusted.virtualIp, prefixLength: profile.ipv4PrefixLength});
 }
 /** Consume only the live main gate, so disable/close/revoke/expiry cannot produce config.
  * trusted/profile must come from authenticated community metadata and product template.

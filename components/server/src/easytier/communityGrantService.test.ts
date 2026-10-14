@@ -28,7 +28,7 @@ function fixture(communityId: string = BODY.communityId, databasePath = ':memory
   store.initSchema();
   const control={wall:START,mono:0,enabled:true,writes:true,member:true,serverVersion:0,userVersion:0,generation:1,
     relayEnabled:false,relayAfterApplyFail:false,relayBeforeApplyFail:false,relayCount:0,
-    retainRevoked:false,upsertExtends:true,lateSample:false,wrongRoute:false,createCount:0,revokeIds:[] as string[]};
+    retainRevoked:false,upsertExtends:true,lateSample:false,wrongRoute:false,createCount:0,observeCount:0,revokeIds:[] as string[]};
   const services: ExistingCommunityAuthServices={
     verifyAccessToken:bearer=>{
       if (!['alice','alice-next','bob'].includes(bearer)) return null;
@@ -44,6 +44,7 @@ function fixture(communityId: string = BODY.communityId, databasePath = ':memory
   const entries=new Map<string,{receipt:PrivateNativeCredentialReceipt;readback:NativeCredentialReadback;publicB64:string}>();
   let afterCreate: (()=>Promise<void>)|null=null;
   let duringExtend: (()=>void)|null=null;
+  let afterObserve: ((sample: ProviderPeerObservation)=>Promise<void>)|null=null;
   const provider: CommunityGrantServiceProvider={
     inspectInstance:async instance=>({instance,upstreamCommit:COMMUNITY_ET_UPSTREAM_COMMIT,sameKeyUpsert:true,credentialStore:'healthy'}),
     create:async (request:CreateCredentialIntent)=>{
@@ -78,11 +79,13 @@ function fixture(communityId: string = BODY.communityId, databasePath = ':memory
     read:async credentialId=>structuredClone(entries.get(credentialId)?.readback??null),
     revoke:async request=>{control.revokeIds.push(request.credentialId);if (!control.retainRevoked) entries.delete(request.credentialId);return {success:true};},
     observeAuthenticatedPeer:async request=>{
+      control.observeCount++;
       if (control.lateSample) control.mono+=6000;
       const entry=[...entries.values()][0];
       const sample: ProviderPeerObservation={providerGeneration:control.generation,observedMonoMs:control.mono,networkName:'network',
         connections:[{peerId:77,networkName:'network',isClosed:false,secureAuthLevel:2,peerIdentityType:1,remotePublicKeyB64:entry.publicB64}],
         routes:[{peerId:77,nativeInstanceId:request.scope.nativeInstanceId,virtualIp:control.wrongRoute?'10.77.0.99':'10.77.0.2',nextHopPeerId:77}]};
+      if (afterObserve) await afterObserve(sample);
       return sample;
     },
   };
@@ -90,9 +93,67 @@ function fixture(communityId: string = BODY.communityId, databasePath = ':memory
     bootstrapProfileId:'public-2.7',virtualIpPool:['10.77.0.2','10.77.0.3'],authority:AUTHORITY,ttlSeconds:120,
     enabled:()=>control.enabled,credentialWritesEnabled:()=>control.writes,runtimeGeneration:()=>control.generation,relayPolicyV2Enabled:()=>control.relayEnabled},store,provider,auth,
     {wallMs:()=>control.wall,monoMs:()=>control.mono});
-  return {db,store,service,control,entries,services,auth,setAfterCreate:(value:typeof afterCreate)=>{afterCreate=value;},setDuringExtend:(value:typeof duringExtend)=>{duringExtend=value;}};
+  return {db,store,service,control,entries,services,auth,setAfterCreate:(value:typeof afterCreate)=>{afterCreate=value;},setDuringExtend:(value:typeof duringExtend)=>{duringExtend=value;},setAfterObserve:(value:typeof afterObserve)=>{afterObserve=value;}};
 }
 const code=(expected:string)=>(error:unknown)=>error instanceof ContractError && error.code===expected;
+test('opt-in node directory verifies all current member keys with one issuer sample and preserves legacy bytes',async()=>{
+  const f=fixture();try {
+    await f.service.session('alice',BODY);const a=await f.service.acquire('alice',{...BODY,requestId:'nodes-a'});
+    const bob={...BODY,deviceId:'bob-device',nativeInstanceId:'33333333-3333-4333-8333-333333333333'};
+    await f.service.session('bob',bob);const b=await f.service.acquire('bob',{...bob,requestId:'nodes-b'});
+    f.setAfterObserve(async sample=>{
+      sample.connections=[a,b].map((grant,index)=>({...sample.connections[0],peerId:index===0?77:88,remotePublicKeyB64:f.entries.get(grant.credentialId)!.publicB64}));
+      sample.routes=[a,b].map((grant,index)=>({peerId:index===0?77:88,nativeInstanceId:grant.scope.nativeInstanceId,virtualIp:grant.virtualIp,nextHopPeerId:index===0?77:88}));
+    });
+    const legacy=JSON.stringify(await f.service.directory('alice',{v:1,communityId:'community'}));
+    assert.equal(f.control.observeCount,0);
+    const result=await f.service.directory('alice',{v:1,communityId:'community',includeBindings:true});
+    assert.equal(f.control.observeCount,1);assert.equal(result.bindings!.members.length,2);
+    assert.deepEqual(result.bindings!.members.map(row=>row.peerId).sort(),[77,88]);
+    assert.ok(result.bindings!.members.every(row=>row.expiresAtMs<=START+5000));
+    for(const forbidden of ['accountId','deviceId','credentialId','publicKeyFingerprint','secret','nativeInstanceId'])assert.ok(!JSON.stringify(result).includes(forbidden));
+    assert.equal(JSON.stringify(await f.service.directory('alice',{v:1,communityId:'community'})),legacy);
+    f.setAfterObserve(async sample=>{sample.connections[0].secureAuthLevel=1;});
+    const unproven=await f.service.directory('alice',{v:1,communityId:'community',includeBindings:true});
+    assert.deepEqual(unproven.bindings!.members,[]);assert.equal(unproven.members.length,2);
+    f.control.wall=a.expiresAtMs;
+    assert.deepEqual((await f.service.directory('alice',{v:1,communityId:'community',includeBindings:true})).bindings!.members,[]);
+  }finally{f.db.close();}
+});
+test('node directory refuses retired membership, stale graphs, provider outage and revocation during observation',async()=>{
+  for(const failure of ['membership','late','outage','revoke','collision']) {
+    const f=fixture();try {
+      await f.service.session('alice',BODY);const g=await f.service.acquire('alice',{...BODY,requestId:'node-fail'});
+      f.setAfterObserve(async sample=>{
+        if(failure==='membership')f.control.userVersion=1;
+        if(failure==='late')f.control.mono+=6000;
+        if(failure==='outage')throw new Error('fixture-outage');
+        if(failure==='revoke')await f.service.revoke('alice',{...BODY,requestId:'node-revoke',grantId:g.grantId});
+        if(failure==='collision')sample.connections.push({...sample.connections[0],peerId:78});
+      });
+      if(failure==='membership')await assert.rejects(f.service.directory('alice',{v:1,communityId:'community',includeBindings:true}),code('auth-retired'));
+      else {
+        const result=await f.service.directory('alice',{v:1,communityId:'community',includeBindings:true});
+        assert.deepEqual(result.bindings!.members,[]);
+        assert.equal(result.members.length,failure==='revoke'?0:1);
+      }
+    }finally{f.db.close();}
+  }
+});
+test('node proofs recheck the exact grant after the final viewer authorization await',async()=>{
+  const f=fixture();try {
+    await f.service.session('alice',BODY);const grant=await f.service.acquire('alice',{...BODY,requestId:'node-epoch'});
+    const original=f.services.checkSessionAllowed;let reads=0,retired=false;
+    f.services.checkSessionAllowed=async identity=>{
+      reads++;
+      // viewer read, remote-session read, final viewer read
+      if(reads===3&&!retired) {retired=true;await f.service.revoke('alice',{...BODY,requestId:'node-epoch-revoke',grantId:grant.grantId});}
+      return original(identity);
+    };
+    const result=await f.service.directory('alice',{v:1,communityId:'community',includeBindings:true});
+    assert.equal(retired,true);assert.deepEqual(result.bindings!.members,[]);assert.deepEqual(result.members,[]);
+  }finally{f.db.close();}
+});
 test('relay defaults off, needs explicit consent, and leaves ordinary admission/renewal working',async()=>{
   const f=fixture();try{
     await f.service.session('alice',BODY);const g=await f.service.acquire('alice',{...BODY,requestId:'relay-baseline'});

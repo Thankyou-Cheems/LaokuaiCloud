@@ -137,6 +137,7 @@ import {LocalDiagnosticWriter} from "./localDiagnostics";
 import { closeMediaSandbox } from "./mediaSandbox";
 import {networkDiagnostic} from "./networkDiagnostics";
 import { readNowPlaying } from "./nowPlaying";
+import { createOwnedTunFirewallSession } from "./ownedTunFirewallSession";
 import {
   createPendingUpdate,
   type DownloadOptions,
@@ -221,6 +222,10 @@ const laokuaiFirewallOptions = (easyTierExecutable?: string | null) => ({
   helperExecutable: join(app.isPackaged ? process.resourcesPath : join(__dirname, "../build"), "community-lan-helper", "laokuai-community-broker.exe"),
   ledgerFile: LAOKUAI_FIREWALL_LEDGER,
 });
+const ownedTunFirewall = createOwnedTunFirewallSession(() => ({
+  ...laokuaiFirewallOptions(),
+  ledgerFile: join(laokuaiFirewallDataRoot(process.argv), "owned-tun-firewall-rules.json"),
+}), startupLog);
 
 let firewallWork: Promise<boolean> = Promise.resolve(true);
 let firewallStopping = false;
@@ -342,6 +347,7 @@ const easyTierProduction = createWindowsEasyTierProduction(
   (serverId, signal) => easyTierGrants.configuration(serverId, signal),
   () => join(app.isPackaged ? process.resourcesPath : join(__dirname, "../build"), "community-lan-helper"),
   executable => prepareLaokuaiFirewall(executable),
+  (config, core, signal) => ownedTunFirewall.prepare(config, core, signal),
 );
 const prepareEasyTierPermission = async (): Promise<boolean> => {
   return easyTierProduction.preparePermission();
@@ -428,6 +434,8 @@ app.on("before-quit", event => {
     if (cleanupFirewallOnQuit) {
       const report = await drainQuitStage("firewall-cleanup", async () => {
         const result = await cleanupLaokuaiFirewallRules(laokuaiFirewallOptions());
+        const tunResult = await ownedTunFirewall.cleanup();
+        if (tunResult.status !== "prepared" && tunResult.status !== "bypassed") throw new Error("owned-tun-firewall-cleanup-failed");
         return result;
       }, result => result.status === "prepared" || result.status === "bypassed");
       if (report.status !== "prepared" && report.status !== "bypassed") {
@@ -3335,7 +3343,9 @@ if (!gotSingleInstanceLock) {
         let dnsCleaned = true;
         await communityDns.stop().catch(() => { dnsCleaned = false; });
         const report = await cleanupLaokuaiFirewallRules(laokuaiFirewallOptions());
-        const cleaned = dnsCleaned && (report.status === "prepared" || report.status === "bypassed");
+        const tunReport = await ownedTunFirewall.cleanup();
+        const cleaned = dnsCleaned && (report.status === "prepared" || report.status === "bypassed")
+          && (tunReport.status === "prepared" || tunReport.status === "bypassed");
         if (!cleaned) dialog.showErrorBox("部分网络规则未清理", "无法清理全部本应用规则。属性已修改或同名冲突的规则会保留；修复系统策略或冲突后可重试。本地账本已保留。");
         process.exit(cleaned ? 0 : 1);
       }

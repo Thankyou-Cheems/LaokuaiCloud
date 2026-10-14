@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
+
 import ts from "typescript";
 
 const file = new URL("../electron/easyTierWindowsProduction.ts", import.meta.url);
@@ -94,4 +95,12 @@ await adapter.runtime.ports.start("C:\\product", { configFile: "C:\\profile\\con
 assert.ok(calls.includes("processes:start:C:\\product"));
 await adapter.drainOwned();
 assert.ok(calls.includes("processes:drain"));
+// Production quit drains process handles directly, so it must also release
+// interface rules even when a session.close callback was not called first.
+let releases = 0;
+const scoped = exports.createWindowsEasyTierProduction(root, product, undefined, helper, undefined,
+  async () => async () => { releases++; });
+const release = await scoped.runtime.ports.prepareOwnedInterface({}, {}, new AbortController().signal);
+await scoped.drainOwned(); await release();
+assert.equal(releases, 1);
 console.log(JSON.stringify({ passed: true, directChild: true, elevationBrokerConstructed: false, drainVerified: true }));

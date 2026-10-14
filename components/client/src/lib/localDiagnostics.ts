@@ -18,6 +18,7 @@ const forwardingReasons = ["validated_ack", "request_failed", "forwarding_ack_mi
 const evidenceEnums = {
   pathClass:["turn-relay", "non-turn-candidate", "unknown"],
   pathReason:["selected-pair", "turn-relay", "candidate-type-unknown", "candidate-unavailable", "pair-unavailable", "track-stats-unavailable", "track-stats-ambiguous"],
+  pairUnavailableReason:[null, "transport-unavailable", "pair-record-unavailable", "pair-not-succeeded"],
   localCandidateType:["host", "srflx", "prflx", "relay", "unknown"],
   remoteCandidateType:["host", "srflx", "prflx", "relay", "unknown"],
   underlayClass:["not-easytier", "easytier-direct", "easytier-relay", "unknown"],

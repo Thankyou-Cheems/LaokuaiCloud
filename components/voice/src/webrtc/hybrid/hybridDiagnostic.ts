@@ -1,4 +1,4 @@
-import type { ReceiveCandidateType, ReceiveTrackObservation, ReceiveTransportPathClass, ReceiveTransportPathReason, ReceiveUnderlayClass } from "../types/ReceivePath";
+import type { ReceiveCandidateType, ReceivePairUnavailableReason, ReceiveTrackObservation, ReceiveTransportPathClass, ReceiveTransportPathReason, ReceiveUnderlayClass } from "../types/ReceivePath";
 
 const failures = ["peer_publication_mismatch", "peer_decoder_unavailable", "peer_connection_lost", "peer_track_ended",
   "peer_codec_unavailable", "peer_decoded_media_stale", "peer_stats_reset", "peer_stats_unavailable"] as const;
@@ -23,6 +23,7 @@ export type BrowserHybridDiagnostic = {
   kind: "peer-media";
   pathClass: ReceiveTransportPathClass;
   pathReason: ReceiveTransportPathReason;
+  pairUnavailableReason?: ReceivePairUnavailableReason | null;
   localCandidateType: ReceiveCandidateType;
   remoteCandidateType: ReceiveCandidateType;
   underlayClass: ReceiveUnderlayClass;
@@ -51,7 +52,10 @@ export function peerMediaDiagnostic(observation: ReceiveTrackObservation | null,
   const reasons: ReceiveTransportPathReason[] = ["selected-pair", "turn-relay", "candidate-type-unknown", "candidate-unavailable", "pair-unavailable", "track-stats-unavailable", "track-stats-ambiguous"];
   const underlay = path?.underlay?.classification;
   const fresh = observation?.decode?.fresh === true && !failure;
+  const pairReasons: ReceivePairUnavailableReason[] = ["transport-unavailable", "pair-record-unavailable", "pair-not-succeeded"];
   return { kind: "peer-media", pathClass, pathReason: path && reasons.includes(path.reason) ? path.reason : "pair-unavailable",
+    pairUnavailableReason: path?.reason === "pair-unavailable" && pairReasons.includes(path.pairUnavailableReason as ReceivePairUnavailableReason)
+      ? path.pairUnavailableReason : null,
     localCandidateType: candidate(path?.local?.candidateType), remoteCandidateType: candidate(path?.remote?.candidateType),
     underlayClass: underlay === "not-easytier" || underlay === "easytier-direct" || underlay === "easytier-relay" ? underlay : "unknown",
     decodeProof: fresh ? "fresh" : "missing", decodeReason: fresh ? "fresh_decode" : !observation ? "remote_track_missing"

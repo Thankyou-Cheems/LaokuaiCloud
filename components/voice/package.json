@@ -1,6 +1,6 @@
 {
   "name": "@gryt/voice",
-  "version": "0.6.2-laokuai.routing.6",
+  "version": "0.6.2-laokuai.routing.7",
   "description": "Gryt's voice engine: signalling, ICE, tracks and audio, with web and React Native adapters.",
   "license": "AGPL-3.0-only",
   "repository": {
@@ -86,6 +86,7 @@
     "check-microphone-codec": "node scripts/check-microphone-codec.mjs",
     "check-microphone-codec-headless": "node scripts/check-microphone-codec-headless.mjs",
     "check-hybrid": "node scripts/check-hybrid.mjs",
+    "check-hybrid-path-gap": "node scripts/check-hybrid-path-gap.mjs",
     "check-hybrid-network-boundary": "node scripts/check-hybrid-network-boundary.mjs",
     "check-hybrid-integration": "node scripts/check-hybrid-integration.mjs",
     "check-hybrid-session": "node scripts/check-hybrid-session.mjs",

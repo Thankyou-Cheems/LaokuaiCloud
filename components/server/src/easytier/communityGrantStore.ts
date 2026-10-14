@@ -35,6 +35,8 @@ export interface CommunityDnsSessionAuthorization {
 export interface CommunityDnsDirectory { zone: string; serverTimeMs: number; maxAgeMs: number; members: CommunityDnsDirectoryMember[]; authorizations: CommunityDnsSessionAuthorization[] }
 export interface ScopeLease { key: string; owner: string }
 export interface StoredGrantState { record: CommunityGrantRecord; operation: StoredGrantOperation | null }
+/** Private sampling input; never return sessions, grants or credentials over HTTP. */
+export interface CommunityBindingDirectoryEntry { session: CommunityStoredSession; state: StoredGrantState }
 export interface CleanupIntent { scope: CommunityGrantScope; grantId: string; credentialId: string; adminInstanceId: string; confirmed: boolean }
 export const communityScopeKey = (value: CommunityGrantScope) => createHash('sha256').update(JSON.stringify(copiedScope(value))).digest('hex');
 /** Reuses the existing stable private server secret through domain-separated HKDF.
@@ -196,6 +198,19 @@ export class SqliteCommunityGrantStore {
    */
   directory(communityId: string, nowMs: number): CommunityDirectoryMember[] {
     return this.#directoryMembers(communityId, nowMs);
+  }
+  bindingDirectory(communityId: string, nowMs: number): CommunityBindingDirectoryEntry[] {
+    const addresses = new Set(this.#directoryMembers(communityId, nowMs).map(row => `${row.serverUserId}:${row.virtualIp}`));
+    const entries: CommunityBindingDirectoryEntry[] = [];
+    for (const row of this.#db.prepare('SELECT session_id FROM community_et_sessions').all()) {
+      const session = this.session(row.session_id as string);
+      if (!session || session.intent.communityId !== communityId || !addresses.has(`${session.serverUserId}:${session.intent.virtualIp}`) ||
+          session.issuedAtMs > nowMs || session.expiresAtMs <= nowMs) continue;
+      const state = this.load(session.intent), grant = state.record.grant;
+      if (state.operation || !grant || grant.issuedAtMs > nowMs || grant.serverTimeMs > nowMs) continue;
+      entries.push({session: {...session, ...this.#dnsSessionAuthorization(session.sessionId)}, state});
+    }
+    return entries;
   }
   /** Persistent opaque names are issued only from validated store identities.
    * Existing device/IP rows are not rewritten. Absent/revoked entries disappear

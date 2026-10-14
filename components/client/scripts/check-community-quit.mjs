@@ -31,6 +31,7 @@ async function scenario(failure, cleanup = false, dnsFailure = false, syncFailur
     easyTierQuitDrained: false, easyTierQuitDraining: false, isQuitting: false, easyTierPoll: 1,
     firewallStopping: false, firewallWork: Promise.resolve(true), cleanupFirewallOnQuit: cleanup,
     cleanupLaokuaiFirewallRules: async () => { calls.push("cleanup-firewall"); return { status: "prepared" }; },
+    ownedTunFirewall: {cleanup: async () => { calls.push("cleanup-tun-firewall"); return {status: "prepared"}; }},
     laokuaiFirewallOptions: () => ({}), dialog: { showErrorBox: () => calls.push("cleanup-dialog") },
     app: { on: (event, fn) => { handlers.set(event, fn); }, quit: () => calls.push("quit") },
     performance: { now: () => now },
@@ -88,6 +89,7 @@ async function scenario(failure, cleanup = false, dnsFailure = false, syncFailur
   assert.equal(context.easyTierQuitDrained, true);
   assert.equal(calls.includes("cleanup-warning"), failure || dnsFailure);
   assert.equal(calls.includes("cleanup-firewall"), cleanup && !failure && !dnsFailure);
+  assert.equal(calls.includes("cleanup-tun-firewall"), cleanup && !failure && !dnsFailure);
   if (cleanup && !failure && !dnsFailure) assert.ok(calls.indexOf("cleanup-firewall") < calls.indexOf("quit"));
   const before = calls.length;
   handler(event);

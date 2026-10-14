@@ -5,12 +5,13 @@ import type { EasyTierExistingConfiguration } from "./easyTierExistingConfigurat
 import { readEasyTierExistingConfiguration } from "./easyTierExistingConfiguration";
 import { EasyTierWindowsAssets } from "./easyTierWindowsAssets";
 import { EasyTierWindowsProcesses, hasEasyTierWindowsPermission } from "./easyTierWindowsProcesses";
-import { WindowsEasyTierCliRuntime } from "./windowsEasyTierCliRuntime";
+import { type WindowsEasyTierCliPorts,WindowsEasyTierCliRuntime } from "./windowsEasyTierCliRuntime";
 
 /** Lazy paths: constructing the adapter performs no profile I/O or activation. */
 export function createWindowsEasyTierProduction(root: () => string, bundledDirectory: () => string,
   configuration?: (serverId: string, signal: AbortSignal) => Promise<EasyTierExistingConfiguration>, brokerDirectory?: () => string,
-  prepareNetworking?: (coreExecutable: string) => Promise<boolean>) {
+  prepareNetworking?: (coreExecutable: string) => Promise<boolean>,
+  prepareOwnedInterface?: WindowsEasyTierCliPorts['prepareOwnedInterface']) {
   const assets = new EasyTierWindowsAssets(root, bundledDirectory);
   // The application is now required to start elevated.  Keep the helper only as
   // a read-only token check; it must never become a second launch path for ET.
@@ -19,6 +20,18 @@ export function createWindowsEasyTierProduction(root: () => string, bundledDirec
   const permissionExecutable = brokerDirectory ?
     () => join(brokerDirectory(), "laokuai-community-broker.exe") : undefined;
   const processes = new EasyTierWindowsProcesses(0);
+  const interfaceCleanup = new Set<() => Promise<void>>();
+  const interfacePreparations = new Set<Promise<() => Promise<void>>>();
+  let stoppingInterfaces = false;
+  let interfaceDrain: Promise<void> | undefined;
+  const drainInterfaces = (): Promise<void> => {
+    stoppingInterfaces = true;
+    return interfaceDrain ??= (async () => {
+      await Promise.allSettled([...interfacePreparations]);
+      const results = await Promise.allSettled([...interfaceCleanup].map(cleanup => cleanup()));
+      if (results.some(result => result.status === 'rejected')) throw new Error('owned-firewall-cleanup-unconfirmed');
+    })();
+  };
   // The firewall rule must point at the verified cache copy that the direct
   // process launcher actually starts, not at a resource-side reference copy.
   let preparedDirectory: string | null = null;
@@ -61,7 +74,26 @@ export function createWindowsEasyTierProduction(root: () => string, bundledDirec
       if (signal.aborted) throw new Error("canceled");
       return processes.start(directory, config, signal);
     },
-    shutdownOwned: () => processes.shutdownOwned(),
+    shutdownOwned: () => {
+      void drainInterfaces().catch(() => undefined).finally(() => processes.shutdownOwned());
+    },
+    prepareOwnedInterface: prepareOwnedInterface ? (config, core, signal) => {
+      if (stoppingInterfaces || signal.aborted) return Promise.resolve(async () => {});
+      const flight = (async () => {
+        const release = await prepareOwnedInterface(config, core, signal);
+        let finished = false, releasing: Promise<void> | undefined;
+        const cleanup = (): Promise<void> => {
+          if (finished) return Promise.resolve();
+          return releasing ??= release().then(() => { finished = true; interfaceCleanup.delete(cleanup); })
+            .catch(error => { releasing = undefined; throw error; });
+        };
+        interfaceCleanup.add(cleanup);
+        return cleanup;
+      })();
+      interfacePreparations.add(flight);
+      void flight.finally(() => interfacePreparations.delete(flight)).catch(() => undefined);
+      return flight;
+    } : undefined,
     pause: signal => new Promise((resolve, reject) => {
       const abort = () => { clearTimeout(timer); signal.removeEventListener("abort", abort); reject(new Error("canceled")); };
       const timer = setTimeout(() => { signal.removeEventListener("abort", abort); resolve(); }, 250);
@@ -70,7 +102,10 @@ export function createWindowsEasyTierProduction(root: () => string, bundledDirec
     }),
   });
   const drainOwned = async () => {
-    try { await processes.drainOwned(); }
+    try {
+      try { await drainInterfaces(); }
+      finally { await processes.drainOwned(); }
+    }
     finally {
       preparationEpoch++;
       prepared = false;
