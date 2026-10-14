@@ -1,22 +1,22 @@
 # 当前开发交接
 
 更新：2026-10-14。唯一开发目录 `D:\Dev\LaokuaiCloud`，分支 `main`。
-最新可交付及桌面绿色测试包为 `1.13.22-laokuai.beta.20261014.13`；易记 MagicDNS
-已部署，用户确认短域名显示，本机直接解析和 Windows 系统解析均匹配虚拟 IP。
-生产成员中继两端开关已开启；真实多设备转发、游戏和 12 人 WAN 语音仍未验收。
+最新可交付及桌面绿色测试包为 `1.13.22-laokuai.beta.20261014.14`；易记 MagicDNS
+已部署并经用户确认，成员中继两端服务端开关已开启，成员移动能力也已启用。
+真实多设备转发、移频恢复、游戏和 12 人 WAN 语音仍未验收。
 
 ## 当前包与源码
 
-- 文件：`唠蒯云-1.13.22-laokuai.beta.20261014.13-zh-CN-win-x64-green.zip`。
-- 应用源码：`85b7208b52841a85a480ca0a26324eb1112a23d1`，SDK routing.5。
-- 大小：161906059 B；SHA256：
-  `58c6ebdf5616c7649d6a8c25dbb112280a76044191fc7142e47263f2706fd4a6`。
-- `.12 → .13` 增量：`唠蒯云-12-to-13-update.zip`，18160780 B，SHA256：
-  `fb0bfda6e7e8c89e234086f2f0d6cac5c430284085b9ace3a37e507c6e0a46a8`。
-  固定基线/目标哈希，EXE 两个 64 KiB 块及其余变化文件；尚非内置在线自动更新。
+- 文件：`唠蒯云-1.13.22-laokuai.beta.20261014.14-zh-CN-win-x64-green.zip`。
+- 应用源码：`d28b2ebca208cee06bc9c5d8ab0afbad90365d4a`，SDK 保持 routing.5。
+- 大小：162765292 B；SHA256：
+  `c550caadd726751124018560cc2c15f5c68ae41e94d5bf87e4bc0ca95dbda965`。
+- `.13 → .14` 增量：`唠蒯云-13-to-14-update.zip`，18829434 B，SHA256：
+  `adc90f0fddf31e314329f687213e5a7083e54513430413b803943237a761d4c8`。
+  固定基线/目标哈希，只分发变化程序文件；尚非内置在线自动更新。
 - 交付目录：`.local/artifacts/autojoin-test-20261013/`。
-- 精确版本、来源、许可证及对应源码以 [release/manifest.json](release/manifest.json)
-  和 [包回执](release/acceptance/handoff13-portable-20261014.json) 为准。
+- 精确来源、许可证及对应源码见 [release/manifest.json](release/manifest.json)
+  和 [包回执](release/acceptance/member-ui14-portable-20261014.json)。
   包不内嵌源码归档，SOURCE-OFFER 指向精确应用提交及源码更新清单；
   旧六份对应源码附件保留。
 
@@ -72,6 +72,22 @@ gate 改1。在线 scope 提交 disabled consent 或续租并回读同 key 的 f
 false，详见 [V2 契约与回退前置](components/server/COMMUNITY-RELAY-V2.md)。
 
 ## 验证边界与下一步
+
+`.14` 补齐权限校验的成员拖动和频道排序隔离，将响度圆环改为双向条、dB 和
+明确状态；退出新增固定阶段计时并隔离清理异常。未改 routing.5 或音频/ET预算。
+见 [实现与边界](docs/MEMBER-UI-AND-QUIT-20261014.md)。退出数秒的实机原因尚未
+确认，不能宣称修复 Windows 卡顿；下次退出可读新版各阶段日志判断。
+
+36组核心检查、22项实际 Chromium 交互、15组响度语义和9项离线界面检查、
+类型/编译/定向 lint、19组包审计及增量17项检查通过。146项最终程序文件和
+九条录音哈希核验通过。桌面先完整备份270项文件，再经同一增量更新；
+124项用户/未知文件逐项哈希不变，未自动启动。
+隐藏离线新配置启动退出0，无残留及自有网络；保留19条既有离线/禁用IPC错误。
+实际管理员入口时序通过，无真实UAC/ET/TUN/设备媒体。服务器仅按本轮授权
+启用 Gryt 移频开关，其他服务未重启；匿名能力确认不是双端移频验收。
+私人备份和原始日志在 `.local/member-ui14-20261014/`，勿公开或删除恢复材料。
+
+以下保留 `.13` 与更早固定版本验证记录。
 
 `.13` 先完成本地 P2P 播放交接，再暂停 SFU；慢 ACK 后刷新当前媒体证据，恢复时
 保留仍有效的 peer 至精确 SFU 确认、新媒体及本地交接完成。短序贯淡变不等于

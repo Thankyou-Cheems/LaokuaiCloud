@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-14",
+  "version": "1.13.22-laokuai.beta.20261014.14",
+  "sourceCommit": "d28b2ebca208cee06bc9c5d8ab0afbad90365d4a",
+  "file": "唠蒯云-1.13.22-laokuai.beta.20261014.14-zh-CN-win-x64-green.zip",
+  "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-1.13.22-laokuai.beta.20261014.14-zh-CN-win-x64-green.zip",
+  "bytes": 162765292,
+  "sha256": "c550caadd726751124018560cc2c15f5c68ae41e94d5bf87e4bc0ca95dbda965",
+  "appAsarSha256": "ffaacd5278b1ffd847d229a23503bfbd4c3452cbde1192f785d12b975109150f",
+  "staticPayloadFiles": 146,
+  "checks": {
+    "status": "passed",
+    "coreContractSuites": 36,
+    "clientBuildAndTypes": "passed",
+    "changedClientLint": "passed",
+    "packageAuditScenarios": 19,
+    "incrementalScenarios": 17,
+    "receiveDisplaySemanticScenarios": 15,
+    "receiveDisplayBrowserScenarios": 9,
+    "memberDragBrowserScenarios": 22
+  },
+  "bootstrap": {
+    "status": "passed",
+    "exitCode": 0,
+    "rootChildren": 1,
+    "preload": {
+      "electronAPI": "object",
+      "easyTierCommunity": "object"
+    },
+    "visible": false,
+    "focused": false,
+    "unexpectedEvents": 0,
+    "residualOwnedProcesses": 0,
+    "socketSamples": [
+      {
+        "seconds": 1.536,
+        "ownedProcesses": 1,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 3.306,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 5.072,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 6.837,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 8.558,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 10.289,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      },
+      {
+        "seconds": 12.006,
+        "ownedProcesses": 6,
+        "tcpCount": 0,
+        "udpCount": 0
+      }
+    ],
+    "consoleErrors": 19,
+    "realElectronExecuted": true,
+    "isolatedFreshProfile": true,
+    "nativeEtExecuted": false,
+    "realCommunityOrDeviceMediaTest": false
+  },
+  "administratorEntry": {
+    "actualBuiltEntry": true,
+    "sourceSha256": "5a8c9528bf287335db3d186a685e30b7ed41a037e6c52b375c2bafe972a8c16b",
+    "initialReady": false,
+    "entrySettled": true,
+    "promptReady": true,
+    "tokenReads": 1,
+    "nativeUacExecuted": false,
+    "nativeEtExecuted": false,
+    "exitCode": 0
+  },
+  "fixes": [
+    "Drag voice members through existing authorized move transactions; separate member gestures from channel sorting and volume controls",
+    "Display learned loudness compensation as a directional bar, dB value and explicit measurement state; leave manual gain and DSP unchanged",
+    "Record bounded monotonic quit-stage timing, isolate synchronous cleanup failures and close diagnostics after store flush"
+  ],
+  "incremental": {
+    "file": "唠蒯云-13-to-14-update.zip",
+    "localDelivery": ".local/artifacts/autojoin-test-20261013/唠蒯云-13-to-14-update.zip",
+    "bytes": 18829434,
+    "sha256": "adc90f0fddf31e314329f687213e5a7083e54513430413b803943237a761d4c8",
+    "baseVersion": "1.13.22-laokuai.beta.20261014.13",
+    "baseZipSha256": "58c6ebdf5616c7649d6a8c25dbb112280a76044191fc7142e47263f2706fd4a6",
+    "targetZipSha256": "c550caadd726751124018560cc2c15f5c68ae41e94d5bf87e4bc0ca95dbda965",
+    "changedFiles": [
+      {
+        "path": "唠蒯云.exe",
+        "kind": "blocks",
+        "payloadSize": 131072
+      },
+      {
+        "path": "resources/app.asar",
+        "kind": "replace",
+        "payloadSize": 60015467
+      },
+      {
+        "path": "resources/community-lan-helper/broker-build.json",
+        "kind": "replace",
+        "payloadSize": 305
+      },
+      {
+        "path": "resources/community-lan-helper/laokuai-community-broker.exe",
+        "kind": "replace",
+        "payloadSize": 62464
+      },
+      {
+        "path": "resources/legal/SOURCE-OFFER.json",
+        "kind": "replace",
+        "payloadSize": 5191
+      }
+    ],
+    "allTargetFilesVerified": true,
+    "onlineAutomaticUpdater": false,
+    "publisherSignatureImplemented": false
+  },
+  "voiceSdkUnchanged": "routing.5",
+  "voiceRecordingsUnchanged": true,
+  "sourceAttachmentSetUnchanged": true,
+  "productionChangeReceipt": "release/acceptance/voice-member-move-enabled-20261014.json",
+  "productionGrytRestarted": true,
+  "productionSfuEtAndProxyUnchanged": true,
+  "desktopProgramUpdated": true,
+  "userProfileModified": false,
+  "desktopUpdate": {
+    "method": "fixed-baseline-block-delta",
+    "payloadFilesVerified": 146,
+    "profileFilesPreserved": 124,
+    "profileHashesUnchanged": true,
+    "fullLocalBackupVerified": true,
+    "applicationLaunched": false
+  },
+  "realTwoClientMoveAccepted": false,
+  "realQuitLatencyRootCauseConfirmed": false,
+  "realTwoDeviceMediaAccepted": false,
+  "realGameCoexistenceAccepted": false,
+  "realTwelveClientWanAccepted": false,
+  "note": "The .13 package remains immutable. Browser fixtures validate UI transactions and display, not remote audio restoration. Exit stages are measured but the reported real first-quit delay is not yet attributed. Desktop updated through a verified fixed-baseline delta; no user client, ET/TUN or device capture launched.",
+  "easyTierNativeInputsUnchangedFrom": "release/acceptance/handoff13-portable-20261014.json",
+  "brokerRebuiltFromUnchangedSource": true
+}
