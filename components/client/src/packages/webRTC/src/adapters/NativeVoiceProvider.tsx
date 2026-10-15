@@ -157,8 +157,14 @@ export function NativeVoiceProvider({children}:{children?:ReactNode}) {
       micUnavailable:status.error==="audio-device" ? "failed" : null,isAcquiring:status.phase==="starting"},
     speakers:{devices:[],audioContext:undefined,remoteBusNode:undefined,receiveLevelingState:{status:"disabled",latencyMs:0},receiveAutoLevels:{kind:"receive-auto-levels",schemaVersion:1,snapshots:[]},getOutputDevices:noAction,applyOutputDevice:unsupported},
   }),[status,call,connect,disconnect,running,speech,reconcile]);
+  const entry=active.current;
+  // Effective publication includes self mute/deafen. It cannot decide whether
+  // the microphone control is allowed to undo that local choice. Older v1
+  // hosts fall back only to this authenticated channel's permission list.
+  const channelPermissions=entry ? serverDetailsList[entry.host]?.channels.find(channel=>channel.id===entry.session.room)?.myPermissions : undefined;
+  const canSpeak=entry ? (entry.session.canSpeak ?? channelPermissions?.includes("speak")===true) : true;
   return <NativeVoiceContext.Provider value={facade}><EffectiveVoicePolicyProvider value={{inputMode:active.current?.session.requirePTT ? "push_to_talk" : settings.inputMode,
-    requiredPushToTalk:active.current?.session.requirePTT===true,serverMuted:settings.isServerMuted,serverDeafened:settings.isServerDeafened,canSpeak:active.current?.session.canPublish===true}}>
+    requiredPushToTalk:active.current?.session.requirePTT===true,serverMuted:settings.isServerMuted,serverDeafened:settings.isServerDeafened,canSpeak}}>
     <ReceiveLevelingProvider value={{available:false,enabled:null,runtime:"unknown"}}><TransmitSpeechProvider value={speech}><NativeLifecycle/>{children}</TransmitSpeechProvider></ReceiveLevelingProvider>
   </EffectiveVoicePolicyProvider></NativeVoiceContext.Provider>;
 }

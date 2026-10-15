@@ -107,6 +107,18 @@ test("invalid session fails closed, never permits LAN/public IP, duplicate ident
   await f.runtime.reconcile(session({ peers: [{ userId: "bad", virtualIp: "8.8.8.8" }] }));
   assert.equal(f.spawned[0].c.closed, true); await f.runtime.dispose();
 });
+
+test("audio format and bind failures retain safe actionable reasons through shutdown", async () => {
+  for (const code of ["audio-format", "audio-open", "udp-bind", "invalid-config"]) {
+    const f = fixture(); await f.runtime.reconcile(session());
+    f.spawned[0].c.stdout.write(JSON.stringify({event:"error",code,detail:session().key}) + "\n");
+    await tick();
+    assert.equal(f.runtime.getStatus().error, code);
+    assert.equal(f.spawned[0].c.closed, true);
+    assert.ok(!JSON.stringify(f.statuses).includes(session().key));
+    await f.runtime.dispose();
+  }
+});
 test("lease expiry stops owned audio and repeated snapshot refresh renews without restart", async () => {
   const f = fixture(); await f.runtime.reconcile(session({ expiresInMs: 30 }));
   await new Promise(resolve => setTimeout(resolve, 15));

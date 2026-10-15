@@ -27,6 +27,7 @@ try {
         'electron/nativeLanAudioIpc.test.mjs',
         'scripts/check-native-lan-room.mjs',
         'scripts/check-native-lan-provider.mjs',
+        'scripts/check-native-lan-permissions.mjs',
         'scripts/check-native-lan-hotkeys.mjs',
         'scripts/check-native-lan-facade.mjs',
         'electron/communityDns.test.mjs',

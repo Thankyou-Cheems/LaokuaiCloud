@@ -5,7 +5,8 @@ export interface NativeRoomSnapshot {
   v: 1; serverId: string; channelId: string; revision: number; epoch: string;
   localIp: string; key: string; peers: NativeLanAudioDesired["peers"];
   serverTimeMs: number; expiresAtMs: number;
-  canPublish: boolean; canReceive: boolean; requirePTT: boolean;
+  /** Added to v1 separately from effective mute/deafen; absent on older hosts. */
+  canSpeak?: boolean; canPublish: boolean; canReceive: boolean; requirePTT: boolean;
 }
 export interface NativeRoomControls {
   muted: boolean; deafened: boolean; pttRequired: boolean; pttHeld: boolean;
@@ -20,6 +21,7 @@ export function createNativeRoomSession(serverId: string, channelId: string, now
     get active() { return active; },
     get room() { return room; },
     get requirePTT() { return snapshot?.requirePTT === true; },
+    get canSpeak() { return snapshot?.canSpeak; },
     get canPublish() { return snapshot?.canPublish === true; },
     accept(value: unknown, allowMove = false): boolean {
       if (!active || !value || typeof value !== "object") return false;
@@ -27,6 +29,7 @@ export function createNativeRoomSession(serverId: string, channelId: string, now
       if (next.v !== 1 || next.serverId !== serverId || typeof next.channelId !== "string" ||
         (!allowMove && next.channelId !== room) || !Number.isSafeInteger(next.revision) || next.revision < revision ||
         typeof next.canPublish !== "boolean" || typeof next.canReceive !== "boolean" || typeof next.requirePTT !== "boolean" ||
+        (next.canSpeak !== undefined && typeof next.canSpeak !== "boolean") ||
         !Number.isFinite(next.serverTimeMs) || !Number.isFinite(next.expiresAtMs)) return false;
       const remaining = next.expiresAtMs - next.serverTimeMs;
       if (next.revision === revision && (next.serverTimeMs < serverTime ||

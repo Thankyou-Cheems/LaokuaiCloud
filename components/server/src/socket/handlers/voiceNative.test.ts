@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
 import { randomUUID } from "node:crypto";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 import { describe, it } from "node:test";
 import type { Server, Socket } from "socket.io";
 import type { Clients } from "../../types";
@@ -161,6 +163,35 @@ describe("native ET voice control without sockets, SFU, ET or device media", () 
     assert.equal(a.socket.events.at(-1)?.event, "voice:native:stopped");
     a.ci.isServerDeafened = false; reconcileNativeVoice(f.io); await b.heartbeat();
     assert.equal(b.socket.snapshot().peers.length, 1); assert.equal(a.socket.events.at(-1)?.event, "voice:native:snapshot"); f.io.emit("close");
+  });
+  it("keeps channel speak authority separate from self mute, deafen and moderation gates", async () => {
+    const f = fixture(), a = f.add(undefined, "10.203.217.2");
+    a.ci.isMuted = true;
+    await a.join();
+    const snapshots = { self_muted: a.socket.snapshot(), self_deafened: a.socket.snapshot(),
+      server_muted: a.socket.snapshot(), denied: a.socket.snapshot() };
+    const authority = () => (a.socket.snapshot() as NativeVoiceSnapshot & { canSpeak?: boolean }).canSpeak;
+    assert.equal(a.socket.snapshot().canPublish, false);
+    assert.equal(authority(), true, "self mute cannot revoke channel permission or lock out unmute");
+    a.ci.isMuted = false; a.ci.isDeafened = true; await a.heartbeat();
+    snapshots.self_deafened = a.socket.snapshot();
+    assert.equal(a.socket.snapshot().canPublish, false); assert.equal(authority(), true);
+    a.ci.isDeafened = false; a.ci.isServerMuted = true; await a.heartbeat();
+    snapshots.server_muted = a.socket.snapshot();
+    assert.equal(a.socket.snapshot().canPublish, false); assert.equal(authority(), true);
+    const previous = a.socket.snapshot();
+    f.speak(false); await a.heartbeat();
+    snapshots.denied = a.socket.snapshot();
+    assert.equal(authority(), false, "channel denial must still be authoritative");
+    assert.equal(a.socket.snapshot().canPublish, false);
+    assert.ok(a.socket.snapshot().revision > previous.revision, "permission changes need a new revision even while already muted");
+    assert.equal(a.socket.snapshot().epoch, previous.epoch);
+    const fixturePath = process.env.LAOKUAI_NATIVE_PERMISSION_FIXTURE;
+    if (fixturePath) {
+      mkdirSync(dirname(fixturePath), { recursive: true });
+      writeFileSync(fixturePath, JSON.stringify(snapshots, null, 2) + "\n", "utf8");
+    }
+    f.io.emit("close");
   });
   it("authoritative permission revocation and disconnect remove media roster immediately", async () => {
     const f = fixture(), a = f.add(), b = f.add(); await a.join(); await b.join();

@@ -21,7 +21,7 @@ interface Member { socket: Socket; ci: Ci; userId: string; grytId?: string; chan
 interface Room { epoch: string; key: string; revision: number; signature: string; controls: string }
 export interface NativeVoiceSnapshot { v: 1; serverId: string; channelId: string; revision: number; epoch: string;
   localIp: string; key: string; peers: { userId: string; virtualIp: string; canPublish: boolean; canReceive: boolean }[];
-  canPublish: boolean; canReceive: boolean; requirePTT: boolean; serverTimeMs: number; expiresAtMs: number }
+  canSpeak: boolean; canPublish: boolean; canReceive: boolean; requirePTT: boolean; serverTimeMs: number; expiresAtMs: number }
 interface Dependencies {
   enabled(): boolean; now(): number; seatLimit(): number | null;
   authenticate(socket: Socket, ci: Ci, token: string): Promise<boolean>;
@@ -51,7 +51,7 @@ function publish(hub: Hub, channelId: string): void {
   // update in place, keeping each native audio engine running in the same epoch.
   const signature = JSON.stringify(media.map(m => [m.socket.id, m.userId, m.virtualIp, m.credentialId, m.fingerprint])
     .sort((a, b) => String(a[0]).localeCompare(String(b[0]))));
-  const controls = JSON.stringify(media.map(m => [m.socket.id, canPublish(m), canReceive(m), m.policy.requirePTT])
+  const controls = JSON.stringify(media.map(m => [m.socket.id, m.policy.speak, canPublish(m), canReceive(m), m.policy.requirePTT])
     .sort((a, b) => String(a[0]).localeCompare(String(b[0]))));
   let room = hub.rooms.get(channelId);
   if (!room || room.signature !== signature) {
@@ -71,7 +71,7 @@ function publish(hub: Hub, channelId: string): void {
       epoch: room.epoch, localIp: member.virtualIp, key: room.key,
       peers: media.filter(m => m !== member).map(m => ({ userId: m.userId, virtualIp: m.virtualIp,
         canPublish: canPublish(m), canReceive: canReceive(m) })),
-      canPublish: canPublish(member), canReceive: canReceive(member), requirePTT: member.policy.requirePTT,
+      canSpeak: member.policy.speak, canPublish: canPublish(member), canReceive: canReceive(member), requirePTT: member.policy.requirePTT,
       serverTimeMs: now, expiresAtMs: member.expiresAtMs };
     // Keys and device addresses go only to this authenticated socket.
     member.socket.emit("voice:native:snapshot", snapshot);

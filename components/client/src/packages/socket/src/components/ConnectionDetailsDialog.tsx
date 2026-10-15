@@ -9,6 +9,7 @@ import { useMemberVoiceMediaPath } from "@/webRTC/src/components/MemberVoiceMedi
 import { useEasyTierCommunityState, useEasyTierMemberSnapshot } from "../../../../lib/communityLanState";
 import type { EasyTierCommunityState } from "../../../../lib/easyTierCommunity";
 import { type MemberLanReading, readMemberLanStatus } from "../../../../lib/memberLanStatus";
+import { nativeLanAudioErrorText } from "../../../../lib/nativeLanAudio";
 import { nativeVoiceEnabled, useNativeAudioStatus, useSFU } from "../../../../lib/voiceFacade";
 import { useServerManagement } from "../hooks/useServerManagement";
 import { useSockets } from "../hooks/useSockets";
@@ -64,7 +65,8 @@ export function ConnectionDetailsDialog({ open, onOpenChange, nickname, isSelf, 
         <Dialog.Title>{t("connectionDetails.title", { nickname })}</Dialog.Title>
         <Dialog.Description>{nativeVoiceEnabled ? "原生 AoO / Opus 音频通过社区 EasyTier 虚拟地址传输。" : t("connectionDetails.description")}</Dialog.Description>
         {nativeVoiceEnabled && <section data-gryt="native-audio-details" className="border-t border-gryt-border pt-3">
-          {table([{label:"本机音频组件",value:nativeStatus?.phase ?? "idle"},
+          {table([{label:"本机音频组件",value:({idle:"未启动",starting:"启动中",running:"运行中",stopping:"停止中",error:"启动或运行失败"})[nativeStatus?.phase ?? "idle"]},
+            ...(nativeStatus?.error ? [{label:"音频失败原因",value:nativeLanAudioErrorText(nativeStatus.error)}] : []),
             {label:"本机采集 RMS",value:nativeStatus?.captureRms.toFixed(4) ?? "—",numeric:true},
             {label:"本机播放混音 RMS",value:nativeStatus?.playbackRms.toFixed(4) ?? "—",numeric:true},
             {label:"本机 UDP 发 / 收包",value:`${nativeStatus?.packetsSent ?? 0} / ${nativeStatus?.packetsReceived ?? 0}`,numeric:true}])}

@@ -395,6 +395,39 @@ PaDeviceIndex defaultDevice(bool capture) {
     return capture ? Pa_GetDefaultInputDevice() : Pa_GetDefaultOutputDevice();
 }
 
+template<class Supported>
+bool selectChannelFormat(int maxInput, int maxOutput, int& input, int& output, Supported supported) {
+    for (int in = 1; in <= 2; ++in) {
+        for (const int out : {1, 2, maxOutput > 2 ? maxOutput : 0}) {
+            if (out < 1 || in > maxInput || out > maxOutput) continue;
+            if (supported(in, out)) { input = in; output = out; return true; }
+        }
+    }
+    return false;
+}
+
+void renderMono(const float* mono, float* output, unsigned long frames, int channels) noexcept {
+    // WASAPI's native mix format can be surround. Voice belongs in the front
+    // left/right pair; all other output channels must be explicitly silent.
+    std::fill(output, output + frames * channels, 0.f);
+    for (unsigned long i = 0; i < frames; ++i) {
+        output[i * channels] = mono[i];
+        if (channels > 1) output[i * channels + 1] = mono[i];
+    }
+}
+
+bool selectDeviceFormat(PaStreamParameters& in, PaStreamParameters& out,
+                        const PaDeviceInfo& input, const PaDeviceInfo& output) {
+    in.sampleFormat = out.sampleFormat = paFloat32;
+    in.suggestedLatency = input.defaultLowInputLatency;
+    out.suggestedLatency = output.defaultLowOutputLatency;
+    return selectChannelFormat(input.maxInputChannels, output.maxOutputChannels,
+        in.channelCount, out.channelCount, [&](int inputChannels, int outputChannels) {
+            in.channelCount = inputChannels; out.channelCount = outputChannels;
+            return Pa_IsFormatSupported(&in, &out, 48000) == paFormatIsSupported;
+        });
+}
+
 struct Host {
     explicit Host(const Config& config) : cfg(config), envelope(config) {
         for (std::size_t i = 0; i < cfg.peers.size(); ++i) {
@@ -463,13 +496,11 @@ struct Host {
             in = host.monoInput.data();
         }
         const auto* samples = (!in || muted) ? host.silence.data() : in;
-        auto* mono = host.outputChannels == 2 ? host.monoOutput.data() : out;
+        auto* mono = host.outputChannels > 1 ? host.monoOutput.data() : out;
         const bool ok = host.engine.process(samples, mono, static_cast<int>(frames), host.audioNtp());
         if (!ok) std::fill(mono, mono + frames, 0.f);
         if (deafened) std::fill(mono, mono + frames, 0.f);
-        if (host.outputChannels == 2) {
-            for (unsigned long i = 0; i < frames; ++i) out[i * 2] = out[i * 2 + 1] = mono[i];
-        }
+        if (host.outputChannels > 1) renderMono(mono, out, frames, host.outputChannels);
         double capture = 0, playback = 0;
         for (unsigned long i = 0; i < frames; ++i) {
             capture += static_cast<double>(samples[i]) * samples[i];
@@ -592,6 +623,24 @@ int devices() {
     return 0;
 }
 
+int checkDeviceFormat() {
+    if (Pa_Initialize() != paNoError) { error("audio-init"); return 2; }
+    PaStreamParameters in{}, out{};
+    in.device = defaultDevice(true); out.device = defaultDevice(false);
+    const auto* input = Pa_GetDeviceInfo(in.device);
+    const auto* output = Pa_GetDeviceInfo(out.device);
+    const char* failure = !input || !output || input->maxInputChannels < 1 || output->maxOutputChannels < 1
+        ? "audio-device" : !selectDeviceFormat(in, out, *input, *output) ? "audio-format" : nullptr;
+    if (failure) error(failure);
+    else std::cout << "{\"event\":\"device-format\",\"inputDevice\":" << in.device
+        << ",\"outputDevice\":" << out.device << ",\"inputChannels\":" << in.channelCount
+        << ",\"outputChannels\":" << out.channelCount
+        << ",\"sampleRate\":48000,\"audioOpened\":false,\"networkOpened\":false}\n" << std::flush;
+    ShutdownDeadline deadline;
+    Pa_Terminate();
+    return failure ? 2 : 0;
+}
+
 int run(Config& cfg, Input& input) {
     Host host(cfg);
     WSADATA data{};
@@ -628,17 +677,7 @@ int run(Config& cfg, Input& input) {
         const auto* inDevice = Pa_GetDeviceInfo(in.device);
         const auto* outDevice = Pa_GetDeviceInfo(out.device);
         if (!inDevice || !outDevice || inDevice->maxInputChannels < 1 || outDevice->maxOutputChannels < 1) { failure = "audio-device"; break; }
-        in.sampleFormat = out.sampleFormat = paFloat32;
-        in.suggestedLatency = inDevice->defaultLowInputLatency;
-        out.suggestedLatency = outDevice->defaultLowOutputLatency;
-        bool format = false;
-        for (int inputChannels = 1; inputChannels <= 2 && !format; ++inputChannels) {
-            for (int outputChannels = 1; outputChannels <= 2 && !format; ++outputChannels) {
-                if (inputChannels > inDevice->maxInputChannels || outputChannels > outDevice->maxOutputChannels) continue;
-                in.channelCount = inputChannels; out.channelCount = outputChannels;
-                if (Pa_IsFormatSupported(&in, &out, 48000) == paFormatIsSupported) format = true;
-            }
-        }
+        const bool format = selectDeviceFormat(in, out, *inDevice, *outDevice);
         if (!format) { failure = "audio-format"; break; }
         host.inputChannels = in.channelCount; host.outputChannels = out.channelCount;
         host.inputDevice = in.device; host.outputDevice = out.device;
@@ -712,6 +751,26 @@ int run(Config& cfg, Input& input) {
 int selfTest() {
     unsigned checks = 0;
     auto require = [&](bool ok) { if (!ok) throw std::runtime_error("self-test"); ++checks; };
+    int selectedInput = 0, selectedOutput = 0;
+    // WASAPI may reject mono/stereo requests for an eight-channel mix endpoint.
+    // Exercise the exact selector used before opening the production stream.
+    require(selectChannelFormat(2, 8, selectedInput, selectedOutput,
+        [](int input, int output) { return input == 2 && output == 8; }));
+    require(selectedInput == 2 && selectedOutput == 8);
+    require(selectChannelFormat(2, 2, selectedInput, selectedOutput,
+        [](int input, int output) { return input == 1 && output == 2; }));
+    require(selectedInput == 1 && selectedOutput == 2);
+    require(!selectChannelFormat(2, 8, selectedInput, selectedOutput,
+        [](int, int) { return false; }));
+    const std::array<float, 2> monoFixture{.25f, -.5f};
+    for (const int channels : {2, 8}) {
+        std::array<float, 18> outputFixture;
+        outputFixture.fill(9.f);
+        renderMono(monoFixture.data(), outputFixture.data() + 1, 2, channels);
+        require(outputFixture.front() == 9.f && outputFixture[1 + 2 * channels] == 9.f);
+        for (int i = 0; i < 2 * channels; ++i)
+            require(outputFixture[1 + i] == (i % channels < 2 ? monoFixture[i / channels] : 0.f));
+    }
     std::uint32_t address = 0;
     require(ipv4("10.203.217.1", address) && permitted(address, false));
     require(ipv4("10.203.217.254", address) && permitted(address, false));
@@ -817,6 +876,7 @@ int main(int argc, char** argv) {
     try {
         if (argc == 2 && std::string(argv[1]) == "--self-test") return selfTest();
         if (argc == 2 && std::string(argv[1]) == "--devices") return devices();
+        if (argc == 2 && std::string(argv[1]) == "--check-device-format") return checkDeviceFormat();
         const bool loopback = argc == 2 && std::string(argv[1]) == "--loopback-test";
         if (argc > 2 || (argc == 2 && !loopback && std::string(argv[1]) != "--stdio")) { error("invalid-arguments"); return 2; }
         Input input;

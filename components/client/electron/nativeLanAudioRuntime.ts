@@ -6,6 +6,7 @@ import {
   type NativeLanAudioDesired,
   type NativeLanAudioError,
   type NativeLanAudioStatus,
+  nativeLanHelperError,
   normalizeNativeLanAudioDesired,
 } from "../src/lib/nativeLanAudio";
 
@@ -168,9 +169,7 @@ export class NativeLanAudioRuntime {
       this.publish({ ...this.status, captureRms: rms(value.captureRms), playbackRms: rms(value.playbackRms),
         packetsSent: count(value.packetsSent), packetsReceived: count(value.packetsReceived), processErrors: count(value.processErrors) });
     } else if (value.event === "error") {
-      const code = typeof value.code === "string" ? value.code : "";
-      this.childFailure(code === "audio-device" ? "audio-device" : code.startsWith("audio-") ? "audio-runtime" :
-        code.startsWith("udp-") ? "network-runtime" : "helper-protocol");
+      this.childFailure(nativeLanHelperError(value.code) ?? "helper-protocol");
     } else if (value.event !== "stopped") this.childFailure("helper-protocol");
   }
   private async stopChild(): Promise<void> {

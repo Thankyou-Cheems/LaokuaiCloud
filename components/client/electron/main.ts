@@ -347,11 +347,17 @@ const communityDns = new CommunityDnsPolicy({
 });
 const easyTierGrants = createCommunityEtGrantRuntime(() => easyTierProductRoot(app.getPath("userData")), communityDnsEnabled ? communityDns : undefined,
   () => communityNetworkSettings.forSession(), communityRelayPreferences, event => localDiagnostics?.record(networkDiagnostic(event)));
+let lastNativeAudioState = "";
 const nativeLanAudio = new NativeLanAudioRuntime({
   verifyExecutable: () => IS_NATIVE_LAN_VOICE && !LAOKUAI_PREVIEW && !UI_ACCEPTANCE_MODE
     ? verifiedNativeLanAudioExecutable(nativeAudioRoot) : null,
   spawn,
   onStatus: status => {
+    const state = `${status.phase}:${status.error ?? "none"}`;
+    if (state !== lastNativeAudioState) {
+      lastNativeAudioState = state;
+      startupLog(`Native audio: phase=${status.phase} reason=${status.error ?? "none"}`);
+    }
     if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("native-lan-audio-state", status);
   },
 });
