@@ -1,5 +1,12 @@
 # 原生局域网语音部署（已开启）
 
+最新 native.3 配套后端：源码 `f33fddd44f9f1743752cb2dfa0592a48210637d3`，镜像
+`sha256:139186b534d5970f5774be7ce7e5c770befd1c97b425139db575b4fbd91d6fe6`。
+私有回滚目录 `/opt/stacks/gryt/native-lan-voice-f33fddd44f9f/`，回滚仍保留原生模式。
+仅新增独立 canSpeak 字段，真实发包仍受原有策略控制。
+第一次运行差异保护已自动回滚；重试通过原保护，详见
+[native.3 回执](../../acceptance/native-audio3-20261015.json)。真实双机仍待验收。
+
 2026-10-15 更新：仅 Gryt 已部署能力字段修复 `3f4faa95a23c7c06455babd86393a85657f57e2d`，
 当前镜像 `sha256:5917038f9366cd7d160a2052a6ca1914b2125f7da291a63a79c8f6e952591bbe`。
 本次回滚目录 `/opt/stacks/gryt/native-lan-voice-3f4faa95a23c/`，回滚保留原生模式。

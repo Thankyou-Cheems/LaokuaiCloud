@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "branch": "codex/native-lan-voice",
+  "sourceCommit": "f02918f708418394651d6c03c852b7013c2a4cf0",
+  "version": "1.13.22-laokuai.native.20261015.3",
+  "archive": {
+    "file": "唠蒯云-1.13.22-laokuai.native.20261015.3-zh-CN-win-x64-green.zip",
+    "bytes": 159966326,
+    "sha256": "f70fe5831a8dceafc9b71fdd901b819ade5b65004d5ff4cc5dbaa4ac8e2c2fb5"
+  },
+  "nativeHelper": {
+    "sha256": "9b34b43702645598454df1f1c3fe1553e32a0007cff01e55ba2a1dfda8e55968",
+    "bytes": 1111040,
+    "selfTests": 161,
+    "stdioRejectionChecks": 4,
+    "realDeviceFormatOnly": {"inputChannels": 1, "outputChannels": 8, "sampleRate": 48000, "audioOpened": false, "networkOpened": false}
+  },
+  "checks": {
+    "exactPayloadFiles": 153,
+    "zipExtractionMatches": true,
+    "sourceOfferExact": true,
+    "hiddenElectronOfflineBoot": true,
+    "coreScriptEntriesPassed": 40,
+    "serverNativeTestsPassed": 18,
+    "actualServerSnapshotProviderAndMicrophoneControlPassed": true,
+    "clientCompileTypesAndTouchedLintPassed": true,
+    "serverTypesAndTouchedLintPassed": true,
+    "offlineAooOpusPassed": true
+  },
+  "backend": {
+    "sourceCommit": "f33fddd44f9f1743752cb2dfa0592a48210637d3",
+    "image": "sha256:139186b534d5970f5774be7ce7e5c770befd1c97b425139db575b4fbd91d6fe6",
+    "previousImage": "sha256:5917038f9366cd7d160a2052a6ca1914b2125f7da291a63a79c8f6e952591bbe",
+    "bundleSha256": "ae1003bde1f2c6799a94e816c976fa2e7677658a2a235889ec84282beb685d6b",
+    "sameServerBundleAsApplicationSource": true,
+    "healthy": true,
+    "voiceMaxUsers": 12,
+    "memberRelayEnabled": true,
+    "independentContainersUnchanged": 17,
+    "managementProxyUnchanged": true,
+    "databaseBackupVerified": true,
+    "databaseRestored": false,
+    "onlyRuntimeDelta": ["Gryt image"],
+    "firstAttempt": {"runtimeDriftDetected": true, "exactDriftCaptured": false, "automaticallyRolledBack": true},
+    "retryPassedOriginalRuntimeGuard": true
+  },
+  "desktopUpdated": false,
+  "profileChanged": false,
+  "realTwoDeviceAudioAccepted": false,
+  "realTwelveMemberWanAccepted": false
+}
