@@ -111,6 +111,20 @@ Check 'profile manifest path refused' {
     $dir = New-FixtureInstall 'profile-install'
     Expect-Rejection { Invoke-LaokuaiIncrementalUpdate -UpdateZip $evil -InstallDirectory $dir -ExpectedPackageSha256 (Get-UpdateHash $evil) } 'outside the fixed program whitelist'; Assert-FixtureBaseline $dir
 }
+Check 'native audio program and six licenses have exact whitelist entries' {
+    foreach ($path in @('resources/native-lan-audio/laokuai-native-audio.exe',
+        'resources/native-lan-audio/licenses/AoO-BSD.txt',
+        'resources/native-lan-audio/licenses/LaokuaiCloud-AGPL-3.0-or-later.txt',
+        'resources/native-lan-audio/licenses/Opus-COPYING.txt',
+        'resources/native-lan-audio/licenses/Opus-patent-notice.txt',
+        'resources/native-lan-audio/licenses/oscpack.txt',
+        'resources/native-lan-audio/licenses/PortAudio.txt')) { Assert-UpdateProgramPath $path }
+    foreach ($path in @('resources/native-lan-audio/profile.json',
+        'resources/native-lan-audio/licenses/unknown.txt',
+        'resources/native-lan-audio/laokuai-native-audio.exe.config')) {
+        Expect-Rejection { Assert-UpdateProgramPath $path } 'outside the fixed program whitelist'
+    }
+}
 Check 'out of range block patch rejected before replacement' {
     $evil = Rewrite-Package 'bad-offset' { param($dir)
         $m = Get-Content -LiteralPath (Join-Path $dir 'update.json') -Raw | ConvertFrom-Json
