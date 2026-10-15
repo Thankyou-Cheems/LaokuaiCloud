@@ -221,6 +221,7 @@ def activate():
         expected = b.shape(before["server"])
         expected["environment"]["NATIVE_LAN_VOICE_ENABLED"] = "true"
         if b.shape(row) != expected:
+            save("runtime-drift.private.json", {"expected": expected, "actual": b.shape(row)})
             raise RuntimeError("production-runtime-drift")
         guard()
     except Exception:
