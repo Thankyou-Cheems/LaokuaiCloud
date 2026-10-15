@@ -13,7 +13,13 @@
     "bytes": 1111040,
     "selfTests": 161,
     "stdioRejectionChecks": 4,
-    "realDeviceFormatOnly": {"inputChannels": 1, "outputChannels": 8, "sampleRate": 48000, "audioOpened": false, "networkOpened": false}
+    "realDeviceFormatOnly": {
+      "inputChannels": 1,
+      "outputChannels": 8,
+      "sampleRate": 48000,
+      "audioOpened": false,
+      "networkOpened": false
+    }
   },
   "checks": {
     "exactPayloadFiles": 153,
@@ -40,12 +46,64 @@
     "managementProxyUnchanged": true,
     "databaseBackupVerified": true,
     "databaseRestored": false,
-    "onlyRuntimeDelta": ["Gryt image"],
-    "firstAttempt": {"runtimeDriftDetected": true, "exactDriftCaptured": false, "automaticallyRolledBack": true},
+    "onlyRuntimeDelta": [
+      "Gryt image"
+    ],
+    "firstAttempt": {
+      "runtimeDriftDetected": true,
+      "exactDriftCaptured": false,
+      "automaticallyRolledBack": true
+    },
     "retryPassedOriginalRuntimeGuard": true
   },
-  "desktopUpdated": false,
+  "desktopUpdated": true,
   "profileChanged": false,
   "realTwoDeviceAudioAccepted": false,
-  "realTwelveMemberWanAccepted": false
+  "realTwelveMemberWanAccepted": false,
+  "desktop": {
+    "installedAt": "2026-10-15T11:45:11.1347283+08:00",
+    "profileUnchanged": true,
+    "changedProgramFiles": [
+      "唠蒯云.exe",
+      "resources/app.asar",
+      "resources/community-lan-helper/broker-build.json",
+      "resources/community-lan-helper/laokuai-community-broker.exe",
+      "resources/legal/SOURCE-OFFER.json",
+      "resources/native-lan-audio/laokuai-native-audio.exe"
+    ],
+    "existingShortcutsUnchanged": true,
+    "applicationLaunched": false,
+    "programFilesVerified": 153,
+    "fullBackupFilesVerified": 299,
+    "protectedFilesUnchanged": 146
+  },
+  "incrementalUpdater": {
+    "sha256": "5f06ec76a85758f692a4e2b186ba8b306ea3f8c3daab1da9dcecb8139e3c040a",
+    "file": "唠蒯云-native2到native3-双击更新.exe",
+    "syntheticPolicyChecks": 17,
+    "userAppLaunched": false,
+    "deltaZip": {
+      "file": "唠蒯云-native2到native3-增量.zip",
+      "bytes": 16119152,
+      "sha256": "dbed6fdef23a0e2319f11003c0eec820be8f920009c30ebe6516bd754abc9ece"
+    },
+    "requiresPowerShell": false,
+    "embeddedProductionEngineVerified": true,
+    "nativeEngineFixtureGroups": 14,
+    "applicationSourceCommit": "f02918f708418394651d6c03c852b7013c2a4cf0",
+    "changedProgramFiles": [
+      "唠蒯云.exe",
+      "resources/app.asar",
+      "resources/community-lan-helper/broker-build.json",
+      "resources/community-lan-helper/laokuai-community-broker.exe",
+      "resources/legal/SOURCE-OFFER.json",
+      "resources/native-lan-audio/laokuai-native-audio.exe"
+    ],
+    "realArchiveRoundtripFiles": 153,
+    "syntheticProfilePreserved": true,
+    "bytes": 16494592,
+    "baseVersion": "1.13.22-laokuai.native.20261014.2",
+    "targetVersion": "1.13.22-laokuai.native.20261015.3",
+    "sourceCommit": "f33fddd44f9f1743752cb2dfa0592a48210637d3"
+  }
 }
