@@ -127,8 +127,8 @@ def smoke(image):
 def build():
     data = frozen()
     before = discover()
-    if b.env(before["server"]).get("NATIVE_LAN_VOICE_ENABLED") == "true":
-        raise RuntimeError("already-native")
+    # The same server-only flow also upgrades an already enabled native server.
+    # Rollback keeps the baseline's existing flag via its original Compose stack.
     save("baseline.private.json", before)
     base = before["server"]["Image"]
     prefix = "local.laokuai/native-lan-voice"

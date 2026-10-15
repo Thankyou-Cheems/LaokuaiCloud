@@ -17,8 +17,16 @@ const native={async reconcile(value){desired.push(value);return {...idle,phase:v
 const idle={phase:'idle',peerCount:0,muted:true,deafened:true,captureRms:0,playbackRms:0,packetsSent:0,packetsReceived:0,processErrors:0};
 const react={useRef:initial=>({current:initial}),useCallback:fn=>fn,useMemo:fn=>fn(),useState(initial){const slot=index++;states[slot]=initial;return [initial,update=>{states[slot]=typeof update==='function'?update(states[slot]):update;}];},useEffect(fn){effects.push(fn);}};
 const jsx=(type,props)=>({type,props});
+// Optional cross-boundary fixture produced by the real server builders with a
+// fresh synthetic SQLite member. Never substitute a handwritten capability.
+const detailsArg=process.argv.indexOf('--server-details');
+const serverDetails=detailsArg<0 ? {server_info:{server_id:'server',native_lan_voice_enabled:true},channels:[{id:'room',type:'voice'},{id:'destination',type:'voice'}]}
+  : JSON.parse(readFileSync(process.argv[detailsArg+1],'utf8'));
+assert.equal(serverDetails.server_info.server_id,'server');
+assert.ok(serverDetails.channels.some(channel=>channel.id==='room' && channel.type==='voice'));
+assert.ok(serverDetails.channels.some(channel=>channel.id==='destination' && channel.type==='voice'));
 const deps={react,'react/jsx-runtime':{jsx,jsxs:jsx},'@gryt/voice':{SFUConnectionState:{DISCONNECTED:'disconnected',REQUESTING_ACCESS:'requesting_access',CONNECTING:'connecting',CONNECTED:'connected',RECONNECTING:'reconnecting'}},
-  '@/common':{useUserId:()=> 'account'},'@/settings':{useSettings:()=>prefs},'@/socket':{useServerManagement:()=>({currentlyViewingServer:{host:'host'}}),useSockets:()=>({sockets:{host:socket},serverDetailsList:{host:{server_info:{server_id:'server',native_lan_voice_enabled:true},channels:[{id:'room',type:'voice'},{id:'destination',type:'voice'}]}}})},
+  '@/common':{useUserId:()=> 'account'},'@/settings':{useSettings:()=>prefs},'@/socket':{useServerManagement:()=>({currentlyViewingServer:{host:'host'}}),useSockets:()=>({sockets:{host:socket},serverDetailsList:{host:serverDetails}})},
   '../../../../lib/nativeRoomSession':session,'../../../../lib/nativeLanAudio':contract,'../../../../lib/voiceFacade':{NativeVoiceContext:{Provider:'NativeContext'}},
   '../../../socket/src/utils/tokenManager':{emitAuthenticated:async(s,event,payload,host,valid)=>{if(valid()){s.emit(event,payload);return true;}return false;}},
   '../components/EffectiveVoicePolicy':{EffectiveVoicePolicyProvider:'Policy'},'../components/ReceiveLevelingAdapter':{ReceiveLevelingProvider:'Level'},'../components/TransmitSpeechAdapter':{TransmitSpeechProvider:'Speech'},

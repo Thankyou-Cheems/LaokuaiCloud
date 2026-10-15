@@ -194,6 +194,21 @@ if (stunHosts.length === 0 && !disableStun) {
   consola.error("Missing STUN servers! SFU may not reach all clients.");
 }
 
+// Both announcements reach the desktop at different stages of a join. Its
+// voice provider reads the authenticated details, so they must carry the same
+// capabilities as the public probe, including native voice without an SFU.
+async function serverVoiceCapabilities() {
+  const nativeVoice = nativeLanVoiceEnabled();
+  return {
+    voice_enabled: nativeVoice || !!sfuHost,
+    voice_atomic_move_enabled: nativeVoice || await voiceAtomicMoveEnabled(),
+    voice_audio_only: nativeVoice || audioOnlyEnabled(),
+    nativeLanVoice: nativeVoice,
+    native_lan_voice_enabled: nativeVoice,
+    nativeLanVoiceProtocol: nativeVoice ? 1 : null,
+  };
+}
+
 export async function sendInfo(socket: Socket, clientsInfo: Clients | undefined, _instanceId: string) {
   const activeMembers = clientsInfo ? Object.values(clientsInfo).filter((client) => 
     client.serverUserId && !client.serverUserId.startsWith('temp_')
@@ -218,11 +233,7 @@ export async function sendInfo(socket: Socket, clientsInfo: Clients | undefined,
   }
 
   const serverInfo = {
-    voice_atomic_move_enabled: nativeLanVoiceEnabled() || await voiceAtomicMoveEnabled(),
-    voice_audio_only: nativeLanVoiceEnabled() || audioOnlyEnabled(),
-    nativeLanVoice: nativeLanVoiceEnabled(),
-    native_lan_voice_enabled: nativeLanVoiceEnabled(),
-    nativeLanVoiceProtocol: nativeLanVoiceEnabled() ? 1 : null,
+    ...await serverVoiceCapabilities(),
     name: displayName,
     description,
     members: activeMembers.toString(),
@@ -427,6 +438,7 @@ export async function sendServerDetails(socket: Socket, clientsInfo: Clients, in
     sidebar_items,
     channels,
     server_info: {
+      ...await serverVoiceCapabilities(),
       server_id: instanceId,
       name: cfgName,
       description: cfgDesc,
@@ -449,7 +461,6 @@ export async function sendServerDetails(socket: Socket, clientsInfo: Clients, in
         mentionable: r.mentionable,
       })),
       max_members: parseInt(process.env.MAX_MEMBERS || "100"),
-      voice_enabled: !!sfuHost,
       avatar_max_bytes: cfgAvatarMaxBytes,
       upload_max_bytes: cfgUploadMaxBytes,
       /** Uploads go through the worker's sandbox first, and whether a video avatar or banner is taken. */
@@ -470,7 +481,7 @@ export async function sendServerDetails(socket: Socket, clientsInfo: Clients, in
   socket.emit("server:details", serverDetails);
   consola.info(`Sent server details to client ${socket.id}:`, {
     channels: channels.length,
-    voice_enabled: !!sfuHost,
+    voice_enabled: serverDetails.server_info.voice_enabled,
     stun_servers: stunHosts.length,
   });
 }
