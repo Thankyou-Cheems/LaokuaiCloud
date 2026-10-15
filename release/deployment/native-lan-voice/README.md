@@ -1,5 +1,12 @@
 # 原生局域网语音部署（已开启）
 
+2026-10-15 更新：仅 Gryt 已部署能力字段修复 `3f4faa95a23c7c06455babd86393a85657f57e2d`，
+当前镜像 `sha256:5917038f9366cd7d160a2052a6ca1914b2125f7da291a63a79c8f6e952591bbe`。
+本次回滚目录 `/opt/stacks/gryt/native-lan-voice-3f4faa95a23c/`，回滚保留原生模式。
+桌面仍为 native.2。用户确认已能入房，但音频启动和 owner 开麦权限问题仍在诊断。
+本次仅镜像变化，17 个其他容器/代理未重启；见
+[能力修复回执](../../acceptance/native-voice-capabilities-20261015.json)。下文首版记录保留追溯。
+
 源码分支 `codex/native-lan-voice`。仅本分支 Gryt 增加原生频道控制协议；
 客户端版本 `1.13.22-laokuai.native.20261014.1`。
 
@@ -45,7 +52,8 @@
 
 ## 验收
 
-1. 新后端 `server:info` 宣告 nativeLanVoice 和协议版本，旧客户端语音请求
+1. 新后端 `server:info` 和认证后 `server:details.server_info` 都宣告相同的
+   nativeLanVoice、native_lan_voice_enabled 和协议版本，原生模式无 SFU 也启用 voice_enabled。旧客户端语音请求
    得到明确拒绝，聊天和 EasyTier 仍可用。
 2. 两端用新版正常恢复社区；不进入语音时 EasyTier IP/MagicDNS 继续存在。
 3. 点选同一频道，不输入音频 IP/密钥，私有快照发现对端，原生进程产生收发包；

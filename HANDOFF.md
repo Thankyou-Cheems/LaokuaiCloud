@@ -1,11 +1,23 @@
 # 当前开发交接
 
-更新：2026-10-14。唯一开发目录 `D:\Dev\LaokuaiCloud`，当前实验分支 `codex/native-lan-voice`。
+更新：2026-10-15。唯一开发目录 `D:\Dev\LaokuaiCloud`，当前实验分支 `codex/native-lan-voice`。
 桌面已更新为 `1.13.22-laokuai.native.20261014.2`，账号数据和配置逐项校验未变。易记 MagicDNS
 已部署并经用户确认，成员中继两端服务端开关已开启，成员移动能力也已启用。
 真实多设备转发、移频恢复、游戏和 12 人 WAN 语音仍未验收。
 
-## 当前修复：native.2 联机超时
+## 当前现场：原生入房与音频启动
+
+用户已确认 native.2 能加入 EasyTier。原生入房最初被后端详情漏字段拒绝：
+`server:info` 有 native 能力，`server:details.server_info` 没有，而客户端读取后者。
+源码 `3f4faa95a23c7c06455babd86393a85657f57e2d` 已同步实验分支并仅部署 Gryt，
+当前镜像 `5917038f9366`。真实后端详情送入客户端 provider 的红绿检查已复现并通过。
+17 个独立容器和 ET 管理代理未重启；桌面未改动，数据库完整备份保留。
+用户现确认可以进入频道，但音频组件显示 error，点击麦克风错误提示 owner 无发言权限。
+这两项继续诊断，尚未真实出声验收。详情见
+[问题记录](docs/NATIVE-VOICE-CAPABILITIES-20261015.md) 和
+[部署回执](release/acceptance/native-voice-capabilities-20261015.json)。
+
+## 已修复：native.2 联机超时
 
 用户 native.1 实测出现 ET 操作超时。首次日志确认可选 Ping 规则准备占据了
 8 秒必需入网时限，核心就绪后仍被取消；真实 manager/runtime 接线已复现红测。
